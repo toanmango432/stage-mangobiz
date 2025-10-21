@@ -1,0 +1,122 @@
+/* PLEASE NOTE: THESE TAILWIND IMPORTS SHOULD NEVER BE DELETED */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+/* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL */
+/* Improve text rendering */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+/* Enhance icon rendering */
+svg {
+  shape-rendering: geometricPrecision;
+}
+/* Improve border rendering */
+* {
+  border-color: transparent;
+}
+.rounded-lg, .rounded-md, .rounded-xl, .rounded-full {
+  overflow: hidden;
+}
+/* Sharpen shadows */
+.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl {
+  --tw-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  /* Increase touch target sizes */
+  button, 
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  /* Ensure inputs are large enough to type into */
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+  /* Prevent content from being hidden under fixed headers */
+  .fixed-header-padding {
+    padding-top: 60px;
+  }
+  /* Improve scrolling experience */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-optimized-padding {
+    padding: 1rem;
+  }
+  .tablet-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+/* Hide scrollbar for clean UI while maintaining functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+/* Prevent text selection on interactive elements */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+/* Tab transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.tab-content-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+/* Fix for mobile tab navigation */
+@media (max-width: 640px) {
+  .mobile-tab-active {
+    display: block;
+  }
+  .mobile-tab-inactive {
+    display: none;
+  }
+}
+/* Fix for tablet tab navigation */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-tab-active {
+    display: block;
+  }
+  .tablet-tab-inactive {
+    display: none;
+  }
+}
+/* Crisp text rendering enhancements */
+.crisp-text {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* Enhance SVG icon rendering */
+svg.crisp-icon {
+  shape-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
+}
+/* Improve small text readability */
+.text-xs, .text-sm, .text-[10px], .text-[9px] {
+  letter-spacing: 0.01em;
+  font-feature-settings: "tnum" on, "lnum" on;
+}
