@@ -242,8 +242,35 @@ export function BookPage() {
         ...updates,
       }, 3);
 
+      // Reload appointments to show the updated one
+      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
+      updatedAppointments.forEach((apt: any) => {
+        const localApt: LocalAppointment = {
+          id: apt.id,
+          salonId: apt.salonId,
+          clientId: apt.clientId,
+          clientName: apt.clientName,
+          clientPhone: apt.clientPhone || '',
+          staffId: apt.staffId,
+          staffName: apt.staffName || '',
+          services: apt.services || [],
+          status: apt.status as any,
+          scheduledStartTime: new Date(apt.scheduledStartTime),
+          scheduledEndTime: new Date(apt.scheduledEndTime),
+          notes: apt.notes,
+          source: (apt.source || 'walk-in') as 'online' | 'walk-in',
+          createdAt: new Date(apt.createdAt),
+          updatedAt: new Date(apt.updatedAt),
+          createdBy: apt.createdBy,
+          lastModifiedBy: apt.lastModifiedBy,
+          syncStatus: apt.syncStatus,
+        };
+        dispatch(addLocalAppointment(localApt));
+      });
+
       setToast({ message: 'Appointment updated successfully!', type: 'success' });
       setIsEditAppointmentOpen(false);
+      setSelectedAppointment(null); // Clear selection
     } catch (error) {
       console.error('Error updating appointment:', error);
       setToast({ message: 'Failed to update appointment. Please try again.', type: 'error' });
