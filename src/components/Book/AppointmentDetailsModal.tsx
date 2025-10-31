@@ -16,6 +16,7 @@ interface AppointmentDetailsModalProps {
   onStatusChange?: (appointmentId: string, newStatus: string) => void;
   onCancel?: (appointmentId: string) => void;
   onNoShow?: (appointmentId: string) => void;
+  onDelete?: (appointmentId: string) => void;
 }
 
 const statusConfig = {
@@ -35,6 +36,7 @@ export function AppointmentDetailsModal({
   onStatusChange,
   onCancel,
   onNoShow,
+  onDelete,
 }: AppointmentDetailsModalProps) {
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [notes, setNotes] = useState('');
@@ -297,6 +299,18 @@ export function AppointmentDetailsModal({
                     </button>
                   )}
                 </>
+              )}
+              
+              {onDelete && (
+                <button
+                  onClick={() => {
+                    onDelete(appointment.id);
+                    onClose();
+                  }}
+                  className="px-3 py-2 sm:px-4 text-sm sm:text-base text-gray-600 font-medium hover:bg-gray-50 rounded-lg transition-colors border border-gray-300"
+                >
+                  Delete
+                </button>
               )}
             </div>
           </div>

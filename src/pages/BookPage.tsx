@@ -285,6 +285,126 @@ export function BookPage() {
     await handleStatusChange(appointmentId, 'in-service');
   };
 
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    // Confirmation dialog
+    const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
+    if (!appointment) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete this appointment?\n\n` +
+      `Client: ${appointment.clientName}\n` +
+      `Time: ${new Date(appointment.scheduledStartTime).toLocaleString()}\n\n` +
+      `This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Remove from IndexedDB
+      await appointmentsDB.delete(appointmentId);
+
+      // Queue deletion for sync (when backend is ready)
+      await syncService.queueDelete('appointment', appointmentId, 3);
+
+      // Reload appointments
+      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
+      updatedAppointments.forEach((apt: any) => {
+        const localApt: LocalAppointment = {
+          id: apt.id,
+          salonId: apt.salonId,
+          clientId: apt.clientId,
+          clientName: apt.clientName,
+          clientPhone: apt.clientPhone || '',
+          staffId: apt.staffId,
+          staffName: apt.staffName || '',
+          services: apt.services || [],
+          status: apt.status as any,
+          scheduledStartTime: new Date(apt.scheduledStartTime),
+          scheduledEndTime: new Date(apt.scheduledEndTime),
+          notes: apt.notes,
+          source: (apt.source || 'walk-in') as 'online' | 'walk-in',
+          createdAt: new Date(apt.createdAt),
+          updatedAt: new Date(apt.updatedAt),
+          createdBy: apt.createdBy,
+          lastModifiedBy: apt.lastModifiedBy,
+          syncStatus: apt.syncStatus,
+        };
+        dispatch(addLocalAppointment(localApt));
+      });
+
+      setToast({ message: 'Appointment deleted successfully!', type: 'success' });
+      setIsAppointmentDetailsOpen(false);
+      setSelectedAppointment(null);
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      setToast({ message: 'Failed to delete appointment. Please try again.', type: 'error' });
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string, reason?: string) => {
+    try {
+      const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
+      if (!appointment) return;
+
+      // Update to cancelled status (soft delete)
+      const updates: Partial<LocalAppointment> = {
+        status: 'cancelled',
+        notes: reason ? `${appointment.notes || ''}\n\nCancellation reason: ${reason}`.trim() : appointment.notes,
+        updatedAt: new Date(),
+      };
+
+      // Update in IndexedDB
+      const appointmentToUpdate = await appointmentsDB.getById(appointmentId);
+      if (appointmentToUpdate) {
+        const updated: LocalAppointment = {
+          ...appointmentToUpdate,
+          ...updates,
+          syncStatus: 'pending',
+        };
+        await saveAppointment(updated);
+      }
+
+      // Queue for sync
+      await syncService.queueUpdate('appointment', {
+        ...appointment,
+        ...updates,
+      }, 3);
+
+      // Reload appointments
+      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
+      updatedAppointments.forEach((apt: any) => {
+        const localApt: LocalAppointment = {
+          id: apt.id,
+          salonId: apt.salonId,
+          clientId: apt.clientId,
+          clientName: apt.clientName,
+          clientPhone: apt.clientPhone || '',
+          staffId: apt.staffId,
+          staffName: apt.staffName || '',
+          services: apt.services || [],
+          status: apt.status as any,
+          scheduledStartTime: new Date(apt.scheduledStartTime),
+          scheduledEndTime: new Date(apt.scheduledEndTime),
+          notes: apt.notes,
+          source: (apt.source || 'walk-in') as 'online' | 'walk-in',
+          createdAt: new Date(apt.createdAt),
+          updatedAt: new Date(apt.updatedAt),
+          createdBy: apt.createdBy,
+          lastModifiedBy: apt.lastModifiedBy,
+          syncStatus: apt.syncStatus,
+        };
+        dispatch(addLocalAppointment(localApt));
+      });
+
+      setToast({ message: 'Appointment cancelled successfully!', type: 'success' });
+      setIsAppointmentDetailsOpen(false);
+      setSelectedAppointment(null);
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      setToast({ message: 'Failed to cancel appointment. Please try again.', type: 'error' });
+    }
+  };
+
   // Mock walk-in data
   const mockWalkIns = [
     {
@@ -320,6 +440,8 @@ export function BookPage() {
         salonId,
         name: name.trim(),
         phone: phone.trim(),
+        totalVisits: 0,
+        totalSpent: 0,
       });
       
       setToast({ message: `Client "${newClient.name}" created successfully!`, type: 'success' });
@@ -582,8 +704,9 @@ export function BookPage() {
           setIsEditAppointmentOpen(true);
         }}
         onStatusChange={(id, status) => handleStatusChange(id, status)}
-        onCancel={(id) => handleStatusChange(id, 'cancelled')}
+        onCancel={(id) => handleCancelAppointment(id)}
         onNoShow={(id) => handleStatusChange(id, 'no-show')}
+        onDelete={handleDeleteAppointment}
       />
 
       {/* Edit Appointment Modal */}
