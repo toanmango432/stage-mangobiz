@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useRef, createElement } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
 import { StaffCard } from './StaffCard';
 import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
-import { useTickets } from '../context/TicketContext';
+import { TurnTracker } from './TurnTracker/TurnTracker';
+import { useTickets } from '../hooks/useTicketsCompat';
 // Function to get salon staff images based on specialty and ID
 const getSalonStaffImage = (id: number, specialty?: string) => {
   // Map staff IDs to specific profile images from the provided screenshot
@@ -24,8 +25,12 @@ const getSalonStaffImage = (id: number, specialty?: string) => {
     12: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?q=80&w=400&auto=format&fit=crop',
     13: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=400&auto=format&fit=crop' // Mike - young man with earring
   };
+  // Convert ID to number if it's a string
+  const idNum = typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) || 1 : id;
+  // Use modulo to cycle through images if ID is larger than available images
+  const imageIndex = idNum <= 13 ? idNum : (idNum % 13) + 1;
   // Return the image for the specific staff ID or a default image if ID not found
-  return staffImages[id as keyof typeof staffImages] || 'https://images.unsplash.com/photo-1629140727571-9b5c6f6267b4?q=80&w=400&auto=format&fit=crop';
+  return staffImages[imageIndex as keyof typeof staffImages] || 'https://images.unsplash.com/photo-1629140727571-9b5c6f6267b4?q=80&w=400&auto=format&fit=crop';
 };
 // Utility function to determine staff status based on active tickets
 export const determineStaffStatus = (staff, inServiceTickets) => {
@@ -40,6 +45,9 @@ export const determineStaffStatus = (staff, inServiceTickets) => {
   };
 };
 export function StaffSidebar() {
+  // ⚙️ FEATURE FLAG - Set to false to revert to original styling
+  const USE_NEW_TEAM_STYLING = true;
+  
   // Get context data including resetStaffStatus function and inService tickets
   const {
     resetStaffStatus,
@@ -63,6 +71,16 @@ export function StaffSidebar() {
     const savedSettings = localStorage.getItem('teamSettings');
     return savedSettings ? JSON.parse(savedSettings) : defaultTeamSettings;
   });
+  // New state for Turn Tracker modal
+  const [showTurnTracker, setShowTurnTracker] = useState(false);
+  // Listen for global FAB event to open Turn Tracker
+  useEffect(() => {
+    const onOpen = () => setShowTurnTracker(true);
+    (window as any).addEventListener('open-turn-tracker', onOpen);
+    return () => {
+      (window as any).removeEventListener('open-turn-tracker', onOpen);
+    };
+  }, []);
   // Initialize sidebar width from localStorage to ensure persistence
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const savedWidth = localStorage.getItem('staffSidebarWidth');
@@ -481,33 +499,37 @@ export function StaffSidebar() {
     const badgeTextSize = isUltraCompact ? 'text-[7px]' : isCompact ? 'text-[10px]' : 'text-xs';
     // Determine if we should use shortened labels based on width or ultra compact mode
     const useShortLabels = sidebarWidth < 360 || isUltraCompact;
-    // All pill (always visible)
+    // All pill (always visible) - GRAY
     const allPill = <button onClick={() => setStatusFilter(null)} className={`${pillBaseClasses} ${pillPadding} rounded-full flex-shrink-0
-          ${statusFilter === null ? isUltraCompact || isCompact ? 'bg-[#3BB09A] text-white font-bold shadow-md scale-105 ring-2 ring-[#3BB09A]/20' : 'bg-[#3BB09A] text-white font-bold shadow-md scale-105 ring-2 ring-[#3BB09A]/20' : isUltraCompact || isCompact ? 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-200/80' : 'bg-white text-gray-700 hover:bg-[#5EEAD4]/10 border border-gray-200'}`} aria-label={`All, ${staffCounts.total}`}>
+          ${statusFilter === null ? 
+            'bg-gray-500 text-white font-bold shadow-md scale-105 ring-2 ring-gray-400/30' : 
+            'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`} aria-label={`All, ${staffCounts.total}`}>
         <span className={`${textSize} ${statusFilter === null ? 'font-bold' : 'font-normal'}`}>
           {isUltraCompact ? 'A' : 'All'}
         </span>
         <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding}
-          ${statusFilter === null ? isUltraCompact || isCompact ? 'bg-white text-[#3BB09A] shadow-sm' : 'bg-white text-[#3BB09A]' : isUltraCompact || isCompact ? 'bg-gray-200/70 text-gray-500' : 'bg-gray-100 text-gray-600'}`}>
+          ${statusFilter === null ? 
+            'bg-white text-gray-700 shadow-sm font-bold' : 
+            'bg-gray-100 text-gray-600'}`}>
           {staffCounts.total}
         </span>
       </button>;
     // Generate status pills based on organization mode
     const statusPills = teamSettings.organizeBy === 'busyStatus' ? staffStatus.filter(status => status.type === 'busyStatus').map(status => {
       const isActive = statusFilter === status.id;
+      // Ready = GREEN, Busy = RED
       const activeColors = {
-        ready: 'bg-green-600 text-white font-bold shadow-md scale-105 ring-2 ring-green-200',
-        busy: 'bg-amber-500 text-white font-bold shadow-md scale-105 ring-2 ring-amber-200'
+        ready: 'bg-green-600 text-white font-bold shadow-md scale-105 ring-2 ring-green-400/30',
+        busy: 'bg-red-600 text-white font-bold shadow-md scale-105 ring-2 ring-red-400/30'
       };
-      const inactiveColors = isUltraCompact || isCompact ? {
-        ready: 'bg-gray-50 text-gray-500 hover:bg-green-50/50 border border-gray-200/80',
-        busy: 'bg-gray-50 text-gray-500 hover:bg-amber-50/50 border border-gray-200/80'
-      } : {
+      const inactiveColors = {
         ready: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
-        busy: 'bg-white text-gray-700 hover:bg-amber-50 border border-gray-200'
+        busy: 'bg-white text-gray-700 hover:bg-red-50 border border-gray-200'
       };
       const bgColor = isActive ? activeColors[status.id] : inactiveColors[status.id];
-      const badgeBg = isActive ? status.id === 'ready' ? 'bg-white text-green-700 shadow-sm' : 'bg-white text-amber-700 shadow-sm' : isUltraCompact || isCompact ? 'bg-gray-200/70 text-gray-500' : 'bg-gray-100 text-gray-600';
+      const badgeBg = isActive ? 
+        (status.id === 'ready' ? 'bg-white text-green-700 shadow-sm font-bold' : 'bg-white text-red-700 shadow-sm font-bold') : 
+        'bg-gray-100 text-gray-600';
       // Use ultra-compact labels when in ultra-compact mode
       const label = isUltraCompact ? status.id === 'ready' ? 'R' : 'B' : status.label;
       return <button key={status.id} onClick={() => setStatusFilter(status.id)} className={`${pillBaseClasses} ${pillPadding} rounded-full flex-shrink-0 ${bgColor}`} aria-label={`${status.label}, ${status.id === 'ready' ? staffCounts.ready : staffCounts.busy}`}>
@@ -560,26 +582,22 @@ export function StaffSidebar() {
   };
   // Render header based on view mode and width
   const renderHeader = () => {
-    // Ultra compact header for narrow width
+    // Ultra compact header for narrow width - Modern single row design
     if (sidebarWidth <= 100) {
-      return <div className="border-b border-[#E2D9DC] bg-gradient-to-r from-[#F0E9ED] to-[#E8E0E4] shadow-sm">
+      const headerBg = USE_NEW_TEAM_STYLING
+        ? "border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85 -mt-0"
+        : "border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
+      return <div className={headerBg}>
           <div className="flex flex-col p-1.5 space-y-1.5">
             <div className="flex items-center justify-between">
-              <div className="bg-[#3BB09A] text-white p-1 rounded-[8px] flex items-center justify-center shadow-sm">
+              <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1 rounded-lg flex items-center justify-center" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] text-white p-1 rounded-lg flex items-center justify-center shadow-md"}>
                 <Users size={12} className="stroke-[2.5px]" />
               </div>
-              <div className="relative flex items-center space-x-1.5">
-                <Tippy content="Reset Staff Status">
-                  <button className="p-1 rounded-md bg-white hover:bg-gray-50 text-gray-600 hover:text-[#3BB09A] border border-gray-100 shadow-sm transition-all" onClick={handleResetClick} aria-label="Reset staff status">
-                    <RotateCcw size={12} />
-                  </button>
-                </Tippy>
-                <Tippy content="Team Settings">
-                  <button className="p-1 rounded-md bg-white hover:bg-gray-50 text-gray-600 hover:text-[#3BB09A] border border-gray-100 shadow-sm transition-all" onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
-                    <Settings size={12} />
-                  </button>
-                </Tippy>
-              </div>
+              <Tippy content="Team Settings">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1 rounded-lg bg-teal-100/50 hover:bg-teal-100 text-teal-700 transition-all duration-200" : "p-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-[#3BB09A] border border-gray-200/50 shadow-sm transition-all duration-200"} onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
+                  <Settings size={12} />
+                </button>
+              </Tippy>
             </div>
             <div className="w-full pt-0.5">
               {renderStatusPills(true, false)}
@@ -587,118 +605,146 @@ export function StaffSidebar() {
           </div>
         </div>;
     } else if (viewMode === 'compact') {
-      return <div className="sticky top-0 z-10 p-1.5 border-b border-[#E2D9DC] bg-gradient-to-r from-[#EDE5E9] to-[#E5DDE1] shadow-sm">
-          {/* Title and controls row - reduced vertical padding */}
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center">
-              <div className="bg-[#3BB09A] p-0.5 rounded-md shadow-sm mr-1 text-white">
-                <Users size={14} />
+      const headerBg = USE_NEW_TEAM_STYLING
+        ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
+        : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
+      return <div className={headerBg}>
+          <div className="px-3 py-2.5">
+            {/* Row 1: Team title + Action icons (always together) */}
+            <div className="flex items-center justify-between gap-3 mb-2">
+              {/* Team title */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
+                  <Users size={16} />
+                </div>
+                <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
               </div>
-              <h2 className="text-sm font-semibold text-gray-800">Team</h2>
+              
+              {/* Action icons - Always on row 1 */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {teamSettings.showSearch && <Tippy content="Search">
+                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
+                      <Search size={15} />
+                    </button>
+                  </Tippy>}
+                <Tippy content="Filter">
+                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
+                    <Filter size={15} />
+                  </button>
+                </Tippy>
+                {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
+                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
+                      {getViewModeIcon()}
+                    </button>
+                  </Tippy>}
+                <Tippy content="Team Settings">
+                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
+                    <Settings size={15} />
+                  </button>
+                </Tippy>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              {teamSettings.showSearch && <Tippy content="Search">
-                  <button className="p-0.5 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={() => setShowSearch(!showSearch)} aria-label="Search">
-                    <Search size={13} />
-                  </button>
-                </Tippy>}
-              <Tippy content="Filter">
-                <button className="p-0.5 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" aria-label="Filter">
-                  <Filter size={13} />
-                </button>
-              </Tippy>
-              <Tippy content="Reset Staff Status">
-                <button className="p-0.5 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={handleResetClick} aria-label="Reset staff status">
-                  <RotateCcw size={13} />
-                </button>
-              </Tippy>
-              {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
-                  <button className="p-0.5 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={toggleViewMode} aria-label={getViewModeLabel()}>
-                    {getViewModeIcon()}
-                  </button>
-                </Tippy>}
-              <Tippy content="Team Settings">
-                <button className="p-0.5 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={() => setShowTeamSettings(true)} aria-label="Team settings">
-                  <Settings size={13} />
-                </button>
-              </Tippy>
+            
+            {/* Row 2: Status pills (always on separate row) */}
+            <div className="flex items-center gap-1.5">
+              {renderStatusPills(false, false)}
             </div>
           </div>
-          {showSearch && <div className="mb-1.5">
+          {showSearch && <div className="px-3 pb-2.5">
               <div className="relative">
-                <input type="text" placeholder="Search technicians..." className="w-full py-1 pl-7 pr-2 rounded-lg text-gray-800 text-xs border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A] shadow-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                <Search size={13} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
             </div>}
-          {/* Status tabs with horizontal scrolling for compact view */}
-          <div className="py-1">{renderStatusPills(false, true)}</div>
         </div>;
     } else {
-      // Normal view
-      return <div className="sticky top-0 z-10 p-2 border-b border-[#E2D9DC] bg-gradient-to-r from-[#EDE5E9] to-[#E5DDE1] shadow-sm">
-          {/* Title and controls row - reduced vertical padding */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-              <div className="bg-[#3BB09A] p-1 rounded-lg shadow-sm mr-1.5 text-white">
-                <Users size={15} />
+      // Normal view - Responsive design
+      const headerBg = USE_NEW_TEAM_STYLING
+        ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
+        : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
+      return <div className={headerBg}>
+          <div className="px-3 py-2.5">
+            {/* Row 1: Team title + Action icons (always together) */}
+            <div className="flex items-center justify-between gap-3 mb-2">
+              {/* Team title */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
+                  <Users size={16} />
+                </div>
+                <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
               </div>
-              <h2 className="text-sm font-bold text-gray-800">Team</h2>
+              
+              {/* Action icons - Always on row 1 */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {teamSettings.showSearch && <Tippy content="Search">
+                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
+                      <Search size={15} />
+                    </button>
+                  </Tippy>}
+                <Tippy content="Filter">
+                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
+                    <Filter size={15} />
+                  </button>
+                </Tippy>
+                {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
+                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
+                      {getViewModeIcon()}
+                    </button>
+                  </Tippy>}
+                <Tippy content="Team Settings">
+                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
+                    <Settings size={15} />
+                  </button>
+                </Tippy>
+              </div>
             </div>
+            
+            {/* Row 2: Status pills (always on separate row) */}
             <div className="flex items-center gap-1.5">
-              {teamSettings.showSearch && <Tippy content="Search">
-                  <button className="p-1 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={() => setShowSearch(!showSearch)}>
-                    <Search size={14} />
-                  </button>
-                </Tippy>}
-              <Tippy content="Filter">
-                <button className="p-1 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors">
-                  <Filter size={14} />
-                </button>
-              </Tippy>
-              <Tippy content="Reset Staff Status">
-                <button className="p-1 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={handleResetClick} aria-label="Reset staff status">
-                  <RotateCcw size={14} />
-                </button>
-              </Tippy>
-              {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
-                  <button className="p-1 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={toggleViewMode}>
-                    {getViewModeIcon()}
-                  </button>
-                </Tippy>}
-              <Tippy content="Team Settings">
-                <button className="p-1 rounded-md text-gray-500 hover:text-[#3BB09A] hover:bg-[#5EEAD4]/10 transition-colors" onClick={() => setShowTeamSettings(true)} aria-label="Team settings">
-                  <Settings size={14} />
-                </button>
-              </Tippy>
+              {renderStatusPills(false, false)}
             </div>
           </div>
-          {showSearch && <div className="mb-2">
+          {showSearch && <div className="px-3 pb-2.5">
               <div className="relative">
-                <input type="text" placeholder="Search technicians..." className="w-full py-1.5 pl-8 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A] shadow-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                <Search size={14} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               </div>
             </div>}
-          {/* Status tabs - kept large and dominant */}
-          <div className="overflow-x-auto no-scrollbar">
-            {renderStatusPills(false, false)}
-          </div>
         </div>;
     }
   };
   // Get the priority tiers based on current width and view mode
   const priorityTiers = getDisplayPriorityTiers();
-  return <div className="h-full border-r border-[#E2D9DC] bg-[#FBF8F9] flex flex-col overflow-hidden shadow-xl transition-all duration-300" style={{
-    width: `${sidebarWidth}px`,
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
-  }}>
+  // 🎨 TEAM STYLING - Strong distinction from ticket sections
+  const teamSidebarClasses = USE_NEW_TEAM_STYLING
+    ? "relative h-full border-r-[3px] border-teal-300/60 bg-gradient-to-b from-teal-50/95 via-teal-50/95 to-teal-100/90 flex flex-col overflow-hidden transition-all duration-300"
+    : "relative h-full border-r border-[#E2D9DC] bg-[#FBF8F9] flex flex-col overflow-hidden shadow-xl transition-all duration-300";
+  
+  const teamSidebarStyle = USE_NEW_TEAM_STYLING
+    ? {
+        width: `${sidebarWidth}px`,
+        boxShadow: '6px 0 16px -4px rgba(20, 184, 166, 0.25), 2px 0 8px -2px rgba(0, 0, 0, 0.08)'
+      }
+    : {
+        width: `${sidebarWidth}px`,
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
+      };
+  
+  return <div className={teamSidebarClasses} style={teamSidebarStyle}>
       {renderHeader()}
-      <div className="flex-1 overflow-auto bg-gradient-to-b from-[#FBF8F9] to-[#F7F2F4] relative">
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-[#FBF8F9] to-[#F7F2F4] relative min-h-0">
         {filteredStaff.length > 0 ? <div className={`grid ${getGridColumns()} ${getGapAndPadding()}`}>
             {filteredStaff.map((staffMember, index) => {
           // Create a modified staff object with updated image URL
+          // Convert string ID to number for StaffCard compatibility
+          const staffIdNumber = typeof staffMember.id === 'string' 
+            ? parseInt(staffMember.id.replace(/\D/g, '')) || index + 1
+            : staffMember.id;
+          
           const modifiedStaffMember = {
             ...staffMember,
-            image: getSalonStaffImage(staffMember.id, staffMember.specialty)
+            id: staffIdNumber,
+            image: getSalonStaffImage(staffIdNumber, staffMember.specialty)
           };
           // For testing purposes, assign different progress levels to busy staff
           if (staffMember.status === 'busy') {
@@ -720,7 +766,7 @@ export function StaffSidebar() {
             }
             // Add current ticket info for busy staff with the appropriate progress level
             modifiedStaffMember.activeTickets = [{
-              id: 1000 + staffMember.id,
+              id: 1000 + staffIdNumber,
               clientName: 'Test Client',
               serviceName: 'Test Service',
               status: 'in-service'
@@ -907,10 +953,6 @@ export function StaffSidebar() {
               <p>No technicians match your filters</p>
             </div>
           </div>}
-        {/* Turn Tracker Button */}
-        <div className="fixed bottom-6 left-0 z-[1050]">
-          <TurnTrackerButton text="Turn Tracker" icon={<ListChecks size={18} strokeWidth={2.5} />} onClick={() => console.log('Turn Tracker clicked')} className="font-bold text-[110%] shadow-lg bg-[#FF4747] hover:bg-[#FF3535]" />
-        </div>
       </div>
       {/* Team Settings Panel */}
       <TeamSettingsPanel isOpen={showTeamSettings} onClose={() => setShowTeamSettings(false)} currentSettings={teamSettings} onSettingsChange={handleTeamSettingsChange} />
@@ -932,5 +974,7 @@ export function StaffSidebar() {
             </div>
           </div>
         </div>}
+      {/* Turn Tracker Modal */}
+      <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
     </div>;
 }

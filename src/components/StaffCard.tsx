@@ -2,6 +2,17 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MoreVertical, Clock, DollarSign, Ticket, Star, Award, Sparkles, Coffee, UserCheck, ChevronRight, GripVertical, RefreshCw, Check, Circle, CircleDot } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+
+// Helper function to format time with seconds and a/p
+const formatClockedInTime = (timeString: string): string => {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const period = hours >= 12 ? 'p' : 'a';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}${period}`;
+};
 interface StaffCardProps {
   staff: {
     id: number;
@@ -194,8 +205,10 @@ export function StaffCard({
   // This is a mock implementation since we don't have access to the full staff list
   // In a real implementation, this would be passed as a prop from the parent component
   const hasDuplicateFirstName = () => {
+    // Convert ID to number if it's a string
+    const staffIdNum = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 0 : staff.id;
     // For demonstration, let's assume staff with IDs 2, 5 have duplicate first names
-    return [2, 5].includes(staff.id);
+    return [2, 5].includes(staffIdNum);
   };
   // Get formatted name for display
   const displayName = formatStaffName(staff.name, hasDuplicateFirstName());
@@ -492,7 +505,7 @@ export function StaffCard({
   };
   // Get specialty colors or default to neutral
   const specialty = staff.specialty || 'neutral';
-  const specialtyColor = specialtyColors[specialty];
+  const specialtyColor = specialtyColors[specialty] || specialtyColors['neutral'];
   // Generate a unique gradient based on staff color
   const getStaffGradient = () => {
     const baseColor = staff.color.replace('bg-', '');
@@ -599,20 +612,17 @@ export function StaffCard({
     return colorMap[baseColor] || colorMap['white'];
   };
   const colors = getStaffGradient();
-  // Format time to h:mma without leading zero (e.g., 9:45a, 1:05p)
+  // Format time to h:mm:ssa/p with seconds and a/p (e.g., 9:45:30a, 1:05:15p)
   const formatTime = (timeString?: string): string => {
     if (!timeString) return '-';
-    // Parse the time string
-    const match = timeString.match(/(\d+):(\d+)\s*([AP]M)?/i);
-    if (!match) return timeString;
-    let hours = parseInt(match[1], 10);
-    const minutes = match[2];
-    const ampm = match[3]?.toLowerCase() || '';
-    // Remove leading zero from hours
-    if (hours === 0) hours = 12;
-    // Format as h:mma
-    const period = ampm.includes('p') ? 'p' : 'a';
-    return `${hours}:${minutes}${period}`;
+    // Use current time with seconds
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const period = hours >= 12 ? 'p' : 'a';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}${period}`;
   };
   // Format currency in compact form without cents unless needed
   const formatCurrency = (amount?: number): string => {
@@ -1107,133 +1117,172 @@ export function StaffCard({
     }
     return null;
   };
-  // Render active ticket row for normal view
+  // Render active ticket row for normal view - Ticket-style badge
   const renderActiveTicketRow = () => {
     if (!hasActiveTickets()) return null;
     const primaryTicket = getPrimaryActiveTicket();
     const additionalCount = getAdditionalTicketsCount();
     if (!primaryTicket) return null;
-    // Log for debugging
-    console.log(`Rendering active ticket for ${staff.name}:`, primaryTicket);
-    return <div className="flex items-center justify-center space-x-2 my-2">
-        {/* Primary ticket chip */}
-        <Tippy content={`${primaryTicket.clientName} - ${primaryTicket.serviceName}`}>
-          <div className="flex items-center px-3 py-1.5 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all cursor-pointer" style={{
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          maxWidth: cardWidth < 400 ? '180px' : '240px',
-          zIndex: status.grayOutOverlay ? 30 : 20
-        }}>
-            {/* Status dot */}
-            {primaryTicket.status === 'in-service' ? <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div> : <div className="w-2 h-2 rounded-full border-2 border-amber-400 mr-2"></div>}
-            {/* Ticket icon */}
-            <Ticket size={14} className="text-gray-500 mr-2" strokeWidth={1.5} />
-            {/* Client name and service */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center">
-                <span className="font-semibold text-gray-900 truncate mr-1">
-                  {primaryTicket.clientName}
+    
+    // Color based on status
+    const ticketColor = primaryTicket.status === 'in-service' ? '#10B981' : '#F59E0B';
+    // Extract first name only
+    const firstName = primaryTicket.clientName.split(' ')[0];
+    
+    return <div className="flex items-center justify-center space-x-1.5 my-0.5">
+        {/* Ticket-style badge with perforation effect */}
+        <Tippy content={`ACTIVE: ${primaryTicket.clientName} - ${primaryTicket.serviceName}`}>
+          <div className="relative flex items-center px-2.5 bg-gradient-to-r from-amber-50 to-white rounded-r shadow-sm hover:shadow-md transition-all cursor-pointer" style={{
+            borderLeft: `3px solid ${ticketColor}`,
+            borderTop: '1px dashed #D1D5DB',
+            borderRight: '1px solid #E5E7EB',
+            borderBottom: '1px dashed #D1D5DB',
+            maxWidth: cardWidth < 400 ? '180px' : '220px',
+            height: '24px',
+            zIndex: status.grayOutOverlay ? 30 : 20,
+            backgroundImage: 'linear-gradient(90deg, #FEF3C7 0%, #FFFBEB 40%, #FFFFFF 100%)'
+          }}>
+            {/* Perforation dots on left edge */}
+            <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-around w-[3px]" style={{ background: ticketColor }}>
+              <div className="w-[3px] h-[1px] bg-white opacity-70"></div>
+              <div className="w-[3px] h-[1px] bg-white opacity-70"></div>
+              <div className="w-[3px] h-[1px] bg-white opacity-70"></div>
+            </div>
+            {/* Blinking indicator dot */}
+            <div 
+              className="w-1.5 h-1.5 rounded-full mr-2 flex-shrink-0" 
+              style={{ 
+                backgroundColor: ticketColor,
+                animation: 'blink 1.5s infinite',
+                boxShadow: `0 0 4px ${ticketColor}`
+              }}
+            ></div>
+            {/* Client name and service on 1 row with ellipsis */}
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <span className="font-bold text-sm text-gray-900 flex-shrink-0">
+                {firstName}
+              </span>
+              <span className="text-xs text-gray-500 truncate">
+                - {primaryTicket.serviceName}
+              </span>
+              {/* Multiple tickets indicator - inline badge */}
+              {additionalCount > 0 && (
+                <span 
+                  className="flex-shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white ml-1"
+                  style={{
+                    backgroundColor: '#3B82F6',
+                    boxShadow: '0 0 6px rgba(59, 130, 246, 0.4)',
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }}
+                >
+                  +{additionalCount}
                 </span>
-                {cardWidth >= 300 && <>
-                    <span className="text-gray-400 mx-1">—</span>
-                    <span className="text-gray-600 truncate">
-                      {primaryTicket.serviceName}
-                    </span>
-                  </>}
-              </div>
+              )}
             </div>
           </div>
         </Tippy>
-        {/* Additional tickets chip */}
-        {additionalCount > 0 && <Tippy content={`${additionalCount} more active ${additionalCount === 1 ? 'ticket' : 'tickets'}`}>
-            <div className="flex items-center px-2.5 py-1.5 bg-gray-50 rounded-full shadow-sm border border-gray-200 hover:bg-gray-100 active:bg-gray-200 transition-all cursor-pointer" style={{
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          zIndex: status.grayOutOverlay ? 30 : 20
-        }}>
-              <span className="text-gray-600 font-medium text-sm">
-                +{additionalCount}
-              </span>
-            </div>
-          </Tippy>}
       </div>;
   };
-  // Render active ticket row for compact view
+  // Render active ticket row for compact view - Paper ticket style like normal view
   const renderCompactActiveTicketRow = () => {
     if (!hasActiveTickets()) return null;
     const primaryTicket = getPrimaryActiveTicket();
     const additionalCount = getAdditionalTicketsCount();
     if (!primaryTicket) return null;
-    return <div className="flex items-center justify-center space-x-1.5 my-1.5">
-        {/* Primary ticket chip */}
-        <Tippy content={`${primaryTicket.clientName} - ${primaryTicket.serviceName}`}>
-          <div className="flex items-center px-2.5 py-1 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all cursor-pointer" style={{
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          maxWidth: '140px',
-          zIndex: status.grayOutOverlay ? 30 : 20
-        }}>
-            {/* Status dot */}
-            {primaryTicket.status === 'in-service' ? <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></div> : <div className="w-1.5 h-1.5 rounded-full border-1.5 border-amber-400 mr-1.5"></div>}
-            {/* Ticket icon */}
-            <Ticket size={10} className="text-gray-500 mr-1.5" strokeWidth={1.5} />
-            {/* Client name and service */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center">
-                <span className="font-semibold text-xs text-gray-900 truncate mr-0.5">
-                  {primaryTicket.clientName}
+    
+    // Color based on status
+    const ticketColor = primaryTicket.status === 'in-service' ? '#10B981' : '#F59E0B';
+    // Extract first name only
+    const firstName = primaryTicket.clientName.split(' ')[0];
+    
+    return <div className="flex items-center justify-center space-x-1 my-0.5">
+        {/* Compact ticket-style badge with perforation effect */}
+        <Tippy content={`ACTIVE: ${primaryTicket.clientName} - ${primaryTicket.serviceName}`}>
+          <div className="relative flex items-center px-1.5 bg-gradient-to-r from-amber-50 to-white rounded-r shadow-sm hover:shadow-md transition-all cursor-pointer" style={{
+            borderLeft: `2px solid ${ticketColor}`,
+            borderTop: '1px dashed #D1D5DB',
+            borderRight: '1px solid #E5E7EB',
+            borderBottom: '1px dashed #D1D5DB',
+            maxWidth: '140px',
+            height: '20px',
+            zIndex: status.grayOutOverlay ? 30 : 20,
+            backgroundImage: 'linear-gradient(90deg, #FEF3C7 0%, #FFFBEB 40%, #FFFFFF 100%)'
+          }}>
+            {/* Perforation dots on left edge */}
+            <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-around w-[2px]" style={{ background: ticketColor }}>
+              <div className="w-[2px] h-[1px] bg-white opacity-70"></div>
+              <div className="w-[2px] h-[1px] bg-white opacity-70"></div>
+            </div>
+            {/* Blinking indicator dot */}
+            <div 
+              className="w-1 h-1 rounded-full mr-1 flex-shrink-0" 
+              style={{ 
+                backgroundColor: ticketColor,
+                animation: 'blink 1.5s infinite',
+                boxShadow: `0 0 3px ${ticketColor}`
+              }}
+            ></div>
+            {/* Client name and service on 1 row with ellipsis */}
+            <div className="flex items-center gap-0.5 min-w-0 flex-1">
+              <span className="font-bold text-[10px] text-gray-900 flex-shrink-0">
+                {firstName}
+              </span>
+              <span className="text-[8px] text-gray-500 truncate">
+                - {primaryTicket.serviceName}
+              </span>
+              {/* Multiple tickets indicator - inline badge */}
+              {additionalCount > 0 && (
+                <span 
+                  className="flex-shrink-0 px-1 py-0.5 rounded-full text-[7px] font-bold text-white ml-0.5"
+                  style={{
+                    backgroundColor: '#3B82F6',
+                    boxShadow: '0 0 4px rgba(59, 130, 246, 0.4)',
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }}
+                >
+                  +{additionalCount}
                 </span>
-                {cardWidth >= 200 && <>
-                    <span className="text-gray-400 text-xs mx-0.5">—</span>
-                    <span className="text-gray-600 text-xs truncate">
-                      {primaryTicket.serviceName}
-                    </span>
-                  </>}
-              </div>
+              )}
             </div>
           </div>
         </Tippy>
-        {/* Additional tickets chip */}
-        {additionalCount > 0 && <Tippy content={`${additionalCount} more active ${additionalCount === 1 ? 'ticket' : 'tickets'}`}>
-            <div className="flex items-center px-2 py-1 bg-gray-50 rounded-full shadow-sm border border-gray-200 hover:bg-gray-100 active:bg-gray-200 transition-all cursor-pointer" style={{
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          zIndex: status.grayOutOverlay ? 30 : 20
-        }}>
-              <span className="text-gray-600 font-medium text-xs">
-                +{additionalCount}
-              </span>
-            </div>
-          </Tippy>}
       </div>;
   };
-  // Render active ticket row for ultra-compact view
+  // Render active ticket row for ultra-compact view - Icon only
   const renderUltraCompactActiveTicketRow = () => {
     if (!hasActiveTickets()) return null;
     const primaryTicket = getPrimaryActiveTicket();
     const additionalCount = getAdditionalTicketsCount();
     if (!primaryTicket) return null;
-    return <div className="flex items-center justify-center space-x-1 my-1">
-        {/* Primary ticket chip */}
-        <Tippy content={`${primaryTicket.clientName} - ${primaryTicket.serviceName}`}>
-          <div className="flex items-center px-1.5 py-0.5 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all cursor-pointer" style={{
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          maxWidth: '70px',
-          zIndex: status.grayOutOverlay ? 30 : 20
-        }}>
-            {/* Status dot */}
-            {primaryTicket.status === 'in-service' ? <div className="w-1 h-1 bg-emerald-500 rounded-full mr-1"></div> : <div className="w-1 h-1 rounded-full border border-amber-400 mr-1"></div>}
-            {/* Client name only */}
-            <div className="flex-1 min-w-0">
-              <span className="font-medium text-[8px] text-gray-900 truncate">
-                {primaryTicket.clientName}
-              </span>
-            </div>
+    
+    // Color based on status
+    const ticketColor = primaryTicket.status === 'in-service' ? '#10B981' : '#F59E0B';
+    
+    return <div className="flex items-center justify-center space-x-0.5 my-0.5">
+        {/* Ticket icon only - clickable for details */}
+        <Tippy content={`ACTIVE: ${primaryTicket.clientName} - ${primaryTicket.serviceName}`}>
+          <div className="relative flex items-center justify-center w-6 h-6 rounded-full shadow-md hover:shadow-lg transition-all cursor-pointer" style={{
+            backgroundColor: ticketColor,
+            zIndex: status.grayOutOverlay ? 30 : 20
+          }}>
+            <Ticket size={12} className="text-white" strokeWidth={2.5} />
+            {/* Blinking indicator dot */}
+            <div 
+              className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white" 
+              style={{ 
+                backgroundColor: ticketColor,
+                animation: 'blink 1.5s infinite',
+                boxShadow: `0 0 3px ${ticketColor}`
+              }}
+            ></div>
           </div>
         </Tippy>
-        {/* Additional tickets chip - ultra minimal */}
-        {additionalCount > 0 && <Tippy content={`${additionalCount} more active ${additionalCount === 1 ? 'ticket' : 'tickets'}`}>
-            <div className="flex items-center justify-center w-4 h-4 bg-gray-50 rounded-full shadow-sm border border-gray-200 hover:bg-gray-100 active:bg-gray-200 transition-all cursor-pointer" style={{
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          zIndex: status.grayOutOverlay ? 30 : 20
-        }}>
-              <span className="text-gray-600 font-medium text-[6px]">
+        {/* Additional tickets badge */}
+        {additionalCount > 0 && <Tippy content={`+${additionalCount} more`}>
+            <div className="flex items-center justify-center w-4 h-4 bg-gray-100 rounded-full shadow-sm border border-gray-200 hover:bg-gray-200 transition-all cursor-pointer" style={{
+              zIndex: status.grayOutOverlay ? 30 : 20
+            }}>
+              <span className="text-gray-600 font-bold text-[7px]">
                 +{additionalCount}
               </span>
             </div>
@@ -1264,7 +1313,15 @@ export function StaffCard({
     };
     // Determine if notch should be minimized
     const useMinimalNotch = cardWidth < 160;
-    return <div ref={cardRef} className={`group flex items-center p-2 w-full ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''} ${getTransitionClass()}`} style={{
+    return <>
+      {/* CSS for blinking animation */}
+      <style>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
+      <div ref={cardRef} className={`group flex items-center p-2 w-full ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''} ${getTransitionClass()}`} style={{
       borderRadius: '14px',
       boxShadow: status.grayOutOverlay ? '0 4px 8px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.2)' // Enhanced heavier shadow for busy
       : '0 2px 5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',
@@ -1274,6 +1331,9 @@ export function StaffCard({
       overflow: 'hidden',
       transformStyle: 'preserve-3d',
       cursor: isDraggable ? 'grab' : 'pointer',
+      height: '105px',
+      minHeight: '105px',
+      maxHeight: '105px',
       filter: status.grayOutOverlay ? 'contrast(0.85) grayscale(0.35) brightness(0.95)' // Enhanced desaturation
       : 'none',
       transform: status.grayOutOverlay ? 'translateY(1px)' : 'none' // Subtle pressed effect for busy cards
@@ -1288,36 +1348,48 @@ export function StaffCard({
         boxShadow: status.grayOutOverlay ? 'inset 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.2)' // Deeper inner shadow for busy
         : 'inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.1)'
       }}></div>
-        {/* Enhanced Semi-circle notch at top border - IMPROVED RESPONSIVE SIZING */}
+        {/* Compact notch with progress - REDESIGNED with 20% smaller notch */}
         <div className="absolute top-0 left-1/2 z-20 transform -translate-x-1/2 translate-y-0" style={{
-        width: useMinimalNotch ? '2.1rem' : '2.7rem',
-        height: useMinimalNotch ? '1.2rem' : '1.5rem' // Reduced by 40% from original sizes
+        width: staff.status === 'busy' ? '2.4rem' : (useMinimalNotch ? '1.6rem' : '2rem'),
+        height: staff.status === 'busy' ? '0.72rem' : (useMinimalNotch ? '0.4rem' : '0.48rem')
       }}>
           {/* Notch shadow/depth effect */}
-          <div className={`absolute inset-0 bg-black opacity-10 ${staff.status === 'ready' ? 'rounded-b-[5px]' : 'rounded-b-[6px]'}`} style={{
-          transform: 'translateY(1px)',
-          boxShadow: '0 1.5px 2px rgba(0, 0, 0, 0.08)',
-          height: staff.status === 'ready' ? '2.5px' : undefined
+          <div className={`absolute inset-0 bg-black opacity-10 rounded-b-lg`} style={{
+          transform: 'translateY(0.5px)',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
         }}></div>
           {/* Notch main shape */}
-          <div className={`absolute inset-0 bg-white ${staff.status === 'ready' ? 'rounded-b-[5px]' : 'rounded-b-[6px]'}`} style={{
+          <div className={`absolute inset-0 bg-white rounded-b-lg`} style={{
           borderTop: 'none',
           borderLeft: `1px solid ${specialtyColor.darkBorderColor}`,
           borderRight: `1px solid ${specialtyColor.darkBorderColor}`,
           borderBottom: `1px solid ${specialtyColor.darkBorderColor}`,
-          boxShadow: 'inset 0 -1.5px 2px rgba(0, 0, 0, 0.04)',
-          opacity: status.grayOutOverlay ? 0.85 : 1,
-          height: staff.status === 'ready' ? '2.5px' : undefined
+          boxShadow: 'inset 0 -1px 2px rgba(0, 0, 0, 0.05)',
+          opacity: status.grayOutOverlay ? 0.85 : 1
         }}></div>
-          {/* Percentage display for minimal notch */}
-          {useMinimalNotch && currentTicketInfo && staff.status === 'busy' && <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-              <span className="text-[8px] font-bold" style={{
-            color: currentTicketInfo.progress <= 0.25 ? '#22C55E' // Green for on-track
-            : currentTicketInfo.progress <= 0.75 ? '#F59E0B' // Amber for mid-progress
-            : '#EF4444' // Red for critical or overtime
-          }}>
-                {Math.round(currentTicketInfo.progress * 100)}%
-              </span>
+          {/* Progress bar + percentage INSIDE notch for busy staff */}
+          {currentTicketInfo && staff.status === 'busy' && <div className="absolute inset-0 flex items-center justify-center px-1">
+              <div className="flex items-center gap-1 w-full">
+                {/* Mini progress bar */}
+                <div className="flex-1 h-1 rounded-full overflow-hidden" style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.1)'
+            }}>
+                  <div className="h-full transition-all duration-500" style={{
+                width: `${Math.min(100, Math.round(currentTicketInfo.progress * 100))}%`,
+                background: currentTicketInfo.progress <= 0.25 ? '#22C55E'
+                : currentTicketInfo.progress <= 0.75 ? '#F59E0B'
+                : '#EF4444'
+              }}></div>
+                </div>
+                {/* Percentage */}
+                <span className="text-[9px] font-extrabold" style={{
+              color: '#000000',
+              fontWeight: '900',
+              textShadow: '0 0.5px 1px rgba(255, 255, 255, 0.5)'
+            }}>
+                  {Math.round(currentTicketInfo.progress * 100)}%
+                </span>
+              </div>
             </div>}
         </div>
         {/* Enhanced separation line - visible even in compact view */}
@@ -1327,51 +1399,19 @@ export function StaffCard({
         boxShadow: specialtyColor.darkText ? '1px 0 1px rgba(255, 255, 255, 0.15)' // Subtle highlight for embossed effect
         : '1px 0 1px rgba(255, 255, 255, 0.25)' // More pronounced highlight for darker colors
       }}></div>
-        {/* Gray out overlay for busy status - ENHANCED with striped pattern and increased contrast */}
+        {/* Red overlay for busy status - Very strong unified red wash */}
         {status.grayOutOverlay && <>
-            {/* Dark base overlay */}
+            {/* Very strong red busy overlay to completely unify all cards */}
             <div className="absolute inset-0 z-10 pointer-events-none rounded-[13.5px]" style={{
-          backgroundColor: 'rgba(40, 45, 60, 0.35)',
-          mixBlendMode: 'multiply'
-        }}></div>
-            {/* Secondary desaturation overlay */}
-            <div className="absolute inset-0 z-10 pointer-events-none rounded-[13.5px]" style={{
-          backgroundColor: 'rgba(220, 225, 235, 0.45)',
-          mixBlendMode: 'saturation'
+          backgroundColor: 'rgba(239, 68, 68, 0.65)',
+          mixBlendMode: 'normal'
         }}></div>
             {/* Subtle inset shadow to create pressed effect */}
             <div className="absolute inset-0 z-11 pointer-events-none rounded-[13.5px]" style={{
           boxShadow: 'inset 0 1px 4px rgba(0, 0, 0, 0.2)',
           opacity: 0.7
         }}></div>
-            {/* Progress bar for busy cards - ADDED FOR WIDE VIEW */}
-            {viewMode === 'compact' && currentTicketInfo && <>
-                {/* Progress percentage indicator */}
-                <div className="absolute bottom-2 right-2 z-20">
-                  <span className="text-[10px] font-bold px-1 py-0.5 rounded-sm" style={{
-              color: currentTicketInfo.progress <= 0.25 ? '#22C55E' // Green for on-track
-              : currentTicketInfo.progress <= 0.75 ? '#F59E0B' // Amber for mid-progress
-              : '#EF4444',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
-            }}>
-                    {Math.round(currentTicketInfo.progress * 100)}%
-                  </span>
-                </div>
-                {/* Progress bar at bottom of card */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 z-20 overflow-hidden rounded-b-[13.5px]" style={{
-            backgroundColor: 'rgba(236, 236, 236, 0.8)'
-          }}>
-                  <div className="h-full transition-all duration-500 ease-out" style={{
-              width: `${Math.min(100, Math.round(currentTicketInfo.progress * 100))}%`,
-              background: currentTicketInfo.progress <= 0.25 ? 'linear-gradient(90deg, #22C55E, #10B981)' // Green for on-track
-              : currentTicketInfo.progress <= 0.75 ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' // Amber for mid-progress
-              : 'linear-gradient(90deg, #EF4444, #F87171)',
-              boxShadow: currentTicketInfo.progress > 1 ? 'inset 0px 1px 1px rgba(255, 255, 255, 0.3), 0 0 5px rgba(239, 68, 68, 0.5)' // Red glow for overtime
-              : 'inset 0px 1px 1px rgba(255, 255, 255, 0.3)'
-            }}></div>
-                </div>
-              </>}
+            {/* Progress now in notch - removed bottom progress bar */}
           </>}
         {/* More Options Button - positioned at middle right */}
         <button className="absolute top-1/2 right-2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-all duration-300 p-1 flex-shrink-0 z-30" aria-label="More options for staff member" style={{
@@ -1400,73 +1440,63 @@ export function StaffCard({
                     </span>
                   </div>
                 </div>}
-            <img src={staff.image} alt={`${staff.name} profile`} className={`w-[80px] h-[80px] rounded-full object-cover shadow-sm transition-all duration-300 group-hover:brightness-105 ${getTransitionClass()} ${status.grayOutOverlay ? 'grayscale-[30%] brightness-90' : ''}`} style={{
+            <img src={staff.image} alt={`${staff.name} profile`} className={`w-[60px] h-[60px] rounded-full object-cover shadow-sm transition-all duration-300 group-hover:brightness-105 ${getTransitionClass()} ${status.grayOutOverlay ? 'grayscale-[30%] brightness-90' : ''}`} style={{
           boxShadow: status.grayOutOverlay ? '0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15)' // Heavier shadow for busy
           : '0 2px 4px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1)',
-          border: status.grayOutOverlay ? `4.4px solid ${specialtyColor.darkBorderColor}` : `4.4px solid ${specialtyColor.borderColor}`,
-          minWidth: '80px',
-          minHeight: '80px',
+          border: status.grayOutOverlay ? `3.5px solid ${specialtyColor.darkBorderColor}` : `3.5px solid ${specialtyColor.borderColor}`,
+          minWidth: '60px',
+          minHeight: '60px',
           objectFit: 'cover',
           objectPosition: 'center'
         }} />
-            {/* Queue Order Number - INCREASED SIZE */}
+            {/* Queue Order Number - Compact - Increased size to match normal card ratio */}
             {config.showQueueNumber && <div className="absolute -top-1 -left-1">
                 <Tippy content={`Queue Position: ${staff.count}`}>
-                  <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold text-gray-700 border border-white shadow-sm" aria-label={`Queue position: ${staff.count}`} style={{
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-              opacity: status.grayOutOverlay ? 0.9 : 1 // Slightly dim for busy
+                  <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold text-gray-800 border-2 border-white shadow-md" aria-label={`Queue position: ${staff.count}`} style={{
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+              opacity: status.grayOutOverlay ? 0.95 : 1
             }}>
                     {staff.count}
                   </div>
                 </Tippy>
               </div>}
-            {/* Status indicator - ALWAYS VISIBLE (Tier 1) */}
+            {/* Status indicator - Compact */}
             {config.showStatus && <div className="absolute -bottom-0.5 -right-0.5">
                 <Tippy content={`Status: ${status.label}`}>
-                  <div className={`${status.bg} w-7 h-7 rounded-full flex items-center justify-center shadow-sm border-2 border-white ${status.grayOutOverlay ? 'shadow-rose-500/30' : status.glowColor}`} style={{
+                  <div className={`${status.bg} w-5 h-5 rounded-full flex items-center justify-center shadow-sm border-2 border-white ${status.grayOutOverlay ? 'shadow-rose-500/30' : status.glowColor}`} style={{
               boxShadow: status.grayOutOverlay ? '0 2px 4px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(225, 29, 72, 0.3)' // Enhanced shadow with rose tint for busy
               : '0 2px 4px rgba(0, 0, 0, 0.2)' // Normal shadow
             }} aria-label={`Status: ${status.label}`}>
-                    <div className={`w-2.5 h-2.5 rounded-full bg-white animate-pulse ${status.grayOutOverlay ? 'opacity-90' : 'opacity-80'}`}></div>
+                    <div className={`w-2 h-2 rounded-full bg-white animate-pulse ${status.grayOutOverlay ? 'opacity-90' : 'opacity-80'}`}></div>
                   </div>
                 </Tippy>
               </div>}
-            {/* Busy status indicator at bottom of avatar - Only shown for busy staff */}
-            {status.label === 'Busy' && <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 z-20">
-                <Tippy content="Status: Busy">
-                  <div className="bg-rose-600 text-white flex items-center px-3 py-1 rounded-full shadow-md" style={{
-              boxShadow: '0 3px 5px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2)'
-            }} aria-label="Status: Busy">
-                    <CircleDot size={12} className="mr-1.5 animate-pulse" strokeWidth={2.5} />
-                    <span className="text-xs font-bold uppercase tracking-wider">
-                      Busy
-                    </span>
-                  </div>
-                </Tippy>
-              </div>}
+            {/* Busy status indicator removed - icon on avatar is sufficient */}
           </div>}
-        {/* Staff info - Name and status - IMPROVED RESPONSIVE HANDLING */}
-        <div className="ml-4 flex-1 min-w-0 z-10" style={{
-        marginLeft: nameLength > 12 ? '0.75rem' : '1rem' // Adjust left margin for very long names
+        {/* Staff info - Name and status - COMPACT */}
+        <div className="ml-2 flex-1 min-w-0 z-10" style={{
+        marginLeft: nameLength > 12 ? '0.5rem' : '0.75rem' // Adjust left margin for very long names
       }}>
-          {/* Staff name - IMPROVED TO NEVER TRUNCATE */}
+          {/* Staff name - COMPACT - Always visible */}
           {config.showName && <Tippy content={staff.name}>
-              <div className={`font-bold tracking-wide pr-1.5 mb-1.5 ${getTransitionClass()}`} style={{
+              <div className={`font-bold tracking-wide pr-1 mb-0.5 ${getTransitionClass()}`} style={{
             color: status.grayOutOverlay ? 'rgba(240, 240, 250, 0.95)' : 'rgba(40, 47, 60, 0.95)',
-            fontSize: `${calculateNameFontSize()}rem`,
+            fontSize: cardWidth < 200 ? '0.65rem' : '0.75rem',
             fontWeight: '700',
-            lineHeight: '1.1',
+            lineHeight: '1.0',
             letterSpacing: '0.01em',
             minWidth: '5ch',
             maxWidth: '100%',
             display: 'block',
             whiteSpace: 'normal',
-            wordBreak: 'keep-all',
+            wordBreak: 'break-word',
             textShadow: status.grayOutOverlay ? '0px 1px 2px rgba(0, 0, 0, 0.5)' : '0px 1px 0px rgba(255, 255, 255, 0.7)',
-            paddingTop: staff.status === 'ready' ? '0px' : '2px',
-            marginBottom: '6px',
+            paddingTop: '0px',
+            marginBottom: '2px',
             textTransform: 'uppercase',
-            paddingRight: calculateRightPadding()
+            paddingRight: '0.25rem',
+            overflow: 'visible',
+            hyphens: 'none'
           }} title={staff.name} // Show full name on hover
           >
                 {displayName}
@@ -1474,25 +1504,25 @@ export function StaffCard({
             </Tippy>}
           {/* Status text */}
           {config.showStatus && <div className="flex items-center mt-1"></div>}
-          {/* Clock-in Time */}
-          {config.showClockedInTime && <Tippy content={`Clocked In: ${staff.time}`}>
-              <div className={`flex items-center text-xs ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-700'} mt-1`} style={{
+          {/* Clock-in Time - Compact */}
+          {config.showClockedInTime && <Tippy content={`Clocked In: ${formatClockedInTime(staff.time)}`}>
+              <div className={`flex items-center text-[10px] ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-700'} mt-0.5`} style={{
             textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.3)' // Enhanced shadow for busy
             : '0px 1px 0px rgba(255, 255, 255, 0.5)' // Text shadow for etched effect
           }}>
-                <Clock size={10} className={`mr-0.5 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-700'}`} strokeWidth={2} />
-                <span className="font-medium">{formatTime(staff.time)}</span>
+                <Clock size={8} className={`mr-0.5 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-700'}`} strokeWidth={2} />
+                <span className="font-medium whitespace-nowrap">{formatClockedInTime(staff.time)}</span>
               </div>
             </Tippy>}
-          {/* Turn Count - ENHANCED PROMINENCE */}
+          {/* Turn Count - Compact */}
           {config.showTurnCount && <Tippy content={`Turn Count: ${staff.turnCount ?? staff.count}`}>
-              <div className={`flex items-center text-sm ${status.grayOutOverlay ? 'text-gray-200' : 'text-gray-800'} mt-1.5`} aria-label={`Turn count: ${staff.turnCount ?? staff.count}`} style={{
+              <div className={`flex items-center text-xs ${status.grayOutOverlay ? 'text-gray-200' : 'text-gray-800'} mt-0.5`} aria-label={`Turn count: ${staff.turnCount ?? staff.count}`} style={{
             textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.3)' // Enhanced shadow for busy
             : '0px 1px 0px rgba(255, 255, 255, 0.5)' // Text shadow for etched effect
           }}>
-                <ClassicIcons.RepeatArrows size={16} color={status.grayOutOverlay ? '#F3F4F6' : '#374151'} className="mr-1.5 flex-shrink-0" strokeWidth={2.5} />
+                <ClassicIcons.RepeatArrows size={12} color={status.grayOutOverlay ? '#F3F4F6' : '#374151'} className="mr-1 flex-shrink-0" strokeWidth={2.5} />
                 <span className="font-semibold" style={{
-              fontSize: cardWidth < 300 ? '15px' : '16px'
+              fontSize: '13px'
             }}>
                   {staff.turnCount ?? staff.count}
                 </span>
@@ -1552,7 +1582,7 @@ export function StaffCard({
             </>}
         </div>
         {/* Hover/active/drag state styling */}
-        <style jsx>{`
+        <style>{`
           .group {
             transform-origin: center center;
             transform: translateZ(0);
@@ -1575,7 +1605,8 @@ export function StaffCard({
             box-shadow: 0 0 0 3px rgba(0, 180, 255, 0.35);
           }
         `}</style>
-      </div>;
+      </div>
+    </>;
   }
   // ULTRA-COMPACT VIEW - Optimized for very narrow sidebars
   if (viewMode === 'ultra-compact') {
@@ -1583,16 +1614,17 @@ export function StaffCard({
       borderRadius: '12px',
       boxShadow: status.grayOutOverlay ? '0 4px 8px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.2)' // Enhanced heavier shadow for busy
       : '0 2px 5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',
-      border: status.grayOutOverlay ? `2px solid rgba(100, 100, 110, 0.8)` // More neutral border for busy
-      : `2px solid ${specialtyColor.darkBorderColor}`,
+      border: `2px solid ${specialtyColor.darkBorderColor}`,
       position: 'relative',
       overflow: 'hidden',
       transformStyle: 'preserve-3d',
       cursor: isDraggable ? 'grab' : 'pointer',
       filter: status.grayOutOverlay ? 'contrast(0.85) grayscale(0.35) brightness(0.95)' // Enhanced desaturation
       : 'none',
-      transform: status.grayOutOverlay ? 'translateY(1px)' : 'none',
-      minHeight: '76px' // Increased minimum height for better spacing
+      transform: 'none',
+      height: '76px',
+      minHeight: '76px',
+      maxHeight: '76px'
     }} tabIndex={0} role="button" aria-label={`${staff.name}, ${status.label}, Queue position: ${staff.count}`}>
         {/* Metallic gradient background */}
         <div className="absolute inset-0 z-0" style={{
@@ -1604,13 +1636,16 @@ export function StaffCard({
         boxShadow: status.grayOutOverlay ? 'inset 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.2)' // Deeper inner shadow for busy
         : 'inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.1)'
       }}></div>
-        {/* Enhanced Semi-circle notch at top border - INCREASED SIZE with added outline and sharper edges */}
-        <div className="absolute top-0 left-1/2 z-20 w-4 h-2 transform -translate-x-1/2 translate-y-0">
+        {/* Enhanced Semi-circle notch at top border - with progress for busy cards */}
+        <div className="absolute top-0 left-1/2 z-20 transform -translate-x-1/2 translate-y-0" style={{
+        width: staff.status === 'busy' && currentTicketInfo ? '2.5rem' : '1rem',
+        height: staff.status === 'busy' && currentTicketInfo ? '0.75rem' : '0.5rem'
+      }}>
           {/* Notch shadow/depth effect */}
           <div className={`absolute inset-0 bg-black opacity-10 ${staff.status === 'ready' ? 'rounded-b-[5px]' : 'rounded-b-[6px]'}`} style={{
           transform: 'translateY(0.5px)',
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
-          height: staff.status === 'ready' ? '2px' : undefined // Reduced from 2.7px
+          height: staff.status === 'ready' ? '2px' : undefined
         }}></div>
           {/* Notch main shape */}
           <div className={`absolute inset-0 bg-white ${staff.status === 'ready' ? 'rounded-b-[5px]' : 'rounded-b-[6px]'}`} style={{
@@ -1620,20 +1655,29 @@ export function StaffCard({
           borderBottom: `1px solid ${specialtyColor.darkBorderColor}`,
           boxShadow: 'inset 0 -1px 2px rgba(0, 0, 0, 0.04)',
           opacity: status.grayOutOverlay ? 0.85 : 1,
-          height: staff.status === 'ready' ? '2px' : undefined // Reduced from 2.7px
+          height: staff.status === 'ready' ? '2px' : undefined
         }}></div>
+          {/* Progress percentage for busy cards */}
+          {staff.status === 'busy' && currentTicketInfo && <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-extrabold" style={{
+            color: '#000000',
+            fontSize: '9px',
+            fontWeight: '900',
+            letterSpacing: '-0.02em',
+            textShadow: '0 0.5px 1px rgba(255, 255, 255, 0.8)',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale'
+          }}>
+                {Math.round(currentTicketInfo.progress * 100)}%
+              </span>
+            </div>}
         </div>
-        {/* Gray out overlay for busy status */}
+        {/* Red overlay for busy status - Very strong unified red wash */}
         {status.grayOutOverlay && <>
-            {/* Dark base overlay */}
+            {/* Very strong red busy overlay to completely unify all cards */}
             <div className="absolute inset-0 z-10 pointer-events-none rounded-[11.5px]" style={{
-          backgroundColor: 'rgba(40, 45, 60, 0.35)',
-          mixBlendMode: 'multiply'
-        }}></div>
-            {/* Secondary desaturation overlay */}
-            <div className="absolute inset-0 z-10 pointer-events-none rounded-[11.5px]" style={{
-          backgroundColor: 'rgba(220, 225, 235, 0.45)',
-          mixBlendMode: 'saturation'
+          backgroundColor: 'rgba(239, 68, 68, 0.65)',
+          mixBlendMode: 'normal'
         }}></div>
             {/* Subtle inset shadow to create pressed effect */}
             <div className="absolute inset-0 z-11 pointer-events-none rounded-[11.5px]" style={{
@@ -1642,31 +1686,31 @@ export function StaffCard({
         }}></div>
           </>}
         {/* Restructured layout with avatar at top and name centered below */}
-        <div className="flex flex-col items-center justify-between w-full z-10 h-full py-2">
+        <div className="flex flex-col items-center justify-start w-full z-10 h-full py-1">
           {/* Staff avatar with accent border - INCREASED TO 36px */}
           {config.showAvatar && <div className={`relative flex-shrink-0 mb-2.5 ${config.notchOverlapsAvatar ? 'mt-[-15px]' : ''}`}>
               <img src={staff.image} alt={`${staff.name} profile`} className={`w-[36px] h-[36px] rounded-full object-cover shadow-sm transition-all duration-300 group-hover:brightness-105 ${getTransitionClass()} ${status.grayOutOverlay ? 'grayscale-[30%] brightness-90' : ''}`} style={{
             boxShadow: status.grayOutOverlay ? '0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15)' // Heavier shadow for busy
             : '0 2px 4px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1)',
-            border: status.grayOutOverlay ? `2.5px solid rgba(100, 100, 110, 0.8)` // More neutral border for busy
-            : `3px solid ${specialtyColor.darkBorderColor}`,
+            border: status.grayOutOverlay ? `3px solid ${specialtyColor.darkBorderColor}` : `3px solid ${specialtyColor.darkBorderColor}`,
             minWidth: '36px',
             minHeight: '36px',
             objectFit: 'cover',
             objectPosition: 'center',
-            // Move avatar up for busy status cards only
-            transform: status.grayOutOverlay ? 'translateY(-8px)' : 'none',
+            // Same position for all cards
+            transform: 'none',
             // Optional soft top highlight
             backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.08), transparent 40%)'
           }} />
-              {/* Queue Order Number - ALWAYS VISIBLE (Tier 1) - ADJUSTED POSITION */}
-              {config.showQueueNumber && <div className="absolute -top-0.5 -left-0.5">
+              {/* Queue Order Number - ENHANCED VISIBILITY - positioned to avoid notch overlap */}
+              {config.showQueueNumber && <div className="absolute top-0 -left-3">
                   <Tippy content={`Queue Position: ${staff.count}`}>
-                    <div className="bg-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold text-gray-700 border border-white shadow-sm" aria-label={`Queue position: ${staff.count}`} style={{
-                width: '20px',
-                height: '20px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-                opacity: status.grayOutOverlay ? 0.9 : 1 // Slightly dim for busy
+                    <div className="bg-white rounded-full flex items-center justify-center font-bold text-gray-800 border-2 border-white shadow-md" aria-label={`Queue position: ${staff.count}`} style={{
+                width: '24px',
+                height: '24px',
+                fontSize: '12px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+                opacity: status.grayOutOverlay ? 0.95 : 1
               }}>
                       {staff.count}
                     </div>
@@ -1688,19 +1732,7 @@ export function StaffCard({
                     </div>
                   </Tippy>
                 </div>}
-              {/* Busy status indicator at bottom of avatar - Only shown for busy staff */}
-              {status.label === 'Busy' && <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 z-20">
-                  <Tippy content="Status: Busy">
-                    <div className="bg-rose-600 text-white flex items-center px-3 py-1 rounded-full shadow-md" style={{
-                boxShadow: '0 3px 5px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2)'
-              }} aria-label="Status: Busy">
-                      <CircleDot size={12} className="mr-1.5 animate-pulse" strokeWidth={2.5} />
-                      <span className="text-xs font-bold uppercase tracking-wider">
-                        Busy
-                      </span>
-                    </div>
-                  </Tippy>
-                </div>}
+              {/* Busy status indicator removed - icon on avatar is sufficient */}
             </div>}
           {/* Staff name - ALWAYS VISIBLE (Tier 1) - CENTERED UNDER AVATAR - UPDATED TO SHOW FIRST NAME ONLY */}
           {config.showName && <div className="text-center px-1 w-full mb-1.5">
@@ -1757,7 +1789,7 @@ export function StaffCard({
           <MoreVertical size={10} strokeWidth={2} />
         </button>
         {/* Hover/active/drag state styling */}
-        <style jsx>{`
+        <style>{`
           .group {
             transform-origin: center center;
             transform: translateZ(0);
@@ -1782,7 +1814,7 @@ export function StaffCard({
         `}</style>
       </div>;
   }
-  // NORMAL VIEW - Full card with all information
+  // NORMAL VIEW - Full card with all information - Fixed height to match original busy cards
   if (viewMode === 'normal') {
     return <div ref={cardRef} className={`group flex flex-col w-full ${isSelected ? 'ring-2 ring-offset-1 ring-blue-500' : ''} ${getTransitionClass()}`} style={{
       borderRadius: '16px',
@@ -1795,7 +1827,9 @@ export function StaffCard({
       overflow: 'hidden',
       transformStyle: 'preserve-3d',
       cursor: isDraggable ? 'grab' : 'pointer',
-      minHeight: '180px',
+      height: '238px',
+      minHeight: '238px',
+      maxHeight: '238px',
       filter: status.grayOutOverlay ? 'contrast(0.85) grayscale(0.35) brightness(0.95)' // Enhanced desaturation
       : 'none',
       transform: status.grayOutOverlay ? 'translateY(1px)' : 'none' // Subtle pressed effect for busy cards
@@ -1803,12 +1837,12 @@ export function StaffCard({
         {/* Functional notch for busy staff with current ticket info */}
         {currentTicketInfo !== null && staff.status === 'busy' ? <div className="absolute top-0 left-1/2 z-30" style={{
         width: viewMode === 'compact' || viewMode === 'ultra-compact' ? '50%' // Further reduced from 57% for leaner appearance
-        : '36%',
+        : '42%',
         minWidth: viewMode === 'compact' ? '155px' // Further reduced from 170px
         : viewMode === 'ultra-compact' ? '120px' // Further reduced from 135px
-        : '140px',
+        : '165px',
         maxWidth: viewMode === 'compact' || viewMode === 'ultra-compact' ? '225px' // Further reduced from 250px
-        : '190px',
+        : '220px',
         height: 'auto',
         minHeight: viewMode === 'compact' || viewMode === 'ultra-compact' ? '32px' // Reduced from 36px for shorter appearance
         : '28px',
@@ -1833,36 +1867,41 @@ export function StaffCard({
               {/* Top row with time info - refined positioning and hierarchy */}
               <div className="flex items-center justify-between w-full px-3 pt-1 pb-0.5">
                 {' '}
-                {/* Reduced top padding from pt-1.5 to pt-1 */}
-                {/* Time information with responsive behavior and smart truncation */}
-                <div className="flex items-center text-[10px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[72%]">
-                  {' '}
-                  {/* Reduced font size from 11px to 10px */}
-                  <Clock size={viewMode === 'ultra-compact' ? 8 : 9} className="mr-0.5 text-gray-700 flex-shrink-0" strokeWidth={2.5} />
+                {/* Time information with enhanced visibility */}
+                <div className="flex items-center text-[11px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[70%]">
+                  <Clock size={10} className="mr-1 text-gray-800 flex-shrink-0" strokeWidth={2.5} style={{
+                filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))'
+              }} />
                   <span className="overflow-hidden text-ellipsis">
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-bold text-gray-900" style={{
+                  textShadow: '0 1px 1px rgba(255,255,255,0.8)'
+                }}>
                       {currentTicketInfo.timeLeft}m
                     </span>
-                    {/* Responsive text handling with smart truncation */}
-                    <span className={`text-gray-500 ${viewMode === 'ultra-compact' ? 'text-[7px]' : 'text-[8px]'}`}>
+                    {/* Responsive text handling */}
+                    <span className="text-[9px] text-gray-600 font-medium">
                       {currentTicketInfo.progress > 1 ? ' over' : ' left'}
                       {(viewMode === 'normal' || cardWidth >= 210) && <>
-                          {' / '}
-                          <span className="whitespace-nowrap">
+                          <span className="text-gray-400 mx-0.5">/</span>
+                          <span className="whitespace-nowrap font-semibold text-gray-700">
                             {currentTicketInfo.totalTime >= 60 ? `${Math.floor(currentTicketInfo.totalTime / 60)}h${currentTicketInfo.totalTime % 60 > 0 ? `${currentTicketInfo.totalTime % 60}` : ''}` : `${currentTicketInfo.totalTime}m`}
                           </span>
                         </>}
                     </span>
                   </span>
                 </div>
-                {/* Percentage with dynamic color based on progress - always right-aligned */}
-                <span className={`${viewMode === 'ultra-compact' ? 'text-[7px]' : 'text-[8px]'} font-bold whitespace-nowrap`} style={{
-              color: currentTicketInfo.progress <= 0.25 ? '#22C55E' // Green for on-track
-              : currentTicketInfo.progress <= 0.75 ? '#F59E0B' // Amber for mid-progress
-              : '#EF4444' // Red for critical or overtime
+                {/* Percentage with enhanced visibility and background */}
+                <div className="flex items-center justify-center px-1.5 py-0.5 rounded" style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.9)'
             }}>
-                  {Math.round(currentTicketInfo.progress * 100)}%
-                </span>
+                  <span className="text-[10px] font-extrabold whitespace-nowrap" style={{
+                color: '#000000',
+                fontWeight: '900',
+                textShadow: '0 0.5px 1px rgba(255, 255, 255, 0.5)'
+              }}>
+                    {Math.round(currentTicketInfo.progress * 100)}%
+                  </span>
+                </div>
               </div>
               {/* Bottom row with progress bar - perfectly flush with bottom edge */}
               <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{
@@ -1880,26 +1919,28 @@ export function StaffCard({
               </div>
             </div>
           </div> :
-      // Original notch for non-busy staff - updated to be more rounded, leaner and shorter
-      <div className={`absolute top-0 left-1/2 z-20 transform -translate-x-1/2 translate-y-0 ${staff.status === 'ready' ? 'w-7' : 'w-7 h-3.5'}`} // Reduced width from w-8 to w-7, height from h-4 to h-3.5
+      // iPhone-style notch for non-busy staff - sharper, sleeker design
+      <div className={`absolute top-0 left-1/2 z-20 transform -translate-x-1/2 translate-y-0 ${staff.status === 'ready' ? 'w-9' : 'w-7 h-3.5'}`}
       style={{
-        height: staff.status === 'ready' ? '0.55rem' : undefined // Further reduced from 0.6075rem
+        height: staff.status === 'ready' ? '0.625rem' : undefined // iPhone-like proportions - slightly shorter
       }}>
-            {/* Notch shadow/depth effect */}
-            <div className={`absolute inset-0 bg-black opacity-10 ${staff.status === 'ready' ? 'rounded-b-[5px]' : 'rounded-b-[8px]'}`} // Increased radius for more rounded corners
+            {/* Notch shadow/depth effect - sharper */}
+            <div className={`absolute inset-0 bg-black ${staff.status === 'ready' ? 'rounded-b-[10px]' : 'rounded-b-[8px]'}`}
         style={{
-          transform: 'translateY(1px)',
-          boxShadow: '0 2px 3px rgba(0, 0, 0, 0.1)' // Reduced from 0 3px 4px
+          opacity: 0.08,
+          transform: 'translateY(0.5px)',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)'
         }}></div>
-            {/* Notch main shape */}
-            <div className={`absolute inset-0 bg-white ${staff.status === 'ready' ? 'rounded-b-[5px]' : 'rounded-b-[8px]'}`} // Increased radius for more rounded corners
+            {/* Notch main shape - iPhone-style curves */}
+            <div className={`absolute inset-0 bg-white ${staff.status === 'ready' ? 'rounded-b-[10px]' : 'rounded-b-[8px]'}`}
         style={{
           borderTop: 'none',
-          borderLeft: `1px solid ${specialtyColor.darkBorderColor}`,
-          borderRight: `1px solid ${specialtyColor.darkBorderColor}`,
-          borderBottom: `1px solid ${specialtyColor.darkBorderColor}`,
-          boxShadow: 'inset 0 -2px 3px rgba(0, 0, 0, 0.04)',
-          opacity: status.grayOutOverlay ? 0.85 : 1 // Slightly dim the notch for busy status
+          borderLeft: `1.5px solid ${specialtyColor.darkBorderColor}`,
+          borderRight: `1.5px solid ${specialtyColor.darkBorderColor}`,
+          borderBottom: `1.5px solid ${specialtyColor.darkBorderColor}`,
+          boxShadow: 'inset 0 -1px 2px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.08)',
+          opacity: status.grayOutOverlay ? 0.85 : 1,
+          background: 'linear-gradient(to bottom, #ffffff 0%, #fafafa 100%)' // Subtle gradient for depth
         }}></div>
           </div>}
         {/* Metallic gradient background */}
@@ -1918,17 +1959,12 @@ export function StaffCard({
         boxShadow: status.grayOutOverlay ? 'inset 0 1px 4px rgba(0, 0, 0, 0.3), inset 0 -1px 3px rgba(0, 0, 0, 0.2)' // Deeper inner shadow for busy
         : 'inset 0 1px 3px rgba(255, 255, 255, 0.6), inset 0 -1px 3px rgba(0, 0, 0, 0.15)'
       }}></div>
-        {/* Enhanced overlay for busy status */}
+        {/* Enhanced red overlay for busy status - Very strong unified red wash */}
         {status.grayOutOverlay && <>
-            {/* Dark base overlay */}
+            {/* Very strong red busy overlay to completely unify all cards */}
             <div className="absolute inset-0 z-10 pointer-events-none rounded-[13.5px]" style={{
-          backgroundColor: 'rgba(40, 45, 60, 0.35)',
-          mixBlendMode: 'multiply'
-        }}></div>
-            {/* Secondary desaturation overlay */}
-            <div className="absolute inset-0 z-10 pointer-events-none rounded-[13.5px]" style={{
-          backgroundColor: 'rgba(220, 225, 235, 0.45)',
-          mixBlendMode: 'saturation'
+          backgroundColor: 'rgba(239, 68, 68, 0.65)',
+          mixBlendMode: 'normal'
         }}></div>
             {/* Subtle inset shadow to create pressed effect */}
             <div className="absolute inset-0 z-11 pointer-events-none rounded-[13.5px]" style={{
@@ -1949,9 +1985,9 @@ export function StaffCard({
           {/* Improved top padding for better vertical alignment */}
           <div className="flex items-start mt-0.75">
             {/* Staff avatar with accent border */}
-            {config.showAvatar && <div className={`relative flex-shrink-0 ${config.notchOverlapsAvatar ? staff.status === 'ready' ? 'mt-[-10px]' : 'mt-[-14px]' : ''}`} style={{
+            {config.showAvatar && <div className={`relative flex-shrink-0 ${config.notchOverlapsAvatar ? staff.status === 'ready' ? 'mt-[-10px]' : 'mt-[-20px]' : ''}`} style={{
             marginTop: config.notchOverlapsAvatar ? staff.status === 'ready' ? '-10px' // Adjusted offset for ready status to improve balance
-            : '-14px' : '',
+            : '-20px' : '',
             paddingBottom: staff.status === 'ready' ? '4px' : '0',
             display: 'flex',
             justifyContent: 'center'
@@ -2031,8 +2067,8 @@ export function StaffCard({
               </div>}
             <div className={`ml-2 flex-1 min-w-0 flex flex-col justify-center h-full ${staff.status === 'ready' ? 'pt-1' : ''}`} style={{
             paddingLeft: '8px',
-            // Apply negative margin-top only for busy status cards
-            marginTop: status.grayOutOverlay ? '-8px' : '0',
+            // Apply negative margin-top for busy status - overlapping avatar
+            marginTop: status.grayOutOverlay ? '-18px' : '0',
             transition: 'margin-top 0.2s ease'
           }}>
               {/* Staff name - ALWAYS VISIBLE (Tier 1) - UPDATED TO SHOW FIRST NAME ONLY */}
@@ -2067,13 +2103,17 @@ export function StaffCard({
                 textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.4)' : '0px 1px 0px rgba(255, 255, 255, 0.5)',
                 marginBottom: '6px' // Consistent 6px spacing
               }}>
-                    <Tippy content={`Clocked In: ${staff.time}`}>
+                    <Tippy content={`Clocked In: ${formatClockedInTime(staff.time)}`}>
                       <div className="flex items-center">
                         <ClassicIcons.ClockAnalog size={16} color={status.grayOutOverlay ? '#E5E7EB' : '#4B5563'} strokeWidth={2} className="mr-1.5 flex-shrink-0" style={{
                       marginRight: '6px'
                     }} // Consistent 6px icon-text gap
                     />
-                        <span className="font-medium">{staff.time}</span>
+                        {cardWidth >= 180 ? (
+                          <span className="font-medium whitespace-nowrap">{formatClockedInTime(staff.time)}</span>
+                        ) : cardWidth >= 140 ? (
+                          <span className="font-medium whitespace-nowrap" style={{ fontSize: '11px' }}>{formatClockedInTime(staff.time)}</span>
+                        ) : null}
                       </div>
                     </Tippy>
                   </div>}
@@ -2086,14 +2126,12 @@ export function StaffCard({
                     marginRight: '6px'
                   }} // Consistent 6px icon-text gap
                   />
-                      {cardWidth >= 160 ? <span className="font-medium">
-                          Turns:{' '}
+                      <span className="font-medium whitespace-nowrap">
+                          {cardWidth >= 200 ? 'Turns:' : 'T:'}{' '}
                           <span className="font-semibold">
                             {staff.turnCount ?? staff.count ?? 0}
                           </span>
-                        </span> : <span className="font-semibold">
-                          {staff.turnCount ?? staff.count ?? 0}
-                        </span>}
+                        </span>
                     </div>
                   </Tippy>}
               </div>
@@ -2117,10 +2155,12 @@ export function StaffCard({
         }}></div>
         </div>
         {/* Data section with metrics */}
-        <div className={`relative z-10 h-[40%] flex flex-col justify-center p-2.5 ${getTransitionClass()}`} // Reduced padding from p-3
+        <div className={`relative z-10 h-[40%] flex flex-col justify-center ${staff.status === 'ready' ? 'p-3' : 'p-2.5'} ${getTransitionClass()}`} // Balanced padding for ready cards
       style={{
         borderBottomLeftRadius: '14px',
-        borderBottomRightRadius: '14px'
+        borderBottomRightRadius: '14px',
+        paddingTop: staff.status === 'ready' ? '16px' : '10px',
+        paddingBottom: staff.status === 'ready' ? '14px' : undefined
       }}>
           {/* METRICS ROW - conditionally render either Active Ticket row or Tickets/Sales row */}
           {hasActiveTickets() ? renderActiveTicketRow() : <div className="flex justify-between items-center mb-2">
@@ -2161,7 +2201,7 @@ export function StaffCard({
         {/* Selected indicator */}
         {isSelected && <div className="absolute top-0 right-0 m-2 z-30"></div>}
         {/* Hover/active/drag state styling */}
-        <style jsx>{`
+        <style>{`
           .group {
             transform-origin: center center;
             transform: translateZ(0);
