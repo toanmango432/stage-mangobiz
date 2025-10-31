@@ -1,7 +1,7 @@
 {
-  "name": "Mango Biz Store - POS System",
-  "short_name": "Mango POS",
-  "description": "Offline-first salon POS system with real-time sync",
+  "name": "Mango Offline POS Winsurf V1",
+  "short_name": "Mango POS V1",
+  "description": "Mango Offline POS Winsurf V1 - Offline-first salon management system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

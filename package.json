@@ -1,6 +1,7 @@
 {
-  "name": "magic-patterns-vite-template",
-  "version": "0.0.1",
+  "name": "mango-offline-pos-winsurf-v1",
+  "version": "1.0.0",
+  "description": "Mango Offline POS Winsurf V1 - Offline-first salon management system",
   "private": true,
   "type": "module",
   "scripts": {
