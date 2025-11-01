@@ -608,7 +608,10 @@ export function BookPage() {
           onSearchClick={handleSearchClick}
           onTodayClick={goToToday}
           onFilterChange={setFilters}
-          onNewAppointment={() => setIsNewAppointmentOpen(true)}
+          onNewAppointment={() => {
+            setSelectedTimeSlot(null); // Clear any previous time slot selection
+            setIsNewAppointmentOpen(true);
+          }}
         />
 
         {/* Calendar + Sidebars */}
