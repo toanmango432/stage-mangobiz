@@ -8,6 +8,7 @@ import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { APPOINTMENT_STATUS_COLORS, BOOKING_SOURCE_COLORS } from '../../constants/appointment';
 import { formatTimeDisplay, formatDurationDisplay } from '../../utils/timeUtils';
+import { StatusBadge } from './StatusBadge';
 
 interface AppointmentCardProps {
   appointment: LocalAppointment;
@@ -33,7 +34,7 @@ export const AppointmentCard = memo(function AppointmentCard({
         'absolute left-0 right-0 mx-1',
         'rounded-lg overflow-hidden',
         'cursor-pointer transition-all duration-200',
-        'hover:shadow-lg hover:scale-[1.02] hover:z-20',
+        'shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:z-20',
         'border-l-4',
         className
       )}
@@ -47,7 +48,7 @@ export const AppointmentCard = memo(function AppointmentCard({
       {/* Paper ticket background with subtle texture */}
       <div className={cn(
         'h-full p-2 relative',
-        'bg-gradient-to-br from-white to-gray-50',
+        'bg-white',
         statusColor,
         'border border-gray-200'
       )}>

@@ -91,15 +91,15 @@ export const StaffColumn = memo(function StaffColumn({
       </div>
 
       {/* Schedule area */}
-      <div className="relative">
+      <div className="relative bg-white">
         {/* Time slot grid (for visual reference) */}
         <div className="absolute inset-0 pointer-events-none">
           {timeSlots.map((slot, idx) => (
             <div
               key={slot.timeInSeconds}
               className={cn(
-                'border-b border-gray-100',
-                idx % 4 === 0 && 'border-gray-200' // Hour marks
+                'border-b border-gray-200',
+                idx % 4 === 0 && 'border-gray-300' // Hour marks - more visible
               )}
               style={{ height: `${PIXELS_PER_15_MINUTES}px` }}
             />

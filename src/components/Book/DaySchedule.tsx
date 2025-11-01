@@ -9,7 +9,9 @@ import { LocalAppointment } from '../../types/appointment';
 import { TimeSlot as TimeSlotType } from '../../utils/timeUtils';
 import { TimeSlot } from './TimeSlot';
 import { StaffColumn } from './StaffColumn';
+import { EmptyState } from './EmptyState';
 import { timeToSeconds } from '../../utils/timeUtils';
+import { Users } from 'lucide-react';
 
 interface Staff {
   id: string;
@@ -65,9 +67,9 @@ export const DaySchedule = memo(function DaySchedule({
   }, {} as Record<string, LocalAppointment[]>);
 
   return (
-    <div className={cn('flex h-full bg-white', className)}>
+    <div className={cn('flex h-full bg-gray-50 rounded-lg', className)}>
       {/* Time column */}
-      <div className="w-16 flex-shrink-0 border-r border-gray-200 bg-gray-50">
+      <div className="w-16 flex-shrink-0 border-r border-gray-200 bg-white">
         {/* Header spacer */}
         <div className="h-[60px] border-b-2 border-gray-300" />
 
@@ -91,18 +93,12 @@ export const DaySchedule = memo(function DaySchedule({
       >
         <div className="flex min-w-full">
           {staff.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="text-gray-400 mb-2">
-                  <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <p className="text-gray-600 font-medium">No staff selected</p>
-                <p className="text-gray-500 text-sm mt-1">
-                  Select staff from the sidebar to view their schedules
-                </p>
-              </div>
+            <div className="flex-1 flex items-center justify-center py-20 bg-white rounded-r-lg">
+              <EmptyState
+                icon={Users}
+                title="No staff selected"
+                description="Select staff from the sidebar to view their schedules"
+              />
             </div>
           ) : (
             staff.map((staffMember) => (
