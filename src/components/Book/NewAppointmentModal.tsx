@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Search, Plus, Calendar, Clock, User, ChevronRight, Minimize2, Maximize2, Sparkles, Lock } from 'lucide-react';
+import { X, Search, Plus, Calendar, Clock, User, ChevronRight, Minimize2, Maximize2, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { clientsDB } from '../../db/database';
 import { db } from '../../db/schema';
@@ -89,35 +89,23 @@ export function NewAppointmentModal({
   const [newClientPhone, setNewClientPhone] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   
-  // Staff pre-selection from time slot click
-  const [preselectedStaffId, setPreselectedStaffId] = useState<string | null>(selectedStaffId || null);
-  const [isStaffLocked, setIsStaffLocked] = useState<boolean>(!!selectedStaffId);
   
   // Detect when modal transitions from closed to open
   useEffect(() => {
     if (isOpen && !lastOpenState) {
-      // Modal just opened - aggressively reset everything
-      setSelectedClient(null); // Clear any previous client selection
+      // Modal just opened - reset everything
+      setSelectedClient(null);
       setSelectedServices([]);
       setClientSearch('');
       setServiceSearch('');
       setShowCreateClientForm(false);
       setPendingService(null);
       setSmartSuggestions(null);
-      
-      // Set staff pre-selection
-      if (selectedStaffId) {
-        setPreselectedStaffId(selectedStaffId);
-        setIsStaffLocked(true);
-      } else {
-        setPreselectedStaffId(null);
-        setIsStaffLocked(false);
-      }
     }
     
     // Track open state changes
     setLastOpenState(isOpen);
-  }, [isOpen, selectedStaffId, lastOpenState]);
+  }, [isOpen, lastOpenState]);
   
   // Data from IndexedDB
   const [clients, setClients] = useState<Client[]>([]);
@@ -466,13 +454,7 @@ export function NewAppointmentModal({
   };
 
   const handleSelectServiceForStaffAssignment = (service: Service) => {
-    // If staff is pre-selected and locked (from time slot click), auto-assign
-    if (preselectedStaffId && isStaffLocked) {
-      handleAddService(service, preselectedStaffId);
-      return;
-    }
-    
-    // Otherwise, show staff selector popup
+    // Always show staff selector popup (no auto-assignment)
     setPendingService(service);
     setShowStaffSelector(true);
   };
@@ -611,42 +593,6 @@ export function NewAppointmentModal({
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
             {/* LEFT PANEL: Client Selection / Profile */}
             <div className="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col bg-gray-50 overflow-y-auto">
-              
-              {/* Locked Staff Indicator - SHOW IMMEDIATELY */}
-              {preselectedStaffId && isStaffLocked && (
-                <div className="m-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-300 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
-                        {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name.charAt(0) || '?'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-bold text-teal-900 text-base">
-                            {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name || 'Staff Member'}
-                          </p>
-                          <span className="px-2 py-0.5 bg-teal-600 text-white text-xs font-semibold rounded-full">
-                            PRE-SELECTED
-                          </span>
-                        </div>
-                        <p className="text-sm text-teal-700 leading-relaxed">
-                          All services will be automatically assigned to this staff member
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setIsStaffLocked(false);
-                        setPreselectedStaffId(null);
-                      }}
-                      className="px-3 py-1.5 text-sm font-semibold text-teal-700 hover:text-teal-900 hover:bg-teal-100 rounded-lg transition-all border border-teal-300 hover:border-teal-400 flex-shrink-0"
-                    >
-                      Change
-                    </button>
-                  </div>
-                </div>
-              )}
-              
               {!selectedClient ? (
                 // Client Search
                 <div className="flex flex-col p-6">
@@ -1068,17 +1014,8 @@ export function NewAppointmentModal({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-500 mt-2 block flex items-center gap-1">
-                            {isStaffLocked && preselectedStaffId ? (
-                              <>
-                                <Lock className="w-3 h-3 text-teal-600" />
-                                <span className="text-teal-700 font-medium">
-                                  Will assign to {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name}
-                                </span>
-                              </>
-                            ) : (
-                              'Click to assign staff'
-                            )}
+                          <span className="text-xs text-gray-500 mt-2 block">
+                            Click to assign staff
                           </span>
                         )}
                       </button>
