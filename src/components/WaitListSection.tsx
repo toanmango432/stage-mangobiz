@@ -65,6 +65,11 @@ export function WaitListSection({
     const saved = localStorage.getItem('waitListMinimizedLineView');
     return saved === 'true' ? true : false;
   });
+  const [cardScale, setCardScale] = useState<number>(() => {
+    const saved = localStorage.getItem('waitListCardScale');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+  const [showCardSizeSlider, setShowCardSizeSlider] = useState(false);
   // Use either external or internal state based on isCombinedView
   const viewMode = isCombinedView && externalViewMode ? externalViewMode : internalViewMode;
   const setViewMode = (newMode: 'grid' | 'list') => {
@@ -950,13 +955,33 @@ export function WaitListSection({
   }
   return <div className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden h-full" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)' }}>
       {/* Section header - hide when in combined view and hideHeader is true */}
-      {!hideHeader && <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 sticky top-0 z-10 h-[40px]">
-          <div className="flex items-center">
-            <div className="mr-3 text-amber-500">
-              <Users size={16} />
+      {!hideHeader && <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-white to-orange-50/30 sticky top-0 z-10 backdrop-blur-sm" style={{ 
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+        }}>
+          <div className="flex items-center gap-3">
+            {/* Icon */}
+            <div className="p-1.5 rounded-lg" style={{ 
+              background: 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
+              boxShadow: '0 2px 4px rgba(255, 179, 71, 0.3)'
+            }}>
+              <Users size={16} className="text-white" strokeWidth={2.5} />
             </div>
-            <h2 className="text-base font-medium text-gray-800">Waiting Queue</h2>
-            <div className="ml-2 bg-amber-50 text-amber-700 text-xs px-2 py-0.5 rounded-full">
+            
+            {/* Title */}
+            <h2 className="text-base font-bold" style={{ 
+              color: '#1a1a1a',
+              letterSpacing: '-0.4px',
+              lineHeight: 1
+            }}>Waiting Queue</h2>
+            
+            {/* Count Badge */}
+            <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ 
+              background: 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
+              color: 'white',
+              boxShadow: '0 2px 4px rgba(255, 179, 71, 0.3)',
+              minWidth: '28px',
+              textAlign: 'center'
+            }}>
               {waitlist.length}
             </div>
           </div>
@@ -987,22 +1012,63 @@ export function WaitListSection({
                   <MoreVertical size={16} />
                 </button>
               </Tippy>
-              {showDropdown && <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
+              {showDropdown && <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
+                  {/* View Mode Section */}
                   <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
-                    <h3 className="text-sm font-medium text-gray-700">
-                      View Options
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      View Mode
                     </h3>
                   </div>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('list')}>
+                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('list')} role="menuitem">
                     <List size={14} className="mr-2 text-gray-500" />
                     Line View
                     {viewMode === 'list' && <Check size={14} className="ml-auto text-amber-500" />}
                   </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('grid')}>
+                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('grid')} role="menuitem">
                     <Grid size={14} className="mr-2 text-gray-500" />
                     Grid View
                     {viewMode === 'grid' && <Check size={14} className="ml-auto text-amber-500" />}
                   </button>
+                  
+                  {/* Card Size Section */}
+                  <div className="border-t border-gray-100 mt-1">
+                    <button 
+                      className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between" 
+                      onClick={() => setShowCardSizeSlider(!showCardSizeSlider)} 
+                      role="menuitem"
+                    >
+                      <div className="flex items-center">
+                        <Settings size={14} className="mr-2 text-gray-500" />
+                        Adjust Card Size
+                      </div>
+                      <ChevronRight size={14} className={showCardSizeSlider ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                    </button>
+                    {showCardSizeSlider && (
+                      <div className="px-3 py-3 bg-gray-50 border-t border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-gray-500">Small</span>
+                          <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
+                          <span className="text-xs text-gray-500">Large</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.7"
+                          max="1.3"
+                          step="0.05"
+                          value={cardScale}
+                          onChange={(e) => {
+                            const newScale = parseFloat(e.target.value);
+                            setCardScale(newScale);
+                            localStorage.setItem('waitListCardScale', newScale.toString());
+                          }}
+                          className="w-full h-2 bg-orange-100 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                          style={{
+                            background: `linear-gradient(to right, #FFB347 0%, #FFB347 ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>}
             </div>
             <Tippy content="Minimize section"></Tippy>
@@ -1010,7 +1076,14 @@ export function WaitListSection({
         </div>}
       <div className="flex-1 overflow-auto p-3 scroll-smooth">
         {/* Show content based on whether there are tickets */}
-        {waitlist.length > 0 ? viewMode === 'grid' ? <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' : 'grid-cols-1'} gap-1.5`}>
+        {waitlist.length > 0 ? viewMode === 'grid' ? <div 
+          className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' : 'grid-cols-1'} gap-1.5`}
+          style={{ 
+            transform: `scale(${cardScale})`,
+            transformOrigin: 'top left',
+            width: `${100 / cardScale}%`
+          }}
+        >
               {waitlist.map(ticket => (
                 <WaitListTicketCard
                   key={ticket.id}
@@ -1043,7 +1116,14 @@ export function WaitListSection({
                   }}
                 />
               ))}
-            </div> : <div className="space-y-2">
+            </div> : <div 
+              className="space-y-2"
+              style={{ 
+                transform: `scale(${cardScale})`,
+                transformOrigin: 'top left',
+                width: `${100 / cardScale}%`
+              }}
+            >
               {waitlist.map(ticket => (
                 <WaitListTicketCard
                   key={ticket.id}
