@@ -859,79 +859,81 @@ export function NewAppointmentModal({
                       </div>
                     </div>
                   )}
-
-                  {/* Date, Time, Staff */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Date <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="date"
-                          value={date.toISOString().split('T')[0]}
-                          onChange={(e) => setDate(new Date(e.target.value))}
-                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Time <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="time"
-                          value={time}
-                          onChange={(e) => setTime(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Staff Assignment Note */}
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-2">
-                        <User className="w-5 h-5 text-purple-600 mt-0.5" />
-                        <div>
-                          <p className="font-semibold text-purple-900 text-sm">Staff Assignment</p>
-                          <p className="text-xs text-purple-700 mt-1">
-                            Staff will be assigned when you select services on the right →
-                          </p>
-                          {selectedServices.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {selectedServices.map(s => (
-                                <div key={s.id} className="text-xs text-purple-800">
-                                  • {s.name} → <span className="font-semibold">{s.assignedStaffName}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                </div>
+              )}
+              
+              {/* Date, Time, Staff, Summary - ALWAYS VISIBLE */}
+              <div className="flex flex-col p-6 space-y-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Date <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="date"
+                        value={date.toISOString().split('T')[0]}
+                        onChange={(e) => setDate(new Date(e.target.value))}
+                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
+                      />
                     </div>
                   </div>
 
-                  {/* Summary */}
-                  {selectedServices.length > 0 && (
-                    <div className="mt-auto pt-4 border-t border-gray-200">
-                      <div className="bg-white rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-gray-600">Total Duration:</span>
-                          <span className="font-semibold text-gray-900">{total.duration} min</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Total Price:</span>
-                          <span className="font-bold text-gray-900 text-lg">${total.price}</span>
-                        </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Time <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="time"
+                        value={time}
+                        onChange={(e) => setTime(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Staff Assignment Note */}
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-2">
+                      <User className="w-5 h-5 text-purple-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-purple-900 text-sm">Staff Assignment</p>
+                        <p className="text-xs text-purple-700 mt-1">
+                          Staff will be assigned when you select services on the right →
+                        </p>
+                        {selectedServices.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {selectedServices.map(s => (
+                              <div key={s.id} className="text-xs text-purple-800">
+                                • {s.name} → <span className="font-semibold">{s.assignedStaffName}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+
+                {/* Summary */}
+                {selectedServices.length > 0 && (
+                  <div className="mt-auto pt-4 border-t border-gray-200 px-6">
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-600">Total Duration:</span>
+                        <span className="font-semibold text-gray-900">{total.duration} min</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Total Price:</span>
+                        <span className="font-bold text-gray-900 text-lg">${total.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* RIGHT PANEL: Service Selection */}
