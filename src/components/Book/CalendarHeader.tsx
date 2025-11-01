@@ -7,7 +7,7 @@ import { memo } from 'react';
 import { cn } from '../../lib/utils';
 import { CalendarView, TimeWindowMode, CALENDAR_VIEWS, TIME_WINDOW_MODES } from '../../constants/appointment';
 import { formatDateDisplay } from '../../utils/timeUtils';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, Search, Plus } from 'lucide-react';
 import { FilterPanel, AppointmentFilters } from './FilterPanel';
 
 interface CalendarHeaderProps {
@@ -20,6 +20,7 @@ interface CalendarHeaderProps {
   onSearchClick?: () => void;
   onTodayClick: () => void;
   onFilterChange?: (filters: AppointmentFilters) => void;
+  onNewAppointment?: () => void;
   className?: string;
 }
 
@@ -33,6 +34,7 @@ export const CalendarHeader = memo(function CalendarHeader({
   onSearchClick,
   onTodayClick,
   onFilterChange,
+  onNewAppointment,
   className,
 }: CalendarHeaderProps) {
   const handlePrevDay = () => {
@@ -196,6 +198,27 @@ export const CalendarHeader = memo(function CalendarHeader({
         >
           <Search className="w-5 h-5" />
         </button>
+
+        {/* New Appointment Button */}
+        {onNewAppointment && (
+          <button
+            onClick={onNewAppointment}
+            className={cn(
+              'flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg',
+              'bg-gradient-to-r from-orange-500 to-pink-500',
+              'text-white font-semibold text-sm',
+              'hover:from-orange-600 hover:to-pink-600',
+              'active:scale-95',
+              'transition-all duration-200',
+              'shadow-md hover:shadow-lg'
+            )}
+            aria-label="New appointment"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">New Appointment</span>
+            <span className="sm:hidden">New</span>
+          </button>
+        )}
       </div>
     </div>
   );

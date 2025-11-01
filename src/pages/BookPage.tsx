@@ -608,6 +608,7 @@ export function BookPage() {
           onSearchClick={handleSearchClick}
           onTodayClick={goToToday}
           onFilterChange={setFilters}
+          onNewAppointment={() => setIsNewAppointmentOpen(true)}
         />
 
         {/* Calendar + Sidebars */}
