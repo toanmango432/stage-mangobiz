@@ -92,12 +92,22 @@ export function NewAppointmentModal({
   
   // Sync staff pre-selection when modal opens or selectedStaffId changes
   useEffect(() => {
-    if (isOpen && selectedStaffId) {
-      setPreselectedStaffId(selectedStaffId);
-      setIsStaffLocked(true);
-    } else if (isOpen && !selectedStaffId) {
-      setPreselectedStaffId(null);
-      setIsStaffLocked(false);
+    if (isOpen) {
+      // Reset form state when modal opens
+      setSelectedClient(null); // Clear any previous client selection
+      setSelectedServices([]);
+      setClientSearch('');
+      setServiceSearch('');
+      setShowCreateClientForm(false);
+      
+      // Set staff pre-selection
+      if (selectedStaffId) {
+        setPreselectedStaffId(selectedStaffId);
+        setIsStaffLocked(true);
+      } else {
+        setPreselectedStaffId(null);
+        setIsStaffLocked(false);
+      }
     }
   }, [isOpen, selectedStaffId]);
   
