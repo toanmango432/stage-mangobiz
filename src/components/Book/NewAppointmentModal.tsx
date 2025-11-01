@@ -73,6 +73,9 @@ export function NewAppointmentModal({
   const [clientSearch, setClientSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  
+  // Aggressively clear client when modal state changes
+  const [lastOpenState, setLastOpenState] = useState(isOpen);
   const [selectedServices, setSelectedServices] = useState<SelectedServiceWithStaff[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [date, setDate] = useState<Date>(selectedDate || new Date());
@@ -90,15 +93,17 @@ export function NewAppointmentModal({
   const [preselectedStaffId, setPreselectedStaffId] = useState<string | null>(selectedStaffId || null);
   const [isStaffLocked, setIsStaffLocked] = useState<boolean>(!!selectedStaffId);
   
-  // Sync staff pre-selection when modal opens or selectedStaffId changes
+  // Detect when modal transitions from closed to open
   useEffect(() => {
-    if (isOpen) {
-      // Reset form state when modal opens
+    if (isOpen && !lastOpenState) {
+      // Modal just opened - aggressively reset everything
       setSelectedClient(null); // Clear any previous client selection
       setSelectedServices([]);
       setClientSearch('');
       setServiceSearch('');
       setShowCreateClientForm(false);
+      setPendingService(null);
+      setSmartSuggestions(null);
       
       // Set staff pre-selection
       if (selectedStaffId) {
@@ -109,7 +114,10 @@ export function NewAppointmentModal({
         setIsStaffLocked(false);
       }
     }
-  }, [isOpen, selectedStaffId]);
+    
+    // Track open state changes
+    setLastOpenState(isOpen);
+  }, [isOpen, selectedStaffId, lastOpenState]);
   
   // Data from IndexedDB
   const [clients, setClients] = useState<Client[]>([]);
