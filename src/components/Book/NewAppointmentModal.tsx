@@ -453,7 +453,18 @@ export function NewAppointmentModal({
   };
 
   const handleBook = () => {
-    if (!selectedClient || selectedServices.length === 0) return;
+    // Only require services (client is optional - will auto-create Walk-in)
+    if (selectedServices.length === 0) {
+      alert('Please select at least one service');
+      return;
+    }
+    
+    // Auto-create Walk-in client if none selected
+    const finalClient = selectedClient || {
+      id: `walk-in-${Date.now()}`,
+      name: 'Walk-in',
+      phone: '',
+    };
 
     // Create appointment object
     const [hours, minutes] = time.split(':').map(Number);
@@ -467,9 +478,9 @@ export function NewAppointmentModal({
     const appointment = {
       id: `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       salonId,
-      clientId: selectedClient.id,
-      clientName: selectedClient.name,
-      clientPhone: selectedClient.phone,
+      clientId: finalClient.id,
+      clientName: finalClient.name,
+      clientPhone: finalClient.phone,
       staffId: selectedServices[0]?.assignedStaffId || '',
       staffName: selectedServices[0]?.assignedStaffName || '',
       scheduledStartTime,
@@ -501,7 +512,7 @@ export function NewAppointmentModal({
     onClose();
   };
 
-  const canBook = selectedClient && selectedServices.length > 0;
+  const canBook = selectedServices.length > 0; // Client is optional
 
   if (!isOpen) return null;
 
@@ -571,6 +582,42 @@ export function NewAppointmentModal({
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
             {/* LEFT PANEL: Client Selection / Profile */}
             <div className="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col bg-gray-50 overflow-y-auto">
+              
+              {/* Locked Staff Indicator - SHOW IMMEDIATELY */}
+              {preselectedStaffId && isStaffLocked && (
+                <div className="m-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-300 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
+                        {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name.charAt(0) || '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-bold text-teal-900 text-base">
+                            {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name || 'Staff Member'}
+                          </p>
+                          <span className="px-2 py-0.5 bg-teal-600 text-white text-xs font-semibold rounded-full">
+                            PRE-SELECTED
+                          </span>
+                        </div>
+                        <p className="text-sm text-teal-700 leading-relaxed">
+                          All services will be automatically assigned to this staff member
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsStaffLocked(false);
+                        setPreselectedStaffId(null);
+                      }}
+                      className="px-3 py-1.5 text-sm font-semibold text-teal-700 hover:text-teal-900 hover:bg-teal-100 rounded-lg transition-all border border-teal-300 hover:border-teal-400 flex-shrink-0"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               {!selectedClient ? (
                 // Client Search
                 <div className="flex flex-col p-6">
@@ -614,13 +661,32 @@ export function NewAppointmentModal({
 
                     {/* Add New Client */}
                     {!showCreateClientForm ? (
-                      <button 
-                        onClick={() => setShowCreateClientForm(true)}
-                        className="w-full p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center justify-center space-x-2 text-teal-600 font-medium"
-                      >
-                        <Plus className="w-5 h-5" />
-                        <span>Add New Client</span>
-                      </button>
+                      <>
+                        <button 
+                          onClick={() => setShowCreateClientForm(true)}
+                          className="w-full p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center justify-center space-x-2 text-teal-600 font-medium"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span>Add New Client</span>
+                        </button>
+                        
+                        {/* Skip Client - Book as Walk-in */}
+                        <button
+                          onClick={() => {
+                            setSelectedClient({
+                              id: `walk-in-${Date.now()}`,
+                              name: 'Walk-in',
+                              phone: '',
+                              membershipLevel: undefined,
+                              totalVisits: 0,
+                            });
+                          }}
+                          className="w-full mt-2 p-4 bg-gradient-to-r from-orange-50 to-pink-50 rounded-lg border-2 border-orange-300 hover:border-orange-400 hover:shadow-md transition-all flex items-center justify-center space-x-2 text-orange-700 font-semibold"
+                        >
+                          <User className="w-5 h-5" />
+                          <span>Skip - Book as Walk-in</span>
+                        </button>
+                      </>
                     ) : (
                       <div className="w-full p-4 bg-white rounded-lg border-2 border-teal-500">
                         <div className="flex items-center justify-between mb-3">
@@ -770,40 +836,7 @@ export function NewAppointmentModal({
                     </div>
                   </div>
 
-                  {/* Locked Staff Indicator */}
-                  {preselectedStaffId && isStaffLocked && (
-                    <div className="mt-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-300 rounded-xl p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
-                            {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name.charAt(0) || '?'}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-bold text-teal-900 text-base">
-                                {allStaffFromRedux.find(s => s.id === preselectedStaffId)?.name || 'Staff Member'}
-                              </p>
-                              <span className="px-2 py-0.5 bg-teal-600 text-white text-xs font-semibold rounded-full">
-                                PRE-SELECTED
-                              </span>
-                            </div>
-                            <p className="text-sm text-teal-700 leading-relaxed">
-                              All services will be automatically assigned to this staff member
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setIsStaffLocked(false);
-                            setPreselectedStaffId(null);
-                          }}
-                          className="px-3 py-1.5 text-sm font-semibold text-teal-700 hover:text-teal-900 hover:bg-teal-100 rounded-lg transition-all border border-teal-300 hover:border-teal-400 flex-shrink-0"
-                        >
-                          Change
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Staff banner moved to top - removed from here */}
 
                   {/* Smart Booking Suggestions */}
                   {selectedClient && smartSuggestions && !loadingSuggestions && (
