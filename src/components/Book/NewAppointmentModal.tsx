@@ -90,6 +90,17 @@ export function NewAppointmentModal({
   const [preselectedStaffId, setPreselectedStaffId] = useState<string | null>(selectedStaffId || null);
   const [isStaffLocked, setIsStaffLocked] = useState<boolean>(!!selectedStaffId);
   
+  // Sync staff pre-selection when modal opens or selectedStaffId changes
+  useEffect(() => {
+    if (isOpen && selectedStaffId) {
+      setPreselectedStaffId(selectedStaffId);
+      setIsStaffLocked(true);
+    } else if (isOpen && !selectedStaffId) {
+      setPreselectedStaffId(null);
+      setIsStaffLocked(false);
+    }
+  }, [isOpen, selectedStaffId]);
+  
   // Data from IndexedDB
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
