@@ -1077,11 +1077,13 @@ export function WaitListSection({
       <div className="flex-1 overflow-auto p-3 scroll-smooth">
         {/* Show content based on whether there are tickets */}
         {waitlist.length > 0 ? viewMode === 'grid' ? <div 
-          className={`grid ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' : 'grid-cols-1'} gap-1.5`}
+          className="grid gap-4"
           style={{ 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 360px))',
             transform: `scale(${cardScale})`,
             transformOrigin: 'top left',
-            width: `${100 / cardScale}%`
+            width: `${100 / cardScale}%`,
+            justifyContent: 'start'
           }}
         >
               {waitlist.map(ticket => (

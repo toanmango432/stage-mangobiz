@@ -12,8 +12,11 @@ import { More } from '../modules/More';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { useAppDispatch } from '../../store/hooks';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
+import { setOnlineStatus } from '../../store/slices/syncSlice';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
+import { syncManager } from '../../services/syncManager';
+import { NetworkStatus } from '../NetworkStatus';
 
 export function AppShell() {
   const [activeModule, setActiveModule] = useState('frontdesk');
@@ -23,7 +26,7 @@ export function AppShell() {
   const dispatch = useAppDispatch();
   const salonId = getTestSalonId();
 
-  // Initialize database on app load
+  // Initialize database and sync manager on app load
   useEffect(() => {
     async function initApp() {
       try {
@@ -51,6 +54,13 @@ export function AppShell() {
         await dispatch(fetchAllStaff(salonId));
         console.log('✅ Staff loaded into Redux');
         
+        // 4. Start sync manager
+        syncManager.start();
+        console.log('✅ Sync Manager started');
+        
+        // 5. Set initial online status
+        dispatch(setOnlineStatus(navigator.onLine));
+        
         setIsInitialized(true);
         console.log('🎉 App initialization complete!');
       } catch (error) {
@@ -59,7 +69,27 @@ export function AppShell() {
     }
     
     initApp();
+    
+    // Cleanup on unmount
+    return () => {
+      syncManager.stop();
+      console.log('🛑 Sync Manager stopped');
+    };
   }, [dispatch, salonId]);
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => dispatch(setOnlineStatus(true));
+    const handleOffline = () => dispatch(setOnlineStatus(false));
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [dispatch]);
 
   const renderModule = () => {
     switch (activeModule) {
@@ -84,8 +114,26 @@ export function AppShell() {
     }
   };
 
+  // Show loading screen while initializing
+  if (!isInitialized) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Mango POS</h2>
+          <p className="text-gray-600">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+      {/* Network Status Indicator */}
+      <NetworkStatus />
+      
       {/* Top Header - Always visible */}
       <TopHeaderBar />
 

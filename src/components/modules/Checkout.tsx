@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { CheckoutScreen } from '../checkout/CheckoutScreen';
-import { Search, CreditCard } from 'lucide-react';
+import { EnhancedCheckoutScreen } from '../checkout/EnhancedCheckoutScreen';
+import { Search, CreditCard, Check } from 'lucide-react';
 
 // Mock pending tickets
 const mockPendingTickets = [
@@ -136,9 +136,9 @@ export function Checkout() {
         </div>
       </div>
 
-      {/* Checkout Modal */}
+      {/* Enhanced Checkout Modal */}
       {selectedTicket && (
-        <CheckoutScreen
+        <EnhancedCheckoutScreen
           ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
           onComplete={handlePaymentComplete}

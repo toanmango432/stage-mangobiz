@@ -97,38 +97,27 @@ export function ServiceTicketCard({
 
   const badge = clientTypeBadge[ticket.clientType as keyof typeof clientTypeBadge] || clientTypeBadge.Regular;
 
-  // REAL PAPER - IN SERVICE (warm with blue tint)
+  // TACTILE PAPER AESTHETIC - IN SERVICE (warm ivory with soft depth)
   const paperStyle = {
-    // Warm cream paper with subtle blue tint
-    background: `
-      linear-gradient(180deg, #F0F7FB 0%, #E8F2F7 100%)
-    `,
-    // VISIBLE paper texture
-    backgroundImage: `
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"),
-      repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(59, 130, 246, 0.02) 1px, rgba(59, 130, 246, 0.02) 2px)
-    `,
-    // Real shadows with blue undertone
+    background: 'linear-gradient(180deg, #FFFDF8 0%, #FDF9F2 100%)',
+    backgroundImage: 'radial-gradient(rgba(0,0,0,0.015) 1px, transparent 1px)',
+    backgroundSize: '2px 2px',
     boxShadow: `
-      0 2px 4px rgba(59, 130, 246, 0.15),
-      0 4px 8px rgba(59, 130, 246, 0.1),
-      0 1px 2px rgba(0, 0, 0, 0.08),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-      inset 0 1px 2px rgba(255, 255, 255, 0.8),
-      inset 0 -1px 2px rgba(59, 130, 246, 0.05)
+      inset 0 0.5px 0 rgba(255,255,255,0.7),
+      inset 0 -0.8px 1px rgba(0,0,0,0.05),
+      0.5px 0.5px 0 rgba(255,255,255,0.8),
+      1.5px 2px 2px rgba(0,0,0,0.04),
+      3px 6px 8px rgba(0,0,0,0.08)
     `,
-    border: '1px solid #B8D4E6',
+    border: 'none',
   };
 
-  // Hover state
+  // Hover state - tactile lift
   const paperHoverStyle = {
     boxShadow: `
-      0 4px 8px rgba(59, 130, 246, 0.18),
-      0 8px 16px rgba(59, 130, 246, 0.12),
-      0 2px 4px rgba(0, 0, 0, 0.1),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-      inset 0 1px 2px rgba(255, 255, 255, 0.8),
-      inset 0 -1px 2px rgba(59, 130, 246, 0.05)
+      inset 0 0.5px 0 rgba(255,255,255,0.9),
+      0.5px 1px 2px rgba(0,0,0,0.05),
+      4px 8px 12px rgba(0,0,0,0.10)
     `,
   };
 
@@ -171,19 +160,22 @@ export function ServiceTicketCard({
             <div className="flex items-center gap-1 min-w-0 flex-1">
               {/* Number */}
               <span 
-                className="font-bold flex-shrink-0 text-blue-900"
+                className="font-bold flex-shrink-0"
                 style={{ 
-                  fontFamily: 'monospace',
+                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
                   fontSize: '11px',
                   lineHeight: 1,
-                  letterSpacing: '-0.5px',
+                  letterSpacing: '0.3px',
+                  color: '#222222',
+                  textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
+                  WebkitFontSmoothing: 'antialiased',
                 }}
               >
                 #{ticket.number}
               </span>
               <span className="text-gray-400" style={{ fontSize: '10px' }}>›</span>
               {/* Client Name */}
-              <div className="font-semibold truncate" style={{ color: '#111827', fontSize: '11px', letterSpacing: '-0.2px' }} title={ticket.clientName}>
+              <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.clientName}>
                 {ticket.clientName}
               </div>
             </div>
@@ -270,7 +262,7 @@ export function ServiceTicketCard({
 
           {/* Row 2: Service + Time/Progress */}
           <div className="flex items-center justify-between gap-1">
-            <div className="truncate" style={{ color: '#6B7280', fontSize: '10px', fontWeight: 500 }} title={ticket.service}>
+            <div className="truncate" style={{ color: '#555555', fontSize: '10px', fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
               {ticket.service}
             </div>
             <div className="flex items-center gap-0.5 flex-shrink-0 text-[9px] font-semibold">
@@ -283,14 +275,19 @@ export function ServiceTicketCard({
               </span>
             </div>
           </div>
-        </div>
-        
-        {/* Progress Bar at Bottom Edge */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-100 rounded-b-md overflow-hidden">
-          <div 
-            className="h-full bg-blue-500 transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+
+          {/* Progress Bar */}
+          <div className="mt-1" style={{ height: '2px', background: 'rgba(37,99,235,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                background: progress > 80 ? 'rgba(34,197,94,0.5)' : progress > 50 ? 'rgba(139,92,246,0.5)' : 'rgba(37,99,235,0.5)',
+                width: `${Math.min(progress, 100)}%`,
+                transition: 'width 500ms ease-out, background 500ms ease-out',
+                borderRadius: '1px'
+              }} 
+            />
+          </div>
         </div>
       </div>
       
@@ -340,7 +337,7 @@ export function ServiceTicketCard({
           <div className="flex items-center justify-between gap-1.5 sm:gap-2.5">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
               {/* Number */}
-              <span className="font-bold flex-shrink-0 text-base sm:text-lg" style={{ fontFamily: 'monospace', color: '#1E40AF', letterSpacing: '-0.5px' }}>
+              <span className="font-bold flex-shrink-0 text-base sm:text-lg" style={{ fontFamily: 'Inter, -apple-system, sans-serif', color: '#222222', letterSpacing: '0.3px', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }}>
                 #{ticket.number}
               </span>
 
@@ -364,7 +361,7 @@ export function ServiceTicketCard({
                     <ChevronRight size={11} className="text-gray-400" />
                   </button>
                 </Tippy>
-                <div className="font-bold truncate text-sm sm:text-base" style={{ color: '#111827', letterSpacing: '-0.2px' }} title={ticket.clientName}>
+                <div className="font-bold truncate text-sm sm:text-base" style={{ color: '#222222', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }} title={ticket.clientName}>
                   {ticket.clientName}
                 </div>
                 {ticket.clientType !== 'Regular' && (
@@ -486,7 +483,7 @@ export function ServiceTicketCard({
 
           {/* Row 2: Service | Time + Progress */}
           <div className="mt-0.5 sm:mt-1 flex items-center justify-between gap-1.5 sm:gap-2.5" style={{ paddingTop: '3px', borderTop: '1px solid rgba(59,130,246,0.08)' }}>
-            <div className="truncate text-xs sm:text-sm" style={{ color: '#6B7280', fontWeight: 500, maxWidth: '50%' }}>
+            <div className="truncate text-xs sm:text-sm" style={{ color: '#555555', fontWeight: 500, maxWidth: '50%', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }}>
               {ticket.service}
             </div>
 
@@ -499,14 +496,19 @@ export function ServiceTicketCard({
               <span className="font-bold" style={{ color: '#2563EB' }}>{Math.round(progress)}%</span>
             </div>
           </div>
-        </div>
-        
-        {/* Progress Bar at Bottom Edge */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-100 rounded-b-md overflow-hidden">
-          <div 
-            className="h-full bg-blue-500 transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+
+          {/* Progress Bar */}
+          <div className="mt-1.5" style={{ height: '2.5px', background: 'rgba(37,99,235,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                background: progress > 80 ? 'rgba(34,197,94,0.5)' : progress > 50 ? 'rgba(139,92,246,0.5)' : 'rgba(37,99,235,0.5)',
+                width: `${Math.min(progress, 100)}%`,
+                transition: 'width 500ms ease-out, background 500ms ease-out',
+                borderRadius: '1px'
+              }} 
+            />
+          </div>
         </div>
       </div>
       
@@ -526,74 +528,164 @@ export function ServiceTicketCard({
 
   // Grid Normal view (NORMAL GRID - larger cards)
   if (viewMode === 'grid-normal') {
+  // Paper-like aesthetic with directional lighting
+  const paperCardStyle = {
+    background: 'linear-gradient(180deg, #fffdf8 0%, #fdf9f2 100%)',
+    backgroundImage: 'radial-gradient(rgba(0,0,0,0.015) 1px, transparent 1px)',
+    backgroundSize: '2px 2px',
+    border: 'none',
+    borderRadius: '16px',
+    boxShadow: `
+      inset 0 0.5px 0 rgba(255,255,255,0.70),
+      inset 0 -0.8px 1px rgba(0,0,0,0.05),
+      0.5px 0.5px 0 rgba(255,255,255,0.80),
+      2px 3px 4px rgba(0,0,0,0.04),
+      4px 8px 12px rgba(0,0,0,0.08)
+    `,
+    minWidth: '320px',
+    maxWidth: '360px',
+  };
+
+  const paperCardHoverStyle = {
+    boxShadow: `
+      inset 0 0.5px 0 rgba(255,255,255,0.85),
+      1px 2px 3px rgba(0,0,0,0.05),
+      5px 10px 14px rgba(0,0,0,0.10)
+    `,
+  };
+
+  const paperCardActiveStyle = {
+    boxShadow: `
+      0 1px 2px rgba(0,0,0,0.05),
+      inset 0 1px 2px rgba(0,0,0,0.06)
+    `,
+  };
+
   return (
     <>
     <div
       onClick={() => onClick?.(ticket.id)}
-      className="relative cursor-pointer hover:-translate-y-1 active:scale-[0.98] transition-all duration-200 ease-out overflow-hidden flex flex-col focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
+      className="relative cursor-pointer transition-all duration-250 ease-out overflow-hidden flex flex-col"
       role="button"
       tabIndex={0}
       aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
       style={{
-        ...paperStyle,
-        borderRadius: '8px',
-        padding: '11px',
-        paddingBottom: '9px',
-        minHeight: '224px',
+        ...paperCardStyle,
+        padding: '16px 18px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = paperStyle.boxShadow;
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = paperCardStyle.boxShadow;
+      }}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = 'scale(0.985)';
+        e.currentTarget.style.boxShadow = paperCardActiveStyle.boxShadow;
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
       }}
     >
-      {/* Normal GRID VIEW - larger cards */}
-      <div className="flex flex-col h-full">
-        {/* Top Row - Ticket # + Badge + Note + More */}
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl sm:text-2xl font-extrabold text-blue-900" style={{ 
-              fontFamily: 'monospace', 
-              letterSpacing: '-0.5px'
-            }}>
-              #{ticket.number}
+      {/* Paper Ticket Grid View */}
+      <div className="flex flex-col h-full" style={{ gap: '10px' }}>
+        {/* Header Row: Ticket # + Client Name + Badges + More */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Ticket # pill */}
+            <div 
+              className="flex-shrink-0"
+              style={{
+                background: '#fffefb',
+                borderRadius: '12px',
+                padding: '6px 10px',
+                boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.06)',
+                fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+                fontSize: '15px',
+                fontWeight: 700,
+                color: '#222222',
+                letterSpacing: '0.3px',
+                textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+                WebkitFontSmoothing: 'antialiased',
+              }}
+            >
+              {ticket.number}
+            </div>
+            
+            {/* Client Name */}
+            <span 
+              className="font-semibold truncate" 
+              style={{ 
+                fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+                fontSize: '17px',
+                fontWeight: 600,
+                color: '#222222',
+                letterSpacing: '0.3px',
+                textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+                WebkitFontSmoothing: 'antialiased',
+              }} 
+              title={ticket.clientName}
+            >
+              {ticket.clientName}
             </span>
-            {ticket.clientType !== 'Regular' && (
+            
+            {/* VIP Badge - stamped style */}
+            {ticket.clientType === 'VIP' && (
               <span 
-                className="text-xs px-1.5 py-0.5 rounded font-semibold flex-shrink-0 cursor-help" 
-                style={{ 
-                  backgroundColor: badge.bg, 
-                  color: badge.text,
-                  border: `1px solid ${badge.border}`,
+                className="flex-shrink-0"
+                style={{
+                  background: '#fff9d9',
+                  color: '#c4a13a',
+                  boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.6px',
+                  textTransform: 'uppercase',
                 }}
-                title={`${ticket.clientType} client`}
               >
-                {badge.icon}
+                ⭐ VIP
               </span>
             )}
-            {ticket.notes && (
-              <div title={ticket.notes} className="flex-shrink-0">
-                <StickyNote size={14} style={{ color: '#F59E0B' }} strokeWidth={2} />
-              </div>
+            
+            {/* Reward Badge */}
+            {ticket.clientType === 'Priority' && (
+              <span 
+                className="flex-shrink-0"
+                style={{
+                  background: '#fff9d9',
+                  color: '#c4a13a',
+                  boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.6px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                🎁 REWARD
+              </span>
             )}
           </div>
           
-          {/* More Menu - Moved to top row */}
+          {/* More Menu */}
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="p-1 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors relative focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
-            aria-label="More options"
-            aria-expanded={showMenu}
-            aria-haspopup="menu"
+            className="p-1.5 rounded-lg hover:bg-black hover:bg-opacity-5 active:bg-opacity-10 transition-colors relative flex-shrink-0"
+            style={{ color: '#767676' }}
             title="More"
           >
-            <MoreVertical size={16} className="text-gray-500" />
+            <MoreVertical size={16} strokeWidth={2} />
           </button>
           
           {showMenu && (
-            <div className="absolute right-2 top-8 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[120px]">
+            <div className="absolute right-2 top-14 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[120px]">
               <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
                 <Pause size={14} /> Pause
               </button>
@@ -604,40 +696,36 @@ export function ServiceTicketCard({
             </div>
           )}
         </div>
+        
+        {/* Subline: visit info */}
+        {ticket.clientType === 'New' && (
+          <div className="flex items-center gap-1">
+            <span style={{ 
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '13px',
+              fontWeight: 400,
+              color: '#555555',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+            }}>
+              First visit
+            </span>
+            <ChevronRight size={12} style={{ color: '#767676' }} strokeWidth={2} />
+          </div>
+        )}
 
-        {/* Client Name - MORE PROMINENT with truncation */}
-        <div className="mb-2 flex items-center gap-1">
-          <Tippy 
-            content={
-              <div className="text-xs">
-                <div className="font-semibold">{ticket.service}</div>
-                <div className="text-gray-300">{ticket.duration} • {ticket.time}</div>
-              </div>
-            }
-            delay={[500, 0]}
-            placement="right"
-          >
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }}
-              className="p-0.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-              title="View details"
-            >
-              <ChevronRight size={14} className="text-gray-400" />
-            </button>
-          </Tippy>
-          <span className="font-bold text-lg text-gray-900 truncate block" title={ticket.clientName}>{ticket.clientName}</span>
-        </div>
-
-        {/* Service - Allow 2 rows */}
-        <div className="mb-2.5">
+        {/* Service Title */}
+        <div>
           <div 
-            className="font-semibold text-sm text-gray-700"
+            className="truncate"
             style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '15px',
+              fontWeight: 500,
+              color: '#222222',
               lineHeight: '1.4',
+              letterSpacing: '0.2px',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+              WebkitFontSmoothing: 'antialiased',
             }}
             title={ticket.service}
           >
@@ -645,99 +733,138 @@ export function ServiceTicketCard({
           </div>
         </div>
 
-        {/* Staff + Actions Row - HIGHLY RESPONSIVE */}
-        <div className="flex items-start gap-1.5 mb-1 pt-2.5" style={{ borderTop: '1px solid rgba(59,130,246,0.12)' }}>
+        {/* Meta Row: time left + start time */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Clock size={12} style={{ color: '#767676' }} strokeWidth={2} />
+            <span style={{ 
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '13px',
+              fontWeight: 400,
+              color: timeRemaining <= 15 ? '#F2785C' : '#555555',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+            }}>
+              {formatTime(timeRemaining)} left
+            </span>
+          </div>
+          <span style={{ color: '#d0d0d0', fontSize: '12px' }}>•</span>
+          <span style={{ 
+            fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+            fontSize: '13px',
+            fontWeight: 400,
+            color: '#555555',
+            textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+          }}>
+            {startTime}
+          </span>
+        </div>
+        
+        {/* Progress Bar - matte, rounded */}
+        <div style={{ height: '1.5px', background: 'rgba(59,196,155,0.20)', borderRadius: '1px', overflow: 'hidden' }}>
           <div 
-            className="flex items-center gap-0.5 flex-wrap min-w-0 flex-1"
             style={{ 
-              maxHeight: '2.5rem',
-              overflow: 'hidden'
-            }}
-          >
+              height: '100%', 
+              background: 'rgba(59,196,155,0.45)',
+              width: `${Math.min(progress, 100)}%`,
+              transition: 'width 500ms ease-out',
+              borderRadius: '1px'
+            }} 
+          />
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-grow" />
+
+        {/* Footer Row: Tech chips + Action */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
             {staffList.length > 0 ? (
               <>
-                {staffList.slice(0, 4).map((staff) => (
+                {staffList.slice(0, 3).map((staff) => (
                   <div 
                     key={staff.id} 
-                    className="px-1.5 py-0.5 rounded font-bold text-white cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                    className="px-2 py-1 rounded-full cursor-pointer transition-all hover:opacity-80"
                     style={{ 
-                      backgroundColor: staff.color,
-                      letterSpacing: '0.2px',
-                      fontSize: staffList.length >= 3 ? '9.5px' : '11px',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.3)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.25)',
+                      border: `1px solid ${staff.color}`,
+                      background: `color-mix(in srgb, ${staff.color} 8%, transparent)`,
+                      color: '#333333',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      letterSpacing: '0.3px',
+                      textTransform: 'uppercase',
+                      fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif'
                     }}
                     title={staff.name}
                   >
-                    {staff.name.split(' ')[0].toUpperCase()}
+                    {staff.name.split(' ')[0]}
                   </div>
                 ))}
-                {staffList.length > 4 && (
+                {staffList.length > 3 && (
                   <span 
-                    className="px-1 py-0.5 rounded bg-gray-100 font-bold"
+                    className="px-2 py-1 rounded-full"
                     style={{ 
-                      color: '#6B7280',
-                      fontSize: staffList.length >= 3 ? '9.5px' : '11px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.85)',
+                      border: '1px solid #999',
+                      background: 'rgba(153,153,153,0.08)',
+                      color: '#333',
+                      fontSize: '12px',
+                      fontWeight: 500
                     }}
-                    title={staffList.slice(4).map(s => s.name).join(', ')}
+                    title={staffList.slice(3).map(s => s.name).join(', ')}
                   >
-                    +{staffList.length - 4}
+                    +{staffList.length - 3}
                   </span>
                 )}
               </>
             ) : (
               <div 
-                className="px-1.5 py-0.5 rounded font-bold text-white cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                className="px-2 py-1 rounded-full cursor-pointer"
                 style={{ 
-                  backgroundColor: staffColor,
-                  letterSpacing: '0.2px',
-                  fontSize: '11px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.3)',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.25)',
+                  border: `1px solid ${staffColor}`,
+                  background: `color-mix(in srgb, ${staffColor} 8%, transparent)`,
+                  color: '#333',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  letterSpacing: '0.3px',
+                  textTransform: 'uppercase'
                 }}
                 title={staffName}
               >
-                {staffName.split(' ')[0].toUpperCase()}
+                {staffName.split(' ')[0]}
               </div>
             )}
           </div>
           
-          {/* Action Icon - Complete only - COMPACT */}
+          {/* Action chip - checkmark */}
           <button
             onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-            className="p-1.5 rounded-lg bg-white hover:bg-green-50 hover:scale-105 active:scale-95 transition-all flex-shrink-0 focus-visible:outline-2 focus-visible:outline-green-500 focus-visible:outline-offset-2"
-            aria-label={`Complete service for ${ticket.clientName}`}
+            className="rounded-lg p-1.5 transition-all flex-shrink-0"
             style={{
-              boxShadow: '0 3px 6px rgba(34, 197, 94, 0.25), 0 1px 3px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
-              border: '1.5px solid rgba(34, 197, 94, 0.3)',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: progress >= 100 ? '#47B881' : '#fffefb',
+              boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.08)',
+              color: progress >= 100 ? '#ffffff' : '#555555',
+            }}
+            onMouseEnter={(e) => {
+              if (progress < 100) {
+                e.currentTarget.style.background = 'rgba(71,184,129,0.1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (progress < 100) {
+                e.currentTarget.style.background = '#fffefb';
+              }
             }}
             title="Complete"
           >
-            <Check size={16} className="text-green-600" strokeWidth={3.5} />
+            <Check size={16} strokeWidth={2.5} />
           </button>
-        </div>
-
-        {/* Spacer to push metrics to bottom */}
-        <div className="flex-grow" />
-        
-        {/* Time + Progress Row - SUBTLE, FIXED AT BOTTOM */}
-        <div className="flex items-center justify-between text-xs mt-auto" style={{ opacity: 0.7 }}>
-          <div className="flex items-center gap-1">
-            <Clock size={11} className="text-gray-400" />
-            <span className="text-gray-500 font-medium">{formatTime(elapsedTime)}</span>
-          </div>
-          <span className="font-bold text-blue-600">{Math.round(progress)}%</span>
         </div>
       </div>
       
-      {/* Progress Bar at Bottom Edge - ENHANCED */}
-      <div className="absolute bottom-0 left-0 right-0 h-[10px] bg-gray-200 rounded-b-lg overflow-hidden">
-        <div 
-          className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
     </div>
     
     {/* Ticket Details Modal */}
@@ -784,17 +911,21 @@ export function ServiceTicketCard({
         <div className="flex items-center justify-between gap-1 mb-1">
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <span 
-              className="font-bold flex-shrink-0 text-blue-900"
+              className="font-bold flex-shrink-0"
               style={{ 
-                fontFamily: 'monospace',
+                fontFamily: 'Inter, -apple-system, sans-serif',
                 fontSize: '12px',
                 lineHeight: 1,
-                letterSpacing: '-0.5px',
+                letterSpacing: '0.3px',
+                color: '#222222',
+                textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
+                WebkitFontSmoothing: 'antialiased',
+                fontWeight: 600
               }}
             >
               #{ticket.number}
             </span>
-            <div className="font-semibold truncate" style={{ color: '#111827', fontSize: '11px', letterSpacing: '-0.2px' }} title={ticket.clientName}>
+            <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }} title={ticket.clientName}>
               {ticket.clientName}
             </div>
           </div>
@@ -833,7 +964,7 @@ export function ServiceTicketCard({
 
         {/* Row 2: Service */}
         <div className="mb-1">
-          <div className="truncate" style={{ color: '#4B5563', fontSize: '9px', fontWeight: 600 }} title={ticket.service}>
+          <div className="truncate" style={{ color: '#555555', fontSize: '9px', fontWeight: 600, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
             {ticket.service}
           </div>
         </div>
@@ -906,16 +1037,21 @@ export function ServiceTicketCard({
             <Clock size={9} className="text-gray-400" />
             <span className="text-gray-500 font-medium">{formatTime(elapsedTime)}</span>
           </div>
-          <span className="font-bold text-blue-600">{Math.round(progress)}%</span>
+          <span className="font-bold" style={{ color: progress > 80 ? '#10B981' : progress > 50 ? '#8B5CF6' : '#2563EB' }}>{Math.round(progress)}%</span>
         </div>
-      </div>
-      
-      {/* Progress Bar at Bottom Edge */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-100 rounded-b-md overflow-hidden">
-        <div 
-          className="h-full bg-blue-500 transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
+
+        {/* Progress Bar */}
+        <div className="mt-1" style={{ height: '2px', background: 'rgba(37,99,235,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
+          <div 
+            style={{ 
+              height: '100%', 
+              background: progress > 80 ? 'rgba(16,185,129,0.5)' : progress > 50 ? 'rgba(139,92,246,0.5)' : 'rgba(37,99,235,0.5)',
+              width: `${Math.min(progress, 100)}%`,
+              transition: 'width 500ms ease-out, background 500ms ease-out',
+              borderRadius: '1px'
+            }} 
+          />
+        </div>
       </div>
     </div>
     

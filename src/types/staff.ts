@@ -15,6 +15,7 @@ export interface Staff {
   phone: string;
   avatar?: string;
   specialties: string[]; // Service IDs
+  skills?: string[]; // Skill tags for matching (e.g., "manicure", "pedicure", "nail-art")
   status: StaffStatus;
   clockedInAt?: Date;
   currentTicketId?: string;
@@ -23,6 +24,8 @@ export interface Staff {
   servicesCountToday: number;
   revenueToday: number;
   tipsToday: number;
+  rating?: number; // Average service rating (1-5)
+  vipPreferred?: boolean; // Preferred for VIP clients
   createdAt: Date;
   updatedAt: Date;
   syncStatus: SyncStatus;

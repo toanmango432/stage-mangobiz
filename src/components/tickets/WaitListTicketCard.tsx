@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
@@ -32,6 +32,37 @@ export function WaitListTicketCard({
 }: WaitListTicketCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [waitTime, setWaitTime] = useState(0);
+  const [waitProgress, setWaitProgress] = useState(0);
+
+  // Calculate wait time progress (assume tickets are created now, show wait time)
+  useEffect(() => {
+    const startTime = new Date();
+    startTime.setHours(parseInt(ticket.time.split(':')[0]));
+    startTime.setMinutes(parseInt(ticket.time.split(':')[1]));
+    
+    const updateWaitTime = () => {
+      const now = new Date();
+      const elapsed = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)); // minutes
+      const expectedWait = 30; // Assume 30 min average wait
+      const progress = Math.min((elapsed / expectedWait) * 100, 100);
+      
+      setWaitTime(elapsed);
+      setWaitProgress(progress);
+    };
+
+    updateWaitTime();
+    const interval = setInterval(updateWaitTime, 10000); // Update every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [ticket.time]);
+
+  const formatWaitTime = (minutes: number) => {
+    if (minutes < 1) return 'Just now';
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  };
 
   // REFINED CLIENT TYPE BADGES (Apple-style subtle colors)
   const clientTypeBadge = {
@@ -43,39 +74,27 @@ export function WaitListTicketCard({
 
   const badge = clientTypeBadge[ticket.clientType as keyof typeof clientTypeBadge] || clientTypeBadge.Regular;
 
-  // REAL PAPER TICKET - VISIBLE TEXTURE & WARMTH
+  // TACTILE PAPER AESTHETIC - WAITING (warm ivory with soft depth)
   const paperStyle = {
-    // Warm cream paper (like actual ticket stock)
-    background: `
-      linear-gradient(180deg, #FFF9E8 0%, #FFF4D6 100%)
-    `,
-    // VISIBLE paper texture
-    backgroundImage: `
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"),
-      repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(139, 92, 46, 0.02) 1px, rgba(139, 92, 46, 0.02) 2px)
-    `,
-    // Real paper shadows (warm brown tones)
+    background: 'linear-gradient(180deg, #FFFDF8 0%, #FDF9F2 100%)',
+    backgroundImage: 'radial-gradient(rgba(0,0,0,0.015) 1px, transparent 1px)',
+    backgroundSize: '2px 2px',
     boxShadow: `
-      0 2px 4px rgba(139, 92, 46, 0.15),
-      0 4px 8px rgba(139, 92, 46, 0.1),
-      0 1px 2px rgba(0, 0, 0, 0.08),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-      inset 0 1px 2px rgba(255, 255, 255, 0.8),
-      inset 0 -1px 2px rgba(139, 92, 46, 0.05)
+      inset 0 0.5px 0 rgba(255,255,255,0.7),
+      inset 0 -0.8px 1px rgba(0,0,0,0.05),
+      0.5px 0.5px 0 rgba(255,255,255,0.8),
+      1.5px 2px 2px rgba(0,0,0,0.04),
+      3px 6px 8px rgba(0,0,0,0.08)
     `,
-    // Warm paper edge
-    border: '1px solid #D4B896',
+    border: 'none',
   };
 
-  // Hover - paper lifts off surface
+  // Hover state - tactile lift
   const paperHoverStyle = {
     boxShadow: `
-      0 4px 8px rgba(139, 92, 46, 0.18),
-      0 8px 16px rgba(139, 92, 46, 0.12),
-      0 2px 4px rgba(0, 0, 0, 0.1),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-      inset 0 1px 2px rgba(255, 255, 255, 0.8),
-      inset 0 -1px 2px rgba(139, 92, 46, 0.05)
+      inset 0 0.5px 0 rgba(255,255,255,0.9),
+      0.5px 1px 2px rgba(0,0,0,0.05),
+      4px 8px 12px rgba(0,0,0,0.10)
     `,
   };
 
@@ -106,18 +125,21 @@ export function WaitListTicketCard({
           <div className="flex items-center justify-between gap-1 mb-0.5">
             <div className="flex items-center gap-1 min-w-0 flex-1">
               <span 
-                className="font-bold flex-shrink-0 text-blue-900"
+                className="font-bold flex-shrink-0"
                 style={{ 
-                  fontFamily: 'monospace',
+                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
                   fontSize: '11px',
                   lineHeight: 1,
-                  letterSpacing: '-0.5px',
+                  letterSpacing: '0.3px',
+                  color: '#222222',
+                  textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
+                  WebkitFontSmoothing: 'antialiased',
                 }}
               >
                 #{ticket.number}
               </span>
               <span className="text-gray-400" style={{ fontSize: '10px' }}>›</span>
-              <div className="font-semibold truncate" style={{ color: '#111827', fontSize: '11px', letterSpacing: '-0.2px' }} title={ticket.clientName}>
+              <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.clientName}>
                 {ticket.clientName}
               </div>
             </div>
@@ -163,7 +185,7 @@ export function WaitListTicketCard({
 
           {/* Row 2: Service + Time/Duration */}
           <div className="flex items-center justify-between gap-1">
-            <div className="truncate" style={{ color: '#6B7280', fontSize: '10px', fontWeight: 500 }} title={ticket.service}>
+            <div className="truncate" style={{ color: '#555555', fontSize: '10px', fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
               {ticket.service}
             </div>
             <div className="flex items-center gap-0.5 flex-shrink-0 text-[9px] font-semibold">
@@ -172,8 +194,21 @@ export function WaitListTicketCard({
                 <span style={{ color: '#6B7280', fontSize: '8px', fontWeight: 700 }} title="Time">{ticket.time}</span>
               </div>
               <span style={{ color: '#D1D5DB', fontSize: '8px' }}>•</span>
-              <span style={{ color: '#6B7280', fontSize: '8px', fontWeight: 700 }} title="Duration">{ticket.duration}</span>
+              <span style={{ color: '#F59E0B', fontSize: '8px', fontWeight: 700 }} title="Wait time">{Math.round(waitProgress)}%</span>
             </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mt-1" style={{ height: '2px', background: 'rgba(245,158,11,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                background: 'rgba(245,158,11,0.5)', 
+                width: `${waitProgress}%`,
+                transition: 'width 500ms ease-out',
+                borderRadius: '1px'
+              }} 
+            />
           </div>
         </div>
         
@@ -224,10 +259,13 @@ export function WaitListTicketCard({
               <span 
                 className="font-bold flex-shrink-0 text-base sm:text-lg"
                 style={{ 
-                  fontFamily: 'monospace',
-                  color: '#111827',
+                  fontFamily: 'Inter, -apple-system, sans-serif',
+                  color: '#222222',
                   lineHeight: 1,
-                  letterSpacing: '-0.5px',
+                  letterSpacing: '0.3px',
+                  textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
+                  WebkitFontSmoothing: 'antialiased',
+                  fontWeight: 600
                 }}
               >
                 #{ticket.number}
@@ -252,7 +290,7 @@ export function WaitListTicketCard({
                     <ChevronRight size={11} className="text-gray-400" />
                   </button>
                 </Tippy>
-                <div className="font-bold truncate text-sm sm:text-base" style={{ color: '#111827', letterSpacing: '-0.2px' }}>
+                <div className="font-bold truncate text-sm sm:text-base" style={{ color: '#222222', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }}>
                   {ticket.clientName}
                 </div>
                 {ticket.clientType !== 'Regular' && (
@@ -307,20 +345,33 @@ export function WaitListTicketCard({
             </div>
           </div>
 
-          {/* Row 2: Service | Time + Duration */}
+          {/* Row 2: Service | Time + Duration + Wait % */}
           <div className="mt-0.5 sm:mt-1 flex items-center justify-between gap-1.5 sm:gap-2.5" style={{ paddingTop: '3px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-            <div className="truncate flex-1 text-xs sm:text-sm" style={{ color: '#6B7280', fontWeight: 500 }}>
+            <div className="truncate flex-1 text-xs sm:text-sm" style={{ color: '#555555', fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }}>
               {ticket.service}
             </div>
 
             <div className="flex items-center gap-1 sm:gap-1 flex-shrink-0 text-xs sm:text-sm">
               <div className="flex items-center gap-0.5 sm:gap-0.5">
                 <Clock size={10} className="text-gray-500 sm:w-3 sm:h-3" />
-                <span style={{ color: '#6B7280', fontWeight: 500 }}>{ticket.time}</span>
+                <span style={{ color: '#6B7280', fontWeight: 500 }}>{formatWaitTime(waitTime)}</span>
               </div>
               <span style={{ color: '#D1D5DB' }}>•</span>
-              <span style={{ color: '#6B7280', fontWeight: 500 }}>{ticket.duration}</span>
+              <span className="font-bold" style={{ color: '#F59E0B' }}>{Math.round(waitProgress)}%</span>
             </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mt-1.5" style={{ height: '2.5px', background: 'rgba(245,158,11,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                background: 'rgba(245,158,11,0.5)', 
+                width: `${waitProgress}%`,
+                transition: 'width 500ms ease-out',
+                borderRadius: '1px'
+              }} 
+            />
           </div>
         </div>
         
@@ -343,57 +394,164 @@ export function WaitListTicketCard({
 
   // Grid Normal view (NORMAL GRID - larger cards)
   if (viewMode === 'grid-normal') {
+  // Paper-like aesthetic with directional lighting
+  const paperCardStyle = {
+    background: 'linear-gradient(180deg, #fffdf8 0%, #fdf9f2 100%)',
+    backgroundImage: 'radial-gradient(rgba(0,0,0,0.015) 1px, transparent 1px)',
+    backgroundSize: '2px 2px',
+    border: 'none',
+    borderRadius: '16px',
+    boxShadow: `
+      inset 0 0.5px 0 rgba(255,255,255,0.70),
+      inset 0 -0.8px 1px rgba(0,0,0,0.05),
+      0.5px 0.5px 0 rgba(255,255,255,0.80),
+      2px 3px 4px rgba(0,0,0,0.04),
+      4px 8px 12px rgba(0,0,0,0.08)
+    `,
+    minWidth: '320px',
+    maxWidth: '360px',
+  };
+
+  const paperCardHoverStyle = {
+    boxShadow: `
+      inset 0 0.5px 0 rgba(255,255,255,0.85),
+      1px 2px 3px rgba(0,0,0,0.05),
+      5px 10px 14px rgba(0,0,0,0.10)
+    `,
+  };
+
+  const paperCardActiveStyle = {
+    boxShadow: `
+      0 1px 2px rgba(0,0,0,0.05),
+      inset 0 1px 2px rgba(0,0,0,0.06)
+    `,
+  };
+
   return (
     <>
     <div
       onClick={() => onClick?.(ticket.id)}
-      className="relative cursor-pointer hover:shadow-lg active:scale-[0.98] transition-all duration-200 overflow-hidden flex flex-col"
+      className="relative cursor-pointer transition-all duration-250 ease-out overflow-hidden flex flex-col"
+      role="button"
+      tabIndex={0}
+      aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
       style={{
-        ...paperStyle,
-        borderRadius: '8px',
-        padding: '11px',
-        paddingBottom: '9px',
-        minHeight: '200px',
+        ...paperCardStyle,
+        padding: '16px 18px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = paperCardStyle.boxShadow;
+      }}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = 'scale(0.985)';
+        e.currentTarget.style.boxShadow = paperCardActiveStyle.boxShadow;
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
       }}
     >
-      {/* Normal GRID VIEW - larger cards */}
-      <div className="flex flex-col h-full">
-        {/* Top Row - Ticket # + Badge + Note + More */}
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xl sm:text-2xl font-extrabold text-gray-900" style={{ 
-              fontFamily: 'monospace', 
-              letterSpacing: '-0.5px'
-            }}>
-              #{ticket.number}
+      {/* Paper Ticket Grid View */}
+      <div className="flex flex-col h-full" style={{ gap: '10px' }}>
+        {/* Header Row: Ticket # + Client Name + Badges + More */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Ticket # pill */}
+            <div 
+              className="flex-shrink-0"
+              style={{
+                background: '#fffefb',
+                borderRadius: '12px',
+                padding: '6px 10px',
+                boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.06)',
+                fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+                fontSize: '15px',
+                fontWeight: 700,
+                color: '#222222',
+                letterSpacing: '0.3px',
+                textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+                WebkitFontSmoothing: 'antialiased',
+              }}
+            >
+              {ticket.number}
+            </div>
+            
+            {/* Client Name */}
+            <span 
+              className="font-semibold truncate" 
+              style={{ 
+                fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+                fontSize: '17px',
+                fontWeight: 600,
+                color: '#222222',
+                letterSpacing: '0.3px',
+                textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+                WebkitFontSmoothing: 'antialiased',
+              }} 
+              title={ticket.clientName}
+            >
+              {ticket.clientName}
             </span>
-            {ticket.clientType !== 'Regular' && (
-              <span className="text-xs px-1.5 py-0.5 rounded font-semibold flex-shrink-0" style={{ 
-                backgroundColor: badge.bg, 
-                color: badge.text,
-                border: `1px solid ${badge.border}`,
-              }}>
-                {badge.icon}
+            
+            {/* VIP Badge - stamped style */}
+            {ticket.clientType === 'VIP' && (
+              <span 
+                className="flex-shrink-0"
+                style={{
+                  background: '#fff9d9',
+                  color: '#c4a13a',
+                  boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.6px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                ⭐ VIP
               </span>
             )}
-            {ticket.notes && (
-              <div title={ticket.notes} className="flex-shrink-0">
-                <StickyNote size={14} style={{ color: '#F59E0B' }} strokeWidth={2} />
-              </div>
+            
+            {/* Priority Badge */}
+            {ticket.clientType === 'Priority' && (
+              <span 
+                className="flex-shrink-0"
+                style={{
+                  background: '#fff9d9',
+                  color: '#c4a13a',
+                  boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.6px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                🔥 PRIORITY
+              </span>
             )}
           </div>
           
-          {/* More Menu - Moved to top row */}
+          {/* More Menu */}
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="p-1 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors relative"
+            className="p-1.5 rounded-lg hover:bg-black hover:bg-opacity-5 active:bg-opacity-10 transition-colors relative flex-shrink-0"
+            style={{ color: '#767676' }}
             title="More"
           >
-            <MoreVertical size={16} className="text-gray-500" />
+            <MoreVertical size={16} strokeWidth={2} />
           </button>
           
           {showMenu && (
-            <div className="absolute right-2 top-8 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[120px]">
+            <div className="absolute right-2 top-14 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[120px]">
               <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
                 <Edit2 size={14} /> Edit
               </button>
@@ -404,71 +562,111 @@ export function WaitListTicketCard({
             </div>
           )}
         </div>
+        
+        {/* Subline: visit info */}
+        {ticket.clientType === 'New' && (
+          <div className="flex items-center gap-1">
+            <span style={{ 
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '13px',
+              fontWeight: 400,
+              color: '#555555',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+            }}>
+              First visit
+            </span>
+            <ChevronRight size={12} style={{ color: '#767676' }} strokeWidth={2} />
+          </div>
+        )}
 
-        {/* Client Name - MORE PROMINENT with truncation */}
-        <div className="mb-2 flex items-center gap-1">
-          <Tippy 
-            content={
-              <div className="text-xs">
-                <div className="font-semibold">{ticket.service}</div>
-                <div className="text-gray-300">{ticket.duration} • {ticket.time}</div>
-              </div>
-            }
-            delay={[500, 0]}
-            placement="right"
-          >
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }}
-              className="p-0.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-              title="View details"
-            >
-              <ChevronRight size={14} className="text-gray-400" />
-            </button>
-          </Tippy>
-          <span className="font-bold text-lg text-gray-900 truncate block" title={ticket.clientName}>{ticket.clientName}</span>
-        </div>
-
-        {/* Service - Allow 2 rows */}
-        <div className="mb-2.5">
+        {/* Service Title */}
+        <div>
           <div 
-            className="font-semibold text-sm text-gray-700"
+            className="truncate"
             style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '15px',
+              fontWeight: 500,
+              color: '#222222',
               lineHeight: '1.4',
+              letterSpacing: '0.2px',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+              WebkitFontSmoothing: 'antialiased',
             }}
+            title={ticket.service}
           >
             {ticket.service}
           </div>
         </div>
 
-        {/* Actions Row - Assign button only - COMPACT */}
-        <div className="flex items-center justify-end gap-1.5 mb-1 pt-2.5" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+        {/* Meta Row: wait time + scheduled time */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Clock size={12} style={{ color: '#767676' }} strokeWidth={2} />
+            <span style={{ 
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '13px',
+              fontWeight: 400,
+              color: waitTime > 30 ? '#F2785C' : '#555555',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+            }}>
+              {formatWaitTime(waitTime)} wait
+            </span>
+          </div>
+          <span style={{ color: '#d0d0d0', fontSize: '12px' }}>•</span>
+          <span style={{ 
+            fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+            fontSize: '13px',
+            fontWeight: 400,
+            color: '#555555',
+            textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+          }}>
+            {ticket.time}
+          </span>
+        </div>
+        
+        {/* Progress Bar - matte, rounded (amber for waiting) */}
+        <div style={{ height: '1.5px', background: 'rgba(245,158,11,0.20)', borderRadius: '1px', overflow: 'hidden' }}>
+          <div 
+            style={{ 
+              height: '100%', 
+              background: 'rgba(245,158,11,0.45)',
+              width: `${waitProgress}%`,
+              transition: 'width 500ms ease-out',
+              borderRadius: '1px'
+            }} 
+          />
+        </div>
+
+        {/* Spacer to push footer to bottom */}
+        <div className="flex-grow" />
+
+        {/* Footer Row: Action chip (assign) */}
+        <div className="flex items-center justify-end gap-2">
+          {/* Action chip - assign */}
           <button
             onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-            className="p-1.5 rounded-lg bg-white hover:bg-blue-50 active:bg-blue-100 transition-all flex-shrink-0"
+            className="rounded-lg p-1.5 transition-all flex-shrink-0"
             style={{
-              boxShadow: '0 3px 6px rgba(59,130,246,0.2), 0 1px 3px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.85)',
-              border: '1.5px solid rgba(59,130,246,0.2)',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#fffefb',
+              boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.08)',
+              color: '#3B82F6',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(59,130,246,0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#fffefb';
             }}
             title="Assign Staff"
           >
-            <UserPlus size={16} className="text-blue-600" strokeWidth={2.5} />
+            <UserPlus size={16} strokeWidth={2.5} />
           </button>
-        </div>
-
-        {/* Spacer to push metrics to bottom */}
-        <div className="flex-grow" />
-        
-        {/* Time + Duration Row - SUBTLE, FIXED AT BOTTOM */}
-        <div className="flex items-center justify-between text-xs mt-auto" style={{ opacity: 0.7 }}>
-          <div className="flex items-center gap-1">
-            <Clock size={11} className="text-gray-400" />
-            <span className="text-gray-500 font-medium">{ticket.time}</span>
-          </div>
-          <span className="text-gray-600 font-semibold">{ticket.duration}</span>
         </div>
       </div>
       
@@ -513,17 +711,21 @@ export function WaitListTicketCard({
         <div className="flex items-center justify-between gap-1 mb-1">
           <div className="flex items-center gap-1 min-w-0 flex-1">
             <span 
-              className="font-bold flex-shrink-0 text-blue-900"
+              className="font-bold flex-shrink-0"
               style={{ 
-                fontFamily: 'monospace',
+                fontFamily: 'Inter, -apple-system, sans-serif',
                 fontSize: '12px',
                 lineHeight: 1,
-                letterSpacing: '-0.5px',
+                letterSpacing: '0.3px',
+                color: '#222222',
+                textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
+                WebkitFontSmoothing: 'antialiased',
+                fontWeight: 600
               }}
             >
               #{ticket.number}
             </span>
-            <div className="font-semibold truncate" style={{ color: '#111827', fontSize: '11px', letterSpacing: '-0.2px' }} title={ticket.clientName}>
+            <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }} title={ticket.clientName}>
               {ticket.clientName}
             </div>
           </div>
@@ -556,7 +758,7 @@ export function WaitListTicketCard({
 
         {/* Row 2: Service */}
         <div className="mb-1">
-          <div className="truncate" style={{ color: '#4B5563', fontSize: '9px', fontWeight: 600 }} title={ticket.service}>
+          <div className="truncate" style={{ color: '#555555', fontSize: '9px', fontWeight: 600, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
             {ticket.service}
           </div>
         </div>
@@ -579,13 +781,26 @@ export function WaitListTicketCard({
         {/* Spacer to push metrics to bottom */}
         <div className="flex-grow" />
 
-        {/* Time + Duration - FIXED AT BOTTOM */}
+        {/* Time + Duration + Wait % - FIXED AT BOTTOM */}
         <div className="flex items-center justify-between text-[9px] mt-auto" style={{ opacity: 0.7 }}>
           <div className="flex items-center gap-0.5">
             <Clock size={9} className="text-gray-400" />
-            <span className="text-gray-500 font-medium">{ticket.time}</span>
+            <span className="text-gray-500 font-medium">{formatWaitTime(waitTime)}</span>
           </div>
-          <span className="text-gray-600 font-semibold">{ticket.duration}</span>
+          <span className="font-bold" style={{ color: '#F59E0B' }}>{Math.round(waitProgress)}%</span>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-1" style={{ height: '2px', background: 'rgba(245,158,11,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
+          <div 
+            style={{ 
+              height: '100%', 
+              background: 'rgba(245,158,11,0.5)', 
+              width: `${waitProgress}%`,
+              transition: 'width 500ms ease-out',
+              borderRadius: '1px'
+            }} 
+          />
         </div>
       </div>
       
