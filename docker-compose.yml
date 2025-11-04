@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Mango POS Frontend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mango-pos
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mango-network
+
+  # Development mode with hot reload
+  app-dev:
+    image: node:18-alpine
+    container_name: mango-pos-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - dev
+    networks:
+      - mango-network
+
+networks:
+  mango-network:
+    driver: bridge

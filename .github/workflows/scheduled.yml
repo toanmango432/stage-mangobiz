@@ -1,0 +1,158 @@
+name: Scheduled Maintenance
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Dependency audit and update
+  dependency-check:
+    name: Check Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check for outdated packages
+        run: npm outdated || true
+      
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Create issue for vulnerabilities
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = '🔒 Security vulnerabilities detected';
+            const body = `Automated security audit found vulnerabilities.
+            
+            Run \`npm audit\` locally to see details.
+            
+            To fix:
+            \`\`\`bash
+            npm audit fix
+            \`\`\`
+            
+            **Triggered by:** Scheduled workflow
+            **Date:** ${new Date().toISOString()}`;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['security', 'dependencies']
+            });
+
+  # Job 2: Database cleanup test
+  database-health:
+    name: Database Health Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run database tests
+        run: npm test -- --run db
+        continue-on-error: true
+      
+      - name: Check IndexedDB performance
+        run: |
+          echo "Running IndexedDB performance tests..."
+          npm test -- --run --grep "database performance"
+
+  # Job 3: Build size monitoring
+  bundle-size:
+    name: Monitor Bundle Size
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Check bundle size
+        run: |
+          BUNDLE_SIZE=$(du -sh dist/ | cut -f1)
+          echo "Current bundle size: $BUNDLE_SIZE"
+          
+          # Alert if bundle is over 2MB
+          SIZE_BYTES=$(du -sb dist/ | cut -f1)
+          if [ $SIZE_BYTES -gt 2097152 ]; then
+            echo "⚠️ WARNING: Bundle size exceeds 2MB threshold"
+            exit 1
+          fi
+      
+      - name: Create issue for large bundle
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '📦 Bundle size exceeds threshold',
+              body: 'The production bundle size has grown too large. Consider code splitting or removing unused dependencies.',
+              labels: ['performance', 'optimization']
+            });
+
+  # Job 4: Sync queue health
+  sync-health:
+    name: Sync System Health Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Test sync manager
+        run: npm test -- --run --grep "syncManager"
+        continue-on-error: true
+      
+      - name: Test offline capabilities
+        run: npm test -- --run --grep "offline"
+        continue-on-error: true
