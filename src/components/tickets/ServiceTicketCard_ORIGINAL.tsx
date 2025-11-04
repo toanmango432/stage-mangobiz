@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MoreVertical, Check, CheckCircle, Pause, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
+import { Clock, MoreVertical, Check, Pause, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
@@ -96,33 +96,6 @@ export function ServiceTicketCard({
   };
 
   const badge = clientTypeBadge[ticket.clientType as keyof typeof clientTypeBadge] || clientTypeBadge.Regular;
-
-  // PROGRESS COLOR SYSTEM (Purple/Green/Red)
-  const getStatusColor = (percentage: number) => {
-    if (percentage > 100) return { progress: 'linear-gradient(to right, #D9534F, #C9302C)', text: '#C9302C' };
-    if (percentage >= 80) return { progress: 'linear-gradient(to right, #5CB85C, #449D44)', text: '#449D44' };
-    return { progress: 'linear-gradient(to right, #9B7EAE, #7E5F93)', text: '#7E5F93' };
-  };
-  const currentStatus = getStatusColor(progress);
-
-  // STAFF GRADIENT COLORS
-  const staffColors: Record<string, string> = {
-    'SOPHIA': 'linear-gradient(to right, #FF6B70, #E04146)',
-    'MADISON': 'linear-gradient(to right, #AF6FFF, #8A4AD0)',
-    'EMMA': 'linear-gradient(to right, #AF6FFF, #8A4AD0)',
-    'CHARLOTTE': 'linear-gradient(to right, #5A9FFF, #3373E8)',
-    'EVELYN': 'linear-gradient(to right, #5EEAD4, #3BB09A)',
-    'MIA': 'linear-gradient(to right, #FB923C, #F97316)',
-    'GRACE': 'linear-gradient(to right, #FBBF24, #F59E0B)',
-    'LILY': 'linear-gradient(to right, #5EEAD4, #14b8a6)',
-    'OLIVIA': 'linear-gradient(to right, #EC4899, #DB2777)'
-  };
-  const getStaffGradient = (staff: any) => staffColors[staff.name?.toUpperCase()] || `linear-gradient(to right, ${staff.color}, ${staff.color})`;
-
-  // Helper flags for reference design
-  const isFirstVisit = ticket.clientType === 'New';
-  const hasStar = ticket.clientType === 'VIP';
-  const hasNote = !!ticket.notes;
 
   // TACTILE PAPER AESTHETIC - IN SERVICE (warm ivory with soft depth)
   const paperStyle = {
