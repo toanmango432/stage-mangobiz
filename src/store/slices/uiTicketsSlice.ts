@@ -32,6 +32,7 @@ export interface UITicket {
   techId?: string;
   createdAt: Date;
   updatedAt: Date;
+  lastVisitDate?: Date | null; // null for first-time clients
 }
 
 export interface PendingTicket {
@@ -68,9 +69,22 @@ interface UITicketsState {
   lastTicketNumber: number;
 }
 
+// Debug: Check if mock data has lastVisitDate
+console.log('🔍 Mock Service Tickets Sample:', mockServiceTickets[0]);
+console.log('🔍 Has lastVisitDate?', 'lastVisitDate' in mockServiceTickets[0], mockServiceTickets[0].lastVisitDate);
+
+// Map mock data to ensure all fields are preserved
+const mappedServiceTickets: UITicket[] = mockServiceTickets.map((ticket: any) => ({
+  ...ticket,
+  lastVisitDate: ticket.lastVisitDate || null,
+}));
+
+console.log('🔍 Mapped Service Tickets Sample:', mappedServiceTickets[0]);
+console.log('🔍 Mapped has lastVisitDate?', 'lastVisitDate' in mappedServiceTickets[0], mappedServiceTickets[0].lastVisitDate);
+
 const initialState: UITicketsState = {
   waitlist: mockWaitlistTickets as UITicket[], // Initialize with mock data for development
-  serviceTickets: mockServiceTickets as UITicket[], // Initialize with mock data for development
+  serviceTickets: mappedServiceTickets, // Use explicitly mapped data
   completedTickets: [],
   pendingTickets: [],
   loading: false,
@@ -298,6 +312,7 @@ function convertToUITicket(dbTicket: any): UITicket {
     priority: 'normal',
     createdAt: dbTicket.createdAt,
     updatedAt: dbTicket.updatedAt,
+    lastVisitDate: dbTicket.lastVisitDate || null,
   };
 }
 

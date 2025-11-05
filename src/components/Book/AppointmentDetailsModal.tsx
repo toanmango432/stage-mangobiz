@@ -3,10 +3,13 @@
  * View, edit, and manage existing appointments
  */
 
-import { useState } from 'react';
-import { X, Edit2, Check, XCircle, Clock, Phone, Mail, MessageSquare, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Edit2, Check, XCircle, Clock, Phone, Mail, MessageSquare, Calendar, User, History } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
+import { Client } from '../../types/client';
+import { clientsDB } from '../../db/database';
+import { db } from '../../db/schema';
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -40,6 +43,76 @@ export function AppointmentDetailsModal({
 }: AppointmentDetailsModalProps) {
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [notes, setNotes] = useState('');
+  const [client, setClient] = useState<Client | null>(null);
+  const [clientNotes, setClientNotes] = useState('');
+  const [isEditingClientNotes, setIsEditingClientNotes] = useState(false);
+  const [isSavingClientNotes, setIsSavingClientNotes] = useState(false);
+  const [serviceHistory, setServiceHistory] = useState<LocalAppointment[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Load client data when appointment changes
+  useEffect(() => {
+    async function loadClientData() {
+      if (appointment?.clientId) {
+        try {
+          const clientData = await clientsDB.getById(appointment.clientId);
+          if (clientData) {
+            setClient(clientData);
+            setClientNotes(clientData.notes || '');
+          }
+        } catch (error) {
+          console.error('Error loading client data:', error);
+        }
+      }
+    }
+
+    if (isOpen && appointment) {
+      loadClientData();
+    }
+  }, [isOpen, appointment?.clientId]);
+
+  // Load service history when requested
+  const handleLoadServiceHistory = async () => {
+    if (!appointment?.clientId || serviceHistory.length > 0) {
+      setShowHistory(!showHistory);
+      return;
+    }
+
+    setLoadingHistory(true);
+    try {
+      // Get all appointments for this client
+      const allAppointments = await db.appointments
+        .where('clientId')
+        .equals(appointment.clientId)
+        .and(apt => apt.status === 'completed' && apt.id !== appointment.id)
+        .reverse()
+        .sortBy('scheduledStartTime');
+
+      setServiceHistory(allAppointments.slice(0, 10)); // Show last 10
+      setShowHistory(true);
+    } catch (error) {
+      console.error('Error loading service history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleSaveClientNotes = async () => {
+    if (!client) return;
+
+    setIsSavingClientNotes(true);
+    try {
+      await clientsDB.update(client.id, { notes: clientNotes });
+      setClient({ ...client, notes: clientNotes });
+      setIsEditingClientNotes(false);
+    } catch (error) {
+      console.error('Error saving client notes:', error);
+      alert('Failed to save client notes. Please try again.');
+    } finally {
+      setIsSavingClientNotes(false);
+    }
+  };
 
   if (!isOpen || !appointment) return null;
 
@@ -156,6 +229,136 @@ export function AppointmentDetailsModal({
                 )}
               </div>
             </div>
+
+            {/* Client Notes */}
+            {client && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    CLIENT NOTES
+                  </h3>
+                  {!isEditingClientNotes && (
+                    <button
+                      onClick={() => setIsEditingClientNotes(true)}
+                      className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      {client.notes ? 'Edit' : 'Add'}
+                    </button>
+                  )}
+                </div>
+
+                {isEditingClientNotes ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={clientNotes}
+                      onChange={(e) => setClientNotes(e.target.value)}
+                      placeholder="Add notes about this client (allergies, preferences, special requests, etc.)"
+                      rows={4}
+                      className="w-full px-4 py-3 border-2 border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setClientNotes(client.notes || '');
+                          setIsEditingClientNotes(false);
+                        }}
+                        className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveClientNotes}
+                        disabled={isSavingClientNotes}
+                        className="px-3 py-1.5 text-sm bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {isSavingClientNotes ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3" />
+                            Save
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : client.notes ? (
+                  <div className="p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{client.notes}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No notes added yet. Click "Add" to add notes about this client.</p>
+                )}
+              </div>
+            )}
+
+            {/* Service History */}
+            {appointment?.clientId && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <History className="w-4 h-4" />
+                    SERVICE HISTORY
+                  </h3>
+                  <button
+                    onClick={handleLoadServiceHistory}
+                    disabled={loadingHistory}
+                    className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                  >
+                    {loadingHistory ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>{showHistory ? 'Hide' : 'Show'} History</>
+                    )}
+                  </button>
+                </div>
+
+                {showHistory && (
+                  <div className="space-y-2">
+                    {serviceHistory.length > 0 ? (
+                      serviceHistory.map((apt) => {
+                        const totalPrice = apt.services.reduce((sum, s) => sum + s.price, 0);
+                        const date = new Date(apt.scheduledStartTime);
+                        return (
+                          <div key={apt.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                </p>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-900">${totalPrice.toFixed(2)}</span>
+                            </div>
+                            <div className="space-y-1">
+                              {apt.services.map((service, idx) => (
+                                <div key={idx} className="flex justify-between text-xs text-gray-600">
+                                  <span>{service.serviceName}</span>
+                                  <span className="text-gray-500">{service.staffName}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No service history found.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Staff */}
             <div>

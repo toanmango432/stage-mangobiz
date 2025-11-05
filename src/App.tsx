@@ -3,6 +3,12 @@ import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
 
+// Clear IndexedDB immediately on module load in development
+if (import.meta.env.DEV) {
+  indexedDB.deleteDatabase('mango-pos-db');
+  console.log('✅ IndexedDB cleared - using fresh mock data with lastVisitDate');
+}
+
 export function App() {
   return (
     <Provider store={store}>

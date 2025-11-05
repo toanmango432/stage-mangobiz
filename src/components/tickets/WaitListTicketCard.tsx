@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight } from 'lucide-react';
+import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
@@ -76,25 +76,21 @@ export function WaitListTicketCard({
 
   // TACTILE PAPER AESTHETIC - WAITING (warm ivory with soft depth)
   const paperStyle = {
-    background: 'linear-gradient(180deg, #FFFDF8 0%, #FDF9F2 100%)',
-    backgroundImage: 'radial-gradient(rgba(0,0,0,0.015) 1px, transparent 1px)',
-    backgroundSize: '2px 2px',
+    background: '#FFF8E8', // Warmer beige paper from reference
+    backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
+    borderRadius: '6px',
+    border: '2px solid #e8dcc8',
     boxShadow: `
-      inset 0 0.5px 0 rgba(255,255,255,0.7),
-      inset 0 -0.8px 1px rgba(0,0,0,0.05),
-      0.5px 0.5px 0 rgba(255,255,255,0.8),
-      1.5px 2px 2px rgba(0,0,0,0.04),
-      3px 6px 8px rgba(0,0,0,0.08)
+      0 1px 3px rgba(0,0,0,0.08),
+      0 1px 2px rgba(0,0,0,0.04)
     `,
-    border: 'none',
   };
 
-  // Hover state - tactile lift
+  // Hover state - tactile lift with rotation
   const paperHoverStyle = {
     boxShadow: `
-      inset 0 0.5px 0 rgba(255,255,255,0.9),
-      0.5px 1px 2px rgba(0,0,0,0.05),
-      4px 8px 12px rgba(0,0,0,0.10)
+      0 2px 4px rgba(0,0,0,0.1),
+      0 4px 8px rgba(0,0,0,0.08)
     `,
   };
 
@@ -244,9 +240,11 @@ export function WaitListTicketCard({
         }}
         data-responsive="true"
         onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-0.5px) rotate(0.1deg)';
           e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
         }}
         onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0) rotate(0deg)';
           e.currentTarget.style.boxShadow = paperStyle.boxShadow;
         }}
       >
@@ -394,13 +392,12 @@ export function WaitListTicketCard({
 
   // Grid Normal view (NORMAL GRID - larger cards)
   if (viewMode === 'grid-normal') {
-  // Paper-like aesthetic with directional lighting
+  // Paper-like aesthetic with warmer color and external texture
   const paperCardStyle = {
-    background: 'linear-gradient(180deg, #fffdf8 0%, #fdf9f2 100%)',
-    backgroundImage: 'radial-gradient(rgba(0,0,0,0.015) 1px, transparent 1px)',
-    backgroundSize: '2px 2px',
-    border: 'none',
-    borderRadius: '16px',
+    background: '#FFF8E8', // Warmer beige paper from reference
+    backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
+    border: '2px solid #e8dcc8', // Warm border
+    borderRadius: '8px', // Match reference
     boxShadow: `
       inset 0 0.5px 0 rgba(255,255,255,0.70),
       inset 0 -0.8px 1px rgba(0,0,0,0.05),
@@ -441,11 +438,11 @@ export function WaitListTicketCard({
         padding: '16px 18px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.transform = 'translateY(-1px) rotate(0.2deg)';
         e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.transform = 'translateY(0) rotate(0deg)';
         e.currentTarget.style.boxShadow = paperCardStyle.boxShadow;
       }}
       onMouseDown={(e) => {
@@ -457,47 +454,80 @@ export function WaitListTicketCard({
         e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
       }}
     >
+      {/* Perforation dots - top */}
+      <div className="absolute top-0 left-0 w-full h-[6px] overflow-hidden flex items-center">
+        <div className="w-full flex justify-between px-4">
+          {[...Array(20)].map((_, i) => (
+            <div key={i} className="w-1 h-1 bg-amber-200 rounded-full"></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Left ticket notch */}
+      <div className="absolute -left-2 top-1/3 w-4 h-4 bg-gray-50 rounded-full border-r-2 border-amber-200"></div>
+
+      {/* Right ticket notch */}
+      <div className="absolute -right-2 top-1/3 w-4 h-4 bg-gray-50 rounded-full border-l-2 border-amber-200"></div>
+
+      {/* Thick paper left edge shadow effect */}
+      <div 
+        className="absolute top-0 left-0 w-2 h-full"
+        style={{
+          boxShadow: `
+            inset 3px 0 4px rgba(0,0,0,0.20),
+            inset 6px 0 8px rgba(0,0,0,0.12)
+          `
+        }}
+      ></div>
+
       {/* Paper Ticket Grid View */}
       <div className="flex flex-col h-full" style={{ gap: '10px' }}>
         {/* Header Row: Ticket # + Client Name + Badges + More */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            {/* Ticket # pill */}
+            {/* Ticket # pill - dark circle angled like reference */}
             <div 
-              className="flex-shrink-0"
+              className="flex-shrink-0 transform -rotate-3"
               style={{
-                background: '#fffefb',
-                borderRadius: '12px',
-                padding: '6px 10px',
-                boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.06)',
+                background: '#1F2937',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                border: '2px solid rgba(255,255,255,0.1)',
                 fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-                fontSize: '15px',
+                fontSize: '14px',
                 fontWeight: 700,
-                color: '#222222',
+                color: '#FFFFFF',
                 letterSpacing: '0.3px',
-                textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
                 WebkitFontSmoothing: 'antialiased',
               }}
             >
               {ticket.number}
             </div>
             
-            {/* Client Name */}
-            <span 
-              className="font-semibold truncate" 
-              style={{ 
-                fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-                fontSize: '17px',
-                fontWeight: 600,
-                color: '#222222',
-                letterSpacing: '0.3px',
-                textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
-                WebkitFontSmoothing: 'antialiased',
-              }} 
-              title={ticket.clientName}
-            >
-              {ticket.clientName}
-            </span>
+            {/* Client Name with icon */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <User size={14} className="text-amber-700 flex-shrink-0" />
+              <span 
+                className="font-semibold truncate" 
+                style={{ 
+                  fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  color: '#222222',
+                  letterSpacing: '0.3px',
+                  textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+                  WebkitFontSmoothing: 'antialiased',
+                }} 
+                title={ticket.clientName}
+              >
+                {ticket.clientName}
+              </span>
+            </div>
             
             {/* VIP Badge - stamped style */}
             {ticket.clientType === 'VIP' && (
@@ -579,8 +609,9 @@ export function WaitListTicketCard({
           </div>
         )}
 
-        {/* Service Title */}
-        <div>
+        {/* Service Title with icon */}
+        <div className="flex items-center gap-2">
+          <Tag size={14} className="text-amber-700 flex-shrink-0" />
           <div 
             className="truncate"
             style={{
@@ -614,15 +645,18 @@ export function WaitListTicketCard({
             </span>
           </div>
           <span style={{ color: '#d0d0d0', fontSize: '12px' }}>•</span>
-          <span style={{ 
-            fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-            fontSize: '13px',
-            fontWeight: 400,
-            color: '#555555',
-            textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
-          }}>
-            {ticket.time}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <Calendar size={12} className="text-amber-700" />
+            <span style={{ 
+              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
+              fontSize: '13px',
+              fontWeight: 400,
+              color: '#555555',
+              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
+            }}>
+              {ticket.time}
+            </span>
+          </div>
         </div>
         
         {/* Progress Bar - matte, rounded (amber for waiting) */}
@@ -669,6 +703,14 @@ export function WaitListTicketCard({
           </button>
         </div>
       </div>
+
+      {/* Paper texture overlay - cardboard at 10% opacity */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-10 mix-blend-overlay"
+        style={{
+          backgroundImage: 'url("https://www.transparenttextures.com/patterns/cardboard.png")'
+        }}
+      ></div>
       
       {/* Perforation at Bottom Edge - ENHANCED */}
       <div className="absolute bottom-0 left-0 right-0 h-[10px] opacity-30 rounded-b-lg overflow-hidden"

@@ -40,19 +40,19 @@ export function EditAppointmentModal({
   const [duration, setDuration] = useState(0);
   const [notes, setNotes] = useState('');
   
-  // Initialize form when appointment changes
+  // Initialize form when modal opens (not on every appointment reference change)
   useEffect(() => {
-    if (appointment) {
+    if (isOpen && appointment) {
       setClientName(appointment.clientName);
       setClientPhone(appointment.clientPhone);
       setStaffId(appointment.staffId);
-      
+
       const startDateObj = new Date(appointment.scheduledStartTime);
       setStartDate(startDateObj.toISOString().split('T')[0]);
       setStartTime(`${startDateObj.getHours().toString().padStart(2, '0')}:${startDateObj.getMinutes().toString().padStart(2, '0')}`);
-      
+
       const durationMinutes = Math.round(
-        (new Date(appointment.scheduledEndTime).getTime() - 
+        (new Date(appointment.scheduledEndTime).getTime() -
          new Date(appointment.scheduledStartTime).getTime()) / 60000
       );
       setDuration(durationMinutes);
@@ -60,7 +60,7 @@ export function EditAppointmentModal({
       setHasChanges(false);
       setConflicts([]);
     }
-  }, [appointment]);
+  }, [isOpen, appointment?.id]);
 
   // Check for conflicts when form values change
   useEffect(() => {

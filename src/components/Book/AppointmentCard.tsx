@@ -3,7 +3,7 @@
  * Displays an appointment on the calendar with paper ticket aesthetic
  */
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { APPOINTMENT_STATUS_COLORS, BOOKING_SOURCE_COLORS } from '../../constants/appointment';
@@ -25,17 +25,45 @@ export const AppointmentCard = memo(function AppointmentCard({
   onClick,
   className,
 }: AppointmentCardProps) {
+  const [isDragging, setIsDragging] = useState(false);
   const statusColor = APPOINTMENT_STATUS_COLORS[appointment.status] || APPOINTMENT_STATUS_COLORS.scheduled;
   const sourceColor = BOOKING_SOURCE_COLORS[appointment.source] || BOOKING_SOURCE_COLORS['walk-in'];
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setIsDragging(true);
+
+    // Store appointment data in drag event
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('appointment-id', appointment.id);
+    e.dataTransfer.setData('appointment-data', JSON.stringify(appointment));
+
+    // Add semi-transparent drag image
+    if (e.currentTarget instanceof HTMLElement) {
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+      dragImage.style.opacity = '0.7';
+      document.body.appendChild(dragImage);
+      e.dataTransfer.setDragImage(dragImage, 0, 0);
+      setTimeout(() => document.body.removeChild(dragImage), 0);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div
+      draggable={appointment.status !== 'completed' && appointment.status !== 'cancelled'}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       className={cn(
         'absolute left-0 right-0 mx-1',
         'rounded-lg overflow-hidden',
-        'cursor-pointer transition-all duration-200',
+        'cursor-move transition-all duration-200',
         'shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:z-20',
         'border-l-4',
+        isDragging && 'opacity-50 scale-95',
         className
       )}
       style={{

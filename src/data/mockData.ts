@@ -588,6 +588,7 @@ export const mockServiceTickets = [
     notes: '',
     createdAt: new Date(Date.now() - 30 * 60000), // 30 min ago
     updatedAt: new Date(),
+    lastVisitDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
   },
   {
     id: 'ticket-2',
@@ -614,12 +615,13 @@ export const mockServiceTickets = [
     notes: 'Wants stiletto shape',
     createdAt: new Date(Date.now() - 45 * 60000), // 45 min ago
     updatedAt: new Date(),
+    lastVisitDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 3 months ago
   },
   {
     id: 'ticket-3',
     number: 93,
     clientName: 'Jessica Lee',
-    clientType: 'Regular',
+    clientType: 'New',
     service: 'Balayage & Cut',
     duration: '2 hours',
     time: '11:30 AM',
@@ -635,6 +637,7 @@ export const mockServiceTickets = [
     notes: '',
     createdAt: new Date(Date.now() - 90 * 60000), // 1.5 hours ago
     updatedAt: new Date(),
+    lastVisitDate: null, // First visit
   },
   {
     id: 'ticket-5',
@@ -656,6 +659,7 @@ export const mockServiceTickets = [
     notes: 'Going blonde',
     createdAt: new Date(Date.now() - 75 * 60000), // 1h 15m ago
     updatedAt: new Date(),
+    lastVisitDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
   },
   {
     id: 'ticket-6',
@@ -677,6 +681,7 @@ export const mockServiceTickets = [
     notes: 'Focus on shoulders',
     createdAt: new Date(Date.now() - 60 * 60000), // 1 hour ago
     updatedAt: new Date(),
+    lastVisitDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 1 month ago
   },
   {
     id: 'ticket-7',
@@ -698,6 +703,7 @@ export const mockServiceTickets = [
     notes: 'First time client',
     createdAt: new Date(Date.now() - 45 * 60000), // 45 min ago
     updatedAt: new Date(),
+    lastVisitDate: null, // First visit
   },
   {
     id: 'ticket-8',
@@ -719,6 +725,7 @@ export const mockServiceTickets = [
     notes: '',
     createdAt: new Date(Date.now() - 15 * 60000), // 15 min ago
     updatedAt: new Date(),
+    lastVisitDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), // 6 months ago
   },
   {
     id: 'ticket-9',
@@ -746,6 +753,7 @@ export const mockServiceTickets = [
     notes: 'Gel on both',
     createdAt: new Date(Date.now() - 60 * 60000), // 1 hour ago
     updatedAt: new Date(),
+    lastVisitDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 2 months ago
   },
   // Additional 30 tickets for testing scrolling
   ...Array.from({ length: 30 }, (_, i) => {
@@ -766,6 +774,13 @@ export const mockServiceTickets = [
     const service = services[i % services.length];
     const clientType = clientTypes[i % clientTypes.length];
     
+    // Generate varied last visit dates
+    const lastVisitDaysAgo = clientType === 'New' ? null : 
+      i % 4 === 0 ? 3 :     // 3 days ago
+      i % 4 === 1 ? 21 :    // 3 weeks ago
+      i % 4 === 2 ? 45 :    // 1.5 months ago
+      120;                   // 4 months ago
+    
     return {
       id: `ticket-${ticketNum}`,
       number: ticketNum,
@@ -782,6 +797,7 @@ export const mockServiceTickets = [
       notes: i % 3 === 0 ? 'Special request' : '',
       createdAt: new Date(Date.now() - (i * 5 * 60000)),
       updatedAt: new Date(),
+      lastVisitDate: lastVisitDaysAgo ? new Date(Date.now() - lastVisitDaysAgo * 24 * 60 * 60 * 1000) : null,
     };
   }),
 ];

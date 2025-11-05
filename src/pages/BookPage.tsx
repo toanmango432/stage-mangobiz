@@ -22,7 +22,7 @@ import { AgendaView } from '../components/Book/AgendaView';
 import { WalkInSidebar } from '../components/Book/WalkInSidebar';
 import { AppointmentFilters } from '../components/Book/FilterPanel';
 import { LocalAppointment } from '../types/appointment';
-import { addLocalAppointment, updateLocalAppointment } from '../store/slices/appointmentsSlice';
+import { addLocalAppointment, updateLocalAppointment, removeLocalAppointment } from '../store/slices/appointmentsSlice';
 import { detectAppointmentConflicts } from '../utils/conflictDetection';
 import { saveAppointment } from '../services/db';
 import { snapToGrid } from '../utils/dragAndDropHelpers';
@@ -41,10 +41,15 @@ export function BookPage() {
   const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ staffId: string; time: Date } | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
+    staffId: string;
+    time: Date;
+    staffName?: string;
+    staffPhoto?: string;
+  } | null>(null);
   
   // Filter state
-  const [filters, setFilters] = useState<AppointmentFilters>({ // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [filters, setFilters] = useState<AppointmentFilters>({
     search: '',
     status: [],
     serviceTypes: [],
@@ -65,7 +70,7 @@ export function BookPage() {
     handleViewChange,
     handleTimeWindowModeChange,
     goToToday,
-  } = useAppointmentCalendar();
+  } = useAppointmentCalendar({ filters });
 
   // Get salon ID and staff from Redux
   const salonId = getTestSalonId();
@@ -98,7 +103,15 @@ export function BookPage() {
   };
 
   const handleTimeSlotClick = (staffId: string, time: Date) => {
-    setSelectedTimeSlot({ staffId, time });
+    // Find staff details
+    const staff = allStaff.find(s => s.id === staffId);
+
+    setSelectedTimeSlot({
+      staffId,
+      time,
+      staffName: staff?.name || 'Unknown Staff',
+      staffPhoto: staff?.avatar
+    });
     setIsNewAppointmentOpen(true);
   };
 
@@ -242,32 +255,6 @@ export function BookPage() {
         ...updates,
       }, 3);
 
-      // Reload appointments to show the updated one
-      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
-      updatedAppointments.forEach((apt: any) => {
-        const localApt: LocalAppointment = {
-          id: apt.id,
-          salonId: apt.salonId,
-          clientId: apt.clientId,
-          clientName: apt.clientName,
-          clientPhone: apt.clientPhone || '',
-          staffId: apt.staffId,
-          staffName: apt.staffName || '',
-          services: apt.services || [],
-          status: apt.status as any,
-          scheduledStartTime: new Date(apt.scheduledStartTime),
-          scheduledEndTime: new Date(apt.scheduledEndTime),
-          notes: apt.notes,
-          source: (apt.source || 'walk-in') as 'online' | 'walk-in',
-          createdAt: new Date(apt.createdAt),
-          updatedAt: new Date(apt.updatedAt),
-          createdBy: apt.createdBy,
-          lastModifiedBy: apt.lastModifiedBy,
-          syncStatus: apt.syncStatus,
-        };
-        dispatch(addLocalAppointment(localApt));
-      });
-
       setToast({ message: 'Appointment updated successfully!', type: 'success' });
       setIsEditAppointmentOpen(false);
       setSelectedAppointment(null); // Clear selection
@@ -303,34 +290,11 @@ export function BookPage() {
       // Remove from IndexedDB
       await appointmentsDB.delete(appointmentId);
 
+      // Remove from Redux state
+      dispatch(removeLocalAppointment(appointmentId));
+
       // Queue deletion for sync (when backend is ready)
       await syncService.queueDelete('appointment', appointmentId, 3);
-
-      // Reload appointments
-      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
-      updatedAppointments.forEach((apt: any) => {
-        const localApt: LocalAppointment = {
-          id: apt.id,
-          salonId: apt.salonId,
-          clientId: apt.clientId,
-          clientName: apt.clientName,
-          clientPhone: apt.clientPhone || '',
-          staffId: apt.staffId,
-          staffName: apt.staffName || '',
-          services: apt.services || [],
-          status: apt.status as any,
-          scheduledStartTime: new Date(apt.scheduledStartTime),
-          scheduledEndTime: new Date(apt.scheduledEndTime),
-          notes: apt.notes,
-          source: (apt.source || 'walk-in') as 'online' | 'walk-in',
-          createdAt: new Date(apt.createdAt),
-          updatedAt: new Date(apt.updatedAt),
-          createdBy: apt.createdBy,
-          lastModifiedBy: apt.lastModifiedBy,
-          syncStatus: apt.syncStatus,
-        };
-        dispatch(addLocalAppointment(localApt));
-      });
 
       setToast({ message: 'Appointment deleted successfully!', type: 'success' });
       setIsAppointmentDetailsOpen(false);
@@ -353,6 +317,12 @@ export function BookPage() {
         updatedAt: new Date(),
       };
 
+      // Update in Redux
+      dispatch(updateLocalAppointment({
+        id: appointmentId,
+        updates: { ...updates, syncStatus: 'pending' as const },
+      }));
+
       // Update in IndexedDB
       const appointmentToUpdate = await appointmentsDB.getById(appointmentId);
       if (appointmentToUpdate) {
@@ -369,32 +339,6 @@ export function BookPage() {
         ...appointment,
         ...updates,
       }, 3);
-
-      // Reload appointments
-      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
-      updatedAppointments.forEach((apt: any) => {
-        const localApt: LocalAppointment = {
-          id: apt.id,
-          salonId: apt.salonId,
-          clientId: apt.clientId,
-          clientName: apt.clientName,
-          clientPhone: apt.clientPhone || '',
-          staffId: apt.staffId,
-          staffName: apt.staffName || '',
-          services: apt.services || [],
-          status: apt.status as any,
-          scheduledStartTime: new Date(apt.scheduledStartTime),
-          scheduledEndTime: new Date(apt.scheduledEndTime),
-          notes: apt.notes,
-          source: (apt.source || 'walk-in') as 'online' | 'walk-in',
-          createdAt: new Date(apt.createdAt),
-          updatedAt: new Date(apt.updatedAt),
-          createdBy: apt.createdBy,
-          lastModifiedBy: apt.lastModifiedBy,
-          syncStatus: apt.syncStatus,
-        };
-        dispatch(addLocalAppointment(localApt));
-      });
 
       setToast({ message: 'Appointment cancelled successfully!', type: 'success' });
       setIsAppointmentDetailsOpen(false);
@@ -693,6 +637,8 @@ export function BookPage() {
         selectedDate={selectedTimeSlot?.time || selectedDate}
         selectedTime={selectedTimeSlot?.time}
         selectedStaffId={selectedTimeSlot?.staffId}
+        selectedStaffName={selectedTimeSlot?.staffName}
+        selectedStaffPhoto={selectedTimeSlot?.staffPhoto}
         onSave={handleSaveAppointment}
         onCreateClient={handleCreateCustomer}
       />

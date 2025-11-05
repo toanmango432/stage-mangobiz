@@ -28,6 +28,7 @@ interface Client {
   email?: string;
   membershipLevel?: string;
   totalVisits?: number;
+  notes?: string;
 }
 
 interface Service {
@@ -55,6 +56,8 @@ interface NewAppointmentModalProps {
   selectedDate?: Date;
   selectedTime?: Date;
   selectedStaffId?: string;
+  selectedStaffName?: string;
+  selectedStaffPhoto?: string;
   onSave?: (appointment: any) => void;
   onCreateClient?: (name: string, phone: string) => Promise<Client>;
 }
@@ -65,6 +68,8 @@ export function NewAppointmentModal({
   selectedDate,
   selectedTime,
   selectedStaffId,
+  selectedStaffName,
+  selectedStaffPhoto,
   onSave,
   onCreateClient,
 }: NewAppointmentModalProps) {
@@ -109,6 +114,7 @@ export function NewAppointmentModal({
   
   // Data from IndexedDB
   const [clients, setClients] = useState<Client[]>([]);
+  const [recentClients, setRecentClients] = useState<Client[]>([]); // NEW: Recent clients
   const [services, setServices] = useState<Service[]>([]);
   const [searching, setSearching] = useState(false);
   const salonId = getTestSalonId();
@@ -146,6 +152,53 @@ export function NewAppointmentModal({
     }
     if (isOpen) loadServices();
   }, [isOpen, salonId]);
+
+  // NEW: Load recent clients on mount (show immediately, no typing needed)
+  useEffect(() => {
+    async function loadRecentClients() {
+      try {
+        const recent = await db.clients
+          .where('salonId').equals(salonId)
+          .reverse()
+          .sortBy('lastVisit');
+
+        // Take top 10 most recent
+        const recentList = recent.slice(0, 10).map(c => ({
+          id: c.id,
+          name: c.name,
+          phone: c.phone || '',
+          email: c.email,
+          membershipLevel: c.loyaltyTier,
+          totalVisits: c.totalVisits,
+          lastVisit: c.lastVisit,
+          notes: c.notes
+        }));
+
+        setRecentClients(recentList);
+      } catch (error) {
+        console.error('Failed to load recent clients:', error);
+      }
+    }
+
+    if (isOpen) {
+      loadRecentClients();
+    }
+  }, [isOpen, salonId]);
+
+  // NEW: Auto-focus client search when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Wait for modal animation, then focus
+      const timer = setTimeout(() => {
+        const searchInput = document.getElementById('client-search-input');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }, 150);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
   
   // Search clients from IndexedDB (debounced)
   useEffect(() => {
@@ -164,7 +217,8 @@ export function NewAppointmentModal({
           phone: c.phone || '',
           email: c.email,
           membershipLevel: c.loyaltyTier,
-          totalVisits: c.totalVisits
+          totalVisits: c.totalVisits,
+          notes: c.notes
         })));
       } catch (error) {
         console.error('Failed to search clients:', error);
@@ -454,7 +508,13 @@ export function NewAppointmentModal({
   };
 
   const handleSelectServiceForStaffAssignment = (service: Service) => {
-    // Always show staff selector popup (no auto-assignment)
+    // NEW: If staff was pre-selected from time slot click, use that staff automatically
+    if (selectedStaffId && selectedStaffName) {
+      handleAddService(service, selectedStaffId);
+      return;
+    }
+
+    // Otherwise, show staff selector popup
     setPendingService(service);
     setShowStaffSelector(true);
   };
@@ -588,6 +648,44 @@ export function NewAppointmentModal({
             </div>
           </div>
 
+          {/* NEW: Context Banner - Shows which staff/time was clicked */}
+          {!isMinimized && selectedStaffName && selectedTime && (
+            <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-b border-teal-200 px-6 py-3">
+              <div className="flex items-center space-x-3">
+                {selectedStaffPhoto ? (
+                  <img
+                    src={selectedStaffPhoto}
+                    alt={selectedStaffName}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-teal-400"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
+                    {selectedStaffName.charAt(0)}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-teal-900">
+                    Booking with {selectedStaffName}
+                  </p>
+                  <p className="text-xs text-teal-700">
+                    {selectedTime.toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })} • {selectedTime.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div className="px-3 py-1 bg-teal-500 text-white text-xs font-semibold rounded-full">
+                  Staff Pre-Selected
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Content - 2 Panels (Side-by-side on desktop, stacked on mobile) */}
           {!isMinimized && (
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
@@ -601,19 +699,47 @@ export function NewAppointmentModal({
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
+                        id="client-search-input"
                         type="text"
                         placeholder="Search by name or phone..."
                         value={clientSearch}
                         onChange={(e) => setClientSearch(e.target.value)}
                         className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        autoFocus
                       />
                     </div>
                   </div>
 
                   {/* Client List */}
                   <div className="space-y-2">
-                    {filteredClients.map((client) => (
+                    {/* NEW: Show Recent Clients when not searching */}
+                    {clientSearch.length < 2 && recentClients.length > 0 && (
+                      <>
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Recent Clients</p>
+                        {recentClients.map((client) => (
+                          <button
+                            key={client.id}
+                            onClick={() => handleSelectClient(client)}
+                            className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">{client.name}</p>
+                                <p className="text-sm text-gray-600 mt-0.5">{client.phone}</p>
+                                {client.membershipLevel && (
+                                  <span className="inline-block mt-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">
+                                    {client.membershipLevel}
+                                  </span>
+                                )}
+                              </div>
+                              <ChevronRight className="w-5 h-5 text-gray-400" />
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Show search results when typing */}
+                    {clientSearch.length >= 2 && filteredClients.map((client) => (
                       <button
                         key={client.id}
                         onClick={() => handleSelectClient(client)}
@@ -807,6 +933,14 @@ export function NewAppointmentModal({
                       
                       {selectedClient.email && (
                         <p className="text-xs text-gray-500 mt-2">{selectedClient.email}</p>
+                      )}
+
+                      {/* Client Notes */}
+                      {selectedClient.notes && (
+                        <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+                          <p className="text-xs font-semibold text-blue-900 mb-1">CLIENT NOTES:</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedClient.notes}</p>
+                        </div>
                       )}
                     </div>
                   </div>

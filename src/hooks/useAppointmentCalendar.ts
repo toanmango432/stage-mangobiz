@@ -24,8 +24,15 @@ import {
   type TimeWindowMode,
 } from '../constants/appointment';
 import { LocalAppointment } from '../types/appointment';
+import { AppointmentFilters } from '../components/Book/FilterPanel';
+import { filterAppointments } from '../utils/appointmentFilters';
 
-export function useAppointmentCalendar() {
+interface UseAppointmentCalendarOptions {
+  filters?: AppointmentFilters;
+}
+
+export function useAppointmentCalendar(options: UseAppointmentCalendarOptions = {}) {
+  const { filters } = options;
   const dispatch = useAppDispatch();
 
   // Get calendar view state
@@ -49,13 +56,22 @@ export function useAppointmentCalendar() {
     return appointmentsByDate[dateKey] || [];
   }, [appointmentsByDate, selectedDate]);
 
-  // Filter appointments by selected staff
+  // Filter appointments by selected staff and other filters
   const filteredAppointments = useMemo(() => {
-    if (selectedStaffIds.length === 0) {
-      return appointments;
+    let filtered = appointments;
+
+    // Filter by staff selection
+    if (selectedStaffIds.length > 0) {
+      filtered = filtered.filter((apt: LocalAppointment) => selectedStaffIds.includes(apt.staffId));
     }
-    return appointments.filter((apt: LocalAppointment) => selectedStaffIds.includes(apt.staffId));
-  }, [appointments, selectedStaffIds]);
+
+    // Apply additional filters (search, status, service type)
+    if (filters) {
+      filtered = filterAppointments(filtered, filters);
+    }
+
+    return filtered;
+  }, [appointments, selectedStaffIds, filters]);
 
   // Generate time slots
   const timeSlots = useMemo(() => {

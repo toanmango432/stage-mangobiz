@@ -3,7 +3,7 @@
  * Displays a staff member's schedule column with time slots and appointments
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { TimeSlot as TimeSlotType } from '../../utils/timeUtils';
@@ -18,6 +18,8 @@ interface StaffColumnProps {
   appointments: LocalAppointment[];
   timeSlots: TimeSlotType[];
   onAppointmentClick?: (appointment: LocalAppointment) => void;
+  onAppointmentDrop?: (appointmentId: string, newStaffId: string, newTime: Date) => void;
+  selectedDate?: Date;
   className?: string;
 }
 
@@ -28,8 +30,11 @@ export const StaffColumn = memo(function StaffColumn({
   appointments,
   timeSlots,
   onAppointmentClick,
+  onAppointmentDrop,
+  selectedDate = new Date(),
   className,
 }: StaffColumnProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
   // Calculate positions for all appointments
   const positionedAppointments = useMemo(() => {
     return appointments.map(apt => {
@@ -59,6 +64,48 @@ export const StaffColumn = memo(function StaffColumn({
       };
     }).filter(Boolean);
   }, [appointments, timeSlots]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const appointmentId = e.dataTransfer.getData('appointment-id');
+    if (!appointmentId || !onAppointmentDrop) return;
+
+    // Calculate drop position relative to schedule area
+    const scheduleArea = e.currentTarget as HTMLElement;
+    const rect = scheduleArea.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+
+    // Convert pixel position to time slot
+    const slotIndex = Math.floor(offsetY / PIXELS_PER_15_MINUTES);
+    const targetSlot = timeSlots[slotIndex];
+
+    if (!targetSlot) return;
+
+    // Calculate the new time based on the selected date and slot
+    const newTime = new Date(selectedDate);
+    const hours = Math.floor(targetSlot.timeInSeconds / 3600);
+    const minutes = Math.floor((targetSlot.timeInSeconds % 3600) / 60);
+    newTime.setHours(hours, minutes, 0, 0);
+
+    // Call the drop handler
+    onAppointmentDrop(appointmentId, staffId, newTime);
+  };
 
   return (
     <div className={cn('relative flex-1 min-w-[150px]', className)}>
@@ -91,7 +138,15 @@ export const StaffColumn = memo(function StaffColumn({
       </div>
 
       {/* Schedule area */}
-      <div className="relative bg-white">
+      <div
+        className={cn(
+          'relative bg-white transition-colors',
+          isDragOver && 'bg-teal-50 ring-2 ring-teal-400'
+        )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* Time slot grid (for visual reference) */}
         <div className="absolute inset-0 pointer-events-none">
           {timeSlots.map((slot, idx) => (
