@@ -12,6 +12,9 @@ import type {
   SyncOperation,
 } from '../types';
 
+// Re-export db for external use
+export { db };
+
 // ==================== APPOINTMENTS ====================
 
 export const appointmentsDB = {
@@ -423,3 +426,31 @@ export const settingsDB = {
     await db.settings.delete(key);
   },
 };
+
+// ==================== DATABASE STATS ====================
+
+/**
+ * Get database statistics (counts)
+ * Used by OfflineIndicator to show sync status
+ */
+export async function getDBStats() {
+  const [appointmentCount, ticketCount, transactionCount, staffCount, clientCount, serviceCount, queueCount] = await Promise.all([
+    db.appointments.count(),
+    db.tickets.count(),
+    db.transactions.count(),
+    db.staff.count(),
+    db.clients.count(),
+    db.services.count(),
+    db.syncQueue.count(),
+  ]);
+
+  return {
+    appointments: appointmentCount,
+    tickets: ticketCount,
+    transactions: transactionCount,
+    staff: staffCount,
+    clients: clientCount,
+    services: serviceCount,
+    pendingSync: queueCount,
+  };
+}

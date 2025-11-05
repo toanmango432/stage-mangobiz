@@ -24,11 +24,10 @@ import { AppointmentFilters } from '../components/Book/FilterPanel';
 import { LocalAppointment } from '../types/appointment';
 import { addLocalAppointment, updateLocalAppointment, removeLocalAppointment } from '../store/slices/appointmentsSlice';
 import { detectAppointmentConflicts } from '../utils/conflictDetection';
-import { saveAppointment } from '../services/db';
 import { snapToGrid } from '../utils/dragAndDropHelpers';
 import { syncService } from '../services/syncService';
 import { Toast, ToastType } from '../components/Toast';
-import { appointmentsDB } from '../db/database';
+import { appointmentsDB, db } from '../db/database';
 import { getTestSalonId } from '../db/seed';
 import { NEXT_AVAILABLE_STAFF_ID } from '../constants/appointment';
 
@@ -177,7 +176,7 @@ export function BookPage() {
           updatedAt: new Date(),
           syncStatus: 'pending', // Mark as pending sync
         };
-        await saveAppointment(updated);
+        await db.appointments.put(updated);
       }
 
       // Queue for sync
@@ -213,7 +212,7 @@ export function BookPage() {
           updatedAt: new Date(),
           syncStatus: 'pending', // Mark as pending sync
         };
-        await saveAppointment(updated);
+        await db.appointments.put(updated);
       }
 
       // Queue for sync
@@ -246,7 +245,7 @@ export function BookPage() {
           updatedAt: new Date(),
           syncStatus: 'pending', // Mark as pending sync
         };
-        await saveAppointment(updated);
+        await db.appointments.put(updated);
       }
 
       // Queue for sync
@@ -331,7 +330,7 @@ export function BookPage() {
           ...updates,
           syncStatus: 'pending',
         };
-        await saveAppointment(updated);
+        await db.appointments.put(updated);
       }
 
       // Queue for sync
@@ -459,7 +458,7 @@ export function BookPage() {
       dispatch(addLocalAppointment(appointment));
 
       // Save to IndexedDB
-      await saveAppointment(appointment);
+      await db.appointments.put(appointment);
 
       // Queue for sync
       await syncService.queueCreate('appointment', appointment, 3);

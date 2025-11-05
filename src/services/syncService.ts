@@ -3,14 +3,8 @@
  * Handles offline/online synchronization with backend
  */
 
-import {
-  db,
-  addToSyncQueue,
-  getPendingSyncItems,
-  removeSyncQueueItem,
-  updateSyncQueueItem,
-  SyncQueueEntry,
-} from './db';
+import { db, syncQueueDB } from '../db/database';
+import { SyncOperation } from '../types';
 
 class SyncService {
   private isOnline: boolean = navigator.onLine;
@@ -77,18 +71,16 @@ class SyncService {
   // ===== QUEUE OPERATIONS =====
 
   async queueCreate(entity: 'appointment' | 'client' | 'service', data: any, priority: number = 3) {
-    const entry: Omit<SyncQueueEntry, 'id'> = {
+    const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
       action: 'create',
       entity,
       entityId: data.id,
       data,
       priority,
-      timestamp: Date.now(),
-      retryCount: 0,
     };
 
-    await addToSyncQueue(entry);
-    
+    await syncQueueDB.add(entry);
+
     // Try to sync immediately if online
     if (this.isOnline) {
       this.syncNow();
@@ -96,36 +88,32 @@ class SyncService {
   }
 
   async queueUpdate(entity: 'appointment' | 'client' | 'service', data: any, priority: number = 3) {
-    const entry: Omit<SyncQueueEntry, 'id'> = {
+    const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
       action: 'update',
       entity,
       entityId: data.id,
       data,
       priority,
-      timestamp: Date.now(),
-      retryCount: 0,
     };
 
-    await addToSyncQueue(entry);
-    
+    await syncQueueDB.add(entry);
+
     if (this.isOnline) {
       this.syncNow();
     }
   }
 
   async queueDelete(entity: 'appointment' | 'client' | 'service', entityId: string, priority: number = 3) {
-    const entry: Omit<SyncQueueEntry, 'id'> = {
+    const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
       action: 'delete',
       entity,
       entityId,
       data: { id: entityId },
       priority,
-      timestamp: Date.now(),
-      retryCount: 0,
     };
 
-    await addToSyncQueue(entry);
-    
+    await syncQueueDB.add(entry);
+
     if (this.isOnline) {
       this.syncNow();
     }
@@ -146,8 +134,8 @@ class SyncService {
     this.notifyListeners({ isOnline: true, isSyncing: true });
 
     try {
-      const pendingItems = await getPendingSyncItems();
-      
+      const pendingItems = await syncQueueDB.getPending();
+
       if (pendingItems.length === 0) {
         this.isSyncing = false;
         this.notifyListeners({ isOnline: true, isSyncing: false });
@@ -160,15 +148,15 @@ class SyncService {
       for (const item of pendingItems) {
         try {
           await this.syncItem(item);
-          await removeSyncQueueItem(item.id!);
+          await syncQueueDB.remove(item.id!);
           syncedCount++;
         } catch (error) {
           console.error('Sync error for item:', item, error);
           errors.push(`${item.entity} ${item.action} failed`);
-          
+
           // Update retry count
-          await updateSyncQueueItem(item.id!, {
-            retryCount: item.retryCount + 1,
+          await syncQueueDB.update(item.id!, {
+            attempts: item.attempts + 1,
             lastError: error instanceof Error ? error.message : 'Unknown error',
           });
         }
@@ -193,7 +181,7 @@ class SyncService {
     }
   }
 
-  private async syncItem(item: SyncQueueEntry): Promise<void> {
+  private async syncItem(item: SyncOperation): Promise<void> {
     // TODO: Replace with actual API calls
     console.log('Syncing item:', item);
 

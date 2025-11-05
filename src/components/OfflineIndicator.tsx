@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSync } from '../hooks/useSync';
-import { getDBStats } from '../services/db';
+import { getDBStats } from '../db/database';
 
 export function OfflineIndicator() {
   const { isOnline, isSyncing, syncNow } = useSync();
