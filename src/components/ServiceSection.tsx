@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
+import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, Settings, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
@@ -30,7 +31,7 @@ interface ServiceSectionProps {
     counterText: string;
   };
 }
-export function ServiceSection({
+export const ServiceSection = memo(function ServiceSection({
   isMinimized = false,
   onToggleMinimize,
   isMobile = false,
@@ -63,52 +64,37 @@ export function ServiceSection({
     dropdownHover: 'hover:bg-[#E8F2FF]',
     focusRing: 'focus:ring-[#2F80ED]'
   };
-  // Get view mode from localStorage, default to 'list'
-  const [internalViewMode, setInternalViewMode] = useState<'grid' | 'list'>(() => {
-    const saved = localStorage.getItem('serviceViewMode');
-    return saved === 'grid' || saved === 'list' ? saved as 'grid' | 'list' : 'grid';
+
+  // Use shared hook for view mode management (replaces 45+ lines of duplicate code)
+  const {
+    viewMode,
+    setViewMode,
+    toggleViewMode,
+    cardViewMode,
+    setCardViewMode,
+    toggleCardViewMode,
+    minimizedLineView,
+    setMinimizedLineView,
+    toggleMinimizedLineView
+  } = useTicketSection({
+    sectionKey: 'service',
+    defaultViewMode: 'grid',
+    defaultCardViewMode: 'normal',
+    isCombinedView,
+    externalViewMode,
+    externalSetViewMode,
+    externalCardViewMode,
+    externalSetCardViewMode,
+    externalMinimizedLineView,
+    externalSetMinimizedLineView,
   });
-  const [internalCardViewMode, setInternalCardViewMode] = useState<'normal' | 'compact'>(() => {
-    const saved = localStorage.getItem('serviceCardViewMode');
-    return saved === 'normal' || saved === 'compact' ? saved as 'normal' | 'compact' : 'normal';
-  });
-  const [internalMinimizedLineView, setInternalMinimizedLineView] = useState<boolean>(() => {
-    const saved = localStorage.getItem('serviceMinimizedLineView');
-    return saved === 'true' ? true : false;
-  });
+
+  // Card scale for zoom (kept separate as it's section-specific)
   const [cardScale, setCardScale] = useState<number>(() => {
     const saved = localStorage.getItem('serviceCardScale');
     return saved ? parseFloat(saved) : 1.0;
   });
   const [showCardSizeSlider, setShowCardSizeSlider] = useState(false);
-  // Use either external or internal state based on isCombinedView
-  const viewMode = isCombinedView && externalViewMode ? externalViewMode : internalViewMode;
-  const setViewMode = (newMode: 'grid' | 'list') => {
-    if (isCombinedView && externalSetViewMode) {
-      externalSetViewMode(newMode);
-    } else {
-      setInternalViewMode(newMode);
-      localStorage.setItem('serviceViewMode', newMode);
-    }
-  };
-  const cardViewMode = isCombinedView && externalCardViewMode ? externalCardViewMode : internalCardViewMode;
-  const setCardViewMode = (newMode: 'normal' | 'compact') => {
-    if (isCombinedView && externalSetCardViewMode) {
-      externalSetCardViewMode(newMode);
-    } else {
-      setInternalCardViewMode(newMode);
-      localStorage.setItem('serviceCardViewMode', newMode);
-    }
-  };
-  const minimizedLineView = isCombinedView && externalMinimizedLineView !== undefined ? externalMinimizedLineView : internalMinimizedLineView;
-  const setMinimizedLineView = (newValue: boolean) => {
-    if (isCombinedView && externalSetMinimizedLineView) {
-      externalSetMinimizedLineView(newValue);
-    } else {
-      setInternalMinimizedLineView(newValue);
-      localStorage.setItem('serviceMinimizedLineView', newValue.toString());
-    }
-  };
   // State for dropdown menu
   const [showDropdown, setShowDropdown] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
@@ -143,16 +129,7 @@ export function ServiceSection({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  // Toggle between normal and compact card view
-  const toggleCardViewMode = () => {
-    const newMode = cardViewMode === 'normal' ? 'compact' : 'normal';
-    setCardViewMode(newMode);
-  };
-  // Toggle minimized line view
-  const toggleMinimizedLineView = () => {
-    const newValue = !minimizedLineView;
-    setMinimizedLineView(newValue);
-  };
+
   // Toggle dropdown menu for a ticket
   const toggleDropdown = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1072,4 +1049,4 @@ export function ServiceSection({
     }} onDelete={() => {}} // Not needed for service tickets
     />
     </div>;
-}
+});

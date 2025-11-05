@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useDeviceDetection } from '../hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
 import { WaitListSection } from './WaitListSection';
@@ -33,13 +34,10 @@ export function SalonCenter() {
       comingAppointments: false
     };
   });
-  // Enhanced device detection with orientation
-  const [deviceInfo, setDeviceInfo] = useState({
-    isMobile: false,
-    isTablet: false,
-    isPortrait: false,
-    isDesktop: false
-  });
+
+  // Use shared device detection hook (replaces 40+ lines of duplicate code)
+  const deviceInfo = useDeviceDetection();
+
   // State for resizable columns
   const [serviceWidth, setServiceWidth] = useState(() => {
     const saved = localStorage.getItem('serviceColumnWidth');
@@ -224,49 +222,24 @@ export function SalonCenter() {
       }
     }
   }, [activeCombinedTab, isCombinedView]);
-  // Enhanced device detection with orientation
+
+  // Automatically set view mode based on device (device detection handled by hook)
   useEffect(() => {
-    const checkDeviceInfo = () => {
-      const mobileQuery = window.matchMedia('(max-width: 767px)');
-      const tabletQuery = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
-      const desktopQuery = window.matchMedia('(min-width: 1024px)');
-      const portraitQuery = window.matchMedia('(orientation: portrait)');
-      const isMobile = mobileQuery.matches;
-      const isTablet = tabletQuery.matches;
-      const isPortrait = portraitQuery.matches;
-      const isDesktop = desktopQuery.matches;
-      setDeviceInfo({
-        isMobile,
-        isTablet,
-        isPortrait,
-        isDesktop
-      });
-      // Automatically set view mode based on device
-      if (isMobile || isTablet) {
-        // Force Tabs view on mobile/tablet
-        setIsCombinedView(true);
-      } else if (isDesktop) {
-        // On desktop, restore user preference or default to Column view
-        const savedView = localStorage.getItem('salonCenterViewMode');
-        if (savedView) {
-          setIsCombinedView(savedView === 'combined');
-        } else {
-          // Default to Column view (not combined) for desktop
-          setIsCombinedView(false);
-        }
+    if (deviceInfo.isMobile || deviceInfo.isTablet) {
+      // Force Tabs view on mobile/tablet
+      setIsCombinedView(true);
+    } else if (deviceInfo.isDesktop) {
+      // On desktop, restore user preference or default to Column view
+      const savedView = localStorage.getItem('salonCenterViewMode');
+      if (savedView) {
+        setIsCombinedView(savedView === 'combined');
+      } else {
+        // Default to Column view (not combined) for desktop
+        setIsCombinedView(false);
       }
-    };
-    // Initial check
-    checkDeviceInfo();
-    // Add event listeners for window resize and orientation change
-    window.addEventListener('resize', checkDeviceInfo);
-    window.addEventListener('orientationchange', checkDeviceInfo);
-    // Clean up
-    return () => {
-      window.removeEventListener('resize', checkDeviceInfo);
-      window.removeEventListener('orientationchange', checkDeviceInfo);
-    };
-  }, []);
+    }
+  }, [deviceInfo.isMobile, deviceInfo.isTablet, deviceInfo.isDesktop]);
+
   // Auto-minimize sections on mobile and tablet for better UX
   useEffect(() => {
     if (deviceInfo.isMobile || deviceInfo.isTablet) {

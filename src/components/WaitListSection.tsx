@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
+import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { Users, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, Settings, MessageSquare, Star, PlusCircle, Bell, ChevronRight, ChevronLeft, Plus } from 'lucide-react';
@@ -30,7 +31,7 @@ interface WaitListSectionProps {
     counterText: string;
   };
 }
-export function WaitListSection({
+export const WaitListSection = memo(function WaitListSection({
   isMinimized = false,
   onToggleMinimize,
   isMobile = false,
@@ -50,54 +51,36 @@ export function WaitListSection({
     assignTicket,
     deleteTicket
   } = useTickets();
-  // Get view mode from localStorage, default to 'list'
-  const [internalViewMode, setInternalViewMode] = useState<'grid' | 'list'>(() => {
-    const saved = localStorage.getItem('waitListViewMode');
-    return saved === 'grid' || saved === 'list' ? saved as 'grid' | 'list' : 'list';
+
+  // Use shared hook for view mode management (replaces 45+ lines of duplicate code)
+  const {
+    viewMode,
+    setViewMode,
+    toggleViewMode,
+    cardViewMode,
+    setCardViewMode,
+    toggleCardViewMode,
+    minimizedLineView,
+    setMinimizedLineView,
+    toggleMinimizedLineView
+  } = useTicketSection({
+    sectionKey: 'waitList',
+    defaultViewMode: 'list',
+    defaultCardViewMode: 'normal',
+    isCombinedView,
+    externalViewMode,
+    externalSetViewMode,
+    externalCardViewMode,
+    externalSetCardViewMode,
+    externalMinimizedLineView,
+    externalSetMinimizedLineView,
   });
-  // Add card view mode state (normal or compact)
-  const [internalCardViewMode, setInternalCardViewMode] = useState<'normal' | 'compact'>(() => {
-    const saved = localStorage.getItem('waitListCardViewMode');
-    return saved === 'normal' || saved === 'compact' ? saved as 'normal' | 'compact' : 'normal';
-  });
-  // Add minimized line view state
-  const [internalMinimizedLineView, setInternalMinimizedLineView] = useState<boolean>(() => {
-    const saved = localStorage.getItem('waitListMinimizedLineView');
-    return saved === 'true' ? true : false;
-  });
+
   const [cardScale, setCardScale] = useState<number>(() => {
     const saved = localStorage.getItem('waitListCardScale');
     return saved ? parseFloat(saved) : 1.0;
   });
   const [showCardSizeSlider, setShowCardSizeSlider] = useState(false);
-  // Use either external or internal state based on isCombinedView
-  const viewMode = isCombinedView && externalViewMode ? externalViewMode : internalViewMode;
-  const setViewMode = (newMode: 'grid' | 'list') => {
-    if (isCombinedView && externalSetViewMode) {
-      externalSetViewMode(newMode);
-    } else {
-      setInternalViewMode(newMode);
-      localStorage.setItem('waitListViewMode', newMode);
-    }
-  };
-  const cardViewMode = isCombinedView && externalCardViewMode ? externalCardViewMode : internalCardViewMode;
-  const setCardViewMode = (newMode: 'normal' | 'compact') => {
-    if (isCombinedView && externalSetCardViewMode) {
-      externalSetCardViewMode(newMode);
-    } else {
-      setInternalCardViewMode(newMode);
-      localStorage.setItem('waitListCardViewMode', newMode);
-    }
-  };
-  const minimizedLineView = isCombinedView && externalMinimizedLineView !== undefined ? externalMinimizedLineView : internalMinimizedLineView;
-  const setMinimizedLineView = (newValue: boolean) => {
-    if (isCombinedView && externalSetMinimizedLineView) {
-      externalSetMinimizedLineView(newValue);
-    } else {
-      setInternalMinimizedLineView(newValue);
-      localStorage.setItem('waitListMinimizedLineView', newValue.toString());
-    }
-  };
   // State for dropdown menu
   const [showDropdown, setShowDropdown] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
@@ -138,16 +121,7 @@ export function WaitListSection({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  // Toggle between normal and compact card view
-  const toggleCardViewMode = () => {
-    const newMode = cardViewMode === 'normal' ? 'compact' : 'normal';
-    setCardViewMode(newMode);
-  };
-  // Toggle minimized line view
-  const toggleMinimizedLineView = () => {
-    const newValue = !minimizedLineView;
-    setMinimizedLineView(newValue);
-  };
+
   // Open assign ticket modal
   const handleAssignTicket = (ticketId: number) => {
     setSelectedTicketId(ticketId);
@@ -1177,4 +1151,4 @@ export function WaitListSection({
       <TicketDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} ticketId={ticketToView} onEdit={handleEditFromDetails} onDelete={handleDeleteFromDetails} />
       <DeleteConfirmationModal />
     </div>;
-}
+});

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { Clock, ChevronLeft, ChevronRight, User, Calendar, Tag, Plus, Star, AlertCircle, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, DollarSign, Pencil } from 'lucide-react';
 import Tippy from '@tippyjs/react';
@@ -18,7 +18,7 @@ interface ComingAppointmentsProps {
     counterText: string;
   };
 }
-export function ComingAppointments({
+export const ComingAppointments = memo(function ComingAppointments({
   isMinimized = false,
   onToggleMinimize,
   isMobile = false,
@@ -643,4 +643,4 @@ export function ComingAppointments({
           </div>
         </div>}
     </div>;
-}
+});
