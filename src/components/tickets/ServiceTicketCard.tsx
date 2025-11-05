@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MoreVertical, Check, CheckCircle, Pause, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
+import { MoreVertical, CheckCircle, Pause, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
@@ -72,30 +72,16 @@ export function ServiceTicketCard({
 
   // Get staff info - support multiple staff
   const staffList = ticket.assignedStaff || (ticket.assignedTo ? [ticket.assignedTo] : []);
-  const hasMultipleStaff = staffList.length > 1;
-  const staffName = ticket.technician || staffList[0]?.name || 'Unassigned';
-  const staffColor = ticket.techColor || staffList[0]?.color || '#6B7280';
 
   // Calculate time remaining
   const durationMinutes = parseInt(ticket.duration) || 30;
   const timeRemaining = Math.max(0, durationMinutes - elapsedTime);
   
-  // Format start time
-  const startTime = ticket.createdAt ? new Date(ticket.createdAt).toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit',
-    hour12: true 
-  }) : ticket.time;
-
-  // REFINED CLIENT TYPE BADGES (matching WaitList)
-  const clientTypeBadge = {
-    VIP: { bg: '#FFF9E6', text: '#8B6914', border: '#E5D4A0', icon: '⭐', accent: '#F59E0B' },
-    Priority: { bg: '#FFF1F0', text: '#B91C1C', border: '#FCA5A5', icon: '🔥', accent: '#EF4444' },
-    New: { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE', icon: '✨', accent: '#6366F1' },
-    Regular: { bg: '#F9FAFB', text: '#4B5563', border: '#E5E7EB', icon: '👤', accent: '#6B7280' }
+  const formatTime = (minutes: number) => {
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
-
-  const badge = clientTypeBadge[ticket.clientType as keyof typeof clientTypeBadge] || clientTypeBadge.Regular;
 
   // PROGRESS COLOR SYSTEM (Purple/Green/Red)
   const getStatusColor = (percentage: number) => {
@@ -124,1064 +110,138 @@ export function ServiceTicketCard({
   const hasStar = ticket.clientType === 'VIP';
   const hasNote = !!ticket.notes;
 
-  // TACTILE PAPER AESTHETIC - IN SERVICE (warm ivory with soft depth)
-  const paperStyle = {
-    background: '#FFF8E8', // Warmer beige paper from reference
-    backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
-    borderRadius: '6px',
-    border: '2px solid #e8dcc8',
-    boxShadow: `
-      0 1px 3px rgba(0,0,0,0.08),
-      0 1px 2px rgba(0,0,0,0.04)
-    `,
-  };
 
-  // Hover state - tactile lift with rotation
-  const paperHoverStyle = {
-    boxShadow: `
-      0 2px 4px rgba(0,0,0,0.1),
-      0 4px 8px rgba(0,0,0,0.08)
-    `,
-  };
-
-  // PAPER CARD AESTHETIC (Card versions: grid-normal, grid-compact)
-  const paperCardStyle = {
-    background: '#FFF8E8', // Warmer beige paper from reference
-    backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
-    borderRadius: '8px', // Match reference
-    border: '2px solid #e8dcc8', // Warm border like reference
-    boxShadow: `
-      0 1px 3px rgba(0,0,0,0.08),
-      0 1px 2px rgba(0,0,0,0.04)
-    `,
-  };
-
-  // Format time
-  const formatTime = (minutes: number) => {
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-  };
-
-  // COMPACT VIEW - Very small for high volume (40-50 tickets)
+  // LIST COMPACT VIEW
   if (viewMode === 'compact') {
     return (
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className="relative cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] overflow-hidden focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
+          className="relative cursor-pointer transition-all duration-150 hover:bg-[#fffcf9] active:scale-[0.99] rounded-md border border-[#e8dcc8]/60"
           role="button"
           tabIndex={0}
           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
-          style={{
-            ...paperStyle,
-            borderRadius: '6px',
-            padding: '4px 8px',
-            paddingBottom: '5px',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = paperStyle.boxShadow;
-          }}
+          style={{ background: '#FFFCF7', padding: '8px 10px' }}
         >
-        
-        {/* Compact LINE VIEW - 2 tight rows */}
-        <div>
-          {/* Row 1: # + Name + Staff + Actions */}
-          <div className="flex items-center justify-between gap-1 mb-0.5">
-            <div className="flex items-center gap-1 min-w-0 flex-1">
-              {/* Number */}
-              <span 
-                className="font-bold flex-shrink-0"
-                style={{ 
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  fontSize: '11px',
-                  lineHeight: 1,
-                  letterSpacing: '0.3px',
-                  color: '#222222',
-                  textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
-                  WebkitFontSmoothing: 'antialiased',
-                }}
-              >
-                #{ticket.number}
-              </span>
-              <span className="text-gray-400" style={{ fontSize: '10px' }}>›</span>
-              {/* Client Name */}
-              <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.clientName}>
-                {ticket.clientName}
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-600">
+              {ticket.number}
             </div>
-            
-            {/* Staff + Actions */}
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              {/* Staff Badge */}
-              {staffList.length > 0 ? (
-                <>
-                  {staffList.slice(0, 1).map((staff) => (
-                    <div 
-                      key={staff.id} 
-                      className="px-1 py-0.5 rounded font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                      style={{ 
-                        backgroundColor: staff.color,
-                        fontSize: '7.2px',
-                        letterSpacing: '0.3px',
-                        textShadow: '0 1px 1px rgba(0,0,0,0.25)',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.25)',
-                        border: `1px solid ${staff.color}`,
-                      }}
-                      title={staff.name}
-                    >
-                      {staff.name.split(' ')[0].toUpperCase()}
-                    </div>
-                  ))}
-                  {staffList.length > 1 && (
-                    <span className="font-bold px-0.5 py-0.5 rounded bg-gray-100" style={{ color: '#6B7280', fontSize: '8px' }} title={staffList.slice(1).map(s => s.name).join(', ')}>
-                      +{staffList.length - 1}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <div 
-                  className="px-1 py-0.5 rounded font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                  style={{ 
-                    backgroundColor: staffColor,
-                    fontSize: '7.2px',
-                    letterSpacing: '0.3px',
-                    textShadow: '0 1px 1px rgba(0,0,0,0.25)',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.25)'
-                  }}
-                  title={staffName}
-                >
-                  {staffName.split(' ')[0].toUpperCase()}
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-[#1a1614] truncate">{ticket.clientName}</div>
+              <div className="text-xs text-[#8b7968] truncate">{ticket.service}</div>
+            </div>
+            <div className="flex-shrink-0 text-sm font-bold" style={{ color: currentStatus.text }}>
+              {Math.round(progress)}%
+            </div>
+            <div className="hidden sm:flex flex-shrink-0">
+              {staffList[0] && (
+                <div className="text-white text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: getStaffGradient(staffList[0]), boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                  {staffList[0].name.substring(0, 2).toUpperCase()}
                 </div>
               )}
-              <button
-                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="p-0.5 rounded-md bg-white hover:bg-green-50 hover:scale-105 active:scale-95 transition-all"
-                style={{
-                  boxShadow: '0 1px 2px rgba(34, 197, 94, 0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
-                  border: '1px solid rgba(34, 197, 94, 0.3)',
-                }}
-                title="Complete"
-              >
-                <Check size={12} className="text-green-600" strokeWidth={3} />
-              </button>
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                  className="p-0.5 rounded bg-white hover:bg-gray-50 active:bg-gray-100 transition-all"
-                  style={{
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                  }}
-                  title="More"
-                >
-                  <MoreVertical size={10} className="text-gray-600" strokeWidth={2} />
-                </button>
-                {showMenu && (
-                  <div className="absolute right-0 top-6 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[110px]">
-                    <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-1.5">
-                      <Pause size={10} /> Pause
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-1.5 text-red-600">
-                      <Trash2 size={10} /> Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
-
-          {/* Row 2: Service + Time/Progress */}
-          <div className="flex items-center justify-between gap-1">
-            <div className="truncate" style={{ color: '#555555', fontSize: '10px', fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
-              {ticket.service}
-            </div>
-            <div className="flex items-center gap-0.5 flex-shrink-0 text-[9px] font-semibold">
-              <span className="flex items-center gap-0.5" style={{ color: '#6B7280' }} title="Elapsed time">
-                <Clock size={9} className="text-gray-500" />
-                {formatTime(elapsedTime)}
-              </span>
-              <span style={{ color: '#2563EB' }}>
-                {Math.round(progress)}%
-              </span>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-1" style={{ height: '2px', background: 'rgba(37,99,235,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                background: progress > 80 ? 'rgba(34,197,94,0.5)' : progress > 50 ? 'rgba(139,92,246,0.5)' : 'rgba(37,99,235,0.5)',
-                width: `${Math.min(progress, 100)}%`,
-                transition: 'width 500ms ease-out, background 500ms ease-out',
-                borderRadius: '1px'
-              }} 
-            />
+          <div className="mt-1.5 h-1 bg-[#f5f0e8] rounded-full overflow-hidden">
+            <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
           </div>
         </div>
-      </div>
-      
-      {/* Ticket Details Modal */}
-      <TicketDetailsModal
-        ticket={{
-          ...ticket,
-          status: 'in-service' as const,
-          priority: ticket.priority || 'normal'
-        }}
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-      />
-    </>
+        <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+      </>
     );
   }
 
-  // NORMAL VIEW - Responsive across devices
+  // LIST NORMAL VIEW
   if (viewMode === 'normal') {
     return (
       <>
-      <div
-        onClick={() => onClick?.(ticket.id)}
-        className="relative cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] overflow-hidden focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
-        role="button"
-        tabIndex={0}
-        aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
-        style={{
-          ...paperStyle,
-          borderRadius: '6px',
-          padding: '5px 7px',
-          paddingBottom: '6px',
-        }}
-        data-responsive="true"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-0.5px) rotate(0.1deg)';
-          e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0) rotate(0deg)';
-          e.currentTarget.style.boxShadow = paperStyle.boxShadow;
-        }}
-      >
-        
-        {/* NEW LAYOUT - RESPONSIVE */}
-        <div>
-          {/* Row 1: Number | Client + Badge + Note | Staff | Actions */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2.5">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-              {/* Number */}
-              <span className="font-bold flex-shrink-0 text-base sm:text-lg" style={{ fontFamily: 'Inter, -apple-system, sans-serif', color: '#222222', letterSpacing: '0.3px', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }}>
-                #{ticket.number}
-              </span>
-
-              {/* Client Name + Badge + Note */}
-              <div className="flex items-center gap-1 sm:gap-1 min-w-0 flex-1">
-                <Tippy 
-                  content={
-                    <div className="text-xs">
-                      <div className="font-semibold">{ticket.service}</div>
-                      <div className="text-gray-300">{ticket.duration} • {ticket.time}</div>
-                    </div>
-                  }
-                  delay={[500, 0]}
-                  placement="right"
-                >
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }}
-                    className="p-0.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-                    title="View details"
-                  >
-                    <ChevronRight size={11} className="text-gray-400" />
-                  </button>
-                </Tippy>
-                <div className="font-bold truncate text-sm sm:text-base" style={{ color: '#222222', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }} title={ticket.clientName}>
-                  {ticket.clientName}
-                </div>
-                {ticket.clientType !== 'Regular' && (
-                  <span 
-                    className="px-1.5 py-0.5 sm:px-1.5 sm:py-0.5 rounded flex-shrink-0 text-xs sm:text-sm cursor-help" 
-                    style={{ backgroundColor: badge.bg, color: badge.text, fontWeight: 700, border: `1px solid ${badge.border}` }}
-                    title={`${ticket.clientType} client`}
-                  >
-                    {badge.icon}
-                  </span>
-                )}
-                {ticket.notes && (
-                  <div title={ticket.notes} className="flex-shrink-0">
-                    <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: '#F59E0B' }} strokeWidth={2} />
-                  </div>
-                )}
-              </div>
+      <div onClick={() => onClick?.(ticket.id)} className="relative cursor-pointer transition-all duration-200 ease-out hover:bg-[#fffcf9] active:scale-[0.99] overflow-hidden rounded-lg border border-[#e8dcc8]" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(to right, #FFFCF7 0%, #FFF9F0 100%)', padding: '12px 14px' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center font-bold text-sm text-gray-700">{ticket.number}</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+              {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
+              {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
             </div>
-
-            {/* Staff + Actions */}
-            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-              {/* Staff Badges */}
-              <div className="flex items-center gap-1 sm:gap-1">
-                {staffList.length > 0 ? (
-                  <>
-                    {staffList.slice(0, 1).map((staff) => (
-                      <div 
-                        key={staff.id} 
-                        className="px-2 py-0.5 sm:px-2 sm:py-1 rounded-md font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                        style={{ 
-                          backgroundColor: staff.color,
-                          letterSpacing: '0.5px',
-                          fontSize: '9.9px',
-                        }}
-                        title={staff.name}
-                      >
-                        {staff.name.split(' ')[0].toUpperCase()}
-                      </div>
-                    ))}
-                    <div className="hidden sm:flex items-center gap-1.5">
-                      {staffList.length > 1 && staffList.slice(1, 2).map((staff) => (
-                        <div 
-                          key={staff.id} 
-                          className="px-2 py-1 rounded-md font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                          style={{ 
-                            backgroundColor: staff.color,
-                            letterSpacing: '0.5px',
-                            fontSize: '9.9px',
-                          }}
-                          title={staff.name}
-                        >
-                          {staff.name.split(' ')[0].toUpperCase()}
-                        </div>
-                      ))}
-                    </div>
-                    {staffList.length > 1 && (
-                      <span className="font-bold px-1.5 py-0.5 rounded bg-gray-100 text-xs" style={{ color: '#6B7280' }} title={staffList.slice(1).map(s => s.name).join(', ')}>
-                        <span className="sm:hidden">+{staffList.length - 1}</span>
-                        <span className="hidden sm:inline">{staffList.length > 2 ? `+${staffList.length - 2}` : ''}</span>
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <div 
-                    className="px-2 py-0.5 sm:px-2 sm:py-1 rounded-md font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                    style={{ 
-                      backgroundColor: staffColor,
-                      letterSpacing: '0.5px',
-                      fontSize: '9.9px',
-                    }}
-                    title={staffName}
-                  >
-                    {staffName.split(' ')[0].toUpperCase()}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <button
-                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="p-1.5 sm:p-1.5 rounded-lg bg-white hover:bg-green-50 hover:scale-105 active:scale-95 transition-all focus-visible:outline-2 focus-visible:outline-green-500 focus-visible:outline-offset-2"
-                aria-label={`Complete service for ${ticket.clientName}`}
-                style={{
-                  boxShadow: '0 3px 6px rgba(34, 197, 94, 0.25), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
-                  border: '1.5px solid rgba(34, 197, 94, 0.3)',
-                }}
-                title="Complete"
-              >
-                <Check className="w-5 h-5 sm:w-5 sm:h-5 text-green-600" strokeWidth={3.5} />
-              </button>
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                  className="p-1.5 sm:p-1.5 rounded-lg bg-white hover:bg-gray-50 active:bg-gray-100 transition-all focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
-                  aria-label="More options"
-                  aria-expanded={showMenu}
-                  aria-haspopup="menu"
-                  style={{
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                  }}
-                  title="More"
-                >
-                  <MoreVertical className="w-4 h-4 sm:w-4 sm:h-4 text-gray-600" strokeWidth={2} />
-                </button>
-                {showMenu && (
-                  <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[140px]">
-                    <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                      <Pause size={12} /> Pause
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-red-600">
-                      <Trash2 size={12} /> Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <div className="text-xs sm:text-sm text-[#6b5d52] truncate">{ticket.service}</div>
           </div>
-
-          {/* Row 2: Service | Time + Progress */}
-          <div className="mt-0.5 sm:mt-1 flex items-center justify-between gap-1.5 sm:gap-2.5" style={{ paddingTop: '3px', borderTop: '1px solid rgba(59,130,246,0.08)' }}>
-            <div className="truncate text-xs sm:text-sm" style={{ color: '#555555', fontWeight: 500, maxWidth: '50%', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }}>
-              {ticket.service}
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0 text-xs sm:text-sm">
-              <div className="flex items-center gap-0.5 sm:gap-0.5">
-                <Clock size={10} className="text-gray-500 sm:w-3 sm:h-3" />
-                <span style={{ color: '#6B7280', fontWeight: 500 }}>{formatTime(elapsedTime)}</span>
-              </div>
-              <span style={{ color: '#D1D5DB' }}>•</span>
-              <span className="font-bold" style={{ color: '#2563EB' }}>{Math.round(progress)}%</span>
-            </div>
+          <div className="flex-shrink-0 text-right">
+            <div className="text-xs sm:text-sm font-semibold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
+            <div className="text-xs text-[#8b7968]">{formatTime(timeRemaining)}</div>
           </div>
-
-          {/* Progress Bar */}
-          <div className="mt-1.5" style={{ height: '2.5px', background: 'rgba(37,99,235,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                background: progress > 80 ? 'rgba(34,197,94,0.5)' : progress > 50 ? 'rgba(139,92,246,0.5)' : 'rgba(37,99,235,0.5)',
-                width: `${Math.min(progress, 100)}%`,
-                transition: 'width 500ms ease-out, background 500ms ease-out',
-                borderRadius: '1px'
-              }} 
-            />
+          <div className="hidden md:flex items-center gap-1.5 flex-shrink-0">
+            {staffList.slice(0, 2).map((staff, i) => (<div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md" style={{ background: getStaffGradient(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>{staff.name.substring(0, 3).toUpperCase()}</div>))}
+            {staffList.length > 2 && <span className="text-xs text-gray-500">+{staffList.length - 2}</span>}
           </div>
         </div>
+        <div className="mt-2 h-1.5 bg-[#f5f0e8] rounded-full overflow-hidden">
+          <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
+        </div>
       </div>
-      
-      {/* Ticket Details Modal */}
-      <TicketDetailsModal
-        ticket={{
-          ...ticket,
-          status: 'in-service' as const,
-          priority: ticket.priority || 'normal'
-        }}
-        isOpen={showDetailsModal}
-        onClose={() => setShowDetailsModal(false)}
-      />
+      <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
     </>
     );
   }
 
-  // Grid Normal view (NORMAL GRID - larger cards)
+  // GRID NORMAL VIEW - Full Reference Design
   if (viewMode === 'grid-normal') {
-  // ULTRA-REALISTIC PAPER AESTHETIC with all enhancements
-  const paperCardStyle = {
-    background: '#FFF8E8', // Warmer beige paper matching Wait List exactly
-    backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
-    border: '2px solid #e8dcc8',
-    borderTop: '2px solid rgba(255,255,255,0.4)', // Top edge highlight
-    borderBottom: '2px solid rgba(0,0,0,0.08)', // Bottom edge shadow
-    borderRadius: '8px 8px 7px 8px', // Slight bottom-right curl
-    boxShadow: `
-      inset 0 0.5px 0 rgba(255,255,255,0.70),
-      inset 0 -0.8px 1px rgba(0,0,0,0.05),
-      0.5px 0.5px 0 rgba(255,255,255,0.80),
-      2px 3px 4px rgba(0,0,0,0.04),
-      4px 8px 12px rgba(0,0,0,0.08),
-      1px 1px 2px rgba(0,0,0,0.06)
-    `, // Enhanced with paper curl shadow
-    minWidth: '320px',
-    maxWidth: '360px',
-  };
-
-  const paperCardHoverStyle = {
-    boxShadow: `
-      inset 0 0.5px 0 rgba(255,255,255,0.85),
-      1px 2px 3px rgba(0,0,0,0.05),
-      5px 10px 14px rgba(0,0,0,0.10)
-    `,
-  };
-
-  const paperCardActiveStyle = {
-    boxShadow: `
-      0 1px 2px rgba(0,0,0,0.05),
-      inset 0 1px 2px rgba(0,0,0,0.06)
-    `,
-  };
-
-  return (
-    <>
-    <div
-      onClick={() => onClick?.(ticket.id)}
-      className="relative cursor-pointer transition-all duration-250 ease-out overflow-hidden flex flex-col"
-      role="button"
-      tabIndex={0}
-      aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
-      style={{
-        ...paperCardStyle,
-        padding: '16px 18px',
-        transform: 'rotate(0.15deg)', // Slight imperfect alignment
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-1px) rotate(0.2deg)';
-        e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0) rotate(0deg)';
-        e.currentTarget.style.boxShadow = paperCardStyle.boxShadow;
-      }}
-      onMouseDown={(e) => {
-        e.currentTarget.style.transform = 'scale(0.985)';
-        e.currentTarget.style.boxShadow = paperCardActiveStyle.boxShadow;
-      }}
-      onMouseUp={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = paperCardHoverStyle.boxShadow;
-      }}
-    >
-      {/* Perforation dots - top (irregular for realism) */}
-      <div className="absolute top-0 left-0 w-full h-[6px] overflow-hidden flex items-center">
-        <div className="w-full flex justify-between px-4">
-          {[...Array(20)].map((_, i) => (
-            <div 
-              key={i} 
-              className="bg-amber-200 rounded-full"
-              style={{
-                width: `${3.5 + (i % 3) * 0.5}px`,
-                height: `${3.5 + (i % 3) * 0.5}px`,
-                opacity: 0.6 + (i % 4) * 0.1,
-              }}
-            ></div>
-          ))}
+    return (
+      <>
+      <div onClick={() => onClick?.(ticket.id)} className="relative rounded-lg sm:rounded-xl border border-[#d4b896]/40 overflow-visible transition-all duration-500 ease-out hover:-translate-y-2 hover:rotate-[0.5deg] flex flex-col min-w-[280px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)', boxShadow: `0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 8px rgba(139, 92, 46, 0.10), 0 8px 16px rgba(139, 92, 46, 0.08), 0 12px 24px rgba(139, 92, 46, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(139, 92, 46, 0.06), inset 3px 0 1px rgba(255, 255, 255, 0.6), -4px 0 8px rgba(139, 92, 46, 0.18), -2px 0 4px rgba(139, 92, 46, 0.15), -1px 0 2px rgba(139, 92, 46, 0.12)` }}>
+        <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-3 sm:px-4 z-10 opacity-25">{[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}</div>
+        <div className="absolute left-[-6px] sm:left-[-8px] top-[50%] w-3 h-3 sm:w-4 sm:h-4 rounded-full border-r border-[#d4b896]/50" style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -2px 0 3px rgba(139, 92, 46, 0.10), 1px 0 3px rgba(0,0,0,0.08)' }} />
+        <div className="absolute right-[-6px] sm:right-[-8px] top-[50%] w-3 h-3 sm:w-4 sm:h-4 rounded-full border-l border-[#d4b896]/50" style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 2px 0 3px rgba(139, 92, 46, 0.10), -1px 0 3px rgba(0,0,0,0.08)' }} />
+        <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl" style={{ background: `linear-gradient(to right, rgba(139, 92, 46, 0.20) 0%, rgba(139, 92, 46, 0.12) 30%, rgba(180, 150, 110, 0.08) 60%, transparent 100%)`, boxShadow: `inset 2px 0 3px rgba(139, 92, 46, 0.25), inset 1px 0 2px rgba(0, 0, 0, 0.15), -2px 0 4px rgba(139, 92, 46, 0.12), -1px 0 2px rgba(139, 92, 46, 0.10)` }} />
+        <div className="absolute top-0 left-1 w-1 h-full" style={{ background: 'linear-gradient(to right, rgba(139, 92, 46, 0.08) 0%, transparent 100%)', boxShadow: 'inset 1px 0 1px rgba(139, 92, 46, 0.10)' }} />
+        <div className="absolute left-0 top-4 sm:top-5 w-11 sm:w-14 text-[#1a1614] flex items-center justify-center font-black text-lg sm:text-2xl z-20" style={{ height: isFirstVisit ? 'clamp(2.25rem, 5vw, 2.75rem)' : 'clamp(2rem, 4.5vw, 2.5rem)', background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)', borderTopRightRadius: '10px', borderBottomRightRadius: '10px', borderTop: '1.5px solid rgba(212, 184, 150, 0.5)', borderRight: '1.5px solid rgba(212, 184, 150, 0.5)', borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)', boxShadow: `3px 0 8px rgba(139, 92, 46, 0.15), 2px 0 4px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 2px 0 rgba(255, 255, 255, 1), inset 0 -2px 3px rgba(139, 92, 46, 0.08), inset -2px 0 2px rgba(255, 255, 255, 0.6)`, letterSpacing: '-0.02em', transform: 'translateX(-4px)' }}>{ticket.number}<div className="absolute top-0 right-0 w-[1.5px] h-full" style={{ background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)' }} /></div>
+        <div className="flex items-start justify-between px-3 sm:px-4 pt-4 sm:pt-5 pb-1 pl-12 sm:pl-14"><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="text-base sm:text-lg md:text-xl font-bold text-[#1a1614] truncate tracking-tight">{ticket.clientName}</span>{hasStar && <span className="text-sm sm:text-base md:text-lg flex-shrink-0">⭐</span>}{hasNote && <span className="text-sm sm:text-base md:text-lg flex-shrink-0">📋</span>}</div>{isFirstVisit && (<div className="text-[10px] sm:text-xs text-[#8b7968] font-medium tracking-wide">FIRST VISIT</div>)}</div>
+          <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Pause size={14} /> Pause</button><button onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><StickyNote size={14} /> Details</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#8b7968] hover:text-[#2d2520] p-1 sm:p-1.5 rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 -mr-0.5 sm:-mr-1"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
         </div>
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4 text-sm sm:text-base text-[#1a1614] font-semibold leading-snug tracking-tight line-clamp-2">{ticket.service}</div>
+        <div className="mx-3 sm:px-4 mb-3 sm:mb-4 border-t border-[#e8dcc8]/50" />
+        <div className="px-3 sm:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-xs sm:text-sm text-[#6b5d52] font-medium">{formatTime(timeRemaining)} left</div><div className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
+        <div className="px-3 sm:px-4 pb-4 sm:pb-5"><div className="h-2 sm:h-2.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden" style={{ boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} /></div></div>
+        <div className="mt-auto mx-2 sm:mx-3 mb-2 sm:mb-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pr-11 sm:pr-12">{staffList.map((staff, index) => (<div key={index} className="text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffGradient(staff), boxShadow: `0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{staff.name.toUpperCase()}</div>))}</div>
+          <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-2 sm:right-3 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Mark as Done"><CheckCircle size={20} className="sm:w-5 sm:h-5" strokeWidth={2} /></button>
+        </div>
+        <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-xl" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-15 rounded-xl" style={{ backgroundImage: `repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px), repeating-linear-gradient(0deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px)`, backgroundSize: '3px 3px' }} />
+        <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.4)' }} />
       </div>
+      <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+    </>
+    );
+  }
 
-      {/* Left ticket notch */}
-      <div className="absolute -left-2 top-1/3 w-4 h-4 bg-gray-50 rounded-full border-r-2 border-amber-200"></div>
-
-      {/* Right ticket notch */}
-      <div className="absolute -right-2 top-1/3 w-4 h-4 bg-gray-50 rounded-full border-l-2 border-amber-200"></div>
-
-      {/* Thick paper left edge shadow effect */}
-      <div 
-        className="absolute top-0 left-0 w-2 h-full"
-        style={{
-          boxShadow: `
-            inset 3px 0 4px rgba(0,0,0,0.20),
-            inset 6px 0 8px rgba(0,0,0,0.12)
-          `
-        }}
-      ></div>
-
-      {/* Paper Ticket Grid View */}
-      <div className="flex flex-col h-full" style={{ gap: '10px' }}>
-        {/* Header Row: Ticket # + Client Name + Badges + More */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            {/* Ticket # pill - dark circle angled like reference */}
-            <div 
-              className="flex-shrink-0 transform -rotate-3"
-              style={{
-                background: '#1F2937',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                border: '2px solid rgba(255,255,255,0.1)',
-                fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-                fontSize: '14px',
-                fontWeight: 700,
-                color: '#FFFFFF',
-                letterSpacing: '0.3px',
-                WebkitFontSmoothing: 'antialiased',
-              }}
-            >
-              {ticket.number}
-            </div>
-            
-            {/* Client Name with icon */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <User size={14} className="text-amber-700 flex-shrink-0" />
-              <span 
-                className="font-semibold truncate" 
-                style={{ 
-                  fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-                  fontSize: '17px',
-                  fontWeight: 600,
-                  color: '#222222',
-                  letterSpacing: '0.3px',
-                  textShadow: '0 0.5px 0.5px rgba(0,0,0,0.15), 0 0.4px 0 rgba(0,0,0,0.20)', // Ink absorption effect
-                  WebkitFontSmoothing: 'antialiased',
-                  filter: 'drop-shadow(0 0.5px 0.5px rgba(0,0,0,0.05))', // Micro-shadow
-                }} 
-                title={ticket.clientName}
-              >
-                {ticket.clientName}
-              </span>
-            </div>
-            
-            {/* VIP Badge - stamped style */}
-            {ticket.clientType === 'VIP' && (
-              <span 
-                className="flex-shrink-0"
-                style={{
-                  background: '#fff9d9',
-                  color: '#c4a13a',
-                  boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.6px',
-                  textTransform: 'uppercase',
-                }}
-              >
-                ⭐ VIP
-              </span>
-            )}
-            
-            {/* Reward Badge */}
-            {ticket.clientType === 'Priority' && (
-              <span 
-                className="flex-shrink-0"
-                style={{
-                  background: '#fff9d9',
-                  color: '#c4a13a',
-                  boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.05)',
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.6px',
-                  textTransform: 'uppercase',
-                }}
-              >
-                🎁 REWARD
-              </span>
-            )}
-          </div>
-          
-          {/* More Menu */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="p-1.5 rounded-lg hover:bg-black hover:bg-opacity-5 active:bg-opacity-10 transition-colors relative flex-shrink-0"
-            style={{ color: '#767676' }}
-            title="More"
-          >
-            <MoreVertical size={16} strokeWidth={2} />
-          </button>
-          
-          {showMenu && (
-            <div className="absolute right-2 top-14 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[120px]">
-              <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                <Pause size={14} /> Pause
-              </button>
-              <div className="h-px bg-gray-200 my-1" />
-              <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-red-600">
-                <Trash2 size={14} /> Cancel
-              </button>
-            </div>
-          )}
-        </div>
-        
-        {/* Subline: visit info */}
-        {ticket.clientType === 'New' && (
-          <div className="flex items-center gap-1">
-            <span style={{ 
-              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-              fontSize: '13px',
-              fontWeight: 400,
-              color: '#555555',
-              textShadow: '0 0.4px 0 rgba(0,0,0,0.20)',
-            }}>
-              First visit
-            </span>
-            <ChevronRight size={12} style={{ color: '#767676' }} strokeWidth={2} />
-          </div>
-        )}
-
-        {/* Service Title with icon */}
-        <div 
-          className="flex items-center gap-2 px-3 py-2 rounded-md"
-          style={{
-            background: 'rgba(255,255,255,0.4)',
-            boxShadow: 'inset 0 0.5px 1px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)', // Micro-shadow
-          }}
-        >
-          <Tag size={14} className="text-amber-700 flex-shrink-0" />
-          <div 
-            className="truncate"
-            style={{
-              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-              fontSize: '15px',
-              fontWeight: 500,
-              color: '#222222',
-              lineHeight: '1.4',
-              letterSpacing: '0.2px',
-              textShadow: '0 0.5px 0.5px rgba(0,0,0,0.15), 0 0.4px 0 rgba(0,0,0,0.20)', // Ink effect
-              WebkitFontSmoothing: 'antialiased',
-            }}
-            title={ticket.service}
-          >
-            {ticket.service}
-          </div>
-        </div>
-
-        {/* Meta Row: time left + start time (with box shadows) */}
-        <div className="flex items-center gap-3">
-          <div 
-            className="flex items-center gap-1.5 px-2 py-1 rounded"
-            style={{
-              background: 'rgba(255,255,255,0.3)',
-              boxShadow: 'inset 0 0.5px 1px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)',
-            }}
-          >
-            <Clock size={12} style={{ color: '#767676' }} strokeWidth={2} />
-            <span style={{ 
-              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-              fontSize: '13px',
-              fontWeight: 400,
-              color: timeRemaining <= 15 ? '#F2785C' : '#555555',
-              textShadow: '0 0.5px 0.5px rgba(0,0,0,0.15)',
-            }}>
-              {formatTime(timeRemaining)} left
-            </span>
-          </div>
-          <span style={{ color: '#d0d0d0', fontSize: '12px' }}>•</span>
-          <div 
-            className="flex items-center gap-1.5 px-2 py-1 rounded"
-            style={{
-              background: 'rgba(255,255,255,0.3)',
-              boxShadow: 'inset 0 0.5px 1px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06)',
-            }}
-          >
-            <Calendar size={12} className="text-amber-700" />
-            <span style={{ 
-              fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-              fontSize: '13px',
-              fontWeight: 400,
-              color: '#555555',
-              textShadow: '0 0.5px 0.5px rgba(0,0,0,0.15)',
-            }}>
-              {startTime}
-            </span>
-          </div>
-        </div>
-        
-        {/* Progress Bar - matte, rounded */}
-        <div style={{ height: '1.5px', background: 'rgba(59,196,155,0.20)', borderRadius: '1px', overflow: 'hidden' }}>
-          <div 
-            style={{ 
-              height: '100%', 
-              background: 'rgba(59,196,155,0.45)',
-              width: `${Math.min(progress, 100)}%`,
-              transition: 'width 500ms ease-out',
-              borderRadius: '1px'
-            }} 
-          />
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-grow" />
-
-        {/* Footer Row: Tech chips + Action */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-            {staffList.length > 0 ? (
-              <>
-                {staffList.slice(0, 3).map((staff) => (
-                  <div 
-                    key={staff.id} 
-                    className="px-2 py-1 rounded-full cursor-pointer transition-all hover:opacity-80"
-                    style={{ 
-                      border: `1px solid ${staff.color}`,
-                      background: `color-mix(in srgb, ${staff.color} 8%, transparent)`,
-                      color: '#333333',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      letterSpacing: '0.3px',
-                      textTransform: 'uppercase',
-                      fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
-                      boxShadow: 'inset 0 0.5px 1px rgba(255,255,255,0.5), 0 1px 2px rgba(0,0,0,0.06)', // Micro-shadow
-                      textShadow: '0 0.5px 0.5px rgba(0,0,0,0.12)', // Ink effect
-                    }}
-                    title={staff.name}
-                  >
-                    {staff.name.split(' ')[0]}
-                  </div>
-                ))}
-                {staffList.length > 3 && (
-                  <span 
-                    className="px-2 py-1 rounded-full"
-                    style={{ 
-                      border: '1px solid #999',
-                      background: 'rgba(153,153,153,0.08)',
-                      color: '#333',
-                      fontSize: '12px',
-                      fontWeight: 500
-                    }}
-                    title={staffList.slice(3).map(s => s.name).join(', ')}
-                  >
-                    +{staffList.length - 3}
-                  </span>
-                )}
-              </>
-            ) : (
-              <div 
-                className="px-2 py-1 rounded-full cursor-pointer"
-                style={{ 
-                  border: `1px solid ${staffColor}`,
-                  background: `color-mix(in srgb, ${staffColor} 8%, transparent)`,
-                  color: '#333',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  letterSpacing: '0.3px',
-                  textTransform: 'uppercase'
-                }}
-                title={staffName}
-              >
-                {staffName.split(' ')[0]}
-              </div>
-            )}
-          </div>
-          
-          {/* Action chip - checkmark */}
-          <button
-            onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-            className="rounded-lg p-1.5 transition-all flex-shrink-0"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: progress >= 100 ? '#47B881' : '#fffefb',
-              boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.08)',
-              color: progress >= 100 ? '#ffffff' : '#555555',
-            }}
-            onMouseEnter={(e) => {
-              if (progress < 100) {
-                e.currentTarget.style.background = 'rgba(71,184,129,0.1)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (progress < 100) {
-                e.currentTarget.style.background = '#fffefb';
-              }
-            }}
-            title="Complete"
-          >
-            <Check size={16} strokeWidth={2.5} />
-          </button>
-        </div>
-      </div>
-
-      {/* Paper texture overlay - cardboard at 10% opacity */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-10 mix-blend-overlay"
-        style={{
-          backgroundImage: 'url("https://www.transparenttextures.com/patterns/cardboard.png")'
-        }}
-      ></div>
-      
-    </div>
-    
-    {/* Ticket Details Modal */}
-    <TicketDetailsModal
-      ticket={{
-        ...ticket,
-        status: 'in-service' as const,
-        priority: ticket.priority || 'normal'
-      }}
-      isOpen={showDetailsModal}
-      onClose={() => setShowDetailsModal(false)}
-    />
-  </>
-  );
-}
-
-  // Grid Compact view (4-row compact structure)
+  // GRID COMPACT VIEW
   if (viewMode === 'grid-compact') {
-  return (
-    <>
-    <div
-      onClick={() => onClick?.(ticket.id)}
-      className="relative cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] overflow-hidden focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
-      role="button"
-      tabIndex={0}
-      aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
-      style={{
-        ...paperStyle,
-        borderRadius: '6px',
-        padding: '7px 14px',
-        paddingBottom: '10px',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = paperStyle.boxShadow;
-      }}
-    >
-      {/* Compact GRID VIEW - flex column layout */}
-      <div className="flex flex-col h-full">
-        {/* Top Row: Number + Client Name + More Menu */}
-        <div className="flex items-center justify-between gap-1 mb-1">
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <span 
-              className="font-bold flex-shrink-0"
-              style={{ 
-                fontFamily: 'Inter, -apple-system, sans-serif',
-                fontSize: '12px',
-                lineHeight: 1,
-                letterSpacing: '0.3px',
-                color: '#222222',
-                textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
-                WebkitFontSmoothing: 'antialiased',
-                fontWeight: 600
-              }}
-            >
-              #{ticket.number}
-            </span>
-            <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }} title={ticket.clientName}>
-              {ticket.clientName}
-            </div>
-          </div>
-          
-          {/* More Menu - Top Right */}
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-              className="p-0.5 rounded bg-white hover:bg-gray-50 active:bg-gray-100 transition-all focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
-              aria-label="More options"
-              aria-expanded={showMenu}
-              aria-haspopup="menu"
-              style={{
-                boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-                border: '1px solid rgba(0,0,0,0.08)',
-              }}
-              title="More"
-            >
-              <MoreVertical size={10} className="text-gray-600" strokeWidth={2} />
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 top-6 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[110px]">
-                <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-green-50 flex items-center gap-1.5 text-green-600">
-                  <Check size={11} /> Complete
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-1.5">
-                  <Pause size={11} /> Pause
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-1.5 text-red-600">
-                  <Trash2 size={11} /> Cancel
-                </button>
-              </div>
-            )}
-          </div>
+    return (
+      <>
+      <div onClick={() => onClick?.(ticket.id)} className="relative rounded-md sm:rounded-lg border border-[#d4b896]/40 overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 flex flex-col min-w-[240px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)', boxShadow: '0 2px 6px rgba(139, 92, 46, 0.12), 0 1px 3px rgba(139, 92, 46, 0.10)' }}>
+        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">{[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}</div>
+        <div className="absolute left-[-4px] sm:left-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-r border-[#d4b896]/50" style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+        <div className="absolute right-[-4px] sm:right-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-l border-[#d4b896]/50" style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+        <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-md" style={{ background: 'linear-gradient(to right, rgba(139, 92, 46, 0.20) 0%, rgba(139, 92, 46, 0.12) 30%, transparent 100%)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.25), -1px 0 2px rgba(139, 92, 46, 0.12)' }} />
+        <div className="absolute left-0 top-2 sm:top-3 w-8 sm:w-9 text-[#1a1614] flex items-center justify-center font-black text-sm sm:text-base z-20" style={{ height: isFirstVisit ? 'clamp(1.65rem, 3.5vw, 2rem)' : 'clamp(1.5rem, 3vw, 1.85rem)', background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid rgba(212, 184, 150, 0.4)', borderRight: '1px solid rgba(212, 184, 150, 0.4)', borderBottom: '1px solid rgba(212, 184, 150, 0.4)', boxShadow: '2px 0 4px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 2px rgba(139, 92, 46, 0.08)', letterSpacing: '-0.02em', transform: 'translateX(-3px)' }}>{ticket.number}</div>
+        <div className="flex items-start justify-between px-2 sm:px-3 pt-2 sm:pt-3 pb-1 pl-9 sm:pl-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 sm:gap-1.5 mb-0.5"><span className="text-sm sm:text-base font-bold text-[#1a1614] truncate">{ticket.clientName}</span>{hasStar && <span className="text-xs sm:text-sm flex-shrink-0">⭐</span>}{hasNote && <span className="text-xs sm:text-sm flex-shrink-0">📋</span>}</div>{isFirstVisit && <div className="text-[9px] sm:text-[10px] text-[#8b7968] font-medium">FIRST VISIT</div>}</div>
+          <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Pause size={12} /> Pause</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#8b7968] hover:text-[#2d2520] p-0.5 sm:p-1 rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"><MoreVertical size={14} className="sm:w-4 sm:h-4" /></button></Tippy>
         </div>
-
-        {/* Row 2: Service */}
-        <div className="mb-1">
-          <div className="truncate" style={{ color: '#555555', fontSize: '9px', fontWeight: 600, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
-            {ticket.service}
-          </div>
+        <div className="px-2 sm:px-3 pb-2 sm:pb-3 text-xs sm:text-sm text-[#1a1614] font-semibold line-clamp-1">{ticket.service}</div>
+        <div className="mx-2 sm:mx-3 mb-2 border-t border-[#e8dcc8]/50" />
+        <div className="px-2 sm:px-3 pb-1 flex items-center justify-between"><div className="text-[10px] sm:text-xs text-[#6b5d52]">{formatTime(timeRemaining)} left</div><div className="text-base sm:text-lg font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
+        <div className="px-2 sm:px-3 pb-2 sm:pb-3"><div className="h-1.5 sm:h-2 bg-[#f5f0e8] rounded-full overflow-hidden"><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} /></div></div>
+        <div className="mt-auto mx-1.5 sm:mx-2 mb-1.5 sm:mb-2 px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1 pr-9 sm:pr-10">{staffList.slice(0, 2).map((staff, index) => (<div key={index} className="text-white text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide" style={{ background: getStaffGradient(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>{staff.name.substring(0, 3).toUpperCase()}</div>))}{staffList.length > 2 && <span className="text-[9px] sm:text-[10px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}</div>
+          <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-1.5 sm:right-2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Done"><CheckCircle size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} /></button>
         </div>
-
-        {/* Row 3: Staff + Complete Button */}
-        <div className="flex items-center gap-0.5 mb-1">
-          <div className="flex items-center gap-0.5 flex-1 min-w-0">
-            {staffList.length > 0 ? (
-              <>
-                {staffList.slice(0, 1).map((staff) => (
-                  <div 
-                    key={staff.id} 
-                    className="px-1 py-0.5 rounded font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                    style={{ 
-                      backgroundColor: staff.color,
-                      fontSize: '7px',
-                      letterSpacing: '0.2px',
-                      textShadow: '0 1px 1px rgba(0,0,0,0.25)',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)',
-                      border: `1px solid ${staff.color}`,
-                    }}
-                    title={staff.name}
-                  >
-                    {staff.name.split(' ')[0].toUpperCase()}
-                  </div>
-                ))}
-                {staffList.length > 1 && (
-                  <span className="font-bold px-0.5 py-0.5 rounded bg-gray-100" style={{ color: '#6B7280', fontSize: '7.5px' }} title={staffList.slice(1).map(s => s.name).join(', ')}>
-                    +{staffList.length - 1}
-                  </span>
-                )}
-              </>
-            ) : (
-              <div 
-                className="px-1 py-0.5 rounded font-bold text-white shadow-sm cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                style={{ 
-                  backgroundColor: staffColor,
-                  fontSize: '7px',
-                  letterSpacing: '0.2px',
-                  textShadow: '0 1px 1px rgba(0,0,0,0.25)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)'
-                }}
-                title={staffName}
-              >
-                {staffName.split(' ')[0].toUpperCase()}
-              </div>
-            )}
-          </div>
-          
-          {/* Complete Button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-            className="p-0.5 rounded bg-white hover:bg-green-50 active:bg-green-100 transition-all flex-shrink-0"
-            style={{
-              boxShadow: '0 1px 3px rgba(34, 197, 94, 0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
-              border: '1px solid rgba(34, 197, 94, 0.25)',
-            }}
-            title="Complete"
-          >
-            <Check size={11} className="text-green-600" strokeWidth={3} />
-          </button>
-        </div>
-
-        {/* Spacer to push metrics to bottom */}
-        <div className="flex-grow" />
-
-        {/* Time + Progress - FIXED AT BOTTOM */}
-        <div className="flex items-center justify-between text-[9px] mt-auto" style={{ opacity: 0.7 }}>
-          <div className="flex items-center gap-0.5">
-            <Clock size={9} className="text-gray-400" />
-            <span className="text-gray-500 font-medium">{formatTime(elapsedTime)}</span>
-          </div>
-          <span className="font-bold" style={{ color: progress > 80 ? '#10B981' : progress > 50 ? '#8B5CF6' : '#2563EB' }}>{Math.round(progress)}%</span>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-1" style={{ height: '2px', background: 'rgba(37,99,235,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
-          <div 
-            style={{ 
-              height: '100%', 
-              background: progress > 80 ? 'rgba(16,185,129,0.5)' : progress > 50 ? 'rgba(139,92,246,0.5)' : 'rgba(37,99,235,0.5)',
-              width: `${Math.min(progress, 100)}%`,
-              transition: 'width 500ms ease-out, background 500ms ease-out',
-              borderRadius: '1px'
-            }} 
-          />
-        </div>
+        <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-10 rounded-lg" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
       </div>
-    </div>
-    
-    {/* Ticket Details Modal */}
-    <TicketDetailsModal
-      ticket={{
-        ...ticket,
-        status: 'in-service' as const,
-        priority: ticket.priority || 'normal'
-      }}
-      isOpen={showDetailsModal}
-      onClose={() => setShowDetailsModal(false)}
-    />
-  </>
-  );
-}
+      <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+    </>
+    );
+  }
 
   return null;
 }
