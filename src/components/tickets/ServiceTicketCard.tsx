@@ -156,44 +156,46 @@ export function ServiceTicketCard({
             {ticket.number}
           </div>
 
-          {/* Content */}
-          <div className="flex items-center gap-2 py-2 pr-2 pl-8">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
+          {/* Content - Two Row Layout */}
+          <div className="py-2 pr-3 pl-8">
+            {/* Row 1: Client Name + Time/Progress */}
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span className="font-semibold text-sm text-[#1a1614] truncate">{ticket.clientName}</span>
-                {hasStar && <span className="text-xs">⭐</span>}
-                {hasNote && <span className="text-xs">📋</span>}
+                {hasStar && <span className="text-xs flex-shrink-0">⭐</span>}
+                {hasNote && <span className="text-xs flex-shrink-0">📋</span>}
               </div>
-              {isFirstVisit && <div className="text-[9px] text-[#8b7968] font-medium mb-0.5">FIRST VISIT</div>}
-              <div className="text-xs text-[#6b5d52] truncate">{ticket.service}</div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[10px] text-[#8b7968] whitespace-nowrap">{formatTime(timeRemaining)}</span>
+                <div className="w-20 h-1 bg-[#f5f0e8] rounded-full overflow-hidden">
+                  <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
+                </div>
+                <span className="text-xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="text-right">
-                <div className="text-xs font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
-                <div className="text-[10px] text-[#8b7968]">{formatTime(timeRemaining)}</div>
+            {/* FIRST VISIT label if applicable */}
+            {isFirstVisit && <div className="text-[9px] text-[#8b7968] font-medium mb-1">FIRST VISIT</div>}
+            
+            {/* Row 2: Service + Staff Badges + Done Button */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs text-[#6b5d52] truncate flex-1">{ticket.service}</div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {staffList.slice(0, 3).map((staff, i) => (
+                  <div key={i} className="text-white text-[10px] font-semibold px-1.5 py-0.5 rounded border border-white/30" 
+                       style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+                    {getFirstName(staff.name)}
+                  </div>
+                ))}
+                {staffList.length > 3 && <span className="text-[10px] text-[#8b7968]">+{staffList.length - 3}</span>}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                  className="w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center ml-1"
+                  title="Done"
+                >
+                  <CheckCircle size={14} strokeWidth={2} />
+                </button>
               </div>
-              {staffList.slice(0, 2).map((staff, i) => (
-                <div key={i} className="hidden sm:flex text-white text-[10px] font-semibold px-1.5 py-0.5 rounded border border-white/30" 
-                     style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
-                  {getFirstName(staff.name)}
-                </div>
-              ))}
-              {staffList.length > 2 && <span className="hidden sm:inline text-[10px] text-[#8b7968]">+{staffList.length - 2}</span>}
-              <button
-                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
-                title="Done"
-              >
-                <CheckCircle size={14} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-          
-          {/* Progress bar */}
-          <div className="mx-2 mb-2">
-            <div className="h-1 bg-[#f5f0e8] rounded-full overflow-hidden">
-              <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
             </div>
           </div>
           
@@ -258,48 +260,46 @@ export function ServiceTicketCard({
           {ticket.number}
         </div>
 
-        {/* Content */}
+        {/* Content - Two Row Layout */}
         <div className="py-3 pr-3 pl-10">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
-                {hasStar && <span className="text-sm">⭐</span>}
-                {hasNote && <span className="text-sm">📋</span>}
-              </div>
-              {isFirstVisit && <div className="text-[10px] text-[#8b7968] font-medium mb-1">FIRST VISIT</div>}
-              <div className="text-sm text-[#6b5d52] truncate">{ticket.service}</div>
+          {/* Row 1: Client Name + Time/Progress */}
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+              {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
+              {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
             </div>
-            
             <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="text-right">
-                <div className="text-sm font-semibold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
-                <div className="text-xs text-[#8b7968]">{formatTime(timeRemaining)}</div>
+              <span className="text-xs text-[#8b7968] whitespace-nowrap">{formatTime(timeRemaining)}</span>
+              <div className="w-24 h-1.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden"
+                   style={{ boxShadow: 'inset 0 1px 1px rgba(139, 92, 46, 0.08)' }}>
+                <div className="h-full transition-all duration-300 rounded-full" 
+                     style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} />
               </div>
-              <div className="hidden md:flex items-center gap-1.5">
-                {staffList.map((staff, i) => (
-                  <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30" 
-                       style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>
-                    {getFirstName(staff.name)}
-                  </div>
-                ))}
-              </div>
+              <span className="text-sm font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
+            </div>
+          </div>
+          
+          {/* FIRST VISIT label if applicable */}
+          {isFirstVisit && <div className="text-[10px] text-[#8b7968] font-medium mb-2">FIRST VISIT</div>}
+          
+          {/* Row 2: Service + Staff Badges + Done Button */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-[#6b5d52] truncate flex-1">{ticket.service}</div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {staffList.map((staff, i) => (
+                <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30" 
+                     style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>
+                  {getFirstName(staff.name)}
+                </div>
+              ))}
               <button
                 onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="w-8 h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center ml-1"
                 title="Done"
               >
                 <CheckCircle size={18} strokeWidth={2} />
               </button>
-            </div>
-          </div>
-          
-          {/* Progress bar */}
-          <div className="mt-2">
-            <div className="h-1.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden"
-                 style={{ boxShadow: 'inset 0 1px 1px rgba(139, 92, 46, 0.08)' }}>
-              <div className="h-full transition-all duration-300 rounded-full" 
-                   style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} />
             </div>
           </div>
         </div>
