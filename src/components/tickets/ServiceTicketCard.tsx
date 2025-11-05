@@ -141,29 +141,40 @@ export function ServiceTicketCard({
                  boxShadow: 'inset 1px 0 1px rgba(139, 92, 46, 0.15)'
                }} />
           
-          {/* Wrap-around ticket number */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-6 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
+          {/* Wrap-around ticket number badge at Row 1 height */}
+          <div className="absolute left-0 top-[10px] w-8 h-7 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
                style={{
-                 background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
-                 borderTopRightRadius: '6px',
-                 borderBottomRightRadius: '6px',
-                 borderTop: '1px solid rgba(212, 184, 150, 0.4)',
-                 borderRight: '1px solid rgba(212, 184, 150, 0.4)',
-                 borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-                 boxShadow: '1px 0 2px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
-                 transform: 'translateX(-2px)'
+                 background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
+                 borderTopRightRadius: '8px',
+                 borderBottomRightRadius: '8px',
+                 borderTop: '1.5px solid rgba(212, 184, 150, 0.5)',
+                 borderRight: '1.5px solid rgba(212, 184, 150, 0.5)',
+                 borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)',
+                 boxShadow: '2px 0 6px rgba(139, 92, 46, 0.15), 1.5px 0 3px rgba(139, 92, 46, 0.12), 1px 0 1.5px rgba(139, 92, 46, 0.10), inset 0 1.5px 0 rgba(255, 255, 255, 1), inset 0 -1.5px 2px rgba(139, 92, 46, 0.08), inset -1.5px 0 1.5px rgba(255, 255, 255, 0.6)',
+                 letterSpacing: '-0.02em',
+                 transform: 'translateX(-3px)'
                }}>
             {ticket.number}
+            <div className="absolute top-0 right-0 w-[1px] h-full"
+                 style={{ background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)' }} />
           </div>
 
-          {/* Content - Two Row Layout */}
-          <div className="py-2 pr-3 pl-8">
-            {/* Row 1: Client Name + Time/Progress */}
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="font-semibold text-sm text-[#1a1614] truncate">{ticket.clientName}</span>
-                {hasStar && <span className="text-xs flex-shrink-0">⭐</span>}
-                {hasNote && <span className="text-xs flex-shrink-0">📋</span>}
+          {/* Content area */}
+          <div className="py-2.5 pr-3 pl-9">
+            {/* Row 1: Client name + Time/Progress */}
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="font-semibold text-sm text-[#1a1614] truncate">{ticket.clientName}</span>
+                    {hasStar && <span className="text-xs flex-shrink-0">⭐</span>}
+                    {hasNote && <span className="text-xs flex-shrink-0">📋</span>}
+                  </div>
+                  {isFirstVisit && (
+                    <>
+                      <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1">FIRST VISIT</div>
+                      <div className="border-t border-[#e8dcc8]/50 mb-2" />
+                    </>
+                  )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-[10px] text-[#8b7968] whitespace-nowrap">{formatTime(timeRemaining)}</span>
@@ -174,26 +185,32 @@ export function ServiceTicketCard({
               </div>
             </div>
             
-            {/* FIRST VISIT label if applicable */}
-            {isFirstVisit && <div className="text-[9px] text-[#8b7968] font-medium mb-1">FIRST VISIT</div>}
-            
-            {/* Row 2: Service + Staff Badges + Done Button */}
+            {/* Row 2: Service + Staff badges + Done button */}
             <div className="flex items-center justify-between gap-3">
-              <div className="text-xs text-[#6b5d52] truncate flex-1">{ticket.service}</div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {staffList.slice(0, 3).map((staff, i) => (
-                  <div key={i} className="text-white text-[10px] font-semibold px-1.5 py-0.5 rounded border border-white/30" 
-                       style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
-                    {getFirstName(staff.name)}
-                  </div>
-                ))}
-                {staffList.length > 3 && <span className="text-[10px] text-[#8b7968]">+{staffList.length - 3}</span>}
+              <div className="text-xs text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+              
+              {/* Staff badges + Done button with background container */}
+              <div className="px-2 py-1.5 rounded-md relative flex-shrink-0"
+                   style={{
+                     background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+                     boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)',
+                     border: '1px solid rgba(212, 184, 150, 0.15)'
+                   }}>
+                <div className="flex items-center gap-1.5 pr-9">
+                  {staffList.slice(0, 3).map((staff, i) => (
+                    <div key={i} className="text-white text-[10px] font-semibold px-2 py-0.5 rounded border border-white/30 tracking-wide" 
+                         style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>
+                      {getFirstName(staff.name)}
+                    </div>
+                  ))}
+                  {staffList.length > 3 && <span className="text-[10px] text-[#8b7968] font-medium">+{staffList.length - 3}</span>}
+                </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center ml-1"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 w-7 h-7 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
                   title="Done"
                 >
-                  <CheckCircle size={14} strokeWidth={2} />
+                  <CheckCircle size={16} strokeWidth={2} />
                 </button>
               </div>
             </div>
@@ -245,30 +262,41 @@ export function ServiceTicketCard({
                boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.20)'
              }} />
         
-        {/* Wrap-around ticket number */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-7 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
+        {/* Wrap-around ticket number badge at Row 1 height */}
+        <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
              style={{
                background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
-               borderTopRightRadius: '8px',
-               borderBottomRightRadius: '8px',
-               borderTop: '1px solid rgba(212, 184, 150, 0.4)',
-               borderRight: '1px solid rgba(212, 184, 150, 0.4)',
-               borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-               boxShadow: '2px 0 3px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1)',
+               borderTopRightRadius: '9px',
+               borderBottomRightRadius: '9px',
+               borderTop: '1.5px solid rgba(212, 184, 150, 0.5)',
+               borderRight: '1.5px solid rgba(212, 184, 150, 0.5)',
+               borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)',
+               boxShadow: '2.5px 0 7px rgba(139, 92, 46, 0.15), 1.5px 0 3.5px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 2px 0 rgba(255, 255, 255, 1), inset 0 -2px 2.5px rgba(139, 92, 46, 0.08), inset -1.5px 0 1.5px rgba(255, 255, 255, 0.6)',
+               letterSpacing: '-0.02em',
                transform: 'translateX(-3px)'
              }}>
           {ticket.number}
+          <div className="absolute top-0 right-0 w-[1.2px] h-full"
+               style={{ background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)' }} />
         </div>
 
-        {/* Content - Two Row Layout */}
+        {/* Content area */}
         <div className="py-3 pr-3 pl-10">
-          {/* Row 1: Client Name + Time/Progress */}
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
-              {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
-              {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
-            </div>
+          {/* Row 1: Client name + Time/Progress */}
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+                  {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
+                  {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
+                </div>
+                {isFirstVisit && (
+                  <>
+                    <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1.5">FIRST VISIT</div>
+                    <div className="border-t border-[#e8dcc8]/50 mb-2" />
+                  </>
+                )}
+              </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs text-[#8b7968] whitespace-nowrap">{formatTime(timeRemaining)}</span>
               <div className="w-24 h-1.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden"
@@ -280,22 +308,28 @@ export function ServiceTicketCard({
             </div>
           </div>
           
-          {/* FIRST VISIT label if applicable */}
-          {isFirstVisit && <div className="text-[10px] text-[#8b7968] font-medium mb-2">FIRST VISIT</div>}
-          
-          {/* Row 2: Service + Staff Badges + Done Button */}
+          {/* Row 2: Service + Staff badges + Done button */}
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-[#6b5d52] truncate flex-1">{ticket.service}</div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {staffList.map((staff, i) => (
-                <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30" 
-                     style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>
-                  {getFirstName(staff.name)}
-                </div>
-              ))}
+            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+            
+            {/* Staff badges + Done button with background container */}
+            <div className="px-2 py-2 rounded-lg relative flex-shrink-0"
+                 style={{
+                   background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+                   boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
+                   border: '1px solid rgba(212, 184, 150, 0.15)'
+                 }}>
+              <div className="flex items-center gap-1.5 pr-11">
+                {staffList.map((staff, i) => (
+                  <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30 tracking-wide" 
+                       style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                    {getFirstName(staff.name)}
+                  </div>
+                ))}
+              </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="w-8 h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center ml-1"
+                className="absolute top-1/2 right-2 -translate-y-1/2 w-8 h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
                 title="Done"
               >
                 <CheckCircle size={18} strokeWidth={2} />
@@ -313,7 +347,7 @@ export function ServiceTicketCard({
              style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.3)' }} />
       </div>
       <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
-    </>
+      </>
     );
   }
 
