@@ -105,103 +105,212 @@ export function ServiceTicketCard({
   const hasNote = !!ticket.notes;
 
 
-  // LIST COMPACT VIEW
+  // LIST COMPACT VIEW - With Paper Ticket Design
   if (viewMode === 'compact') {
     return (
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className="relative cursor-pointer transition-all duration-150 hover:bg-[#fffcf9] active:scale-[0.99] rounded-md border border-[#e8dcc8]/60"
+          className="relative rounded-md border border-[#d4b896]/40 overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer"
           role="button"
           tabIndex={0}
           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
-          style={{ background: '#FFFCF7', padding: '8px 10px' }}
+          style={{ 
+            background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
+            boxShadow: '0 1px 3px rgba(139, 92, 46, 0.12), 0 2px 4px rgba(139, 92, 46, 0.08)'
+          }}
         >
-          <div className="flex items-center gap-2">
-            <div className="flex-shrink-0 w-10 h-7 rounded bg-white border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-700">
-              {ticket.number}
-            </div>
+          {/* Perforation dots */}
+          <div className="absolute top-0 left-0 w-full h-[3px] flex justify-between items-center px-2 opacity-20">
+            {[...Array(12)].map((_, i) => (<div key={i} className="w-[1.5px] h-[1.5px] rounded-full bg-[#c4b5a0]" />))}
+          </div>
+          
+          {/* Left notch */}
+          <div className="absolute left-[-3px] top-[50%] w-1.5 h-1.5 rounded-full border-r border-[#d4b896]/50" 
+               style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)' }} />
+          
+          {/* Right notch */}
+          <div className="absolute right-[-3px] top-[50%] w-1.5 h-1.5 rounded-full border-l border-[#d4b896]/50"
+               style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)' }} />
+          
+          {/* Paper thickness edge */}
+          <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-md" 
+               style={{ 
+                 background: 'linear-gradient(to right, rgba(139, 92, 46, 0.15) 0%, transparent 100%)',
+                 boxShadow: 'inset 1px 0 1px rgba(139, 92, 46, 0.15)'
+               }} />
+          
+          {/* Wrap-around ticket number */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-6 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
+               style={{
+                 background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
+                 borderTopRightRadius: '6px',
+                 borderBottomRightRadius: '6px',
+                 borderTop: '1px solid rgba(212, 184, 150, 0.4)',
+                 borderRight: '1px solid rgba(212, 184, 150, 0.4)',
+                 borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
+                 boxShadow: '1px 0 2px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
+                 transform: 'translateX(-2px)'
+               }}>
+            {ticket.number}
+          </div>
+
+          {/* Content */}
+          <div className="flex items-center gap-2 py-2 pr-2 pl-8">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="font-semibold text-sm text-[#1a1614] truncate">{ticket.clientName}</span>
-                {hasStar && <span className="text-xs flex-shrink-0">⭐</span>}
-                {hasNote && <span className="text-xs flex-shrink-0">📋</span>}
+                {hasStar && <span className="text-xs">⭐</span>}
+                {hasNote && <span className="text-xs">📋</span>}
               </div>
               {isFirstVisit && <div className="text-[9px] text-[#8b7968] font-medium mb-0.5">FIRST VISIT</div>}
               <div className="text-xs text-[#6b5d52] truncate">{ticket.service}</div>
             </div>
+            
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="text-right">
-                <div className="text-xs font-bold" style={{ color: currentStatus.text }}>
-                  {Math.round(progress)}%
-                </div>
+                <div className="text-xs font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
                 <div className="text-[10px] text-[#8b7968]">{formatTime(timeRemaining)}</div>
               </div>
               {staffList.slice(0, 2).map((staff, i) => (
-                <div key={i} className="hidden sm:flex text-white text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                <div key={i} className="hidden sm:flex text-white text-[10px] font-semibold px-1.5 py-0.5 rounded border border-white/30" 
+                     style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
                   {getFirstName(staff.name)}
                 </div>
               ))}
-              {staffList.length > 2 && <span className="hidden sm:inline text-[10px] text-gray-500">+{staffList.length - 2}</span>}
+              {staffList.length > 2 && <span className="hidden sm:inline text-[10px] text-[#8b7968]">+{staffList.length - 2}</span>}
               <button
                 onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
                 className="w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
-                title="Mark as Done"
+                title="Done"
               >
                 <CheckCircle size={14} strokeWidth={2} />
               </button>
             </div>
           </div>
-          <div className="mt-1.5 h-1 bg-[#f5f0e8] rounded-full overflow-hidden">
-            <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
+          
+          {/* Progress bar */}
+          <div className="mx-2 mb-2">
+            <div className="h-1 bg-[#f5f0e8] rounded-full overflow-hidden">
+              <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
+            </div>
           </div>
+          
+          {/* Paper textures */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-md" 
+               style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
+          <div className="absolute inset-0 pointer-events-none opacity-10 rounded-md"
+               style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
         </div>
         <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
       </>
     );
   }
 
-  // LIST NORMAL VIEW
+  // LIST NORMAL VIEW - With Paper Ticket Design
   if (viewMode === 'normal') {
     return (
       <>
-      <div onClick={() => onClick?.(ticket.id)} className="relative cursor-pointer transition-all duration-200 ease-out hover:bg-[#fffcf9] active:scale-[0.99] overflow-hidden rounded-lg border border-[#e8dcc8]" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(to right, #FFFCF7 0%, #FFF9F0 100%)', padding: '12px 14px' }}>
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-11 h-9 rounded bg-white border border-gray-200 flex items-center justify-center font-bold text-sm text-gray-700">{ticket.number}</div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
-              {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
-              {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
+      <div onClick={() => onClick?.(ticket.id)} 
+           className="relative rounded-lg border border-[#d4b896]/40 overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-[0.2deg] cursor-pointer" 
+           role="button" 
+           tabIndex={0} 
+           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} 
+           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
+           style={{ 
+             background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
+             boxShadow: '0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 6px rgba(139, 92, 46, 0.08)'
+           }}>
+        
+        {/* Perforation dots */}
+        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">
+          {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
+        </div>
+        
+        {/* Left notch */}
+        <div className="absolute left-[-4px] top-[50%] w-2 h-2 rounded-full border-r border-[#d4b896]/50"
+             style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+        
+        {/* Right notch */}
+        <div className="absolute right-[-4px] top-[50%] w-2 h-2 rounded-full border-l border-[#d4b896]/50"
+             style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+        
+        {/* Paper thickness edge */}
+        <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-lg"
+             style={{ 
+               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.18) 0%, rgba(139, 92, 46, 0.10) 50%, transparent 100%)',
+               boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.20)'
+             }} />
+        
+        {/* Wrap-around ticket number */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-7 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
+             style={{
+               background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
+               borderTopRightRadius: '8px',
+               borderBottomRightRadius: '8px',
+               borderTop: '1px solid rgba(212, 184, 150, 0.4)',
+               borderRight: '1px solid rgba(212, 184, 150, 0.4)',
+               borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
+               boxShadow: '2px 0 3px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1)',
+               transform: 'translateX(-3px)'
+             }}>
+          {ticket.number}
+        </div>
+
+        {/* Content */}
+        <div className="py-3 pr-3 pl-10">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+                {hasStar && <span className="text-sm">⭐</span>}
+                {hasNote && <span className="text-sm">📋</span>}
+              </div>
+              {isFirstVisit && <div className="text-[10px] text-[#8b7968] font-medium mb-1">FIRST VISIT</div>}
+              <div className="text-sm text-[#6b5d52] truncate">{ticket.service}</div>
             </div>
-            {isFirstVisit && <div className="text-[10px] text-[#8b7968] font-medium mb-1">FIRST VISIT</div>}
-            <div className="text-sm text-[#6b5d52] truncate">{ticket.service}</div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="text-right">
+                <div className="text-sm font-semibold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
+                <div className="text-xs text-[#8b7968]">{formatTime(timeRemaining)}</div>
+              </div>
+              <div className="hidden md:flex items-center gap-1.5">
+                {staffList.map((staff, i) => (
+                  <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30" 
+                       style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>
+                    {getFirstName(staff.name)}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                className="w-8 h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
+                title="Done"
+              >
+                <CheckCircle size={18} strokeWidth={2} />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="text-right">
-              <div className="text-sm font-semibold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
-              <div className="text-xs text-[#8b7968]">{formatTime(timeRemaining)}</div>
+          
+          {/* Progress bar */}
+          <div className="mt-2">
+            <div className="h-1.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden"
+                 style={{ boxShadow: 'inset 0 1px 1px rgba(139, 92, 46, 0.08)' }}>
+              <div className="h-full transition-all duration-300 rounded-full" 
+                   style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} />
             </div>
-            <div className="hidden md:flex items-center gap-1.5">
-              {staffList.map((staff, i) => (
-                <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md" style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>
-                  {getFirstName(staff.name)}
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-              className="w-8 h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
-              title="Mark as Done"
-            >
-              <CheckCircle size={18} strokeWidth={2} />
-            </button>
           </div>
         </div>
-        <div className="mt-2 h-1.5 bg-[#f5f0e8] rounded-full overflow-hidden">
-          <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
-        </div>
+        
+        {/* Paper textures */}
+        <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-lg"
+             style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '180px 180px' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-12 rounded-lg"
+             style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
+        <div className="absolute inset-0 pointer-events-none rounded-lg"
+             style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.3)' }} />
       </div>
       <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
     </>
