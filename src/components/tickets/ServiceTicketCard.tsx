@@ -91,19 +91,13 @@ export function ServiceTicketCard({
   };
   const currentStatus = getStatusColor(progress);
 
-  // STAFF GRADIENT COLORS
-  const staffColors: Record<string, string> = {
-    'SOPHIA': 'linear-gradient(to right, #FF6B70, #E04146)',
-    'MADISON': 'linear-gradient(to right, #AF6FFF, #8A4AD0)',
-    'EMMA': 'linear-gradient(to right, #AF6FFF, #8A4AD0)',
-    'CHARLOTTE': 'linear-gradient(to right, #5A9FFF, #3373E8)',
-    'EVELYN': 'linear-gradient(to right, #5EEAD4, #3BB09A)',
-    'MIA': 'linear-gradient(to right, #FB923C, #F97316)',
-    'GRACE': 'linear-gradient(to right, #FBBF24, #F59E0B)',
-    'LILY': 'linear-gradient(to right, #5EEAD4, #14b8a6)',
-    'OLIVIA': 'linear-gradient(to right, #EC4899, #DB2777)'
+  // Helper to get first name only
+  const getFirstName = (fullName: string) => {
+    return fullName.split(' ')[0].toUpperCase();
   };
-  const getStaffGradient = (staff: any) => staffColors[staff.name?.toUpperCase()] || `linear-gradient(to right, ${staff.color}, ${staff.color})`;
+
+  // Use exact staff color for badge
+  const getStaffColor = (staff: any) => staff.color || '#6B7280';
 
   // Helper flags for reference design
   const isFirstVisit = ticket.clientType === 'New';
@@ -137,8 +131,8 @@ export function ServiceTicketCard({
             </div>
             <div className="hidden sm:flex flex-shrink-0">
               {staffList[0] && (
-                <div className="text-white text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: getStaffGradient(staffList[0]), boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                  {staffList[0].name.substring(0, 2).toUpperCase()}
+                <div className="text-white text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: getStaffColor(staffList[0]), boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                  {getFirstName(staffList[0].name)}
                 </div>
               )}
             </div>
@@ -172,7 +166,7 @@ export function ServiceTicketCard({
             <div className="text-xs text-[#8b7968]">{formatTime(timeRemaining)}</div>
           </div>
           <div className="hidden md:flex items-center gap-1.5 flex-shrink-0">
-            {staffList.slice(0, 2).map((staff, i) => (<div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md" style={{ background: getStaffGradient(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>{staff.name.substring(0, 3).toUpperCase()}</div>))}
+            {staffList.slice(0, 2).map((staff, i) => (<div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md" style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>{getFirstName(staff.name)}</div>))}
             {staffList.length > 2 && <span className="text-xs text-gray-500">+{staffList.length - 2}</span>}
           </div>
         </div>
@@ -203,7 +197,7 @@ export function ServiceTicketCard({
         <div className="mx-3 sm:px-4 mb-3 sm:mb-4 border-t border-[#e8dcc8]/50" />
         <div className="px-3 sm:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-xs sm:text-sm text-[#6b5d52] font-medium">{formatTime(timeRemaining)} left</div><div className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-3 sm:px-4 pb-4 sm:pb-5"><div className="h-2 sm:h-2.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden" style={{ boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} /></div></div>
-        <div className="mt-auto mx-2 sm:mx-3 mb-2 sm:mb-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pr-11 sm:pr-12">{staffList.map((staff, index) => (<div key={index} className="text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffGradient(staff), boxShadow: `0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{staff.name.toUpperCase()}</div>))}</div>
+        <div className="mt-auto mx-2 sm:mx-3 mb-2 sm:mb-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pr-11 sm:pr-12">{staffList.map((staff, index) => (<div key={index} className="text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffColor(staff), boxShadow: `0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{getFirstName(staff.name)}</div>))}</div>
           <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-2 sm:right-3 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Mark as Done"><CheckCircle size={20} className="sm:w-5 sm:h-5" strokeWidth={2} /></button>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-xl" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
@@ -232,7 +226,7 @@ export function ServiceTicketCard({
         <div className="mx-2 sm:mx-3 mb-2 border-t border-[#e8dcc8]/50" />
         <div className="px-2 sm:px-3 pb-1 flex items-center justify-between"><div className="text-[10px] sm:text-xs text-[#6b5d52]">{formatTime(timeRemaining)} left</div><div className="text-base sm:text-lg font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-2 sm:px-3 pb-2 sm:pb-3"><div className="h-1.5 sm:h-2 bg-[#f5f0e8] rounded-full overflow-hidden"><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} /></div></div>
-        <div className="mt-auto mx-1.5 sm:mx-2 mb-1.5 sm:mb-2 px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1 pr-9 sm:pr-10">{staffList.slice(0, 2).map((staff, index) => (<div key={index} className="text-white text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide" style={{ background: getStaffGradient(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>{staff.name.substring(0, 3).toUpperCase()}</div>))}{staffList.length > 2 && <span className="text-[9px] sm:text-[10px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}</div>
+        <div className="mt-auto mx-1.5 sm:mx-2 mb-1.5 sm:mb-2 px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1 pr-9 sm:pr-10">{staffList.slice(0, 2).map((staff, index) => (<div key={index} className="text-white text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide" style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>{getFirstName(staff.name)}</div>))}{staffList.length > 2 && <span className="text-[9px] sm:text-[10px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}</div>
           <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-1.5 sm:right-2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Done"><CheckCircle size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} /></button>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
