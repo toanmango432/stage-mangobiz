@@ -5,7 +5,7 @@
 
 export { AppointmentCard } from './AppointmentCard';
 export { CalendarHeader } from './CalendarHeader';
-export { DaySchedule } from './DaySchedule';
+export { DaySchedule } from './DaySchedule.v2';
 export { StaffColumn } from './StaffColumn';
 export { StaffSidebar } from './StaffSidebar';
 export { TimeSlot } from './TimeSlot';

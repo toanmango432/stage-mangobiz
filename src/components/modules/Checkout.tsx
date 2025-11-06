@@ -1,39 +1,6 @@
 import { useState } from 'react';
-import { EnhancedCheckoutScreen } from '../checkout/EnhancedCheckoutScreen';
+import { QuickCheckout } from '../checkout/QuickCheckout';
 import { Search, CreditCard, Check } from 'lucide-react';
-
-// Mock pending tickets
-const mockPendingTickets = [
-  {
-    id: 'T001',
-    clientName: 'Emily Chen',
-    clientPhoto: undefined,
-    services: [
-      { id: 's1', name: 'Gel Manicure', staffName: 'Sophia', staffId: '1', duration: 60, price: 45.00 },
-    ],
-    products: [],
-    subtotal: 45.00,
-    discounts: 0,
-    tax: 3.60,
-    total: 48.60,
-  },
-  {
-    id: 'T002',
-    clientName: 'Sarah Johnson',
-    clientPhoto: undefined,
-    services: [
-      { id: 's2', name: 'Acrylic Full Set', staffName: 'Isabella', staffId: '2', duration: 90, price: 65.00 },
-      { id: 's3', name: 'Pedicure', staffName: 'Mia', staffId: '3', duration: 45, price: 35.00 },
-    ],
-    products: [
-      { id: 'p1', name: 'Nail Polish', quantity: 1, unitPrice: 12.00, total: 12.00 },
-    ],
-    subtotal: 112.00,
-    discounts: 10.00,
-    tax: 8.16,
-    total: 110.16,
-  },
-];
 
 export function Checkout() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -43,11 +10,14 @@ export function Checkout() {
     setSelectedTicket(ticket);
   };
 
-  const handlePaymentComplete = (paymentData: any) => {
-    console.log('Payment completed:', paymentData);
+  const handlePaymentComplete = (payments: any, tip: number, discount: number) => {
+    console.log('Payment completed:', { payments, tip, discount });
     setSelectedTicket(null);
     // TODO: Process payment and update ticket status
   };
+
+  // TODO: Replace with actual ticket data from Redux/API
+  const mockPendingTickets: any[] = [];
 
   const filteredTickets = mockPendingTickets.filter(ticket =>
     ticket.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -136,9 +106,10 @@ export function Checkout() {
         </div>
       </div>
 
-      {/* Enhanced Checkout Modal */}
+      {/* Quick Checkout Modal */}
       {selectedTicket && (
-        <EnhancedCheckoutScreen
+        <QuickCheckout
+          isOpen={!!selectedTicket}
           ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
           onComplete={handlePaymentComplete}

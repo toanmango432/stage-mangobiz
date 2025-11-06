@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { StaffTurnData } from './TurnTracker';
+import { StaffTurnData } from './types';
 
 interface StaffDetailPanelProps {
   staff: StaffTurnData;

@@ -74,11 +74,6 @@ export function BookPage() {
   // Get salon ID and staff from Redux
   const salonId = getTestSalonId();
   const allStaff = useAppSelector(selectAllStaff) || [];
-  
-  // Debug: Log filtered appointments
-  useEffect(() => {
-    console.log('📊 Filtered appointments:', filteredAppointments?.length || 0, filteredAppointments);
-  }, [filteredAppointments]);
 
   // Transform staff data for components
   const staffWithCounts = allStaff.map(staff => ({
@@ -372,7 +367,6 @@ export function BookPage() {
 
   const handleSelectCustomer = (customer: any) => {
     setSelectedCustomer(customer);
-    console.log('Customer selected:', customer);
     // TODO: Open new appointment modal with customer
   };
 
@@ -615,7 +609,7 @@ export function BookPage() {
           <div className="hidden lg:block">
             <WalkInSidebar
               walkIns={mockWalkIns}
-              onDragStart={(walkIn) => console.log('Dragging walk-in:', walkIn)}
+              onDragStart={(walkIn) => {/* TODO: Handle walk-in drag */}}
             />
           </div>
         </div>

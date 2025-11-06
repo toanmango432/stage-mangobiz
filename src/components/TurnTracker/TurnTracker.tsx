@@ -8,44 +8,7 @@ import { TurnLogsTable } from './TurnLogsTable';
 import { TurnSettingsPanel } from './TurnSettingsPanel';
 import { ManualAdjustModal } from './ManualAdjustModal';
 import { StaffDetailPanel } from './StaffDetailPanel';
-
-// Types
-export interface TurnEntry {
-  id: string;
-  timestamp: Date;
-  turnNumber: number;
-  amount: number;
-  serviceCount: number;
-  bonusAmount: number;
-  clientName: string;
-  services: string[];
-  type: 'service' | 'checkout' | 'void';
-  ticketId: string;
-}
-
-export interface StaffTurnData {
-  id: string;
-  name: string;
-  photo?: string;
-  clockInTime: Date;
-  serviceTurn: number;
-  bonusTurn: number;
-  adjustTurn: number;
-  tardyTurn: number;
-  appointmentTurn: number;
-  partialTurn: number;
-  totalTurn: number;
-  queuePosition: number;
-  serviceTotal: number;
-  turnLogs: TurnEntry[];
-}
-
-export interface TurnSettings {
-  mode: 'manual' | 'auto';
-  orderingMethod: 'rotation' | 'service-count' | 'amount';
-  appointmentBonus: { enabled: boolean; percentage: number };
-  tardy: { enabled: boolean; minutesThreshold: number; turnsPerThreshold: number; maxTurns: number };
-}
+import { TurnEntry, StaffTurnData, TurnSettings } from './types';
 
 interface TurnTrackerProps {
   isOpen: boolean;
@@ -323,7 +286,7 @@ export function TurnTracker({ isOpen, onClose, date = new Date() }: TurnTrackerP
           staff={selectedStaff}
           onClose={() => setShowAdjustModal(false)}
           onSave={(turnAmount, reason) => {
-            console.log('Adjust turn:', selectedStaff.name, turnAmount, reason);
+            // TODO: Implement turn adjustment logic
             setShowAdjustModal(false);
           }}
         />

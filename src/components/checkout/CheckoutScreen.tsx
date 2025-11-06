@@ -1,38 +1,13 @@
+/**
+ * @deprecated Use QuickCheckout.tsx instead - this component has outdated type implementations
+ * This file is kept for reference only and should not be used in new code
+ */
 import { useState } from 'react';
 import { X, Plus, Minus, Tag, Gift, CreditCard, DollarSign, Smartphone, Wallet } from 'lucide-react';
-
-interface Service {
-  id: string;
-  name: string;
-  staffName: string;
-  staffId: string;
-  duration: number;
-  price: number;
-  discount?: number;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-}
-
-interface CheckoutTicket {
-  id: string;
-  clientName: string;
-  clientPhoto?: string;
-  services: Service[];
-  products: Product[];
-  subtotal: number;
-  discounts: number;
-  tax: number;
-  total: number;
-}
+import { Ticket, TicketService, TicketProduct } from '../../types/Ticket';
 
 interface CheckoutScreenProps {
-  ticket: CheckoutTicket;
+  ticket: Ticket;
   onClose: () => void;
   onComplete: (paymentData: any) => void;
 }

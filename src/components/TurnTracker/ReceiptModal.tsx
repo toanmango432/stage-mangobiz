@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { TurnEntry } from './TurnTracker';
+import { TurnEntry } from './types';
 
 interface ReceiptModalProps {
   turnLog: TurnEntry;

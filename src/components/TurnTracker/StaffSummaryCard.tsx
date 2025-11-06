@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { StaffTurnData } from './TurnTracker';
+import { StaffTurnData } from './types';
 
 interface StaffSummaryCardProps {
   staff: StaffTurnData;

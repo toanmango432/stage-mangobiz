@@ -1,15 +1,14 @@
+/**
+ * @deprecated Use QuickCheckout.tsx instead - this component has been superseded
+ * QuickCheckout provides better type safety and more features
+ */
 import { useState, useEffect } from 'react';
 import { X, Plus, Minus, Percent, DollarSign, CreditCard, Smartphone, Banknote, Check } from 'lucide-react';
-import type { Ticket } from '../../types';
-
-interface Payment {
-  id: string;
-  method: 'cash' | 'card' | 'mobile' | 'other';
-  amount: number;
-}
+import { Ticket, Payment } from '../../types/Ticket';
+import { TAX_RATE } from '../../constants/checkoutConfig';
 
 interface EnhancedCheckoutScreenProps {
-  ticket: any; // Will be properly typed
+  ticket: Ticket;
   onClose: () => void;
   onComplete: (paymentData: any) => void;
 }
@@ -28,17 +27,17 @@ export function EnhancedCheckoutScreen({ ticket, onClose, onComplete }: Enhanced
   const [customTip, setCustomTip] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payments, setPayments] = useState<Omit<Payment, 'processedAt'>[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'mobile' | 'other'>('card');
   const [paymentAmount, setPaymentAmount] = useState('');
 
   // Calculate totals
   const subtotal = ticket.subtotal || 0;
-  const discountAmount = discountType === 'percentage' 
-    ? (subtotal * discount) / 100 
+  const discountAmount = discountType === 'percentage'
+    ? (subtotal * discount) / 100
     : discount;
   const afterDiscount = subtotal - discountAmount;
-  const tax = afterDiscount * 0.08; // 8% tax
+  const tax = afterDiscount * TAX_RATE;
   const tipAmount = tipType === 'percentage'
     ? (afterDiscount * tipPercentage) / 100
     : customTip;
@@ -62,6 +61,8 @@ export function EnhancedCheckoutScreen({ ticket, onClose, onComplete }: Enhanced
           id: Date.now().toString(),
           method: selectedPaymentMethod,
           amount,
+          tip: 0,
+          total: amount,
         },
       ]);
       setPaymentAmount('');
@@ -257,7 +258,7 @@ export function EnhancedCheckoutScreen({ ticket, onClose, onComplete }: Enhanced
                   </div>
                 )}
                 <div className="flex justify-between text-gray-700">
-                  <span>Tax (8%)</span>
+                  <span>Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </div>
                 {tipAmount > 0 && (

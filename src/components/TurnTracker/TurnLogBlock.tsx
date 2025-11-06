@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { TurnEntry } from './TurnTracker';
+import { TurnEntry } from './types';
 
 interface TurnLogBlockProps {
   turnLog: TurnEntry;

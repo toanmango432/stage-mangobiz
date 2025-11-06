@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { StaffTurnData } from './TurnTracker';
+import { StaffTurnData } from './types';
 
 interface ManualAdjustModalProps {
   staff: StaffTurnData;

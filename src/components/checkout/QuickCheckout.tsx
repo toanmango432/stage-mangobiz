@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, CreditCard, DollarSign, Percent, Receipt, Printer, Check } from 'lucide-react';
 import { Ticket, Payment } from '../../types/Ticket';
+import { TAX_RATE } from '../../constants/checkoutConfig';
 
 interface QuickCheckoutProps {
   isOpen: boolean;
@@ -28,8 +29,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
   const subtotal = servicesTotal + productsTotal;
   const discountValue = discountAmount || (subtotal * discountPercent / 100);
   const afterDiscount = subtotal - discountValue;
-  const taxRate = 0.08; // 8% tax
-  const taxAmount = afterDiscount * taxRate;
+  const taxAmount = afterDiscount * TAX_RATE;
   const tipValue = tipAmount || (afterDiscount * tipPercent / 100);
   const grandTotal = afterDiscount + taxAmount + tipValue;
 
@@ -181,7 +181,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tax (8%)</span>
+                <span className="text-gray-600">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
                 <span className="font-medium">${taxAmount.toFixed(2)}</span>
               </div>
               {tipValue > 0 && (
