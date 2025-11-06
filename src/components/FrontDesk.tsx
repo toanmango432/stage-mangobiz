@@ -16,22 +16,12 @@ import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } fr
 export function FrontDesk() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
-    const saved = localStorage.getItem('minimizedSections');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return {
-          waitList: false,
-          service: false,
-          comingAppointments: false
-        };
-      }
-    }
+    // Force Coming section to be expanded by default - clear any old localStorage
+    localStorage.removeItem('minimizedSections');
     return {
       waitList: false,
       service: false,
-      comingAppointments: false
+      comingAppointments: false  // Always expanded to show under header
     };
   });
 
@@ -48,13 +38,10 @@ export function FrontDesk() {
 
   // New state for combined view
   const [isCombinedView, setIsCombinedView] = useState(() => {
-    // Default to column view on desktop, tabs on mobile/tablet
-    const savedView = localStorage.getItem('salonCenterViewMode');
-    // If we have a saved preference and we're on desktop, use it
-    if (savedView && window.matchMedia('(min-width: 1024px)').matches) {
-      return savedView === 'combined';
-    }
-    // Default to column view (not combined) for desktop
+    // Force Three-Column View to show Coming + Waiting stacked layout
+    localStorage.removeItem('salonCenterViewMode');
+    localStorage.setItem('viewLayout', 'columns');
+    // Always return false to force three-column view
     return false;
   });
   // New state for mobile/tablet section tabs
@@ -106,8 +93,9 @@ export function FrontDesk() {
     return saved === 'queue' || saved === 'time' ? saved as 'queue' | 'time' : 'queue';
   });
   const [showUpcomingAppointments, setShowUpcomingAppointments] = useState(() => {
-    const saved = localStorage.getItem('showUpcomingAppointments');
-    return saved !== 'false'; // Default to true
+    // Force Coming section to be visible - reset any previous hide state
+    localStorage.setItem('showUpcomingAppointments', 'true');
+    return true;
   });
   const ticketSettingsRef = useRef<HTMLDivElement>(null);
   // Toggle Wait List tab dropdown - fixed to not expect event parameter
@@ -225,18 +213,16 @@ export function FrontDesk() {
 
   // Automatically set view mode based on device (device detection handled by hook)
   useEffect(() => {
-    if (deviceInfo.isMobile || deviceInfo.isTablet) {
+    // Use window width as the source of truth for desktop detection
+    const isActuallyDesktop = window.innerWidth >= 1024;
+
+    if (isActuallyDesktop) {
+      // Force Column view (three-column layout) for desktop to show Coming + Waiting stacked
+      localStorage.removeItem('salonCenterViewMode');
+      setIsCombinedView(false);
+    } else {
       // Force Tabs view on mobile/tablet
       setIsCombinedView(true);
-    } else if (deviceInfo.isDesktop) {
-      // On desktop, restore user preference or default to Column view
-      const savedView = localStorage.getItem('salonCenterViewMode');
-      if (savedView) {
-        setIsCombinedView(savedView === 'combined');
-      } else {
-        // Default to Column view (not combined) for desktop
-        setIsCombinedView(false);
-      }
     }
   }, [deviceInfo.isMobile, deviceInfo.isTablet, deviceInfo.isDesktop]);
 
@@ -442,8 +428,8 @@ export function FrontDesk() {
     }
   };
   return (
-      <div className="flex h-full bg-gray-50">
-        <div className="flex flex-1 overflow-hidden">
+      <div className="flex h-full pb-0">
+        <div className="flex flex-1 overflow-hidden pb-0">
         {/* Sidebar with improved mobile handling */}
         <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-30 h-[calc(100vh-52px)] transition-transform duration-300 ease-in-out`}>
           <StaffSidebar />
@@ -453,7 +439,7 @@ export function FrontDesk() {
         {/* Enhanced visual separator between tech and service sections */}
         <div className="hidden md:block w-px bg-gray-200 relative"></div>
         {/* Main content area with flex layout for optimal space usage */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 min-h-0">
+        <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0 pb-0">
           {/* Mobile/Tablet section tabs - show on mobile and tablet when not in combined view */}
           {(deviceInfo.isMobile || deviceInfo.isTablet) && !isCombinedView && <div className="flex overflow-x-auto no-scrollbar bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 whitespace-nowrap">
               {mobileSectionTabs.map(tab => <button key={tab.id} className={`inline-flex items-center h-14 min-w-[100px] px-3 text-[15px] font-medium whitespace-nowrap transition-colors ${activeMobileSection === tab.id ? 'text-[#00D0E0] border-b-2 border-[#00D0E0]' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setActiveMobileSection(tab.id)}>
@@ -609,7 +595,7 @@ export function FrontDesk() {
                   </div>}
               </div>
             </div>}
-          <div className="flex-1 flex flex-col p-2.5 sm:p-3 relative h-full bg-gray-50 min-h-0">
+          <div className="flex-1 flex flex-col relative h-full bg-white min-h-0">
             {/* Position the TicketsHeader absolutely in the top right */}
             <TicketsHeader />
             {/* Main content container */}
@@ -664,12 +650,32 @@ export function FrontDesk() {
                     </div>}
               </div> : <>
                   {/* Three-column layout for desktop - reordered to match workflow */}
-                  <div className={`${deviceInfo.isMobile || deviceInfo.isTablet ? 'overflow-auto flex-1' : 'flex flex-1 overflow-hidden gap-2'} bg-gray-50 h-full`}>
+                  <div className={`${deviceInfo.isMobile || deviceInfo.isTablet ? 'overflow-auto flex-1' : 'flex flex-1 overflow-hidden'} h-full`}>
                     {/* For tablet and mobile: Show sections based on active tab */}
                     {deviceInfo.isMobile || deviceInfo.isTablet ? <>
-                        {/* Wait List Section - Show when active on mobile/tablet */}
+                        {/* Wait List Section - Show Coming + Waiting stacked on mobile/tablet */}
                         {activeMobileSection === 'waitList' && <div className="h-full flex flex-col">
-                            <div className="flex-grow mb-3">
+                            {/* Coming Appointments - Minimized at top */}
+                            {showUpcomingAppointments && <div className="flex-shrink-0">
+                              <ComingAppointments
+                                isMinimized={true}
+                                onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
+                                isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
+                                headerStyles={{
+                                  bg: 'bg-gradient-to-br from-sky-50/80 via-blue-50/60 to-cyan-50/40',
+                                  accentColor: '#0EA5E9',
+                                  iconColor: 'text-[#9CA3AF]',
+                                  activeIconColor: 'text-[#0EA5E9]',
+                                  titleColor: 'text-[#111827]',
+                                  borderColor: 'border-sky-200/30',
+                                  counterBg: 'bg-sky-100',
+                                  counterText: 'text-sky-700'
+                                }}
+                              />
+                            </div>}
+
+                            {/* Waiting Queue - Takes remaining space */}
+                            <div className="flex-1 min-h-0">
                               <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} headerStyles={{
                         bg: 'bg-[#F9FAFB]',
                         accentColor: '#F59E0B',
@@ -712,25 +718,25 @@ export function FrontDesk() {
                           </div>}
                       </> : <>
                         {/* Desktop layout with horizontal expansion/collapse - UPDATED FOR PROPER ALIGNMENT */}
-                        <div className="flex h-full w-full gap-2">
+                        <div className="flex h-full w-full pb-0">
                           {/* Left side: Main content area with Service, Wait List, Pending Tickets and Closed Tickets */}
-                          <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+                          <div className="flex flex-col flex-1 overflow-hidden min-h-0 pb-0">
                             {/* Top row with In Service and Wait List side by side */}
-                            <div className="flex flex-1 min-h-0 gap-0 relative">
+                            <div className="flex flex-1 min-h-0 gap-0 relative pb-0">
                               {/* Left Column - In Service (resizable) */}
-                              <div 
-                                className={`h-full min-h-0 ${minimizedSections.service ? 'w-[60px] flex-shrink-0' : minimizedSections.waitList ? 'flex-1' : ''}`}
+                              <div
+                                className={`h-full min-h-0 pb-0 ${minimizedSections.service ? 'w-[60px] flex-shrink-0' : minimizedSections.waitList ? 'flex-1' : ''}`}
                                 style={!minimizedSections.service && !minimizedSections.waitList ? { width: `${serviceWidth}%` } : undefined}
                               >
                                 <ServiceSection isMinimized={minimizedSections.service} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={false} headerStyles={{
-                            bg: 'bg-[#E8F2FF]',
-                            accentColor: '#3B82F6',
+                            bg: 'bg-gradient-to-br from-emerald-50/80 via-green-50/60 to-teal-50/40',
+                            accentColor: '#10B981',
                             iconColor: 'text-[#9CA3AF]',
-                            activeIconColor: 'text-[#3B82F6]',
+                            activeIconColor: 'text-[#10B981]',
                             titleColor: 'text-[#111827]',
-                            borderColor: 'border-[#E8F2FF]/50',
-                            counterBg: 'bg-[#E5E7EB]',
-                            counterText: 'text-[#6B7280]'
+                            borderColor: 'border-emerald-200/30',
+                            counterBg: 'bg-emerald-100',
+                            counterText: 'text-emerald-700'
                           }} />
                               </div>
                               
@@ -773,42 +779,51 @@ export function FrontDesk() {
                                 </div>
                               )}
                               
-                              {/* Right Column - Wait List (resizable) */}
-                              <div 
-                                className={`h-full min-h-0 ${minimizedSections.waitList ? 'w-[60px] flex-shrink-0' : minimizedSections.service ? 'flex-1' : ''}`}
-                                style={!minimizedSections.service && !minimizedSections.waitList ? { width: `${100 - serviceWidth}%` } : undefined}
+                              {/* Right Column - Coming + Waiting stacked vertically */}
+                              <div
+                                className={`h-full min-h-0 pb-0 flex flex-col ${minimizedSections.waitList && minimizedSections.comingAppointments ? 'w-[60px] flex-shrink-0' : minimizedSections.service ? 'flex-1' : ''}`}
+                                style={!minimizedSections.service && !(minimizedSections.waitList && minimizedSections.comingAppointments) ? { width: `${100 - serviceWidth}%` } : undefined}
                               >
-                                <WaitListSection 
-                                  isMinimized={minimizedSections.waitList} 
-                                  onToggleMinimize={() => toggleSectionMinimize('waitList')} 
-                                  isMobile={false} 
-                                  headerStyles={{
-                                    bg: 'bg-[#E8F2FF]',
-                                    accentColor: '#F59E0B',
-                                    iconColor: 'text-[#9CA3AF]',
-                                    activeIconColor: 'text-[#F59E0B]',
-                                    titleColor: 'text-[#111827]',
-                                    borderColor: 'border-[#E8F2FF]/50',
-                                    counterBg: 'bg-[#E5E7EB]',
-                                    counterText: 'text-[#6B7280]'
-                                  }} 
-                                />
+                                {/* Coming Appointments - Top */}
+                                {showUpcomingAppointments && <div className="flex-shrink-0">
+                                  <ComingAppointments
+                                    isMinimized={minimizedSections.comingAppointments}
+                                    onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
+                                    isMobile={false}
+                                    headerStyles={{
+                                      bg: 'bg-gradient-to-br from-sky-50/80 via-blue-50/60 to-cyan-50/40',
+                                      accentColor: '#0EA5E9',
+                                      iconColor: 'text-[#9CA3AF]',
+                                      activeIconColor: 'text-[#0EA5E9]',
+                                      titleColor: 'text-[#111827]',
+                                      borderColor: 'border-sky-200/30',
+                                      counterBg: 'bg-sky-100',
+                                      counterText: 'text-sky-700'
+                                    }}
+                                  />
+                                </div>}
+
+                                {/* Waiting Queue - Bottom */}
+                                <div className={minimizedSections.waitList ? 'flex-shrink-0' : 'flex-1 min-h-0'}>
+                                  <WaitListSection
+                                    isMinimized={minimizedSections.waitList}
+                                    onToggleMinimize={() => toggleSectionMinimize('waitList')}
+                                    isMobile={false}
+                                    headerStyles={{
+                                      bg: 'bg-gradient-to-br from-purple-50/80 via-purple-100/60 to-violet-50/40',
+                                      accentColor: '#A78BFA',
+                                      iconColor: 'text-[#9CA3AF]',
+                                      activeIconColor: 'text-[#A78BFA]',
+                                      titleColor: 'text-[#111827]',
+                                      borderColor: 'border-purple-200/30',
+                                      counterBg: 'bg-purple-100',
+                                      counterText: 'text-purple-700'
+                                    }}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
-                          {/* Right Column - Coming Appointments (full height, independent) */}
-                          {showUpcomingAppointments && <div className={`transition-all duration-300 ease-in-out h-full min-h-0 ${minimizedSections.comingAppointments ? 'w-[60px] flex-shrink-0' : 'w-[280px]'}`}>
-                              <ComingAppointments isMinimized={minimizedSections.comingAppointments} onToggleMinimize={() => toggleSectionMinimize('comingAppointments')} isMobile={false} headerStyles={{
-                                bg: 'bg-[#F9FAFB]',
-                                accentColor: '#10B981',
-                                iconColor: 'text-[#9CA3AF]',
-                                activeIconColor: 'text-[#10B981]',
-                                titleColor: 'text-[#111827]',
-                                borderColor: 'border-[#E5E7EB]',
-                                counterBg: 'bg-[#E5E7EB]',
-                                counterText: 'text-[#6B7280]'
-                              }} />
-                            </div>}
                         </div>
                       </>}
                   </div>

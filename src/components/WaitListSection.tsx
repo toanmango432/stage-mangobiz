@@ -52,6 +52,26 @@ export const WaitListSection = memo(function WaitListSection({
     deleteTicket
   } = useTickets();
 
+  // Calculate metrics for header
+  const vipCount = waitlist.filter(ticket => ticket.clientType === 'VIP').length;
+
+  // Calculate average wait time from ticket.time (check-in time)
+  const calculateWaitTime = (time: string): number => {
+    try {
+      const startTime = new Date();
+      const [hours, minutes] = time.split(':').map(Number);
+      startTime.setHours(hours, minutes, 0, 0);
+      const now = new Date();
+      return Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60));
+    } catch {
+      return 0;
+    }
+  };
+
+  const avgWaitTime = waitlist.length > 0
+    ? Math.round(waitlist.reduce((sum, ticket) => sum + calculateWaitTime(ticket.time), 0) / waitlist.length)
+    : 0;
+
   // Use shared hook for view mode management (replaces 45+ lines of duplicate code)
   const {
     viewMode,
@@ -290,7 +310,7 @@ export const WaitListSection = memo(function WaitListSection({
           <div className="w-4 h-4 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500 opacity-70"></div>
+        <div className="absolute top-0 left-0 w-[4px] h-full bg-purple-400 opacity-80"></div>
         {/* Collapsed view */}
         <div className="flex flex-wrap sm:flex-nowrap items-center p-3 pl-4">
           {/* Left section - Number & Client */}
@@ -488,10 +508,10 @@ export const WaitListSection = memo(function WaitListSection({
             </div>
           </div>}
         {/* WAITING stamp overlay */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.12] pointer-events-none">
-          <div className="text-amber-600 font-bold text-2xl tracking-wider uppercase" style={{
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.20] pointer-events-none">
+          <div className="text-purple-600 font-bold text-2xl tracking-wider uppercase" style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(217,119,6,0.2)',
+          textShadow: '0 0 1px rgba(147,51,234,0.2)',
           fontFamily: 'monospace'
         }}>
             WAITING
@@ -522,7 +542,7 @@ export const WaitListSection = memo(function WaitListSection({
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 opacity-70"></div>
+        <div className="absolute top-0 left-0 w-[4px] h-full bg-purple-400 opacity-80"></div>
         <div className="flex items-center p-2 pl-3">
           {/* Number & Client */}
           <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm mr-2 border border-gray-800" style={{
@@ -583,10 +603,10 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
         </div>
         {/* Subtle WAITING stamp overlay */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.08] pointer-events-none">
-          <div className="text-amber-600 font-bold text-lg tracking-wider uppercase" style={{
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.15] pointer-events-none">
+          <div className="text-purple-600 font-bold text-lg tracking-wider uppercase" style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(217,119,6,0.2)',
+          textShadow: '0 0 1px rgba(147,51,234,0.2)',
           fontFamily: 'monospace'
         }}>
             WAITING
@@ -621,7 +641,7 @@ export const WaitListSection = memo(function WaitListSection({
           <div className="w-4 h-4 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500 opacity-70"></div>
+        <div className="absolute top-0 left-0 w-[4px] h-full bg-purple-400 opacity-80"></div>
         {/* Card header with number and client type */}
         <div className="flex justify-between p-4 border-b border-dashed border-gray-300 pl-4">
           <div className="flex items-center">
@@ -785,9 +805,9 @@ export const WaitListSection = memo(function WaitListSection({
         </div>
         {/* WAITING stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.08] pointer-events-none">
-          <div className="text-amber-600 font-bold text-2xl tracking-wider uppercase" style={{
+          <div className="text-purple-600 font-bold text-2xl tracking-wider uppercase" style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(217,119,6,0.2)',
+          textShadow: '0 0 1px rgba(147,51,234,0.2)',
           fontFamily: 'monospace'
         }}>
             WAITING
@@ -819,7 +839,7 @@ export const WaitListSection = memo(function WaitListSection({
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 opacity-70"></div>
+        <div className="absolute top-0 left-0 w-[4px] h-full bg-purple-400 opacity-80"></div>
         <div className="flex items-center justify-between p-2 border-b border-dashed border-gray-300 pl-4">
           <div className="flex items-center">
             <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm mr-2 border border-gray-800" style={{
@@ -875,9 +895,9 @@ export const WaitListSection = memo(function WaitListSection({
         </div>
         {/* WAITING stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.08] pointer-events-none">
-          <div className="text-amber-600 font-bold text-xl tracking-wider uppercase" style={{
+          <div className="text-purple-600 font-bold text-xl tracking-wider uppercase" style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(217,119,6,0.2)',
+          textShadow: '0 0 1px rgba(147,51,234,0.2)',
           fontFamily: 'monospace'
         }}>
             WAITING
@@ -886,7 +906,7 @@ export const WaitListSection = memo(function WaitListSection({
       </div>;
   };
   if (isMinimized) {
-    return <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out">
+    return <div className="bg-white border-l border-l-gray-200 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out">
         {/* Minimized vertical header for mobile/tablet */}
         {(isMobile || isCombinedView) && <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
             <div className="flex items-center">
@@ -927,38 +947,57 @@ export const WaitListSection = memo(function WaitListSection({
           </div>}
       </div>;
   }
-  return <div className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden h-full" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)' }}>
+  return <div className="bg-white border-l border-l-gray-200 flex flex-col overflow-hidden h-full pb-0">
       {/* Section header - hide when in combined view and hideHeader is true */}
-      {!hideHeader && <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-white to-orange-50/30 sticky top-0 z-10 backdrop-blur-sm" style={{ 
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-        }}>
-          <div className="flex items-center gap-3">
-            {/* Icon */}
-            <div className="p-1.5 rounded-lg" style={{ 
-              background: 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
-              boxShadow: '0 2px 4px rgba(255, 179, 71, 0.3)'
-            }}>
-              <Users size={16} className="text-white" strokeWidth={2.5} />
+      {!hideHeader && <div className="sticky top-9 z-10 border-b border-gray-200/60">
+          {/* Main Header */}
+          <div className={`flex items-center justify-between px-4 py-3 bg-white`}>
+            <div className="flex items-center gap-3">
+              {/* Icon */}
+              <div className="p-1.5 rounded-lg" style={{
+                background: headerStyles ? headerStyles.accentColor : 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
+                boxShadow: `0 2px 4px ${headerStyles ? headerStyles.accentColor + '40' : 'rgba(255, 179, 71, 0.3)'}`
+              }}>
+                <Users size={16} className="text-white" strokeWidth={2.5} />
+              </div>
+
+              {/* Title */}
+              <h2 className="text-base font-bold" style={{
+                color: headerStyles?.titleColor || '#1a1a1a',
+                letterSpacing: '-0.4px',
+                lineHeight: 1
+              }}>Waiting Queue</h2>
+
+              {/* Count Badge */}
+              <div className={`px-2.5 py-1 rounded-full text-xs font-bold ${headerStyles?.counterBg || ''} ${headerStyles?.counterText || ''}`} style={!headerStyles ? {
+                background: 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
+                color: 'white',
+                boxShadow: '0 2px 4px rgba(255, 179, 71, 0.3)',
+                minWidth: '28px',
+                textAlign: 'center'
+              } : {
+                minWidth: '28px',
+                textAlign: 'center'
+              }}>
+                {waitlist.length}
+              </div>
+
+              {/* Inline Metrics */}
+              <div className="flex items-center gap-3 ml-2">
+                {vipCount > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Star size={14} className="text-yellow-500" fill="currentColor" />
+                    <span className="text-xs font-semibold text-gray-700">{vipCount} VIP</span>
+                  </div>
+                )}
+                {avgWaitTime > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={14} className="text-blue-500" />
+                    <span className="text-xs font-semibold text-gray-700">Avg {avgWaitTime}m</span>
+                  </div>
+                )}
+              </div>
             </div>
-            
-            {/* Title */}
-            <h2 className="text-base font-bold" style={{ 
-              color: '#1a1a1a',
-              letterSpacing: '-0.4px',
-              lineHeight: 1
-            }}>Waiting Queue</h2>
-            
-            {/* Count Badge */}
-            <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ 
-              background: 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
-              color: 'white',
-              boxShadow: '0 2px 4px rgba(255, 179, 71, 0.3)',
-              minWidth: '28px',
-              textAlign: 'center'
-            }}>
-              {waitlist.length}
-            </div>
-          </div>
           <div className="flex space-x-1">
             {/* Add New Ticket button */}
             <Tippy content="Add new ticket">
@@ -1047,8 +1086,9 @@ export const WaitListSection = memo(function WaitListSection({
             </div>
             <Tippy content="Minimize section"></Tippy>
           </div>
+          </div>
         </div>}
-      <div className="flex-1 overflow-auto p-3 scroll-smooth">
+      <div className="flex-1 overflow-auto px-3 pt-3 scroll-smooth">
         {/* Show content based on whether there are tickets */}
         {waitlist.length > 0 ? viewMode === 'grid' ? <div 
           className="grid gap-4"
