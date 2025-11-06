@@ -1,6 +1,6 @@
-// Front Desk Module - This is the Salon Center component (unchanged)
-import { SalonCenter } from '../SalonCenter';
+// Front Desk Module
+import { FrontDesk as FrontDeskContent } from '../SalonCenter';
 
 export function FrontDesk() {
-  return <SalonCenter />;
+  return <FrontDeskContent />;
 }

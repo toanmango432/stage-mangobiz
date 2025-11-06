@@ -6,13 +6,13 @@ import 'tippy.js/dist/tippy.css';
 import FocusTrap from 'focus-trap-react';
 import { OperationTemplateSetup } from './OperationTemplateSetup';
 // Types for all settings
-export interface SalonCenterSettingsProps {
+export interface FrontDeskSettingsProps {
   isOpen: boolean;
   onClose: () => void;
-  currentSettings: SalonCenterSettingsData;
-  onSettingsChange: (settings: Partial<SalonCenterSettingsData>) => void;
+  currentSettings: FrontDeskSettingsData;
+  onSettingsChange: (settings: Partial<FrontDeskSettingsData>) => void;
 }
-export interface SalonCenterSettingsData {
+export interface FrontDeskSettingsData {
   // Operation Template
   operationTemplate: 'frontDeskBalanced' | 'frontDeskTicketCenter' | 'teamWithOperationFlow' | 'teamInOut';
   // Team Settings
@@ -60,7 +60,7 @@ export interface SalonCenterSettingsData {
   inServiceActive: boolean;
 }
 // Default settings
-export const defaultSalonCenterSettings: SalonCenterSettingsData = {
+export const defaultFrontDeskSettings: FrontDeskSettingsData = {
   // Operation Template
   operationTemplate: 'frontDeskBalanced',
   // Team Settings
@@ -266,7 +266,7 @@ const TemplateCard: React.FC<{
     </div>
   </div>;
 // Get template info
-const getTemplateInfo = (template: SalonCenterSettingsData['operationTemplate']) => {
+const getTemplateInfo = (template: FrontDeskSettingsData['operationTemplate']) => {
   switch (template) {
     case 'frontDeskBalanced':
       return {
@@ -315,13 +315,13 @@ const getTemplateInfo = (template: SalonCenterSettingsData['operationTemplate'])
       };
   }
 };
-export const SalonCenterSettings: React.FC<SalonCenterSettingsProps> = ({
+export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   isOpen,
   onClose,
   currentSettings,
   onSettingsChange
 }) => {
-  const [settings, setSettings] = useState<SalonCenterSettingsData>(currentSettings);
+  const [settings, setSettings] = useState<FrontDeskSettingsData>(currentSettings);
   const [activeSection, setActiveSection] = useState<string>('operationTemplates');
   const [hasChanges, setHasChanges] = useState(false);
   const previousActiveElement = useRef<Element | null>(null);
@@ -348,7 +348,7 @@ export const SalonCenterSettings: React.FC<SalonCenterSettingsProps> = ({
     setHasChanges(false);
   }, [currentSettings]);
   // Handle setting changes
-  const updateSetting = <K extends keyof SalonCenterSettingsData,>(key: K, value: SalonCenterSettingsData[K]) => {
+  const updateSetting = <K extends keyof FrontDeskSettingsData,>(key: K, value: FrontDeskSettingsData[K]) => {
     const newSettings = {
       ...settings,
       [key]: value
@@ -363,8 +363,8 @@ export const SalonCenterSettings: React.FC<SalonCenterSettingsProps> = ({
     setHasChanges(true);
   };
   // Apply template presets
-  const applyTemplate = (template: SalonCenterSettingsData['operationTemplate']) => {
-    let newSettings: Partial<SalonCenterSettingsData> = {
+  const applyTemplate = (template: FrontDeskSettingsData['operationTemplate']) => {
+    let newSettings: Partial<FrontDeskSettingsData> = {
       operationTemplate: template
     };
     // Apply preset values based on template
@@ -547,7 +547,7 @@ export const SalonCenterSettings: React.FC<SalonCenterSettingsProps> = ({
               <div className="bg-[#27AE60] text-white p-1.5 rounded-lg mr-3 shadow-sm">
                 <Settings size={18} />
               </div>
-              Salon Center Settings
+              Front Desk Settings
             </h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close settings panel">
               <X size={20} />

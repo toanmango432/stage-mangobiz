@@ -29,7 +29,7 @@ export function SalonHeaderSmart({
     label: 'Book'
   }, {
     id: 'salonCenter',
-    label: 'Salon Center'
+    label: 'Front Desk'
   }, {
     id: 'createCharge',
     label: 'Create/Charge'

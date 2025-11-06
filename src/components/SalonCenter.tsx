@@ -12,8 +12,8 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Settings, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
-import { SalonCenterSettings, SalonCenterSettingsData, defaultSalonCenterSettings } from './SalonCenterSettings';
-export function SalonCenter() {
+import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './FrontDeskSettings';
+export function FrontDesk() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
     const saved = localStorage.getItem('minimizedSections');
@@ -83,10 +83,10 @@ export function SalonCenter() {
   // Add state for create ticket modal
   const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
   // Add state for the salon center settings
-  const [showSalonCenterSettings, setShowSalonCenterSettings] = useState(false);
-  const [salonCenterSettings, setSalonCenterSettings] = useState<SalonCenterSettingsData>(() => {
+  const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
+  const [frontDeskSettings, setFrontDeskSettings] = useState<FrontDeskSettingsData>(() => {
     // Initialize with default settings or from localStorage if available
-    return defaultSalonCenterSettings;
+    return defaultFrontDeskSettings;
   });
   // Get ticket context functions
   const {
@@ -317,8 +317,8 @@ export function SalonCenter() {
     count: 0
   }] : [])];
   // Handle settings change
-  const handleSalonCenterSettingsChange = (newSettings: Partial<SalonCenterSettingsData>) => {
-    setSalonCenterSettings(prev => ({
+  const handleFrontDeskSettingsChange = (newSettings: Partial<FrontDeskSettingsData>) => {
+    setFrontDeskSettings(prev => ({
       ...prev,
       ...newSettings
     }));
@@ -350,8 +350,8 @@ export function SalonCenter() {
       <div className="absolute top-1 right-1 z-10">
         {/* Settings icon in the top-right */}
         <div className="relative" ref={ticketSettingsRef}>
-          <Tippy content="Salon Center Settings">
-            <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" onClick={() => setShowSalonCenterSettings(true)}>
+          <Tippy content="Front Desk Settings">
+            <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" onClick={() => setShowFrontDeskSettings(true)}>
               <Settings size={16} />
             </button>
           </Tippy>
@@ -362,7 +362,7 @@ export function SalonCenter() {
             <Tippy content="Sort tickets">
               <button className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" onClick={() => {
             setTicketSortOrder(ticketSortOrder === 'queue' ? 'time' : 'queue');
-            handleSalonCenterSettingsChange({
+            handleFrontDeskSettingsChange({
               sortBy: ticketSortOrder === 'queue' ? 'time' : 'queue'
             });
           }}>
@@ -372,7 +372,7 @@ export function SalonCenter() {
             <Tippy content={showUpcomingAppointments ? 'Hide upcoming' : 'Show upcoming'}>
               <button className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" onClick={() => {
             setShowUpcomingAppointments(!showUpcomingAppointments);
-            handleSalonCenterSettingsChange({
+            handleFrontDeskSettingsChange({
               showComingAppointments: !showUpcomingAppointments
             });
           }}>
@@ -828,8 +828,8 @@ export function SalonCenter() {
       <FloatingActionButton onCreateTicket={() => setShowCreateTicketModal(true)} />
       {/* Create Ticket Modal */}
       <CreateTicketModal isOpen={showCreateTicketModal} onClose={() => setShowCreateTicketModal(false)} onSubmit={createTicket} />
-      {/* Add the new SalonCenterSettings component */}
-      <SalonCenterSettings isOpen={showSalonCenterSettings} onClose={() => setShowSalonCenterSettings(false)} currentSettings={salonCenterSettings} onSettingsChange={handleSalonCenterSettingsChange} />
+      {/* Add the new FrontDeskSettings component */}
+      <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />
     </div>
   );
 }
