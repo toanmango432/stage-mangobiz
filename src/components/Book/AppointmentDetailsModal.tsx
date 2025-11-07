@@ -8,6 +8,7 @@ import { X, Edit2, Check, XCircle, Clock, Phone, Mail, MessageSquare, Calendar, 
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { Client } from '../../types/client';
+import toast from 'react-hot-toast';
 import { clientsDB } from '../../db/database';
 import { db } from '../../db/schema';
 
@@ -108,7 +109,7 @@ export function AppointmentDetailsModal({
       setIsEditingClientNotes(false);
     } catch (error) {
       console.error('Error saving client notes:', error);
-      alert('Failed to save client notes. Please try again.');
+      toast.error('Failed to save client notes. Please try again.');
     } finally {
       setIsSavingClientNotes(false);
     }

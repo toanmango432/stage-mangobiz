@@ -7,6 +7,7 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from './redux';
 import {
   selectCalendarView,
+  selectAppointmentsForDate,
   setSelectedDate,
   setSelectedStaffIds,
   setViewMode,
@@ -39,22 +40,8 @@ export function useAppointmentCalendar(options: UseAppointmentCalendarOptions = 
   const calendarView = useAppSelector(selectCalendarView);
   const { selectedDate, viewMode, timeWindowMode, selectedStaffIds } = calendarView;
 
-  // Get appointments from state
-  const appointmentsByDate = useAppSelector((state: RootState) => state.appointments.appointmentsByDate);
-  const appointmentsByStaff = useAppSelector((state: RootState) => state.appointments.appointmentsByStaff);
-
-  // Get appointments for selected date
-  const appointments = useMemo(() => {
-    // Create date key matching the indexing format (start of day ISO string)
-    const startOfSelectedDay = new Date(selectedDate);
-    startOfSelectedDay.setHours(0, 0, 0, 0);
-    const dateKey = startOfSelectedDay.toISOString();
-    
-    console.log('🔍 Looking for appointments with key:', dateKey);
-    console.log('📅 Available date keys:', Object.keys(appointmentsByDate));
-    
-    return appointmentsByDate[dateKey] || [];
-  }, [appointmentsByDate, selectedDate]);
+  // Get appointments for selected date using the correct selector
+  const appointments = useAppSelector(state => selectAppointmentsForDate(state, selectedDate));
 
   // Filter appointments by selected staff and other filters
   const filteredAppointments = useMemo(() => {
@@ -155,7 +142,6 @@ export function useAppointmentCalendar(options: UseAppointmentCalendarOptions = 
     filteredAppointments,
     timeSlots,
     visibleTimeSlots,
-    appointmentsByStaff,
 
     // Actions
     handleDateChange,

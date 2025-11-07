@@ -6,12 +6,13 @@
 import { useEffect, useState } from 'react';
 import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { store } from '../store';
 import { selectAllStaff } from '../store/slices/staffSlice';
 import {
   CalendarHeader,
   StaffSidebar,
   CustomerSearchModal,
-  NewAppointmentModal,
+  NewAppointmentModalV2,
   AppointmentDetailsModal,
   EditAppointmentModal,
 } from '../components/Book';
@@ -30,6 +31,7 @@ import { Toast, ToastType } from '../components/Toast';
 import { appointmentsDB, db } from '../db/database';
 import { getTestSalonId } from '../db/seed';
 import { NEXT_AVAILABLE_STAFF_ID } from '../constants/appointment';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 export function BookPage() {
   const dispatch = useAppDispatch();
@@ -56,6 +58,8 @@ export function BookPage() {
   });
   const [selectedAppointment, setSelectedAppointment] = useState<LocalAppointment | null>(null);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [isSavingAppointment, setIsSavingAppointment] = useState(false);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
   const {
     selectedDate,
@@ -304,6 +308,18 @@ export function BookPage() {
       const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
       if (!appointment) return;
 
+      // Confirm cancellation with user
+      const confirmed = window.confirm(
+        `Are you sure you want to cancel the appointment for ${appointment.clientName} at ${
+          new Date(appointment.scheduledStartTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit'
+          })
+        }?`
+      );
+
+      if (!confirmed) return;
+
       // Update to cancelled status (soft delete)
       const updates: Partial<LocalAppointment> = {
         status: 'cancelled',
@@ -391,6 +407,7 @@ export function BookPage() {
   };
 
   const handleSaveAppointment = async (appointmentData: any) => {
+    setIsSavingAppointment(true);
     try {
       // Get existing appointments for auto-assign if needed
       const existingAppointments = filteredAppointments || [];
@@ -454,31 +471,40 @@ export function BookPage() {
       // Save to IndexedDB
       await db.appointments.put(appointment);
 
-      // Queue for sync
-      await syncService.queueCreate('appointment', appointment, 3);
+      // Queue for sync if online
+      if (navigator.onLine) {
+        await syncService.queueCreate('appointment', appointment, 3);
+      }
 
-      // Show success toast
-      setToast({ message: 'Appointment created successfully!', type: 'success' });
-      
-      // Reload appointments to show the new one
-      const updatedAppointments = await appointmentsDB.getByDate(salonId, selectedDate);
-      updatedAppointments.forEach((apt: any) => {
-        const localApt: LocalAppointment = {
-          ...apt,
-          scheduledStartTime: apt.scheduledStartTime instanceof Date ? apt.scheduledStartTime : new Date(apt.scheduledStartTime),
-          scheduledEndTime: apt.scheduledEndTime instanceof Date ? apt.scheduledEndTime : new Date(apt.scheduledEndTime),
-          createdAt: apt.createdAt instanceof Date ? apt.createdAt : new Date(apt.createdAt),
-          updatedAt: apt.updatedAt instanceof Date ? apt.updatedAt : new Date(apt.updatedAt),
-          syncStatus: apt.syncStatus || 'pending',
-        };
-        dispatch(addLocalAppointment(localApt));
+      // Show success toast with details
+      setToast({
+        message: `Appointment created for ${appointment.clientName} at ${scheduledStartTime.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        })}`,
+        type: 'success'
       });
       
       // Close modal
       setIsNewAppointmentOpen(false);
     } catch (error) {
       console.error('Error saving appointment:', error);
-      setToast({ message: `Failed to create appointment: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`, type: 'error' });
+
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to create appointment. ';
+      if (error instanceof Error) {
+        if (error.message.includes('conflict')) {
+          errorMessage = 'Time slot is already booked. Please select another time.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Appointment saved locally and will sync when online.';
+        } else {
+          errorMessage += 'Please try again.';
+        }
+      }
+
+      setToast({ message: errorMessage, type: 'error' });
+    } finally {
+      setIsSavingAppointment(false);
     }
   };
 
@@ -616,50 +642,81 @@ export function BookPage() {
       </div>
 
       {/* Customer Search Modal */}
-      <CustomerSearchModal
-        isOpen={isCustomerSearchOpen}
-        onClose={() => setIsCustomerSearchOpen(false)}
-        onSelectCustomer={handleSelectCustomer}
-        onCreateCustomer={handleCreateCustomer}
-      />
+      <ErrorBoundary
+        isolate={true}
+        onError={(error, errorInfo) => {
+          console.error('CustomerSearchModal Error:', error, errorInfo);
+          setToast({ type: 'error', message: 'Error loading customer search' });
+        }}
+      >
+        <CustomerSearchModal
+          isOpen={isCustomerSearchOpen}
+          onClose={() => setIsCustomerSearchOpen(false)}
+          onSelectCustomer={handleSelectCustomer}
+          onCreateCustomer={handleCreateCustomer}
+        />
+      </ErrorBoundary>
 
-      {/* New Appointment Modal */}
-      <NewAppointmentModal
-        isOpen={isNewAppointmentOpen}
-        onClose={() => setIsNewAppointmentOpen(false)}
-        selectedDate={selectedTimeSlot?.time || selectedDate}
-        selectedTime={selectedTimeSlot?.time}
-        selectedStaffId={selectedTimeSlot?.staffId}
-        selectedStaffName={selectedTimeSlot?.staffName}
-        selectedStaffPhoto={selectedTimeSlot?.staffPhoto}
-        onSave={handleSaveAppointment}
-        onCreateClient={handleCreateCustomer}
-      />
+      {/* New Appointment Modal V2 - Staff-First Design */}
+      <ErrorBoundary
+        isolate={true}
+        onError={(error, errorInfo) => {
+          console.error('NewAppointmentModal Error:', error, errorInfo);
+          setToast({ type: 'error', message: 'Error in appointment booking' });
+        }}
+      >
+        <NewAppointmentModalV2
+          isOpen={isNewAppointmentOpen}
+          onClose={() => setIsNewAppointmentOpen(false)}
+          selectedDate={selectedTimeSlot?.time || selectedDate}
+          selectedTime={selectedTimeSlot?.time}
+          selectedStaffId={selectedTimeSlot?.staffId}
+          selectedStaffName={selectedTimeSlot?.staffName}
+          onSave={handleSaveAppointment}
+          viewMode="slide"
+        />
+      </ErrorBoundary>
 
       {/* Appointment Details Modal */}
-      <AppointmentDetailsModal
-        isOpen={isAppointmentDetailsOpen}
-        onClose={() => setIsAppointmentDetailsOpen(false)}
-        appointment={selectedAppointment}
-        onEdit={(apt) => {
-          setSelectedAppointment(apt);
-          setIsAppointmentDetailsOpen(false);
-          setIsEditAppointmentOpen(true);
+      <ErrorBoundary
+        isolate={true}
+        onError={(error, errorInfo) => {
+          console.error('AppointmentDetailsModal Error:', error, errorInfo);
+          setToast({ type: 'error', message: 'Error loading appointment details' });
         }}
-        onStatusChange={(id, status) => handleStatusChange(id, status)}
-        onCancel={(id) => handleCancelAppointment(id)}
-        onNoShow={(id) => handleStatusChange(id, 'no-show')}
-        onDelete={handleDeleteAppointment}
-      />
+      >
+        <AppointmentDetailsModal
+          isOpen={isAppointmentDetailsOpen}
+          onClose={() => setIsAppointmentDetailsOpen(false)}
+          appointment={selectedAppointment}
+          onEdit={(apt) => {
+            setSelectedAppointment(apt);
+            setIsAppointmentDetailsOpen(false);
+            setIsEditAppointmentOpen(true);
+          }}
+          onStatusChange={(id, status) => handleStatusChange(id, status)}
+          onCancel={(id) => handleCancelAppointment(id)}
+          onNoShow={(id) => handleStatusChange(id, 'no-show')}
+          onDelete={handleDeleteAppointment}
+        />
+      </ErrorBoundary>
 
       {/* Edit Appointment Modal */}
-      <EditAppointmentModal
-        isOpen={isEditAppointmentOpen}
-        onClose={() => setIsEditAppointmentOpen(false)}
-        appointment={selectedAppointment}
-        onSave={handleEditAppointment}
-        existingAppointments={filteredAppointments || []}
-      />
+      <ErrorBoundary
+        isolate={true}
+        onError={(error, errorInfo) => {
+          console.error('EditAppointmentModal Error:', error, errorInfo);
+          setToast({ type: 'error', message: 'Error editing appointment' });
+        }}
+      >
+        <EditAppointmentModal
+          isOpen={isEditAppointmentOpen}
+          onClose={() => setIsEditAppointmentOpen(false)}
+          appointment={selectedAppointment}
+          onSave={handleEditAppointment}
+          existingAppointments={filteredAppointments || []}
+        />
+      </ErrorBoundary>
 
       {/* Floating Action Button - New Appointment */}
       <button

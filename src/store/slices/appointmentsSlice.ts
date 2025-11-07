@@ -18,11 +18,10 @@ import { startOfDay, endOfDay } from '../../utils/timeUtils';
 // ============================================================================
 
 interface AppointmentState {
-  // Data
+  // Data - Single source of truth
   appointments: LocalAppointment[];
-  appointmentsByDate: AppointmentsByDate;
-  appointmentsByStaff: AppointmentsByStaff;
-  
+  // Removed appointmentsByDate and appointmentsByStaff to avoid duplication
+
   // Calendar View State
   calendarView: CalendarViewState;
   
@@ -61,9 +60,7 @@ interface AppointmentState {
 
 const initialState: AppointmentState = {
   appointments: [],
-  appointmentsByDate: {},
-  appointmentsByStaff: {},
-  
+
   calendarView: {
     selectedDate: new Date(),
     viewMode: 'day',
@@ -239,23 +236,30 @@ const appointmentSlice = createSlice({
     
     // Local Appointment Management
     addLocalAppointment: (state, action: PayloadAction<LocalAppointment>) => {
-      state.appointments.push(action.payload);
-      indexAppointments(state);
+      // Check if appointment already exists to prevent duplicates
+      const existingIndex = state.appointments.findIndex(apt => apt.id === action.payload.id);
+      if (existingIndex === -1) {
+        state.appointments.push(action.payload);
+      } else {
+        // Update existing appointment instead of adding duplicate
+        state.appointments[existingIndex] = action.payload;
+      }
+      // Removed indexAppointments call - no longer duplicating data
     },
-    
+
     updateLocalAppointment: (state, action: PayloadAction<{ id: string; updates: Partial<LocalAppointment> }>) => {
       const { id, updates } = action.payload;
       const index = state.appointments.findIndex(apt => apt.id === id);
-      
+
       if (index !== -1) {
         state.appointments[index] = { ...state.appointments[index], ...updates };
-        indexAppointments(state);
+        // Removed indexAppointments call - no longer duplicating data
       }
     },
-    
+
     removeLocalAppointment: (state, action: PayloadAction<string>) => {
       state.appointments = state.appointments.filter(apt => apt.id !== action.payload);
-      indexAppointments(state);
+      // Removed indexAppointments call - no longer duplicating data
     },
     
     // Sync Status
@@ -289,7 +293,7 @@ const appointmentSlice = createSlice({
         state.loading.fetchAppointments = false;
         // Convert TicketDTO to LocalAppointment
         state.appointments = action.payload.map(ticketDTOToLocalAppointment);
-        indexAppointments(state);
+        // Removed indexAppointments call - no longer duplicating data
       })
       .addCase(fetchAppointments.rejected, (state, action) => {
         state.loading.fetchAppointments = false;
@@ -350,8 +354,8 @@ const appointmentSlice = createSlice({
         if (appointment) {
           appointment.status = 'cancelled';
         }
-        
-        indexAppointments(state);
+
+        // Removed indexAppointments call - no longer duplicating data
       })
       .addCase(cancelAppointment.rejected, (state, action) => {
         state.loading.deleteAppointment = false;
@@ -364,33 +368,7 @@ const appointmentSlice = createSlice({
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Index appointments by date and staff for quick lookup
- */
-function indexAppointments(state: AppointmentState) {
-  state.appointmentsByDate = {};
-  state.appointmentsByStaff = {};
-  
-  state.appointments.forEach(appointment => {
-    // Index by date
-    // Convert string to Date if needed
-    const startTime = typeof appointment.scheduledStartTime === 'string' 
-      ? new Date(appointment.scheduledStartTime)
-      : appointment.scheduledStartTime;
-    const dateKey = startOfDay(startTime).toISOString();
-    
-    if (!state.appointmentsByDate[dateKey]) {
-      state.appointmentsByDate[dateKey] = [];
-    }
-    state.appointmentsByDate[dateKey].push(appointment);
-    
-    // Index by staff
-    if (!state.appointmentsByStaff[appointment.staffId]) {
-      state.appointmentsByStaff[appointment.staffId] = [];
-    }
-    state.appointmentsByStaff[appointment.staffId].push(appointment);
-  });
-}
+// Removed indexAppointments function - no longer needed as we don't duplicate data
 
 /**
  * Convert TicketDTO to LocalAppointment
@@ -492,8 +470,32 @@ export const selectIsLoading = (state: { appointments: AppointmentState }) =>
 export const selectHasError = (state: { appointments: AppointmentState }) => 
   Object.values(state.appointments.error).some(error => error !== null);
 
-export const selectSyncStatus = (state: { appointments: AppointmentState }) => 
+export const selectSyncStatus = (state: { appointments: AppointmentState }) =>
   state.appointments.syncStatus;
+
+// New selectors to replace duplicated data - derive from single source
+export const selectAppointmentsForDate = (state: { appointments: AppointmentState }, date: Date) => {
+  const dateKey = startOfDay(date).toISOString();
+  return state.appointments.appointments.filter(apt => {
+    const aptDate = typeof apt.scheduledStartTime === 'string'
+      ? new Date(apt.scheduledStartTime)
+      : apt.scheduledStartTime;
+    return startOfDay(aptDate).toISOString() === dateKey;
+  });
+};
+
+export const selectAppointmentsForStaff = (state: { appointments: AppointmentState }, staffId: string) => {
+  return state.appointments.appointments.filter(apt => apt.staffId === staffId);
+};
+
+export const selectAppointmentsForDateRange = (state: { appointments: AppointmentState }, startDate: Date, endDate: Date) => {
+  return state.appointments.appointments.filter(apt => {
+    const aptTime = typeof apt.scheduledStartTime === 'string'
+      ? new Date(apt.scheduledStartTime)
+      : apt.scheduledStartTime;
+    return aptTime >= startDate && aptTime <= endDate;
+  });
+};
 
 // ============================================================================
 // EXPORTS

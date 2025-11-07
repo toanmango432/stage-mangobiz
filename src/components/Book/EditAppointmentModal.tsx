@@ -8,6 +8,7 @@ import { X, Save, AlertTriangle, CheckCircle2, Calendar, Clock, User, Users, Pho
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { useAppSelector } from '../../store/hooks';
+import toast from 'react-hot-toast';
 import { selectAllStaff } from '../../store/slices/staffSlice';
 import { detectAppointmentConflicts } from '../../utils/conflictDetection';
 
@@ -134,7 +135,7 @@ export function EditAppointmentModal({
       onClose();
     } catch (error) {
       console.error('Failed to save appointment:', error);
-      alert('Failed to save appointment. Please try again.');
+      toast.error('Failed to save appointment. Please try again.');
     } finally {
       setIsSaving(false);
     }
