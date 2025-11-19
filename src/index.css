@@ -6,6 +6,28 @@
 
 /* Mobile-specific styles and utilities */
 @import './styles/mobile.css';
+
+/* Safe Area Support for Notched Devices (iPhone X+, etc.) */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+}
+
+/* Modal Safe Area Utilities */
+.modal-safe-area {
+  padding-top: max(1rem, var(--safe-area-inset-top));
+  padding-right: max(1rem, var(--safe-area-inset-right));
+  padding-bottom: max(1rem, var(--safe-area-inset-bottom));
+  padding-left: max(1rem, var(--safe-area-inset-left));
+}
+
+/* Modal Max Height with Safe Areas */
+.modal-max-height-safe {
+  max-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 2rem);
+}
+
 /* Improve text rendering */
 html {
   -webkit-font-smoothing: antialiased;

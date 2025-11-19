@@ -8,13 +8,13 @@ export const frontDeskHeaderBase =
 
 export const frontDeskHeaderSpacing = 'px-5 py-3.5';
 
-export const frontDeskHeaderTitle = 'text-[15px] font-semibold tracking-tight';
+export const frontDeskHeaderTitle = 'text-lg font-semibold tracking-tight';
 
 export const frontDeskHeaderActionButton =
-  'h-8 w-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-all duration-200';
+  'min-h-[48px] min-w-[48px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-all duration-200';
 
 export const metricPillBase =
-  'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border';
+  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border';
 
 export interface FrontDeskHeaderTheme {
   wrapper: string;
@@ -37,8 +37,8 @@ export const comingHeaderTheme = {
 
 export const primaryHeaderTheme: FrontDeskHeaderTheme = {
   wrapper: 'bg-white/70 border-b border-slate-200/60',
-  iconWrapper: 'h-9 w-9 rounded-xl bg-slate-900 text-white flex items-center justify-center',
-  countBadge: 'bg-slate-100 text-slate-700 text-[13px] font-semibold px-2.5 py-1 rounded-lg',
+  iconWrapper: 'h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center',
+  countBadge: 'bg-slate-100 text-slate-700 text-sm font-semibold px-3 py-1.5 rounded-lg',
   metricPill: 'font-medium',
   titleClass: 'text-slate-900',
 };

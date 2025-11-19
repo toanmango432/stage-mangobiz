@@ -751,11 +751,11 @@ export function NewAppointmentModalV2({
     return (
       <div
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-24 right-6 z-[70] bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-5 cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-all hover:scale-[1.02] w-80 animate-slide-in-up border border-gray-100"
+        className="fixed bottom-24 right-6 z-[70] bg-white/95 backdrop-blur-xl rounded-2xl shadow-premium-xl p-5 cursor-pointer hover:shadow-premium-2xl transition-all hover:scale-[1.02] w-80 animate-slide-in-up border border-gray-200/50"
       >
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-teal-500 rounded-full animate-pulse" />
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-500 rounded-full animate-pulse" />
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shrink-0 shadow-lg shadow-teal-500/30">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shrink-0 shadow-premium-md">
             <Calendar className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
@@ -808,19 +808,19 @@ export function NewAppointmentModalV2({
   }
 
   const modalClasses = cn(
-    'fixed bg-white z-[70] flex flex-col',
+    'fixed bg-white/95 backdrop-blur-xl z-[70] flex flex-col border',
     view === 'slide'
-      ? 'right-0 top-0 bottom-0 w-[90vw] max-w-6xl animate-slide-in-right shadow-[-8px_0_40px_rgba(0,0,0,0.12)]'
-      : 'inset-6 rounded-3xl animate-fade-in shadow-[0_20px_60px_rgba(0,0,0,0.15)]'
+      ? 'right-0 top-0 bottom-0 w-[90vw] max-w-6xl animate-slide-in-right shadow-premium-3xl border-l border-gray-200/50'
+      : 'inset-6 rounded-3xl animate-fade-in shadow-premium-3xl border-gray-200/50'
   );
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60] animate-fade-in" onClick={onClose} />
 
       <div className={modalClasses}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 shrink-0 border-b border-gray-100">
+        {/* Header - Premium glass */}
+        <div className="flex items-center justify-between px-8 py-5 shrink-0 border-b border-gray-200/50 bg-white/50">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-semibold text-gray-900">New Appointment</h2>
             {/* Quick Date Display */}
@@ -844,33 +844,33 @@ export function NewAppointmentModalV2({
                 <LayoutPanelLeft className="w-5 h-5 text-gray-500" />
               </button>
               {showViewMenu && (
-                <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-200 rounded-2xl shadow-xl z-10 overflow-hidden animate-fade-in">
+                <div className="absolute top-full right-0 mt-2 w-52 bg-white/95 backdrop-blur-xl border border-gray-200/50 rounded-2xl shadow-premium-lg z-10 overflow-hidden animate-scale-in">
                   <div className="p-1.5">
                     <button
                       onClick={() => handleChangeView('slide')}
                       className={cn(
                         'w-full text-left px-3 py-2 text-sm rounded-xl flex items-center gap-2.5 transition-all',
                         view === 'slide'
-                          ? 'bg-teal-50 text-teal-900 font-medium'
+                          ? 'bg-brand-50 text-brand-900 font-medium'
                           : 'text-gray-700 hover:bg-gray-50'
                       )}
                     >
                       <PanelRightClose className="w-4 h-4" />
                       <span className="flex-1">Side Panel</span>
-                      {view === 'slide' && <Check className="w-4 h-4 text-teal-600" />}
+                      {view === 'slide' && <Check className="w-4 h-4 text-brand-600" />}
                     </button>
                     <button
                       onClick={() => handleChangeView('fullpage')}
                       className={cn(
                         'w-full text-left px-3 py-2 text-sm rounded-xl flex items-center gap-2.5 transition-all',
                         view === 'fullpage'
-                          ? 'bg-teal-50 text-teal-900 font-medium'
+                          ? 'bg-brand-50 text-brand-900 font-medium'
                           : 'text-gray-700 hover:bg-gray-50'
                       )}
                     >
                       <Maximize className="w-4 h-4" />
                       <span className="flex-1">Full Page</span>
-                      {view === 'fullpage' && <Check className="w-4 h-4 text-teal-600" />}
+                      {view === 'fullpage' && <Check className="w-4 h-4 text-brand-600" />}
                     </button>
                   </div>
                   <div className="border-t border-gray-100 p-1.5">
@@ -961,7 +961,7 @@ export function NewAppointmentModalV2({
               {selectedClients.length === 0 || isAddingAnotherClient ? (
                 <div className="space-y-2">
                   <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-teal-400 z-10" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400 z-10" />
                     <input
                       ref={clientSearchRef}
                       type="text"
@@ -969,7 +969,7 @@ export function NewAppointmentModalV2({
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                       onFocus={() => setShowAddNewForm(false)}
-                      className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border-2 border-teal-200 rounded-lg focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-teal-500/10 transition-all placeholder:text-gray-400 shadow-sm shadow-teal-500/5"
+                      className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border-2 border-teal-200 rounded-lg focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-gray-400 shadow-sm shadow-teal-500/5"
                     />
                   </div>
                   {isAddingAnotherClient && selectedClients.length > 0 && (
@@ -991,7 +991,7 @@ export function NewAppointmentModalV2({
                   {bookingMode === 'individual' && selectedClients.length > 0 && (
                     <div className="bg-white border-2 border-teal-200 rounded-lg p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center">
                           <span className="text-white font-semibold text-sm">
                             {selectedClients[0].name.charAt(0).toUpperCase()}
                           </span>
@@ -1020,15 +1020,15 @@ export function NewAppointmentModalV2({
                     <div className="space-y-3">
                       {/* Step Indicator */}
                       <div className="flex items-center justify-center gap-2 text-xs">
-                        <div className={`flex items-center gap-1 ${groupStep === 'guests' ? 'text-teal-600 font-semibold' : 'text-gray-400'}`}>
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center ${groupStep === 'guests' ? 'bg-teal-600 text-white' : 'bg-gray-200'}`}>
+                        <div className={`flex items-center gap-1 ${groupStep === 'guests' ? 'text-brand-600 font-semibold' : 'text-gray-400'}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center ${groupStep === 'guests' ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>
                             1
                           </div>
                           <span>Guests</span>
                         </div>
                         <div className="w-8 h-px bg-gray-300" />
-                        <div className={`flex items-center gap-1 ${groupStep === 'services' ? 'text-teal-600 font-semibold' : 'text-gray-400'}`}>
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center ${groupStep === 'services' ? 'bg-teal-600 text-white' : 'bg-gray-200'}`}>
+                        <div className={`flex items-center gap-1 ${groupStep === 'services' ? 'text-brand-600 font-semibold' : 'text-gray-400'}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center ${groupStep === 'services' ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>
                             2
                           </div>
                           <span>Services</span>
@@ -1047,7 +1047,7 @@ export function NewAppointmentModalV2({
                               {bookingGuests.map((guest, index) => (
                                 <div key={guest.id} className="flex items-center justify-between p-3 bg-white border-2 border-gray-200 rounded-lg">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center">
                                       <span className="text-white font-semibold text-xs">
                                         {guest.name.charAt(0).toUpperCase()}
                                       </span>
@@ -1055,7 +1055,7 @@ export function NewAppointmentModalV2({
                                     <div>
                                       <p className="font-semibold text-gray-900 text-sm">
                                         {guest.name}
-                                        {index === 0 && <span className="ml-1.5 text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded">Main</span>}
+                                        {index === 0 && <span className="ml-1.5 text-[10px] bg-teal-100 text-brand-700 px-1.5 py-0.5 rounded">Main</span>}
                                       </p>
                                       <p className="text-[10px] text-gray-500">
                                         {guest.services.length} service{guest.services.length !== 1 ? 's' : ''}
@@ -1082,7 +1082,7 @@ export function NewAppointmentModalV2({
                                 setClientSearch('');
                                 setTimeout(() => clientSearchRef.current?.focus(), 100);
                               }}
-                              className="w-full px-3 py-2.5 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                              className="w-full px-3 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
                             >
                               <Plus className="w-4 h-4" />
                               {bookingGuests.length === 0 ? 'Add Main Guest (Required)' : 'Add Named Guest'}
@@ -1116,7 +1116,7 @@ export function NewAppointmentModalV2({
                         <div className="space-y-3">
                           <button
                             onClick={handleBackToGuests}
-                            className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                            className="text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
                           >
                             ← Back to Guests
                           </button>
@@ -1134,21 +1134,21 @@ export function NewAppointmentModalV2({
                                   className={cn(
                                     "w-full flex items-center justify-between p-2.5 rounded-lg transition-all border-2",
                                     activeGuestId === guest.id
-                                      ? "bg-teal-50 border-teal-500 shadow-sm"
-                                      : "bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50/50"
+                                      ? "bg-brand-50 border-brand-500 shadow-sm"
+                                      : "bg-white border-gray-200 hover:border-brand-300 hover:bg-brand-50/50"
                                   )}
                                 >
                                   <div className="flex items-center gap-2">
                                     <div className={cn(
                                       "w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold",
-                                      activeGuestId === guest.id ? "bg-teal-600" : "bg-gray-400"
+                                      activeGuestId === guest.id ? "bg-brand-600" : "bg-gray-400"
                                     )}>
                                       {guest.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="text-left">
                                       <p className="font-semibold text-gray-900 text-xs leading-tight">
                                         {guest.name}
-                                        {index === 0 && <span className="ml-1 text-[9px] bg-teal-100 text-teal-700 px-1 py-0.5 rounded">Main</span>}
+                                        {index === 0 && <span className="ml-1 text-[9px] bg-teal-100 text-brand-700 px-1 py-0.5 rounded">Main</span>}
                                       </p>
                                       <p className="text-[10px] text-gray-500">
                                         {guest.services.length} service{guest.services.length !== 1 ? 's' : ''}
@@ -1159,7 +1159,7 @@ export function NewAppointmentModalV2({
                                   <div className={cn(
                                     "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                                     activeGuestId === guest.id
-                                      ? "border-teal-600 bg-teal-600"
+                                      ? "border-teal-600 bg-brand-600"
                                       : "border-gray-300"
                                   )}>
                                     {activeGuestId === guest.id && (
@@ -1173,17 +1173,17 @@ export function NewAppointmentModalV2({
 
                           {/* Active Guest Services Display */}
                           {activeGuestId && (
-                            <div className="bg-teal-50 border-2 border-teal-200 rounded-lg p-3">
+                            <div className="bg-brand-50 border-2 border-teal-200 rounded-lg p-3">
                               <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs font-semibold text-teal-900 uppercase tracking-wide">
+                                <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">
                                   {bookingGuests.find(g => g.id === activeGuestId)?.name}'s Services
                                 </p>
-                                <span className="text-[10px] bg-teal-600 text-white px-2 py-0.5 rounded-full font-semibold">
+                                <span className="text-[10px] bg-brand-600 text-white px-2 py-0.5 rounded-full font-semibold">
                                   {bookingGuests.find(g => g.id === activeGuestId)?.services.length || 0}
                                 </span>
                               </div>
                               {bookingGuests.find(g => g.id === activeGuestId)?.services.length === 0 ? (
-                                <p className="text-xs text-teal-700">No services added yet. Use tabs below to add services.</p>
+                                <p className="text-xs text-brand-700">No services added yet. Use tabs below to add services.</p>
                               ) : (
                                 <div className="space-y-1.5">
                                   {bookingGuests.find(g => g.id === activeGuestId)?.services.map((service, idx) => (
@@ -1230,7 +1230,7 @@ export function NewAppointmentModalV2({
                             </div>
                             <div className="flex items-center justify-between text-sm">
                               <span className="font-semibold text-gray-900">Total Amount:</span>
-                              <span className="font-bold text-teal-600 text-lg">
+                              <span className="font-bold text-brand-600 text-lg">
                                 ${bookingGuests.reduce((sum, g) => sum + g.services.reduce((s, svc) => s + svc.price, 0), 0).toFixed(2)}
                               </span>
                             </div>
@@ -1316,7 +1316,7 @@ export function NewAppointmentModalV2({
                   {/* Add New Client - TOP */}
                   <button
                     onClick={() => setShowAddNewForm(true)}
-                    className="w-full px-4 py-3 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    className="w-full px-4 py-3 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Client
@@ -1329,7 +1329,7 @@ export function NewAppointmentModalV2({
                         setSelectedClients([{ id: 'walk-in', name: 'Walk-in', phone: '' }]);
                         setClientSearch('');
                       }}
-                      className="w-full text-left px-4 py-3 bg-white hover:bg-gray-50 transition-colors border-2 border-gray-200 hover:border-teal-300 rounded-lg"
+                      className="w-full text-left px-4 py-3 bg-white hover:bg-gray-50 transition-colors border-2 border-gray-200 hover:border-brand-300 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
@@ -1347,7 +1347,7 @@ export function NewAppointmentModalV2({
                   {clientSearch.length >= 2 ? (
                     searching ? (
                       <div className="flex items-center justify-center py-12">
-                        <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
                       </div>
                     ) : clients.length > 0 ? (
                       <div className="space-y-2">
@@ -1356,7 +1356,7 @@ export function NewAppointmentModalV2({
                           <button
                             key={client.id}
                             onClick={() => bookingMode === 'group' ? handleAddNamedGuest(client) : handleSelectClient(client)}
-                            className="w-full text-left px-4 py-3 bg-white hover:bg-teal-50 transition-colors border border-gray-200 hover:border-teal-300 rounded-lg"
+                            className="w-full text-left px-4 py-3 bg-white hover:bg-brand-50 transition-colors border border-gray-200 hover:border-brand-300 rounded-lg"
                           >
                             <p className="font-medium text-gray-900">{client.name}</p>
                             <p className="text-sm text-gray-500">{client.phone}</p>
@@ -1375,7 +1375,7 @@ export function NewAppointmentModalV2({
                         <button
                           key={client.id}
                           onClick={() => bookingMode === 'group' ? handleAddNamedGuest(client) : handleSelectClient(client)}
-                          className="w-full text-left px-4 py-3 bg-white hover:bg-teal-50 transition-colors border border-gray-200 hover:border-teal-300 rounded-lg"
+                          className="w-full text-left px-4 py-3 bg-white hover:bg-brand-50 transition-colors border border-gray-200 hover:border-brand-300 rounded-lg"
                         >
                           <p className="font-medium text-gray-900">{client.name}</p>
                           <p className="text-sm text-gray-500">{client.phone}</p>
@@ -1390,7 +1390,7 @@ export function NewAppointmentModalV2({
             {/* Inline Add New Form - Full height overlay */}
             {showAddNewForm && (
               <div className="absolute top-[140px] left-0 right-0 bottom-0 bg-white border-r border-gray-100 z-40 p-6 overflow-y-auto">
-                <div className="bg-white border-2 border-teal-500 rounded-lg p-4 shadow-lg">
+                <div className="bg-white border-2 border-brand-500 rounded-lg p-4 shadow-lg">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900">New Client</h3>
                     <button
@@ -1432,7 +1432,7 @@ export function NewAppointmentModalV2({
                           "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2",
                           validationErrors.firstName
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                            : "border-gray-300 focus:border-teal-500 focus:ring-teal-500/20"
+                            : "border-gray-300 focus:border-brand-500 focus:ring-brand-500/20"
                         )}
                         autoFocus
                       />
@@ -1464,7 +1464,7 @@ export function NewAppointmentModalV2({
                           "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2",
                           validationErrors.lastName
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                            : "border-gray-300 focus:border-teal-500 focus:ring-teal-500/20"
+                            : "border-gray-300 focus:border-brand-500 focus:ring-brand-500/20"
                         )}
                       />
                       {validationErrors.lastName && (
@@ -1495,7 +1495,7 @@ export function NewAppointmentModalV2({
                           "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2",
                           validationErrors.phone
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                            : "border-gray-300 focus:border-teal-500 focus:ring-teal-500/20"
+                            : "border-gray-300 focus:border-brand-500 focus:ring-brand-500/20"
                         )}
                       />
                       {validationErrors.phone && (
@@ -1532,7 +1532,7 @@ export function NewAppointmentModalV2({
                           "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2",
                           validationErrors.email
                             ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                            : "border-gray-300 focus:border-teal-500 focus:ring-teal-500/20"
+                            : "border-gray-300 focus:border-brand-500 focus:ring-brand-500/20"
                         )}
                       />
                       {validationErrors.email && (
@@ -1554,7 +1554,7 @@ export function NewAppointmentModalV2({
                         Object.keys(validationErrors).length > 0 ||
                         isAddingClient
                       }
-                      className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isAddingClient ? (
                         <>
@@ -1651,7 +1651,7 @@ export function NewAppointmentModalV2({
                         placeholder="Search services..."
                         value={serviceSearch}
                         onChange={(e) => setServiceSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white"
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:bg-white"
                       />
                     </div>
                     <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
@@ -1689,8 +1689,8 @@ export function NewAppointmentModalV2({
                           onClick={() => handleAddServiceToStaff(service)}
                           className={cn(
                             'text-left p-2.5 rounded-lg transition-all text-xs relative overflow-hidden group',
-                            'bg-white border border-gray-200 hover:border-teal-500 hover:shadow-md hover:scale-[1.03] active:scale-[0.97]',
-                            justAddedService === service.id && 'ring-2 ring-teal-500 border-teal-500'
+                            'bg-white border border-gray-200 hover:border-brand-500 hover:shadow-md hover:scale-[1.03] active:scale-[0.97]',
+                            justAddedService === service.id && 'ring-2 ring-brand-500 border-brand-500'
                           )}
                         >
                           {justAddedService === service.id && (
@@ -1714,7 +1714,7 @@ export function NewAppointmentModalV2({
                       <p className="text-sm text-gray-500 mb-2">Select a staff member first</p>
                       <button
                         onClick={() => setActiveTab('staff')}
-                        className="text-sm text-teal-600 font-medium hover:underline"
+                        className="text-sm text-brand-600 font-medium hover:underline"
                       >
                         Go to Staff →
                       </button>
@@ -1730,14 +1730,14 @@ export function NewAppointmentModalV2({
                       className={cn(
                         'w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left group',
                         activeStaffId === staff.id
-                          ? 'bg-teal-50 border-2 border-teal-500 shadow-sm'
-                          : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-sm hover:scale-[1.01]'
+                          ? 'bg-brand-50 border-2 border-brand-500 shadow-sm'
+                          : 'bg-white border border-gray-200 hover:border-brand-300 hover:shadow-sm hover:scale-[1.01]'
                       )}
                     >
                       <div className={cn(
                         "w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold shadow-sm transition-all",
                         activeStaffId === staff.id
-                          ? "bg-gradient-to-br from-teal-500 to-teal-600"
+                          ? "bg-gradient-to-br from-brand-500 to-brand-600"
                           : "bg-gradient-to-br from-gray-400 to-gray-500 group-hover:from-teal-400 group-hover:to-teal-500"
                       )}>
                         {staff.name.charAt(0)}
@@ -1745,12 +1745,12 @@ export function NewAppointmentModalV2({
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 text-sm truncate">{staff.name}</p>
                         {activeStaffId === staff.id ? (
-                          <p className="text-xs text-teal-600 font-medium mt-0.5 flex items-center gap-1">
+                          <p className="text-xs text-brand-600 font-medium mt-0.5 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" />
                             Selected
                           </p>
                         ) : (
-                          <p className="text-xs text-gray-500 mt-0.5 group-hover:text-teal-600 transition-colors">
+                          <p className="text-xs text-gray-500 mt-0.5 group-hover:text-brand-600 transition-colors">
                             Click to select
                           </p>
                         )}
@@ -1769,7 +1769,7 @@ export function NewAppointmentModalV2({
               <div className="flex-1 flex items-center justify-center p-8">
                 <div className="text-center max-w-sm">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-100 flex items-center justify-center">
-                    <User className="w-8 h-8 text-teal-600" />
+                    <User className="w-8 h-8 text-brand-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {bookingMode === 'group' ? 'Step 1: Add Guests' : 'Step 1: Choose Client'}
@@ -1792,7 +1792,7 @@ export function NewAppointmentModalV2({
                     type="date"
                     value={date.toISOString().split('T')[0]}
                     onChange={(e) => setDate(new Date(e.target.value))}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                   />
                 </div>
                 <div>
@@ -1801,7 +1801,7 @@ export function NewAppointmentModalV2({
                     type="time"
                     value={defaultStartTime}
                     onChange={(e) => setDefaultStartTime(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                   />
                 </div>
               </div>
@@ -1829,7 +1829,7 @@ export function NewAppointmentModalV2({
                 onChange={(e) => setAppointmentNotes(e.target.value)}
                 placeholder="Any special requests, preferences, or important notes..."
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none"
               />
             </div>
 
@@ -1859,26 +1859,26 @@ export function NewAppointmentModalV2({
                       className={cn(
                         'rounded-lg overflow-hidden border transition-all',
                         activeStaffId === staff.staffId
-                          ? 'border-teal-500 shadow-sm ring-1 ring-teal-500/20'
+                          ? 'border-brand-500 shadow-sm ring-1 ring-brand-500/20'
                           : 'border-gray-200 hover:border-gray-300'
                       )}
                     >
                       <div
                         className={cn(
                           'flex items-center justify-between p-3 cursor-pointer transition-all',
-                          activeStaffId === staff.staffId ? 'bg-teal-50/50' : 'bg-white hover:bg-gray-50'
+                          activeStaffId === staff.staffId ? 'bg-brand-50/50' : 'bg-white hover:bg-gray-50'
                         )}
                         onClick={() => toggleStaffExpanded(staff.staffId)}
                       >
                         <div className="flex items-center gap-2.5 flex-1">
-                          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-teal-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
                             {staff.staffName.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-gray-900 text-sm truncate">{staff.staffName}</p>
                               {staff.isRequested && (
-                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-teal-700 bg-teal-100 rounded">
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-brand-700 bg-teal-100 rounded">
                                   Requested
                                 </span>
                               )}
@@ -1916,7 +1916,7 @@ export function NewAppointmentModalV2({
                                 e.stopPropagation();
                                 toggleStaffRequested(staff.staffId);
                               }}
-                              className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500/20"
+                              className="w-3.5 h-3.5 rounded border-gray-300 text-brand-600 focus:ring-2 focus:ring-brand-500/20"
                             />
                             <span>Client requested this staff</span>
                           </label>
@@ -1938,7 +1938,7 @@ export function NewAppointmentModalV2({
                                       type="time"
                                       value={service.startTime}
                                       onChange={(e) => handleUpdateServiceTime(staff.staffId, service.id, e.target.value)}
-                                      className="text-xs text-gray-700 border-0 p-0 bg-transparent focus:ring-0 w-14 font-medium hover:text-teal-600 cursor-pointer"
+                                      className="text-xs text-gray-700 border-0 p-0 bg-transparent focus:ring-0 w-14 font-medium hover:text-brand-600 cursor-pointer"
                                     />
                                   </div>
                                   <span className="text-gray-400">{service.duration}m</span>
@@ -1960,7 +1960,7 @@ export function NewAppointmentModalV2({
                   ))}
                   <button
                     onClick={() => setActiveTab('staff')}
-                    className="w-full py-2.5 text-sm font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-teal-400 hover:text-teal-600 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 text-sm font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-teal-400 hover:text-brand-600 transition-all flex items-center justify-center gap-1.5"
                   >
                     <Plus className="w-4 h-4" />
                     Add Another Staff
@@ -2003,7 +2003,7 @@ export function NewAppointmentModalV2({
                   className={cn(
                     'flex-1 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all relative overflow-hidden',
                     canBook && !isBooking
-                      ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 shadow-md shadow-teal-500/25 hover:shadow-lg hover:shadow-teal-500/35 active:scale-[0.98]'
+                      ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-teal-600 hover:to-teal-700 shadow-md shadow-teal-500/25 hover:shadow-lg hover:shadow-teal-500/35 active:scale-[0.98]'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   )}
                 >

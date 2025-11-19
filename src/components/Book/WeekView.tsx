@@ -7,12 +7,14 @@ import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LocalAppointment } from '../../types/appointment';
 import { cn } from '../../lib/utils';
+import { WeekViewSkeleton } from './skeletons';
 
 interface WeekViewProps {
   startDate: Date;
   appointments: LocalAppointment[];
   onAppointmentClick: (appointment: LocalAppointment) => void;
   onDateClick: (date: Date) => void;
+  isLoading?: boolean;
 }
 
 export function WeekView({
@@ -20,6 +22,7 @@ export function WeekView({
   appointments,
   onAppointmentClick,
   onDateClick,
+  isLoading = false,
 }: WeekViewProps) {
   // Generate 7 days starting from startDate
   const weekDays = useMemo(() => {
@@ -58,12 +61,17 @@ export function WeekView({
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
+
+  // Show skeleton during loading
+  if (isLoading) {
+    return <WeekViewSkeleton />;
+  }
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -76,7 +84,11 @@ export function WeekView({
             className={cn(
               'p-4 text-center border-r border-gray-200 last:border-r-0',
               'hover:bg-gray-50 transition-colors',
-              isToday(day) && 'bg-teal-50'
+              // Focus indicators for accessibility
+              'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 focus:z-10',
+              // Active state for press feedback
+              'active:scale-[0.97] active:bg-brand-100',
+              isToday(day) && 'bg-brand-50'
             )}
           >
             <div className="text-xs font-medium text-gray-500 uppercase">
@@ -84,7 +96,7 @@ export function WeekView({
             </div>
             <div className={cn(
               'text-2xl font-bold mt-1',
-              isToday(day) ? 'text-teal-600' : 'text-gray-900'
+              isToday(day) ? 'text-brand-600' : 'text-gray-900'
             )}>
               {day.getDate()}
             </div>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getStaffColor } from '../../constants/bookDesignTokens';
+import { PremiumAvatar } from '../premium';
 
 interface Staff {
   id: string;
@@ -17,39 +18,36 @@ interface StaffChipProps {
   index?: number;
 }
 
-export function StaffChip({ staff, isSelected, onClick, index = 0 }: StaffChipProps) {
+export const StaffChip = memo(function StaffChip({ staff, isSelected, onClick, index = 0 }: StaffChipProps) {
   const avatarColor = getStaffColor(index);
   const hasAppointments = (staff.appointments || 0) > 0;
-  
+
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 transition-all duration-200',
-        'hover:shadow-sm',
-        isSelected 
-          ? 'bg-teal-50 border-teal-500 shadow-sm' 
-          : 'bg-white border-gray-200 hover:border-teal-300'
+        'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200',
+        'hover:shadow-premium-md hover:-translate-y-0.5',
+        // Focus indicators for accessibility
+        'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1',
+        // Active state for press feedback
+        'active:scale-[0.98]',
+        isSelected
+          ? 'bg-brand-50 border-brand-300 shadow-premium-sm'
+          : 'bg-white border-gray-200 hover:border-brand-200'
       )}
     >
-      {/* Avatar with status indicator */}
-      <div className="relative flex-shrink-0">
-        <div 
-          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm"
-          style={{ 
-            background: `linear-gradient(135deg, ${avatarColor}, ${adjustColor(avatarColor, -20)})` 
-          }}
-        >
-          {staff.name.charAt(0).toUpperCase()}
-        </div>
-        
-        {/* Status dot */}
-        <div className={cn(
-          'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm',
-          hasAppointments ? 'bg-amber-400' : 'bg-green-400'
-        )} />
-      </div>
-      
+      {/* Premium Avatar with status indicator */}
+      <PremiumAvatar
+        name={staff.name}
+        size="md"
+        showStatus
+        status={hasAppointments ? 'busy' : 'online'}
+        colorIndex={index}
+        gradient
+        className="flex-shrink-0"
+      />
+
       {/* Name & Count */}
       <div className="flex-1 text-left min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">
@@ -59,14 +57,20 @@ export function StaffChip({ staff, isSelected, onClick, index = 0 }: StaffChipPr
           {staff.appointments || 0} {staff.appointments === 1 ? 'appt' : 'appts'}
         </p>
       </div>
-      
-      {/* Check mark when selected */}
+
+      {/* Check mark when selected - Premium styling */}
       {isSelected && (
-        <Check className="w-4 h-4 text-teal-600 flex-shrink-0" />
+        <div className={cn(
+          'w-5 h-5 rounded-full',
+          'bg-brand-500 flex items-center justify-center',
+          'flex-shrink-0'
+        )}>
+          <Check className="w-3 h-3 text-white" />
+        </div>
       )}
     </button>
   );
-}
+});
 
 // Helper to darken color for gradient
 function adjustColor(color: string, amount: number): string {
@@ -112,7 +116,7 @@ export function StaffList({
             placeholder="Search staff..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:ring-0 text-sm transition-colors"
+            className="w-full pl-9 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-sm transition-colors"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -137,7 +141,7 @@ export function StaffList({
       {hasMore && !search && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full py-2 text-sm text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg font-medium transition-colors"
+          className="w-full py-2 text-sm text-brand-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 active:scale-[0.98]"
         >
           {expanded 
             ? 'Show less' 

@@ -16,6 +16,7 @@ import {
   assignTicket as assignTicketThunk,
   completeTicket as completeTicketThunk,
   deleteTicket as deleteTicketThunk,
+  markTicketAsPaid as markTicketAsPaidThunk,
   type UITicket,
   type CompletionDetails,
 } from '../store/slices/uiTicketsSlice';
@@ -25,6 +26,7 @@ import {
   resetAllStaffStatus as resetStaffThunk,
   type UIStaff,
 } from '../store/slices/uiStaffSlice';
+import type { PaymentMethod, PaymentDetails } from '../types';
 
 // Re-export types for compatibility
 export type { UITicket as Ticket, UIStaff as Staff, CompletionDetails };
@@ -86,9 +88,13 @@ export function useTicketsCompat() {
     console.log('Create appointment:', appointmentData);
   };
 
-  const markTicketAsPaid = (ticketId: string) => {
-    // TODO: Implement mark as paid
-    console.log('Mark ticket as paid:', ticketId);
+  const markTicketAsPaid = (
+    ticketId: string,
+    paymentMethod: PaymentMethod,
+    paymentDetails: PaymentDetails,
+    tip: number
+  ) => {
+    return dispatch(markTicketAsPaidThunk({ ticketId, paymentMethod, paymentDetails, tip }));
   };
 
   const pauseTicket = (ticketId: string) => {

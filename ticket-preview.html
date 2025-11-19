@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Redesign Options - Visual Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a1614;
+      margin-bottom: 40px;
+      font-size: 32px;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+
+    .option-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    .option-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1614;
+      margin-bottom: 8px;
+    }
+
+    .option-subtitle {
+      font-size: 14px;
+      color: #8b7968;
+      margin-bottom: 20px;
+    }
+
+    /* CURRENT DESIGN */
+    .ticket-current {
+      position: relative;
+      background: linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%);
+      border: 2px solid #e8dcc8;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow:
+        inset 0 0.5px 0 rgba(255,255,255,0.70),
+        inset 0 -0.8px 1px rgba(0,0,0,0.05),
+        0.5px 0.5px 0 rgba(255,255,255,0.80),
+        -3px 0 8px rgba(0,0,0,0.08),
+        2px 3px 4px rgba(0,0,0,0.04),
+        4px 8px 12px rgba(0,0,0,0.08);
+    }
+
+    .ticket-current::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+      background-size: 200px 200px;
+      opacity: 0.25;
+      mix-blend-mode: overlay;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .ticket-current .perforation-dots {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 16px;
+      opacity: 0.25;
+    }
+
+    .ticket-current .perforation-dots .dot {
+      width: 3px;
+      height: 3px;
+      background: #c4b5a0;
+      border-radius: 50%;
+    }
+
+    .ticket-current .left-notch,
+    .ticket-current .right-notch {
+      position: absolute;
+      top: 50%;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: linear-gradient(to right, #f8f3eb, #f5f0e8);
+      box-shadow: inset -2px 0 3px rgba(139, 92, 46, 0.10);
+      transform: translateY(-50%);
+    }
+
+    .ticket-current .left-notch {
+      left: -2px;
+    }
+
+    .ticket-current .right-notch {
+      right: -2px;
+    }
+
+    .ticket-current .left-edge-shadow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      box-shadow: inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12);
+      border-radius: 12px 0 0 12px;
+    }
+
+    /* OPTION A - FULL THERMAL RECEIPT */
+    .ticket-thermal {
+      position: relative;
+      background: #FFFDF9;
+      border: 1px dashed #E2E2E2;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow:
+        0 1px 4px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .ticket-thermal::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('https://www.transparenttextures.com/patterns/white-paper.png');
+      background-size: 200px 200px;
+      opacity: 0.08;
+      background-blend-mode: multiply;
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .ticket-thermal .dog-ear {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, transparent 50%, #FFFFFF 50%);
+      box-shadow: -2px -2px 4px rgba(0,0,0,0.07);
+      border-radius: 0 0 10px 0;
+    }
+
+    /* OPTION B - HYBRID */
+    .ticket-hybrid {
+      position: relative;
+      background: #FFFDF9;
+      border: 1px dashed #E2E2E2;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow:
+        0 1px 4px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .ticket-hybrid::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('https://www.transparenttextures.com/patterns/white-paper.png');
+      background-size: 200px 200px;
+      opacity: 0.08;
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .ticket-hybrid .perforation-dots {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 16px;
+      opacity: 0.12;
+    }
+
+    .ticket-hybrid .perforation-dots .dot {
+      width: 1.5px;
+      height: 1.5px;
+      background: #c4b5a0;
+      border-radius: 50%;
+    }
+
+    .ticket-hybrid .dog-ear {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, transparent 50%, #FFFFFF 50%);
+      box-shadow: -2px -2px 4px rgba(0,0,0,0.07);
+      border-radius: 0 0 10px 0;
+    }
+
+    /* OPTION C - SOFTENED CURRENT */
+    .ticket-softened {
+      position: relative;
+      background: linear-gradient(145deg, #FFFDF9 0%, #FFFCF7 50%, #FFFBF5 100%);
+      border: 1.5px solid #e8dcc8;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow:
+        0 1px 4px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.04),
+        -1px 0 4px rgba(0,0,0,0.04);
+    }
+
+    .ticket-softened::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('https://www.transparenttextures.com/patterns/white-paper.png');
+      background-size: 200px 200px;
+      opacity: 0.08;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .ticket-softened .perforation-dots {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 16px;
+      opacity: 0.15;
+    }
+
+    .ticket-softened .perforation-dots .dot {
+      width: 2px;
+      height: 2px;
+      background: #c4b5a0;
+      border-radius: 50%;
+    }
+
+    .ticket-softened .left-notch,
+    .ticket-softened .right-notch {
+      position: absolute;
+      top: 50%;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: linear-gradient(to right, #f8f3eb, #f5f0e8);
+      opacity: 0.6;
+      transform: translateY(-50%);
+    }
+
+    .ticket-softened .left-notch {
+      left: -1.5px;
+    }
+
+    .ticket-softened .right-notch {
+      right: -1.5px;
+    }
+
+    /* TICKET CONTENT STYLES (SHARED) */
+    .ticket-number {
+      position: absolute;
+      left: 0;
+      top: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #fffcf7 100%);
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+      border-top: 1px solid rgba(212, 184, 150, 0.4);
+      border-right: 1px solid rgba(212, 184, 150, 0.4);
+      border-bottom: 1px solid rgba(212, 184, 150, 0.4);
+      padding: 6px 12px;
+      font-weight: 900;
+      font-size: 18px;
+      color: #1a1614;
+      box-shadow: 2px 0 4px rgba(139, 92, 46, 0.12);
+      transform: translateX(-2px);
+      z-index: 10;
+    }
+
+    .ticket-content {
+      position: relative;
+      padding-left: 40px;
+      padding-top: 8px;
+    }
+
+    .client-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1614;
+      margin-bottom: 4px;
+    }
+
+    .client-type {
+      font-size: 12px;
+      color: #8b7968;
+      margin-bottom: 12px;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(232, 220, 200, 0.5);
+      margin: 12px 0;
+    }
+
+    .service-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d2520;
+      margin-bottom: 12px;
+    }
+
+    .progress-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .time-left {
+      font-size: 12px;
+      color: #6b5d52;
+    }
+
+    .progress-percent {
+      font-size: 14px;
+      font-weight: 700;
+      color: #7E5F93;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #f5f0e8;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #9B7EAE, #7E5F93);
+      border-radius: 999px;
+      width: 45%;
+    }
+
+    .staff-section {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .staff-badge {
+      background: #14B8A6;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .action-button {
+      width: 100%;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: white;
+      border: 2px solid #d1d5db;
+      color: #6b7280;
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 200ms;
+    }
+
+    .action-button:hover {
+      border-color: #10b981;
+      color: white;
+      background: #10b981;
+    }
+
+    .comparison-note {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 30px;
+    }
+
+    .comparison-note h2 {
+      color: #1a1614;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .comparison-note ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .comparison-note li {
+      padding: 8px 0;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .comparison-note li::before {
+      content: "→ ";
+      color: #14B8A6;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    .label {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #1f2937;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .label.current { background: #fee2e2; color: #991b1b; }
+    .label.thermal { background: #dbeafe; color: #1e40af; }
+    .label.hybrid { background: #d1fae5; color: #065f46; }
+    .label.softened { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎫 Ticket Redesign Options - Visual Preview</h1>
+
+    <div class="comparison-note">
+      <h2>Quick Comparison Guide</h2>
+      <ul>
+        <li><strong>Current:</strong> Heavy texture (25%), gradient background, lots of 3D effects</li>
+        <li><strong>Option A (Thermal):</strong> Minimal texture (8%), flat background, dashed border, dog-ear</li>
+        <li><strong>Option B (Hybrid):</strong> Minimal texture (8%), subtle perforations, dashed border, dog-ear</li>
+        <li><strong>Option C (Softened):</strong> Minimal texture (8%), keeps gradient, refined shadows</li>
+      </ul>
+    </div>
+
+    <!-- CURRENT DESIGN -->
+    <div class="options-grid">
+      <div class="option-card">
+        <div class="label current">CURRENT DESIGN</div>
+        <div class="option-title">Current Design</div>
+        <div class="option-subtitle">Heavy texture, elaborate 3D effects</div>
+
+        <div class="ticket-current">
+          <div class="perforation-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="left-notch"></div>
+          <div class="right-notch"></div>
+          <div class="left-edge-shadow"></div>
+          <div class="ticket-number">42</div>
+
+          <div class="ticket-content">
+            <div class="client-name">Jane Doe ⭐</div>
+            <div class="client-type">First Visit</div>
+            <div class="divider"></div>
+            <div class="service-name">Haircut & Color</div>
+            <div class="progress-section">
+              <div class="time-left">15m left</div>
+              <div class="progress-percent">45%</div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="staff-section">
+              <div class="staff-badge">MARIA</div>
+            </div>
+            <button class="action-button">
+              <span>✓</span>
+              <span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTION A - FULL THERMAL RECEIPT -->
+      <div class="option-card">
+        <div class="label thermal">OPTION A</div>
+        <div class="option-title">Full Thermal Receipt</div>
+        <div class="option-subtitle">Minimal, clean, modern</div>
+
+        <div class="ticket-thermal">
+          <div class="dog-ear"></div>
+          <div class="ticket-number">42</div>
+
+          <div class="ticket-content">
+            <div class="client-name">Jane Doe ⭐</div>
+            <div class="client-type">First Visit</div>
+            <div class="divider"></div>
+            <div class="service-name">Haircut & Color</div>
+            <div class="progress-section">
+              <div class="time-left">15m left</div>
+              <div class="progress-percent">45%</div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="staff-section">
+              <div class="staff-badge">MARIA</div>
+            </div>
+            <button class="action-button">
+              <span>✓</span>
+              <span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTION B - HYBRID -->
+      <div class="option-card">
+        <div class="label hybrid">OPTION B (RECOMMENDED)</div>
+        <div class="option-title">Hybrid Thermal + Charm</div>
+        <div class="option-subtitle">Balanced, clean with personality</div>
+
+        <div class="ticket-hybrid">
+          <div class="perforation-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="dog-ear"></div>
+          <div class="ticket-number">42</div>
+
+          <div class="ticket-content">
+            <div class="client-name">Jane Doe ⭐</div>
+            <div class="client-type">First Visit</div>
+            <div class="divider"></div>
+            <div class="service-name">Haircut & Color</div>
+            <div class="progress-section">
+              <div class="time-left">15m left</div>
+              <div class="progress-percent">45%</div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="staff-section">
+              <div class="staff-badge">MARIA</div>
+            </div>
+            <button class="action-button">
+              <span>✓</span>
+              <span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTION C - SOFTENED CURRENT -->
+      <div class="option-card">
+        <div class="label softened">OPTION C</div>
+        <div class="option-title">Softened Current</div>
+        <div class="option-subtitle">Refined version of current design</div>
+
+        <div class="ticket-softened">
+          <div class="perforation-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="left-notch"></div>
+          <div class="right-notch"></div>
+          <div class="ticket-number">42</div>
+
+          <div class="ticket-content">
+            <div class="client-name">Jane Doe ⭐</div>
+            <div class="client-type">First Visit</div>
+            <div class="divider"></div>
+            <div class="service-name">Haircut & Color</div>
+            <div class="progress-section">
+              <div class="time-left">15m left</div>
+              <div class="progress-percent">45%</div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="staff-section">
+              <div class="staff-badge">MARIA</div>
+            </div>
+            <button class="action-button">
+              <span>✓</span>
+              <span>Done</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison-note">
+      <h2>🎯 Decision Guide</h2>
+      <ul>
+        <li><strong>Choose Option A</strong> if you want the cleanest, most minimal thermal receipt look</li>
+        <li><strong>Choose Option B</strong> if you want thermal receipt aesthetic with a touch of ticket personality (RECOMMENDED)</li>
+        <li><strong>Choose Option C</strong> if you want to keep the current feel but make it cleaner and more readable</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

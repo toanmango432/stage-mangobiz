@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
+import { ViewModeToggle } from './frontdesk/ViewModeToggle';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, Settings, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
@@ -53,17 +54,17 @@ export const ServiceSection = memo(function ServiceSection({
     pauseTicket,
     resumeTicket
   } = useTickets();
-  // Updated color tokens for section styling
+  // Updated color tokens for section styling - teal theme
   const colorTokens = {
-    primary: '#2F80ED',
-    bg: 'bg-[#E8F2FF]',
-    text: 'text-[#2F80ED]',
-    border: 'ring-[#2F80ED]/30',
-    iconBg: 'bg-[#2F80ED]',
-    hoverBg: 'hover:bg-[#E8F2FF]/50',
-    hoverText: 'hover:text-[#2F80ED]',
-    dropdownHover: 'hover:bg-[#E8F2FF]',
-    focusRing: 'focus:ring-[#2F80ED]'
+    primary: '#14B8A6',
+    bg: 'bg-teal-50',
+    text: 'text-teal-600',
+    border: 'ring-teal-600/30',
+    iconBg: 'bg-teal-600',
+    hoverBg: 'hover:bg-teal-50/50',
+    hoverText: 'hover:text-teal-600',
+    dropdownHover: 'hover:bg-teal-50',
+    focusRing: 'focus:ring-teal-600'
   };
 
   // Use shared hook for view mode management (replaces 45+ lines of duplicate code)
@@ -89,6 +90,19 @@ export const ServiceSection = memo(function ServiceSection({
     externalMinimizedLineView,
     externalSetMinimizedLineView,
   });
+
+  // Calculate metrics from service tickets
+  const activeCount = serviceTickets.filter(t => t.status !== 'paused').length;
+  const pausedCount = serviceTickets.filter(t => t.status === 'paused').length;
+
+  // Calculate average duration in minutes
+  const avgDuration = serviceTickets.length > 0
+    ? Math.round(serviceTickets.reduce((sum, ticket) => {
+        const durationStr = ticket.duration || '0min';
+        const minutes = parseInt(durationStr.replace(/\D/g, '')) || 0;
+        return sum + minutes;
+      }, 0) / serviceTickets.length)
+    : 0;
 
   // Card scale for zoom (kept separate as it's section-specific)
   const [cardScale, setCardScale] = useState<number>(() => {
@@ -211,7 +225,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-3 h-3 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
         {/* Collapsed view */}
         <div className="flex flex-wrap sm:flex-nowrap items-center p-3 pl-4">
           {/* Left section - Number & Client */}
@@ -234,11 +248,11 @@ export const ServiceSection = memo(function ServiceSection({
               </div>
               <div className="flex items-center mt-0.5 sm:mt-1 text-xs text-gray-600">
                 <div className="flex items-center mr-2 sm:mr-3">
-                  <Clock size={12} className="text-blue-500 mr-1" />
+                  <Clock size={12} className="text-teal-500 mr-1" />
                   <span>{ticket.startTime}</span>
                 </div>
                 <div className="flex items-center">
-                  <Calendar size={12} className="text-blue-500 mr-1" />
+                  <Calendar size={12} className="text-teal-500 mr-1" />
                   <span>{ticket.duration}</span>
                 </div>
               </div>
@@ -256,10 +270,10 @@ export const ServiceSection = memo(function ServiceSection({
               <span>{ticket.techName}</span>
             </div>
             {/* Service tag */}
-            <div className="flex-grow sm:flex-grow-0 flex items-center bg-blue-50/40 px-2 py-1 rounded-md border border-blue-100 text-xs text-gray-700 truncate max-w-[160px]" style={{
+            <div className="flex-grow sm:flex-grow-0 flex items-center bg-teal-50/40 px-2 py-1 rounded-md border border-teal-100 text-xs text-gray-700 truncate max-w-[160px]" style={{
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)'
           }}>
-              <Tag size={12} className="text-blue-500 mr-1.5 flex-shrink-0" />
+              <Tag size={12} className="text-teal-500 mr-1.5 flex-shrink-0" />
               <span className="truncate">{ticket.service}</span>
             </div>
           </div>
@@ -281,7 +295,7 @@ export const ServiceSection = memo(function ServiceSection({
               </Tippy>
               {/* Complete button */}
               <Tippy content="Complete service">
-                <button className="p-1.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" onClick={e => handleCompleteTicket(ticket.id, e)} aria-label="Complete service">
+                <button className="p-1.5 text-teal-500 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors" onClick={e => handleCompleteTicket(ticket.id, e)} aria-label="Complete service">
                   <CheckCircle size={14} />
                 </button>
               </Tippy>
@@ -294,15 +308,15 @@ export const ServiceSection = memo(function ServiceSection({
               {/* Dropdown menu */}
               {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-8 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()} role="menu">
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)} role="menuitem">
-                    <Edit2 size={14} className="mr-2 text-blue-500" />
+                    <Edit2 size={14} className="mr-2 text-teal-500" />
                     Edit Ticket
                   </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)} role="menuitem">
-                    <Info size={14} className="mr-2 text-blue-500" />
+                    <Info size={14} className="mr-2 text-teal-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
-                    <CheckCircle size={14} className="mr-2 text-blue-500" />
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
+                    <CheckCircle size={14} className="mr-2 text-teal-500" />
                     Complete Service
                   </button>
                 </div>}
@@ -410,7 +424,7 @@ export const ServiceSection = memo(function ServiceSection({
                     Pause Service
                   </>}
               </button>
-              <button className="flex items-center py-1.5 px-3 rounded-md bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors" onClick={e => {
+              <button className="flex items-center py-1.5 px-3 rounded-md bg-teal-600 text-white text-xs font-medium hover:bg-teal-700 transition-colors" onClick={e => {
             e.stopPropagation();
             handleCompleteTicket(ticket.id, e);
           }}>
@@ -429,9 +443,9 @@ export const ServiceSection = memo(function ServiceSection({
           </div>}
         {/* Status stamp overlay - more subtle */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-blue-500'} font-bold text-2xl tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-2xl tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(59,130,246,0.2)',
+          textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
         }}>
             {isPaused ? 'PAUSED' : 'IN SERVICE'}
@@ -463,7 +477,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
         <div className="flex items-center p-2 pl-3">
           {/* Number & Client */}
           <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-sm mr-2 border border-gray-800" style={{
@@ -498,9 +512,9 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
         {/* Subtle status stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-blue-500'} font-bold text-lg tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-lg tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(59,130,246,0.2)',
+          textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
         }}>
             {isPaused ? 'PAUSED' : 'IN SERVICE'}
@@ -535,7 +549,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-3 h-3 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
         {/* Card header with number and status */}
         <div className="flex justify-between p-3 border-b border-dashed border-gray-300 pl-4">
           <div className="flex items-center">
@@ -574,15 +588,15 @@ export const ServiceSection = memo(function ServiceSection({
               </Tippy>
               {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()} role="menu">
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)} role="menuitem">
-                    <Edit2 size={14} className="mr-2 text-blue-500" />
+                    <Edit2 size={14} className="mr-2 text-teal-500" />
                     Edit Ticket
                   </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)} role="menuitem">
-                    <Info size={14} className="mr-2 text-blue-500" />
+                    <Info size={14} className="mr-2 text-teal-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
-                    <CheckCircle size={14} className="mr-2 text-blue-500" />
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
+                    <CheckCircle size={14} className="mr-2 text-teal-500" />
                     Complete Service
                   </button>
                 </div>}
@@ -593,10 +607,10 @@ export const ServiceSection = memo(function ServiceSection({
         <div className="p-3">
           {/* Client information */}
           <div className="flex items-center mb-3">
-            <div className="bg-blue-50 p-2 rounded-full mr-3 border border-blue-100" style={{
+            <div className="bg-teal-50 p-2 rounded-full mr-3 border border-teal-100" style={{
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)'
           }}>
-              <User size={14} className="text-blue-500" />
+              <User size={14} className="text-teal-500" />
             </div>
             <div className="font-semibold text-gray-800 truncate">
               {ticket.clientName}
@@ -604,10 +618,10 @@ export const ServiceSection = memo(function ServiceSection({
           </div>
           {/* Time and duration */}
           <div className="flex items-center text-xs text-gray-600 mb-3">
-            <div className="flex items-center bg-blue-50/40 px-2 py-1 rounded-md border border-blue-100 mr-2" style={{
+            <div className="flex items-center bg-teal-50/40 px-2 py-1 rounded-md border border-teal-100 mr-2" style={{
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)'
           }}>
-              <Clock size={12} className="text-blue-500 mr-1" />
+              <Clock size={12} className="text-teal-500 mr-1" />
               <span className="font-medium">{ticket.startTime}</span>
               <span className="mx-1 text-gray-400">•</span>
               <span className="font-medium">{ticket.duration}</span>
@@ -696,7 +710,7 @@ export const ServiceSection = memo(function ServiceSection({
         }}>
             {isPaused ? 'Resume' : 'Pause'}
           </button>
-          <button className="py-1.5 px-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors text-xs" onClick={e => {
+          <button className="py-1.5 px-3 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 transition-colors text-xs" onClick={e => {
           e.stopPropagation();
           handleCompleteTicket(ticket.id, e);
         }}>
@@ -709,9 +723,9 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
         {/* Status stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-blue-500'} font-bold text-2xl tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-2xl tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(59,130,246,0.2)',
+          textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
         }}>
             {isPaused ? 'PAUSED' : 'IN SERVICE'}
@@ -743,7 +757,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
         <div className="flex items-center justify-between p-2 border-b border-dashed border-gray-300 pl-3">
           <div className="flex items-center">
             <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-sm mr-2 border border-gray-800" style={{
@@ -784,7 +798,7 @@ export const ServiceSection = memo(function ServiceSection({
           }}>
               {isPaused ? 'Resume' : 'Pause'}
             </button>
-            <button className="flex-1 py-1 px-1 text-center bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors text-[10px]" onClick={e => {
+            <button className="flex-1 py-1 px-1 text-center bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 transition-colors text-[10px]" onClick={e => {
             e.stopPropagation();
             handleCompleteTicket(ticket.id, e);
           }}>
@@ -794,9 +808,9 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
         {/* Status stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-blue-500'} font-bold text-lg tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-lg tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
-          textShadow: '0 0 1px rgba(59,130,246,0.2)',
+          textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
         }}>
             {isPaused ? 'PAUSED' : 'IN SERVICE'}
@@ -837,7 +851,7 @@ export const ServiceSection = memo(function ServiceSection({
             </button>
           </Tippy>
           {/* Left border with status indicator */}
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2F80ED] opacity-80"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-600 opacity-80"></div>
         </div>
       </div>;
   }
@@ -848,88 +862,77 @@ export const ServiceSection = memo(function ServiceSection({
           title="In Service"
           count={serviceTickets.length}
           icon={<Activity size={18} strokeWidth={2.5} />}
-          metricPills={[]}
+          metricPills={[
+            ...(activeCount > 0 ? [{ label: 'Active', value: activeCount, tone: 'success' as const }] : []),
+            ...(pausedCount > 0 ? [{ label: 'Paused', value: pausedCount, tone: 'warning' as const }] : []),
+            ...(avgDuration > 0 ? [{ label: 'Avg', value: `${avgDuration}m`, tone: 'info' as const }] : []),
+          ]}
           rightActions={
             <>
-              {!isMobile && viewMode === 'list' && (
-                <HeaderActionButton onClick={toggleMinimizedLineView} aria-label={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
-                  {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </HeaderActionButton>
+              <ViewModeToggle
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                size="sm"
+              />
+
+              {viewMode === 'grid' ? (
+                <Tippy content={cardViewMode === 'compact' ? 'Switch to Normal' : 'Switch to Compact'}>
+                  <HeaderActionButton onClick={toggleCardViewMode}>
+                    {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                  </HeaderActionButton>
+                </Tippy>
+              ) : (
+                <Tippy content={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
+                  <HeaderActionButton onClick={toggleMinimizedLineView}>
+                    {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                  </HeaderActionButton>
+                </Tippy>
               )}
-              {!isMobile && viewMode === 'grid' && (
-                <HeaderActionButton onClick={toggleCardViewMode} aria-label={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'}>
-                  {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </HeaderActionButton>
-              )}
+
               <div className="relative" ref={dropdownRef}>
-                <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)} aria-haspopup="true" aria-expanded={showDropdown}>
-                  <MoreVertical size={16} />
-                </HeaderActionButton>
+                <Tippy content="More options">
+                  <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)}>
+                    <Settings size={16} />
+                  </HeaderActionButton>
+                </Tippy>
                 {showDropdown && (
                   <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
-                  {/* View Mode Section */}
-                  <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      View Mode
-                    </h3>
-                  </div>
-                  <button className={`w-full text-left px-3 py-2 text-sm text-gray-700 ${colorTokens.dropdownHover} flex items-center`} onClick={() => setViewMode('list')} role="menuitem">
-                    <List size={14} className={`mr-2 ${colorTokens.text}`} />
-                    Line View
-                    {viewMode === 'list' && <Check size={14} className={`ml-auto ${colorTokens.text}`} />}
-                  </button>
-                  <button className={`w-full text-left px-3 py-2 text-sm text-gray-700 ${colorTokens.dropdownHover} flex items-center`} onClick={() => setViewMode('grid')} role="menuitem">
-                    <Grid size={14} className={`mr-2 ${colorTokens.text}`} />
-                    Grid View
-                    {viewMode === 'grid' && <Check size={14} className={`ml-auto ${colorTokens.text}`} />}
-                  </button>
-                  
-                  {/* Card Size Section */}
-                  <div className="border-t border-gray-100 mt-1">
-                    <button 
-                      className={`w-full text-left px-3 py-2.5 text-sm text-gray-700 ${colorTokens.dropdownHover} flex items-center justify-between`} 
-                      onClick={() => setShowCardSizeSlider(!showCardSizeSlider)} 
-                      role="menuitem"
-                    >
-                      <div className="flex items-center">
-                        <Settings size={14} className={`mr-2 ${colorTokens.text}`} />
-                        Adjust Card Size
+                    {/* Card Size Section */}
+                    <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Card Size
+                      </h3>
+                    </div>
+                    <div className="px-3 py-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-500">Small</span>
+                        <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
+                        <span className="text-xs text-gray-500">Large</span>
                       </div>
-                      <ChevronRight size={14} className={showCardSizeSlider ? 'rotate-90 transition-transform' : 'transition-transform'} />
-                    </button>
-                    {showCardSizeSlider && (
-                      <div className="px-3 py-3 bg-gray-50 border-t border-gray-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-gray-500">Small</span>
-                          <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
-                          <span className="text-xs text-gray-500">Large</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.7"
-                          max="1.3"
-                          step="0.05"
-                          value={cardScale}
-                          onChange={(e) => {
-                            const newScale = parseFloat(e.target.value);
-                            setCardScale(newScale);
-                            localStorage.setItem('serviceCardScale', newScale.toString());
-                          }}
-                          className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                          style={{
-                            background: `linear-gradient(to right, #9CC2EA 0%, #9CC2EA ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
-                          }}
-                        />
-                      </div>
-                    )}
+                      <input
+                        type="range"
+                        min="0.7"
+                        max="1.3"
+                        step="0.05"
+                        value={cardScale}
+                        onChange={(e) => {
+                          const newScale = parseFloat(e.target.value);
+                          setCardScale(newScale);
+                          localStorage.setItem('serviceCardScale', newScale.toString());
+                        }}
+                        className="w-full h-2 bg-teal-100 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                        style={{
+                          background: `linear-gradient(to right, #14B8A6 0%, #14B8A6 ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>)}
-            </div>
-            <Tippy content="Minimize section">
-              <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95 touch-manipulation" onClick={onToggleMinimize} aria-expanded="true" aria-controls="service-content">
+                )}
+              </div>
 
-              </button>
-            </Tippy>
+              <HeaderActionButton onClick={onToggleMinimize}>
+                {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+              </HeaderActionButton>
             </>
           }
         />
@@ -937,9 +940,9 @@ export const ServiceSection = memo(function ServiceSection({
       <div id="service-content" className="flex-1 overflow-auto p-3 scroll-smooth">
         {/* Show content based on whether there are tickets */}
         {serviceTickets.length > 0 ? viewMode === 'grid' ? <div
-          className="grid gap-4"
+          className="grid gap-3"
           style={{
-            gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fit, minmax(220px, 280px))' : 'repeat(auto-fit, minmax(280px, 360px))',
+            gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))',
             transform: `scale(${cardScale})`,
             transformOrigin: 'top left',
             width: `${100 / cardScale}%`,
@@ -973,9 +976,9 @@ export const ServiceSection = memo(function ServiceSection({
                   }}
                 />
               ))}
-            </div> : <div 
+            </div> : <div
               className="space-y-2"
-              style={{ 
+              style={{
                 transform: `scale(${cardScale})`,
                 transformOrigin: 'top left',
                 width: `${100 / cardScale}%`
@@ -1009,7 +1012,7 @@ export const ServiceSection = memo(function ServiceSection({
               ))}
             </div> : <div className="flex flex-col items-center mt-24 py-8">
             <div className={`${colorTokens.bg} p-3 rounded-full mb-3`}>
-              <FileText size={28} className={colorTokens.text} />
+              <Activity size={28} className={colorTokens.text} />
             </div>
             <h3 className="text-lg font-medium text-gray-700 mb-1">
               No clients in service

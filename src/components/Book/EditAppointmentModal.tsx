@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { selectAllStaff } from '../../store/slices/staffSlice';
 import { detectAppointmentConflicts } from '../../utils/conflictDetection';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { PremiumButton } from '../premium';
 
 interface EditAppointmentModalProps {
   isOpen: boolean;
@@ -155,40 +156,44 @@ export function EditAppointmentModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Premium blur */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/30 backdrop-blur-md z-40 animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal - Premium glass */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={cn(
-            'bg-white rounded-xl shadow-2xl',
+            'bg-white/95 backdrop-blur-xl rounded-2xl shadow-premium-2xl border border-gray-200/50',
             'w-full max-w-2xl max-h-[90vh]',
             'flex flex-col',
-            'animate-in fade-in zoom-in-95 duration-200'
+            'animate-scale-in'
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          {/* Header - Premium glass */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-white/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-premium-md">
+                <Calendar className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Edit Appointment</h2>
-                <p className="text-sm text-gray-500">Update appointment details</p>
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">Edit Appointment</h2>
+                <p className="text-sm text-gray-600 mt-0.5">Update appointment details</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="btn-icon"
+              className={cn(
+                'p-2 rounded-lg',
+                'hover:bg-gray-100',
+                'transition-colors duration-200'
+              )}
               aria-label="Close"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
 
@@ -345,14 +350,15 @@ export function EditAppointmentModal({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200">
-            <button
+          {/* Footer - Premium glass */}
+          <div className="flex items-center justify-between p-6 border-t border-gray-200/50 bg-white/50 backdrop-blur-sm">
+            <PremiumButton
+              variant="ghost"
+              size="md"
               onClick={onClose}
-              className="btn-ghost"
             >
               Cancel
-            </button>
+            </PremiumButton>
             <div className="flex gap-3">
               {conflicts.length === 0 && hasChanges && (
                 <div className="flex items-center gap-2 text-sm text-green-600">
@@ -360,23 +366,15 @@ export function EditAppointmentModal({
                   No conflicts
                 </div>
               )}
-              <button
+              <PremiumButton
+                variant="primary"
+                size="md"
+                icon={!isSaving ? <Save className="w-4 h-4" /> : undefined}
                 onClick={handleSaveClick}
                 disabled={!hasChanges || isSaving}
-                className={cn(
-                  'btn-primary flex items-center gap-2',
-                  isSaving && 'btn-loading'
-                )}
               >
-                {isSaving ? (
-                  'Saving...'
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Changes
-                  </>
-                )}
-              </button>
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </PremiumButton>
             </div>
           </div>
         </div>

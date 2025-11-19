@@ -24,12 +24,12 @@ import {
 function FrontDeskComponent() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
-    // Force Coming section to be expanded by default - clear any old localStorage
+    // Force Coming section to be minimized by default - clear any old localStorage
     localStorage.removeItem('minimizedSections');
     return {
       waitList: false,
       service: false,
-      comingAppointments: false  // Always expanded to show under header
+      comingAppointments: true  // Minimized by default - only show header with metrics
     };
   });
 

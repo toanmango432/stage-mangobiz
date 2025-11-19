@@ -1,7 +1,7 @@
 /**
- * DaySchedule Component v2.0
- * Fresha's layout + Mango's refined colors
- * Professional, clean, feature-rich
+ * DaySchedule Component v3.0 - Premium Edition
+ * Beautiful calendar grid with premium design system
+ * Glass morphism, smooth animations, refined colors
  */
 
 import { memo, useMemo, useEffect, useState } from 'react';
@@ -9,16 +9,20 @@ import { LocalAppointment } from '../../types/appointment';
 import { colors, calendar } from '../../constants/designSystem';
 import { cn } from '../../lib/utils';
 import { AppointmentContextMenu } from './AppointmentContextMenu';
-import { 
-  snapToGrid, 
-  checkDragConflict, 
+import {
+  snapToGrid,
+  checkDragConflict,
   getConflictColor,
-  calculateEndTime 
+  calculateEndTime
 } from '../../utils/dragAndDropHelpers';
-import { 
+import {
   calculateBufferBlocks,
-  getBufferTimeStyle 
+  getBufferTimeStyle
 } from '../../utils/bufferTimeUtils';
+import { PremiumAvatar, StatusBadge } from '../premium';
+import { getStatusColor, getStaffColor } from '../../constants/premiumDesignSystem';
+import { staggerDelayStyle } from '../../utils/animations';
+import { DayViewSkeleton } from './skeletons';
 
 interface Staff {
   id: string;
@@ -34,6 +38,7 @@ interface DayScheduleProps {
   onTimeSlotClick?: (staffId: string, time: Date) => void;
   onAppointmentDrop?: (appointmentId: string, newStaffId: string, newTime: Date) => void;
   onStatusChange?: (appointmentId: string, newStatus: string) => void;
+  isLoading?: boolean;
 }
 
 /**
@@ -141,6 +146,7 @@ export const DaySchedule = memo(function DaySchedule({
   onTimeSlotClick,
   onAppointmentDrop,
   onStatusChange,
+  isLoading = false,
 }: DayScheduleProps) {
   const [currentTimePos, setCurrentTimePos] = useState(getCurrentTimePosition());
   const [draggedAppointment, setDraggedAppointment] = useState<LocalAppointment | null>(null);
@@ -148,6 +154,35 @@ export const DaySchedule = memo(function DaySchedule({
   const [dragConflict, setDragConflict] = useState<{ hasConflict: boolean; conflictType?: string; message?: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ appointment: LocalAppointment; x: number; y: number } | null>(null);
   const timeLabels = useMemo(() => generateTimeLabels(), []);
+
+  // Responsive slot configuration for touch targets
+  // Mobile: 60min slots (60px), Tablet: 30min slots (30px), Desktop: 15min slots (15px)
+  const [slotConfig, setSlotConfig] = useState({ intervalsPerHour: 4, minutesPerSlot: 15 });
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentStaffIndex, setCurrentStaffIndex] = useState(0);
+
+  useEffect(() => {
+    const updateSlotConfig = () => {
+      const width = window.innerWidth;
+      const mobile = width < 768;
+      setIsMobile(mobile);
+
+      if (mobile) {
+        // Mobile: 60-minute slots (meets 44px minimum touch target)
+        setSlotConfig({ intervalsPerHour: 1, minutesPerSlot: 60 });
+      } else if (width < 1024) {
+        // Tablet: 30-minute slots
+        setSlotConfig({ intervalsPerHour: 2, minutesPerSlot: 30 });
+      } else {
+        // Desktop: 15-minute slots (precision)
+        setSlotConfig({ intervalsPerHour: 4, minutesPerSlot: 15 });
+      }
+    };
+
+    updateSlotConfig();
+    window.addEventListener('resize', updateSlotConfig);
+    return () => window.removeEventListener('resize', updateSlotConfig);
+  }, []);
   
   // Calculate grid height (12am to 11pm = 24 hours = 1440px)
   const gridHeight = 24 * 60; // 24 hours * 60px per hour
@@ -158,14 +193,14 @@ export const DaySchedule = memo(function DaySchedule({
     const pos = getCurrentTimePosition();
     setCurrentTimePos(pos);
     // Update current time position immediately
-    
+
     const interval = setInterval(() => {
       const newPos = getCurrentTimePosition();
       setCurrentTimePos(newPos);
     }, 60000); // Update every minute
-    
+
     return () => clearInterval(interval);
-  }, [gridHeight]);
+  }, []); // No dependencies needed - gridHeight is constant
 
   // Group appointments by staff
   const appointmentsByStaff = useMemo(() => {
@@ -181,6 +216,27 @@ export const DaySchedule = memo(function DaySchedule({
     return grouped;
   }, [staff, appointments]);
 
+  // On mobile, show only one staff at a time to prevent horizontal scrolling
+  const displayedStaff = useMemo(() => {
+    if (isMobile && staff.length > 0) {
+      return [staff[Math.min(currentStaffIndex, staff.length - 1)]];
+    }
+    return staff;
+  }, [isMobile, staff, currentStaffIndex]);
+
+  const handlePreviousStaff = () => {
+    setCurrentStaffIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNextStaff = () => {
+    setCurrentStaffIndex((prev) => Math.min(staff.length - 1, prev + 1));
+  };
+
+  // Show skeleton during loading
+  if (isLoading) {
+    return <DayViewSkeleton />;
+  }
+
   return (
     <div className="flex h-full overflow-auto bg-gray-50 overscroll-contain">
       {/* Time Column */}
@@ -191,12 +247,12 @@ export const DaySchedule = memo(function DaySchedule({
         {/* Header spacer */}
         <div style={{ height: calendar.staffColumn.headerHeight }} className="border-b border-gray-200" />
         
-        {/* Time labels */}
+        {/* Time labels - Premium styling */}
         <div className="relative" style={{ height: `${gridHeight}px` }}>
           {timeLabels.map(({ hour, displayHour, period }) => (
             <div
               key={hour}
-              className="absolute w-full flex flex-col items-end justify-start pr-2"
+              className="absolute w-full flex flex-col items-end justify-start pr-3"
               style={{
                 top: `${hour * 60}px`,
                 height: '60px',
@@ -204,17 +260,17 @@ export const DaySchedule = memo(function DaySchedule({
             >
               {/* Two-line format: hour on first line, am/pm on second */}
               <div className="flex flex-col items-end" style={{ marginTop: '-8px' }}>
-                <span className="text-xs text-gray-700 font-medium leading-tight">
+                <span className="text-xs text-gray-800 font-semibold leading-tight tabular-nums">
                   {displayHour}
                 </span>
-                <span className="text-[10px] text-gray-500 uppercase leading-tight">
+                <span className="text-[10px] text-gray-500 uppercase leading-tight tracking-wide">
                   {period}
                 </span>
               </div>
-              
-              {/* Pink hour marker (optional - Mango style) */}
-              <div 
-                className="absolute left-0 w-1 h-1 bg-pink-400 rounded-full"
+
+              {/* Brand-colored hour marker */}
+              <div
+                className="absolute left-0 w-1 h-1 bg-brand-400 rounded-full opacity-60"
                 style={{ top: '0', left: '-2px' }}
               />
             </div>
@@ -223,7 +279,63 @@ export const DaySchedule = memo(function DaySchedule({
       </div>
 
       {/* Staff Columns */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex relative">
+        {/* Mobile Staff Navigation */}
+        {isMobile && staff.length > 1 && (
+          <>
+            {/* Previous Staff Button */}
+            <button
+              onClick={handlePreviousStaff}
+              disabled={currentStaffIndex === 0}
+              className={cn(
+                'absolute left-2 top-1/2 -translate-y-1/2 z-20',
+                'w-10 h-10 rounded-full',
+                'bg-white border-2 border-brand-500',
+                'flex items-center justify-center',
+                'shadow-premium-md',
+                'transition-all duration-200',
+                currentStaffIndex === 0
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:bg-brand-50 active:scale-95'
+              )}
+              aria-label="Previous staff"
+            >
+              <svg className="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Next Staff Button */}
+            <button
+              onClick={handleNextStaff}
+              disabled={currentStaffIndex >= staff.length - 1}
+              className={cn(
+                'absolute right-2 top-1/2 -translate-y-1/2 z-20',
+                'w-10 h-10 rounded-full',
+                'bg-white border-2 border-brand-500',
+                'flex items-center justify-center',
+                'shadow-premium-md',
+                'transition-all duration-200',
+                currentStaffIndex >= staff.length - 1
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:bg-brand-50 active:scale-95'
+              )}
+              aria-label="Next staff"
+            >
+              <svg className="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Staff Counter */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full shadow-premium-sm border border-gray-200">
+              <span className="text-xs font-medium text-gray-700">
+                {currentStaffIndex + 1} of {staff.length}
+              </span>
+            </div>
+          </>
+        )}
+
         {staff.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center text-gray-500">
@@ -237,38 +349,46 @@ export const DaySchedule = memo(function DaySchedule({
             </div>
           </div>
         ) : (
-          staff.map((staffMember) => (
+          displayedStaff.map((staffMember) => (
             <div
               key={staffMember.id}
               className="flex-1 border-r border-gray-200 last:border-r-0"
-              style={{ minWidth: 'min(200px, 40vw)' }}
+              style={{ minWidth: isMobile ? '100%' : 'min(200px, 40vw)' }}
             >
-              {/* Staff Header */}
-              <div 
-                className="sticky top-0 z-10 bg-white border-b border-gray-200 flex flex-col items-center justify-center"
+              {/* Staff Header - Premium Design */}
+              <div
+                className={cn(
+                  'sticky top-0 z-10',
+                  'backdrop-blur-md bg-white/95',
+                  'border-b border-gray-200/50',
+                  'flex flex-col items-center justify-center gap-2',
+                  'py-3',
+                  'shadow-premium-xs'
+                )}
                 style={{ height: calendar.staffColumn.headerHeight }}
               >
-                {/* Avatar */}
-                <div className="relative mb-1 sm:mb-2">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold text-base sm:text-lg shadow-md">
-                    {staffMember.photo ? (
-                      <img 
-                        src={staffMember.photo} 
-                        alt={staffMember.name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      staffMember.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  {/* Status dot */}
-                  <div className="absolute top-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white" />
+                {/* Premium Avatar with gradient and status */}
+                <PremiumAvatar
+                  name={staffMember.name}
+                  src={staffMember.photo}
+                  size="lg"
+                  showStatus
+                  status="online"
+                  colorIndex={staff.findIndex(s => s.id === staffMember.id)}
+                  gradient
+                  className="shadow-premium-md"
+                />
+
+                {/* Name with better typography */}
+                <div className="text-center px-2">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {staffMember.name}
+                  </p>
+                  {/* Appointment count */}
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {appointmentsByStaff[staffMember.id]?.length || 0} appointments
+                  </p>
                 </div>
-                
-                {/* Name */}
-                <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate px-2">
-                  {staffMember.name}
-                </p>
               </div>
 
               {/* Time Grid */}
@@ -293,13 +413,13 @@ export const DaySchedule = memo(function DaySchedule({
                   </div>
                 ))}
 
-                {/* Alternating row backgrounds */}
+                {/* Alternating row backgrounds - Premium surface colors */}
                 {timeLabels.map(({ hour }, index) => (
                   <div
                     key={`bg-${hour}`}
                     className={cn(
-                      'absolute w-full pointer-events-none',
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'
+                      'absolute w-full pointer-events-none transition-colors duration-200',
+                      index % 2 === 0 ? 'bg-white' : 'bg-surface-secondary/40'
                     )}
                     style={{
                       top: `${hour * 60}px`,
@@ -308,12 +428,12 @@ export const DaySchedule = memo(function DaySchedule({
                   />
                 ))}
 
-                {/* Clickable time slots with 15-minute intervals */}
+                {/* Clickable time slots with responsive intervals */}
                 {onTimeSlotClick && timeLabels.map(({ hour }) => {
-                  // Create 15-minute interval slots
-                  return Array.from({ length: 4 }, (_, intervalIndex) => {
+                  // Create responsive interval slots (60min mobile, 30min tablet, 15min desktop)
+                  return Array.from({ length: slotConfig.intervalsPerHour }, (_, intervalIndex) => {
                     const slotTime = new Date();
-                    slotTime.setHours(hour, intervalIndex * 15, 0, 0);
+                    slotTime.setHours(hour, intervalIndex * slotConfig.minutesPerSlot, 0, 0);
                     const snappedTime = snapToGrid(slotTime);
                     
                     const isDropTarget = dragOverSlot?.staffId === staffMember.id && 
@@ -373,16 +493,20 @@ export const DaySchedule = memo(function DaySchedule({
                         }}
                         className={cn(
                           "absolute w-full transition-all duration-200 cursor-pointer",
-                          isDropTarget 
+                          // Focus indicators for accessibility
+                          "focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 focus:z-10",
+                          // Active state for press feedback
+                          "active:scale-[0.98] active:bg-brand-100",
+                          isDropTarget
                             ? slotConflict?.hasConflict
                               ? getConflictColor(slotConflict.conflictType)
-                              : "bg-teal-100 border-2 border-dashed border-teal-400"
-                            : "hover:bg-teal-50/50",
+                              : "bg-brand-100 border-2 border-dashed border-brand-400"
+                            : "hover:bg-brand-50/50",
                           isDropTarget && slotConflict?.hasConflict && "ring-2 ring-red-400"
                         )}
                         style={{
-                          top: `${hour * 60 + intervalIndex * 15}px`,
-                          height: '15px',
+                          top: `${hour * 60 + intervalIndex * slotConfig.minutesPerSlot}px`,
+                          height: `${slotConfig.minutesPerSlot}px`,
                         }}
                         title={isDropTarget && slotConflict?.hasConflict ? slotConflict.message : undefined}
                       />
@@ -425,23 +549,11 @@ export const DaySchedule = memo(function DaySchedule({
                   );
                 })}
 
-                {/* Appointments */}
-                {appointmentsByStaff[staffMember.id]?.map((appointment) => {
+                {/* Appointments - Premium Design with stagger animations */}
+                {appointmentsByStaff[staffMember.id]?.map((appointment, index) => {
                   const style = getAppointmentStyle(appointment);
-                  const bgColor = getAppointmentColor(appointment.status);
-                  
-                  // Subtle status-based border colors
-                  const getBorderColor = (status: string) => {
-                    switch (status) {
-                      case 'checked-in':
-                        return 'rgba(38, 198, 218, 0.3)'; // Soft teal
-                      case 'in-service':
-                        return 'rgba(129, 199, 132, 0.4)'; // Soft green
-                      default:
-                        return 'rgba(0, 0, 0, 0.08)'; // Default gray
-                    }
-                  };
-                  
+                  const statusColors = getStatusColor(appointment.status);
+
                   return (
                     <button
                       key={appointment.id}
@@ -479,36 +591,86 @@ export const DaySchedule = memo(function DaySchedule({
                         e.currentTarget.style.transform = 'scale(1)';
                       }}
                       className={cn(
-                        'absolute left-2 right-2 rounded-lg border-2 transition-all duration-200',
-                        'text-left p-3 overflow-hidden group cursor-move',
-                        'hover:shadow-lg hover:scale-[1.02] hover:z-10',
+                        'absolute left-2 right-2',
+                        'rounded-xl',
+                        'border border-gray-200',
+                        'bg-white',
+                        'text-left p-3',
+                        'overflow-hidden',
+                        'group cursor-move',
+                        'transition-all duration-200',
+                        'hover:shadow-premium-lg hover:-translate-y-0.5 hover:z-10',
+                        'hover:border-brand-300',
+                        'animate-fade-in',
                         draggedAppointment?.id === appointment.id && 'opacity-50 scale-95',
                         draggedAppointment?.id === appointment.id && dragConflict?.hasConflict && 'ring-2 ring-red-400'
                       )}
                       style={{
                         ...style,
-                        backgroundColor: bgColor,
-                        borderColor: getBorderColor(appointment.status),
-                        minHeight: '50px',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                        ...staggerDelayStyle(index, 30),
+                        minHeight: '60px',
+                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
                       }}
                     >
-                      {/* Client name - Bold and prominent */}
-                      <p className="font-bold text-sm text-gray-900 truncate mb-0.5">
-                        {appointment.clientName}
-                      </p>
-                      
-                      {/* Service name - Secondary */}
-                      {appointment.services[0] && (
-                        <p className="text-xs text-gray-600 truncate mb-1">
-                          {appointment.services[0].serviceName}
+                      {/* Status indicator - Left border */}
+                      <div
+                        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+                        style={{ backgroundColor: statusColors.accent }}
+                      />
+
+                      {/* Content */}
+                      <div className="space-y-1 pl-1">
+                        {/* Client name - Bold */}
+                        <p className="font-semibold text-sm text-gray-900 truncate">
+                          {appointment.clientName}
                         </p>
-                      )}
-                      
-                      {/* Time range - Subtle */}
-                      <p className="text-xs text-gray-500 font-medium">
-                        {formatTime(new Date(appointment.scheduledStartTime))} - {formatTime(new Date(appointment.scheduledEndTime))}
-                      </p>
+
+                        {/* Service name */}
+                        {appointment.services[0] && (
+                          <p className="text-xs text-gray-600 truncate">
+                            {appointment.services[0].serviceName}
+                          </p>
+                        )}
+
+                        {/* Time & Price row */}
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="text-gray-500 font-medium">
+                            {formatTime(new Date(appointment.scheduledStartTime))}
+                          </span>
+                          {appointment.services[0]?.price && (
+                            <span className="text-brand-600 font-semibold">
+                              ${appointment.services[0].price}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Status badge */}
+                        <div className="pt-1">
+                          <StatusBadge
+                            status={appointment.status as any}
+                            showDot={false}
+                            size="sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hover menu indicator */}
+                      <div
+                        className={cn(
+                          'absolute top-2 right-2',
+                          'w-6 h-6 rounded-full',
+                          'bg-gray-100',
+                          'flex items-center justify-center',
+                          'opacity-0 group-hover:opacity-100',
+                          'transition-opacity duration-200'
+                        )}
+                      >
+                        <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 4 16">
+                          <circle cx="2" cy="2" r="2" />
+                          <circle cx="2" cy="8" r="2" />
+                          <circle cx="2" cy="14" r="2" />
+                        </svg>
+                      </div>
                     </button>
                   );
                 })}
@@ -527,7 +689,7 @@ export const DaySchedule = memo(function DaySchedule({
                   </div>
                 )}
 
-                {/* Current Time Indicator - Inside grid */}
+                {/* Current Time Indicator - Premium design */}
                 {currentTimePos >= 0 && currentTimePos <= gridHeight && (
                   <div
                     className="absolute left-0 right-0 pointer-events-none z-30"
@@ -535,13 +697,26 @@ export const DaySchedule = memo(function DaySchedule({
                       top: `${currentTimePos}px`,
                     }}
                   >
-                    {/* Line */}
-                    <div 
-                      className="w-full shadow-sm"
+                    {/* Animated dot on the left */}
+                    <div
+                      className={cn(
+                        'absolute -left-1 top-1/2 -translate-y-1/2',
+                        'w-3 h-3 rounded-full',
+                        'bg-brand-500 shadow-premium-md',
+                        'animate-pulse-slow',
+                        'ring-4 ring-brand-100'
+                      )}
+                    />
+
+                    {/* Line with gradient and glow */}
+                    <div
+                      className={cn(
+                        'w-full h-0.5',
+                        'bg-gradient-to-r from-brand-500 to-brand-400',
+                        'shadow-premium-sm'
+                      )}
                       style={{
-                        height: '2px',
-                        backgroundColor: '#EF4444',
-                        opacity: 0.8,
+                        boxShadow: '0 0 8px rgba(42, 167, 158, 0.4)',
                       }}
                     />
                   </div>

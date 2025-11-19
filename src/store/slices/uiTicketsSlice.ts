@@ -3,6 +3,8 @@ import { ticketsDB, syncQueueDB } from '../../db/database';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
 import { mockWaitlistTickets, mockServiceTickets } from '../../data/mockData';
+import { createTransactionFromPending } from './transactionsSlice';
+import type { PaymentMethod, PaymentDetails, CreateTransactionInput } from '../../types';
 
 // UI-specific ticket interfaces (matching existing TicketContext)
 export interface UITicket {
@@ -266,11 +268,69 @@ export const completeTicket = createAsyncThunk(
       techId: ticket?.techId,
     };
 
-    return { 
-      ticketId, 
+    return {
+      ticketId,
       updates,
       pendingTicket,
       staffId: ticket?.techId
+    };
+  }
+);
+
+// Mark pending ticket as paid (creates transaction and removes from pending)
+export const markTicketAsPaid = createAsyncThunk(
+  'uiTickets/markPaid',
+  async (
+    {
+      ticketId,
+      paymentMethod,
+      paymentDetails,
+      tip,
+    }: {
+      ticketId: string;
+      paymentMethod: PaymentMethod;
+      paymentDetails: PaymentDetails;
+      tip: number;
+    },
+    { getState, dispatch }
+  ) => {
+    const state = getState() as RootState;
+
+    // Find the pending ticket
+    const pendingTicket = state.uiTickets.pendingTickets.find(t => t.id === ticketId);
+
+    if (!pendingTicket) {
+      throw new Error('Pending ticket not found');
+    }
+
+    // Build transaction input
+    const transactionInput: CreateTransactionInput = {
+      ticketId: pendingTicket.id,
+      ticketNumber: pendingTicket.number,
+      clientName: pendingTicket.clientName,
+      clientId: undefined, // TODO: Add clientId to PendingTicket if available
+      subtotal: pendingTicket.subtotal,
+      tax: pendingTicket.tax,
+      tip: tip,
+      discount: 0,
+      paymentMethod,
+      paymentDetails,
+      services: [
+        {
+          name: pendingTicket.service,
+          price: pendingTicket.subtotal,
+          staffName: pendingTicket.technician,
+        },
+      ],
+      notes: `Payment processed for ticket #${pendingTicket.number}`,
+    };
+
+    // Create transaction
+    const transaction = await dispatch(createTransactionFromPending(transactionInput)).unwrap();
+
+    return {
+      ticketId,
+      transaction,
     };
   }
 );
@@ -385,17 +445,36 @@ const uiTicketsSlice = createSlice({
       // Complete ticket - move to pending for checkout
       .addCase(completeTicket.fulfilled, (state, action) => {
         const { ticketId, pendingTicket } = action.payload;
-        
+
         // Remove from service tickets
         const ticketIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
         if (ticketIndex !== -1) {
           state.serviceTickets.splice(ticketIndex, 1);
         }
-        
+
         // Add to pending tickets for checkout
         if (pendingTicket) {
           state.pendingTickets.push(pendingTicket);
         }
+      })
+      // Mark ticket as paid - remove from pending (transaction created via thunk)
+      .addCase(markTicketAsPaid.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(markTicketAsPaid.fulfilled, (state, action) => {
+        state.loading = false;
+        const { ticketId } = action.payload;
+
+        // Remove from pending tickets
+        const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+        if (ticketIndex !== -1) {
+          state.pendingTickets.splice(ticketIndex, 1);
+        }
+      })
+      .addCase(markTicketAsPaid.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to process payment';
       })
       // Delete ticket
       .addCase(deleteTicket.fulfilled, (state, action) => {

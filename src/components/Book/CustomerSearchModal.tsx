@@ -1,12 +1,14 @@
 /**
- * Customer Search Modal
+ * Customer Search Modal - Premium Edition
  * Search for existing customers or create new ones
+ * With glass morphism and premium design
  */
 
 import { memo, useState, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { Search, X, Plus, Phone, User } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
+import { PremiumInput, PremiumButton, PremiumAvatar } from '../premium';
 
 interface Customer {
   id: string;
@@ -135,44 +137,49 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Premium blur */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/30 backdrop-blur-md z-40 animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Modal - Premium design */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
         <div
           className={cn(
-            'bg-white rounded-xl shadow-2xl',
-            'w-full max-w-2xl max-h-[80vh]',
+            'bg-white/95 backdrop-blur-xl rounded-2xl shadow-premium-2xl',
+            'w-full max-w-2xl max-h-[85vh]',
             'flex flex-col',
-            'animate-in fade-in zoom-in-95 duration-200'
+            'border border-gray-200/50',
+            'animate-scale-in'
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center">
-                <Search className="w-5 h-5 text-white" />
+          {/* Header - Premium styling */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-white/50">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-premium-md">
+                <Search className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">
                   {isCreating ? 'New Customer' : 'Find Customer'}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600 mt-0.5">
                   {isCreating ? 'Add a new customer' : 'Search by name or phone'}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="btn-icon"
+              className={cn(
+                'p-2 rounded-lg',
+                'hover:bg-gray-100',
+                'transition-colors duration-200'
+              )}
               aria-label="Close"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
 
@@ -180,15 +187,17 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
           <div className="flex-1 overflow-y-auto p-6">
             {!isCreating ? (
               <>
-                {/* Search Input */}
-                <div className="relative mb-6">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                {/* Search Input - Premium */}
+                <div className="mb-6">
+                  <PremiumInput
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name or phone..."
-                    className="book-input pl-10"
+                    icon={<Search className="w-5 h-5" />}
+                    clearable
+                    onClear={() => setSearchQuery('')}
+                    size="lg"
                     autoFocus
                   />
                 </div>
@@ -200,38 +209,44 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                     <p className="mt-4 text-sm text-gray-500">Searching...</p>
                   </div>
                 ) : searchResults.length > 0 ? (
-                  <div className="space-y-2">
-                    {searchResults.map((customer) => (
+                  <div className="space-y-3">
+                    {searchResults.map((customer, index) => (
                       <button
                         key={customer.id}
                         onClick={() => handleSelectCustomer(customer)}
                         className={cn(
-                          'w-full p-4 rounded-lg border border-gray-200',
-                          'hover:border-orange-500 hover:bg-orange-50',
+                          'w-full p-4 rounded-xl border border-gray-200',
+                          'hover:border-brand-300 hover:bg-brand-50',
+                          'hover:shadow-premium-md hover:-translate-y-0.5',
                           'transition-all duration-200',
                           'text-left'
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-                              <User className="w-5 h-5 text-white" />
-                            </div>
+                          <div className="flex items-center gap-4">
+                            <PremiumAvatar
+                              name={customer.name}
+                              size="lg"
+                              colorIndex={index}
+                              gradient
+                              showStatus
+                              status="online"
+                            />
                             <div>
-                              <p className="font-medium text-gray-900">{customer.name}</p>
+                              <p className="font-semibold text-gray-900">{customer.name}</p>
                               <div className="flex items-center gap-2 mt-1">
-                                <Phone className="w-3 h-3 text-gray-400" />
+                                <Phone className="w-3.5 h-3.5 text-gray-400" />
                                 <p className="text-sm text-gray-600">{customer.phone}</p>
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-semibold text-brand-600">
                               {customer.totalVisits} visits
                             </p>
                             {customer.lastVisit && (
                               <p className="text-xs text-gray-500 mt-1">
-                                Last: {customer.lastVisit.toLocaleDateString()}
+                                {customer.lastVisit.toLocaleDateString()}
                               </p>
                             )}
                           </div>
@@ -241,27 +256,28 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                   </div>
                 ) : debouncedSearch.length >= 2 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-secondary flex items-center justify-center">
                       <Search className="w-8 h-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-900 font-medium mb-2">No customers found</p>
-                    <p className="text-sm text-gray-500 mb-6">
+                    <p className="text-gray-900 font-semibold mb-2">No customers found</p>
+                    <p className="text-sm text-gray-600 mb-6">
                       Try a different search or create a new customer
                     </p>
-                    <button
+                    <PremiumButton
+                      variant="primary"
+                      size="lg"
+                      icon={<Plus className="w-4 h-4" />}
                       onClick={() => setIsCreating(true)}
-                      className="btn-primary inline-flex items-center gap-2"
                     >
-                      <Plus className="w-4 h-4" />
                       Create New Customer
-                    </button>
+                    </PremiumButton>
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-secondary flex items-center justify-center">
                       <Search className="w-8 h-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-600 text-sm font-medium">
                       Start typing to search for customers
                     </p>
                   </div>
@@ -269,32 +285,34 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
               </>
             ) : (
               <>
-                {/* Create New Customer Form */}
-                <div className="space-y-4">
+                {/* Create New Customer Form - Premium */}
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Customer Name *
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      Customer Name <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <PremiumInput
                       type="text"
                       value={newCustomerName}
                       onChange={(e) => setNewCustomerName(e.target.value)}
                       placeholder="Enter full name"
-                      className="book-input"
+                      icon={<User className="w-4 h-4" />}
+                      size="lg"
                       autoFocus
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number *
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      Phone Number <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <PremiumInput
                       type="tel"
                       value={newCustomerPhone}
                       onChange={(e) => handlePhoneInput(e.target.value)}
                       placeholder="(555) 123-4567"
-                      className="book-input"
+                      icon={<Phone className="w-4 h-4" />}
+                      size="lg"
                     />
                   </div>
                 </div>
@@ -302,46 +320,52 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
             )}
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200">
+          {/* Footer - Premium buttons */}
+          <div className="flex items-center justify-between p-6 border-t border-gray-200/50 bg-white/50">
             {!isCreating ? (
               <>
-                <button
+                <PremiumButton
+                  variant="ghost"
+                  size="md"
+                  icon={<Plus className="w-4 h-4" />}
                   onClick={() => setIsCreating(true)}
-                  className="btn-ghost text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                  className="text-brand-600 hover:text-brand-700 hover:bg-brand-50"
                 >
-                  <Plus className="w-4 h-4" />
                   New Customer
-                </button>
-                <button
+                </PremiumButton>
+                <PremiumButton
+                  variant="ghost"
+                  size="md"
                   onClick={onClose}
-                  className="btn-ghost"
                 >
                   Cancel
-                </button>
+                </PremiumButton>
               </>
             ) : (
               <>
-                <button
+                <PremiumButton
+                  variant="ghost"
+                  size="md"
                   onClick={() => setIsCreating(false)}
-                  className="btn-ghost"
                 >
                   Back to Search
-                </button>
+                </PremiumButton>
                 <div className="flex gap-3">
-                  <button
+                  <PremiumButton
+                    variant="ghost"
+                    size="md"
                     onClick={onClose}
-                    className="btn-ghost"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </PremiumButton>
+                  <PremiumButton
+                    variant="primary"
+                    size="md"
                     onClick={handleCreateCustomer}
                     disabled={!newCustomerName.trim() || !newCustomerPhone.trim()}
-                    className="btn-primary"
                   >
                     Create Customer
-                  </button>
+                  </PremiumButton>
                 </div>
               </>
             )}

@@ -16,6 +16,7 @@ import {
   AppointmentDetailsModal,
   EditAppointmentModal,
 } from '../components/Book';
+import { CalendarLoadingOverlay } from '../components/Book/skeletons';
 import { DaySchedule } from '../components/Book/DaySchedule.v2';
 import { WeekView } from '../components/Book/WeekView';
 import { MonthView } from '../components/Book/MonthView';
@@ -60,6 +61,8 @@ export function BookPage() {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isStaffDrawerOpen, setIsStaffDrawerOpen] = useState(false);
 
   const {
     selectedDate,
@@ -94,6 +97,15 @@ export function BookPage() {
   const selectedStaff = selectedStaffIds?.length > 0
     ? allStaff.filter(staff => selectedStaffIds.includes(staff.id))
     : allStaff;
+
+  // Wrapped view change handler with transition animation
+  const handleViewChangeWithTransition = (view: string) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      handleViewChange(view as any);
+      setTimeout(() => setIsTransitioning(false), 150); // Short delay after view changes
+    }, 300); // Show loading overlay for 300ms
+  };
 
   const handleAppointmentClick = (appointment: LocalAppointment) => {
     setSelectedAppointment(appointment);
@@ -558,6 +570,32 @@ export function BookPage() {
         />
       </div>
 
+      {/* Mobile Staff Drawer */}
+      {isStaffDrawerOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setIsStaffDrawerOpen(false)}
+          />
+
+          {/* Drawer */}
+          <div className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white z-50 lg:hidden animate-slide-in-right shadow-premium-2xl">
+            <StaffSidebar
+              staff={staffWithCounts}
+              selectedStaffIds={selectedStaffIds}
+              onStaffSelection={(staffIds) => {
+                handleStaffSelection(staffIds);
+                // Auto-close drawer after selection on mobile
+                if (window.innerWidth < 1024) {
+                  setTimeout(() => setIsStaffDrawerOpen(false), 300);
+                }
+              }}
+            />
+          </div>
+        </>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -566,7 +604,7 @@ export function BookPage() {
           calendarView={calendarView}
           timeWindowMode={timeWindowMode}
           onDateChange={handleDateChange}
-          onViewChange={handleViewChange}
+          onViewChange={handleViewChangeWithTransition}
           onTimeWindowModeChange={handleTimeWindowModeChange}
           onSearchClick={handleSearchClick}
           onTodayClick={goToToday}
@@ -575,12 +613,13 @@ export function BookPage() {
             setSelectedTimeSlot(null); // Clear any previous time slot selection
             setIsNewAppointmentOpen(true);
           }}
+          onStaffDrawerOpen={() => setIsStaffDrawerOpen(true)}
         />
 
         {/* Calendar + Sidebars */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden gap-4 p-4">
           {/* Calendar Area */}
-          <div className="flex-1 overflow-hidden w-full lg:w-auto">
+          <div className="flex-1 overflow-hidden w-full lg:w-auto relative">
           {calendarView === 'day' && (
             <DaySchedule
               date={selectedDate}
@@ -628,6 +667,11 @@ export function BookPage() {
               onAppointmentClick={handleAppointmentClick}
               onStatusChange={handleStatusChange}
             />
+          )}
+
+          {/* View Transition Overlay */}
+          {isTransitioning && (
+            <CalendarLoadingOverlay message="Switching view..." />
           )}
           </div>
 
@@ -720,7 +764,7 @@ export function BookPage() {
 
       {/* Floating Action Button - New Appointment */}
       <button
-        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-br from-orange-500 to-pink-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 z-50"
+        className="fixed bottom-24 right-8 sm:bottom-8 w-14 h-14 bg-gradient-to-br from-orange-500 to-pink-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 z-50"
         aria-label="New appointment"
         onClick={() => setIsNewAppointmentOpen(true)}
       >

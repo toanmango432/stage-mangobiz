@@ -70,8 +70,8 @@ export function ResponsiveBookModal({
         className={cn('flex flex-col h-[90vh]', className)}
         noPadding
       >
-        {/* Mobile Header */}
-        <div className="flex flex-col border-b border-gray-200 bg-white sticky top-0 z-10">
+        {/* Mobile Header - Premium glass */}
+        <div className="flex flex-col border-b border-gray-200/50 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <button
@@ -163,9 +163,9 @@ export function ResponsiveBookModal({
           </div>
         </div>
 
-        {/* Mobile Footer */}
+        {/* Mobile Footer - Premium glass */}
         {footer && (
-          <div className="border-t border-gray-200 bg-white px-4 py-3">
+          <div className="border-t border-gray-200/50 bg-white/50 backdrop-blur-sm px-4 py-3">
             {footer}
           </div>
         )}
@@ -194,8 +194,8 @@ export function ResponsiveBookModal({
               index > 0 && 'border-l border-gray-200'
             )}
           >
-            {/* Panel Header */}
-            <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
+            {/* Panel Header - Premium */}
+            <div className="px-6 py-3 border-b border-gray-200/50 bg-surface-secondary">
               <div className="flex items-center gap-2">
                 {panel.icon}
                 <h3 className="font-semibold text-gray-900">{panel.title}</h3>
@@ -210,9 +210,9 @@ export function ResponsiveBookModal({
         ))}
       </div>
 
-      {/* Desktop Footer */}
+      {/* Desktop Footer - Premium glass */}
       {footer && (
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
+        <div className="border-t border-gray-200/50 bg-white/50 backdrop-blur-sm px-6 py-4 flex justify-end">
           {footer}
         </div>
       )}
@@ -242,7 +242,7 @@ export function MobileActionButton({
   const { isMobile } = useBreakpoint();
 
   const variants = {
-    primary: 'bg-teal-600 text-white hover:bg-teal-700 disabled:bg-gray-300',
+    primary: 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-gray-300',
     secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100',
     danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-300',
   };

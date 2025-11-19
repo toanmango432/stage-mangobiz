@@ -121,61 +121,77 @@ export function WaitListTicketCard({
           }}
         >
 
-          {/* Minimal perforation dots */}
-          <div className="absolute top-0 left-0 w-full h-[2px] flex justify-between items-center px-1.5 opacity-15">
-            {[...Array(8)].map((_, i) => (<div key={i} className="w-[1px] h-[1px] rounded-full bg-[#c4b5a0]" />))}
+          {/* Enhanced perforation dots - increased from 8 to 15 */}
+          <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">
+            {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
           </div>
 
-          {/* Minimal left edge shadow */}
-          <div className="absolute top-0 left-0 w-1 h-full" style={{ boxShadow: 'inset 2px 0 3px rgba(0,0,0,0.15)' }} />
+          {/* Left notch hole - NEW */}
+          <div className="absolute left-[-4px] sm:left-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-r border-[#d4b896]/50"
+               style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
 
-          {/* Compact ticket number badge */}
-          <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-[10px] z-20"
+          {/* Right notch hole - NEW */}
+          <div className="absolute right-[-4px] sm:right-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-l border-[#d4b896]/50"
+               style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+
+          {/* Thick paper left edge shadow effect - upgraded to 2 layers */}
+          <div className="absolute top-0 left-0 w-2 h-full" style={{ boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)' }} />
+
+          {/* Paper thickness edge - NEW */}
+          <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-md"
                style={{
+                 background: 'linear-gradient(to right, rgba(139, 92, 46, 0.03) 0%, rgba(139, 92, 46, 0.02) 20%, transparent 40%)',
+                 boxShadow: 'inset 0.5px 0 1px rgba(0,0,0,0.04)'
+               }} />
+
+          {/* Enhanced ticket number badge - upgraded size and shadows */}
+          <div className="absolute left-0 top-2 sm:top-3 w-8 sm:w-9 text-[#1a1614] flex items-center justify-center font-black text-sm sm:text-base z-20"
+               style={{
+                 height: isFirstVisit ? 'clamp(1.65rem, 3.5vw, 2rem)' : 'clamp(1.5rem, 3vw, 1.85rem)',
                  background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
-                 borderTopRightRadius: '6px',
-                 borderBottomRightRadius: '6px',
+                 borderTopRightRadius: '8px',
+                 borderBottomRightRadius: '8px',
                  borderTop: '1px solid rgba(212, 184, 150, 0.4)',
                  borderRight: '1px solid rgba(212, 184, 150, 0.4)',
                  borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-                 boxShadow: '1px 0 3px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
+                 boxShadow: '2px 0 4px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 2px rgba(139, 92, 46, 0.08)',
                  letterSpacing: '-0.02em',
-                 transform: 'translateX(-2px)'
+                 transform: 'translateX(-3px)'
                }}>
             {ticket.number}
           </div>
 
           {/* Compact content area */}
-          <div className="py-1.5 pr-2 pl-7">
+          <div className="py-1.5 pr-12 pl-9 sm:pl-10 relative">
             {/* Single compact row */}
             <div className="flex items-center justify-between gap-2">
               {/* Left: Client + Service */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1 mb-0.5">
-                  <span className="font-semibold text-[11px] text-[#1a1614] truncate">{ticket.clientName}</span>
-                  {isFirstVisit && <span className="text-[9px]">⭐</span>}
+                  <span className="font-semibold text-xs text-[#1a1614] truncate">{ticket.clientName}</span>
+                  {isFirstVisit && <span className="text-2xs">⭐</span>}
                   {hasNote && <StickyNote size={10} className="text-amber-500" />}
                 </div>
-                <div className="text-[9px] text-[#6b5d52] truncate">{ticket.service}</div>
+                <div className="text-2xs text-[#6b5d52] truncate">{ticket.service}</div>
               </div>
 
-              {/* Right: Wait time + Assign */}
+              {/* Right: Wait time */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {/* Wait time */}
                 <div className="flex items-center gap-0.5">
-                  <span className="text-[9px] text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
+                  <span className="text-2xs text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
                 </div>
-
-                {/* Compact Assign button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                  className="w-5 h-5 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center flex-shrink-0"
-                  title="Assign"
-                >
-                  <UserPlus size={12} strokeWidth={2} />
-                </button>
               </div>
             </div>
+
+            {/* Compact Assign button - Absolute positioned, mobile-friendly */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
+              title="Assign"
+            >
+              <UserPlus size={16} className="md:w-[18px] md:h-[18px]" strokeWidth={2} />
+            </button>
           </div>
 
           {/* Paper textures */}
@@ -211,13 +227,14 @@ export function WaitListTicketCard({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-          boxShadow: '0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 6px rgba(139, 92, 46, 0.08)'
+          border: '2px solid #e8dcc8',
+          boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.70), inset 0 -0.8px 1px rgba(0,0,0,0.05), 0.5px 0.5px 0 rgba(255,255,255,0.80), -3px 0 8px rgba(0,0,0,0.08), 2px 3px 4px rgba(0,0,0,0.04), 4px 8px 12px rgba(0,0,0,0.08)'
         }}
       >
 
-        {/* Perforation dots */}
-        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">
-          {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
+        {/* Enhanced perforation dots - increased from 15 to 20 with responsive sizing */}
+        <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-3 sm:px-4 z-10 opacity-25">
+          {[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}
         </div>
 
         {/* Left notch */}
@@ -228,14 +245,21 @@ export function WaitListTicketCard({
         <div className="absolute right-[-4px] top-[50%] w-2 h-2 rounded-full border-l border-[#d4b896]/50"
              style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
 
-        {/* Thick paper left edge shadow effect */}
+        {/* Thick paper left edge shadow effect - upgraded to 3 layers */}
         <div className="absolute top-0 left-0 w-2 h-full" style={{ boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)' }} />
 
-        {/* Paper thickness edge */}
-        <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-lg"
+        {/* Paper thickness edge - layer 1 */}
+        <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl"
              style={{
-               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.18) 0%, rgba(139, 92, 46, 0.10) 50%, transparent 100%)',
-               boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.20)'
+               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.03) 0%, rgba(139, 92, 46, 0.02) 20%, transparent 40%)',
+               boxShadow: 'inset 0.5px 0 1px rgba(0,0,0,0.04)'
+             }} />
+
+        {/* Paper thickness edge - layer 2 (NEW) */}
+        <div className="absolute top-0 left-1 w-1 h-full"
+             style={{
+               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.01) 0%, transparent 100%)',
+               boxShadow: 'inset 0.5px 0 0.5px rgba(0,0,0,0.02)'
              }} />
 
         {/* Wrap-around ticket number badge */}
@@ -257,16 +281,16 @@ export function WaitListTicketCard({
         </div>
 
         {/* Content area */}
-        <div className="py-3 pr-3 pl-10">
+        <div className="py-1.5 pr-2.5 pl-8">
           {/* Row 1: Client name + Wait time */}
-          <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-start justify-between gap-3 mb-1.5">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-0.5">
                 <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
                 {isFirstVisit && <span className="text-sm flex-shrink-0">⭐</span>}
                 {hasNote && <StickyNote size={14} className="text-amber-500 flex-shrink-0" />}
               </div>
-              <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1.5">{getLastVisitText()}</div>
+              <div className="text-2xs text-[#8b7968] font-medium tracking-wide mb-0.5">{getLastVisitText()}</div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs text-[#8b7968] whitespace-nowrap">Waited {formatWaitTime(waitTime)}</span>
@@ -276,14 +300,14 @@ export function WaitListTicketCard({
           </div>
 
           {/* Divider - spans full content width */}
-          <div className="border-t border-[#e8dcc8]/50 my-2" />
+          <div className="border-t border-[#e8dcc8]/50 my-1" />
 
           {/* Row 2: Service + Assign button */}
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
 
             {/* Assign button with background container */}
-            <div className="px-2 py-2 rounded-lg relative flex-shrink-0"
+            <div className="px-2 py-1 rounded-lg relative flex-shrink-0"
                  style={{
                    background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
                    boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
@@ -291,20 +315,24 @@ export function WaitListTicketCard({
                  }}>
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                className="w-9 h-9 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
+                className="w-11 h-11 md:w-8 md:h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
                 title="Assign"
               >
-                <UserPlus size={18} strokeWidth={2} />
+                <UserPlus size={18} className="md:w-[18px] md:h-[18px]" strokeWidth={2} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Paper textures */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg"
+        {/* Enhanced paper textures */}
+        <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-xl"
              style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
-        <div className="absolute inset-0 pointer-events-none opacity-10 rounded-lg"
+        <div className="absolute inset-0 pointer-events-none opacity-15 rounded-xl"
              style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px), repeating-linear-gradient(0deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px)', backgroundSize: '3px 3px' }} />
+
+        {/* Inner highlight border - NEW */}
+        <div className="absolute inset-0 pointer-events-none rounded-xl"
+             style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.4)' }} />
       </div>
       
       {/* Ticket Details Modal */}
@@ -754,7 +782,7 @@ export function WaitListTicketCard({
         <div className="flex-grow" />
 
         {/* Time + Duration + Wait % - FIXED AT BOTTOM */}
-        <div className="flex items-center justify-between text-[9px] mt-auto" style={{ opacity: 0.7 }}>
+        <div className="flex items-center justify-between text-2xs mt-auto" style={{ opacity: 0.7 }}>
           <div className="flex items-center gap-0.5">
             <Clock size={9} className="text-gray-400" />
             <span className="text-gray-500 font-medium">{formatWaitTime(waitTime)}</span>

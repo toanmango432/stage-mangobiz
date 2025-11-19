@@ -161,18 +161,20 @@ export const BasePaperTicket: React.FC<BasePaperTicketProps> = ({
         >
           {ticketNumber}
         </div>
-        {/* Vertical accent line */}
-        <div
-          className="absolute"
-          style={{
-            left: badgeWidth,
-            top: '10px',
-            width: '1px',
-            height: badgeHeight,
-            background: 'linear-gradient(to bottom, rgba(212, 184, 150, 0.6), rgba(212, 184, 150, 0.2))',
-            transform: 'translateX(-3px)',
-          }}
-        />
+        {/* Vertical accent line - only for gridNormal and normal modes, NOT gridCompact or compact */}
+        {(viewMode === 'gridNormal' || viewMode === 'normal') && (
+          <div
+            className="absolute"
+            style={{
+              left: badgeWidth,
+              top: '10px',
+              width: '1px',
+              height: badgeHeight,
+              background: 'linear-gradient(to bottom, rgba(212, 184, 150, 0.6), rgba(212, 184, 150, 0.2))',
+              transform: 'translateX(-3px)',
+            }}
+          />
+        )}
       </>
     );
   };
@@ -181,9 +183,15 @@ export const BasePaperTicket: React.FC<BasePaperTicketProps> = ({
   const renderTexture = () => {
     if (!showTexture) return null;
 
-    const isGrid = viewMode.includes('grid');
-    const textureSize = isGrid ? '200px' : viewMode === 'normal' ? '180px' : '150px';
-    const textureOpacity = isGrid ? 0.25 : viewMode === 'normal' ? 0.25 : 0.2;
+    // Texture configuration based on exact ServiceTicketCard design
+    const textureConfig = {
+      gridNormal: { size: '200px', opacity1: 0.25, opacity2: 0.15, crossHatch: true, innerHighlight: true },
+      gridCompact: { size: '150px', opacity1: 0.20, opacity2: 0.10, crossHatch: false, innerHighlight: false },
+      normal: { size: '200px', opacity1: 0.25, opacity2: 0.15, crossHatch: true, innerHighlight: true },
+      compact: { size: '150px', opacity1: 0.20, opacity2: 0.10, crossHatch: false, innerHighlight: false },
+    };
+
+    const config = textureConfig[viewMode as keyof typeof textureConfig] || textureConfig.normal;
 
     return (
       <>
@@ -192,8 +200,8 @@ export const BasePaperTicket: React.FC<BasePaperTicketProps> = ({
           className="absolute inset-0 pointer-events-none mix-blend-overlay"
           style={{
             backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")',
-            backgroundSize: `${textureSize} ${textureSize}`,
-            opacity: textureOpacity,
+            backgroundSize: `${config.size} ${config.size}`,
+            opacity: config.opacity1,
             borderRadius: viewStyles.borderRadius,
           }}
         />
@@ -201,18 +209,18 @@ export const BasePaperTicket: React.FC<BasePaperTicketProps> = ({
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: isGrid ? paperGradients.crossTexture : paperGradients.lineTexture,
-            backgroundSize: isGrid ? '3px 3px' : '2px 2px',
-            opacity: isGrid ? 0.15 : 0.12,
+            backgroundImage: config.crossHatch ? paperGradients.crossTexture : paperGradients.lineTexture,
+            backgroundSize: config.crossHatch ? '3px 3px' : '2px 2px',
+            opacity: config.opacity2,
             borderRadius: viewStyles.borderRadius,
           }}
         />
-        {/* Inset highlight for normal view */}
-        {viewMode === 'normal' && (
+        {/* Inset highlight - only for gridNormal and normal */}
+        {config.innerHighlight && (
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.3)',
+              boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.4)',
               borderRadius: viewStyles.borderRadius,
             }}
           />

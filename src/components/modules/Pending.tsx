@@ -1,141 +1,227 @@
-import { useState } from 'react';
-import { PendingTickets } from '../PendingTickets';
-import { Search, Filter, SortAsc, Clock, DollarSign, User, Grid, List } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { useTickets } from '../../hooks/useTicketsCompat';
+import { PendingHeader } from '../pending';
+import { PendingTicketCard } from '../tickets/PendingTicketCard';
+import { PaymentModal } from '../checkout/PaymentModal';
+import type { PaymentMethod, PaymentDetails } from '../../types';
+import type { PendingTicket } from '../../store/slices/uiTicketsSlice';
+import toast from 'react-hot-toast';
+import { Receipt } from 'lucide-react';
 
-type SortBy = 'waitTime' | 'amount' | 'staff' | 'client';
-type ViewMode = 'grid' | 'list';
+type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 
 export function Pending() {
+  const { pendingTickets, markTicketAsPaid } = useTickets();
+
+  // State
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('waitTime');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [cardViewMode, setCardViewMode] = useState<'normal' | 'compact'>('normal');
+
+  // Toggle compact mode
+  const toggleCardViewMode = () => {
+    setCardViewMode(prev => prev === 'normal' ? 'compact' : 'normal');
+  };
+
+  // Payment modal state
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<PendingTicket | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  // Filter and sort tickets
+  const filteredTickets = useMemo(() => {
+    let filtered = pendingTickets;
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        t =>
+          t.clientName.toLowerCase().includes(query) ||
+          t.technician?.toLowerCase().includes(query) ||
+          t.number.toString().includes(query) ||
+          t.service.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort tickets
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case 'newest':
+        sorted.sort((a, b) => b.number - a.number);
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => a.number - b.number);
+        break;
+      case 'amount-high':
+        sorted.sort((a, b) => {
+          const totalA = a.subtotal + a.tax + a.tip;
+          const totalB = b.subtotal + b.tax + b.tip;
+          return totalB - totalA;
+        });
+        break;
+      case 'amount-low':
+        sorted.sort((a, b) => {
+          const totalA = a.subtotal + a.tax + a.tip;
+          const totalB = b.subtotal + b.tax + b.tip;
+          return totalA - totalB;
+        });
+        break;
+      case 'client-name':
+        sorted.sort((a, b) => a.clientName.localeCompare(b.clientName));
+        break;
+    }
+
+    return sorted;
+  }, [pendingTickets, searchQuery, sortBy]);
+
+  // Payment modal handlers
+  const handleOpenPaymentModal = (ticketId: string) => {
+    const ticket = pendingTickets.find(t => t.id === ticketId);
+    if (ticket) {
+      setSelectedTicket(ticket);
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleClosePaymentModal = () => {
+    setIsPaymentModalOpen(false);
+    setSelectedTicket(null);
+  };
+
+  const handlePaymentConfirm = async (
+    paymentMethod: PaymentMethod,
+    paymentDetails: PaymentDetails,
+    tip: number
+  ) => {
+    if (!selectedTicket) return;
+
+    try {
+      await markTicketAsPaid(selectedTicket.id, paymentMethod, paymentDetails, tip);
+
+      toast.success(`Payment processed for ticket #${selectedTicket.number}`, {
+        duration: 3000,
+        position: 'top-center',
+        icon: '✅',
+      });
+
+      handleClosePaymentModal();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Payment processing failed', {
+        duration: 4000,
+        position: 'top-center',
+        icon: '❌',
+      });
+    }
+  };
+
+  // Cancel ticket handler
+  const handleCancelTicket = (ticketId: string) => {
+    if (confirm('Cancel this pending payment? The ticket will be removed from the queue.')) {
+      // TODO: Implement cancel functionality
+      toast.success('Ticket cancelled', {
+        duration: 2000,
+        position: 'top-center',
+      });
+      console.log('Cancel ticket:', ticketId);
+    }
+  };
+
+  // Dropdown handlers
+  const handleOpenMenu = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenDropdownId(openDropdownId === id ? null : id);
+  };
+
+  const handleCloseMenu = () => {
+    setOpenDropdownId(null);
+  };
 
   return (
     <div className="h-full bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Pending Checkout</h1>
-            <p className="text-sm text-gray-600 mt-1">Services completed, awaiting payment</p>
-          </div>
-          
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-white text-gray-900 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+      {/* Simplified Header */}
+      <PendingHeader
+        ticketCount={pendingTickets.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        cardViewMode={cardViewMode}
+        onCardViewModeToggle={toggleCardViewMode}
+      />
+
+      {/* Content - Direct ticket grid */}
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+        {filteredTickets.length > 0 ? (
+          viewMode === 'grid' ? (
+            <div
+              className="grid gap-4"
+              style={{
+                gridTemplateColumns:
+                  cardViewMode === 'compact'
+                    ? 'repeat(auto-fill, minmax(240px, 1fr))'
+                    : 'repeat(auto-fill, minmax(300px, 1fr))',
+              }}
             >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid' 
-                  ? 'bg-white text-gray-900 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Grid className="w-4 h-4" />
-            </button>
+              {filteredTickets.map(ticket => (
+                <PendingTicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
+                  onMarkPaid={handleOpenPaymentModal}
+                  onCancel={handleCancelTicket}
+                  isMenuOpen={openDropdownId === ticket.id}
+                  onOpenMenu={handleOpenMenu}
+                  onCloseMenu={handleCloseMenu}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2 max-w-5xl">
+              {filteredTickets.map(ticket => (
+                <PendingTicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  viewMode={cardViewMode === 'compact' ? 'compact' : 'normal'}
+                  onMarkPaid={handleOpenPaymentModal}
+                  onCancel={handleCancelTicket}
+                  isMenuOpen={openDropdownId === ticket.id}
+                  onOpenMenu={handleOpenMenu}
+                  onCloseMenu={handleCloseMenu}
+                />
+              ))}
+            </div>
+          )
+        ) : (
+          // Empty state
+          <div className="flex flex-col items-center justify-center h-full py-12">
+            <div className="bg-gray-100 p-4 rounded-full mb-4">
+              <Receipt size={48} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              {searchQuery ? 'No tickets found' : 'No pending payments'}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md text-center">
+              {searchQuery
+                ? 'Try adjusting your search criteria'
+                : 'All caught up! When services are completed, they will appear here for payment processing.'}
+            </p>
           </div>
-        </div>
+        )}
+      </main>
 
-        {/* Search and Filters */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by client name, staff, or ticket number..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            />
-          </div>
-
-          {/* Sort Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <SortAsc className="w-4 h-4" />
-              <span className="text-sm font-medium">Sort</span>
-            </button>
-
-            {showFilters && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <button
-                  onClick={() => {
-                    setSortBy('waitTime');
-                    setShowFilters(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors ${
-                    sortBy === 'waitTime' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
-                  }`}
-                >
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm">Wait Time</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy('amount');
-                    setShowFilters(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors ${
-                    sortBy === 'amount' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
-                  }`}
-                >
-                  <DollarSign className="w-4 h-4" />
-                  <span className="text-sm">Amount</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy('staff');
-                    setShowFilters(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors ${
-                    sortBy === 'staff' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
-                  }`}
-                >
-                  <User className="w-4 h-4" />
-                  <span className="text-sm">Staff Name</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy('client');
-                    setShowFilters(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors ${
-                    sortBy === 'client' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
-                  }`}
-                >
-                  <User className="w-4 h-4" />
-                  <span className="text-sm">Client Name</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <Filter className="w-4 h-4" />
-            <span className="text-sm font-medium">Filter</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-7xl mx-auto">
-          <PendingTickets isMinimized={false} />
-        </div>
-      </div>
+      {/* Payment Modal */}
+      {selectedTicket && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={handleClosePaymentModal}
+          ticket={selectedTicket}
+          onConfirm={handlePaymentConfirm}
+        />
+      )}
     </div>
   );
 }

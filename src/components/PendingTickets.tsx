@@ -1,23 +1,75 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import { Receipt, ChevronDown, ChevronUp, Clock, UserCheck, CheckCircle, DollarSign, CreditCard, MoreVertical, Trash2, Edit2, Printer, Mail, Share2, MessageSquare, Star, Tag, Users, Maximize2 } from 'lucide-react';
+import { useTicketSection } from '../hooks/frontdesk';
+import { Receipt, ChevronUp, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { PendingTicketCard } from './tickets/PendingTicketCard';
+import { PaymentModal } from './checkout/PaymentModal';
+import type { PaymentMethod, PaymentDetails } from '../types';
+import { PendingTicket } from '../store/slices/uiTicketsSlice';
+import toast from 'react-hot-toast';
+
 interface PendingTicketsProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  viewMode?: 'grid' | 'list';
+  setViewMode?: (mode: 'grid' | 'list') => void;
+  cardViewMode?: 'normal' | 'compact';
+  setCardViewMode?: (mode: 'normal' | 'compact') => void;
+  minimizedLineView?: boolean;
+  setMinimizedLineView?: (minimized: boolean) => void;
+  isCombinedView?: boolean;
 }
+
 export function PendingTickets({
   isMinimized = false,
-  onToggleMinimize
+  onToggleMinimize,
+  viewMode: externalViewMode,
+  setViewMode: externalSetViewMode,
+  cardViewMode: externalCardViewMode,
+  setCardViewMode: externalSetCardViewMode,
+  minimizedLineView: externalMinimizedLineView,
+  setMinimizedLineView: externalSetMinimizedLineView,
+  isCombinedView = false,
 }: PendingTicketsProps) {
   const {
     pendingTickets,
     markTicketAsPaid
   } = useTickets();
+
+  // Use shared hook for view mode management
+  const {
+    viewMode,
+    setViewMode,
+    toggleViewMode,
+    cardViewMode,
+    setCardViewMode,
+    toggleCardViewMode,
+    minimizedLineView,
+    setMinimizedLineView,
+    toggleMinimizedLineView
+  } = useTicketSection({
+    sectionKey: 'pending',
+    defaultViewMode: 'grid',
+    defaultCardViewMode: 'normal',
+    isCombinedView,
+    externalViewMode,
+    externalSetViewMode,
+    externalCardViewMode,
+    externalSetCardViewMode,
+    externalMinimizedLineView,
+    externalSetMinimizedLineView,
+  });
+
   const [activeTab, setActiveTab] = useState('all');
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Payment modal state
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<PendingTicket | null>(null);
   // Updated color tokens for section styling
   const colorTokens = {
     primary: '#EB5757',
@@ -33,8 +85,16 @@ export function PendingTickets({
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+
+      // Close ticket dropdowns
+      if (!target.closest('[role="menu"]') && !target.closest('button[aria-haspopup="true"]')) {
         setOpenDropdownId(null);
+      }
+
+      // Close view mode dropdown
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+        setShowDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -43,14 +103,59 @@ export function PendingTickets({
     };
   }, []);
   // Toggle dropdown for a ticket
-  const toggleDropdown = (id: number, e: React.MouseEvent) => {
+  const handleOpenMenu = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenDropdownId(openDropdownId === id ? null : id);
   };
-  // Paper textures for tickets
-  const paperTextures = ["url('https://www.transparenttextures.com/patterns/paper.png')", "url('https://www.transparenttextures.com/patterns/paper-fibers.png')", "url('https://www.transparenttextures.com/patterns/rice-paper.png')", "url('https://www.transparenttextures.com/patterns/soft-paper.png')", "url('https://www.transparenttextures.com/patterns/handmade-paper.png')"];
-  // Paper background colors
-  const paperVariations = ['#FFFDF7', '#FFFEF9', '#FFFCF5', '#FFFDF8', '#FFFEFA'];
+
+  const handleCloseMenu = () => {
+    setOpenDropdownId(null);
+  };
+
+  // Payment modal handlers
+  const handleOpenPaymentModal = (ticketId: string) => {
+    const ticket = pendingTickets.find(t => t.id === ticketId);
+    if (ticket) {
+      setSelectedTicket(ticket);
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handleClosePaymentModal = () => {
+    setIsPaymentModalOpen(false);
+    setSelectedTicket(null);
+  };
+
+  const handlePaymentConfirm = async (
+    paymentMethod: PaymentMethod,
+    paymentDetails: PaymentDetails,
+    tip: number
+  ) => {
+    if (!selectedTicket) return;
+
+    try {
+      // Call the real markTicketAsPaid thunk
+      await markTicketAsPaid(selectedTicket.id, paymentMethod, paymentDetails, tip);
+
+      // Show success toast
+      toast.success(`Payment processed for ticket #${selectedTicket.number}`, {
+        duration: 3000,
+        position: 'top-center',
+        icon: '✅',
+      });
+
+      // Close modal
+      handleClosePaymentModal();
+    } catch (error) {
+      // Error toast will be shown by the thunk rejection
+      toast.error(error instanceof Error ? error.message : 'Payment processing failed', {
+        duration: 4000,
+        position: 'top-center',
+        icon: '❌',
+      });
+    }
+  };
+
   // Filter tickets based on active tab
   const filteredTickets = pendingTickets.filter(ticket => {
     if (activeTab === 'all') return true;
@@ -98,6 +203,87 @@ export function PendingTickets({
           </h2>
         </div>
         <div className="flex items-center space-x-1">
+          {/* View mode toggle button */}
+          {viewMode === 'list' && (
+            <Tippy content={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
+              <button
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleMinimizedLineView();
+                }}
+                aria-label={minimizedLineView ? 'Expand line view' : 'Minimize line view'}
+              >
+                {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+              </button>
+            </Tippy>
+          )}
+          {viewMode === 'grid' && (
+            <Tippy content={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'}>
+              <button
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCardViewMode();
+                }}
+                aria-label={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'}
+              >
+                {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+              </button>
+            </Tippy>
+          )}
+
+          {/* Dropdown menu */}
+          <div className="relative" ref={dropdownRef}>
+            <Tippy content="View options">
+              <button
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(!showDropdown);
+                }}
+                aria-haspopup="true"
+                aria-expanded={showDropdown}
+              >
+                <MoreVertical size={16} />
+              </button>
+            </Tippy>
+            {showDropdown && (
+              <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
+                {/* View Mode Section */}
+                <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    View Mode
+                  </h3>
+                </div>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-[#FDECEC] flex items-center"
+                  onClick={() => {
+                    setViewMode('list');
+                    setShowDropdown(false);
+                  }}
+                  role="menuitem"
+                >
+                  <List size={14} className="mr-2 text-[#EB5757]" />
+                  Line View
+                  {viewMode === 'list' && <Check size={14} className="ml-auto text-[#EB5757]" />}
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-[#FDECEC] flex items-center"
+                  onClick={() => {
+                    setViewMode('grid');
+                    setShowDropdown(false);
+                  }}
+                  role="menuitem"
+                >
+                  <Grid size={14} className="mr-2 text-[#EB5757]" />
+                  Grid View
+                  {viewMode === 'grid' && <Check size={14} className="ml-auto text-[#EB5757]" />}
+                </button>
+              </div>
+            )}
+          </div>
+
           <Tippy content="Collapse section">
             <button className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors" onClick={e => {
             e.stopPropagation();
@@ -136,138 +322,43 @@ export function PendingTickets({
         </button>
       </div>
       <div id="pending-tickets-content" className="overflow-auto p-3 flex-1">
-        {filteredTickets.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filteredTickets.map((ticket, index) => {
-          // Generate unique paper style for this ticket
-          const paperColor = paperVariations[ticket.id % paperVariations.length];
-          const texturePattern = paperTextures[ticket.id % paperTextures.length];
-          return <div key={ticket.id} className={`rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200 relative overflow-hidden ${index % 2 === 0 ? 'bg-opacity-100' : 'bg-opacity-95'}`} style={{
-            backgroundColor: paperColor,
-            backgroundImage: texturePattern,
-            backgroundBlendMode: 'multiply',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 2px 2px rgba(0,0,0,0.03), inset 0 0 0 1px rgba(255,255,255,0.2)'
-          }}>
-                  {/* Ticket stub edge with semicircle cut-outs */}
-                  <div className="absolute top-0 left-0 h-full w-1 flex flex-col justify-between items-center pointer-events-none opacity-60">
-                    <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
-                    <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
-                    <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
-                  </div>
-                  {/* Left accent bar */}
-                  <div className="absolute top-0 left-0 w-1 h-full bg-[#FF6B6B] opacity-70"></div>
-                  {/* Header with ticket number */}
-                  <div className="flex justify-between items-center p-3 border-b border-dashed border-gray-300">
-                    <div className="flex items-center">
-                      <div className="w-7 h-7 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm mr-2 border border-gray-800" style={{
-                  textShadow: '0px 1px 1px rgba(0,0,0,0.2)'
-                }}>
-                        {ticket.number}
-                      </div>
-                      <div className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md border border-blue-100">
-                        #{ticket.id}
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <Tippy content="More options">
-                        <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.id, e)} aria-label="More options" aria-haspopup="true" aria-expanded={openDropdownId === ticket.id}>
-                          <MoreVertical size={14} />
-                        </button>
-                      </Tippy>
-                      {openDropdownId === ticket.id && <div ref={dropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" role="menu">
-                          <button className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center" role="menuitem">
-                            <Edit2 size={14} className="mr-2 text-blue-500" />
-                            Edit Receipt
-                          </button>
-                          <button className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center" role="menuitem">
-                            <Printer size={14} className="mr-2 text-gray-500" />
-                            Print Receipt
-                          </button>
-                          <button className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center" role="menuitem">
-                            <Mail size={14} className="mr-2 text-gray-500" />
-                            Email Receipt
-                          </button>
-                          <button className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-red-50 flex items-center" role="menuitem">
-                            <Trash2 size={14} className="mr-2 text-red-500" />
-                            Void Receipt
-                          </button>
-                        </div>}
-                    </div>
-                  </div>
-                  {/* Client and service info - improved padding */}
-                  <div className="px-3 py-2.5">
-                    <div className="flex items-center mb-2">
-                      <UserCheck size={14} className="text-blue-500 mr-2" />
-                      <div className="text-sm font-medium text-gray-800 truncate">
-                        {ticket.clientName}
-                      </div>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-600 mb-3">
-                      <Tag size={12} className="text-blue-500 mr-1.5" />
-                      <span className="truncate">
-                        {ticket.service}
-                        {ticket.additionalServices > 0 && <span className="ml-1 text-[9px] bg-gray-100 px-1 rounded-sm border border-gray-200">
-                            +{ticket.additionalServices}
-                          </span>}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-1 text-xs">
-                      <span className="text-gray-600">Subtotal:</span>
-                      <span className="font-medium text-gray-800">
-                        ${ticket.subtotal.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-1 text-xs">
-                      <span className="text-gray-600">Tax:</span>
-                      <span className="font-medium text-gray-800">
-                        ${ticket.tax.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-1 text-xs">
-                      <span className="text-gray-600">Tip:</span>
-                      <span className="font-medium text-gray-800">
-                        ${ticket.tip.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2 text-sm border-t border-gray-200 pt-2">
-                      <span className="font-medium text-gray-800">Total:</span>
-                      <span className="font-bold text-gray-900">
-                        $
-                        {(ticket.subtotal + ticket.tax + ticket.tip).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Payment method and action button */}
-                  <div className="flex items-center justify-between p-3 bg-gray-50 border-t border-gray-200">
-                    <div className="flex items-center">
-                      {ticket.paymentType === 'card' ? <div className="flex items-center text-xs text-gray-700">
-                          <CreditCard size={14} className="text-blue-500 mr-1.5" />
-                          Card Payment
-                        </div> : ticket.paymentType === 'cash' ? <div className="flex items-center text-xs text-gray-700">
-                          <DollarSign size={14} className="text-green-500 mr-1.5" />
-                          Cash Payment
-                        </div> : <div className="flex items-center text-xs text-gray-700">
-                          <Share2 size={14} className="text-purple-500 mr-1.5" />
-                          Venmo
-                        </div>}
-                    </div>
-                    <button onClick={() => markTicketAsPaid(ticket.id)} className="flex items-center py-1.5 px-3 rounded-md bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors">
-                      <CheckCircle size={12} className="mr-1.5" />
-                      Mark Paid
-                    </button>
-                  </div>
-                  {/* PAID/UNPAID stamp overlay */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.08] pointer-events-none">
-                    <div className="text-[#FF6B6B] font-bold text-2xl tracking-wider uppercase" style={{
-                letterSpacing: '0.1em',
-                textShadow: '0 0 1px rgba(255,107,107,0.2)',
-                fontFamily: 'monospace'
-              }}>
-                      UNPAID
-                    </div>
-                  </div>
-                </div>;
-        })}
-          </div> : <div className="flex flex-col items-center mt-10 py-6">
+        {filteredTickets.length > 0 ? (
+          viewMode === 'grid' ? (
+            <div
+              className="grid gap-3"
+              style={{
+                gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))',
+              }}
+            >
+              {filteredTickets.map((ticket) => (
+                <PendingTicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
+                  onMarkPaid={handleOpenPaymentModal}
+                  isMenuOpen={openDropdownId === ticket.id}
+                  onOpenMenu={handleOpenMenu}
+                  onCloseMenu={handleCloseMenu}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredTickets.map((ticket) => (
+                <PendingTicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  viewMode={minimizedLineView ? 'compact' : 'normal'}
+                  onMarkPaid={handleOpenPaymentModal}
+                  isMenuOpen={openDropdownId === ticket.id}
+                  onOpenMenu={handleOpenMenu}
+                  onCloseMenu={handleCloseMenu}
+                />
+              ))}
+            </div>
+          )
+        ) : (
+          <div className="flex flex-col items-center mt-10 py-6">
             <div className={`${colorTokens.bg} p-3 rounded-full mb-3`}>
               <Receipt size={28} className={colorTokens.text} />
             </div>
@@ -278,7 +369,18 @@ export function PendingTickets({
               All payments have been processed. Completed tickets will appear
               here when they're ready for payment.
             </p>
-          </div>}
+          </div>
+        )}
       </div>
+
+      {/* Payment Modal */}
+      {selectedTicket && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={handleClosePaymentModal}
+          ticket={selectedTicket}
+          onConfirm={handlePaymentConfirm}
+        />
+      )}
     </div>;
 }

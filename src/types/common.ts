@@ -26,9 +26,10 @@ export type TicketStatus =
   | 'voided'
   | 'refunded';
 
-export type PaymentMethod = 
+export type PaymentMethod =
   | 'card'
   | 'cash'
+  | 'venmo'
   | 'digital-wallet'
   | 'gift-card'
   | 'account-credit'

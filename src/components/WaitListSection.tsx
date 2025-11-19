@@ -10,6 +10,7 @@ import { TicketDetailsModal } from './TicketDetailsModal';
 import { WaitListTicketCard, WaitListTicketCardRefactored } from './tickets';
 import { headerContentSpacer } from './frontdesk/headerTokens';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
+import { ViewModeToggle } from './frontdesk/ViewModeToggle';
 interface WaitListSectionProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -963,92 +964,67 @@ export const WaitListSection = memo(function WaitListSection({
           ]}
           rightActions={
             <>
-              <Tippy content="Add new ticket">
-                <button
-                  className="h-10 w-10 inline-flex items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:brightness-105 transition-transform"
-                  onClick={() => {
-                    const createTicketButton = document.querySelector('[aria-label="Create new ticket"]') as HTMLButtonElement;
-                    if (createTicketButton) createTicketButton.click();
-                  }}
-                >
-                  <Plus size={18} strokeWidth={2.5} />
-                </button>
-              </Tippy>
-              {!isMobile && viewMode === 'list' && (
-                <HeaderActionButton onClick={toggleMinimizedLineView}>
-                  {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </HeaderActionButton>
+              <ViewModeToggle
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                size="sm"
+              />
+
+              {viewMode === 'grid' ? (
+                <Tippy content={cardViewMode === 'compact' ? 'Switch to Normal' : 'Switch to Compact'}>
+                  <HeaderActionButton onClick={toggleCardViewMode}>
+                    {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                  </HeaderActionButton>
+                </Tippy>
+              ) : (
+                <Tippy content={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
+                  <HeaderActionButton onClick={toggleMinimizedLineView}>
+                    {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                  </HeaderActionButton>
+                </Tippy>
               )}
-              {!isMobile && viewMode === 'grid' && (
-                <HeaderActionButton onClick={toggleCardViewMode}>
-                  {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </HeaderActionButton>
-              )}
+
               <div className="relative" ref={dropdownRef}>
-                <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)}>
-                  <MoreVertical size={16} />
-                </HeaderActionButton>
+                <Tippy content="More options">
+                  <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)}>
+                    <Settings size={16} />
+                  </HeaderActionButton>
+                </Tippy>
                 {showDropdown && (
                   <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
-                    {/* View Mode Section */}
+                    {/* Card Size Section */}
                     <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        View Mode
+                        Card Size
                       </h3>
                     </div>
-                    <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('list')} role="menuitem">
-                      <List size={14} className="mr-2 text-gray-500" />
-                      Line View
-                      {viewMode === 'list' && <Check size={14} className="ml-auto text-amber-500" />}
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('grid')} role="menuitem">
-                      <Grid size={14} className="mr-2 text-gray-500" />
-                      Grid View
-                      {viewMode === 'grid' && <Check size={14} className="ml-auto text-amber-500" />}
-                    </button>
-
-                    {/* Card Size Section */}
-                    <div className="border-t border-gray-100 mt-1">
-                      <button
-                        className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
-                        onClick={() => setShowCardSizeSlider(!showCardSizeSlider)}
-                        role="menuitem"
-                      >
-                        <div className="flex items-center">
-                          <Settings size={14} className="mr-2 text-gray-500" />
-                          Adjust Card Size
-                        </div>
-                        <ChevronRight size={14} className={showCardSizeSlider ? 'rotate-90 transition-transform' : 'transition-transform'} />
-                      </button>
-                      {showCardSizeSlider && (
-                        <div className="px-3 py-3 bg-gray-50 border-t border-gray-100">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-gray-500">Small</span>
-                            <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
-                            <span className="text-xs text-gray-500">Large</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.7"
-                            max="1.3"
-                            step="0.05"
-                            value={cardScale}
-                            onChange={(e) => {
-                              const newScale = parseFloat(e.target.value);
-                              setCardScale(newScale);
-                              localStorage.setItem('waitListCardScale', newScale.toString());
-                            }}
-                            className="w-full h-2 bg-orange-100 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                            style={{
-                              background: `linear-gradient(to right, #FFB347 0%, #FFB347 ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
-                            }}
-                          />
-                        </div>
-                      )}
+                    <div className="px-3 py-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-500">Small</span>
+                        <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
+                        <span className="text-xs text-gray-500">Large</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.7"
+                        max="1.3"
+                        step="0.05"
+                        value={cardScale}
+                        onChange={(e) => {
+                          const newScale = parseFloat(e.target.value);
+                          setCardScale(newScale);
+                          localStorage.setItem('waitListCardScale', newScale.toString());
+                        }}
+                        className="w-full h-2 bg-rose-100 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                        style={{
+                          background: `linear-gradient(to right, #F43F5E 0%, #F43F5E ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
+                        }}
+                      />
                     </div>
                   </div>
                 )}
               </div>
+
               <HeaderActionButton onClick={onToggleMinimize}>
                 {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
               </HeaderActionButton>
@@ -1059,9 +1035,9 @@ export const WaitListSection = memo(function WaitListSection({
       <div className={`flex-1 overflow-auto px-4 pb-4 ${headerContentSpacer} scroll-smooth`}>
         {/* Show content based on whether there are tickets */}
         {waitlist.length > 0 ? viewMode === 'grid' ? <div
-          className="grid gap-4"
+          className="grid gap-3"
           style={{
-            gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fit, minmax(220px, 280px))' : 'repeat(auto-fit, minmax(280px, 360px))',
+            gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))',
             transform: `scale(${cardScale})`,
             transformOrigin: 'top left',
             width: `${100 / cardScale}%`,
@@ -1102,9 +1078,9 @@ export const WaitListSection = memo(function WaitListSection({
                   }}
                 />
               ))}
-            </div> : <div 
+            </div> : <div
               className="space-y-2"
-              style={{ 
+              style={{
                 transform: `scale(${cardScale})`,
                 transformOrigin: 'top left',
                 width: `${100 / cardScale}%`
@@ -1143,8 +1119,8 @@ export const WaitListSection = memo(function WaitListSection({
                 />
               ))}
             </div> : <div className="flex flex-col items-center justify-center h-full py-10">
-            <div className="bg-amber-50 p-3 rounded-full mb-3">
-              <Users size={24} className="text-amber-500" />
+            <div className="bg-rose-50 p-3 rounded-full mb-3">
+              <Users size={24} className="text-rose-500" />
             </div>
             <h3 className="text-lg font-medium text-gray-700 mb-1">
               No clients in wait list

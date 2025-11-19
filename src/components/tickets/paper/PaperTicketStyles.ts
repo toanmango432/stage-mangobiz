@@ -30,7 +30,8 @@ export const paperColors = {
     waiting: '#CD7854',      // Terracotta (warm earth tone, preserves paper feel)
     waitingGlow: '#E39876',  // Light terracotta for pulse
     inService: '#10B981',    // Green
-    pending: '#6B7280',      // Gray
+    pending: '#F59E0B',      // Amber (warm, inviting - ready for payment!)
+    pendingGlow: '#FCD34D',  // Light amber for glow
     completed: '#10B981',    // Green
     cancelled: '#EF4444',    // Red
   }
@@ -39,8 +40,15 @@ export const paperColors = {
 // Shadow definitions
 export const paperShadows = {
   // Card shadows by view mode
-  compact: '0 1px 3px rgba(139, 92, 46, 0.12), 0 2px 4px rgba(139, 92, 46, 0.08)',
-  normal: '0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 6px rgba(139, 92, 46, 0.08)',
+  compact: '0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 3px rgba(139, 92, 46, 0.06)',  // Simplified compact
+  normal: `
+    inset 0 0.5px 0 rgba(255,255,255,0.70),
+    inset 0 -0.8px 1px rgba(0,0,0,0.05),
+    0.5px 0.5px 0 rgba(255,255,255,0.80),
+    -3px 0 8px rgba(0,0,0,0.08),
+    2px 3px 4px rgba(0,0,0,0.04),
+    4px 8px 12px rgba(0,0,0,0.08)
+  `,  // Upgraded from 2-layer → 6-layer
   gridNormal: `
     inset 0 0.5px 0 rgba(255,255,255,0.70),
     inset 0 -0.8px 1px rgba(0,0,0,0.05),
@@ -49,6 +57,7 @@ export const paperShadows = {
     2px 3px 4px rgba(0,0,0,0.04),
     4px 8px 12px rgba(0,0,0,0.08)
   `,
+  gridCompact: '-2px 0 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',  // Grid compact shadow
 
   // Edge shadow for paper thickness
   edgeThickness: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)',
@@ -105,28 +114,33 @@ export const paperAnimations = {
 // Perforation configurations
 export const perforationConfig = {
   compact: {
-    count: 12,
-    size: '1.5px',
+    count: 15,  // Upgraded from 12 → 15
+    size: '2px',  // Upgraded from 1.5px → 2px
     opacity: 0.2,
   },
   normal: {
-    count: 15,
-    size: '2px',
-    opacity: 0.2,
+    count: 20,  // Upgraded from 15 → 20
+    size: '2px',  // Base size (responsive 2-3px in components)
+    opacity: 0.25,  // Upgraded from 0.2 → 0.25
   },
   gridNormal: {
     count: 20,
     size: '3px',
     opacity: 0.25,
   },
+  gridCompact: {
+    count: 15,  // Match grid compact design
+    size: '2px',
+    opacity: 0.2,
+  },
 };
 
 // Notch configurations
 export const notchConfig = {
   compact: {
-    size: '6px',
-    position: '3px',
-    shadow: 'none',
+    size: '8px',  // w-2 = 8px (responsive w-2.5 = 10px on sm)
+    position: '4px',  // left-[-4px] sm:left-[-5px]
+    shadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)',
   },
   normal: {
     size: '8px',
@@ -134,9 +148,14 @@ export const notchConfig = {
     shadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)',
   },
   gridNormal: {
-    size: '12px',
-    position: '6px',
+    size: '12px',  // w-3 = 12px (responsive w-4 = 16px on sm)
+    position: '6px',  // left-[-6px] (responsive sm:left-[-8px])
     shadow: 'inset -2px 0 3px rgba(139, 92, 46, 0.10)',
+  },
+  gridCompact: {
+    size: '8px',  // w-2 = 8px (responsive w-2.5 = 10px on sm)
+    position: '4px',  // left-[-4px] sm:left-[-5px]
+    shadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)',
   },
 };
 
@@ -153,9 +172,9 @@ export const stateBorderStyles = {
     animation: 'none',
   },
   pending: {
-    border: `2px dashed ${paperColors.states.pending}`,
-    boxShadow: 'none',
-    animation: 'none',
+    border: `2px solid ${paperColors.states.pending}`,
+    boxShadow: `0 0 0 1px rgba(245, 158, 11, 0.1)`,
+    animation: 'amberGlow 3s ease-in-out infinite',
   },
   completed: {
     border: `2px solid ${paperColors.states.completed}`,
@@ -172,12 +191,11 @@ export const stateBorderStyles = {
 
 // Get styles for specific view mode
 export const getViewModeStyles = (viewMode: 'compact' | 'normal' | 'gridNormal' | 'gridCompact') => {
-  const baseMode = viewMode === 'gridCompact' ? 'compact' : viewMode;
-
+  // Use explicit viewMode (gridCompact now has its own config!)
   return {
-    shadow: paperShadows[baseMode as keyof typeof paperShadows] || paperShadows.normal,
-    perforation: perforationConfig[baseMode as keyof typeof perforationConfig] || perforationConfig.normal,
-    notch: notchConfig[baseMode as keyof typeof notchConfig] || notchConfig.normal,
+    shadow: paperShadows[viewMode as keyof typeof paperShadows] || paperShadows.normal,
+    perforation: perforationConfig[viewMode as keyof typeof perforationConfig] || perforationConfig.normal,
+    notch: notchConfig[viewMode as keyof typeof notchConfig] || notchConfig.normal,
     padding: viewMode === 'compact' ? '8px' : viewMode === 'gridCompact' ? '12px' : '16px',
     borderRadius: viewMode.includes('grid') ? '12px' : '8px',
   };
@@ -205,6 +223,17 @@ export const paperKeyframes = `
     50% {
       border-color: ${paperColors.states.waitingGlow};
       box-shadow: 0 0 0 2px rgba(205, 120, 84, 0.15);
+    }
+  }
+
+  @keyframes amberGlow {
+    0%, 100% {
+      border-color: ${paperColors.states.pending};
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.1);
+    }
+    50% {
+      border-color: ${paperColors.states.pendingGlow};
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2), 0 0 8px rgba(245, 158, 11, 0.15);
     }
   }
 

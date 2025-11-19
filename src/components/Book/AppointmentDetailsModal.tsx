@@ -1,6 +1,7 @@
 /**
- * Appointment Details Modal
+ * Appointment Details Modal - Premium Edition
  * View, edit, and manage existing appointments
+ * With glass morphism and premium design
  */
 
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 import { clientsDB } from '../../db/database';
 import { db } from '../../db/schema';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { PremiumButton, PremiumAvatar, StatusBadge } from '../premium';
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -169,34 +171,30 @@ export function AppointmentDetailsModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Premium blur */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/30 backdrop-blur-md z-40 animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal - Slide from Right, full screen on mobile */}
-      <div className="fixed right-0 top-0 bottom-0 w-full max-w-full sm:max-w-2xl bg-white shadow-2xl z-50 flex flex-col animate-slide-in-right">
-          {/* Header */}
-          <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200">
+      {/* Modal - Premium glass morphism, slide from right */}
+      <div className="fixed right-0 top-0 bottom-0 w-full max-w-full sm:max-w-2xl bg-white/95 backdrop-blur-xl shadow-premium-3xl z-50 flex flex-col animate-slide-in-right border-l border-gray-200/50">
+          {/* Header - Premium glass */}
+          <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200/50 bg-white/50">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">{appointment.clientName}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight mb-2 sm:mb-0">{appointment.clientName}</h2>
                 <div className="relative">
-                  <button
+                  <StatusBadge
+                    status={appointment.status as any}
+                    size="md"
+                    interactive
                     onClick={() => setShowStatusMenu(!showStatusMenu)}
-                    className={cn(
-                      'px-2 py-1 sm:px-3 rounded-full text-xs sm:text-sm font-medium flex items-center space-x-1 transition-all hover:shadow-md',
-                      statusInfo.color
-                    )}
-                  >
-                    <StatusIcon className="w-4 h-4" />
-                    <span>{statusInfo.label}</span>
-                  </button>
+                  />
 
-                  {/* Status Dropdown */}
+                  {/* Status Dropdown - Premium */}
                   {showStatusMenu && (
-                    <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[160px] z-10">
+                    <div className="absolute top-full left-0 mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-premium-lg border border-gray-200/50 py-2 min-w-[160px] z-10 animate-scale-in">
                       {Object.entries(statusConfig).map(([status, config]) => {
                         const Icon = config.icon;
                         return (
@@ -204,8 +202,8 @@ export function AppointmentDetailsModal({
                             key={status}
                             onClick={() => handleStatusChange(status)}
                             className={cn(
-                              'w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2 transition-colors',
-                              appointment.status === status && 'bg-gray-100'
+                              'w-full text-left px-4 py-2 hover:bg-brand-50 hover:text-brand-700 flex items-center space-x-2 transition-all duration-200',
+                              appointment.status === status && 'bg-brand-50 text-brand-700'
                             )}
                           >
                             <Icon className="w-4 h-4" />
@@ -226,10 +224,14 @@ export function AppointmentDetailsModal({
             </div>
             <button
               onClick={onClose}
-              className="btn-icon"
+              className={cn(
+                'p-2 rounded-lg',
+                'hover:bg-gray-100',
+                'transition-colors duration-200'
+              )}
               aria-label="Close"
             >
-              <X className="w-6 h-6" />
+              <X className="w-6 h-6 text-gray-500" />
             </button>
           </div>
 
@@ -263,7 +265,7 @@ export function AppointmentDetailsModal({
                   {!isEditingClientNotes && (
                     <button
                       onClick={() => setIsEditingClientNotes(true)}
-                      className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                      className="text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 transition-colors"
                     >
                       <Edit2 className="w-3 h-3" />
                       {client.notes ? 'Edit' : 'Add'}
@@ -278,37 +280,33 @@ export function AppointmentDetailsModal({
                       onChange={(e) => setClientNotes(e.target.value)}
                       placeholder="Add notes about this client (allergies, preferences, special requests, etc.)"
                       rows={4}
-                      className="w-full px-4 py-3 border-2 border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border-2 border-brand-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 resize-none transition-all"
                       autoFocus
                     />
                     <div className="flex justify-end gap-2">
-                      <button
+                      <PremiumButton
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           setClientNotes(client.notes || '');
                           setIsEditingClientNotes(false);
                         }}
-                        className="btn-ghost btn-sm"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </PremiumButton>
+                      <PremiumButton
+                        variant="primary"
+                        size="sm"
+                        icon={!isSavingClientNotes ? <Check className="w-3 h-3" /> : undefined}
                         onClick={handleSaveClientNotes}
                         disabled={isSavingClientNotes}
-                        className={cn('btn-primary btn-sm flex items-center gap-1', isSavingClientNotes && 'btn-loading')}
                       >
-                        {isSavingClientNotes ? (
-                          'Saving...'
-                        ) : (
-                          <>
-                            <Check className="w-3 h-3" />
-                            Save
-                          </>
-                        )}
-                      </button>
+                        {isSavingClientNotes ? 'Saving...' : 'Save'}
+                      </PremiumButton>
                     </div>
                   </div>
                 ) : client.notes ? (
-                  <div className="p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg">
+                  <div className="p-3 bg-surface-secondary border-l-4 border-brand-400 rounded-lg">
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{client.notes}</p>
                   </div>
                 ) : (
@@ -328,11 +326,11 @@ export function AppointmentDetailsModal({
                   <button
                     onClick={handleLoadServiceHistory}
                     disabled={loadingHistory}
-                    className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+                    className="text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 transition-colors"
                   >
                     {loadingHistory ? (
                       <>
-                        <div className="w-3 h-3 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-3 h-3 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
                         Loading...
                       </>
                     ) : (
@@ -379,16 +377,21 @@ export function AppointmentDetailsModal({
               </div>
             )}
 
-            {/* Staff */}
+            {/* Staff - Premium avatar */}
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">STAFF</h3>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
-                  {(appointment.staffName || appointment.services?.[0]?.staffName || 'N')?.charAt(0)}
-                </div>
+                <PremiumAvatar
+                  name={appointment.staffName || appointment.services?.[0]?.staffName || 'No staff'}
+                  size="lg"
+                  gradient
+                  showStatus
+                  status="online"
+                  colorIndex={0}
+                />
                 <div>
-                  <p className="font-medium text-gray-900">{appointment.staffName || appointment.services?.[0]?.staffName || 'No staff assigned'}</p>
-                  <p className="text-sm text-gray-500">Technician</p>
+                  <p className="font-semibold text-gray-900">{appointment.staffName || appointment.services?.[0]?.staffName || 'No staff assigned'}</p>
+                  <p className="text-sm text-gray-600">Technician</p>
                 </div>
               </div>
             </div>
@@ -398,7 +401,7 @@ export function AppointmentDetailsModal({
               <h3 className="text-sm font-semibold text-gray-900 mb-3">SERVICES</h3>
               <div className="space-y-3">
                 {appointment.services.map((service, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-surface-secondary rounded-lg border border-gray-200/50">
                     <div>
                       <p className="font-medium text-gray-900">{service.serviceName}</p>
                       <p className="text-sm text-gray-600">{service.duration} minutes</p>
@@ -425,7 +428,7 @@ export function AppointmentDetailsModal({
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">NOTES</h3>
               {appointment.notes ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="p-3 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
                   <p className="text-sm text-gray-700">{appointment.notes}</p>
                 </div>
               ) : (
@@ -436,7 +439,7 @@ export function AppointmentDetailsModal({
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Add notes about this appointment..."
                     rows={3}
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-brand-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 resize-none transition-all"
                   />
                 </div>
               )}
@@ -448,50 +451,54 @@ export function AppointmentDetailsModal({
             </div>
           </div>
 
-          {/* Footer - Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
+          {/* Footer - Actions - Premium buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-t border-gray-200/50 bg-white/50 backdrop-blur-sm">
             <div className="flex flex-wrap gap-2">
               {appointment.status === 'scheduled' && (
-                <button
+                <PremiumButton
+                  variant="primary"
+                  size="md"
+                  icon={<Check className="w-4 h-4" />}
                   onClick={() => handleStatusChange('checked-in')}
-                  className="btn-primary text-sm sm:text-base flex items-center space-x-2"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>Check In</span>
-                </button>
+                  Check In
+                </PremiumButton>
               )}
 
               {appointment.status === 'checked-in' && (
-                <button
+                <PremiumButton
+                  variant="primary"
+                  size="md"
+                  icon={<Clock className="w-4 h-4" />}
                   onClick={() => handleStatusChange('in-service')}
-                  className="btn-primary text-sm sm:text-base flex items-center space-x-2"
                 >
-                  <Clock className="w-4 h-4" />
-                  <span>Start Service</span>
-                </button>
+                  Start Service
+                </PremiumButton>
               )}
 
               {appointment.status === 'in-service' && (
-                <button
+                <PremiumButton
+                  variant="primary"
+                  size="md"
+                  icon={<Check className="w-4 h-4" />}
                   onClick={() => handleStatusChange('completed')}
-                  className="btn-primary text-sm sm:text-base flex items-center space-x-2"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>Complete</span>
-                </button>
+                  Complete
+                </PremiumButton>
               )}
 
               {onEdit && (
-                <button
+                <PremiumButton
+                  variant="secondary"
+                  size="md"
+                  icon={<Edit2 className="w-4 h-4" />}
                   onClick={() => {
                     onEdit(appointment);
                     onClose();
                   }}
-                  className="btn-secondary text-sm sm:text-base flex items-center space-x-2"
                 >
-                  <Edit2 className="w-4 h-4" />
-                  <span>Edit</span>
-                </button>
+                  Edit
+                </PremiumButton>
               )}
             </div>
 
@@ -499,37 +506,42 @@ export function AppointmentDetailsModal({
               {appointment.status !== 'cancelled' && appointment.status !== 'no-show' && (
                 <>
                   {onNoShow && (
-                    <button
+                    <PremiumButton
+                      variant="ghost"
+                      size="md"
                       onClick={() => {
                         onNoShow(appointment.id);
                         onClose();
                       }}
-                      className="btn-ghost text-sm sm:text-base text-orange-600 hover:bg-orange-50"
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                     >
                       No Show
-                    </button>
+                    </PremiumButton>
                   )}
                   {onCancel && (
-                    <button
+                    <PremiumButton
+                      variant="ghost"
+                      size="md"
                       onClick={() => {
                         onCancel(appointment.id);
                         onClose();
                       }}
-                      className="btn-ghost text-sm sm:text-base text-red-600 hover:bg-red-50"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       Cancel
-                    </button>
+                    </PremiumButton>
                   )}
                 </>
               )}
-              
+
               {onDelete && (
-                <button
+                <PremiumButton
+                  variant="secondary"
+                  size="md"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="btn-secondary text-sm sm:text-base"
                 >
                   Delete
-                </button>
+                </PremiumButton>
               )}
             </div>
           </div>

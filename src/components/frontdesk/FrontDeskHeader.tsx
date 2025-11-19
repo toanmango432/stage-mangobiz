@@ -33,7 +33,7 @@ const metricToneClass: Record<MetricPill['tone'], string> = {
   alert: 'border-red-100 bg-red-50 text-red-600',
   info: 'border-blue-100 bg-blue-50 text-blue-600',
   muted: 'border-slate-200 bg-slate-100 text-slate-600',
-  vip: 'border-amber-200 bg-amber-100 text-amber-700',
+  vip: 'border-rose-200 bg-rose-100 text-rose-700',
 };
 
 const getTheme = (variant: FrontDeskHeaderVariant): FrontDeskHeaderTheme =>
@@ -61,18 +61,18 @@ export function FrontDeskHeader({
               <span className={clsx(theme.countBadge)}>{count}</span>
             )}
             {metricPills && metricPills.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
                 {metricPills.map(({ label, value, tone }) => (
                   <span
                     key={`${label}-${value}`}
                     className={clsx(
-                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium',
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium',
                       metricToneClass[tone],
                       theme.metricPill
                     )}
                   >
                     <span>{label}</span>
-                    <span>{value}</span>
+                    <span className="font-semibold">{value}</span>
                   </span>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import { Clock, ChevronLeft, ChevronRight, User, Calendar, Tag, ChevronDown, ChevronUp, MoreVertical, Plus, Star } from 'lucide-react';
+import { Clock, User, Calendar, ChevronDown, ChevronUp, MoreVertical, Plus, Star, AlertCircle, MessageSquare } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import {
@@ -35,9 +35,9 @@ export const ComingAppointments = memo(function ComingAppointments({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTimeframe, setActiveTimeframe] = useState<'next1Hour' | 'next3Hours' | 'later'>('next1Hour');
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({
-    late: true,          // Expanded by default - high urgency
-    within1Hour: true,   // Expanded by default - high priority
-    within3Hours: false, // Collapsed by default - lower priority
+    late: false,          // Collapsed by default - minimized view
+    within1Hour: false,   // Collapsed by default - minimized view
+    within3Hours: false,  // Collapsed by default - minimized view
     moreThan3Hours: false
   });
   const [activeAppointment, setActiveAppointment] = useState<any>(null);
@@ -291,17 +291,29 @@ export const ComingAppointments = memo(function ComingAppointments({
             {/* Late appointments - always shown at the top */}
             {appointmentBuckets['late'].length > 0 && <div className="rounded-lg overflow-hidden border border-red-200 bg-white shadow-sm">
                 {/* Bucket header - red accent for urgency */}
-                <div className="flex items-center justify-between px-3 py-2.5 border-b border-red-100 cursor-pointer hover:bg-red-50/50 transition-colors bg-red-50/30" onClick={() => toggleRowExpansion('late')}>
+                <div className="flex items-center justify-between px-3 py-2 border-b border-red-100 cursor-pointer hover:bg-red-50/50 transition-colors bg-red-50/30" onClick={() => toggleRowExpansion('late')}>
                   <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 bg-red-500 rounded-full"></div>
-                    <span className="text-sm font-semibold text-red-700">Late</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-red-600">
-                      {appointmentBuckets['late'].length}{getVipCount(appointmentBuckets['late']) > 0 && ` - ${getVipCount(appointmentBuckets['late'])} VIP`}
+                    <div className="w-1.5 h-4 bg-red-500 rounded-full"></div>
+                    <span className="text-sm font-bold text-red-700 uppercase tracking-wide">Late</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-2xs font-bold">
+                      {appointmentBuckets['late'].length}
                     </span>
-                    {expandedRows['late'] ? <ChevronUp size={14} className="text-red-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-red-500" strokeWidth={2.5} />}
+                    {getVipCount(appointmentBuckets['late']) > 0 && (
+                      <div className="flex items-center gap-0.5 text-red-600">
+                        <Star size={11} fill="currentColor" />
+                        <span className="text-2xs font-semibold">
+                          {getVipCount(appointmentBuckets['late'])}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  
+                  <button onClick={(e) => { e.stopPropagation(); toggleRowExpansion('late'); }}>
+                    {expandedRows['late'] ? 
+                      <ChevronUp size={14} className="text-red-500" strokeWidth={2.5} /> : 
+                      <ChevronDown size={14} className="text-red-500" strokeWidth={2.5} />
+                    }
+                  </button>
                 </div>
                 {/* Collapsed view - simple dots */}
                 {!expandedRows['late'] && appointmentBuckets['late'].length > 0}
@@ -310,30 +322,49 @@ export const ComingAppointments = memo(function ComingAppointments({
                     {appointmentBuckets['late'].map((appointment, index) => {
               const appointmentTime = new Date(appointment.appointmentTime);
               const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-              return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-red-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                          {/* Single action button - hover only */}
-                          <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
-                      e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
-                    }}>
-                            <MoreVertical size={12} className="text-gray-400" />
+              return <div key={appointment.id || index} className="px-3 py-2 hover:bg-red-50/30 transition-colors cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                          {/* Time + Late indicator */}
+                          <div className="flex items-center justify-between mb-0.5 pr-12">
+                            <span className="text-2xs font-semibold text-gray-900">
+                              {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                            <span className="text-2xs font-semibold text-red-600">
+                              Late {Math.abs(appointment.minutesUntil)}m
+                            </span>
+                          </div>
+                          
+                          {/* Client Name + VIP */}
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className="text-sm font-semibold text-gray-900 truncate">
+                              {appointment.clientName?.split(' ')[0] || 'Guest'}
+                            </span>
+                            {appointment.isVip && <Star size={12} className="text-yellow-500 flex-shrink-0" fill="currentColor" />}
+                          </div>
+                          
+                          {/* Service */}
+                          <div className="text-2xs text-gray-600 truncate mb-1">
+                            {appointment.service} • {appointment.duration || '45m'}
+                          </div>
+                          
+                          {/* Staff Badge */}
+                          {appointment.technician && (
+                            <div className="inline-block px-2 py-0.5 rounded text-2xs font-semibold text-white border border-white/30"
+                                 style={{ 
+                                   backgroundColor: appointment.techColor || '#9CA3AF',
+                                   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)'
+                                 }}>
+                              {technicianFirstName}
+                            </div>
+                          )}
+                          
+                          {/* Action Button - Mobile-friendly, always visible */}
+                          <button 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-7 md:h-7 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-red-500 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center"
+                            onClick={e => handleAppointmentClick(appointment, e)}
+                            title="Actions"
+                          >
+                            <MoreVertical size={16} className="md:w-3 md:h-3" strokeWidth={2} />
                           </button>
-                          {/* Time - smaller, quieter */}
-                          <div className="text-xs text-gray-500 mb-0.5">
-                            {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • Late {Math.abs(appointment.minutesUntil)}m
-                          </div>
-                          {/* Name - compact */}
-                          <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                            {appointment.clientName?.split(' ')[0] || 'Guest'}
-                            {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                          </div>
-                          {/* Service + Staff */}
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                            {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                                {technicianFirstName}
-                              </span>}
-                          </div>
                         </div>;
             })}
                   </div>}
@@ -341,17 +372,29 @@ export const ComingAppointments = memo(function ComingAppointments({
             {/* Within 1 Hour */}
             {appointmentBuckets['within1Hour'].length > 0 && <div className="rounded-lg overflow-hidden border border-blue-200 bg-white shadow-sm">
                 {/* Bucket header - blue accent for next hour */}
-                <div className="flex items-center justify-between px-3 py-2.5 border-b border-blue-100 cursor-pointer hover:bg-blue-50/50 transition-colors bg-blue-50/30" onClick={() => toggleRowExpansion('within1Hour')}>
+                <div className="flex items-center justify-between px-3 py-2 border-b border-blue-100 cursor-pointer hover:bg-blue-50/50 transition-colors bg-blue-50/30" onClick={() => toggleRowExpansion('within1Hour')}>
                   <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-semibold text-blue-700">Next Hour</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-blue-600">
-                      {appointmentBuckets['within1Hour'].length}{getVipCount(appointmentBuckets['within1Hour']) > 0 && ` - ${getVipCount(appointmentBuckets['within1Hour'])} VIP`}
+                    <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-bold text-blue-700 uppercase tracking-wide">Next Hour</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-2xs font-bold">
+                      {appointmentBuckets['within1Hour'].length}
                     </span>
-                    {expandedRows['within1Hour'] ? <ChevronUp size={14} className="text-blue-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-blue-500" strokeWidth={2.5} />}
+                    {getVipCount(appointmentBuckets['within1Hour']) > 0 && (
+                      <div className="flex items-center gap-0.5 text-blue-600">
+                        <Star size={11} fill="currentColor" />
+                        <span className="text-2xs font-semibold">
+                          {getVipCount(appointmentBuckets['within1Hour'])}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  
+                  <button onClick={(e) => { e.stopPropagation(); toggleRowExpansion('within1Hour'); }}>
+                    {expandedRows['within1Hour'] ? 
+                      <ChevronUp size={14} className="text-blue-500" strokeWidth={2.5} /> : 
+                      <ChevronDown size={14} className="text-blue-500" strokeWidth={2.5} />
+                    }
+                  </button>
                 </div>
                 {/* Collapsed view - simple dots */}
                 {!expandedRows['within1Hour'] && appointmentBuckets['within1Hour'].length > 0}
@@ -360,30 +403,49 @@ export const ComingAppointments = memo(function ComingAppointments({
                     {appointmentBuckets['within1Hour'].map((appointment, index) => {
               const appointmentTime = new Date(appointment.appointmentTime);
               const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-              return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-blue-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                            {/* Single action button - hover only */}
-                            <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
-                      e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
-                    }}>
-                              <MoreVertical size={12} className="text-gray-400" />
+              return <div key={appointment.id || index} className="px-3 py-2 hover:bg-blue-50/30 transition-colors cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                            {/* Time + Minutes until */}
+                            <div className="flex items-center justify-between mb-0.5 pr-12">
+                              <span className="text-2xs font-semibold text-gray-900">
+                                {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                              <span className="text-2xs font-semibold text-blue-600">
+                                in {appointment.minutesUntil}m
+                              </span>
+                            </div>
+                            
+                            {/* Client Name + VIP */}
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <span className="text-sm font-semibold text-gray-900 truncate">
+                                {appointment.clientName?.split(' ')[0] || 'Guest'}
+                              </span>
+                              {appointment.isVip && <Star size={12} className="text-yellow-500 flex-shrink-0" fill="currentColor" />}
+                            </div>
+                            
+                            {/* Service */}
+                            <div className="text-2xs text-gray-600 truncate mb-1">
+                              {appointment.service} • {appointment.duration || '45m'}
+                            </div>
+                            
+                            {/* Staff Badge */}
+                            {appointment.technician && (
+                              <div className="inline-block px-2 py-0.5 rounded text-2xs font-semibold text-white border border-white/30"
+                                   style={{ 
+                                     backgroundColor: appointment.techColor || '#9CA3AF',
+                                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)'
+                                   }}>
+                                {technicianFirstName}
+                              </div>
+                            )}
+                            
+                            {/* Action Button - Mobile-friendly, always visible */}
+                            <button 
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-7 md:h-7 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
+                              onClick={e => handleAppointmentClick(appointment, e)}
+                              title="Actions"
+                            >
+                              <MoreVertical size={16} className="md:w-3 md:h-3" strokeWidth={2} />
                             </button>
-                            {/* Time - smaller, quieter */}
-                            <div className="text-xs text-gray-500 mb-0.5">
-                              {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • in {appointment.minutesUntil}m
-                            </div>
-                            {/* Name - compact */}
-                            <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                              {appointment.clientName?.split(' ')[0] || 'Guest'}
-                              {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                            </div>
-                            {/* Service + Staff */}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                              {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                                  {technicianFirstName}
-                                </span>}
-                            </div>
                           </div>;
             })}
                   </div>}
@@ -391,17 +453,29 @@ export const ComingAppointments = memo(function ComingAppointments({
             {/* Later (combines 3+ hours) */}
             {(appointmentBuckets['within3Hours'].length > 0 || appointmentBuckets['moreThan3Hours'].length > 0) && <div className="rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
                 {/* Bucket header - gray for later appointments */}
-                <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-50/50" onClick={() => toggleRowExpansion('within3Hours')}>
+                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-50/50" onClick={() => toggleRowExpansion('within3Hours')}>
                   <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 bg-gray-400 rounded-full"></div>
-                    <span className="text-sm font-semibold text-gray-700">Later</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600">
-                      {appointmentBuckets['within3Hours'].length + appointmentBuckets['moreThan3Hours'].length}{(getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])) > 0 && ` - ${getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])} VIP`}
+                    <div className="w-1.5 h-4 bg-gray-400 rounded-full"></div>
+                    <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">Later</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-gray-400 text-white text-2xs font-bold">
+                      {appointmentBuckets['within3Hours'].length + appointmentBuckets['moreThan3Hours'].length}
                     </span>
-                    {expandedRows['within3Hours'] ? <ChevronUp size={14} className="text-gray-500" strokeWidth={2.5} /> : <ChevronDown size={14} className="text-gray-500" strokeWidth={2.5} />}
+                    {(getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])) > 0 && (
+                      <div className="flex items-center gap-0.5 text-gray-600">
+                        <Star size={11} fill="currentColor" />
+                        <span className="text-2xs font-semibold">
+                          {getVipCount(appointmentBuckets['within3Hours']) + getVipCount(appointmentBuckets['moreThan3Hours'])}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  
+                  <button onClick={(e) => { e.stopPropagation(); toggleRowExpansion('within3Hours'); }}>
+                    {expandedRows['within3Hours'] ? 
+                      <ChevronUp size={14} className="text-gray-500" strokeWidth={2.5} /> : 
+                      <ChevronDown size={14} className="text-gray-500" strokeWidth={2.5} />
+                    }
+                  </button>
                 </div>
                 {/* Collapsed view - simple dots */}
                 {!expandedRows['within3Hours'] && (appointmentBuckets['within3Hours'].length > 0 || appointmentBuckets['moreThan3Hours'].length > 0)}
@@ -410,128 +484,49 @@ export const ComingAppointments = memo(function ComingAppointments({
                     {[...appointmentBuckets['within3Hours'], ...appointmentBuckets['moreThan3Hours']].map((appointment, index) => {
               const appointmentTime = new Date(appointment.appointmentTime);
               const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-              return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-gray-50/80 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
-                            {/* Single action button - hover only */}
-                            <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
-                      e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
-                    }}>
-                              <MoreVertical size={12} className="text-gray-400" />
-                            </button>
-                            {/* Time - smaller, quieter */}
-                            <div className="text-xs text-gray-500 mb-0.5">
-                              {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {formatMinutesUntil(appointment.minutesUntil)}
+              return <div key={appointment.id || index} className="px-3 py-2 hover:bg-gray-50/80 transition-colors cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
+                            {/* Time + Minutes until */}
+                            <div className="flex items-center justify-between mb-0.5 pr-12">
+                              <span className="text-2xs font-semibold text-gray-900">
+                                {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                              <span className="text-2xs font-semibold text-gray-600">
+                                {formatMinutesUntil(appointment.minutesUntil)}
+                              </span>
                             </div>
-                            {/* Name - compact */}
-                            <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                              {appointment.clientName?.split(' ')[0] || 'Guest'}
-                              {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                            </div>
-                            {/* Service + Staff */}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                              {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                                  {technicianFirstName}
-                                </span>}
-                            </div>
-                          </div>;
-            })}
-                  </div>}
-              </div>}
-            {/* More than 3 Hours - Now combined with "Later" bucket above */}
-            {false && appointmentBuckets['moreThan3Hours'].length > 0 && <div className="rounded-xl overflow-hidden border border-gray-200/50 bg-white/80 backdrop-blur-sm">
-                {/* Bucket header with refined styling - simplified */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50 cursor-pointer bg-[#F9F9FB] rounded-t-xl" onClick={() => toggleRowExpansion('moreThan3Hours')} style={{
-            transition: 'all 0.15s ease'
-          }}>
-                  <div className="flex items-center">
-                    <h3 className="text-sm font-semibold text-[#1C1C1E]">
-                      Later Today
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {/* Simplified counts */}
-                    <div className="text-xs text-gray-600">
-                      {appointmentBuckets['moreThan3Hours'].length} Appts
-                      {getVipCount(appointmentBuckets['moreThan3Hours']) > 0 && ` • ${getVipCount(appointmentBuckets['moreThan3Hours'])} VIP`}
-                    </div>
-                    {/* Expand/collapse indicator */}
-                    <div>
-                      {expandedRows['moreThan3Hours'] ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                    </div>
-                  </div>
-                </div>
-                {/* Collapsed view - simple dots */}
-                {!expandedRows['moreThan3Hours'] && appointmentBuckets['moreThan3Hours'].length > 0}
-                {/* Expanded view - simplified appointment list */}
-                {expandedRows['moreThan3Hours'] && <div className="divide-y divide-[#E5E5EA]">
-                    {appointmentBuckets['moreThan3Hours'].map((appointment, index) => {
-              const appointmentTime = new Date(appointment.appointmentTime);
-              // Extract first name from technician
-              const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
-              return <div key={appointment.id || index} className="px-4 py-[10px] bg-white/80 backdrop-blur-sm hover:bg-white/50 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)} onMouseEnter={() => handleAppointmentMouseEnter(appointment)} onMouseLeave={handleAppointmentMouseLeave}>
-                            {/* Action icons in top right */}
-                            <div className="absolute top-2 right-1.5 flex space-x-0.5 z-10">
-                              <Tippy content="Add/View Notes">
-                                <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
-                      e.stopPropagation();
-                      console.log('Notes clicked for', appointment.clientName);
-                    }}>
-                                  <FileText size={14} strokeWidth={1.5} />
-                                </button>
-                              </Tippy>
-                              <Tippy content="Deposit Info">
-                                <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
-                      e.stopPropagation();
-                      console.log('Deposit clicked for', appointment.clientName);
-                    }}>
-                                  <CreditCard size={14} strokeWidth={1.5} />
-                                </button>
-                              </Tippy>
-                              <Tippy content="Edit Appointment">
-                                <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
-                      e.stopPropagation();
-                      console.log('Edit clicked for', appointment.clientName);
-                    }}>
-                                  <Pencil size={14} strokeWidth={1.5} />
-                                </button>
-                              </Tippy>
-                            </div>
-                            <div className="flex items-center mb-1">
-                              {/* Time */}
-                              <div className="mr-3">
-                                <div className="text-sm font-semibold">
-                                  {appointmentTime.toLocaleTimeString([], {
-                        hour: 'numeric',
-                        minute: '2-digit'
-                      })}
-                                </div>
-                                <div className="text-xs text-[#8E8E93]">
-                                  {formatMinutesUntil(appointment.minutesUntil)}
-                                </div>
-                              </div>
-                              {/* Client name with VIP indicator */}
-                              <div className="text-sm font-medium text-[#1C1C1E] flex items-center">
+                            
+                            {/* Client Name + VIP */}
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <span className="text-sm font-semibold text-gray-900 truncate">
                                 {appointment.clientName?.split(' ')[0] || 'Guest'}
-                                {appointment.isVip && <Star size={12} className="ml-1 text-[#FF9500]" />}
-                              </div>
+                              </span>
+                              {appointment.isVip && <Star size={12} className="text-yellow-500 flex-shrink-0" fill="currentColor" />}
                             </div>
-                            <div className="flex items-center justify-between text-xs text-[#8E8E93] mt-1">
-                              <div className="flex items-center">
-                                {/* Service and duration */}
-                                <span className="truncate max-w-[150px]">
-                                  {appointment.service}
-                                </span>
-                                <span className="mx-1">•</span>
-                                <span>{appointment.duration || '45m'}</span>
-                              </div>
-                              {/* Staff name badge */}
-                              {appointment.technician && <div className="px-2 py-0.5 rounded-full text-white text-xs font-semibold" style={{
-                    backgroundColor: appointment.techColor || '#8E8E93'
-                  }}>
-                                  {technicianFirstName}
-                                </div>}
+                            
+                            {/* Service */}
+                            <div className="text-2xs text-gray-600 truncate mb-1">
+                              {appointment.service} • {appointment.duration || '45m'}
                             </div>
+                            
+                            {/* Staff Badge */}
+                            {appointment.technician && (
+                              <div className="inline-block px-2 py-0.5 rounded text-2xs font-semibold text-white border border-white/30"
+                                   style={{ 
+                                     backgroundColor: appointment.techColor || '#9CA3AF',
+                                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)'
+                                   }}>
+                                {technicianFirstName}
+                              </div>
+                            )}
+                            
+                            {/* Action Button - Mobile-friendly, always visible */}
+                            <button 
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-7 md:h-7 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-gray-500 hover:text-gray-600 hover:bg-gray-50 transition-all flex items-center justify-center"
+                              onClick={e => handleAppointmentClick(appointment, e)}
+                              title="Actions"
+                            >
+                              <MoreVertical size={16} className="md:w-3 md:h-3" strokeWidth={2} />
+                            </button>
                           </div>;
             })}
                   </div>}

@@ -5,7 +5,6 @@ import {
   Download,
   Calendar,
   DollarSign,
-  TrendingUp,
   Receipt,
   Eye,
   Edit2,
@@ -17,7 +16,12 @@ import {
   AlertCircle,
   PlayCircle,
   PauseCircle,
-  Users
+  Users,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  Zap,
+  History
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
@@ -32,6 +36,14 @@ import {
 } from '../../store/slices/ticketsSlice';
 import type { LocalAppointment } from '../../types/appointment';
 import type { Ticket } from '../../types';
+import { SalesDetailsPanel } from '../sales/SalesDetailsPanel';
+import { Pagination } from '../sales/Pagination';
+import { SalesLoadingSkeleton } from '../sales/SalesLoadingSkeleton';
+import { SalesEmptyState } from '../sales/SalesEmptyState';
+import { DateRangePicker } from '../sales/DateRangePicker';
+import { FilterChip } from '../sales/FilterChip';
+import { SalesMobileCard } from '../sales/SalesMobileCard';
+import { mockTickets, mockAppointments } from '../../data/mockSalesData';
 
 type SalesTab = 'appointments' | 'tickets';
 type DateFilter = '7days' | '30days' | '90days' | 'custom';
@@ -39,11 +51,17 @@ type DateFilter = '7days' | '30days' | '90days' | 'custom';
 export function Sales() {
   const dispatch = useAppDispatch();
 
-  // Data from Redux
-  const appointments = useAppSelector(selectAllAppointments);
-  const tickets = useAppSelector(selectAllTickets);
-  const appointmentsLoading = useAppSelector(selectAppointmentsLoading);
-  const ticketsLoading = useAppSelector(selectTicketsLoading);
+  // Data from Redux (commented out for now, using mock data)
+  // const appointments = useAppSelector(selectAllAppointments);
+  // const tickets = useAppSelector(selectAllTickets);
+  // const appointmentsLoading = useAppSelector(selectAppointmentsLoading);
+  // const ticketsLoading = useAppSelector(selectTicketsLoading);
+
+  // Using mock data for demonstration
+  const appointments = mockAppointments;
+  const tickets = mockTickets;
+  const appointmentsLoading = false;
+  const ticketsLoading = false;
 
   // UI State
   const [activeTab, setActiveTab] = useState<SalesTab>('tickets');
@@ -52,47 +70,125 @@ export function Sales() {
   const [dateFilter, setDateFilter] = useState<DateFilter>('30days');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Load data on mount
+  // Details Panel State
+  const [selectedItem, setSelectedItem] = useState<Ticket | LocalAppointment | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+
+  // Sorting State
+  const [sortBy, setSortBy] = useState<string>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Date Range Picker State
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | null; to: Date | null }>({
+    from: null,
+    to: null
+  });
+
+  // Mobile view detection
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
-    // Load appointments
-    const now = new Date();
-    const startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
-    const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days future
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
-    dispatch(fetchAppointments({
-      rvcNo: 1, // TODO: Get from context
-      startDate,
-      endDate
-    }));
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
 
-    // Load tickets
-    dispatch(fetchTickets('salon_123')); // TODO: Get salonId from context
-  }, [dispatch]);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  // Calculate stats based on active tab
+  // Load data on mount (commented out for mock data)
+  // useEffect(() => {
+  //   // Load appointments
+  //   const now = new Date();
+  //   const startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
+  //   const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days future
+
+  //   dispatch(fetchAppointments({
+  //     rvcNo: 1, // TODO: Get from context
+  //     startDate,
+  //     endDate
+  //   }));
+
+  //   // Load tickets
+  //   dispatch(fetchTickets('salon_123')); // TODO: Get salonId from context
+  // }, [dispatch]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, statusFilter, dateFilter, customDateRange]);
+
+  // Calculate stats based on active tab with trends
   const stats = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
     if (activeTab === 'tickets') {
-      const total = tickets.length;
-      const active = tickets.filter(t => t.status === 'in-progress').length;
-      const pending = tickets.filter(t => t.status === 'pending').length;
-      const completed = tickets.filter(t => t.status === 'completed').length;
-      const avgValue = total > 0
-        ? tickets.reduce((sum, t) => sum + (t.total || 0), 0) / total
+      // Current period (last 30 days)
+      const currentTickets = tickets.filter(t => new Date(t.createdAt) >= thirtyDaysAgo);
+      const total = currentTickets.length;
+      const active = currentTickets.filter(t => t.status === 'in-progress').length;
+      const pending = currentTickets.filter(t => t.status === 'pending').length;
+      const completed = currentTickets.filter(t => t.status === 'completed').length;
+      const totalRevenue = currentTickets.reduce((sum, t) => sum + (t.total || 0), 0);
+      const avgValue = total > 0 ? totalRevenue / total : 0;
+
+      // Previous period (30-60 days ago)
+      const previousTickets = tickets.filter(t => {
+        const date = new Date(t.createdAt);
+        return date >= sixtyDaysAgo && date < thirtyDaysAgo;
+      });
+      const prevTotal = previousTickets.length;
+      const prevAvgValue = prevTotal > 0
+        ? previousTickets.reduce((sum, t) => sum + (t.total || 0), 0) / prevTotal
         : 0;
+
+      // Calculate trends
+      const totalTrend = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
+      const avgValueTrend = prevAvgValue > 0 ? ((avgValue - prevAvgValue) / prevAvgValue) * 100 : 0;
 
       return {
         total,
         active,
         pending,
         completed,
-        avgValue
+        avgValue,
+        totalTrend: totalTrend.toFixed(1),
+        avgValueTrend: avgValueTrend.toFixed(1)
       };
     } else {
-      const total = appointments.length;
-      const completed = appointments.filter(a => a.status === 'completed').length;
-      const scheduled = appointments.filter(a => a.status === 'scheduled').length;
-      const cancelled = appointments.filter(a => a.status === 'cancelled').length;
-      const noShow = appointments.filter(a => a.status === 'no-show').length;
+      // Current period (last 30 days)
+      const currentAppts = appointments.filter(a => new Date(a.scheduledStartTime) >= thirtyDaysAgo);
+      const total = currentAppts.length;
+      const completed = currentAppts.filter(a => a.status === 'completed').length;
+      const scheduled = currentAppts.filter(a => a.status === 'scheduled').length;
+      const cancelled = currentAppts.filter(a => a.status === 'cancelled').length;
+      const noShow = currentAppts.filter(a => a.status === 'no-show').length;
+      const completionRate = total > 0 ? (completed / total * 100) : 0;
+
+      // Previous period (30-60 days ago)
+      const previousAppts = appointments.filter(a => {
+        const date = new Date(a.scheduledStartTime);
+        return date >= sixtyDaysAgo && date < thirtyDaysAgo;
+      });
+      const prevTotal = previousAppts.length;
+      const prevCompleted = previousAppts.filter(a => a.status === 'completed').length;
+      const prevCompletionRate = prevTotal > 0 ? (prevCompleted / prevTotal * 100) : 0;
+
+      // Calculate trends
+      const totalTrend = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0;
+      const completionTrend = prevCompletionRate > 0
+        ? ((completionRate - prevCompletionRate) / prevCompletionRate) * 100
+        : 0;
 
       return {
         total,
@@ -100,12 +196,14 @@ export function Sales() {
         scheduled,
         cancelled,
         noShow,
-        completionRate: total > 0 ? (completed / total * 100).toFixed(1) : '0'
+        completionRate: completionRate.toFixed(1),
+        totalTrend: totalTrend.toFixed(1),
+        completionTrend: completionTrend.toFixed(1)
       };
     }
   }, [activeTab, appointments, tickets]);
 
-  // Filter data based on active tab
+  // Filter and sort data based on active tab
   const filteredData = useMemo(() => {
     const data = activeTab === 'tickets' ? tickets : appointments;
     let filtered = [...data];
@@ -130,7 +228,16 @@ export function Sales() {
     }
 
     // Apply date filter
-    if (dateFilter !== 'custom') {
+    if (dateFilter === 'custom' && customDateRange.from && customDateRange.to) {
+      // Use custom date range
+      filtered = filtered.filter(item => {
+        const itemDate = 'scheduledStartTime' in item
+          ? new Date(item.scheduledStartTime)
+          : new Date(item.createdAt);
+        return itemDate >= customDateRange.from! && itemDate <= customDateRange.to!;
+      });
+    } else if (dateFilter !== 'custom') {
+      // Use preset date range
       const now = new Date();
       const cutoff = new Date();
 
@@ -154,8 +261,50 @@ export function Sales() {
       });
     }
 
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (sortBy) {
+        case 'date':
+          aVal = 'scheduledStartTime' in a ? new Date(a.scheduledStartTime) : new Date(a.createdAt);
+          bVal = 'scheduledStartTime' in b ? new Date(b.scheduledStartTime) : new Date(b.createdAt);
+          break;
+        case 'client':
+          aVal = a.clientName?.toLowerCase() || '';
+          bVal = b.clientName?.toLowerCase() || '';
+          break;
+        case 'status':
+          aVal = a.status;
+          bVal = b.status;
+          break;
+        case 'total':
+          aVal = (a as Ticket).total || 0;
+          bVal = (b as Ticket).total || 0;
+          break;
+        case 'staff':
+          aVal = ('staffName' in a ? a.staffName : (a as any).techName)?.toLowerCase() || '';
+          bVal = ('staffName' in b ? b.staffName : (b as any).techName)?.toLowerCase() || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     return filtered;
-  }, [activeTab, appointments, tickets, searchQuery, statusFilter, dateFilter]);
+  }, [activeTab, appointments, tickets, searchQuery, statusFilter, dateFilter, sortBy, sortDirection]);
+
+  // Paginate filtered data
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage, itemsPerPage]);
 
   // Get status options based on active tab
   const statusOptions = useMemo(() => {
@@ -183,17 +332,17 @@ export function Sales() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      'scheduled': 'bg-blue-100 text-blue-800',
-      'checked-in': 'bg-yellow-100 text-yellow-800',
-      'in-service': 'bg-purple-100 text-purple-800',
-      'in-progress': 'bg-purple-100 text-purple-800',
-      'completed': 'bg-green-100 text-green-800',
-      'cancelled': 'bg-gray-100 text-gray-800',
-      'no-show': 'bg-red-100 text-red-800',
-      'new': 'bg-blue-100 text-blue-800',
-      'pending': 'bg-orange-100 text-orange-800'
+      'scheduled': 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-700 border-sky-200',
+      'checked-in': 'bg-gradient-to-br from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
+      'in-service': 'bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 border-purple-200',
+      'in-progress': 'bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 border-purple-200',
+      'completed': 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200 shadow-sm shadow-emerald-100',
+      'cancelled': 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 border-slate-200',
+      'no-show': 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 border-rose-200',
+      'new': 'bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 border-blue-200',
+      'pending': 'bg-gradient-to-br from-amber-50 to-amber-100 text-amber-700 border-amber-200'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-gradient-to-br from-gray-50 to-gray-100 text-gray-600 border-gray-200';
   };
 
   const formatDate = (date: Date | string) => {
@@ -206,119 +355,249 @@ export function Sales() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Details Panel Handlers
+  const handleViewDetails = (item: Ticket | LocalAppointment, index: number) => {
+    setSelectedItem(item);
+    setSelectedIndex(index);
+    setIsPanelOpen(true);
+  };
+
+  const handleClosePanel = () => {
+    setIsPanelOpen(false);
+    setTimeout(() => {
+      setSelectedItem(null);
+      setSelectedIndex(-1);
+    }, 300); // Wait for animation to complete
+  };
+
+  const handlePrevious = () => {
+    if (selectedIndex > 0) {
+      const newIndex = selectedIndex - 1;
+      setSelectedItem(filteredData[newIndex] as Ticket | LocalAppointment);
+      setSelectedIndex(newIndex);
+    }
+  };
+
+  const handleNext = () => {
+    if (selectedIndex < filteredData.length - 1) {
+      const newIndex = selectedIndex + 1;
+      setSelectedItem(filteredData[newIndex] as Ticket | LocalAppointment);
+      setSelectedIndex(newIndex);
+    }
+  };
+
+  // Sorting Handler
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to descending
+      setSortBy(column);
+      setSortDirection('desc');
+    }
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setDateFilter('30days');
+    setCustomDateRange({ from: null, to: null });
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    searchQuery !== '' ||
+    statusFilter !== 'all' ||
+    dateFilter !== '30days' ||
+    (customDateRange.from !== null && customDateRange.to !== null);
+
+  // Handle date range change
+  const handleDateRangeChange = (range: { from: Date | null; to: Date | null }) => {
+    setCustomDateRange(range);
+    if (range.from && range.to) {
+      setDateFilter('custom');
+    }
+  };
+
+  // Get active filters for chips display
+  const getActiveFilters = () => {
+    const filters: Array<{ key: string; label: string; value: string; onRemove: () => void }> = [];
+
+    if (searchQuery) {
+      filters.push({
+        key: 'search',
+        label: 'Search',
+        value: searchQuery,
+        onRemove: () => setSearchQuery('')
+      });
+    }
+
+    if (statusFilter !== 'all') {
+      const statusLabel = statusOptions.find(opt => opt.value === statusFilter)?.label || statusFilter;
+      filters.push({
+        key: 'status',
+        label: 'Status',
+        value: statusLabel,
+        onRemove: () => setStatusFilter('all')
+      });
+    }
+
+    if (dateFilter === 'custom' && customDateRange.from && customDateRange.to) {
+      filters.push({
+        key: 'date',
+        label: 'Date Range',
+        value: `${formatChipDate(customDateRange.from)} - ${formatChipDate(customDateRange.to)}`,
+        onRemove: () => {
+          setDateFilter('30days');
+          setCustomDateRange({ from: null, to: null });
+        }
+      });
+    } else if (dateFilter !== '30days') {
+      const dateLabel = dateFilter === '7days' ? 'Last 7 days' :
+                       dateFilter === '90days' ? 'Last 90 days' : dateFilter;
+      filters.push({
+        key: 'date',
+        label: 'Date',
+        value: dateLabel,
+        onRemove: () => setDateFilter('30days')
+      });
+    }
+
+    return filters;
+  };
+
+  const formatChipDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  // Sortable Column Header Component
+  const SortableHeader = ({ column, label }: { column: string; label: string }) => {
+    const isActive = sortBy === column;
+    return (
+      <th
+        className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none min-w-[120px]"
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center gap-1.5">
+          <span>{label}</span>
+          <div className="flex flex-col">
+            {isActive ? (
+              sortDirection === 'asc' ? (
+                <ChevronUp className="w-3 h-3 text-blue-600" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-blue-600" />
+              )
+            ) : (
+              <ChevronsUpDown className="w-3 h-3 text-gray-400" />
+            )}
+          </div>
+        </div>
+      </th>
+    );
+  };
+
   return (
-    <div className="h-full bg-gray-50 flex flex-col">
+    <div className="h-full bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 flex flex-col">
+      {/* Add animations */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.3s ease-out both;
+        }
+
+        /* Icon animations */
+        @keyframes bounceIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.3);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05);
+          }
+          70% {
+            transform: scale(0.9);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+        .animate-bounce-in {
+          animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+        }
+
+        @keyframes rotateIcon {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(15deg);
+          }
+        }
+        .icon-action:hover {
+          animation: rotateIcon 0.3s ease-in-out alternate infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        .animate-pulse-subtle {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
+      <div className="bg-white border-b border-gray-200 px-6 py-2 shadow-sm">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Sales</h1>
-              <p className="text-gray-600 mt-1">View and manage appointments and tickets</p>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Transaction Lookup</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download className="w-4 h-4" />
-                <span className="text-sm font-medium">Export</span>
+            <div className="flex items-center gap-2">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200">
+                <Download className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Export</span>
               </button>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          {activeTab === 'tickets' ? (
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900">Total Tickets</span>
-                  <Receipt className="w-5 h-5 text-blue-600" />
-                </div>
-                <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
-                <p className="text-xs text-blue-700 mt-1">All tickets</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-purple-900">Active</span>
-                  <PlayCircle className="w-5 h-5 text-purple-600" />
-                </div>
-                <p className="text-2xl font-bold text-purple-900">{stats.active}</p>
-                <p className="text-xs text-purple-700 mt-1">In progress</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-orange-900">Pending</span>
-                  <PauseCircle className="w-5 h-5 text-orange-600" />
-                </div>
-                <p className="text-2xl font-bold text-orange-900">{stats.pending}</p>
-                <p className="text-xs text-orange-700 mt-1">Awaiting checkout</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-green-900">Avg Value</span>
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                </div>
-                <p className="text-2xl font-bold text-green-900">${stats.avgValue.toFixed(2)}</p>
-                <p className="text-xs text-green-700 mt-1">Per ticket</p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900">Total Appointments</span>
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
-                <p className="text-xs text-blue-700 mt-1">All time</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-green-900">Completed</span>
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
-                <p className="text-xs text-green-700 mt-1">{stats.completionRate}% completion rate</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-purple-900">Scheduled</span>
-                  <Clock className="w-5 h-5 text-purple-600" />
-                </div>
-                <p className="text-2xl font-bold text-purple-900">{stats.scheduled}</p>
-                <p className="text-xs text-purple-700 mt-1">Upcoming</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-red-900">No Shows</span>
-                  <XCircle className="w-5 h-5 text-red-600" />
-                </div>
-                <p className="text-2xl font-bold text-red-900">{stats.noShow}</p>
-                <p className="text-xs text-red-700 mt-1">Missed appointments</p>
-              </div>
-            </div>
-          )}
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-2 mb-6 border-b border-gray-200">
+          <div className="flex items-center gap-1 mb-2 border-b border-gray-200">
             <button
               onClick={() => {
                 setActiveTab('tickets');
                 setStatusFilter('all');
                 setSearchQuery('');
               }}
-              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+              className={`px-4 py-1.5 font-semibold text-xs transition-all duration-200 relative rounded-t ${
                 activeTab === 'tickets'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600 -mb-px'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               Tickets
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-100">
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === 'tickets'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
                 {tickets.length}
               </span>
             </button>
@@ -328,121 +607,226 @@ export function Sales() {
                 setStatusFilter('all');
                 setSearchQuery('');
               }}
-              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+              className={`px-4 py-1.5 font-semibold text-xs transition-all duration-200 relative rounded-t ${
                 activeTab === 'appointments'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600 -mb-px'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               Appointments
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-100">
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                activeTab === 'appointments'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
                 {appointments.length}
               </span>
             </button>
           </div>
 
+          {/* Quick Filters */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <span className="text-xs font-semibold text-gray-700 mr-1 flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              Quick:
+            </span>
+            <button
+              onClick={() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                setCustomDateRange({ from: today, to: new Date() });
+                setDateFilter('custom');
+              }}
+              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all duration-200 text-xs font-medium"
+            >
+              Today
+            </button>
+            <button
+              onClick={() => {
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                setCustomDateRange({ from: weekAgo, to: new Date() });
+                setDateFilter('custom');
+              }}
+              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all duration-200 text-xs font-medium"
+            >
+              7 Days
+            </button>
+            <button
+              onClick={() => {
+                const monthAgo = new Date();
+                monthAgo.setDate(monthAgo.getDate() - 30);
+                setCustomDateRange({ from: monthAgo, to: new Date() });
+                setDateFilter('custom');
+              }}
+              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all duration-200 text-xs font-medium"
+            >
+              30 Days
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter('completed');
+              }}
+              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-all duration-200 text-xs font-medium"
+            >
+              Completed
+            </button>
+            <button
+              onClick={() => {
+                handleClearFilters();
+              }}
+              className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 transition-all duration-200 text-xs font-medium flex items-center gap-1"
+            >
+              <History className="w-3 h-3" />
+              Clear
+            </button>
+          </div>
+
           {/* Search and Filters */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder={`Search ${activeTab}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={`Search by client name, ticket #, or phone number...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 text-sm"
+                />
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-2.5 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 text-gray-700 text-sm min-w-[140px]"
+              >
+                {statusOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => setShowDatePicker(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 whitespace-nowrap"
+              >
+                <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                <span className="text-sm text-gray-700">
+                  {dateFilter === 'custom' && customDateRange.from && customDateRange.to
+                    ? `${formatChipDate(customDateRange.from)} - ${formatChipDate(customDateRange.to)}`
+                    : dateFilter === '7days'
+                    ? '7 days'
+                    : dateFilter === '90days'
+                    ? '90 days'
+                    : '30 days'}
+                </span>
+              </button>
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {statusOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="7days">Last 7 days</option>
-              <option value="30days">Last 30 days</option>
-              <option value="90days">Last 90 days</option>
-            </select>
+            {/* Filter Chips */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-3 flex-wrap">
+                {getActiveFilters().map((filter) => (
+                  <FilterChip
+                    key={filter.key}
+                    label={filter.label}
+                    value={filter.value}
+                    onRemove={filter.onRemove}
+                  />
+                ))}
+                <button
+                  onClick={handleClearFilters}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-all duration-200 active:scale-95"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto px-8 py-6">
-        <div className="max-w-7xl mx-auto">
-          {filteredData.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No {activeTab} found</h3>
-              <p className="text-gray-600">
-                {searchQuery ? 'Try adjusting your search or filters' : `No ${activeTab} to display`}
-              </p>
+      <div className="flex-1 overflow-auto px-6 py-2">
+        <div className="max-w-[1600px] mx-auto">
+          {(appointmentsLoading || ticketsLoading) ? (
+            <SalesLoadingSkeleton />
+          ) : filteredData.length === 0 ? (
+            <SalesEmptyState
+              hasFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
+              activeTab={activeTab}
+            />
+          ) : isMobile ? (
+            /* Mobile Card View */
+            <div className="space-y-5">
+              {paginatedData.map((item: any, index: number) => {
+                const actualIndex = (currentPage - 1) * itemsPerPage + index;
+                return (
+                  <div
+                    key={item.id}
+                    className="animate-fade-in-up"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <SalesMobileCard
+                      item={item}
+                      type={activeTab === 'tickets' ? 'ticket' : 'appointment'}
+                      onView={() => handleViewDetails(item, actualIndex)}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Pagination for Mobile */}
+              {filteredData.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredData.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+            /* Desktop Table View */
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-md">
+              <div className="overflow-x-auto max-h-[calc(100vh-260px)]">
+              <table className="w-full table-auto">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
                     {activeTab === 'tickets' ? (
                       <>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
                           Ticket #
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Client
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Staff/Tech
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <SortableHeader column="date" label="Date" />
+                        <SortableHeader column="client" label="Client" />
+                        <SortableHeader column="staff" label="Staff" />
+                        <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
                           Services
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <SortableHeader column="total" label="Total" />
+                        <SortableHeader column="status" label="Status" />
+                        <th className="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                           Actions
                         </th>
                       </>
                     ) : (
                       <>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date & Time
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Client
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Staff
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <SortableHeader column="date" label="Date" />
+                        <SortableHeader column="client" label="Client" />
+                        <SortableHeader column="staff" label="Staff" />
+                        <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
                           Services
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <SortableHeader column="status" label="Status" />
+                        <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
                           Source
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                           Actions
                         </th>
                       </>
@@ -450,119 +834,168 @@ export function Sales() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredData.map((item: any) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                  {paginatedData.map((item: any, index: number) => {
+                    // Calculate the actual index in filteredData for navigation
+                    const actualIndex = (currentPage - 1) * itemsPerPage + index;
+                    return (
+                    <tr
+                      key={item.id}
+                      className={`animate-fade-in-up transition-all duration-150 hover:bg-gray-50 hover:shadow-sm ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
                       {activeTab === 'tickets' ? (
                         <>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900">
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className="text-sm font-semibold text-gray-900">
                               #{item.id?.slice(0, 8)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{formatDate(item.createdAt)}</div>
-                            <div className="text-sm text-gray-500">{formatTime(item.createdAt)}</div>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{formatDate(item.createdAt)}</div>
+                            <div className="text-xs text-gray-600">{formatTime(item.createdAt)}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-1.5 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
-                                <User className="w-4 h-4 text-white" />
+                              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
+                                <User className="w-3.5 h-3.5 text-white" />
                               </div>
-                              <span className="text-sm text-gray-900">{item.clientName || 'Walk-in'}</span>
+                              <span className="text-sm font-medium text-gray-900">{item.clientName || 'Walk-in'}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-600">{item.techName || 'Unassigned'}</span>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className="text-sm text-gray-700">{item.techName || 'Unassigned'}</span>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">
+                          <td className="px-3 py-1.5">
+                            <span className="text-sm text-gray-700">
                               {item.items?.map((i: any) => i.name).join(', ') || 'N/A'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-semibold text-gray-900">
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className="text-sm font-bold text-gray-900 tabular-nums">
                               ${(item.total || 0).toFixed(2)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.status)}`}>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}>
                               {item.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                                <Eye className="w-4 h-4 text-gray-600" />
+                          <td className="px-3 py-1.5 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleViewDetails(item, actualIndex)}
+                                className="p-1 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded transition-all duration-200"
+                                aria-label="View details"
+                              >
+                                <Eye className="w-4 h-4" />
                               </button>
-                              <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                                <Edit2 className="w-4 h-4 text-gray-600" />
+                              <button className="p-1 hover:bg-purple-50 hover:text-purple-600 text-gray-600 rounded transition-all duration-200">
+                                <Edit2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
                         </>
                       ) : (
                         <>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-1.5 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">
                                 {formatDate(item.scheduledStartTime)}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-xs text-gray-600">
                                 {formatTime(item.scheduledStartTime)}
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-1.5 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
-                                <User className="w-4 h-4 text-white" />
+                              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
+                                <User className="w-3.5 h-3.5 text-white" />
                               </div>
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
                                   {item.clientName || 'Walk-in'}
                                 </div>
                                 {item.clientPhone && (
-                                  <div className="text-sm text-gray-500">{item.clientPhone}</div>
+                                  <div className="text-xs text-gray-600">{item.clientPhone}</div>
                                 )}
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-900">{item.staffName || 'Unassigned'}</span>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className="text-sm font-medium text-gray-900">{item.staffName || 'Unassigned'}</span>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-gray-600">
+                          <td className="px-3 py-1.5">
+                            <span className="text-sm text-gray-700">
                               {item.services?.map((s: any) => s.serviceName).join(', ') || 'N/A'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.status)}`}>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}>
                               {item.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-600 capitalize">{item.source || 'N/A'}</span>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className="text-sm text-gray-700 capitalize font-medium">{item.source || 'N/A'}</span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                                <Eye className="w-4 h-4 text-gray-600" />
+                          <td className="px-3 py-1.5 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleViewDetails(item, actualIndex)}
+                                className="p-1 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded transition-all duration-200"
+                                aria-label="View details"
+                              >
+                                <Eye className="w-4 h-4" />
                               </button>
-                              <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                                <Edit2 className="w-4 h-4 text-gray-600" />
+                              <button className="p-1 hover:bg-purple-50 hover:text-purple-600 text-gray-600 rounded transition-all duration-200">
+                                <Edit2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
                         </>
                       )}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
+              </div>
+
+              {/* Pagination */}
+              {filteredData.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredData.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Details Panel */}
+      <SalesDetailsPanel
+        isOpen={isPanelOpen}
+        onClose={handleClosePanel}
+        data={selectedItem}
+        type={activeTab === 'tickets' ? 'ticket' : 'appointment'}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        hasPrevious={selectedIndex > 0}
+        hasNext={selectedIndex < filteredData.length - 1}
+      />
+
+      {/* Date Range Picker Modal */}
+      {showDatePicker && (
+        <DateRangePicker
+          value={customDateRange}
+          onChange={handleDateRangeChange}
+          onClose={() => setShowDatePicker(false)}
+        />
+      )}
     </div>
   );
 }

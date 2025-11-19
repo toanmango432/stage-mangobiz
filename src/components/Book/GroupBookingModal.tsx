@@ -349,7 +349,7 @@ export function GroupBookingModal({
         {/* Left Column - Members */}
         <div className="w-3/5 flex flex-col border-r border-gray-200">
             {/* Date & Time */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div className="px-6 py-4 bg-surface-secondary border-b border-gray-200/50/50">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-2">Date</label>
@@ -406,19 +406,19 @@ export function GroupBookingModal({
                 members.map((member, index) => (
                   <div
                     key={member.id}
-                    className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white hover:border-teal-300 transition-colors"
+                    className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white hover:border-brand-300 transition-colors"
                   >
                     {/* Member Header */}
                     <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-semibold">
                           {member.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h4 className="font-semibold text-gray-900">{member.name}</h4>
                             {index === 0 && (
-                              <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-medium">
+                              <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">
                                 Main
                               </span>
                             )}
@@ -467,7 +467,7 @@ export function GroupBookingModal({
                                     <span className="text-xs text-gray-500">•</span>
                                     <span className="text-xs text-gray-500">{service.duration} min</span>
                                     <span className="text-xs text-gray-500">•</span>
-                                    <span className="text-xs font-semibold text-teal-600">${service.price}</span>
+                                    <span className="text-xs font-semibold text-brand-600">${service.price}</span>
                                   </div>
                                 </div>
                                 <button
@@ -484,7 +484,7 @@ export function GroupBookingModal({
 
                         <button
                           onClick={() => setShowServicePicker(member.id)}
-                          className="btn-secondary w-full text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100 flex items-center justify-center gap-2"
+                          className="btn-secondary w-full text-brand-600 bg-brand-50 border-brand-200 hover:bg-brand-100 flex items-center justify-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
                           Add Service
@@ -498,7 +498,7 @@ export function GroupBookingModal({
           </div>
 
           {/* Right Column - Summary */}
-          <div className="w-2/5 flex flex-col bg-gray-50">
+          <div className="w-2/5 flex flex-col bg-surface-secondary">
             <div className="p-6">
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                 Group Summary
@@ -509,17 +509,17 @@ export function GroupBookingModal({
                   <span className="text-sm text-gray-600">Total Members</span>
                   <span className="text-lg font-bold text-gray-900">{groupSummary.totalMembers}</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-t border-gray-200">
+                <div className="flex items-center justify-between py-2 border-t border-gray-200/50">
                   <span className="text-sm text-gray-600">Total Services</span>
                   <span className="text-lg font-bold text-gray-900">{groupSummary.totalServices}</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-t border-gray-200">
+                <div className="flex items-center justify-between py-2 border-t border-gray-200/50">
                   <span className="text-sm text-gray-600">Total Duration</span>
                   <span className="text-lg font-bold text-gray-900">{groupSummary.formattedDuration}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-t-2 border-gray-300">
                   <span className="text-base font-semibold text-gray-900">Total Cost</span>
-                  <span className="text-2xl font-bold text-teal-600">${groupSummary.totalCost.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-brand-600">${groupSummary.totalCost.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -558,7 +558,7 @@ export function GroupBookingModal({
       {showAddMemberModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50">
               <h3 className="text-lg font-bold text-gray-900">Add Group Member</h3>
               <button
                 onClick={() => {
@@ -603,7 +603,7 @@ export function GroupBookingModal({
                         <button
                           key={client.id}
                           onClick={() => handleAddMemberFromClient(client)}
-                          className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-lg hover:border-teal-500 hover:bg-teal-50 transition-colors"
+                          className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-lg hover:border-brand-500 hover:bg-brand-50 transition-colors"
                         >
                           <p className="font-medium text-gray-900">{client.name}</p>
                           <p className="text-sm text-gray-500">{client.phone}</p>
@@ -623,7 +623,7 @@ export function GroupBookingModal({
                       <button
                         key={client.id}
                         onClick={() => handleAddMemberFromClient(client)}
-                        className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-lg hover:border-teal-500 hover:bg-teal-50 transition-colors"
+                        className="w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-lg hover:border-brand-500 hover:bg-brand-50 transition-colors"
                       >
                         <p className="font-medium text-gray-900">{client.name}</p>
                         <p className="text-sm text-gray-500">{client.phone}</p>
@@ -691,7 +691,7 @@ export function GroupBookingModal({
       {showServicePicker && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50">
               <h3 className="text-lg font-bold text-gray-900">
                 Add Service for {members.find(m => m.id === showServicePicker)?.name}
               </h3>
@@ -712,14 +712,14 @@ export function GroupBookingModal({
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
                     {services.map(service => (
-                      <div key={service.id} className="border border-gray-200 rounded-lg p-4 hover:border-teal-500 hover:shadow-md transition-all">
+                      <div key={service.id} className="border border-gray-200 rounded-lg p-4 hover:border-brand-500 hover:shadow-md transition-all">
                         <h5 className="font-semibold text-gray-900 mb-2">{service.name}</h5>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2 text-sm text-gray-500">
                             <Clock className="w-4 h-4" />
                             <span>{service.duration} min</span>
                           </div>
-                          <div className="flex items-center gap-1 text-sm font-semibold text-teal-600">
+                          <div className="flex items-center gap-1 text-sm font-semibold text-brand-600">
                             <DollarSign className="w-4 h-4" />
                             <span>{service.price}</span>
                           </div>
@@ -730,7 +730,7 @@ export function GroupBookingModal({
                             <button
                               key={staff.id}
                               onClick={() => handleAddServiceToMember(showServicePicker, service, staff)}
-                              className="w-full px-3 py-2 text-xs text-left bg-gray-50 hover:bg-teal-50 hover:border-teal-500 border border-gray-200 rounded transition-colors"
+                              className="w-full px-3 py-2 text-xs text-left bg-gray-50 hover:bg-brand-50 hover:border-brand-500 border border-gray-200 rounded transition-colors"
                             >
                               {staff.name}
                             </button>

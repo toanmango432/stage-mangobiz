@@ -1,11 +1,12 @@
 /**
- * Quick Client Modal - World-class client search and add
+ * Quick Client Modal - Premium Edition
  * Features:
  * - Instant search with inline results
  * - Quick add without leaving search view
  * - Smart phone number detection and formatting
  * - Keyboard shortcuts for power users
  * - Auto-select after creation
+ * - Glass morphism and premium design
  */
 
 import { memo, useState, useEffect, useRef } from 'react';
@@ -15,6 +16,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { clientsDB } from '../../db/database';
 import type { Client } from '../../types';
 import toast from 'react-hot-toast';
+import { PremiumInput, PremiumButton, PremiumAvatar } from '../premium';
 import {
   getNameError,
   getPhoneError,
@@ -223,67 +225,69 @@ export const QuickClientModal = memo(function QuickClientModal({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Premium blur */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] transition-all"
+        className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60] animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal - Premium glass morphism */}
       <div
-        className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in"
         onKeyDown={handleKeyDown}
       >
         <div
           className={cn(
-            'bg-white rounded-2xl shadow-2xl',
+            'bg-white/95 backdrop-blur-xl rounded-2xl shadow-premium-2xl',
             'w-full max-w-2xl max-h-[85vh]',
             'flex flex-col',
-            'animate-slide-in-up'
+            'border border-gray-200/50',
+            'animate-scale-in'
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-500/25">
-                <Search className="w-5 h-5 text-white" />
+          {/* Header - Premium glass */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-white/50">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-premium-md">
+                <Search className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">
                   Find Client
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600 mt-0.5">
                   Search or add new in seconds
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="btn-icon"
+              className={cn(
+                'p-2 rounded-lg',
+                'hover:bg-gray-100',
+                'transition-colors duration-200'
+              )}
               aria-label="Close"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Search Input */}
-            <div className="relative mb-5">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
+            {/* Search Input - Premium */}
+            <div className="mb-6">
+              <PremiumInput
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or phone..."
-                className={cn(
-                  'w-full pl-12 pr-4 py-3.5 text-base',
-                  'border-2 border-gray-200 rounded-xl',
-                  'focus:outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10',
-                  'transition-all'
-                )}
+                icon={<Search className="w-5 h-5" />}
+                clearable
+                onClear={() => setSearchQuery('')}
+                size="lg"
               />
             </div>
 
@@ -294,38 +298,44 @@ export const QuickClientModal = memo(function QuickClientModal({
                 <p className="mt-4 text-sm text-gray-500">Searching...</p>
               </div>
             ) : searchResults.length > 0 ? (
-              <div className="space-y-2 mb-5">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide px-1 mb-3">
+              <div className="space-y-3 mb-5">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-1 mb-3">
                   Found {searchResults.length} {searchResults.length === 1 ? 'client' : 'clients'}
                 </p>
-                {searchResults.map((client) => (
+                {searchResults.map((client, index) => (
                   <button
                     key={client.id}
                     onClick={() => handleSelectClient(client)}
                     className={cn(
-                      'w-full p-4 rounded-xl border-2 border-gray-200',
-                      'hover:border-teal-500 hover:bg-teal-50/50 hover:shadow-md',
+                      'w-full p-4 rounded-xl border border-gray-200',
+                      'hover:border-brand-300 hover:bg-brand-50',
+                      'hover:shadow-premium-md hover:-translate-y-0.5',
                       'transition-all duration-200',
                       'text-left group'
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
+                      <div className="flex items-center gap-4">
+                        <PremiumAvatar
+                          name={client.name}
+                          size="lg"
+                          colorIndex={index}
+                          gradient
+                          showStatus
+                          status="online"
+                        />
                         <div>
-                          <p className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">
+                          <p className="font-semibold text-gray-900 group-hover:text-brand-600 transition-colors">
                             {client.name}
                           </p>
                           <div className="flex items-center gap-3 mt-1">
                             <div className="flex items-center gap-1.5">
-                              <Phone className="w-3 h-3 text-gray-400" />
+                              <Phone className="w-3.5 h-3.5 text-gray-400" />
                               <p className="text-sm text-gray-600">{client.phone}</p>
                             </div>
                             {client.email && (
                               <div className="flex items-center gap-1.5">
-                                <Mail className="w-3 h-3 text-gray-400" />
+                                <Mail className="w-3.5 h-3.5 text-gray-400" />
                                 <p className="text-sm text-gray-600">{client.email}</p>
                               </div>
                             )}
@@ -333,12 +343,12 @@ export const QuickClientModal = memo(function QuickClientModal({
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-brand-600">
                           {client.totalVisits || 0} visits
                         </p>
                         {client.lastVisit && (
                           <p className="text-xs text-gray-500 mt-1">
-                            Last: {new Date(client.lastVisit).toLocaleDateString()}
+                            {new Date(client.lastVisit).toLocaleDateString()}
                           </p>
                         )}
                       </div>
@@ -349,34 +359,34 @@ export const QuickClientModal = memo(function QuickClientModal({
             ) : debouncedSearch.length >= 2 ? (
               <div className="mb-5">
                 <div className="text-center py-8">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-surface-secondary flex items-center justify-center">
                     <Search className="w-7 h-7 text-gray-400" />
                   </div>
-                  <p className="text-gray-900 font-medium mb-1">No clients found</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-gray-900 font-semibold mb-1">No clients found</p>
+                  <p className="text-sm text-gray-600">
                     Add "{searchQuery}" as a new client below
                   </p>
                 </div>
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center">
-                  <Search className="w-8 h-8 text-teal-600" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center">
+                  <Search className="w-8 h-8 text-brand-600" />
                 </div>
-                <p className="text-gray-900 font-medium mb-1">Start typing to search</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-gray-900 font-semibold mb-1">Start typing to search</p>
+                <p className="text-sm text-gray-600">
                   Search by name or phone number
                 </p>
               </div>
             )}
 
-            {/* Quick Add Form - Show when searching or no results */}
+            {/* Quick Add Form - Show when searching or no results - Premium */}
             {showQuickAdd && debouncedSearch.length >= 2 && (
               <div className={cn(
                 'border-2 border-dashed rounded-xl p-5 transition-all',
                 justAdded
                   ? 'border-green-500 bg-green-50'
-                  : 'border-teal-300 bg-teal-50/30'
+                  : 'border-brand-300 bg-brand-50/30'
               )}>
                 {justAdded ? (
                   <div className="text-center py-6">
@@ -389,7 +399,7 @@ export const QuickClientModal = memo(function QuickClientModal({
                 ) : (
                   <>
                     <div className="flex items-center gap-2 mb-4">
-                      <Sparkles className="w-5 h-5 text-teal-600" />
+                      <Sparkles className="w-5 h-5 text-brand-600" />
                       <h3 className="font-semibold text-gray-900">Quick Add New Client</h3>
                     </div>
 
@@ -424,7 +434,7 @@ export const QuickClientModal = memo(function QuickClientModal({
                                 ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
                                 : quickAddFirstName.length >= 2 && !validationErrors.firstName
                                 ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                                : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/10'
+                                : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/10'
                             )}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && canQuickAdd) {
@@ -464,7 +474,7 @@ export const QuickClientModal = memo(function QuickClientModal({
                                 ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
                                 : quickAddLastName.length >= 2 && !validationErrors.lastName
                                 ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                                : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/10'
+                                : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/10'
                             )}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && canQuickAdd) {
@@ -503,7 +513,7 @@ export const QuickClientModal = memo(function QuickClientModal({
                               ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
                               : quickAddPhone.replace(/\D/g, '').length === 10 && !validationErrors.phone
                               ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                              : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/10'
+                              : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/10'
                           )}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && canQuickAdd) {
@@ -543,7 +553,7 @@ export const QuickClientModal = memo(function QuickClientModal({
                               ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
                               : quickAddEmail.trim() && !validationErrors.email && quickAddEmail.includes('@')
                               ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                              : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/10'
+                              : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/10'
                           )}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && canQuickAdd) {
@@ -556,15 +566,13 @@ export const QuickClientModal = memo(function QuickClientModal({
                         )}
                       </div>
 
-                      <button
+                      <PremiumButton
+                        variant="primary"
+                        size="lg"
                         onClick={handleQuickAdd}
                         disabled={!canQuickAdd || isAdding}
-                        className={cn(
-                          'w-full px-4 py-2.5 text-sm font-semibold rounded-lg transition-all mt-2',
-                          canQuickAdd && !isAdding
-                            ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 shadow-md shadow-teal-500/25 hover:shadow-lg hover:shadow-teal-500/35 active:scale-[0.98]'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        )}
+                        icon={isAdding ? null : <Plus className="w-4 h-4" />}
+                        className="w-full mt-2"
                       >
                         {isAdding ? (
                           <span className="flex items-center justify-center gap-2">
@@ -573,12 +581,11 @@ export const QuickClientModal = memo(function QuickClientModal({
                           </span>
                         ) : (
                           <span className="flex items-center justify-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Add Client
+                            <span>Add Client</span>
                             <span className="text-xs opacity-75">(⌘↵)</span>
                           </span>
                         )}
-                      </button>
+                      </PremiumButton>
                     </div>
                   </>
                 )}
@@ -586,14 +593,14 @@ export const QuickClientModal = memo(function QuickClientModal({
             )}
           </div>
 
-          {/* Footer - Keyboard Shortcuts Hint */}
-          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50">
-            <p className="text-xs text-gray-500 text-center">
-              Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs">Esc</kbd> to close
+          {/* Footer - Keyboard Shortcuts Hint - Premium */}
+          <div className="px-6 py-3 border-t border-gray-200/50 bg-white/50">
+            <p className="text-xs text-gray-600 text-center font-medium">
+              Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs shadow-sm">Esc</kbd> to close
               {showQuickAdd && canQuickAdd && (
                 <>
                   {' • '}
-                  <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs">⌘↵</kbd> to quick add
+                  <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs shadow-sm">⌘↵</kbd> to quick add
                 </>
               )}
             </p>

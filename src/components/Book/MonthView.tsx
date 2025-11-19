@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LocalAppointment } from '../../types/appointment';
 import { cn } from '../../lib/utils';
+import { MonthViewSkeleton } from './skeletons';
 
 interface MonthViewProps {
   date: Date; // Any date in the month to display
@@ -14,6 +15,7 @@ interface MonthViewProps {
   onAppointmentClick: (appointment: LocalAppointment) => void;
   onDateClick: (date: Date) => void;
   onMonthChange?: (date: Date) => void;
+  isLoading?: boolean;
 }
 
 /**
@@ -105,6 +107,7 @@ export function MonthView({
   onAppointmentClick,
   onDateClick,
   onMonthChange,
+  isLoading = false,
 }: MonthViewProps) {
   const monthDays = useMemo(() => getMonthDays(date), [date]);
   
@@ -135,6 +138,25 @@ export function MonthView({
     };
     return statusColors[status as keyof typeof statusColors] || statusColors.scheduled;
   };
+
+  // Pre-compute appointments grouped by date (performance optimization)
+  // This replaces O(35×n) filtering with O(n) grouping
+  const appointmentsByDateString = useMemo(() => {
+    const byDate = new Map<string, LocalAppointment[]>();
+    appointments.forEach(apt => {
+      const dateStr = new Date(apt.scheduledStartTime).toDateString();
+      if (!byDate.has(dateStr)) {
+        byDate.set(dateStr, []);
+      }
+      byDate.get(dateStr)!.push(apt);
+    });
+    return byDate;
+  }, [appointments]);
+
+  // Show skeleton during loading
+  if (isLoading) {
+    return <MonthViewSkeleton />;
+  }
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -183,7 +205,7 @@ export function MonthView({
         {monthDays.map((week, weekIndex) => (
           <div key={weekIndex} className="grid grid-cols-7 border-b border-gray-200 last:border-b-0">
             {week.map((day, dayIndex) => {
-              const dayAppointments = getAppointmentsForDay(day, appointments);
+              const dayAppointments = appointmentsByDateString.get(day.toDateString()) || [];
               const isCurrentMonthDay = isCurrentMonth(day, date);
               const isTodayDay = isToday(day);
               
@@ -194,14 +216,18 @@ export function MonthView({
                   className={cn(
                     'relative p-2 min-h-[80px] text-left border-r border-gray-200 last:border-r-0',
                     'hover:bg-gray-50 transition-colors',
+                    // Focus indicators for accessibility
+                    'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 focus:z-10',
+                    // Active state for press feedback
+                    'active:scale-[0.98]',
                     !isCurrentMonthDay && 'text-gray-300 bg-gray-50',
-                    isTodayDay && 'bg-teal-50 border-teal-200'
+                    isTodayDay && 'bg-brand-50 border-brand-200'
                   )}
                 >
                   {/* Day Number */}
                   <div className={cn(
                     'text-sm font-medium mb-1',
-                    isTodayDay && 'text-teal-600 font-bold',
+                    isTodayDay && 'text-brand-600 font-bold',
                     !isCurrentMonthDay && 'text-gray-300',
                     isCurrentMonthDay && !isTodayDay && 'text-gray-900'
                   )}>
@@ -213,15 +239,19 @@ export function MonthView({
                     <div className="space-y-1 mt-1">
                       {/* Show up to 3 appointments, then count */}
                       {dayAppointments.slice(0, 3).map((apt, aptIndex) => (
-                        <div
+                        <button
                           key={apt.id}
                           onClick={(e) => {
                             e.stopPropagation();
                             onAppointmentClick(apt);
                           }}
                           className={cn(
-                            'text-xs px-2 py-0.5 rounded truncate',
-                            'hover:shadow-sm transition-shadow cursor-pointer',
+                            'text-xs px-2 py-0.5 rounded truncate w-full text-left',
+                            'hover:shadow-sm transition-all cursor-pointer',
+                            // Focus indicators for accessibility
+                            'focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-1',
+                            // Active state for press feedback
+                            'active:scale-95',
                             getStatusColor(apt.status),
                             'text-white'
                           )}
@@ -239,7 +269,7 @@ export function MonthView({
                               hour12: true 
                             })}
                           </span>
-                        </div>
+                        </button>
                       ))}
                       
                       {/* Show count if more than 3 */}

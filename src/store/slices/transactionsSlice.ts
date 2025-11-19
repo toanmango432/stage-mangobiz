@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { transactionsDB, ticketsDB, syncQueueDB } from '../../db/database';
-import type { Transaction, PaymentMethod } from '../../types';
+import type { Transaction, PaymentMethod, CreateTransactionInput } from '../../types';
 import type { RootState } from '../index';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TransactionsState {
   items: Transaction[];
@@ -133,6 +134,90 @@ export const createTransaction = createAsyncThunk(
 
     // Create in database
     const transaction = await transactionsDB.create(transactionData);
+
+    // Add to sync queue with high priority for financial data
+    await syncQueueDB.add({
+      type: 'create',
+      entity: 'transaction',
+      entityId: transaction.id,
+      action: 'CREATE',
+      payload: transaction,
+      priority: 1, // High priority
+      maxAttempts: 10,
+    });
+
+    return transaction;
+  }
+);
+
+// Create transaction from pending ticket (Pending Module workflow)
+export const createTransactionFromPending = createAsyncThunk(
+  'transactions/createFromPending',
+  async (input: CreateTransactionInput, { getState }) => {
+    const state = getState() as RootState;
+    const salonId = state.auth?.user?.salonId || 'default-salon';
+    const userId = state.auth?.user?.id || 'default-user';
+
+    // Validate input
+    if (!input.ticketId || !input.clientName) {
+      throw new Error('Missing required transaction data');
+    }
+
+    // Calculate totals
+    const subtotal = input.subtotal || 0;
+    const tax = input.tax || 0;
+    const tip = input.tip || 0;
+    const discount = input.discount || 0;
+    const total = subtotal + tax + tip - discount;
+
+    // Validate amounts
+    if (total <= 0) {
+      throw new Error('Transaction total must be greater than 0');
+    }
+
+    if (!validatePaymentMethod(input.paymentMethod, input.paymentDetails)) {
+      throw new Error('Invalid payment method details');
+    }
+
+    // Create transaction object
+    const transaction: Transaction = {
+      id: uuidv4(),
+      salonId,
+      ticketId: input.ticketId,
+      ticketNumber: input.ticketNumber,
+      clientId: input.clientId,
+      clientName: input.clientName,
+
+      // Financial breakdown
+      subtotal,
+      tax,
+      tip,
+      discount,
+      amount: subtotal + tax, // Legacy field for compatibility
+      total,
+
+      // Payment info
+      paymentMethod: input.paymentMethod,
+      paymentDetails: input.paymentDetails,
+
+      // Service details
+      services: input.services,
+
+      // Status and timestamps
+      status: 'completed',
+      createdAt: new Date(),
+      processedAt: new Date(),
+      processedBy: input.processedBy || userId,
+
+      // Additional metadata
+      notes: input.notes,
+
+      // Sync status
+      syncStatus: 'local',
+    };
+
+    // Create in database
+    await transactionsDB.create(transaction);
 
     // Add to sync queue with high priority for financial data
     await syncQueueDB.add({
@@ -295,6 +380,21 @@ const transactionsSlice = createSlice({
       .addCase(createTransaction.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to create transaction';
+      });
+
+    // Create transaction from pending
+    builder
+      .addCase(createTransactionFromPending.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createTransactionFromPending.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items.unshift(action.payload); // Add to beginning
+      })
+      .addCase(createTransactionFromPending.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to create transaction from pending';
       });
 
     // Void transaction
