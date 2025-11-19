@@ -300,12 +300,19 @@ export function animateIf(
 /**
  * Custom hook for mounting animation
  * Usage: const { mounted, animating } = useMountAnimation(300);
+ * 
+ * Note: This function is commented out because it requires React to be imported.
+ * To use this hook, copy it into your component file and import React there.
  */
-export function useMountAnimation(duration: number = 300) {
-  const [mounted, setMounted] = React.useState(false);
-  const [animating, setAnimating] = React.useState(true);
 
-  React.useEffect(() => {
+/*
+import { useState, useEffect } from 'react';
+
+export function useMountAnimation(duration: number = 300) {
+  const [mounted, setMounted] = useState(false);
+  const [animating, setAnimating] = useState(true);
+
+  useEffect(() => {
     setMounted(true);
     const timer = setTimeout(() => {
       setAnimating(false);
@@ -316,9 +323,7 @@ export function useMountAnimation(duration: number = 300) {
 
   return { mounted, animating };
 }
-
-// Note: This requires React to be imported, which may not be available here
-// This is provided as a reference for creating custom hooks in components
+*/
 
 // ============================================================================
 // EXPORTS
