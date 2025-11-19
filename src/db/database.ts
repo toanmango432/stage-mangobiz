@@ -18,10 +18,12 @@ export { db };
 // ==================== APPOINTMENTS ====================
 
 export const appointmentsDB = {
-  async getAll(salonId: string): Promise<Appointment[]> {
+  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
     return await db.appointments
       .where('salonId')
       .equals(salonId)
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -29,7 +31,7 @@ export const appointmentsDB = {
     return await db.appointments.get(id);
   },
 
-  async getByDate(salonId: string, date: Date): Promise<Appointment[]> {
+  async getByDate(salonId: string, date: Date, limit: number = 200): Promise<Appointment[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -38,17 +40,20 @@ export const appointmentsDB = {
     return await db.appointments
       .where('salonId')
       .equals(salonId)
-      .and(apt => 
-        apt.scheduledStartTime >= startOfDay && 
+      .and(apt =>
+        apt.scheduledStartTime >= startOfDay &&
         apt.scheduledStartTime <= endOfDay
       )
+      .limit(limit)
       .toArray();
   },
 
-  async getByStatus(salonId: string, status: string): Promise<Appointment[]> {
+  async getByStatus(salonId: string, status: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
     return await db.appointments
       .where('[salonId+status]')
       .equals([salonId, status])
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -105,10 +110,12 @@ export const appointmentsDB = {
 // ==================== TICKETS ====================
 
 export const ticketsDB = {
-  async getAll(salonId: string): Promise<Ticket[]> {
+  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
     return await db.tickets
       .where('salonId')
       .equals(salonId)
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -116,18 +123,21 @@ export const ticketsDB = {
     return await db.tickets.get(id);
   },
 
-  async getByStatus(salonId: string, status: string): Promise<Ticket[]> {
+  async getByStatus(salonId: string, status: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
     return await db.tickets
       .where('[salonId+status]')
       .equals([salonId, status])
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
-  async getActive(salonId: string): Promise<Ticket[]> {
+  async getActive(salonId: string, limit: number = 100): Promise<Ticket[]> {
     return await db.tickets
       .where('salonId')
       .equals(salonId)
       .and(ticket => ['in-service', 'pending'].includes(ticket.status))
+      .limit(limit)
       .toArray();
   },
 
@@ -188,11 +198,13 @@ export const ticketsDB = {
 // ==================== TRANSACTIONS ====================
 
 export const transactionsDB = {
-  async getAll(salonId: string): Promise<Transaction[]> {
+  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Transaction[]> {
     return await db.transactions
       .where('salonId')
       .equals(salonId)
       .reverse()
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -200,12 +212,13 @@ export const transactionsDB = {
     return await db.transactions.get(id);
   },
 
-  async getByDateRange(salonId: string, startDate: Date, endDate: Date): Promise<Transaction[]> {
+  async getByDateRange(salonId: string, startDate: Date, endDate: Date, limit: number = 100): Promise<Transaction[]> {
     return await db.transactions
       .where('salonId')
       .equals(salonId)
       .and(txn => txn.createdAt >= startDate && txn.createdAt <= endDate)
       .reverse()
+      .limit(limit)
       .toArray();
   },
 
@@ -239,10 +252,12 @@ export const transactionsDB = {
 // ==================== STAFF ====================
 
 export const staffDB = {
-  async getAll(salonId: string): Promise<Staff[]> {
+  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Staff[]> {
     return await db.staff
       .where('salonId')
       .equals(salonId)
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -250,10 +265,11 @@ export const staffDB = {
     return await db.staff.get(id);
   },
 
-  async getAvailable(salonId: string): Promise<Staff[]> {
+  async getAvailable(salonId: string, limit: number = 100): Promise<Staff[]> {
     return await db.staff
       .where('[salonId+status]')
       .equals([salonId, 'available'])
+      .limit(limit)
       .toArray();
   },
 
@@ -290,10 +306,12 @@ export const staffDB = {
 // ==================== CLIENTS ====================
 
 export const clientsDB = {
-  async getAll(salonId: string): Promise<Client[]> {
+  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Client[]> {
     return await db.clients
       .where('salonId')
       .equals(salonId)
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -301,16 +319,17 @@ export const clientsDB = {
     return await db.clients.get(id);
   },
 
-  async search(salonId: string, query: string): Promise<Client[]> {
+  async search(salonId: string, query: string, limit: number = 50): Promise<Client[]> {
     const lowerQuery = query.toLowerCase();
     return await db.clients
       .where('salonId')
       .equals(salonId)
-      .and(client => 
+      .and(client =>
         client.name.toLowerCase().includes(lowerQuery) ||
         client.phone.includes(query) ||
         (client.email?.toLowerCase().includes(lowerQuery) || false)
       )
+      .limit(limit)
       .toArray();
   },
 
@@ -349,10 +368,12 @@ export const clientsDB = {
 // ==================== SERVICES ====================
 
 export const servicesDB = {
-  async getAll(salonId: string): Promise<Service[]> {
+  async getAll(salonId: string, limit: number = 200, offset: number = 0): Promise<Service[]> {
     return await db.services
       .where('salonId')
       .equals(salonId)
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
@@ -360,10 +381,11 @@ export const servicesDB = {
     return await db.services.get(id);
   },
 
-  async getByCategory(salonId: string, category: string): Promise<Service[]> {
+  async getByCategory(salonId: string, category: string, limit: number = 100): Promise<Service[]> {
     return await db.services
       .where('[salonId+category]')
       .equals([salonId, category])
+      .limit(limit)
       .toArray();
   },
 };
@@ -371,16 +393,19 @@ export const servicesDB = {
 // ==================== SYNC QUEUE ====================
 
 export const syncQueueDB = {
-  async getAll(): Promise<SyncOperation[]> {
+  async getAll(limit: number = 100, offset: number = 0): Promise<SyncOperation[]> {
     return await db.syncQueue
       .orderBy('priority')
+      .offset(offset)
+      .limit(limit)
       .toArray();
   },
 
-  async getPending(): Promise<SyncOperation[]> {
+  async getPending(limit: number = 50): Promise<SyncOperation[]> {
     return await db.syncQueue
       .where('status')
       .equals('pending')
+      .limit(limit)
       .sortBy('priority');
   },
 

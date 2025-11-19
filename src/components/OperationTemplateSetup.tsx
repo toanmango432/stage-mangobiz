@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, ArrowLeft, Check, Layers, Users, FileText, Clock, LayoutDashboard, ArrowRight, Settings, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
-import { SalonCenterSettingsData } from './SalonCenterSettings';
+import { FrontDeskSettingsData } from './frontdesk-settings/FrontDeskSettings';
 import { createPortal } from 'react-dom';
 interface OperationTemplateSetupProps {
   isOpen: boolean;
   onClose: () => void;
-  currentSettings: SalonCenterSettingsData;
-  onSettingsChange: (settings: Partial<SalonCenterSettingsData>) => void;
+  currentSettings: FrontDeskSettingsData;
+  onSettingsChange: (settings: Partial<FrontDeskSettingsData>) => void;
 }
 interface QuickAnswers {
   primaryFocus: 'frontDesk' | 'staff';
@@ -19,7 +19,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
   currentSettings,
   onSettingsChange
 }) => {
-  const [settings, setSettings] = useState<SalonCenterSettingsData>(currentSettings);
+  const [settings, setSettings] = useState<FrontDeskSettingsData>(currentSettings);
   const [hasChanges, setHasChanges] = useState(false);
   const [quickAnswers, setQuickAnswers] = useState<QuickAnswers>({
     primaryFocus: currentSettings.viewWidth === 'fullScreen' || currentSettings.viewWidth === 'wide' && currentSettings.customWidthPercentage >= 60 ? 'staff' : 'frontDesk',
@@ -76,8 +76,8 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
     }
   }, [quickAnswers]);
   // Apply template presets
-  const applyTemplate = (template: SalonCenterSettingsData['operationTemplate']) => {
-    let newSettings: Partial<SalonCenterSettingsData> = {
+  const applyTemplate = (template: FrontDeskSettingsData['operationTemplate']) => {
+    let newSettings: Partial<FrontDeskSettingsData> = {
       operationTemplate: template
     };
     // Apply preset values based on template
@@ -175,7 +175,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
     }, 3000);
   };
   // Get suggested template based on quick answers
-  const getSuggestedTemplate = (): SalonCenterSettingsData['operationTemplate'] => {
+  const getSuggestedTemplate = (): FrontDeskSettingsData['operationTemplate'] => {
     if (quickAnswers.primaryFocus === 'frontDesk') {
       return quickAnswers.operationStyle === 'flow' ? 'frontDeskBalanced' : 'frontDeskTicketCenter';
     } else {
@@ -195,7 +195,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
     }
   };
   // Get template details
-  const getTemplateDetails = (template: SalonCenterSettingsData['operationTemplate']) => {
+  const getTemplateDetails = (template: FrontDeskSettingsData['operationTemplate']) => {
     switch (template) {
       case 'frontDeskBalanced':
         return {
@@ -244,7 +244,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
     }
   };
   // Template cards array for easier rendering
-  const templates: SalonCenterSettingsData['operationTemplate'][] = ['frontDeskBalanced', 'frontDeskTicketCenter', 'teamWithOperationFlow', 'teamInOut'];
+  const templates: FrontDeskSettingsData['operationTemplate'][] = ['frontDeskBalanced', 'frontDeskTicketCenter', 'teamWithOperationFlow', 'teamInOut'];
   if (!isOpen) return null;
   // Render the Toast component
   const Toast = () => {

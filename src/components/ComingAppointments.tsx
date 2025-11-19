@@ -1,8 +1,13 @@
 import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import { Clock, ChevronLeft, ChevronRight, User, Calendar, Tag, Plus, Star, AlertCircle, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, DollarSign, Pencil } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, User, Calendar, Tag, ChevronDown, ChevronUp, MoreVertical, Plus, Star } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import {
+  comingHeaderTheme,
+  headerContentSpacer,
+  frontDeskHeaderBase,
+} from './frontdesk/headerTokens';
 interface ComingAppointmentsProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -215,77 +220,58 @@ export const ComingAppointments = memo(function ComingAppointments({
   const nextCount = appointmentBuckets.within1Hour.length;
   const laterCount = appointmentBuckets.within3Hours.length + appointmentBuckets.moreThan3Hours.length;
 
-  return <div className="bg-white border-l border-l-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full">
+  const upcomingCount = comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length;
+
+  return <div className="bg-white/50 border-l border-l-slate-200/60 border-b border-b-slate-200/60 flex flex-col transition-all duration-300 ease-in-out h-full">
       {/* Header - Always visible, same for both collapsed and expanded */}
-      <div className="flex-shrink-0 border-b border-gray-200/60 bg-white z-10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            {/* Icon */}
-            <div className="p-1.5 rounded-lg" style={{
-              background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
-              boxShadow: '0 2px 4px rgba(14, 165, 233, 0.3)'
-            }}>
-              <Clock size={16} className="text-white" strokeWidth={2.5} />
+      <div className={`${frontDeskHeaderBase} bg-white/50 border-b border-slate-200/50`}>
+        <div className="px-4 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className={comingHeaderTheme.iconWrapper}>
+                <Clock size={14} className="text-current" />
+              </div>
+              <h2 className="text-[13px] font-medium text-slate-600">Coming</h2>
+              <span className={comingHeaderTheme.countPill}>
+                {upcomingCount}
+              </span>
+              {lateCount > 0 && <span className={comingHeaderTheme.metrics.late}>
+                  <span>Late</span>
+                  <span>{lateCount}</span>
+                </span>}
+              {nextCount > 0 && <span className={comingHeaderTheme.metrics.next}>
+                  <span>Next</span>
+                  <span>{nextCount}</span>
+                </span>}
+              {laterCount > 0 && <span className={comingHeaderTheme.metrics.later}>
+                  <span>Later</span>
+                  <span>{laterCount}</span>
+                </span>}
             </div>
 
-            {/* Title */}
-            <h2 className="text-base font-bold" style={{
-              color: '#1a1a1a',
-              letterSpacing: '-0.4px',
-              lineHeight: 1
-            }}>Coming Appointments</h2>
-
-            {/* Count Badge */}
-            <div className="px-2.5 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-700" style={{
-              minWidth: '28px',
-              textAlign: 'center'
-            }}>
-              {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
+            <div className="flex items-center gap-1">
+              <Tippy content="Add appointment">
+                <button className="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/60 transition-all duration-200">
+                  <Plus size={14} strokeWidth={2.5} />
+                </button>
+              </Tippy>
+              <Tippy content={isMinimized ? "Expand section" : "Collapse section"}>
+                <button
+                  className="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/60 transition-all duration-200"
+                  onClick={onToggleMinimize}
+                  aria-expanded={!isMinimized}
+                  aria-controls="coming-appointments-content"
+                >
+                  {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+              </Tippy>
             </div>
-
-            {/* Pill Badges - Metrics */}
-            <div className="flex items-center gap-2 ml-2">
-              {lateCount > 0 && (
-                <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-100">
-                  {lateCount} Late
-                </div>
-              )}
-              {nextCount > 0 && (
-                <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
-                  {nextCount} Next
-                </div>
-              )}
-              {laterCount > 0 && (
-                <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-600 border border-gray-200">
-                  {laterCount} Later
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            {/* Add Appointment button */}
-            <Tippy content="Add appointment">
-              <button className="p-1.5 rounded-md bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 transition-all duration-200 transform hover:scale-105 active:scale-95">
-                <Plus size={16} strokeWidth={2.5} />
-              </button>
-            </Tippy>
-            {/* Toggle collapse/expand */}
-            <Tippy content={isMinimized ? "Expand section" : "Collapse section"}>
-              <button
-                className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95"
-                onClick={onToggleMinimize}
-                aria-expanded={!isMinimized}
-                aria-controls="coming-appointments-content"
-              >
-                {isMinimized ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-              </button>
-            </Tippy>
           </div>
         </div>
       </div>
 
       {/* Content - Collapsible */}
-      {!isMinimized && <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+      {!isMinimized && <div className={`flex-1 min-h-0 overflow-y-auto flex flex-col px-4 pb-4 ${headerContentSpacer}`}>
 
       {/* Timeframe tabs - simple and clean */}
       <div className="flex border-b border-gray-200 bg-white flex-shrink-0">

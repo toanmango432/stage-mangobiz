@@ -11,6 +11,7 @@ import { useAppSelector } from '../../store/hooks';
 import toast from 'react-hot-toast';
 import { selectAllStaff } from '../../store/slices/staffSlice';
 import { detectAppointmentConflicts } from '../../utils/conflictDetection';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 interface EditAppointmentModalProps {
   isOpen: boolean;
@@ -31,7 +32,8 @@ export function EditAppointmentModal({
   const [isSaving, setIsSaving] = useState(false);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
-  
+  const [showConflictConfirm, setShowConflictConfirm] = useState(false);
+
   // Form state
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
@@ -106,16 +108,20 @@ export function EditAppointmentModal({
     setHasChanges(hasDateChange || hasTimeChange || hasStaffChange || hasNameChange || hasPhoneChange || hasNotesChange);
   }, [clientName, clientPhone, staffId, startDate, startTime, notes, appointment]);
 
+  const handleSaveClick = () => {
+    if (!appointment || !hasChanges) return;
+
+    if (conflicts.length > 0) {
+      // Show warning dialog
+      setShowConflictConfirm(true);
+      return;
+    }
+
+    handleSave();
+  };
+
   const handleSave = async () => {
     if (!appointment || !hasChanges) return;
-    
-    if (conflicts.length > 0) {
-      // Show warning but allow save
-      const confirmed = window.confirm(
-        `Warning: This appointment has conflicts:\n\n${conflicts.join('\n')}\n\nDo you want to save anyway?`
-      );
-      if (!confirmed) return;
-    }
 
     setIsSaving(true);
     try {
@@ -132,6 +138,7 @@ export function EditAppointmentModal({
       };
 
       await onSave(appointment, updates);
+      toast.success('Appointment updated successfully');
       onClose();
     } catch (error) {
       console.error('Failed to save appointment:', error);
@@ -178,9 +185,10 @@ export function EditAppointmentModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn-icon"
+              aria-label="Close"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -218,11 +226,7 @@ export function EditAppointmentModal({
                     type="text"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    className={cn(
-                      'w-full px-4 py-3',
-                      'border border-gray-300 rounded-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                    )}
+                    className="book-input"
                   />
                 </div>
                 <div>
@@ -235,11 +239,7 @@ export function EditAppointmentModal({
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
                     placeholder="(555) 123-4567"
-                    className={cn(
-                      'w-full px-4 py-3',
-                      'border border-gray-300 rounded-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                    )}
+                    className="book-input"
                   />
                 </div>
               </div>
@@ -260,11 +260,7 @@ export function EditAppointmentModal({
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className={cn(
-                      'w-full px-4 py-3',
-                      'border border-gray-300 rounded-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                    )}
+                    className="book-input"
                   />
                 </div>
                 <div>
@@ -275,11 +271,7 @@ export function EditAppointmentModal({
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className={cn(
-                      'w-full px-4 py-3',
-                      'border border-gray-300 rounded-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                    )}
+                    className="book-input"
                   />
                 </div>
                 <div>
@@ -292,11 +284,7 @@ export function EditAppointmentModal({
                     onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
                     min="15"
                     step="15"
-                    className={cn(
-                      'w-full px-4 py-3',
-                      'border border-gray-300 rounded-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                    )}
+                    className="book-input"
                   />
                 </div>
               </div>
@@ -311,12 +299,7 @@ export function EditAppointmentModal({
               <select
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
-                className={cn(
-                  'w-full px-4 py-3',
-                  'border border-gray-300 rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent',
-                  'bg-white'
-                )}
+                className="book-input bg-white"
               >
                 <option value="">-- Select Staff --</option>
                 {allStaff.map((staff) => (
@@ -357,12 +340,7 @@ export function EditAppointmentModal({
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
                 placeholder="Add notes about this appointment..."
-                className={cn(
-                  'w-full px-4 py-3',
-                  'border border-gray-300 rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent',
-                  'resize-none'
-                )}
+                className="book-input resize-none"
               />
             </div>
           </div>
@@ -371,7 +349,7 @@ export function EditAppointmentModal({
           <div className="flex items-center justify-between p-6 border-t border-gray-200">
             <button
               onClick={onClose}
-              className="px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn-ghost"
             >
               Cancel
             </button>
@@ -383,21 +361,15 @@ export function EditAppointmentModal({
                 </div>
               )}
               <button
-                onClick={handleSave}
+                onClick={handleSaveClick}
                 disabled={!hasChanges || isSaving}
                 className={cn(
-                  'flex items-center gap-2 px-6 py-2 font-medium rounded-lg',
-                  'bg-gradient-to-r from-orange-500 to-pink-500',
-                  'text-white',
-                  'hover:shadow-lg transition-all duration-200',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                  'btn-primary flex items-center gap-2',
+                  isSaving && 'btn-loading'
                 )}
               >
                 {isSaving ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Saving...
-                  </>
+                  'Saving...'
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
@@ -409,6 +381,22 @@ export function EditAppointmentModal({
           </div>
         </div>
       </div>
+
+      {/* Conflict Warning Dialog */}
+      <ConfirmDialog
+        isOpen={showConflictConfirm}
+        onClose={() => setShowConflictConfirm(false)}
+        onConfirm={() => {
+          setShowConflictConfirm(false);
+          handleSave();
+        }}
+        title="Conflicts Detected"
+        message={`This appointment has the following conflicts:\n\n${conflicts.join('\n')}\n\nDo you want to save anyway?`}
+        confirmText="Save Anyway"
+        cancelText="Go Back"
+        variant="warning"
+        loading={isSaving}
+      />
     </>
   );
 }

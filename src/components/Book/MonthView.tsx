@@ -143,27 +143,19 @@ export function MonthView({
         <div className="flex items-center gap-4">
           <button
             onClick={handlePrevMonth}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              'hover:bg-gray-100 active:bg-gray-200',
-              'text-gray-600 hover:text-gray-900'
-            )}
+            className="btn-icon"
             aria-label="Previous month"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          
+
           <h2 className="text-lg font-bold text-gray-900">
             {monthName}
           </h2>
-          
+
           <button
             onClick={handleNextMonth}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              'hover:bg-gray-100 active:bg-gray-200',
-              'text-gray-600 hover:text-gray-900'
-            )}
+            className="btn-icon"
             aria-label="Next month"
           >
             <ChevronRight className="w-5 h-5" />

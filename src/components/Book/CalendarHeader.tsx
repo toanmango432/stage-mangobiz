@@ -64,11 +64,7 @@ export const CalendarHeader = memo(function CalendarHeader({
           {/* Previous day */}
           <button
             onClick={handlePrevDay}
-            className={cn(
-              'p-1.5 sm:p-2 rounded-lg transition-colors',
-              'hover:bg-gray-100 active:bg-gray-200',
-              'text-gray-600 hover:text-gray-900'
-            )}
+            className="btn-icon"
             aria-label="Previous day"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -77,11 +73,7 @@ export const CalendarHeader = memo(function CalendarHeader({
           {/* Current date */}
           <button
             onClick={onTodayClick}
-            className={cn(
-              'px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-colors',
-              'hover:bg-gray-100 active:bg-gray-200',
-              'text-gray-900'
-            )}
+            className="btn-ghost px-2 sm:px-4 text-sm sm:text-base"
           >
             {formatDateDisplay(selectedDate)}
           </button>
@@ -89,11 +81,7 @@ export const CalendarHeader = memo(function CalendarHeader({
           {/* Next day */}
           <button
             onClick={handleNextDay}
-            className={cn(
-              'p-1.5 sm:p-2 rounded-lg transition-colors',
-              'hover:bg-gray-100 active:bg-gray-200',
-              'text-gray-600 hover:text-gray-900'
-            )}
+            className="btn-icon"
             aria-label="Next day"
           >
             <ChevronRight className="w-5 h-5" />
@@ -189,11 +177,7 @@ export const CalendarHeader = memo(function CalendarHeader({
         {/* Search - Hidden on small mobile */}
         <button
           onClick={onSearchClick}
-          className={cn(
-            'hidden sm:flex p-2 rounded-lg transition-colors',
-            'hover:bg-gray-100 active:bg-gray-200',
-            'text-gray-600 hover:text-gray-900'
-          )}
+          className="hidden sm:flex btn-icon"
           aria-label="Search appointments"
         >
           <Search className="w-5 h-5" />

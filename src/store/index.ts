@@ -46,8 +46,6 @@ export const store = configureStore({
         ignoredPaths: [
           'appointments.items',
           'appointments.appointments',
-          'appointments.appointmentsByDate',
-          'appointments.appointmentsByStaff',
           'appointments.calendarView.selectedDate',
           'appointments.syncStatus.lastSync',
           'tickets.items',

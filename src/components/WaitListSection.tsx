@@ -3,11 +3,13 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, Settings, MessageSquare, Star, PlusCircle, Bell, ChevronRight, ChevronLeft, Plus } from 'lucide-react';
+import { Users, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, Settings, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Plus } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
-import { WaitListTicketCard } from './tickets';
+import { WaitListTicketCard, WaitListTicketCardRefactored } from './tickets';
+import { headerContentSpacer } from './frontdesk/headerTokens';
+import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
 interface WaitListSectionProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -43,7 +45,7 @@ export const WaitListSection = memo(function WaitListSection({
   setMinimizedLineView: externalSetMinimizedLineView,
   isCombinedView = false,
   hideHeader = false,
-  headerStyles
+  headerStyles: _headerStyles
 }: WaitListSectionProps) {
   // Get waitlist from context
   const {
@@ -76,12 +78,12 @@ export const WaitListSection = memo(function WaitListSection({
   const {
     viewMode,
     setViewMode,
-    toggleViewMode,
+    toggleViewMode: _toggleViewMode,
     cardViewMode,
-    setCardViewMode,
+    setCardViewMode: _setCardViewMode,
     toggleCardViewMode,
     minimizedLineView,
-    setMinimizedLineView,
+    setMinimizedLineView: _setMinimizedLineView,
     toggleMinimizedLineView
   } = useTicketSection({
     sectionKey: 'waitList',
@@ -150,7 +152,7 @@ export const WaitListSection = memo(function WaitListSection({
   // Handle assign ticket submission
   const handleAssignSubmit = (techId: number, techName: string, techColor: string) => {
     if (selectedTicketId) {
-      assignTicket(selectedTicketId, techId, techName, techColor);
+      assignTicket(selectedTicketId.toString(), techId.toString(), techName, techColor);
       setShowAssignModal(false);
       setSelectedTicketId(null);
     }
@@ -184,7 +186,7 @@ export const WaitListSection = memo(function WaitListSection({
   // Handle ticket deletion
   const handleDeleteTicket = () => {
     if (ticketToDelete !== null && deleteReason.trim() !== '') {
-      deleteTicket(ticketToDelete, deleteReason);
+      deleteTicket(ticketToDelete.toString(), deleteReason);
       setShowDeleteModal(false);
       setTicketToDelete(null);
       setDeleteReason('');
@@ -209,7 +211,7 @@ export const WaitListSection = memo(function WaitListSection({
   // Delete confirmation modal component
   const DeleteConfirmationModal = () => {
     if (!showDeleteModal) return null;
-    const ticket = waitlist.find(t => t.id === ticketToDelete);
+    const ticket = ticketToDelete !== null ? waitlist.find(t => t.number === ticketToDelete) : null;
     if (!ticket) return null;
     return <>
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
@@ -228,8 +230,8 @@ export const WaitListSection = memo(function WaitListSection({
                 You are about to delete the following ticket:
               </p>
               <div className="rounded-xl border border-gray-200 relative overflow-hidden p-3" style={{
-              backgroundColor: paperVariations[ticket.id % paperVariations.length],
-              backgroundImage: paperTextures[ticket.id % paperTextures.length],
+              backgroundColor: paperVariations[ticket.number % paperVariations.length],
+              backgroundImage: paperTextures[ticket.number % paperTextures.length],
               backgroundBlendMode: 'overlay',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.03), inset 0 0 0 1px rgba(255,255,255,0.2)'
             }}>
@@ -286,15 +288,15 @@ export const WaitListSection = memo(function WaitListSection({
       </>;
   };
   // Render wait list item for list view
-  const WaitListItem = ({
+  const _WaitListItem = ({
     ticket
   }: {
     ticket: any;
   }) => {
     const isExpanded = expandedTickets[ticket.id] || false;
     // Generate unique paper style for this ticket
-    const paperColor = paperVariations[ticket.id % paperVariations.length];
-    const texturePattern = paperTextures[ticket.id % paperTextures.length];
+    const paperColor = paperVariations[ticket.number % paperVariations.length];
+    const texturePattern = paperTextures[ticket.number % paperTextures.length];
     return <div className={`rounded-xl border border-gray-200 hover:shadow-md transition-all duration-300 mb-3 relative overflow-hidden ${isExpanded ? 'shadow-md' : ''}`} style={{
       backgroundColor: paperColor,
       backgroundImage: texturePattern,
@@ -363,7 +365,7 @@ export const WaitListSection = memo(function WaitListSection({
             <Tippy content="Assign to technician">
               <button className="py-1.5 px-3 rounded-full border border-amber-500 text-amber-600 text-xs font-medium hover:bg-amber-50 transition-colors" onClick={e => {
               e.stopPropagation();
-              handleAssignTicket(ticket.id);
+              handleAssignTicket(ticket.number);
             }}>
                 Assign
               </button>
@@ -381,20 +383,20 @@ export const WaitListSection = memo(function WaitListSection({
                 </button>
               </Tippy>
               <Tippy content="More options">
-                <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.id, e)}>
+                <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.number, e)}>
                   <MoreVertical size={14} />
                 </button>
               </Tippy>
-              {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-6 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)}>
+              {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-6 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                     <Edit2 size={14} className="mr-2 text-blue-500" />
                     Edit Ticket
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.number, e)}>
                     <Info size={14} className="mr-2 text-amber-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
                     <Trash2 size={14} className="mr-2 text-red-500" />
                     Delete Ticket
                   </button>
@@ -488,7 +490,7 @@ export const WaitListSection = memo(function WaitListSection({
             <div className="flex flex-wrap gap-2 mt-3">
               <button className="flex items-center py-1.5 px-3 rounded-md bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 transition-colors" onClick={e => {
             e.stopPropagation();
-            handleAssignTicket(ticket.id);
+            handleAssignTicket(ticket.number);
           }}>
                 <Users size={14} className="mr-1.5" />
                 Assign to Technician
@@ -518,18 +520,18 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
         </div>
         {/* Random crease effect - very subtle */}
-        {ticket.id % 3 === 0 && <div className="absolute top-0 right-[20%] w-px h-full bg-gray-200 opacity-20 transform rotate-[2deg]"></div>}
+        {ticket.number % 3 === 0 && <div className="absolute top-0 right-[20%] w-px h-full bg-gray-200 opacity-20 transform rotate-[2deg]"></div>}
       </div>;
   };
   // Render minimized list view item
-  const MinimizedWaitListItem = ({
+  const _MinimizedWaitListItem = ({
     ticket
   }: {
     ticket: any;
   }) => {
     // Generate unique paper style for this ticket
-    const paperColor = paperVariations[ticket.id % paperVariations.length];
-    const texturePattern = paperTextures[ticket.id % paperTextures.length];
+    const paperColor = paperVariations[ticket.number % paperVariations.length];
+    const texturePattern = paperTextures[ticket.number % paperTextures.length];
     return <div className="rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5 mb-2 relative overflow-hidden" style={{
       backgroundColor: paperColor,
       backgroundImage: texturePattern,
@@ -573,7 +575,7 @@ export const WaitListSection = memo(function WaitListSection({
             <Tippy content="Assign to technician">
               <button className="py-1 px-2 rounded-full border border-amber-500 text-amber-600 text-[10px] font-medium hover:bg-amber-50 transition-colors" onClick={e => {
               e.stopPropagation();
-              handleAssignTicket(ticket.id);
+              handleAssignTicket(ticket.number);
             }}>
                 Assign
               </button>
@@ -581,20 +583,20 @@ export const WaitListSection = memo(function WaitListSection({
             {/* More options dropdown */}
             <div className="relative">
               <Tippy content="More options">
-                <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.id, e)}>
+                <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.number, e)}>
                   <MoreVertical size={12} />
                 </button>
               </Tippy>
-              {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
-                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)}>
+              {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                     <Edit2 size={14} className="mr-2 text-blue-500" />
                     Edit Ticket
                   </button>
-                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)}>
+                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.number, e)}>
                     <Info size={14} className="mr-2 text-amber-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
+                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
                     <Trash2 size={14} className="mr-2 text-red-500" />
                     Delete Ticket
                   </button>
@@ -615,15 +617,15 @@ export const WaitListSection = memo(function WaitListSection({
       </div>;
   };
   // Render grid view item (ticket card)
-  const WaitListCard = ({
+  const _WaitListCard = ({
     ticket
   }: {
     ticket: any;
   }) => {
     const isExpanded = expandedTickets[ticket.id] || false;
     // Generate unique paper style for this ticket
-    const paperColor = paperVariations[ticket.id % paperVariations.length];
-    const texturePattern = paperTextures[ticket.id % paperTextures.length];
+    const paperColor = paperVariations[ticket.number % paperVariations.length];
+    const texturePattern = paperTextures[ticket.number % paperTextures.length];
     return <div className={`rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 group relative h-full ${isExpanded ? 'shadow-lg' : ''}`} style={{
       backgroundColor: paperColor,
       backgroundImage: texturePattern,
@@ -669,20 +671,20 @@ export const WaitListSection = memo(function WaitListSection({
             {/* More options dropdown */}
             <div className="relative">
               <Tippy content="More options">
-                <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.id, e)}>
+                <button className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.number, e)}>
                   <MoreVertical size={16} />
                 </button>
               </Tippy>
-              {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)}>
+              {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                     <Edit2 size={14} className="mr-2 text-blue-500" />
                     Edit Ticket
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.number, e)}>
                     <Info size={14} className="mr-2 text-amber-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
                     <Trash2 size={14} className="mr-2 text-red-500" />
                     Delete Ticket
                   </button>
@@ -794,7 +796,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
           <button className="py-2 px-4 border border-amber-500 text-amber-600 font-medium rounded-full hover:bg-amber-50 transition-colors transform hover:scale-[1.02] active:scale-[0.98]" onClick={e => {
           e.stopPropagation();
-          handleAssignTicket(ticket.id);
+          handleAssignTicket(ticket.number);
         }}>
             Assign
           </button>
@@ -814,18 +816,18 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
         </div>
         {/* Random crease effect - very subtle */}
-        {ticket.id % 4 === 0 && <div className="absolute top-0 left-[30%] w-px h-full bg-gray-200 opacity-20 transform rotate-[1deg]"></div>}
+        {ticket.number % 4 === 0 && <div className="absolute top-0 left-[30%] w-px h-full bg-gray-200 opacity-20 transform rotate-[1deg]"></div>}
       </div>;
   };
   // Compact card view for grid layout
-  const CompactWaitListCard = ({
+  const _CompactWaitListCard = ({
     ticket
   }: {
     ticket: any;
   }) => {
     // Generate unique paper style for this ticket
-    const paperColor = paperVariations[ticket.id % paperVariations.length];
-    const texturePattern = paperTextures[ticket.id % paperTextures.length];
+    const paperColor = paperVariations[ticket.number % paperVariations.length];
+    const texturePattern = paperTextures[ticket.number % paperTextures.length];
     return <div className="rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 group relative overflow-hidden" style={{
       backgroundColor: paperColor,
       backgroundImage: texturePattern,
@@ -859,20 +861,20 @@ export const WaitListSection = memo(function WaitListSection({
           {/* More options dropdown */}
           <div className="relative">
             <Tippy content="More options">
-              <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.id, e)}>
+              <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50 transition-colors" onClick={e => toggleDropdown(ticket.number, e)}>
                 <MoreVertical size={12} />
               </button>
             </Tippy>
-            {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
-                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)}>
+            {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                   <Edit2 size={14} className="mr-2 text-blue-500" />
                   Edit Ticket
                 </button>
-                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)}>
+                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.number, e)}>
                   <Info size={14} className="mr-2 text-amber-500" />
                   View Details
                 </button>
-                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
+                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
                   <Trash2 size={14} className="mr-2 text-red-500" />
                   Delete Ticket
                 </button>
@@ -888,7 +890,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
           <button className="w-full py-1 px-2 border border-amber-500 text-amber-600 text-xs font-medium rounded-full hover:bg-amber-50 transition-colors" onClick={e => {
           e.stopPropagation();
-          handleAssignTicket(ticket.id);
+          handleAssignTicket(ticket.number);
         }}>
             Assign
           </button>
@@ -905,8 +907,9 @@ export const WaitListSection = memo(function WaitListSection({
         </div>
       </div>;
   };
+  void [_WaitListItem, _MinimizedWaitListItem, _WaitListCard, _CompactWaitListCard];
   if (isMinimized) {
-    return <div className="bg-white border-l border-l-gray-200 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out">
+    return <div className="bg-white border-l border-l-gray-200 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out cursor-pointer" onClick={onToggleMinimize}>
         {/* Minimized vertical header for mobile/tablet */}
         {(isMobile || isCombinedView) && <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
             <div className="flex items-center">
@@ -947,153 +950,118 @@ export const WaitListSection = memo(function WaitListSection({
           </div>}
       </div>;
   }
-  return <div className="bg-white border-l border-l-gray-200 flex flex-col overflow-hidden h-full pb-0">
+  return <div className="bg-white border-l border-l-gray-200 flex flex-col overflow-hidden h-full pb-0 transform-gpu transition-all duration-300 ease-in-out">
       {/* Section header - hide when in combined view and hideHeader is true */}
-      {!hideHeader && <div className="sticky top-9 z-10 border-b border-gray-200/60">
-          {/* Main Header */}
-          <div className={`flex items-center justify-between px-4 py-3 bg-white`}>
-            <div className="flex items-center gap-3">
-              {/* Icon */}
-              <div className="p-1.5 rounded-lg" style={{
-                background: headerStyles ? headerStyles.accentColor : 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
-                boxShadow: `0 2px 4px ${headerStyles ? headerStyles.accentColor + '40' : 'rgba(255, 179, 71, 0.3)'}`
-              }}>
-                <Users size={16} className="text-white" strokeWidth={2.5} />
-              </div>
-
-              {/* Title */}
-              <h2 className="text-base font-bold" style={{
-                color: headerStyles?.titleColor || '#1a1a1a',
-                letterSpacing: '-0.4px',
-                lineHeight: 1
-              }}>Waiting Queue</h2>
-
-              {/* Count Badge */}
-              <div className={`px-2.5 py-1 rounded-full text-xs font-bold ${headerStyles?.counterBg || ''} ${headerStyles?.counterText || ''}`} style={!headerStyles ? {
-                background: 'linear-gradient(135deg, #FFB347 0%, #FF9F1C 100%)',
-                color: 'white',
-                boxShadow: '0 2px 4px rgba(255, 179, 71, 0.3)',
-                minWidth: '28px',
-                textAlign: 'center'
-              } : {
-                minWidth: '28px',
-                textAlign: 'center'
-              }}>
-                {waitlist.length}
-              </div>
-
-              {/* Inline Metrics */}
-              <div className="flex items-center gap-3 ml-2">
-                {vipCount > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <Star size={14} className="text-yellow-500" fill="currentColor" />
-                    <span className="text-xs font-semibold text-gray-700">{vipCount} VIP</span>
-                  </div>
-                )}
-                {avgWaitTime > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <Clock size={14} className="text-blue-500" />
-                    <span className="text-xs font-semibold text-gray-700">Avg {avgWaitTime}m</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          <div className="flex space-x-1">
-            {/* Add New Ticket button */}
-            <Tippy content="Add new ticket">
-              <button className="p-1.5 rounded-md bg-[#27AE60]/10 text-[#27AE60] hover:bg-[#27AE60]/20 transition-all duration-200 transform hover:scale-105 active:scale-95 mr-1" onClick={() => {
-            // This will need to be connected to the createTicket functionality
-            const createTicketButton = document.querySelector('[aria-label="Create new ticket"]') as HTMLButtonElement;
-            if (createTicketButton) createTicketButton.click();
-          }}>
-                <Plus size={16} strokeWidth={2.5} />
-              </button>
-            </Tippy>
-            {!isMobile && viewMode === 'list' && <Tippy content={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
-                <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95" onClick={toggleMinimizedLineView}>
-                  {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </button>
-              </Tippy>}
-            {!isMobile && viewMode === 'grid' && <Tippy content={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'}>
-                <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95" onClick={toggleCardViewMode}>
-                  {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </button>
-              </Tippy>}
-            <div className="relative" ref={dropdownRef}>
-              <Tippy content="View options">
-                <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95" onClick={() => setShowDropdown(!showDropdown)}>
-                  <MoreVertical size={16} />
+      {!hideHeader && (
+        <FrontDeskHeader
+          title="Waiting Queue"
+          count={waitlist.length}
+          icon={<Users size={18} className="text-white" />}
+          metricPills={[
+            ...(vipCount > 0 ? [{ label: 'VIP', value: vipCount, tone: 'vip' as const }] : []),
+            ...(avgWaitTime > 0 ? [{ label: 'Avg', value: `${avgWaitTime}m`, tone: 'info' as const }] : []),
+          ]}
+          rightActions={
+            <>
+              <Tippy content="Add new ticket">
+                <button
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:brightness-105 transition-transform"
+                  onClick={() => {
+                    const createTicketButton = document.querySelector('[aria-label="Create new ticket"]') as HTMLButtonElement;
+                    if (createTicketButton) createTicketButton.click();
+                  }}
+                >
+                  <Plus size={18} strokeWidth={2.5} />
                 </button>
               </Tippy>
-              {showDropdown && <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
-                  {/* View Mode Section */}
-                  <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      View Mode
-                    </h3>
-                  </div>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('list')} role="menuitem">
-                    <List size={14} className="mr-2 text-gray-500" />
-                    Line View
-                    {viewMode === 'list' && <Check size={14} className="ml-auto text-amber-500" />}
-                  </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('grid')} role="menuitem">
-                    <Grid size={14} className="mr-2 text-gray-500" />
-                    Grid View
-                    {viewMode === 'grid' && <Check size={14} className="ml-auto text-amber-500" />}
-                  </button>
-                  
-                  {/* Card Size Section */}
-                  <div className="border-t border-gray-100 mt-1">
-                    <button 
-                      className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between" 
-                      onClick={() => setShowCardSizeSlider(!showCardSizeSlider)} 
-                      role="menuitem"
-                    >
-                      <div className="flex items-center">
-                        <Settings size={14} className="mr-2 text-gray-500" />
-                        Adjust Card Size
-                      </div>
-                      <ChevronRight size={14} className={showCardSizeSlider ? 'rotate-90 transition-transform' : 'transition-transform'} />
+              {!isMobile && viewMode === 'list' && (
+                <HeaderActionButton onClick={toggleMinimizedLineView}>
+                  {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </HeaderActionButton>
+              )}
+              {!isMobile && viewMode === 'grid' && (
+                <HeaderActionButton onClick={toggleCardViewMode}>
+                  {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </HeaderActionButton>
+              )}
+              <div className="relative" ref={dropdownRef}>
+                <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)}>
+                  <MoreVertical size={16} />
+                </HeaderActionButton>
+                {showDropdown && (
+                  <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
+                    {/* View Mode Section */}
+                    <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        View Mode
+                      </h3>
+                    </div>
+                    <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('list')} role="menuitem">
+                      <List size={14} className="mr-2 text-gray-500" />
+                      Line View
+                      {viewMode === 'list' && <Check size={14} className="ml-auto text-amber-500" />}
                     </button>
-                    {showCardSizeSlider && (
-                      <div className="px-3 py-3 bg-gray-50 border-t border-gray-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-gray-500">Small</span>
-                          <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
-                          <span className="text-xs text-gray-500">Large</span>
+                    <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={() => setViewMode('grid')} role="menuitem">
+                      <Grid size={14} className="mr-2 text-gray-500" />
+                      Grid View
+                      {viewMode === 'grid' && <Check size={14} className="ml-auto text-amber-500" />}
+                    </button>
+
+                    {/* Card Size Section */}
+                    <div className="border-t border-gray-100 mt-1">
+                      <button
+                        className="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
+                        onClick={() => setShowCardSizeSlider(!showCardSizeSlider)}
+                        role="menuitem"
+                      >
+                        <div className="flex items-center">
+                          <Settings size={14} className="mr-2 text-gray-500" />
+                          Adjust Card Size
                         </div>
-                        <input
-                          type="range"
-                          min="0.7"
-                          max="1.3"
-                          step="0.05"
-                          value={cardScale}
-                          onChange={(e) => {
-                            const newScale = parseFloat(e.target.value);
-                            setCardScale(newScale);
-                            localStorage.setItem('waitListCardScale', newScale.toString());
-                          }}
-                          className="w-full h-2 bg-orange-100 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                          style={{
-                            background: `linear-gradient(to right, #FFB347 0%, #FFB347 ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
-                          }}
-                        />
-                      </div>
-                    )}
+                        <ChevronRight size={14} className={showCardSizeSlider ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                      </button>
+                      {showCardSizeSlider && (
+                        <div className="px-3 py-3 bg-gray-50 border-t border-gray-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-500">Small</span>
+                            <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
+                            <span className="text-xs text-gray-500">Large</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.7"
+                            max="1.3"
+                            step="0.05"
+                            value={cardScale}
+                            onChange={(e) => {
+                              const newScale = parseFloat(e.target.value);
+                              setCardScale(newScale);
+                              localStorage.setItem('waitListCardScale', newScale.toString());
+                            }}
+                            className="w-full h-2 bg-orange-100 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                            style={{
+                              background: `linear-gradient(to right, #FFB347 0%, #FFB347 ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>}
-            </div>
-            <Tippy content="Minimize section"></Tippy>
-          </div>
-          </div>
-        </div>}
-      <div className="flex-1 overflow-auto px-3 pt-3 scroll-smooth">
+                )}
+              </div>
+              <HeaderActionButton onClick={onToggleMinimize}>
+                {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+              </HeaderActionButton>
+            </>
+          }
+        />
+      )}
+      <div className={`flex-1 overflow-auto px-4 pb-4 ${headerContentSpacer} scroll-smooth`}>
         {/* Show content based on whether there are tickets */}
-        {waitlist.length > 0 ? viewMode === 'grid' ? <div 
+        {waitlist.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-4"
-          style={{ 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 360px))',
+          style={{
+            gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fit, minmax(220px, 280px))' : 'repeat(auto-fit, minmax(280px, 360px))',
             transform: `scale(${cardScale})`,
             transformOrigin: 'top left',
             width: `${100 / cardScale}%`,
@@ -1101,7 +1069,7 @@ export const WaitListSection = memo(function WaitListSection({
           }}
         >
               {waitlist.map(ticket => (
-                <WaitListTicketCard
+                <WaitListTicketCardRefactored
                   key={ticket.id}
                   ticket={{
                     id: ticket.id,
@@ -1112,22 +1080,24 @@ export const WaitListSection = memo(function WaitListSection({
                     duration: ticket.duration || '30min',
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
                     notes: ticket.notes,
+                    createdAt: ticket.createdAt,
+                    lastVisitDate: ticket.lastVisitDate,
                   }}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onAssign={(id) => {
-                    setSelectedTicketId(parseInt(id));
+                    setSelectedTicketId(Number(id));
                     setShowAssignModal(true);
                   }}
                   onEdit={(id) => {
-                    setTicketToEdit(parseInt(id));
+                    setTicketToEdit(Number(id));
                     setShowEditModal(true);
                   }}
                   onDelete={(id) => {
-                    setTicketToDelete(parseInt(id));
+                    setTicketToDelete(Number(id));
                     setShowDeleteModal(true);
                   }}
                   onClick={(id) => {
-                    setTicketToView(parseInt(id));
+                    setTicketToView(Number(id));
                     setShowDetailsModal(true);
                   }}
                 />
@@ -1155,19 +1125,19 @@ export const WaitListSection = memo(function WaitListSection({
                   }}
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
                   onAssign={(id) => {
-                    setSelectedTicketId(parseInt(id));
+                    setSelectedTicketId(Number(id));
                     setShowAssignModal(true);
                   }}
                   onEdit={(id) => {
-                    setTicketToEdit(parseInt(id));
+                    setTicketToEdit(Number(id));
                     setShowEditModal(true);
                   }}
                   onDelete={(id) => {
-                    setTicketToDelete(parseInt(id));
+                    setTicketToDelete(Number(id));
                     setShowDeleteModal(true);
                   }}
                   onClick={(id) => {
-                    setTicketToView(parseInt(id));
+                    setTicketToView(Number(id));
                     setShowDetailsModal(true);
                   }}
                 />

@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { X, CreditCard, DollarSign, Percent, Receipt, Printer, Check } from 'lucide-react';
 import { Ticket, Payment } from '../../types/Ticket';
 import { TAX_RATE } from '../../constants/checkoutConfig';
+import { useAppDispatch } from '../../store/hooks';
+import { createTransaction } from '../../store/slices/transactionsSlice';
+import { updateTicket } from '../../store/slices/ticketsSlice';
+import { toast } from 'react-hot-toast';
 
 interface QuickCheckoutProps {
   isOpen: boolean;
@@ -13,6 +17,7 @@ interface QuickCheckoutProps {
 type PaymentMethod = 'cash' | 'card' | 'split';
 
 export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickCheckoutProps) {
+  const dispatch = useAppDispatch();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [tipAmount, setTipAmount] = useState(0);
   const [tipPercent, setTipPercent] = useState(0);
@@ -66,60 +71,92 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
 
   const handleComplete = async () => {
     setIsProcessing(true);
-    
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const payments: Payment[] = [];
+    try {
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-    if (paymentMethod === 'cash') {
-      payments.push({
-        id: `pay_${Date.now()}`,
-        method: 'cash',
-        amount: afterDiscount + taxAmount,
-        tip: tipValue,
-        total: grandTotal,
-        processedAt: new Date()
-      });
-    } else if (paymentMethod === 'card') {
-      payments.push({
-        id: `pay_${Date.now()}`,
-        method: 'card',
-        amount: afterDiscount + taxAmount,
-        tip: tipValue,
-        total: grandTotal,
-        processedAt: new Date(),
-        cardLast4: cardLast4 || '****',
-        transactionId: `txn_${Date.now()}`
-      });
-    } else {
-      // Split payment
-      if (cashAmount > 0) {
+      const payments: Payment[] = [];
+
+      if (paymentMethod === 'cash') {
         payments.push({
-          id: `pay_${Date.now()}_cash`,
+          id: `pay_${Date.now()}`,
           method: 'cash',
-          amount: cashAmount,
-          tip: 0,
-          total: cashAmount,
+          amount: afterDiscount + taxAmount,
+          tip: tipValue,
+          total: grandTotal,
           processedAt: new Date()
         });
-      }
-      if (cardAmount > 0) {
+      } else if (paymentMethod === 'card') {
         payments.push({
-          id: `pay_${Date.now()}_card`,
+          id: `pay_${Date.now()}`,
           method: 'card',
-          amount: cardAmount,
+          amount: afterDiscount + taxAmount,
           tip: tipValue,
-          total: cardAmount + tipValue,
+          total: grandTotal,
           processedAt: new Date(),
           cardLast4: cardLast4 || '****',
           transactionId: `txn_${Date.now()}`
         });
+      } else {
+        // Split payment
+        if (cashAmount > 0) {
+          payments.push({
+            id: `pay_${Date.now()}_cash`,
+            method: 'cash',
+            amount: cashAmount,
+            tip: 0,
+            total: cashAmount,
+            processedAt: new Date()
+          });
+        }
+        if (cardAmount > 0) {
+          payments.push({
+            id: `pay_${Date.now()}_card`,
+            method: 'card',
+            amount: cardAmount,
+            tip: tipValue,
+            total: cardAmount + tipValue,
+            processedAt: new Date(),
+            cardLast4: cardLast4 || '****',
+            transactionId: `txn_${Date.now()}`
+          });
+        }
       }
-    }
 
-    onComplete(payments, tipValue, discountValue);
-    setIsProcessing(false);
+      // 1. First update the ticket with payment info and mark as completed
+      await dispatch(updateTicket({
+        id: ticket.id,
+        updates: {
+          payments,
+          tip: tipValue,
+          discount: discountValue,
+          status: 'completed',
+          completedAt: new Date(),
+          subtotal: afterDiscount,
+          tax: taxAmount,
+          total: grandTotal
+        },
+        userId: 'current-user' // TODO: Get from auth context
+      })).unwrap();
+
+      // 2. Create transaction record for the completed ticket
+      await dispatch(createTransaction({
+        ticketId: ticket.id,
+        salonId: ticket.salonId,
+        userId: 'current-user' // TODO: Get from auth context
+      })).unwrap();
+
+      // 3. Success - notify parent and close
+      toast.success('Payment processed and transaction created successfully');
+      onComplete(payments, tipValue, discountValue);
+      setIsProcessing(false);
+
+    } catch (error) {
+      setIsProcessing(false);
+      toast.error('Payment processing failed: ' + (error as Error).message);
+      console.error('Checkout error:', error);
+    }
   };
 
   if (!isOpen) return null;

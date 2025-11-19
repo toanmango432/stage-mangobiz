@@ -169,9 +169,10 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn-icon"
+              aria-label="Close"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -187,12 +188,7 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name or phone..."
-                    className={cn(
-                      'w-full pl-10 pr-4 py-3',
-                      'border border-gray-300 rounded-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent',
-                      'text-base'
-                    )}
+                    className="book-input pl-10"
                     autoFocus
                   />
                 </div>
@@ -254,12 +250,7 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                     </p>
                     <button
                       onClick={() => setIsCreating(true)}
-                      className={cn(
-                        'inline-flex items-center gap-2 px-4 py-2',
-                        'bg-gradient-to-r from-orange-500 to-pink-500',
-                        'text-white font-medium rounded-lg',
-                        'hover:shadow-lg transition-all duration-200'
-                      )}
+                      className="btn-primary inline-flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
                       Create New Customer
@@ -289,11 +280,7 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                       value={newCustomerName}
                       onChange={(e) => setNewCustomerName(e.target.value)}
                       placeholder="Enter full name"
-                      className={cn(
-                        'w-full px-4 py-3',
-                        'border border-gray-300 rounded-lg',
-                        'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                      )}
+                      className="book-input"
                       autoFocus
                     />
                   </div>
@@ -307,11 +294,7 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                       value={newCustomerPhone}
                       onChange={(e) => handlePhoneInput(e.target.value)}
                       placeholder="(555) 123-4567"
-                      className={cn(
-                        'w-full px-4 py-3',
-                        'border border-gray-300 rounded-lg',
-                        'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent'
-                      )}
+                      className="book-input"
                     />
                   </div>
                 </div>
@@ -325,19 +308,14 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
               <>
                 <button
                   onClick={() => setIsCreating(true)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2',
-                    'text-orange-600 font-medium',
-                    'hover:bg-orange-50 rounded-lg',
-                    'transition-colors duration-200'
-                  )}
+                  className="btn-ghost text-orange-600 hover:bg-orange-50 flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   New Customer
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                  className="btn-ghost"
                 >
                   Cancel
                 </button>
@@ -346,27 +324,21 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
               <>
                 <button
                   onClick={() => setIsCreating(false)}
-                  className="px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                  className="btn-ghost"
                 >
                   Back to Search
                 </button>
                 <div className="flex gap-3">
                   <button
                     onClick={onClose}
-                    className="px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                    className="btn-ghost"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreateCustomer}
                     disabled={!newCustomerName.trim() || !newCustomerPhone.trim()}
-                    className={cn(
-                      'px-6 py-2 font-medium rounded-lg',
-                      'bg-gradient-to-r from-orange-500 to-pink-500',
-                      'text-white',
-                      'hover:shadow-lg transition-all duration-200',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
+                    className="btn-primary"
                   >
                     Create Customer
                   </button>

@@ -90,7 +90,7 @@ export function TopHeaderBar() {
       ] : []
     },
     {
-      category: 'Transactions',
+      category: 'Sales',
       icon: <DollarSign size={12} />,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',

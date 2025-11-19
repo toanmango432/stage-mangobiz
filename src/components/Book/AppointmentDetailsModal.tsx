@@ -11,6 +11,7 @@ import { Client } from '../../types/client';
 import toast from 'react-hot-toast';
 import { clientsDB } from '../../db/database';
 import { db } from '../../db/schema';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export function AppointmentDetailsModal({
   const [serviceHistory, setServiceHistory] = useState<LocalAppointment[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load client data when appointment changes
   useEffect(() => {
@@ -112,6 +115,23 @@ export function AppointmentDetailsModal({
       toast.error('Failed to save client notes. Please try again.');
     } finally {
       setIsSavingClientNotes(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!appointment || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(appointment.id);
+      toast.success('Appointment deleted successfully');
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast.error('Failed to delete appointment. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -206,9 +226,10 @@ export function AppointmentDetailsModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="btn-icon"
+              aria-label="Close"
             >
-              <X className="w-6 h-6 text-gray-500" />
+              <X className="w-6 h-6" />
             </button>
           </div>
 
@@ -266,20 +287,17 @@ export function AppointmentDetailsModal({
                           setClientNotes(client.notes || '');
                           setIsEditingClientNotes(false);
                         }}
-                        className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="btn-ghost btn-sm"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleSaveClientNotes}
                         disabled={isSavingClientNotes}
-                        className="px-3 py-1.5 text-sm bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+                        className={cn('btn-primary btn-sm flex items-center gap-1', isSavingClientNotes && 'btn-loading')}
                       >
                         {isSavingClientNotes ? (
-                          <>
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Saving...
-                          </>
+                          'Saving...'
                         ) : (
                           <>
                             <Check className="w-3 h-3" />
@@ -436,17 +454,17 @@ export function AppointmentDetailsModal({
               {appointment.status === 'scheduled' && (
                 <button
                   onClick={() => handleStatusChange('checked-in')}
-                  className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition-colors flex items-center space-x-2"
+                  className="btn-primary text-sm sm:text-base flex items-center space-x-2"
                 >
                   <Check className="w-4 h-4" />
                   <span>Check In</span>
                 </button>
               )}
-              
+
               {appointment.status === 'checked-in' && (
                 <button
                   onClick={() => handleStatusChange('in-service')}
-                  className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
+                  className="btn-primary text-sm sm:text-base flex items-center space-x-2"
                 >
                   <Clock className="w-4 h-4" />
                   <span>Start Service</span>
@@ -456,7 +474,7 @@ export function AppointmentDetailsModal({
               {appointment.status === 'in-service' && (
                 <button
                   onClick={() => handleStatusChange('completed')}
-                  className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                  className="btn-primary text-sm sm:text-base flex items-center space-x-2"
                 >
                   <Check className="w-4 h-4" />
                   <span>Complete</span>
@@ -469,7 +487,7 @@ export function AppointmentDetailsModal({
                     onEdit(appointment);
                     onClose();
                   }}
-                  className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
+                  className="btn-secondary text-sm sm:text-base flex items-center space-x-2"
                 >
                   <Edit2 className="w-4 h-4" />
                   <span>Edit</span>
@@ -486,7 +504,7 @@ export function AppointmentDetailsModal({
                         onNoShow(appointment.id);
                         onClose();
                       }}
-                      className="px-3 py-2 sm:px-4 text-sm sm:text-base text-orange-600 font-medium hover:bg-orange-50 rounded-lg transition-colors"
+                      className="btn-ghost text-sm sm:text-base text-orange-600 hover:bg-orange-50"
                     >
                       No Show
                     </button>
@@ -497,7 +515,7 @@ export function AppointmentDetailsModal({
                         onCancel(appointment.id);
                         onClose();
                       }}
-                      className="px-3 py-2 sm:px-4 text-sm sm:text-base text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors"
+                      className="btn-ghost text-sm sm:text-base text-red-600 hover:bg-red-50"
                     >
                       Cancel
                     </button>
@@ -507,11 +525,8 @@ export function AppointmentDetailsModal({
               
               {onDelete && (
                 <button
-                  onClick={() => {
-                    onDelete(appointment.id);
-                    onClose();
-                  }}
-                  className="px-3 py-2 sm:px-4 text-sm sm:text-base text-gray-600 font-medium hover:bg-gray-50 rounded-lg transition-colors border border-gray-300"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="btn-secondary text-sm sm:text-base"
                 >
                   Delete
                 </button>
@@ -519,6 +534,19 @@ export function AppointmentDetailsModal({
             </div>
           </div>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Appointment"
+          message={`Are you sure you want to delete this appointment for ${appointment.clientName}? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          loading={isDeleting}
+        />
       </>
   );
 }

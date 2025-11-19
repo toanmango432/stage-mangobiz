@@ -33,7 +33,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
     { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
     { id: 'checkout', label: 'Checkout', icon: CreditCard },
-    { id: 'transactions', label: 'Transactions', icon: FileText },
+    { id: 'sales', label: 'Sales', icon: FileText },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ];
 

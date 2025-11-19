@@ -34,6 +34,13 @@ export const fetchTicketsByStatus = createAsyncThunk(
   }
 );
 
+export const fetchTickets = createAsyncThunk(
+  'tickets/fetchAll',
+  async (salonId: string) => {
+    return await ticketsDB.getAll(salonId);
+  }
+);
+
 export const createTicket = createAsyncThunk(
   'tickets/create',
   async ({ input, userId, salonId }: { input: CreateTicketInput; userId: string; salonId: string }) => {
@@ -127,6 +134,19 @@ const ticketsSlice = createSlice({
       // Fetch by status
       .addCase(fetchTicketsByStatus.fulfilled, (state, action) => {
         state.items = action.payload;
+      })
+      // Fetch all
+      .addCase(fetchTickets.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTickets.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchTickets.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch tickets';
       })
       // Create
       .addCase(createTicket.fulfilled, (state, action) => {

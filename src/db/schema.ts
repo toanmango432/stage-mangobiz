@@ -26,7 +26,8 @@ export class MangoPOSDatabase extends Dexie {
 
   constructor() {
     super('mango_biz_store_app');
-    
+
+    // Version 1: Original schema
     this.version(1).stores({
       appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status]',
       tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status]',
@@ -36,6 +37,21 @@ export class MangoPOSDatabase extends Dexie {
       services: 'id, salonId, category, syncStatus, [salonId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity'
+    });
+
+    // Version 2: Add missing compound indexes for common queries
+    this.version(2).stores({
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]'
+    }).upgrade(tx => {
+      // Migration will be handled automatically by Dexie
+      console.log('✅ Database upgraded to version 2: Added compound indexes for better query performance');
     });
   }
 }

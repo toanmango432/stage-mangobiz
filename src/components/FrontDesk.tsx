@@ -12,8 +12,16 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Settings, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
-import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './FrontDeskSettings';
-export function FrontDesk() {
+import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
+import { ErrorBoundary } from './frontdesk/ErrorBoundary';
+import {
+  TeamSectionErrorBoundary,
+  WaitListErrorBoundary,
+  ServiceSectionErrorBoundary,
+  ComingAppointmentsErrorBoundary,
+  SettingsErrorBoundary
+} from './frontdesk/SectionErrorBoundary';
+function FrontDeskComponent() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
     // Force Coming section to be expanded by default - clear any old localStorage
@@ -333,7 +341,7 @@ export function FrontDesk() {
   // Simplified Ticket Settings Component
   const TicketsHeader = () => {
     return (
-      <div className="absolute top-1 right-1 z-10">
+      <div className="absolute top-1 right-1 z-50 flex items-center gap-1">
         {/* Settings icon in the top-right */}
         <div className="relative" ref={ticketSettingsRef}>
           <Tippy content="Front Desk Settings">
@@ -429,17 +437,19 @@ export function FrontDesk() {
   };
   return (
       <div className="flex h-full pb-0">
-        <div className="flex flex-1 overflow-hidden pb-0">
+        <div className="flex flex-1 pb-0">
         {/* Sidebar with improved mobile handling */}
-        <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-30 h-[calc(100vh-52px)] transition-transform duration-300 ease-in-out`}>
-          <StaffSidebar />
+        <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-30 h-full transition-transform duration-300 ease-in-out`}>
+          <TeamSectionErrorBoundary>
+            <StaffSidebar />
+          </TeamSectionErrorBoundary>
         </div>
         {/* Overlay for mobile sidebar */}
         {showSidebar && <div className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden backdrop-blur-sm" onClick={() => setShowSidebar(false)}></div>}
         {/* Enhanced visual separator between tech and service sections */}
         <div className="hidden md:block w-px bg-gray-200 relative"></div>
         {/* Main content area with flex layout for optimal space usage */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden min-h-0 pb-0">
+        <div className="flex-1 flex flex-col h-full min-h-0 pb-0">
           {/* Mobile/Tablet section tabs - show on mobile and tablet when not in combined view */}
           {(deviceInfo.isMobile || deviceInfo.isTablet) && !isCombinedView && <div className="flex overflow-x-auto no-scrollbar bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 whitespace-nowrap">
               {mobileSectionTabs.map(tab => <button key={tab.id} className={`inline-flex items-center h-14 min-w-[100px] px-3 text-[15px] font-medium whitespace-nowrap transition-colors ${activeMobileSection === tab.id ? 'text-[#00D0E0] border-b-2 border-[#00D0E0]' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setActiveMobileSection(tab.id)}>
@@ -728,16 +738,18 @@ export function FrontDesk() {
                                 className={`h-full min-h-0 pb-0 ${minimizedSections.service ? 'w-[60px] flex-shrink-0' : minimizedSections.waitList ? 'flex-1' : ''}`}
                                 style={!minimizedSections.service && !minimizedSections.waitList ? { width: `${serviceWidth}%` } : undefined}
                               >
-                                <ServiceSection isMinimized={minimizedSections.service} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={false} headerStyles={{
-                            bg: 'bg-gradient-to-br from-emerald-50/80 via-green-50/60 to-teal-50/40',
-                            accentColor: '#10B981',
-                            iconColor: 'text-[#9CA3AF]',
-                            activeIconColor: 'text-[#10B981]',
-                            titleColor: 'text-[#111827]',
-                            borderColor: 'border-emerald-200/30',
-                            counterBg: 'bg-emerald-100',
-                            counterText: 'text-emerald-700'
-                          }} />
+                                <ServiceSectionErrorBoundary>
+                                  <ServiceSection isMinimized={minimizedSections.service} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={false} headerStyles={{
+                              bg: 'bg-gradient-to-br from-emerald-50/80 via-green-50/60 to-teal-50/40',
+                              accentColor: '#10B981',
+                              iconColor: 'text-[#9CA3AF]',
+                              activeIconColor: 'text-[#10B981]',
+                              titleColor: 'text-[#111827]',
+                              borderColor: 'border-emerald-200/30',
+                              counterBg: 'bg-emerald-100',
+                              counterText: 'text-emerald-700'
+                            }} />
+                                </ServiceSectionErrorBoundary>
                               </div>
                               
                               {/* Draggable Divider */}
@@ -786,40 +798,44 @@ export function FrontDesk() {
                               >
                                 {/* Coming Appointments - Top */}
                                 {showUpcomingAppointments && <div className="flex-shrink-0">
-                                  <ComingAppointments
-                                    isMinimized={minimizedSections.comingAppointments}
-                                    onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
-                                    isMobile={false}
-                                    headerStyles={{
-                                      bg: 'bg-gradient-to-br from-sky-50/80 via-blue-50/60 to-cyan-50/40',
-                                      accentColor: '#0EA5E9',
-                                      iconColor: 'text-[#9CA3AF]',
-                                      activeIconColor: 'text-[#0EA5E9]',
-                                      titleColor: 'text-[#111827]',
-                                      borderColor: 'border-sky-200/30',
+                                  <ComingAppointmentsErrorBoundary>
+                                    <ComingAppointments
+                                      isMinimized={minimizedSections.comingAppointments}
+                                      onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
+                                      isMobile={false}
+                                      headerStyles={{
+                                        bg: 'bg-gradient-to-br from-sky-50/80 via-blue-50/60 to-cyan-50/40',
+                                        accentColor: '#0EA5E9',
+                                        iconColor: 'text-[#9CA3AF]',
+                                        activeIconColor: 'text-[#0EA5E9]',
+                                        titleColor: 'text-[#111827]',
+                                        borderColor: 'border-sky-200/30',
                                       counterBg: 'bg-sky-100',
                                       counterText: 'text-sky-700'
                                     }}
                                   />
+                                  </ComingAppointmentsErrorBoundary>
                                 </div>}
 
                                 {/* Waiting Queue - Bottom */}
                                 <div className={minimizedSections.waitList ? 'flex-shrink-0' : 'flex-1 min-h-0'}>
-                                  <WaitListSection
-                                    isMinimized={minimizedSections.waitList}
-                                    onToggleMinimize={() => toggleSectionMinimize('waitList')}
-                                    isMobile={false}
-                                    headerStyles={{
-                                      bg: 'bg-gradient-to-br from-purple-50/80 via-purple-100/60 to-violet-50/40',
-                                      accentColor: '#A78BFA',
-                                      iconColor: 'text-[#9CA3AF]',
-                                      activeIconColor: 'text-[#A78BFA]',
-                                      titleColor: 'text-[#111827]',
-                                      borderColor: 'border-purple-200/30',
-                                      counterBg: 'bg-purple-100',
-                                      counterText: 'text-purple-700'
-                                    }}
-                                  />
+                                  <WaitListErrorBoundary>
+                                    <WaitListSection
+                                      isMinimized={minimizedSections.waitList}
+                                      onToggleMinimize={() => toggleSectionMinimize('waitList')}
+                                      isMobile={false}
+                                      headerStyles={{
+                                        bg: 'bg-gradient-to-br from-purple-50/80 via-purple-100/60 to-violet-50/40',
+                                        accentColor: '#A78BFA',
+                                        iconColor: 'text-[#9CA3AF]',
+                                        activeIconColor: 'text-[#A78BFA]',
+                                        titleColor: 'text-[#111827]',
+                                        borderColor: 'border-purple-200/30',
+                                        counterBg: 'bg-purple-100',
+                                        counterText: 'text-purple-700'
+                                      }}
+                                    />
+                                  </WaitListErrorBoundary>
                                 </div>
                               </div>
                             </div>
@@ -844,7 +860,18 @@ export function FrontDesk() {
       {/* Create Ticket Modal */}
       <CreateTicketModal isOpen={showCreateTicketModal} onClose={() => setShowCreateTicketModal(false)} onSubmit={createTicket} />
       {/* Add the new FrontDeskSettings component */}
-      <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />
+      <SettingsErrorBoundary>
+        <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />
+      </SettingsErrorBoundary>
     </div>
+  );
+}
+
+// Export the component wrapped with error boundary for resilience
+export function FrontDesk() {
+  return (
+    <ErrorBoundary>
+      <FrontDeskComponent />
+    </ErrorBoundary>
   );
 }

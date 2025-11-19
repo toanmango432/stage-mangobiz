@@ -6,6 +6,8 @@ import type { Client, Service, Staff } from '../../types';
 import { clientsDB, servicesDB } from '../../db/database';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
+import { ModalContainer, ModalHeader } from '../common/ModalContainer';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 // Guest with services assigned
 interface GroupMember {
@@ -68,6 +70,10 @@ export function GroupBookingModal({
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberPhone, setNewMemberPhone] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
+
+  // Confirmation dialog state
+  const [showIncompleteConfirm, setShowIncompleteConfirm] = useState(false);
+  const [incompleteMembers, setIncompleteMembers] = useState<string[]>([]);
 
   // Load services and recent clients
   useEffect(() => {
@@ -232,7 +238,7 @@ export function GroupBookingModal({
     }));
   };
 
-  const handleBookGroup = async () => {
+  const handleBookGroupClick = () => {
     // Validation
     if (members.length === 0) {
       toast.error('Please add at least one group member');
@@ -241,11 +247,16 @@ export function GroupBookingModal({
 
     const membersWithoutServices = members.filter(m => m.services.length === 0);
     if (membersWithoutServices.length > 0) {
-      const names = membersWithoutServices.map(m => m.name).join(', ');
-      if (!confirm(`Some members don't have services assigned: ${names}\n\nContinue anyway?`)) {
-        return;
-      }
+      const names = membersWithoutServices.map(m => m.name);
+      setIncompleteMembers(names);
+      setShowIncompleteConfirm(true);
+      return;
     }
+
+    handleBookGroup();
+  };
+
+  const handleBookGroup = async () => {
 
     try {
       // Create appointments for each member
@@ -303,13 +314,8 @@ export function GroupBookingModal({
         }
       }
 
-      // Success - we'll replace this with a toast later
-      console.log('Group booking created successfully:', {
-        date,
-        startTime,
-        members: appointments.length,
-        totalCost: groupSummary.totalCost
-      });
+      // Success
+      toast.success(`Group booking created successfully for ${appointments.length} member${appointments.length > 1 ? 's' : ''}`);
 
       onClose();
     } catch (error) {
@@ -321,26 +327,27 @@ export function GroupBookingModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Group Booking</h2>
-            <p className="text-sm text-gray-500">Book appointments for multiple people</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <ModalContainer
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      position="center"
+      noPadding
+      className="h-[90vh]"
+      aria-label="Group booking modal"
+    >
+      {/* Header */}
+      <ModalHeader
+        title="Group Booking"
+        subtitle="Book appointments for multiple people"
+        onClose={onClose}
+        className="px-6 py-4"
+      />
 
-        {/* Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Column - Members */}
-          <div className="w-3/5 flex flex-col border-r border-gray-200">
+      {/* Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Column - Members */}
+        <div className="w-3/5 flex flex-col border-r border-gray-200">
             {/* Date & Time */}
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-2 gap-4">
@@ -350,7 +357,7 @@ export function GroupBookingModal({
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="book-input"
                   />
                 </div>
                 <div>
@@ -359,7 +366,7 @@ export function GroupBookingModal({
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="book-input"
                   />
                 </div>
               </div>
@@ -373,7 +380,7 @@ export function GroupBookingModal({
                 </h3>
                 <button
                   onClick={() => setShowAddMemberModal(true)}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
+                  className="btn-primary btn-sm flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Add Member
@@ -389,7 +396,7 @@ export function GroupBookingModal({
                   <p className="text-sm text-gray-500 mb-4">Add members to start building your group booking</p>
                   <button
                     onClick={() => setShowAddMemberModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors inline-flex items-center gap-2"
+                    className="btn-primary inline-flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
                     Add First Member
@@ -422,17 +429,19 @@ export function GroupBookingModal({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleToggleExpanded(member.id)}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                          className="btn-icon"
+                          aria-label={member.isExpanded ? "Collapse" : "Expand"}
                         >
                           {member.isExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-gray-600" />
+                            <ChevronUp className="w-4 h-4" />
                           ) : (
-                            <ChevronDown className="w-4 h-4 text-gray-600" />
+                            <ChevronDown className="w-4 h-4" />
                           )}
                         </button>
                         <button
                           onClick={() => handleRemoveMember(member.id)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          className="btn-icon hover:bg-red-50"
+                          aria-label="Remove member"
                         >
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
@@ -463,7 +472,8 @@ export function GroupBookingModal({
                                 </div>
                                 <button
                                   onClick={() => handleRemoveService(member.id, idx)}
-                                  className="p-1.5 hover:bg-red-100 rounded transition-colors"
+                                  className="btn-icon p-1.5 hover:bg-red-100"
+                                  aria-label="Remove service"
                                 >
                                   <X className="w-4 h-4 text-red-500" />
                                 </button>
@@ -474,7 +484,7 @@ export function GroupBookingModal({
 
                         <button
                           onClick={() => setShowServicePicker(member.id)}
-                          className="w-full px-4 py-2.5 text-sm font-medium text-teal-600 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors flex items-center justify-center gap-2"
+                          className="btn-secondary w-full text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100 flex items-center justify-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
                           Add Service
@@ -534,16 +544,15 @@ export function GroupBookingModal({
               )}
 
               <button
-                onClick={handleBookGroup}
+                onClick={handleBookGroupClick}
                 disabled={members.length === 0 || groupSummary.totalServices === 0}
-                className="w-full px-4 py-3 text-base font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg hover:from-teal-700 hover:to-teal-800 transition-colors shadow-lg disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed"
+                className="btn-primary w-full py-3 text-base font-bold shadow-lg"
               >
                 Book Group Appointment
               </button>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Add Member Modal */}
       {showAddMemberModal && (
@@ -559,7 +568,8 @@ export function GroupBookingModal({
                   setNewMemberPhone('');
                   setNewMemberEmail('');
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="btn-icon"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -578,7 +588,7 @@ export function GroupBookingModal({
                     placeholder="Search by name or phone..."
                     value={clientSearch}
                     onChange={(e) => setClientSearch(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="book-input pl-10"
                     autoFocus
                   />
                 </div>
@@ -641,7 +651,7 @@ export function GroupBookingModal({
                     placeholder="Full name"
                     value={newMemberName}
                     onChange={(e) => setNewMemberName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="book-input"
                   />
                 </div>
                 <div>
@@ -651,7 +661,7 @@ export function GroupBookingModal({
                     placeholder="(555) 123-4567"
                     value={newMemberPhone}
                     onChange={(e) => setNewMemberPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="book-input"
                   />
                 </div>
                 <div>
@@ -661,13 +671,13 @@ export function GroupBookingModal({
                     placeholder="email@example.com"
                     value={newMemberEmail}
                     onChange={(e) => setNewMemberEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="book-input"
                   />
                 </div>
                 <button
                   onClick={handleAddWalkInMember}
                   disabled={!newMemberName.trim() || !newMemberPhone.trim()}
-                  className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="btn-primary w-full"
                 >
                   Add Member
                 </button>
@@ -687,7 +697,8 @@ export function GroupBookingModal({
               </h3>
               <button
                 onClick={() => setShowServicePicker(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="btn-icon"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -734,6 +745,21 @@ export function GroupBookingModal({
           </div>
         </div>
       )}
-    </div>
+
+      {/* Incomplete Members Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showIncompleteConfirm}
+        onClose={() => setShowIncompleteConfirm(false)}
+        onConfirm={() => {
+          setShowIncompleteConfirm(false);
+          handleBookGroup();
+        }}
+        title="Incomplete Group Members"
+        message={`The following members don't have services assigned: ${incompleteMembers.join(', ')}\n\nDo you want to continue anyway?`}
+        confirmText="Continue Booking"
+        cancelText="Go Back"
+        variant="warning"
+      />
+    </ModalContainer>
   );
 }

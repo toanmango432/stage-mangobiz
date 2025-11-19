@@ -64,6 +64,16 @@ export function WaitListTicketCard({
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
+  // Helper variables for display
+  const isFirstVisit = ticket.clientType === 'New';
+  const hasNote = !!ticket.notes;
+  const getLastVisitText = () => {
+    if (ticket.clientType === 'New') {
+      return 'First Visit';
+    }
+    return 'Returning client';
+  };
+
   // REFINED CLIENT TYPE BADGES (Apple-style subtle colors)
   const clientTypeBadge = {
     VIP: { bg: '#FFF9E6', text: '#8B6914', border: '#E5D4A0', icon: '⭐', accent: '#F59E0B' },
@@ -94,123 +104,86 @@ export function WaitListTicketCard({
     `,
   };
 
-  // COMPACT VIEW - Very small for high volume
+  // LIST COMPACT VIEW - Significantly more compact
   if (viewMode === 'compact') {
     return (
       <>
-      <div
-        onClick={() => onClick?.(ticket.id)}
-        className="relative cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] overflow-hidden"
-        style={{
-          ...paperStyle,
-          borderRadius: '6px',
-          padding: '4px 8px',
-          paddingBottom: '5px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = paperStyle.boxShadow;
-        }}
-      >
-        
-        {/* Compact LINE VIEW - 2 tight rows */}
-        <div>
-          {/* Row 1: # + Name + Assign + More */}
-          <div className="flex items-center justify-between gap-1 mb-0.5">
-            <div className="flex items-center gap-1 min-w-0 flex-1">
-              <span 
-                className="font-bold flex-shrink-0"
-                style={{ 
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  fontSize: '11px',
-                  lineHeight: 1,
-                  letterSpacing: '0.3px',
-                  color: '#222222',
-                  textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
-                  WebkitFontSmoothing: 'antialiased',
-                }}
-              >
-                #{ticket.number}
-              </span>
-              <span className="text-gray-400" style={{ fontSize: '10px' }}>›</span>
-              <div className="font-semibold truncate" style={{ color: '#222222', fontSize: '11px', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.clientName}>
-                {ticket.clientName}
+        <div
+          onClick={() => onClick?.(ticket.id)}
+          className="relative rounded border border-[#d4b896]/40 overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
+          role="button"
+          tabIndex={0}
+          aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
+          style={{
+            background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
+            boxShadow: '0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 3px rgba(139, 92, 46, 0.06)'
+          }}
+        >
+
+          {/* Minimal perforation dots */}
+          <div className="absolute top-0 left-0 w-full h-[2px] flex justify-between items-center px-1.5 opacity-15">
+            {[...Array(8)].map((_, i) => (<div key={i} className="w-[1px] h-[1px] rounded-full bg-[#c4b5a0]" />))}
+          </div>
+
+          {/* Minimal left edge shadow */}
+          <div className="absolute top-0 left-0 w-1 h-full" style={{ boxShadow: 'inset 2px 0 3px rgba(0,0,0,0.15)' }} />
+
+          {/* Compact ticket number badge */}
+          <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-[10px] z-20"
+               style={{
+                 background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
+                 borderTopRightRadius: '6px',
+                 borderBottomRightRadius: '6px',
+                 borderTop: '1px solid rgba(212, 184, 150, 0.4)',
+                 borderRight: '1px solid rgba(212, 184, 150, 0.4)',
+                 borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
+                 boxShadow: '1px 0 3px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
+                 letterSpacing: '-0.02em',
+                 transform: 'translateX(-2px)'
+               }}>
+            {ticket.number}
+          </div>
+
+          {/* Compact content area */}
+          <div className="py-1.5 pr-2 pl-7">
+            {/* Single compact row */}
+            <div className="flex items-center justify-between gap-2">
+              {/* Left: Client + Service */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <span className="font-semibold text-[11px] text-[#1a1614] truncate">{ticket.clientName}</span>
+                  {isFirstVisit && <span className="text-[9px]">⭐</span>}
+                  {hasNote && <StickyNote size={10} className="text-amber-500" />}
+                </div>
+                <div className="text-[9px] text-[#6b5d52] truncate">{ticket.service}</div>
               </div>
-            </div>
-            
-            {/* Assign + More */}
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <button
-                onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                className="p-0.5 rounded bg-white hover:bg-blue-50 active:bg-blue-100 transition-all"
-                style={{
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-                  border: '1px solid rgba(0,0,0,0.08)',
-                }}
-                title="Assign"
-              >
-                <UserPlus size={11} className="text-blue-600" strokeWidth={2.5} />
-              </button>
-              <div className="relative">
+
+              {/* Right: Wait time + Assign */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Wait time */}
+                <div className="flex items-center gap-0.5">
+                  <span className="text-[9px] text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
+                </div>
+
+                {/* Compact Assign button */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                  className="p-0.5 rounded bg-white hover:bg-gray-50 active:bg-gray-100 transition-all"
-                  style={{
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                  }}
-                  title="More"
+                  onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
+                  className="w-5 h-5 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center flex-shrink-0"
+                  title="Assign"
                 >
-                  <MoreVertical size={10} className="text-gray-600" strokeWidth={2} />
+                  <UserPlus size={12} strokeWidth={2} />
                 </button>
-                {showMenu && (
-                  <div className="absolute right-0 top-6 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[110px]">
-                    <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-1.5">
-                      <Edit2 size={10} /> Edit
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-red-50 flex items-center gap-1.5 text-red-600">
-                      <Trash2 size={10} /> Delete
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Row 2: Service + Time/Duration */}
-          <div className="flex items-center justify-between gap-1">
-            <div className="truncate" style={{ color: '#555555', fontSize: '10px', fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
-              {ticket.service}
-            </div>
-            <div className="flex items-center gap-0.5 flex-shrink-0 text-[9px] font-semibold">
-              <div className="flex items-center gap-0.5">
-                <Clock size={8} className="text-gray-500" />
-                <span style={{ color: '#6B7280', fontSize: '8px', fontWeight: 700 }} title="Time">{ticket.time}</span>
-              </div>
-              <span style={{ color: '#D1D5DB', fontSize: '8px' }}>•</span>
-              <span style={{ color: '#F59E0B', fontSize: '8px', fontWeight: 700 }} title="Wait time">{Math.round(waitProgress)}%</span>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-1" style={{ height: '2px', background: 'rgba(245,158,11,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                background: 'rgba(245,158,11,0.5)', 
-                width: `${waitProgress}%`,
-                transition: 'width 500ms ease-out',
-                borderRadius: '1px'
-              }} 
-            />
-          </div>
+          {/* Paper textures */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-md"
+               style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
+          <div className="absolute inset-0 pointer-events-none opacity-10 rounded-md"
+               style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
         </div>
-        
-        {/* Perforation at Bottom Edge */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] opacity-25 rounded-b-md overflow-hidden" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #8B5C2E 0px, #8B5C2E 3px, transparent 3px, transparent 6px)' }} />
-      </div>
       
       {/* Ticket Details Modal */}
       <TicketDetailsModal
@@ -225,156 +198,113 @@ export function WaitListTicketCard({
     );
   }
 
-  // NORMAL VIEW - Responsive across devices
+  // LIST NORMAL VIEW - With Paper Ticket Design (matches ServiceTicketCard)
   if (viewMode === 'normal') {
     return (
       <>
       <div
         onClick={() => onClick?.(ticket.id)}
-        className="relative cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] overflow-hidden"
+        className="relative rounded-lg border border-[#d4b896]/40 overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-[0.2deg] cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
-          ...paperStyle,
-          borderRadius: '6px',
-          padding: '5px 7px',
-          paddingBottom: '6px',
-        }}
-        data-responsive="true"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-0.5px) rotate(0.1deg)';
-          e.currentTarget.style.boxShadow = paperHoverStyle.boxShadow;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0) rotate(0deg)';
-          e.currentTarget.style.boxShadow = paperStyle.boxShadow;
+          background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
+          boxShadow: '0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 6px rgba(139, 92, 46, 0.08)'
         }}
       >
-        
-        {/* NEW LAYOUT - RESPONSIVE */}
-        <div>
-          {/* Row 1: Number | Client + Badge + Note | Actions */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2.5">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-              <span 
-                className="font-bold flex-shrink-0 text-base sm:text-lg"
-                style={{ 
-                  fontFamily: 'Inter, -apple-system, sans-serif',
-                  color: '#222222',
-                  lineHeight: 1,
-                  letterSpacing: '0.3px',
-                  textShadow: '0 0.4px 0 rgba(0,0,0,0.2)',
-                  WebkitFontSmoothing: 'antialiased',
-                  fontWeight: 600
-                }}
-              >
-                #{ticket.number}
-              </span>
 
-              <div className="flex items-center gap-1 sm:gap-1 min-w-0 flex-1">
-                <Tippy 
-                  content={
-                    <div className="text-xs">
-                      <div className="font-semibold">{ticket.service}</div>
-                      <div className="text-gray-300">{ticket.duration} • {ticket.time}</div>
-                    </div>
-                  }
-                  delay={[500, 0]}
-                  placement="right"
-                >
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }}
-                    className="p-0.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-                    title="View details"
-                  >
-                    <ChevronRight size={11} className="text-gray-400" />
-                  </button>
-                </Tippy>
-                <div className="font-bold truncate text-sm sm:text-base" style={{ color: '#222222', letterSpacing: '0.3px', fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased', fontWeight: 600 }}>
-                  {ticket.clientName}
-                </div>
-                {ticket.clientType !== 'Regular' && (
-                  <span className="px-1.5 py-0.5 sm:px-1.5 sm:py-0.5 rounded flex-shrink-0 text-xs sm:text-sm" style={{ backgroundColor: badge.bg, color: badge.text, fontWeight: 700, border: `1px solid ${badge.border}` }}>
-                    {badge.icon}
-                  </span>
-                )}
-                {ticket.notes && (
-                  <div title={ticket.notes} className="flex-shrink-0">
-                    <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: '#F59E0B' }} strokeWidth={2} />
-                  </div>
-                )}
+        {/* Perforation dots */}
+        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">
+          {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
+        </div>
+
+        {/* Left notch */}
+        <div className="absolute left-[-4px] top-[50%] w-2 h-2 rounded-full border-r border-[#d4b896]/50"
+             style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+
+        {/* Right notch */}
+        <div className="absolute right-[-4px] top-[50%] w-2 h-2 rounded-full border-l border-[#d4b896]/50"
+             style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
+
+        {/* Thick paper left edge shadow effect */}
+        <div className="absolute top-0 left-0 w-2 h-full" style={{ boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)' }} />
+
+        {/* Paper thickness edge */}
+        <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-lg"
+             style={{
+               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.18) 0%, rgba(139, 92, 46, 0.10) 50%, transparent 100%)',
+               boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.20)'
+             }} />
+
+        {/* Wrap-around ticket number badge */}
+        <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
+             style={{
+               background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
+               borderTopRightRadius: '9px',
+               borderBottomRightRadius: '9px',
+               borderTop: '1.5px solid rgba(212, 184, 150, 0.5)',
+               borderRight: '1.5px solid rgba(212, 184, 150, 0.5)',
+               borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)',
+               boxShadow: '2.5px 0 7px rgba(139, 92, 46, 0.15), 1.5px 0 3.5px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 2px 0 rgba(255, 255, 255, 1), inset 0 -2px 2.5px rgba(139, 92, 46, 0.08), inset -1.5px 0 1.5px rgba(255, 255, 255, 0.6)',
+               letterSpacing: '-0.02em',
+               transform: 'translateX(-3px)'
+             }}>
+          {ticket.number}
+          <div className="absolute top-0 right-0 w-[1.2px] h-full"
+               style={{ background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)' }} />
+        </div>
+
+        {/* Content area */}
+        <div className="py-3 pr-3 pl-10">
+          {/* Row 1: Client name + Wait time */}
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+                {isFirstVisit && <span className="text-sm flex-shrink-0">⭐</span>}
+                {hasNote && <StickyNote size={14} className="text-amber-500 flex-shrink-0" />}
               </div>
+              <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1.5">{getLastVisitText()}</div>
             </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-[#8b7968] whitespace-nowrap">Waited {formatWaitTime(waitTime)}</span>
+              <span className="text-xs text-[#8b7968]">•</span>
+              <span className="text-xs text-[#6b5d52] whitespace-nowrap">{ticket.time}</span>
+            </div>
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-1 sm:gap-1 flex-shrink-0">
+          {/* Divider - spans full content width */}
+          <div className="border-t border-[#e8dcc8]/50 my-2" />
+
+          {/* Row 2: Service + Assign button */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+
+            {/* Assign button with background container */}
+            <div className="px-2 py-2 rounded-lg relative flex-shrink-0"
+                 style={{
+                   background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+                   boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
+                   border: '1px solid rgba(212, 184, 150, 0.15)'
+                 }}>
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                className="p-1.5 sm:p-1.5 rounded-lg bg-white hover:bg-gray-50 active:bg-gray-100 transition-all"
-                style={{
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
-                  border: '1px solid rgba(0,0,0,0.08)',
-                }}
+                className="w-9 h-9 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
                 title="Assign"
               >
-                <UserPlus className="w-4 h-4 sm:w-4 sm:h-4 text-blue-600" strokeWidth={2.5} />
+                <UserPlus size={18} strokeWidth={2} />
               </button>
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                  className="p-1.5 sm:p-1.5 rounded-lg bg-white hover:bg-gray-50 active:bg-gray-100 transition-all"
-                  style={{
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                  }}
-                  title="More"
-                >
-                  <MoreVertical className="w-4 h-4 sm:w-4 sm:h-4 text-gray-600" strokeWidth={2} />
-                </button>
-                {showMenu && (
-                  <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[140px]">
-                    <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
-                      <Edit2 size={12} /> Edit
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-red-600">
-                      <Trash2 size={12} /> Delete
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
-          </div>
-
-          {/* Row 2: Service | Time + Duration + Wait % */}
-          <div className="mt-0.5 sm:mt-1 flex items-center justify-between gap-1.5 sm:gap-2.5" style={{ paddingTop: '3px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-            <div className="truncate flex-1 text-xs sm:text-sm" style={{ color: '#555555', fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }}>
-              {ticket.service}
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-1 flex-shrink-0 text-xs sm:text-sm">
-              <div className="flex items-center gap-0.5 sm:gap-0.5">
-                <Clock size={10} className="text-gray-500 sm:w-3 sm:h-3" />
-                <span style={{ color: '#6B7280', fontWeight: 500 }}>{formatWaitTime(waitTime)}</span>
-              </div>
-              <span style={{ color: '#D1D5DB' }}>•</span>
-              <span className="font-bold" style={{ color: '#F59E0B' }}>{Math.round(waitProgress)}%</span>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-1.5" style={{ height: '2.5px', background: 'rgba(245,158,11,0.15)', borderRadius: '1px', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                background: 'rgba(245,158,11,0.5)', 
-                width: `${waitProgress}%`,
-                transition: 'width 500ms ease-out',
-                borderRadius: '1px'
-              }} 
-            />
           </div>
         </div>
-        
-        {/* Perforation at Bottom Edge */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] opacity-30 rounded-b-md overflow-hidden" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #8B5C2E 0px, #8B5C2E 4px, transparent 4px, transparent 8px)' }} />
+
+        {/* Paper textures */}
+        <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg"
+             style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-10 rounded-lg"
+             style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px), repeating-linear-gradient(0deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px)', backgroundSize: '3px 3px' }} />
       </div>
       
       {/* Ticket Details Modal */}

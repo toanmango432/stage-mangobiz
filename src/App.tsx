@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
+import { dataCleanupService } from './services/dataCleanupService';
 
 // Clear IndexedDB immediately on module load in development
 if (import.meta.env.DEV) {
@@ -10,6 +12,26 @@ if (import.meta.env.DEV) {
 }
 
 export function App() {
+  useEffect(() => {
+    // Run data cleanup on startup and schedule daily cleanup
+    // Using hardcoded salonId for now - should come from auth context
+    const salonId = 'salon_123';
+
+    // Schedule automatic cleanup
+    const cleanupInterval = dataCleanupService.scheduleAutoCleanup(salonId);
+
+    // Check database size on startup
+    dataCleanupService.checkDatabaseSize().then(sizeInfo => {
+      if (sizeInfo.warning) {
+        console.warn(`Database using ${sizeInfo.percentUsed.toFixed(1)}% of available storage`);
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, []);
   return (
     <Provider store={store}>
       <AppShell />

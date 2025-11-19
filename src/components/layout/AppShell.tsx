@@ -7,7 +7,7 @@ import { Tickets } from '../modules/Tickets';
 import { Team } from '../modules/Team';
 import { Pending } from '../modules/Pending';
 import { Checkout } from '../modules/Checkout';
-import { Transactions } from '../modules/Transactions';
+import { Sales } from '../modules/Sales';
 import { More } from '../modules/More';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { useAppDispatch } from '../../store/hooks';
@@ -105,8 +105,8 @@ export function AppShell() {
         return <Pending />;
       case 'checkout':
         return <Checkout />;
-      case 'transactions':
-        return <Transactions />;
+      case 'sales':
+        return <Sales />;
       case 'more':
         return <More />;
       default:

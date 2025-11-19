@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
+import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, Settings, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
-import { ServiceTicketCard } from './tickets';
+import { ServiceTicketCard, ServiceTicketCardRefactored } from './tickets';
 interface ServiceSectionProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -840,56 +841,32 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
       </div>;
   }
-  return <div className="bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden h-full transform-gpu transition-all duration-300 ease-in-out" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)' }}>
-      {/* Section header - hide when in combined view and hideHeader is true */}
-      {!hideHeader && <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-white to-gray-50/30 sticky top-0 z-10 backdrop-blur-sm" style={{ 
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-        }}>
-          <div className="flex items-center gap-3">
-            {/* Icon */}
-            <div className="p-1.5 rounded-lg" style={{ 
-              background: 'linear-gradient(135deg, #9CC2EA 0%, #7DB3E3 100%)',
-              boxShadow: '0 2px 4px rgba(156, 194, 234, 0.3)'
-            }}>
-              <Activity size={16} className="text-white" strokeWidth={2.5} />
-            </div>
-            
-            {/* Title */}
-            <h2 className="text-base font-bold" style={{ 
-              color: '#1a1a1a',
-              letterSpacing: '-0.4px',
-              lineHeight: 1
-            }}>In Service</h2>
-            
-            {/* Count Badge */}
-            <div className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ 
-              background: 'linear-gradient(135deg, #9CC2EA 0%, #7DB3E3 100%)',
-              color: 'white',
-              boxShadow: '0 2px 4px rgba(156, 194, 234, 0.3)',
-              minWidth: '28px',
-              textAlign: 'center'
-            }}>
-              {serviceTickets.length}
-            </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            {!isMobile && viewMode === 'list' && <Tippy content={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
-                <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95" onClick={toggleMinimizedLineView} aria-label={minimizedLineView ? 'Expand line view' : 'Minimize line view'} aria-expanded={!minimizedLineView}>
+  return <div className="flex flex-col overflow-hidden h-full">
+      {!hideHeader && (
+        <FrontDeskHeader
+          variant="primary"
+          title="In Service"
+          count={serviceTickets.length}
+          icon={<Activity size={18} strokeWidth={2.5} />}
+          metricPills={[]}
+          rightActions={
+            <>
+              {!isMobile && viewMode === 'list' && (
+                <HeaderActionButton onClick={toggleMinimizedLineView} aria-label={minimizedLineView ? 'Expand line view' : 'Minimize line view'}>
                   {minimizedLineView ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </button>
-              </Tippy>}
-            {!isMobile && viewMode === 'grid' && <Tippy content={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'}>
-                <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95" onClick={toggleCardViewMode} aria-label={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'} aria-expanded={cardViewMode !== 'compact'}>
+                </HeaderActionButton>
+              )}
+              {!isMobile && viewMode === 'grid' && (
+                <HeaderActionButton onClick={toggleCardViewMode} aria-label={cardViewMode === 'compact' ? 'Expand card view' : 'Minimize card view'}>
                   {cardViewMode === 'compact' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </button>
-              </Tippy>}
-            <div className="relative" ref={dropdownRef}>
-              <Tippy content="View options">
-                <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95" onClick={() => setShowDropdown(!showDropdown)} aria-haspopup="true" aria-expanded={showDropdown}>
+                </HeaderActionButton>
+              )}
+              <div className="relative" ref={dropdownRef}>
+                <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)} aria-haspopup="true" aria-expanded={showDropdown}>
                   <MoreVertical size={16} />
-                </button>
-              </Tippy>
-              {showDropdown && <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
+                </HeaderActionButton>
+                {showDropdown && (
+                  <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
                   {/* View Mode Section */}
                   <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -946,21 +923,23 @@ export const ServiceSection = memo(function ServiceSection({
                       </div>
                     )}
                   </div>
-                </div>}
+                </div>)}
             </div>
             <Tippy content="Minimize section">
               <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-105 active:scale-95 touch-manipulation" onClick={onToggleMinimize} aria-expanded="true" aria-controls="service-content">
-                
+
               </button>
             </Tippy>
-          </div>
-        </div>}
+            </>
+          }
+        />
+      )}
       <div id="service-content" className="flex-1 overflow-auto p-3 scroll-smooth">
         {/* Show content based on whether there are tickets */}
-        {serviceTickets.length > 0 ? viewMode === 'grid' ? <div 
+        {serviceTickets.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-4"
-          style={{ 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 360px))',
+          style={{
+            gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fit, minmax(220px, 280px))' : 'repeat(auto-fit, minmax(280px, 360px))',
             transform: `scale(${cardScale})`,
             transformOrigin: 'top left',
             width: `${100 / cardScale}%`,
@@ -968,7 +947,7 @@ export const ServiceSection = memo(function ServiceSection({
           }}
         >
               {serviceTickets.map(ticket => (
-                <ServiceTicketCard
+                <ServiceTicketCardRefactored
                   key={ticket.id}
                   ticket={{
                     id: ticket.id,
@@ -984,6 +963,7 @@ export const ServiceSection = memo(function ServiceSection({
                     assignedTo: ticket.assignedTo,
                     assignedStaff: ticket.assignedStaff, // Pass multi-staff array
                     createdAt: ticket.createdAt,
+                    lastVisitDate: ticket.lastVisitDate,
                   }}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onComplete={(id) => completeTicket?.(id, {})}
