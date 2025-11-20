@@ -26,3 +26,4 @@ export { DatePickerModal } from './DatePickerModal';
 export { SmartBookingPanel } from './SmartBookingPanel';
 export { ViewModeDropdown } from './ViewModeDropdown';
 export { StaffFilterDropdown } from './StaffFilterDropdown';
+export { QuickActionsBar } from './QuickActionsBar';
