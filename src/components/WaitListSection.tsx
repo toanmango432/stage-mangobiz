@@ -10,6 +10,8 @@ import { TicketDetailsModal } from './TicketDetailsModal';
 import { WaitListTicketCard, WaitListTicketCardRefactored } from './tickets';
 import { headerContentSpacer, waitingHeaderTheme } from './frontdesk/headerTokens';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
+import { FrontDeskSettingsData } from './frontdesk-settings/types';
+
 interface WaitListSectionProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -32,6 +34,7 @@ interface WaitListSectionProps {
     counterBg: string;
     counterText: string;
   };
+  settings?: FrontDeskSettingsData;
 }
 export const WaitListSection = memo(function WaitListSection({
   isMinimized = false,
@@ -45,8 +48,14 @@ export const WaitListSection = memo(function WaitListSection({
   setMinimizedLineView: externalSetMinimizedLineView,
   isCombinedView = false,
   hideHeader = false,
-  headerStyles: _headerStyles
+  headerStyles: _headerStyles,
+  settings
 }: WaitListSectionProps) {
+  // Check if section should be hidden based on settings
+  if (settings && (!settings.waitListActive || !settings.showWaitList)) {
+    return null;
+  }
+
   // Get waitlist from context
   const {
     waitlist,

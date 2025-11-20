@@ -763,7 +763,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                   {/* Wait List Section - Show when active in combined view */}
                   {activeCombinedTab === 'waitList' && <div className="h-full flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden">
-                      <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} headerStyles={{
+                      <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} settings={frontDeskSettings} headerStyles={{
                         bg: 'bg-[#F9FAFB]',
                         accentColor: '#F59E0B',
                         iconColor: 'text-[#9CA3AF]',
@@ -964,6 +964,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                                   isMinimized={minimizedSections.waitList}
                                   onToggleMinimize={() => toggleSectionMinimize('waitList')}
                                   isMobile={false}
+                                  settings={frontDeskSettings}
                                   headerStyles={{
                                     bg: colorTokens.waitList.bg,
                                     accentColor: '#A855F7', // waitList-500
