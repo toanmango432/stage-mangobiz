@@ -37,27 +37,41 @@ export const paperColors = {
   }
 };
 
-// Shadow definitions
+// Shadow definitions - Thermal Receipt Design
 export const paperShadows = {
-  // Card shadows by view mode
-  compact: '0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 3px rgba(139, 92, 46, 0.06)',  // Simplified compact
-  normal: `
-    inset 0 0.5px 0 rgba(255,255,255,0.70),
-    inset 0 -0.8px 1px rgba(0,0,0,0.05),
-    0.5px 0.5px 0 rgba(255,255,255,0.80),
-    -3px 0 8px rgba(0,0,0,0.08),
-    2px 3px 4px rgba(0,0,0,0.04),
-    4px 8px 12px rgba(0,0,0,0.08)
-  `,  // Upgraded from 2-layer → 6-layer
-  gridNormal: `
-    inset 0 0.5px 0 rgba(255,255,255,0.70),
-    inset 0 -0.8px 1px rgba(0,0,0,0.05),
-    0.5px 0.5px 0 rgba(255,255,255,0.80),
-    -3px 0 8px rgba(0,0,0,0.08),
-    2px 3px 4px rgba(0,0,0,0.04),
-    4px 8px 12px rgba(0,0,0,0.08)
+  // Card shadows by view mode - Thermal receipt multi-layer system
+  compact: `
+    inset 0 12px 12px -10px rgba(0,0,0,0.09),
+    inset -2px 0 4px rgba(255,255,255,0.95),
+    inset 2px 0 4px rgba(0,0,0,0.06),
+    0 2px 6px rgba(0,0,0,0.10),
+    0 6px 16px rgba(0,0,0,0.07),
+    0 10px 24px rgba(0,0,0,0.05)
   `,
-  gridCompact: '-2px 0 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',  // Grid compact shadow
+  normal: `
+    inset 0 15px 15px -12px rgba(0,0,0,0.10),
+    inset -2px 0 5px rgba(255,255,255,0.95),
+    inset 2px 0 5px rgba(0,0,0,0.06),
+    0 3px 8px rgba(0,0,0,0.12),
+    0 8px 20px rgba(0,0,0,0.08),
+    0 12px 30px rgba(0,0,0,0.06)
+  `,
+  gridNormal: `
+    inset 0 15px 15px -12px rgba(0,0,0,0.10),
+    inset -2px 0 5px rgba(255,255,255,0.95),
+    inset 2px 0 5px rgba(0,0,0,0.06),
+    0 3px 8px rgba(0,0,0,0.12),
+    0 8px 20px rgba(0,0,0,0.08),
+    0 12px 30px rgba(0,0,0,0.06)
+  `,
+  gridCompact: `
+    inset 0 12px 12px -10px rgba(0,0,0,0.09),
+    inset -2px 0 4px rgba(255,255,255,0.95),
+    inset 2px 0 4px rgba(0,0,0,0.06),
+    0 2px 6px rgba(0,0,0,0.10),
+    0 6px 16px rgba(0,0,0,0.07),
+    0 10px 24px rgba(0,0,0,0.05)
+  `,
 
   // Edge shadow for paper thickness
   edgeThickness: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)',
@@ -77,10 +91,10 @@ export const paperShadows = {
   hoverNormal: '0 4px 8px rgba(139, 92, 46, 0.15), 0 8px 12px rgba(139, 92, 46, 0.10)',
 };
 
-// Paper gradients
+// Paper gradients - Thermal Receipt Design
 export const paperGradients = {
-  // Main paper background
-  background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
+  // Main paper background - Near-white thermal receipt
+  background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
 
   // Notch gradients
   notchLeft: 'linear-gradient(to right, #f8f3eb, #f5f0e8)',
@@ -111,27 +125,27 @@ export const paperAnimations = {
   }
 };
 
-// Perforation configurations
+// Perforation configurations - Thermal Receipt Design
 export const perforationConfig = {
   compact: {
-    count: 15,  // Upgraded from 12 → 15
-    size: '2px',  // Upgraded from 1.5px → 2px
-    opacity: 0.2,
+    count: 10,  // Thermal receipt compact
+    size: '1.5px',
+    opacity: 0.108,  // Barely visible
   },
   normal: {
-    count: 20,  // Upgraded from 15 → 20
-    size: '2px',  // Base size (responsive 2-3px in components)
-    opacity: 0.25,  // Upgraded from 0.2 → 0.25
+    count: 20,
+    size: '2px',
+    opacity: 0.108,  // Barely visible
   },
   gridNormal: {
     count: 20,
     size: '3px',
-    opacity: 0.25,
+    opacity: 0.108,  // Barely visible
   },
   gridCompact: {
-    count: 15,  // Match grid compact design
-    size: '2px',
-    opacity: 0.2,
+    count: 10,
+    size: '1.5px',
+    opacity: 0.108,  // Barely visible
   },
 };
 
@@ -159,37 +173,37 @@ export const notchConfig = {
   },
 };
 
-// State-based border styles
+// State-based border styles - Thermal Receipt Design (Dashed borders)
 export const stateBorderStyles = {
   waiting: {
-    border: `2px solid ${paperColors.states.waiting}`,
+    border: `1px dashed #D8D8D8`,  // Thermal receipt dashed border
     boxShadow: `0 0 0 1px rgba(205, 120, 84, 0.1)`,
     animation: 'terracottaPulse 2s ease-in-out infinite',
   },
   inService: {
-    border: `2px solid ${paperColors.states.inService}`,
+    border: `1px dashed #D8D8D8`,  // Thermal receipt dashed border
     boxShadow: 'none',
     animation: 'none',
   },
   pending: {
-    border: `2px solid ${paperColors.states.pending}`,
+    border: `1px dashed #D8D8D8`,  // Thermal receipt dashed border
     boxShadow: `0 0 0 1px rgba(245, 158, 11, 0.1)`,
     animation: 'amberGlow 3s ease-in-out infinite',
   },
   completed: {
-    border: `2px solid ${paperColors.states.completed}`,
+    border: `1px dashed #D8D8D8`,  // Thermal receipt dashed border
     boxShadow: '0 0 0 1px rgba(16, 185, 129, 0.1)',
     animation: 'none',
   },
   cancelled: {
-    border: `2px solid ${paperColors.states.cancelled}`,
+    border: `1px dashed #D8D8D8`,  // Thermal receipt dashed border
     boxShadow: 'none',
     animation: 'none',
     opacity: 0.7,
   },
 };
 
-// Get styles for specific view mode
+// Get styles for specific view mode - Thermal Receipt Design
 export const getViewModeStyles = (viewMode: 'compact' | 'normal' | 'gridNormal' | 'gridCompact') => {
   // Use explicit viewMode (gridCompact now has its own config!)
   return {
@@ -197,7 +211,7 @@ export const getViewModeStyles = (viewMode: 'compact' | 'normal' | 'gridNormal' 
     perforation: perforationConfig[viewMode as keyof typeof perforationConfig] || perforationConfig.normal,
     notch: notchConfig[viewMode as keyof typeof notchConfig] || notchConfig.normal,
     padding: viewMode === 'compact' ? '8px' : viewMode === 'gridCompact' ? '12px' : '16px',
-    borderRadius: viewMode.includes('grid') ? '12px' : '8px',
+    borderRadius: '10px',  // Consistent 10px for thermal receipt design
   };
 };
 

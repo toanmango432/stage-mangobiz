@@ -104,65 +104,50 @@ export function WaitListTicketCard({
     `,
   };
 
-  // LIST COMPACT VIEW - Significantly more compact
+  // LIST COMPACT VIEW - Thermal Receipt Design
   if (viewMode === 'compact') {
     return (
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className="relative rounded border border-[#d4b896]/40 overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
+          className="relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
           role="button"
           tabIndex={0}
           aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
           style={{
-            background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-            boxShadow: '0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 3px rgba(139, 92, 46, 0.06)'
+            background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+            border: '1px dashed #D8D8D8',
+            borderRadius: '10px',
+            boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
           }}
         >
+          {/* Dog-ear corner */}
+          <div className="absolute top-0 right-0 w-[5px] h-[5px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          {/* Enhanced perforation dots - increased from 8 to 15 */}
-          <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">
+          {/* Perforation dots - barely visible */}
+          <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
             {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
           </div>
 
-          {/* Left notch hole - NEW */}
-          <div className="absolute left-[-4px] sm:left-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-r border-[#d4b896]/50"
-               style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
-
-          {/* Right notch hole - NEW */}
-          <div className="absolute right-[-4px] sm:right-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-l border-[#d4b896]/50"
-               style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
-
-          {/* Thick paper left edge shadow effect - upgraded to 2 layers */}
-          <div className="absolute top-0 left-0 w-2 h-full" style={{ boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)' }} />
-
-          {/* Paper thickness edge - NEW */}
-          <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-md"
+          {/* Compact ticket number badge */}
+          <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-2xs z-20"
                style={{
-                 background: 'linear-gradient(to right, rgba(139, 92, 46, 0.03) 0%, rgba(139, 92, 46, 0.02) 20%, transparent 40%)',
-                 boxShadow: 'inset 0.5px 0 1px rgba(0,0,0,0.04)'
-               }} />
-
-          {/* Enhanced ticket number badge - upgraded size and shadows */}
-          <div className="absolute left-0 top-2 sm:top-3 w-8 sm:w-9 text-[#1a1614] flex items-center justify-center font-black text-sm sm:text-base z-20"
-               style={{
-                 height: isFirstVisit ? 'clamp(1.65rem, 3.5vw, 2rem)' : 'clamp(1.5rem, 3vw, 1.85rem)',
                  background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
-                 borderTopRightRadius: '8px',
-                 borderBottomRightRadius: '8px',
+                 borderTopRightRadius: '6px',
+                 borderBottomRightRadius: '6px',
                  borderTop: '1px solid rgba(212, 184, 150, 0.4)',
                  borderRight: '1px solid rgba(212, 184, 150, 0.4)',
                  borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-                 boxShadow: '2px 0 4px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 2px rgba(139, 92, 46, 0.08)',
+                 boxShadow: '1px 0 3px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
                  letterSpacing: '-0.02em',
-                 transform: 'translateX(-3px)'
+                 transform: 'translateX(-2px)'
                }}>
             {ticket.number}
           </div>
 
           {/* Compact content area */}
-          <div className="py-1.5 pr-12 pl-9 sm:pl-10 relative">
+          <div className="py-1.5 pr-12 pl-7 relative">
             {/* Single compact row */}
             <div className="flex items-center justify-between gap-2">
               {/* Left: Client + Service */}
@@ -170,35 +155,32 @@ export function WaitListTicketCard({
                 <div className="flex items-center gap-1 mb-0.5">
                   <span className="font-semibold text-xs text-[#1a1614] truncate">{ticket.clientName}</span>
                   {isFirstVisit && <span className="text-2xs">⭐</span>}
-                  {hasNote && <StickyNote size={10} className="text-amber-500" />}
+                  {hasNote && <span className="text-2xs">📋</span>}
                 </div>
                 <div className="text-2xs text-[#6b5d52] truncate">{ticket.service}</div>
               </div>
 
               {/* Right: Wait time */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                {/* Wait time */}
-                <div className="flex items-center gap-0.5">
-                  <span className="text-2xs text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
-                </div>
+                <span className="text-2xs text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
               </div>
             </div>
 
-            {/* Compact Assign button - Absolute positioned, mobile-friendly */}
+            {/* Compact Assign button - Matched to ServiceTicketCard Done button */}
             <button
               onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
-              title="Assign"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.25)'}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+              title="Assign Staff"
             >
-              <UserPlus size={16} className="md:w-[18px] md:h-[18px]" strokeWidth={2} />
+              <UserPlus size={14} strokeWidth={2.5} />
             </button>
           </div>
 
-          {/* Paper textures */}
-          <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-md"
-               style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
-          <div className="absolute inset-0 pointer-events-none opacity-10 rounded-md"
-               style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
+          {/* Paper texture overlay */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
         </div>
       
       {/* Ticket Details Modal */}
@@ -214,55 +196,33 @@ export function WaitListTicketCard({
     );
   }
 
-  // LIST NORMAL VIEW - With Paper Ticket Design (matches ServiceTicketCard)
+  // LIST NORMAL VIEW - Thermal Receipt Design
   if (viewMode === 'normal') {
     return (
       <>
       <div
         onClick={() => onClick?.(ticket.id)}
-        className="relative rounded-lg border border-[#d4b896]/40 overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-[0.2deg] cursor-pointer"
+        className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer"
         role="button"
         tabIndex={0}
         aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
-          background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-          border: '2px solid #e8dcc8',
-          boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.70), inset 0 -0.8px 1px rgba(0,0,0,0.05), 0.5px 0.5px 0 rgba(255,255,255,0.80), -3px 0 8px rgba(0,0,0,0.08), 2px 3px 4px rgba(0,0,0,0.04), 4px 8px 12px rgba(0,0,0,0.08)'
+          background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+          border: '1px dashed #D8D8D8',
+          borderRadius: '10px',
+          boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
       >
+        {/* Dog-ear corner */}
+        <div className="absolute top-0 right-0 w-[6px] h-[6px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-        {/* Enhanced perforation dots - increased from 15 to 20 with responsive sizing */}
-        <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-3 sm:px-4 z-10 opacity-25">
-          {[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}
+        {/* Perforation dots - barely visible */}
+        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
+          {[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
         </div>
 
-        {/* Left notch */}
-        <div className="absolute left-[-4px] top-[50%] w-2 h-2 rounded-full border-r border-[#d4b896]/50"
-             style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
-
-        {/* Right notch */}
-        <div className="absolute right-[-4px] top-[50%] w-2 h-2 rounded-full border-l border-[#d4b896]/50"
-             style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
-
-        {/* Thick paper left edge shadow effect - upgraded to 3 layers */}
-        <div className="absolute top-0 left-0 w-2 h-full" style={{ boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)' }} />
-
-        {/* Paper thickness edge - layer 1 */}
-        <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl"
-             style={{
-               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.03) 0%, rgba(139, 92, 46, 0.02) 20%, transparent 40%)',
-               boxShadow: 'inset 0.5px 0 1px rgba(0,0,0,0.04)'
-             }} />
-
-        {/* Paper thickness edge - layer 2 (NEW) */}
-        <div className="absolute top-0 left-1 w-1 h-full"
-             style={{
-               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.01) 0%, transparent 100%)',
-               boxShadow: 'inset 0.5px 0 0.5px rgba(0,0,0,0.02)'
-             }} />
-
-        {/* Wrap-around ticket number badge */}
+        {/* Wrap-around ticket number badge at Row 1 height */}
         <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
              style={{
                background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
@@ -304,35 +264,36 @@ export function WaitListTicketCard({
 
           {/* Row 2: Service + Assign button */}
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
 
-            {/* Assign button with background container */}
+            {/* Assign button with background container - exactly matched to ServiceTicketCard structure */}
             <div className="px-2 py-1 rounded-lg relative flex-shrink-0"
                  style={{
                    background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
                    boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                   border: '1px solid rgba(212, 184, 150, 0.15)'
+                   border: '1px solid rgba(212, 184, 150, 0.15)',
+                   minWidth: '80px'
                  }}>
+              {/* Inner div to establish height and space for button - matches ServiceTicketCard */}
+              <div className="flex items-center gap-1.5" style={{ paddingRight: '64px', minHeight: '32px' }}>
+                {/* Empty space - staff will appear here after assignment */}
+              </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                className="w-11 h-11 md:w-8 md:h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
-                title="Assign"
+                className="absolute top-1/2 right-2 -translate-y-1/2 w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                title="Assign Staff"
               >
-                <UserPlus size={18} className="md:w-[18px] md:h-[18px]" strokeWidth={2} />
+                <UserPlus size={24} strokeWidth={2.5} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Enhanced paper textures */}
-        <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-xl"
-             style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
-        <div className="absolute inset-0 pointer-events-none opacity-15 rounded-xl"
-             style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px), repeating-linear-gradient(0deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px)', backgroundSize: '3px 3px' }} />
-
-        {/* Inner highlight border - NEW */}
-        <div className="absolute inset-0 pointer-events-none rounded-xl"
-             style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.4)' }} />
+        {/* Paper texture overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
       </div>
       
       {/* Ticket Details Modal */}

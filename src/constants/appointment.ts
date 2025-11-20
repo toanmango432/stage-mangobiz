@@ -129,6 +129,7 @@ export const CALENDAR_VIEWS = {
   WEEK: 'week',
   MONTH: 'month',
   AGENDA: 'agenda',
+  TIMELINE: 'timeline',
 } as const;
 
 export type CalendarView = typeof CALENDAR_VIEWS[keyof typeof CALENDAR_VIEWS];

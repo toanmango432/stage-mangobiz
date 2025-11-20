@@ -27,6 +27,8 @@ interface FrontDeskHeaderProps {
   rightActions?: ReactNode;
   metricPills?: MetricPill[];
   className?: string;
+  customTheme?: FrontDeskHeaderTheme;
+  subtitle?: string;
 }
 
 const metricToneClass: Record<MetricPill['tone'], string> = {
@@ -48,18 +50,27 @@ export function FrontDeskHeader({
   rightActions,
   metricPills,
   className,
+  customTheme,
+  subtitle,
 }: FrontDeskHeaderProps) {
-  const theme = getTheme(variant);
+  const theme = customTheme || getTheme(variant);
   return (
     <div className={clsx(frontDeskHeaderBase, theme.wrapper, className)}>
       <div className={clsx(frontDeskHeaderSpacing, theme.padding)}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className={clsx(theme.iconWrapper)}>{icon}</div>
-            <h2 className={clsx(frontDeskHeaderTitle, theme.titleClass)}>{title}</h2>
-            {typeof count !== 'undefined' && (
-              <span className={clsx(theme.countBadge)}>{count}</span>
-            )}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h2 className={clsx(frontDeskHeaderTitle, theme.titleClass)}>{title}</h2>
+                {typeof count !== 'undefined' && (
+                  <span className={clsx(theme.countBadge)}>{count}</span>
+                )}
+              </div>
+              {subtitle && (
+                <span className={clsx(theme.subtitleClass || 'text-2xs text-slate-600')}>{subtitle}</span>
+              )}
+            </div>
             {metricPills && metricPills.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 {metricPills.map(({ label, value, tone }) => (

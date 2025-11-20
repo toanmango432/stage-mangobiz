@@ -19,8 +19,8 @@ export const mockTickets: Ticket[] = [
         price: 35.00,
         duration: 45,
         commission: 17.50,
-        startTime: new Date('2024-11-19T10:00:00'),
-        endTime: new Date('2024-11-19T10:45:00')
+        startTime: new Date('2025-11-19T10:00:00'),
+        endTime: new Date('2025-11-19T10:45:00')
       },
       {
         serviceId: 'svc-002',
@@ -30,20 +30,34 @@ export const mockTickets: Ticket[] = [
         price: 45.00,
         duration: 60,
         commission: 22.50,
-        startTime: new Date('2024-11-19T10:45:00'),
-        endTime: new Date('2024-11-19T11:45:00')
+        startTime: new Date('2025-11-19T10:45:00'),
+        endTime: new Date('2025-11-19T11:45:00')
       }
     ],
     products: [],
-    status: 'completed',
+    status: 'paid',
     subtotal: 80.00,
     discount: 0,
     tax: 7.20,
+    taxRate: 9,
     tip: 15.00,
     total: 102.20,
-    payments: [],
-    createdAt: new Date('2024-11-19T10:00:00'),
-    completedAt: new Date('2024-11-19T11:50:00'),
+    payments: [
+      {
+        id: 'pay-001',
+        method: 'credit-card',
+        cardType: 'visa',
+        cardLast4: '1234',
+        amount: 87.20,
+        tip: 15.00,
+        total: 102.20,
+        transactionId: 'txn_abc123xyz789',
+        processedAt: new Date('2025-11-19T11:50:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-19T10:00:00'),
+    completedAt: new Date('2025-11-19T11:50:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -63,19 +77,20 @@ export const mockTickets: Ticket[] = [
         price: 50.00,
         duration: 30,
         commission: 25.00,
-        startTime: new Date('2024-11-19T09:30:00'),
-        endTime: new Date('2024-11-19T10:00:00')
+        startTime: new Date('2025-11-19T09:30:00'),
+        endTime: new Date('2025-11-19T10:00:00')
       }
     ],
     products: [],
-    status: 'in-progress',
+    status: 'voided',
     subtotal: 50.00,
     discount: 0,
     tax: 4.50,
+    taxRate: 9,
     tip: 0,
     total: 54.50,
     payments: [],
-    createdAt: new Date('2024-11-19T09:30:00'),
+    createdAt: new Date('2025-11-19T09:30:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -95,8 +110,8 @@ export const mockTickets: Ticket[] = [
         price: 60.00,
         duration: 75,
         commission: 30.00,
-        startTime: new Date('2024-11-18T14:00:00'),
-        endTime: new Date('2024-11-18T15:15:00')
+        startTime: new Date('2025-11-18T14:00:00'),
+        endTime: new Date('2025-11-18T15:15:00')
       },
       {
         serviceId: 'svc-005',
@@ -106,21 +121,33 @@ export const mockTickets: Ticket[] = [
         price: 20.00,
         duration: 15,
         commission: 10.00,
-        startTime: new Date('2024-11-18T15:15:00'),
-        endTime: new Date('2024-11-18T15:30:00')
+        startTime: new Date('2025-11-18T15:15:00'),
+        endTime: new Date('2025-11-18T15:30:00')
       }
     ],
     products: [],
-    status: 'completed',
+    status: 'paid',
     subtotal: 80.00,
     discount: 8.00,
     discountReason: '10% loyalty discount',
+    discountPercent: 10,
     tax: 6.48,
+    taxRate: 9,
     tip: 18.00,
     total: 96.48,
-    payments: [],
-    createdAt: new Date('2024-11-18T14:00:00'),
-    completedAt: new Date('2024-11-18T15:35:00'),
+    payments: [
+      {
+        id: 'pay-003',
+        method: 'cash',
+        amount: 78.48,
+        tip: 18.00,
+        total: 96.48,
+        processedAt: new Date('2025-11-18T15:35:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-18T14:00:00'),
+    completedAt: new Date('2025-11-18T15:35:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -140,20 +167,34 @@ export const mockTickets: Ticket[] = [
         price: 85.00,
         duration: 60,
         commission: 42.50,
-        startTime: new Date('2024-11-18T11:00:00'),
-        endTime: new Date('2024-11-18T12:00:00')
+        startTime: new Date('2025-11-18T11:00:00'),
+        endTime: new Date('2025-11-18T12:00:00')
       }
     ],
     products: [],
-    status: 'completed',
+    status: 'paid',
     subtotal: 85.00,
     discount: 0,
     tax: 7.65,
+    taxRate: 9,
     tip: 20.00,
     total: 112.65,
-    payments: [],
-    createdAt: new Date('2024-11-18T11:00:00'),
-    completedAt: new Date('2024-11-18T12:05:00'),
+    payments: [
+      {
+        id: 'pay-004',
+        method: 'credit-card',
+        cardType: 'mastercard',
+        cardLast4: '5678',
+        amount: 92.65,
+        tip: 20.00,
+        total: 112.65,
+        transactionId: 'txn_def456uvw123',
+        processedAt: new Date('2025-11-18T12:05:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-18T11:00:00'),
+    completedAt: new Date('2025-11-18T12:05:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -173,19 +214,572 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 75,
         commission: 32.50,
-        startTime: new Date('2024-11-17T13:00:00'),
-        endTime: new Date('2024-11-17T14:15:00')
+        startTime: new Date('2025-11-17T13:00:00'),
+        endTime: new Date('2025-11-17T14:15:00')
       }
     ],
     products: [],
-    status: 'pending',
+    status: 'partial-payment',
     subtotal: 65.00,
     discount: 0,
     tax: 5.85,
-    tip: 0,
-    total: 70.85,
-    payments: [],
-    createdAt: new Date('2024-11-17T13:00:00'),
+    taxRate: 9,
+    tip: 10.00,
+    total: 80.85,
+    payments: [
+      {
+        id: 'pay-005',
+        method: 'cash',
+        amount: 40.00,
+        tip: 10.00,
+        total: 50.00,
+        processedAt: new Date('2025-11-17T14:20:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-17T13:00:00'),
+    createdBy: 'user-001',
+    lastModifiedBy: 'user-001',
+    syncStatus: 'synced'
+  },
+  // GROUP TICKET EXAMPLE - Mother and daughter spa day
+  {
+    id: 'ticket-100',
+    salonId: 'salon_123',
+    clientId: 'client-100',
+    clientName: 'Sarah Johnson',
+    clientPhone: '(555) 321-9876',
+    isGroupTicket: true,
+    clients: [
+      {
+        clientId: 'client-100',
+        clientName: 'Sarah Johnson',
+        clientPhone: '(555) 321-9876',
+        services: ['svc-100', 'svc-101']
+      },
+      {
+        clientId: 'client-101',
+        clientName: 'Emma Johnson',
+        clientPhone: '(555) 321-9877',
+        services: ['svc-102']
+      }
+    ],
+    services: [
+      {
+        serviceId: 'svc-100',
+        serviceName: 'Deluxe Manicure',
+        staffId: 'staff-001',
+        staffName: 'Emily Chen',
+        price: 45.00,
+        duration: 60,
+        commission: 22.50,
+        startTime: new Date('2025-11-18T14:00:00'),
+        endTime: new Date('2025-11-18T15:00:00')
+      },
+      {
+        serviceId: 'svc-101',
+        serviceName: 'Spa Pedicure',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 65.00,
+        duration: 75,
+        commission: 32.50,
+        startTime: new Date('2025-11-18T14:00:00'),
+        endTime: new Date('2025-11-18T15:15:00')
+      },
+      {
+        serviceId: 'svc-102',
+        serviceName: 'Kids Manicure',
+        staffId: 'staff-001',
+        staffName: 'Emily Chen',
+        price: 25.00,
+        duration: 30,
+        commission: 12.50,
+        startTime: new Date('2025-11-18T14:00:00'),
+        endTime: new Date('2025-11-18T14:30:00')
+      }
+    ],
+    products: [],
+    status: 'paid',
+    subtotal: 135.00,
+    discount: 13.50,
+    discountReason: '10% family discount',
+    discountPercent: 10,
+    tax: 10.94,
+    taxRate: 9,
+    tip: 25.00,
+    total: 157.44,
+    payments: [
+      {
+        id: 'pay-100',
+        method: 'credit-card',
+        cardType: 'visa',
+        cardLast4: '4321',
+        amount: 132.44,
+        tip: 25.00,
+        total: 157.44,
+        transactionId: 'txn_group_001',
+        processedAt: new Date('2025-11-18T15:20:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-18T14:00:00'),
+    completedAt: new Date('2025-11-18T15:20:00'),
+    createdBy: 'user-001',
+    lastModifiedBy: 'user-001',
+    syncStatus: 'synced'
+  },
+  // MERGED TICKET EXAMPLE - Client added services later
+  {
+    id: 'ticket-200',
+    salonId: 'salon_123',
+    clientId: 'client-200',
+    clientName: 'David Martinez',
+    clientPhone: '(555) 987-6543',
+    isMergedTicket: true,
+    mergedFromTickets: ['ticket-201', 'ticket-202'],
+    mergedAt: new Date('2025-11-17T16:30:00'),
+    mergedBy: 'user-001',
+    services: [
+      {
+        serviceId: 'svc-200',
+        serviceName: 'Haircut',
+        staffId: 'staff-002',
+        staffName: 'David Kim',
+        price: 50.00,
+        duration: 30,
+        commission: 25.00,
+        startTime: new Date('2025-11-17T15:00:00'),
+        endTime: new Date('2025-11-17T15:30:00')
+      },
+      {
+        serviceId: 'svc-201',
+        serviceName: 'Hair Styling',
+        staffId: 'staff-002',
+        staffName: 'David Kim',
+        price: 30.00,
+        duration: 20,
+        commission: 15.00,
+        startTime: new Date('2025-11-17T15:30:00'),
+        endTime: new Date('2025-11-17T15:50:00')
+      },
+      {
+        serviceId: 'svc-202',
+        serviceName: 'Beard Trim',
+        staffId: 'staff-002',
+        staffName: 'David Kim',
+        price: 25.00,
+        duration: 15,
+        commission: 12.50,
+        startTime: new Date('2025-11-17T16:15:00'),
+        endTime: new Date('2025-11-17T16:30:00')
+      }
+    ],
+    products: [],
+    status: 'paid',
+    subtotal: 105.00,
+    discount: 0,
+    tax: 9.45,
+    taxRate: 9,
+    tip: 20.00,
+    total: 134.45,
+    payments: [
+      {
+        id: 'pay-200',
+        method: 'credit-card',
+        cardType: 'mastercard',
+        cardLast4: '8765',
+        amount: 114.45,
+        tip: 20.00,
+        total: 134.45,
+        transactionId: 'txn_merged_001',
+        processedAt: new Date('2025-11-17T16:35:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-17T15:00:00'),
+    completedAt: new Date('2025-11-17T16:35:00'),
+    createdBy: 'user-001',
+    lastModifiedBy: 'user-001',
+    syncStatus: 'synced'
+  },
+  // GROUP TICKET EXAMPLE 2 - Couple's spa package
+  {
+    id: 'ticket-101',
+    salonId: 'salon_123',
+    clientId: 'client-110',
+    clientName: 'Jennifer Lee',
+    clientPhone: '(555) 444-5555',
+    isGroupTicket: true,
+    clients: [
+      {
+        clientId: 'client-110',
+        clientName: 'Jennifer Lee',
+        clientPhone: '(555) 444-5555',
+        services: ['svc-110', 'svc-111']
+      },
+      {
+        clientId: 'client-111',
+        clientName: 'Michael Lee',
+        clientPhone: '(555) 444-5556',
+        services: ['svc-112', 'svc-113']
+      }
+    ],
+    services: [
+      {
+        serviceId: 'svc-110',
+        serviceName: 'Hot Stone Massage',
+        staffId: 'staff-004',
+        staffName: 'Anna Taylor',
+        price: 95.00,
+        duration: 90,
+        commission: 47.50,
+        startTime: new Date('2025-11-19T10:00:00'),
+        endTime: new Date('2025-11-19T11:30:00')
+      },
+      {
+        serviceId: 'svc-111',
+        serviceName: 'Facial Treatment',
+        staffId: 'staff-004',
+        staffName: 'Anna Taylor',
+        price: 85.00,
+        duration: 60,
+        commission: 42.50,
+        startTime: new Date('2025-11-19T11:45:00'),
+        endTime: new Date('2025-11-19T12:45:00')
+      },
+      {
+        serviceId: 'svc-112',
+        serviceName: 'Deep Tissue Massage',
+        staffId: 'staff-004',
+        staffName: 'Anna Taylor',
+        price: 105.00,
+        duration: 90,
+        commission: 52.50,
+        startTime: new Date('2025-11-19T10:00:00'),
+        endTime: new Date('2025-11-19T11:30:00')
+      },
+      {
+        serviceId: 'svc-113',
+        serviceName: 'Sports Massage',
+        staffId: 'staff-004',
+        staffName: 'Anna Taylor',
+        price: 95.00,
+        duration: 60,
+        commission: 47.50,
+        startTime: new Date('2025-11-19T11:45:00'),
+        endTime: new Date('2025-11-19T12:45:00')
+      }
+    ],
+    products: [],
+    status: 'paid',
+    subtotal: 380.00,
+    discount: 38.00,
+    discountReason: '10% couple package discount',
+    discountPercent: 10,
+    tax: 30.78,
+    taxRate: 9,
+    tip: 75.00,
+    total: 447.78,
+    payments: [
+      {
+        id: 'pay-101',
+        method: 'credit-card',
+        cardType: 'amex',
+        cardLast4: '9999',
+        amount: 372.78,
+        tip: 75.00,
+        total: 447.78,
+        transactionId: 'txn_group_002',
+        processedAt: new Date('2025-11-19T12:50:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-19T10:00:00'),
+    completedAt: new Date('2025-11-19T12:50:00'),
+    createdBy: 'user-001',
+    lastModifiedBy: 'user-001',
+    syncStatus: 'synced'
+  },
+  // GROUP TICKET EXAMPLE 3 - Birthday party (3 friends)
+  {
+    id: 'ticket-102',
+    salonId: 'salon_123',
+    clientId: 'client-120',
+    clientName: 'Ashley Brown',
+    clientPhone: '(555) 777-8888',
+    isGroupTicket: true,
+    clients: [
+      {
+        clientId: 'client-120',
+        clientName: 'Ashley Brown',
+        clientPhone: '(555) 777-8888',
+        services: ['svc-120', 'svc-121']
+      },
+      {
+        clientId: 'client-121',
+        clientName: 'Jessica White',
+        clientPhone: '(555) 777-8889',
+        services: ['svc-122', 'svc-123']
+      },
+      {
+        clientId: 'client-122',
+        clientName: 'Melissa Green',
+        clientPhone: '(555) 777-8890',
+        services: ['svc-124', 'svc-125']
+      }
+    ],
+    services: [
+      {
+        serviceId: 'svc-120',
+        serviceName: 'Gel Manicure',
+        staffId: 'staff-001',
+        staffName: 'Emily Chen',
+        price: 45.00,
+        duration: 60,
+        commission: 22.50,
+        startTime: new Date('2025-11-16T13:00:00'),
+        endTime: new Date('2025-11-16T14:00:00')
+      },
+      {
+        serviceId: 'svc-121',
+        serviceName: 'Spa Pedicure',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 65.00,
+        duration: 75,
+        commission: 32.50,
+        startTime: new Date('2025-11-16T14:00:00'),
+        endTime: new Date('2025-11-16T15:15:00')
+      },
+      {
+        serviceId: 'svc-122',
+        serviceName: 'Gel Manicure',
+        staffId: 'staff-001',
+        staffName: 'Emily Chen',
+        price: 45.00,
+        duration: 60,
+        commission: 22.50,
+        startTime: new Date('2025-11-16T13:00:00'),
+        endTime: new Date('2025-11-16T14:00:00')
+      },
+      {
+        serviceId: 'svc-123',
+        serviceName: 'Spa Pedicure',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 65.00,
+        duration: 75,
+        commission: 32.50,
+        startTime: new Date('2025-11-16T14:00:00'),
+        endTime: new Date('2025-11-16T15:15:00')
+      },
+      {
+        serviceId: 'svc-124',
+        serviceName: 'Gel Manicure',
+        staffId: 'staff-001',
+        staffName: 'Emily Chen',
+        price: 45.00,
+        duration: 60,
+        commission: 22.50,
+        startTime: new Date('2025-11-16T13:00:00'),
+        endTime: new Date('2025-11-16T14:00:00')
+      },
+      {
+        serviceId: 'svc-125',
+        serviceName: 'Spa Pedicure',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 65.00,
+        duration: 75,
+        commission: 32.50,
+        startTime: new Date('2025-11-16T14:00:00'),
+        endTime: new Date('2025-11-16T15:15:00')
+      }
+    ],
+    products: [],
+    status: 'paid',
+    subtotal: 330.00,
+    discount: 49.50,
+    discountReason: '15% group discount (3+ people)',
+    discountPercent: 15,
+    tax: 25.25,
+    taxRate: 9,
+    tip: 60.00,
+    total: 365.75,
+    payments: [
+      {
+        id: 'pay-102',
+        method: 'credit-card',
+        cardType: 'visa',
+        cardLast4: '1111',
+        amount: 305.75,
+        tip: 60.00,
+        total: 365.75,
+        transactionId: 'txn_group_003',
+        processedAt: new Date('2025-11-16T15:30:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-16T13:00:00'),
+    completedAt: new Date('2025-11-16T15:30:00'),
+    createdBy: 'user-001',
+    lastModifiedBy: 'user-001',
+    syncStatus: 'synced'
+  },
+  // MERGED TICKET EXAMPLE 2 - Client added product purchase later
+  {
+    id: 'ticket-210',
+    salonId: 'salon_123',
+    clientId: 'client-210',
+    clientName: 'Rebecca Wilson',
+    clientPhone: '(555) 222-3333',
+    isMergedTicket: true,
+    mergedFromTickets: ['ticket-211', 'ticket-212', 'ticket-213'],
+    mergedAt: new Date('2025-11-18T17:45:00'),
+    mergedBy: 'user-001',
+    services: [
+      {
+        serviceId: 'svc-210',
+        serviceName: 'Acrylic Full Set',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 75.00,
+        duration: 90,
+        commission: 37.50,
+        startTime: new Date('2025-11-18T14:00:00'),
+        endTime: new Date('2025-11-18T15:30:00')
+      },
+      {
+        serviceId: 'svc-211',
+        serviceName: 'Nail Art Design',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 35.00,
+        duration: 30,
+        commission: 17.50,
+        startTime: new Date('2025-11-18T15:30:00'),
+        endTime: new Date('2025-11-18T16:00:00')
+      },
+      {
+        serviceId: 'svc-212',
+        serviceName: 'Gel Polish Change',
+        staffId: 'staff-003',
+        staffName: 'Lisa Martinez',
+        price: 30.00,
+        duration: 20,
+        commission: 15.00,
+        startTime: new Date('2025-11-18T17:30:00'),
+        endTime: new Date('2025-11-18T17:50:00')
+      }
+    ],
+    products: [],
+    status: 'paid',
+    subtotal: 140.00,
+    discount: 0,
+    tax: 12.60,
+    taxRate: 9,
+    tip: 28.00,
+    total: 180.60,
+    payments: [
+      {
+        id: 'pay-210',
+        method: 'credit-card',
+        cardType: 'visa',
+        cardLast4: '2222',
+        amount: 152.60,
+        tip: 28.00,
+        total: 180.60,
+        transactionId: 'txn_merged_002',
+        processedAt: new Date('2025-11-18T17:55:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-18T14:00:00'),
+    completedAt: new Date('2025-11-18T17:55:00'),
+    createdBy: 'user-001',
+    lastModifiedBy: 'user-001',
+    syncStatus: 'synced'
+  },
+  // GROUP TICKET with PARTIAL PAYMENT
+  {
+    id: 'ticket-103',
+    salonId: 'salon_123',
+    clientId: 'client-130',
+    clientName: 'Patricia Davis',
+    clientPhone: '(555) 666-7777',
+    isGroupTicket: true,
+    clients: [
+      {
+        clientId: 'client-130',
+        clientName: 'Patricia Davis',
+        clientPhone: '(555) 666-7777',
+        services: ['svc-130']
+      },
+      {
+        clientId: 'client-131',
+        clientName: 'Linda Davis',
+        clientPhone: '(555) 666-7778',
+        services: ['svc-131']
+      }
+    ],
+    services: [
+      {
+        serviceId: 'svc-130',
+        serviceName: 'Hair Color & Highlights',
+        staffId: 'staff-002',
+        staffName: 'David Kim',
+        price: 150.00,
+        duration: 120,
+        commission: 75.00,
+        startTime: new Date('2025-11-15T09:00:00'),
+        endTime: new Date('2025-11-15T11:00:00')
+      },
+      {
+        serviceId: 'svc-131',
+        serviceName: 'Haircut & Style',
+        staffId: 'staff-002',
+        staffName: 'David Kim',
+        price: 65.00,
+        duration: 45,
+        commission: 32.50,
+        startTime: new Date('2025-11-15T09:00:00'),
+        endTime: new Date('2025-11-15T09:45:00')
+      }
+    ],
+    products: [],
+    status: 'partial-payment',
+    subtotal: 215.00,
+    discount: 0,
+    tax: 19.35,
+    taxRate: 9,
+    tip: 40.00,
+    total: 274.35,
+    payments: [
+      {
+        id: 'pay-103a',
+        method: 'cash',
+        amount: 100.00,
+        tip: 0,
+        total: 100.00,
+        processedAt: new Date('2025-11-15T11:15:00'),
+        status: 'approved'
+      },
+      {
+        id: 'pay-103b',
+        method: 'credit-card',
+        cardType: 'mastercard',
+        cardLast4: '3333',
+        amount: 134.35,
+        tip: 40.00,
+        total: 174.35,
+        transactionId: 'txn_partial_001',
+        processedAt: new Date('2025-11-15T11:20:00'),
+        status: 'approved'
+      }
+    ],
+    createdAt: new Date('2025-11-15T09:00:00'),
+    completedAt: new Date('2025-11-15T11:20:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -217,8 +811,8 @@ export const mockAppointments: LocalAppointment[] = [
     scheduledEndTime: new Date('2024-11-20T10:45:00'),
     notes: 'Client prefers natural colors',
     source: 'online',
-    createdAt: new Date('2024-11-15T08:30:00'),
-    updatedAt: new Date('2024-11-15T08:30:00'),
+    createdAt: new Date('2025-11-15T08:30:00'),
+    updatedAt: new Date('2025-11-15T08:30:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -250,12 +844,12 @@ export const mockAppointments: LocalAppointment[] = [
       }
     ],
     status: 'checked-in',
-    scheduledStartTime: new Date('2024-11-19T14:00:00'),
-    scheduledEndTime: new Date('2024-11-19T14:50:00'),
-    checkInTime: new Date('2024-11-19T13:55:00'),
+    scheduledStartTime: new Date('2025-11-19T14:00:00'),
+    scheduledEndTime: new Date('2025-11-19T14:50:00'),
+    checkInTime: new Date('2025-11-19T13:55:00'),
     source: 'walk-in',
-    createdAt: new Date('2024-11-19T13:55:00'),
-    updatedAt: new Date('2024-11-19T13:55:00'),
+    createdAt: new Date('2025-11-19T13:55:00'),
+    updatedAt: new Date('2025-11-19T13:55:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -279,14 +873,14 @@ export const mockAppointments: LocalAppointment[] = [
       }
     ],
     status: 'completed',
-    scheduledStartTime: new Date('2024-11-18T10:00:00'),
-    scheduledEndTime: new Date('2024-11-18T11:15:00'),
-    actualStartTime: new Date('2024-11-18T10:05:00'),
-    actualEndTime: new Date('2024-11-18T11:20:00'),
-    checkInTime: new Date('2024-11-18T09:58:00'),
+    scheduledStartTime: new Date('2025-11-18T10:00:00'),
+    scheduledEndTime: new Date('2025-11-18T11:15:00'),
+    actualStartTime: new Date('2025-11-18T10:05:00'),
+    actualEndTime: new Date('2025-11-18T11:20:00'),
+    checkInTime: new Date('2025-11-18T09:58:00'),
     source: 'phone',
-    createdAt: new Date('2024-11-16T12:00:00'),
-    updatedAt: new Date('2024-11-18T11:20:00'),
+    createdAt: new Date('2025-11-16T12:00:00'),
+    updatedAt: new Date('2025-11-18T11:20:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -310,12 +904,12 @@ export const mockAppointments: LocalAppointment[] = [
       }
     ],
     status: 'cancelled',
-    scheduledStartTime: new Date('2024-11-17T15:00:00'),
-    scheduledEndTime: new Date('2024-11-17T15:30:00'),
+    scheduledStartTime: new Date('2025-11-17T15:00:00'),
+    scheduledEndTime: new Date('2025-11-17T15:30:00'),
     notes: 'Client called to cancel - will reschedule',
     source: 'online',
     createdAt: new Date('2024-11-14T10:00:00'),
-    updatedAt: new Date('2024-11-17T14:00:00'),
+    updatedAt: new Date('2025-11-17T14:00:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -351,8 +945,8 @@ export const mockAppointments: LocalAppointment[] = [
     scheduledEndTime: new Date('2024-11-21T12:30:00'),
     notes: 'VIP client - prepare special room',
     source: 'phone',
-    createdAt: new Date('2024-11-18T16:00:00'),
-    updatedAt: new Date('2024-11-18T16:00:00'),
+    createdAt: new Date('2025-11-18T16:00:00'),
+    updatedAt: new Date('2025-11-18T16:00:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -376,12 +970,12 @@ export const mockAppointments: LocalAppointment[] = [
       }
     ],
     status: 'no-show',
-    scheduledStartTime: new Date('2024-11-16T09:00:00'),
-    scheduledEndTime: new Date('2024-11-16T09:30:00'),
+    scheduledStartTime: new Date('2025-11-16T09:00:00'),
+    scheduledEndTime: new Date('2025-11-16T09:30:00'),
     notes: 'Did not show up, did not call',
     source: 'online',
     createdAt: new Date('2024-11-13T14:00:00'),
-    updatedAt: new Date('2024-11-16T09:35:00'),
+    updatedAt: new Date('2025-11-16T09:35:00'),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -413,7 +1007,7 @@ for (let i = 7; i <= 30; i++) {
       }
     ],
     products: [],
-    status: ['completed', 'in-progress', 'pending'][Math.floor(Math.random() * 3)] as any,
+    status: ['paid', 'partial-payment', 'refunded', 'voided'][Math.floor(Math.random() * 4)] as any,
     subtotal: Math.floor(Math.random() * 100) + 50,
     discount: 0,
     tax: Math.floor(Math.random() * 10) + 5,

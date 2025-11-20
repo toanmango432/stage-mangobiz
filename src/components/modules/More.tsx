@@ -1,15 +1,21 @@
-import { 
-  DollarSign, 
-  Smartphone, 
-  User, 
-  Lock, 
-  Users, 
-  Calendar, 
+import {
+  DollarSign,
+  Smartphone,
+  User,
+  Lock,
+  Users,
+  Calendar,
   Settings,
-  ChevronRight 
+  ChevronRight,
+  Palette,
+  Ticket
 } from 'lucide-react';
 
-export function More() {
+interface MoreProps {
+  onNavigate?: (module: string) => void;
+}
+
+export function More({ onNavigate }: MoreProps = {}) {
   const menuItems = [
     { id: 'sales', label: "Today's Sales", icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
     { id: 'devices', label: 'Device Manager', icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -18,6 +24,8 @@ export function More() {
     { id: 'team', label: 'Team', icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
     { id: 'schedule', label: 'Schedule', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { id: 'admin', label: 'Admin Back Office', icon: Settings, color: 'text-gray-600', bg: 'bg-gray-50' },
+    { id: 'header-preview', label: '🎨 Header Color Preview (DEV)', icon: Palette, color: 'text-pink-600', bg: 'bg-pink-50' },
+    { id: 'ticket-preview', label: '🎫 Ticket Color Preview (DEV)', icon: Ticket, color: 'text-violet-600', bg: 'bg-violet-50' },
   ];
 
   return (
@@ -32,6 +40,7 @@ export function More() {
               <button
                 key={item.id}
                 className="flex items-center gap-4 p-5 bg-white rounded-xl hover:shadow-md transition-all border border-gray-200 hover:border-gray-300 group"
+                onClick={() => onNavigate?.(item.id)}
               >
                 <div className={`w-12 h-12 ${item.bg} rounded-lg flex items-center justify-center`}>
                   <Icon className={`w-6 h-6 ${item.color}`} />

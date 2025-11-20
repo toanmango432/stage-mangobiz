@@ -6,9 +6,9 @@
 export const frontDeskHeaderBase =
   'flex-shrink-0 sticky top-0 z-30 backdrop-blur-md transition-all duration-200';
 
-export const frontDeskHeaderSpacing = 'px-5 py-3.5';
+export const frontDeskHeaderSpacing = 'px-5 py-4';
 
-export const frontDeskHeaderTitle = 'text-lg font-semibold tracking-tight';
+export const frontDeskHeaderTitle = 'text-xl font-semibold tracking-tight';
 
 export const frontDeskHeaderActionButton =
   'min-h-[48px] min-w-[48px] inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-all duration-200';
@@ -23,10 +23,11 @@ export interface FrontDeskHeaderTheme {
   countBadge: string;
   metricPill?: string;
   titleClass?: string;
+  subtitleClass?: string;
 }
 
 export const comingHeaderTheme = {
-  iconWrapper: 'h-7 w-7 rounded-lg bg-sky-50 text-sky-500 flex items-center justify-center',
+  iconWrapper: 'h-7 w-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center',
   countPill: 'bg-sky-50/70 text-sky-600 text-[11px] font-medium px-1.5 py-0.5 rounded-md',
   metrics: {
     late: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium border border-red-200/30 bg-red-50/50 text-red-600`,
@@ -51,16 +52,28 @@ export const supportingHeaderTheme: FrontDeskHeaderTheme = {
   metricPill: 'text-[11px] font-medium',
 };
 
-export const waitingHeaderTheme = {
-  iconWrapper: 'h-9 w-9 rounded-xl bg-violet-500 text-white flex items-center justify-center',
-  countPill: 'bg-violet-100 text-violet-700',
-  metrics: {
-    vip: `${metricPillBase} border-amber-200/50 bg-amber-50 text-amber-700`,
-    avg: `${metricPillBase} border-sky-200/50 bg-sky-50 text-sky-600`,
-  },
-  filterChip: 'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200/60 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300/60 transition-all duration-200',
-  filterChipActive:
-    'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-500 text-sm font-medium text-white',
+export const waitingHeaderTheme: FrontDeskHeaderTheme = {
+  wrapper: 'bg-white/70 border-b border-violet-100 backdrop-blur-md',
+  iconWrapper: 'h-11 w-11 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center',
+  countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
+  titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
+  subtitleClass: 'text-2xs text-violet-600',
+};
+
+export const serviceHeaderTheme: FrontDeskHeaderTheme = {
+  wrapper: 'bg-white/70 border-b border-green-100 backdrop-blur-md',
+  iconWrapper: 'h-11 w-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center',
+  countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
+  titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
+  subtitleClass: 'text-2xs text-emerald-600',
+};
+
+export const pendingHeaderTheme: FrontDeskHeaderTheme = {
+  wrapper: 'bg-white/70 border-b border-amber-100 backdrop-blur-md',
+  iconWrapper: 'h-11 w-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center',
+  countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
+  titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
+  subtitleClass: 'text-2xs text-amber-600',
 };
 
 export const headerContentSpacer = 'pt-0';

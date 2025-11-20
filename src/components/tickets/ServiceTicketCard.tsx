@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { MoreVertical, CheckCircle, Pause, Trash2, StickyNote } from 'lucide-react';
+import { MoreVertical, Check, Pause, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
@@ -132,29 +132,31 @@ function ServiceTicketCardComponent({
   };
 
 
-  // LIST COMPACT VIEW - Significantly more compact
+  // LIST COMPACT VIEW - Thermal Receipt Design
   if (viewMode === 'compact') {
     return (
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className="relative rounded border border-[#d4b896]/40 overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
+          className="relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
           role="button"
           tabIndex={0}
           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
           style={{
-            background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-            boxShadow: '0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 3px rgba(139, 92, 46, 0.06)'
+            background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+            border: '1px dashed #D8D8D8',
+            borderRadius: '10px',
+            boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
           }}
         >
-          {/* Minimal perforation dots */}
-          <div className="absolute top-0 left-0 w-full h-[2px] flex justify-between items-center px-1.5 opacity-15">
-            {[...Array(8)].map((_, i) => (<div key={i} className="w-[1px] h-[1px] rounded-full bg-[#c4b5a0]" />))}
-          </div>
+          {/* Dog-ear corner */}
+          <div className="absolute top-0 right-0 w-[5px] h-[5px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          {/* Minimal left edge shadow */}
-          <div className="absolute top-0 left-0 w-1 h-full" style={{ boxShadow: 'inset 2px 0 3px rgba(0,0,0,0.15)' }} />
+          {/* Perforation dots - barely visible */}
+          <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
+            {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
+          </div>
 
           {/* Compact ticket number badge */}
           <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-2xs z-20"
@@ -212,61 +214,48 @@ function ServiceTicketCardComponent({
             {/* Compact Done button - Absolute positioned, mobile-friendly */}
             <button
               onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full bg-white border border-gray-300 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
-              title="Done"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+              title="Mark as Done"
             >
-              <CheckCircle size={16} className="md:w-[18px] md:h-[18px]" strokeWidth={2} />
+              <Check size={14} strokeWidth={2.5} />
             </button>
           </div>
           
-          {/* Paper textures */}
-          <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-md" 
-               style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
-          <div className="absolute inset-0 pointer-events-none opacity-10 rounded-md"
-               style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
+          {/* Paper texture overlay */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
         </div>
         <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
       </>
     );
   }
 
-  // LIST NORMAL VIEW - With Paper Ticket Design
+  // LIST NORMAL VIEW - Thermal Receipt Design
   if (viewMode === 'normal') {
     return (
       <>
-      <div onClick={() => onClick?.(ticket.id)} 
-           className="relative rounded-lg border border-[#d4b896]/40 overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-[0.2deg] cursor-pointer" 
-           role="button" 
-           tabIndex={0} 
-           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} 
+      <div onClick={() => onClick?.(ticket.id)}
+           className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer"
+           role="button"
+           tabIndex={0}
+           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
-           style={{ 
-             background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-             boxShadow: '0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 6px rgba(139, 92, 46, 0.08)'
+           style={{
+             background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+             border: '1px dashed #D8D8D8',
+             borderRadius: '10px',
+             boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
            }}>
-        
-        {/* Perforation dots */}
-        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">
-          {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
+
+        {/* Dog-ear corner */}
+        <div className="absolute top-0 right-0 w-[6px] h-[6px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
+
+        {/* Perforation dots - barely visible */}
+        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
+          {[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
         </div>
-        
-        {/* Left notch */}
-        <div className="absolute left-[-4px] top-[50%] w-2 h-2 rounded-full border-r border-[#d4b896]/50"
-             style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
-        
-        {/* Right notch */}
-        <div className="absolute right-[-4px] top-[50%] w-2 h-2 rounded-full border-l border-[#d4b896]/50"
-             style={{ background: 'linear-gradient(to left, #f8f3eb, #f5f0e8)', boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.10)' }} />
-        
-        {/* Thick paper left edge shadow effect */}
-        <div className="absolute top-0 left-0 w-2 h-full" style={{ boxShadow: 'inset 3px 0 4px rgba(0,0,0,0.20), inset 6px 0 8px rgba(0,0,0,0.12)' }} />
-        
-        {/* Paper thickness edge */}
-        <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-lg"
-             style={{ 
-               background: 'linear-gradient(to right, rgba(139, 92, 46, 0.18) 0%, rgba(139, 92, 46, 0.10) 50%, transparent 100%)',
-               boxShadow: 'inset 1px 0 2px rgba(139, 92, 46, 0.20)'
-             }} />
         
         {/* Wrap-around ticket number badge at Row 1 height */}
         <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
@@ -314,16 +303,17 @@ function ServiceTicketCardComponent({
 
           {/* Row 2: Service + Staff badges + Done button */}
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
 
             {/* Staff badges + Done button with background container */}
             <div className="px-2 py-1 rounded-lg relative flex-shrink-0"
                  style={{
                    background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
                    boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                   border: '1px solid rgba(212, 184, 150, 0.15)'
+                   border: '1px solid rgba(212, 184, 150, 0.15)',
+                   minWidth: '80px'
                  }}>
-              <div className="flex items-center gap-1.5 pr-14 md:pr-11">
+              <div className="flex items-center gap-1.5" style={{ paddingRight: '64px', minHeight: '32px' }}>
                 {staffList.map((staff, i) => (
                   <div key={i} className="text-white text-xs font-semibold px-2 py-0.5 rounded-md border border-white/30 tracking-wide"
                        style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
@@ -333,22 +323,21 @@ function ServiceTicketCardComponent({
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="absolute top-1/2 right-2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all flex items-center justify-center"
-                title="Done"
+                className="absolute top-1/2 right-2 -translate-y-1/2 w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                title="Mark as Done"
               >
-                <CheckCircle size={18} className="md:w-[18px] md:h-[18px]" strokeWidth={2} />
+                <Check size={24} strokeWidth={2.5} />
               </button>
             </div>
           </div>
         </div>
-        
-        {/* Paper textures */}
-        <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-lg"
-             style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '180px 180px' }} />
-        <div className="absolute inset-0 pointer-events-none opacity-12 rounded-lg"
-             style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
-        <div className="absolute inset-0 pointer-events-none rounded-lg"
-             style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.3)' }} />
+
+
+        {/* Paper texture overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
       </div>
       <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
       </>
@@ -376,7 +365,7 @@ function ServiceTicketCardComponent({
         <div className="px-3 sm:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-xs sm:text-sm text-[#6b5d52] font-medium">{formatTime(timeRemaining)} left</div><div className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-3 sm:px-4 pb-4 sm:pb-5"><div className="h-2 sm:h-2.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden" style={{ boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} /></div></div>
         <div className="mt-auto mx-2 sm:mx-3 mb-2 sm:mb-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pr-11 sm:pr-12">{staffList.map((staff, index) => (<div key={index} className="text-white text-2xs sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffColor(staff), boxShadow: `0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{getFirstName(staff.name)}</div>))}</div>
-          <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-2 md:right-3 -translate-y-1/2 w-11 h-11 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Mark as Done"><CheckCircle size={20} className="md:w-5 md:h-5" strokeWidth={2} /></button>
+          <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-2 md:right-3 -translate-y-1/2 w-11 h-11 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Mark as Done"><Check size={20} className="md:w-5 md:h-5" strokeWidth={2} /></button>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-xl" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
         <div className="absolute inset-0 pointer-events-none opacity-15 rounded-xl" style={{ backgroundImage: `repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px), repeating-linear-gradient(0deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px)`, backgroundSize: '3px 3px' }} />
@@ -407,7 +396,7 @@ function ServiceTicketCardComponent({
         <div className="px-2 sm:px-3 pb-1 flex items-center justify-between"><div className="text-2xs sm:text-xs text-[#6b5d52]">{formatTime(timeRemaining)} left</div><div className="text-base sm:text-lg font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-2 sm:px-3 pb-2 sm:pb-3"><div className="h-1.5 sm:h-2 bg-[#f5f0e8] rounded-full overflow-hidden"><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} /></div></div>
         <div className="mt-auto mx-1.5 sm:mx-2 mb-1.5 sm:mb-2 px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1 pr-9 sm:pr-10">{staffList.slice(0, 2).map((staff, index) => (<div key={index} className="text-white text-2xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide" style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>{getFirstName(staff.name)}</div>))}{staffList.length > 2 && <span className="text-2xs text-[#8b7968] font-medium">+{staffList.length - 2}</span>}</div>
-          <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-1.5 md:right-2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Done"><CheckCircle size={18} className="md:w-[18px] md:h-[18px]" strokeWidth={2} /></button>
+          <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-1.5 md:right-2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Done"><Check size={18} className="md:w-[18px] md:h-[18px]" strokeWidth={2} /></button>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
         <div className="absolute inset-0 pointer-events-none opacity-10 rounded-lg" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />

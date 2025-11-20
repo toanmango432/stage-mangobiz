@@ -810,15 +810,30 @@ export function NewAppointmentModalV2({
   const modalClasses = cn(
     'fixed bg-white/95 backdrop-blur-xl z-[70] flex flex-col border',
     view === 'slide'
-      ? 'right-0 top-0 bottom-0 w-[90vw] max-w-6xl animate-slide-in-right shadow-premium-3xl border-l border-gray-200/50'
-      : 'inset-6 rounded-3xl animate-fade-in shadow-premium-3xl border-gray-200/50'
+      ? 'right-0 top-0 bottom-0 w-[90vw] max-w-6xl shadow-premium-3xl border-l border-gray-200/50'
+      : 'inset-6 rounded-3xl shadow-premium-3xl border-gray-200/50'
   );
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60] animate-fade-in" onClick={onClose} />
+      {/* Backdrop with fade-in */}
+      <div
+        className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60]"
+        onClick={onClose}
+        style={{
+          animation: 'fadeIn 300ms ease-out'
+        }}
+      />
 
-      <div className={modalClasses}>
+      {/* Modal with slide/scale entrance */}
+      <div
+        className={modalClasses}
+        style={{
+          animation: view === 'slide'
+            ? 'slideInRight 400ms cubic-bezier(0.4, 0.0, 0.2, 1)'
+            : 'scaleIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+        }}
+      >
         {/* Header - Premium glass */}
         <div className="flex items-center justify-between px-8 py-5 shrink-0 border-b border-gray-200/50 bg-white/50">
           <div className="flex items-center gap-3">

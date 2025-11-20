@@ -21,6 +21,7 @@ import { DaySchedule } from '../components/Book/DaySchedule.v2';
 import { WeekView } from '../components/Book/WeekView';
 import { MonthView } from '../components/Book/MonthView';
 import { AgendaView } from '../components/Book/AgendaView';
+import { TimelineView } from '../components/Book/TimelineView';
 import { WalkInSidebar } from '../components/Book/WalkInSidebar';
 import { AppointmentFilters } from '../components/Book/FilterPanel';
 import { LocalAppointment } from '../types/appointment';
@@ -42,6 +43,7 @@ export function BookPage() {
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     staffId: string;
@@ -127,6 +129,38 @@ export function BookPage() {
 
   const handleSearchClick = () => {
     setIsCustomerSearchOpen(true);
+  };
+
+  const handleSettingsClick = () => {
+    setIsSettingsOpen(true);
+  };
+
+  const handleRefreshClick = async () => {
+    setIsLoadingAppointments(true);
+    try {
+      const appointments = await appointmentsDB.getByDate(salonId, selectedDate);
+
+      // Convert to LocalAppointment format and dispatch to Redux
+      const localAppointments: LocalAppointment[] = appointments.map((apt: any) => ({
+        id: apt.id,
+        clientId: apt.clientId,
+        staffId: apt.staffId,
+        serviceIds: apt.serviceIds,
+        startTime: new Date(apt.startTime),
+        endTime: new Date(apt.endTime),
+        status: apt.status,
+        notes: apt.notes,
+        createdAt: apt.createdAt,
+        updatedAt: apt.updatedAt,
+      }));
+
+      setToast({ message: 'Calendar refreshed', type: 'success' });
+    } catch (error) {
+      console.error('Failed to refresh appointments:', error);
+      setToast({ message: 'Failed to refresh calendar', type: 'error' });
+    } finally {
+      setIsLoadingAppointments(false);
+    }
   };
 
   const handleAppointmentDrop = async (appointmentId: string, newStaffId: string, newTime: Date) => {
@@ -607,6 +641,8 @@ export function BookPage() {
           onViewChange={handleViewChangeWithTransition}
           onTimeWindowModeChange={handleTimeWindowModeChange}
           onSearchClick={handleSearchClick}
+          onSettingsClick={handleSettingsClick}
+          onRefreshClick={handleRefreshClick}
           onTodayClick={goToToday}
           onFilterChange={setFilters}
           onNewAppointment={() => {
@@ -614,6 +650,9 @@ export function BookPage() {
             setIsNewAppointmentOpen(true);
           }}
           onStaffDrawerOpen={() => setIsStaffDrawerOpen(true)}
+          staff={allStaff.map(s => ({ id: s.id, name: s.name }))}
+          selectedStaffIds={selectedStaffIds}
+          onStaffFilterChange={handleStaffSelection}
         />
 
         {/* Calendar + Sidebars */}
@@ -621,52 +660,76 @@ export function BookPage() {
           {/* Calendar Area */}
           <div className="flex-1 overflow-hidden w-full lg:w-auto relative">
           {calendarView === 'day' && (
-            <DaySchedule
-              date={selectedDate}
-              staff={selectedStaff.map(s => ({
-                id: s.id,
-                name: s.name,
-                photo: s.avatar,
-              }))}
-              appointments={filteredAppointments || []}
-              onAppointmentClick={handleAppointmentClick}
-              onTimeSlotClick={handleTimeSlotClick}
-              onAppointmentDrop={handleAppointmentDrop}
-              onStatusChange={handleStatusChange}
-            />
+            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+              <DaySchedule
+                date={selectedDate}
+                staff={selectedStaff.map(s => ({
+                  id: s.id,
+                  name: s.name,
+                  photo: s.avatar,
+                }))}
+                appointments={filteredAppointments || []}
+                onAppointmentClick={handleAppointmentClick}
+                onTimeSlotClick={handleTimeSlotClick}
+                onAppointmentDrop={handleAppointmentDrop}
+                onStatusChange={handleStatusChange}
+              />
+            </div>
           )}
 
           {calendarView === 'week' && (
-            <WeekView
-              startDate={selectedDate}
-              appointments={filteredAppointments || []}
-              onAppointmentClick={handleAppointmentClick}
-              onDateClick={(date) => {
-                handleDateChange(date);
-                handleViewChange('day');
-              }}
-            />
+            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+              <WeekView
+                startDate={selectedDate}
+                appointments={filteredAppointments || []}
+                onAppointmentClick={handleAppointmentClick}
+                onDateClick={(date) => {
+                  handleDateChange(date);
+                  handleViewChange('day');
+                }}
+              />
+            </div>
           )}
 
           {calendarView === 'month' && (
-            <MonthView
-              date={selectedDate}
-              appointments={filteredAppointments || []}
-              onAppointmentClick={handleAppointmentClick}
-              onDateClick={(date) => {
-                handleDateChange(date);
-                handleViewChange('day');
-              }}
-              onMonthChange={handleDateChange}
-            />
+            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+              <MonthView
+                date={selectedDate}
+                appointments={filteredAppointments || []}
+                onAppointmentClick={handleAppointmentClick}
+                onDateClick={(date) => {
+                  handleDateChange(date);
+                  handleViewChange('day');
+                }}
+                onMonthChange={handleDateChange}
+              />
+            </div>
           )}
 
           {calendarView === 'agenda' && (
-            <AgendaView
-              appointments={filteredAppointments || []}
-              onAppointmentClick={handleAppointmentClick}
-              onStatusChange={handleStatusChange}
-            />
+            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+              <AgendaView
+                appointments={filteredAppointments || []}
+                onAppointmentClick={handleAppointmentClick}
+                onStatusChange={handleStatusChange}
+              />
+            </div>
+          )}
+
+          {calendarView === 'timeline' && (
+            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+              <TimelineView
+                appointments={filteredAppointments || []}
+                date={selectedDate}
+                staff={selectedStaff.map(s => ({
+                  id: s.id,
+                  name: s.name,
+                  photo: s.avatar,
+                }))}
+                onAppointmentClick={handleAppointmentClick}
+                onTimeSlotClick={handleTimeSlotClick}
+              />
+            </div>
           )}
 
           {/* View Transition Overlay */}

@@ -9,6 +9,8 @@ import { Pending } from '../modules/Pending';
 import { Checkout } from '../modules/Checkout';
 import { Sales } from '../modules/Sales';
 import { More } from '../modules/More';
+import { HeaderColorPreview } from '../HeaderColorPreview';
+import { TicketColorPreview } from '../TicketColorPreview';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { useAppDispatch } from '../../store/hooks';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -108,7 +110,11 @@ export function AppShell() {
       case 'sales':
         return <Sales />;
       case 'more':
-        return <More />;
+        return <More onNavigate={setActiveModule} />;
+      case 'header-preview':
+        return <HeaderColorPreview />;
+      case 'ticket-preview':
+        return <TicketColorPreview />;
       default:
         return <FrontDesk />;
     }

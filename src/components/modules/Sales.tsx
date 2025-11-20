@@ -21,7 +21,9 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Zap,
-  History
+  History,
+  GitMerge,
+  Plus
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
@@ -43,6 +45,7 @@ import { SalesEmptyState } from '../sales/SalesEmptyState';
 import { DateRangePicker } from '../sales/DateRangePicker';
 import { FilterChip } from '../sales/FilterChip';
 import { SalesMobileCard } from '../sales/SalesMobileCard';
+import { NewSaleModal } from '../sales/NewSaleModal';
 import { mockTickets, mockAppointments } from '../../data/mockSalesData';
 
 type SalesTab = 'appointments' | 'tickets';
@@ -59,7 +62,7 @@ export function Sales() {
 
   // Using mock data for demonstration
   const appointments = mockAppointments;
-  const tickets = mockTickets;
+  const [tickets, setTickets] = useState(mockTickets);
   const appointmentsLoading = false;
   const ticketsLoading = false;
 
@@ -89,6 +92,9 @@ export function Sales() {
     from: null,
     to: null
   });
+
+  // New Sale Modal State
+  const [showNewSaleModal, setShowNewSaleModal] = useState(false);
 
   // Mobile view detection
   const [isMobile, setIsMobile] = useState(false);
@@ -136,9 +142,9 @@ export function Sales() {
       // Current period (last 30 days)
       const currentTickets = tickets.filter(t => new Date(t.createdAt) >= thirtyDaysAgo);
       const total = currentTickets.length;
-      const active = currentTickets.filter(t => t.status === 'in-progress').length;
-      const pending = currentTickets.filter(t => t.status === 'pending').length;
-      const completed = currentTickets.filter(t => t.status === 'completed').length;
+      const paid = currentTickets.filter(t => t.status === 'paid').length;
+      const partial = currentTickets.filter(t => t.status === 'partial-payment').length;
+      const refunded = currentTickets.filter(t => t.status === 'refunded' || t.status === 'partially-refunded').length;
       const totalRevenue = currentTickets.reduce((sum, t) => sum + (t.total || 0), 0);
       const avgValue = total > 0 ? totalRevenue / total : 0;
 
@@ -158,9 +164,9 @@ export function Sales() {
 
       return {
         total,
-        active,
-        pending,
-        completed,
+        paid,
+        partial,
+        refunded,
         avgValue,
         totalTrend: totalTrend.toFixed(1),
         avgValueTrend: avgValueTrend.toFixed(1)
@@ -311,11 +317,11 @@ export function Sales() {
     if (activeTab === 'tickets') {
       return [
         { value: 'all', label: 'All Statuses' },
-        { value: 'new', label: 'New' },
-        { value: 'in-progress', label: 'In Progress' },
-        { value: 'pending', label: 'Pending Checkout' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'cancelled', label: 'Cancelled' }
+        { value: 'paid', label: 'Paid' },
+        { value: 'partial-payment', label: 'Partial Payment' },
+        { value: 'refunded', label: 'Refunded' },
+        { value: 'partially-refunded', label: 'Partially Refunded' },
+        { value: 'voided', label: 'Voided' }
       ];
     } else {
       return [
@@ -332,15 +338,22 @@ export function Sales() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
+      // Transaction/Payment Statuses
+      'paid': 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200 shadow-sm shadow-emerald-100',
+      'unpaid': 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 border-rose-200',
+      'partial-payment': 'bg-gradient-to-br from-amber-50 to-amber-100 text-amber-700 border-amber-200',
+      'pending': 'bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 border-blue-200',
+      'failed': 'bg-gradient-to-br from-red-50 to-red-100 text-red-700 border-red-200',
+      'refunded': 'bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 border-purple-200',
+      'partially-refunded': 'bg-gradient-to-br from-violet-50 to-violet-100 text-violet-700 border-violet-200',
+      'voided': 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 border-slate-200',
+      // Legacy/Appointment Statuses (for backward compatibility)
+      'completed': 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200 shadow-sm shadow-emerald-100',
       'scheduled': 'bg-gradient-to-br from-sky-50 to-sky-100 text-sky-700 border-sky-200',
       'checked-in': 'bg-gradient-to-br from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
       'in-service': 'bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 border-purple-200',
-      'in-progress': 'bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 border-purple-200',
-      'completed': 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200 shadow-sm shadow-emerald-100',
       'cancelled': 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 border-slate-200',
-      'no-show': 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 border-rose-200',
-      'new': 'bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 border-blue-200',
-      'pending': 'bg-gradient-to-br from-amber-50 to-amber-100 text-amber-700 border-amber-200'
+      'no-show': 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 border-rose-200'
     };
     return colors[status] || 'bg-gradient-to-br from-gray-50 to-gray-100 text-gray-600 border-gray-200';
   };
@@ -412,6 +425,12 @@ export function Sales() {
     statusFilter !== 'all' ||
     dateFilter !== '30days' ||
     (customDateRange.from !== null && customDateRange.to !== null);
+
+  // Handle new sale creation
+  const handleNewSale = (saleData: Ticket) => {
+    setTickets([saleData, ...tickets]);
+    setShowNewSaleModal(false);
+  };
 
   // Handle date range change
   const handleDateRangeChange = (range: { from: Date | null; to: Date | null }) => {
@@ -567,9 +586,17 @@ export function Sales() {
         <div className="max-w-[1600px] mx-auto">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Transaction Lookup</h1>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Sales & Transactions</h1>
+              <p className="text-sm text-gray-600 mt-0.5">View and manage sales transactions and appointments</p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNewSaleModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">New Sale</span>
+              </button>
               <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200">
                 <Download className="w-3.5 h-3.5" />
                 <span className="text-xs font-medium">Export</span>
@@ -592,7 +619,7 @@ export function Sales() {
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Tickets
+              Sales Transactions
               <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold ${
                 activeTab === 'tickets'
                   ? 'bg-blue-100 text-blue-700'
@@ -665,11 +692,11 @@ export function Sales() {
             </button>
             <button
               onClick={() => {
-                setStatusFilter('completed');
+                setStatusFilter(activeTab === 'tickets' ? 'paid' : 'completed');
               }}
               className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-all duration-200 text-xs font-medium"
             >
-              Completed
+              {activeTab === 'tickets' ? 'Paid' : 'Completed'}
             </button>
             <button
               onClick={() => {
@@ -689,7 +716,7 @@ export function Sales() {
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder={`Search by client name, ticket #, or phone number...`}
+                  placeholder={`Search by client name, receipt #, or phone number...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400 text-sm"
@@ -800,7 +827,7 @@ export function Sales() {
                     {activeTab === 'tickets' ? (
                       <>
                         <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">
-                          Ticket #
+                          Receipt #
                         </th>
                         <SortableHeader column="date" label="Date" />
                         <SortableHeader column="client" label="Client" />
@@ -809,6 +836,9 @@ export function Sales() {
                           Services
                         </th>
                         <SortableHeader column="total" label="Total" />
+                        <th className="px-3 py-1.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">
+                          Tip
+                        </th>
                         <SortableHeader column="status" label="Status" />
                         <th className="px-3 py-1.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                           Actions
@@ -847,7 +877,7 @@ export function Sales() {
                         <>
                           <td className="px-3 py-1.5 whitespace-nowrap">
                             <span className="text-sm font-semibold text-gray-900">
-                              #{item.id?.slice(0, 8)}
+                              #{item.id}
                             </span>
                           </td>
                           <td className="px-3 py-1.5 whitespace-nowrap">
@@ -855,24 +885,58 @@ export function Sales() {
                             <div className="text-xs text-gray-600">{formatTime(item.createdAt)}</div>
                           </td>
                           <td className="px-3 py-1.5 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
-                                <User className="w-3.5 h-3.5 text-white" />
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 bg-gradient-to-br rounded-full flex items-center justify-center shadow-sm ${
+                                item.isGroupTicket
+                                  ? 'from-purple-500 to-pink-500'
+                                  : 'from-blue-500 to-purple-500'
+                              }`}>
+                                {item.isGroupTicket ? (
+                                  <Users className="w-3.5 h-3.5 text-white" />
+                                ) : (
+                                  <User className="w-3.5 h-3.5 text-white" />
+                                )}
                               </div>
-                              <span className="text-sm font-medium text-gray-900">{item.clientName || 'Walk-in'}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {item.clientName || 'Walk-in'}
+                                  {item.isGroupTicket && item.clients && item.clients.length > 1 && (
+                                    <span className="ml-1 text-xs text-purple-600 font-semibold">
+                                      +{item.clients.length - 1}
+                                    </span>
+                                  )}
+                                </span>
+                                {item.isMergedTicket && (
+                                  <div className="group relative">
+                                    <GitMerge className="w-3.5 h-3.5 text-blue-600" />
+                                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-10 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                      Merged from {item.mergedFromTickets?.length || 0} tickets
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-gray-700">{item.techName || 'Unassigned'}</span>
+                            <span className="text-sm text-gray-700">
+                              {item.services && item.services.length > 0
+                                ? [...new Set(item.services.map((s: any) => s.staffName))].join(', ')
+                                : 'Unassigned'}
+                            </span>
                           </td>
                           <td className="px-3 py-1.5">
                             <span className="text-sm text-gray-700">
-                              {item.items?.map((i: any) => i.name).join(', ') || 'N/A'}
+                              {item.services?.map((s: any) => s.serviceName).join(', ') || 'N/A'}
                             </span>
                           </td>
                           <td className="px-3 py-1.5 whitespace-nowrap">
                             <span className="text-sm font-bold text-gray-900 tabular-nums">
                               ${(item.total || 0).toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-1.5 whitespace-nowrap">
+                            <span className="text-sm font-medium text-gray-700 tabular-nums">
+                              ${(item.tip || 0).toFixed(2)}
                             </span>
                           </td>
                           <td className="px-3 py-1.5 whitespace-nowrap">
@@ -996,6 +1060,13 @@ export function Sales() {
           onClose={() => setShowDatePicker(false)}
         />
       )}
+
+      {/* New Sale Modal */}
+      <NewSaleModal
+        isOpen={showNewSaleModal}
+        onClose={() => setShowNewSaleModal(false)}
+        onSave={handleNewSale}
+      />
     </div>
   );
 }

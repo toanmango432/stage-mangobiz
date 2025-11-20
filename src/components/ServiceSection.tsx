@@ -2,10 +2,10 @@ import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
-import { ViewModeToggle } from './frontdesk/ViewModeToggle';
+import { serviceHeaderTheme } from './frontdesk/headerTokens';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, Settings, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
+import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
@@ -858,23 +858,13 @@ export const ServiceSection = memo(function ServiceSection({
   return <div className="flex flex-col overflow-hidden h-full">
       {!hideHeader && (
         <FrontDeskHeader
-          variant="primary"
           title="In Service"
           count={serviceTickets.length}
-          icon={<Activity size={18} strokeWidth={2.5} />}
-          metricPills={[
-            ...(activeCount > 0 ? [{ label: 'Active', value: activeCount, tone: 'success' as const }] : []),
-            ...(pausedCount > 0 ? [{ label: 'Paused', value: pausedCount, tone: 'warning' as const }] : []),
-            ...(avgDuration > 0 ? [{ label: 'Avg', value: `${avgDuration}m`, tone: 'info' as const }] : []),
-          ]}
+          icon={<Activity size={20} strokeWidth={2.5} />}
+          customTheme={serviceHeaderTheme}
+          subtitle={avgDuration > 0 ? `Avg ${avgDuration}m` : undefined}
           rightActions={
             <>
-              <ViewModeToggle
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                size="sm"
-              />
-
               {viewMode === 'grid' ? (
                 <Tippy content={cardViewMode === 'compact' ? 'Switch to Normal' : 'Switch to Compact'}>
                   <HeaderActionButton onClick={toggleCardViewMode}>
@@ -892,18 +882,61 @@ export const ServiceSection = memo(function ServiceSection({
               <div className="relative" ref={dropdownRef}>
                 <Tippy content="More options">
                   <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)}>
-                    <Settings size={16} />
+                    <MoreVertical size={16} />
                   </HeaderActionButton>
                 </Tippy>
                 {showDropdown && (
                   <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
-                    {/* Card Size Section */}
+                    {/* View Mode Section */}
                     <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        View Mode
+                      </h3>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setViewMode('grid');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          viewMode === 'grid'
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Grid size={14} className="mr-2" />
+                          <span>Grid View</span>
+                        </div>
+                        {viewMode === 'grid' && <Check size={14} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setViewMode('list');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          viewMode === 'list'
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <List size={14} className="mr-2" />
+                          <span>List View</span>
+                        </div>
+                        {viewMode === 'list' && <Check size={14} />}
+                      </button>
+                    </div>
+
+                    {/* Card Size Section */}
+                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Card Size
                       </h3>
                     </div>
-                    <div className="px-3 py-3 bg-gray-50">
+                    <div className="px-3 py-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-gray-500">Small</span>
                         <span className="text-xs font-semibold text-gray-700">{Math.round(cardScale * 100)}%</span>
@@ -929,10 +962,6 @@ export const ServiceSection = memo(function ServiceSection({
                   </div>
                 )}
               </div>
-
-              <HeaderActionButton onClick={onToggleMinimize}>
-                {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-              </HeaderActionButton>
             </>
           }
         />

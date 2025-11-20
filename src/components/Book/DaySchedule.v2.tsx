@@ -396,30 +396,25 @@ export const DaySchedule = memo(function DaySchedule({
                 className="relative bg-white"
                 style={{ height: `${gridHeight}px` }}
               >
-                {/* Hour lines */}
+                {/* Hour lines - Subtle, minimal */}
                 {timeLabels.map(({ hour }) => (
                   <div
                     key={hour}
-                    className="absolute w-full border-t border-gray-200"
+                    className="absolute w-full border-t border-gray-100"
                     style={{
                       top: `${hour * 60}px`,
                       height: '60px',
                     }}
-                  >
-                    {/* 15-minute sub-lines (very subtle) */}
-                    <div className="absolute w-full border-t border-gray-100" style={{ top: '15px' }} />
-                    <div className="absolute w-full border-t border-gray-100" style={{ top: '30px' }} />
-                    <div className="absolute w-full border-t border-gray-100" style={{ top: '45px' }} />
-                  </div>
+                  />
                 ))}
 
-                {/* Alternating row backgrounds - Premium surface colors */}
+                {/* Alternating row backgrounds - Subtle, minimal */}
                 {timeLabels.map(({ hour }, index) => (
                   <div
                     key={`bg-${hour}`}
                     className={cn(
                       'absolute w-full pointer-events-none transition-colors duration-200',
-                      index % 2 === 0 ? 'bg-white' : 'bg-surface-secondary/40'
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
                     )}
                     style={{
                       top: `${hour * 60}px`,
@@ -592,66 +587,59 @@ export const DaySchedule = memo(function DaySchedule({
                       }}
                       className={cn(
                         'absolute left-2 right-2',
-                        'rounded-xl',
-                        'border border-gray-200',
+                        'rounded-lg',
+                        'border border-gray-200/60',
                         'bg-white',
-                        'text-left p-3',
+                        'text-left p-2.5',
                         'overflow-hidden',
                         'group cursor-move',
                         'transition-all duration-200',
-                        'hover:shadow-premium-lg hover:-translate-y-0.5 hover:z-10',
-                        'hover:border-brand-300',
+                        'hover:shadow-md hover:scale-[1.02] hover:z-10',
+                        'hover:border-gray-300',
+                        'active:ring-2 active:ring-brand-400 active:ring-offset-2',
                         'animate-fade-in',
-                        draggedAppointment?.id === appointment.id && 'opacity-50 scale-95',
+                        draggedAppointment?.id === appointment.id && 'opacity-50 scale-95 rotate-2',
                         draggedAppointment?.id === appointment.id && dragConflict?.hasConflict && 'ring-2 ring-red-400'
                       )}
                       style={{
                         ...style,
                         ...staggerDelayStyle(index, 30),
                         minHeight: '60px',
-                        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
                       }}
                     >
-                      {/* Status indicator - Left border */}
+                      {/* Status indicator - Enhanced left border */}
                       <div
-                        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+                        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
                         style={{ backgroundColor: statusColors.accent }}
                       />
 
-                      {/* Content */}
-                      <div className="space-y-1 pl-1">
-                        {/* Client name - Bold */}
-                        <p className="font-semibold text-sm text-gray-900 truncate">
+                      {/* Content - Redesigned hierarchy */}
+                      <div className="space-y-0.5 pl-2">
+                        {/* Time - Most prominent */}
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatTime(new Date(appointment.scheduledStartTime))}
+                        </p>
+
+                        {/* Client name - Important */}
+                        <p className="text-sm font-medium text-gray-800 truncate">
                           {appointment.clientName}
                         </p>
 
-                        {/* Service name */}
+                        {/* Service & Price - Supporting info */}
                         {appointment.services[0] && (
-                          <p className="text-xs text-gray-600 truncate">
-                            {appointment.services[0].serviceName}
-                          </p>
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <span className="truncate">{appointment.services[0].serviceName}</span>
+                            {appointment.services[0]?.price && (
+                              <>
+                                <span>•</span>
+                                <span className="font-medium text-gray-700">
+                                  ${appointment.services[0].price}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         )}
-
-                        {/* Time & Price row */}
-                        <div className="flex items-center justify-between gap-2 text-xs">
-                          <span className="text-gray-500 font-medium">
-                            {formatTime(new Date(appointment.scheduledStartTime))}
-                          </span>
-                          {appointment.services[0]?.price && (
-                            <span className="text-brand-600 font-semibold">
-                              ${appointment.services[0].price}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Status badge */}
-                        <div className="pt-1">
-                          <StatusBadge
-                            status={appointment.status as any}
-                            showDot={false}
-                            size="sm"
-                          />
-                        </div>
                       </div>
 
                       {/* Hover menu indicator */}

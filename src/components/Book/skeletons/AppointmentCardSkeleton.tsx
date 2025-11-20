@@ -39,6 +39,11 @@ export function AppointmentCardSkeleton({ className, compact = false }: Appointm
             <ShimmerSkeleton variant="text" className="h-3 w-16" />
             <ShimmerSkeleton variant="text" className="h-3 w-12" />
           </div>
+
+          {/* Status badge */}
+          <div className="mt-2">
+            <ShimmerSkeleton variant="rectangular" className="h-5 w-20 rounded-full" />
+          </div>
         </>
       )}
     </div>

@@ -31,6 +31,8 @@ export function StaffCardSkeleton({ className }: StaffCardSkeletonProps) {
       <div className="flex-1 min-w-0 space-y-2">
         <ShimmerSkeleton variant="text" className="h-4 w-3/4" />
         <ShimmerSkeleton variant="text" className="h-3 w-1/2" />
+        {/* Workload progress bar */}
+        <ShimmerSkeleton variant="rectangular" className="h-1.5 w-full rounded-full" />
       </div>
     </div>
   );

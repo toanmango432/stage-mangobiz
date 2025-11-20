@@ -130,18 +130,27 @@ export const StaffSidebar = memo(function StaffSidebar({
               const isSelected = selectedStaffIds.includes(staffMember.id);
 
               return (
-                <StaffChip
+                <div
                   key={staffMember.id}
-                  staff={{
-                    id: staffMember.id,
-                    name: staffMember.name,
-                    appointments: staffMember.appointmentCount,
-                    isActive: staffMember.isAvailable,
+                  className="animate-slide-up"
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                    animationDuration: '400ms',
+                    animationFillMode: 'both'
                   }}
-                  index={index}
-                  isSelected={isSelected}
-                  onClick={() => handleToggleStaff(staffMember.id)}
-                />
+                >
+                  <StaffChip
+                    staff={{
+                      id: staffMember.id,
+                      name: staffMember.name,
+                      appointments: staffMember.appointmentCount,
+                      isActive: staffMember.isAvailable,
+                    }}
+                    index={index}
+                    isSelected={isSelected}
+                    onClick={() => handleToggleStaff(staffMember.id)}
+                  />
+                </div>
               );
             })}
           </div>

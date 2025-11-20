@@ -19,4 +19,8 @@ export { EditAppointmentModal } from './EditAppointmentModal';
 export { WeekView } from './WeekView';
 export { MonthView } from './MonthView';
 export { AgendaView } from './AgendaView';
+export { TimelineView } from './TimelineView';
+export { DatePickerModal } from './DatePickerModal';
 export { SmartBookingPanel } from './SmartBookingPanel';
+export { ViewModeDropdown } from './ViewModeDropdown';
+export { StaffFilterDropdown } from './StaffFilterDropdown';

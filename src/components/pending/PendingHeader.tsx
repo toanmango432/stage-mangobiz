@@ -1,4 +1,4 @@
-import { Search, Grid, List, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Grid, List, ArrowUpDown, ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
@@ -53,21 +53,25 @@ export function PendingHeader({
   }, []);
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+    <header className="bg-white/70 border-b border-amber-100 backdrop-blur-md px-4 sm:px-6 py-4">
       <div className="flex flex-col gap-4">
-        {/* Title */}
+        {/* Title with Icon and Count */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pending Payment</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {ticketCount === 0 ? (
-                'No pending payments'
-              ) : (
-                <>
-                  {ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'} awaiting payment
-                </>
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+              <CreditCard size={20} strokeWidth={2.5} />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-semibold text-slate-900 leading-tight">Pending Payment</h1>
+                <span className="text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  {ticketCount}
+                </span>
+              </div>
+              {ticketCount > 0 && (
+                <span className="text-2xs text-amber-600">Total $2,340</span>
               )}
-            </p>
+            </div>
           </div>
 
           {/* View Mode Toggle */}
@@ -77,7 +81,7 @@ export function PendingHeader({
                 onClick={() => onViewModeChange('grid')}
                 className={`p-2 transition-colors ${
                   viewMode === 'grid'
-                    ? 'bg-blue-50 text-blue-600'
+                    ? 'bg-amber-50 text-amber-600'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -89,7 +93,7 @@ export function PendingHeader({
                 onClick={() => onViewModeChange('list')}
                 className={`p-2 transition-colors border-l border-gray-300 ${
                   viewMode === 'list'
-                    ? 'bg-blue-50 text-blue-600'
+                    ? 'bg-amber-50 text-amber-600'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >

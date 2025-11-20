@@ -19,21 +19,36 @@ export type BookingSource =
   | 'client-app'
   | 'admin-portal';
 
-export type TicketStatus = 
-  | 'in-service'
-  | 'pending'
-  | 'completed'
-  | 'voided'
-  | 'refunded';
+export type TicketStatus =
+  // Sales Module Statuses (payment captured):
+  | 'paid'              // Full payment received - appears in Sales
+  | 'partial-payment'   // Some payment received, balance remains - appears in Sales
+  | 'refunded'          // Full refund issued - appears in Sales
+  | 'partially-refunded' // Partial refund issued - appears in Sales
+  | 'voided'            // Transaction cancelled - appears in Sales
+  // Non-Sales Statuses (no payment captured):
+  | 'unpaid'            // Service done, payment outstanding - does NOT appear in Sales
+  | 'pending'           // Transaction initiated, awaiting payment - does NOT appear in Sales
+  | 'failed'            // Payment declined/error - does NOT appear in Sales
+  | 'completed';        // Legacy status (maps to 'paid')
 
 export type PaymentMethod =
-  | 'card'
   | 'cash'
+  | 'credit-card'
+  | 'debit-card'
+  | 'card'              // Generic card (legacy)
   | 'venmo'
   | 'digital-wallet'
   | 'gift-card'
   | 'account-credit'
   | 'split';
+
+export type CardType =
+  | 'visa'
+  | 'mastercard'
+  | 'amex'
+  | 'discover'
+  | 'other';
 
 export type TransactionStatus = 
   | 'completed'

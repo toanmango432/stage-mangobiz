@@ -3,14 +3,13 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, Minimize2, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, Settings, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Plus } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Plus, Timer } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import { WaitListTicketCard, WaitListTicketCardRefactored } from './tickets';
-import { headerContentSpacer } from './frontdesk/headerTokens';
+import { headerContentSpacer, waitingHeaderTheme } from './frontdesk/headerTokens';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
-import { ViewModeToggle } from './frontdesk/ViewModeToggle';
 interface WaitListSectionProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -957,19 +956,11 @@ export const WaitListSection = memo(function WaitListSection({
         <FrontDeskHeader
           title="Waiting Queue"
           count={waitlist.length}
-          icon={<Users size={18} className="text-white" />}
-          metricPills={[
-            ...(vipCount > 0 ? [{ label: 'VIP', value: vipCount, tone: 'vip' as const }] : []),
-            ...(avgWaitTime > 0 ? [{ label: 'Avg', value: `${avgWaitTime}m`, tone: 'info' as const }] : []),
-          ]}
+          icon={<Timer size={20} strokeWidth={2.5} />}
+          customTheme={waitingHeaderTheme}
+          subtitle={waitlist.length > 0 ? `Avg ${avgWaitTime}m` : undefined}
           rightActions={
             <>
-              <ViewModeToggle
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                size="sm"
-              />
-
               {viewMode === 'grid' ? (
                 <Tippy content={cardViewMode === 'compact' ? 'Switch to Normal' : 'Switch to Compact'}>
                   <HeaderActionButton onClick={toggleCardViewMode}>
@@ -987,13 +978,56 @@ export const WaitListSection = memo(function WaitListSection({
               <div className="relative" ref={dropdownRef}>
                 <Tippy content="More options">
                   <HeaderActionButton onClick={() => setShowDropdown(!showDropdown)}>
-                    <Settings size={16} />
+                    <MoreVertical size={16} />
                   </HeaderActionButton>
                 </Tippy>
                 {showDropdown && (
                   <div className="absolute right-0 mt-1 w-52 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1">
-                    {/* Card Size Section */}
+                    {/* View Mode Section */}
                     <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        View Mode
+                      </h3>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setViewMode('grid');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          viewMode === 'grid'
+                            ? 'bg-violet-50 text-violet-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Grid size={14} className="mr-2" />
+                          <span>Grid View</span>
+                        </div>
+                        {viewMode === 'grid' && <Check size={14} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setViewMode('list');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          viewMode === 'list'
+                            ? 'bg-violet-50 text-violet-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <List size={14} className="mr-2" />
+                          <span>List View</span>
+                        </div>
+                        {viewMode === 'list' && <Check size={14} />}
+                      </button>
+                    </div>
+
+                    {/* Card Size Section */}
+                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Card Size
                       </h3>
@@ -1024,10 +1058,6 @@ export const WaitListSection = memo(function WaitListSection({
                   </div>
                 )}
               </div>
-
-              <HeaderActionButton onClick={onToggleMinimize}>
-                {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-              </HeaderActionButton>
             </>
           }
         />

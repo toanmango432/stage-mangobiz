@@ -151,141 +151,157 @@ function ServiceTicketCardComponent({
   const renderContent = () => {
     if (viewMode === 'compact') {
       return (
-        <div className="py-2 pr-3 pl-9">
-          {/* Row 1: Client name + Time/Progress - more compact */}
-          <div className="flex items-start justify-between gap-2 mb-0.5">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-xs text-[#1a1614] truncate">
-                  {ticket.clientName}
-                </span>
-                {hasStar && <span className="text-[10px]">⭐</span>}
-                {hasNote && <StickyNote className="w-2.5 h-2.5 text-amber-500" />}
+        <>
+          {/* Dog-ear corner - compact size */}
+          <div className="absolute top-0 right-0 w-[5px] h-[5px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
+
+          <div className="py-2 pr-3 pl-9">
+            {/* Row 1: Client name + Time/Progress - more compact */}
+            <div className="flex items-start justify-between gap-2 mb-0.5">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-[#1a1614] truncate">
+                    {ticket.clientName}
+                  </span>
+                  {hasStar && <span className="text-[10px]">⭐</span>}
+                  {hasNote && <StickyNote className="w-2.5 h-2.5 text-amber-500" />}
+                </div>
+                <div className="text-[9px] text-[#8b7968] mt-0.5 font-medium">
+                  {getLastVisitText()}
+                </div>
               </div>
-              <div className="text-[9px] text-[#8b7968] mt-0.5 font-medium">
-                {getLastVisitText()}
+
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="text-[9px] text-[#5a4d44] font-medium whitespace-nowrap">{formatTime(timeRemaining)}</span>
+                <div className="w-16 h-1 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
+                  <div
+                    className="h-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(progress, 100)}%`,
+                      background: currentStatus.progress,
+                      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                      borderRadius: '5px'
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[9px] text-[#5a4d44] font-medium whitespace-nowrap">{formatTime(timeRemaining)}</span>
-              <div className="w-16 h-1 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
-                <div
-                  className="h-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min(progress, 100)}%`,
-                    background: currentStatus.progress,
-                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                    borderRadius: '5px'
-                  }}
-                />
+            {/* Row 2: Service + Staff badges + Done button - more compact */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[11px] text-[#2d2520] font-semibold truncate flex-1">
+                {ticket.service}
               </div>
-              <span className="text-xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
+
+              <div className="px-1.5 py-1 rounded-md flex-shrink-0 flex items-center gap-1.5"
+                   style={{
+                     background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+                     boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
+                     border: '1px solid rgba(212, 184, 150, 0.15)'
+                   }}>
+                <div className="flex items-center gap-1">
+                  {staffList.slice(0, 2).map((staff, i) => (
+                    <div key={i}
+                         className="text-white text-[9px] font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
+                         style={{
+                           background: getStaffColor(staff),
+                           boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                           textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)'
+                         }}>
+                      {getFirstName(staff.name)}
+                    </div>
+                  ))}
+                  {staffList.length > 2 && <span className="text-[9px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}
+                </div>
+
+                {/* Done button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                  className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                  title="Mark as Done"
+                >
+                  <Check size={14} strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Row 2: Service + Staff badges + Done button - more compact */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-[11px] text-[#2d2520] font-semibold truncate flex-1">
-              {ticket.service}
-            </div>
-
-            <div className="px-1.5 py-1 rounded-md flex-shrink-0 flex items-center gap-1.5"
-                 style={{
-                   background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-                   boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                   border: '1px solid rgba(212, 184, 150, 0.15)'
-                 }}>
-              <div className="flex items-center gap-1">
-                {staffList.slice(0, 2).map((staff, i) => (
-                  <div key={i}
-                       className="text-white text-[9px] font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
-                       style={{
-                         background: getStaffColor(staff),
-                         boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                         textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)'
-                       }}>
-                    {getFirstName(staff.name)}
-                  </div>
-                ))}
-                {staffList.length > 2 && <span className="text-[9px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}
-              </div>
-
-              {/* Done button */}
-              <button
-                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
-                title="Mark as Done"
-              >
-                <Check size={14} strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
-        </div>
+          {/* Paper texture overlay */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
+        </>
       );
     }
 
     // Normal view
     if (viewMode === 'normal') {
       return (
-        <div className="py-3 pr-3 pl-10">
-          {/* Row 1: Client name + Time/Progress */}
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
-                  {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
-                  {hasNote && <StickyNote className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
-                </div>
-                <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1.5">{getLastVisitText()}</div>
-                <div className="border-t border-[#e8dcc8]/50 mb-2" />
-              </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-[#5a4d44] font-medium whitespace-nowrap">{formatTime(timeRemaining)}</span>
-              <div className="w-24 h-1.5 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden"
-                   style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
-                <div className="h-full transition-all duration-300"
-                     style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)', borderRadius: '5px' }} />
-              </div>
-              <span className="text-sm font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
-            </div>
-          </div>
+        <>
+          {/* Dog-ear corner - normal size */}
+          <div className="absolute top-0 right-0 w-[6px] h-[6px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          {/* Row 2: Service + Staff badges + Done button */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
-
-            {/* Staff badges + Done button with background container */}
-            <div className="px-2 py-2 rounded-lg relative flex-shrink-0 flex items-center gap-2"
-                 style={{
-                   background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-                   boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                   border: '1px solid rgba(212, 184, 150, 0.15)'
-                 }}>
-              <div className="flex items-center gap-1.5">
-                {staffList.map((staff, i) => (
-                  <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
-                       style={{ background: getStaffColor(staff), boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
-                    {getFirstName(staff.name)}
+          <div className="py-3 pr-3 pl-10">
+            {/* Row 1: Client name + Time/Progress */}
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+                    {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
+                    {hasNote && <StickyNote className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
                   </div>
-                ))}
+                  <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1.5">{getLastVisitText()}</div>
+                  <div className="border-t border-[#e8dcc8]/50 mb-2" />
+                </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs text-[#5a4d44] font-medium whitespace-nowrap">{formatTime(timeRemaining)}</span>
+                <div className="w-24 h-1.5 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden"
+                     style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
+                  <div className="h-full transition-all duration-300"
+                       style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)', borderRadius: '5px' }} />
+                </div>
+                <span className="text-sm font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
-                title="Mark as Done"
-              >
-                <Check size={20} strokeWidth={2.5} />
-              </button>
+            </div>
+
+            {/* Row 2: Service + Staff badges + Done button */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+
+              {/* Staff badges + Done button with background container */}
+              <div className="px-2 py-2 rounded-lg relative flex-shrink-0 flex items-center gap-2"
+                   style={{
+                     background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+                     boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
+                     border: '1px solid rgba(212, 184, 150, 0.15)'
+                   }}>
+                <div className="flex items-center gap-1.5">
+                  {staffList.map((staff, i) => (
+                    <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
+                         style={{ background: getStaffColor(staff), boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                      {getFirstName(staff.name)}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                  className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                  title="Mark as Done"
+                >
+                  <Check size={20} strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Paper texture overlay */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
+        </>
       );
     }
 
@@ -415,34 +431,57 @@ function ServiceTicketCardComponent({
     );
   }
 
-  // Line/List modes use BasePaperTicket wrapper
+  // Line/List modes use thermal receipt design
   return (
     <>
-      <BasePaperTicket
-        state="inService"
-        viewMode={mapViewMode(viewMode)}
-        ticketNumber={ticket.number}
+      <div
         onClick={() => onClick?.(ticket.id)}
         onKeyDown={handleKeyDown}
-        className=""
+        role="button"
+        tabIndex={0}
+        aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
+        className="relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg"
+        style={{
+          background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+          border: '1px dashed #D8D8D8',
+          borderRadius: '10px',
+          boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
+        }}
       >
-        {/* State indicator in corner */}
-        <StateIndicator state="inService" position="top-right" size="small" />
+        {/* Perforation dots - barely visible */}
+        <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
+          {[...Array(viewMode === 'compact' ? 15 : 20)].map((_, i) => (
+            <div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />
+          ))}
+        </div>
 
-        {/* Priority badge if applicable */}
-        {ticket.clientType !== 'Regular' && (
-          <PriorityBadge
-            priority={ticket.clientType as 'VIP' | 'Priority' | 'New'}
-            position="top-left"
-          />
-        )}
+        {/* Ticket number badge */}
+        <div
+          className="absolute left-0 top-2 z-20 text-[#1a1614] flex items-center justify-center font-black"
+          style={{
+            width: viewMode === 'compact' ? '28px' : '36px',
+            height: viewMode === 'compact' ? 'clamp(1.3rem, 2.8vw, 1.5rem)' : 'clamp(1.5rem, 3vw, 1.85rem)',
+            fontSize: viewMode === 'compact' ? '11px' : '14px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
+            borderTopRightRadius: viewMode === 'compact' ? '6px' : '8px',
+            borderBottomRightRadius: viewMode === 'compact' ? '6px' : '8px',
+            borderTop: '1px solid rgba(212, 184, 150, 0.4)',
+            borderRight: '1px solid rgba(212, 184, 150, 0.4)',
+            borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
+            boxShadow: '2px 0 4px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 2px rgba(139, 92, 46, 0.08)',
+            letterSpacing: '-0.02em',
+            transform: viewMode === 'compact' ? 'translateX(-2px)' : 'translateX(-3px)'
+          }}
+        >
+          {ticket.number}
+        </div>
 
         {/* Main content */}
         {renderContent()}
 
         {/* Progress indicator at bottom */}
         <ProgressIndicator percentage={progress} position="bottom" />
-      </BasePaperTicket>
+      </div>
 
       {showDetailsModal && (
         <TicketDetailsModal
