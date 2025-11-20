@@ -10,6 +10,8 @@ import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import { ServiceTicketCard, ServiceTicketCardRefactored } from './tickets';
+import { FrontDeskSettingsData } from './frontdesk-settings/types';
+
 interface ServiceSectionProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -32,6 +34,7 @@ interface ServiceSectionProps {
     counterBg: string;
     counterText: string;
   };
+  settings?: FrontDeskSettingsData;
 }
 export const ServiceSection = memo(function ServiceSection({
   isMinimized = false,
@@ -45,8 +48,14 @@ export const ServiceSection = memo(function ServiceSection({
   setMinimizedLineView: externalSetMinimizedLineView,
   isCombinedView = false,
   hideHeader = false,
-  headerStyles
+  headerStyles,
+  settings
 }: ServiceSectionProps) {
+  // Check if section should be hidden based on settings
+  if (settings && (!settings.inServiceActive || !settings.showInService)) {
+    return null;
+  }
+
   // Get service tickets from context with fallback to empty array
   const {
     serviceTickets = [],

@@ -778,7 +778,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                   {/* Service Section - Show when active in combined view */}
                   {activeCombinedTab === 'service' && <div className="h-full flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden">
-                      <ServiceSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} headerStyles={{
+                      <ServiceSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} settings={frontDeskSettings} headerStyles={{
                         bg: 'bg-[#F9FAFB]',
                         accentColor: '#3B82F6',
                         iconColor: 'text-[#9CA3AF]',
@@ -851,6 +851,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                           onToggleMinimize={() => toggleSectionMinimize('service')}
                           isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
                           hideHeader={true}
+                          settings={frontDeskSettings}
                         />
                       </div>
                     </div>}
@@ -880,7 +881,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                             style={!minimizedSections.service && !minimizedSections.waitList ? { width: `${serviceWidth}%` } : undefined}
                           >
                             <ServiceSectionErrorBoundary>
-                              <ServiceSection isMinimized={minimizedSections.service} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={false} headerStyles={{
+                              <ServiceSection isMinimized={minimizedSections.service} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={false} settings={frontDeskSettings} headerStyles={{
                                 bg: colorTokens.service.bg,
                                 accentColor: '#22C55E', // service-500
                                 iconColor: 'text-gray-400',
