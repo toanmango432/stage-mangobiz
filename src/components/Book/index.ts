@@ -27,3 +27,4 @@ export { SmartBookingPanel } from './SmartBookingPanel';
 export { ViewModeDropdown } from './ViewModeDropdown';
 export { StaffFilterDropdown } from './StaffFilterDropdown';
 export { QuickActionsBar } from './QuickActionsBar';
+export { ClientPreviewPopover } from './ClientPreviewPopover';
