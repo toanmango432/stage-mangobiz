@@ -8,6 +8,7 @@ import { User, BadgeCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { formatTimeDisplay, formatDurationDisplay } from '../../utils/timeUtils';
+import { StatusBadge } from './StatusBadge';
 
 interface AppointmentCardProps {
   appointment: LocalAppointment;
@@ -136,16 +137,11 @@ export const AppointmentCard = memo(function AppointmentCard({
                   <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" aria-hidden />
                 )}
               </div>
-              <div
-                className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold border"
-                style={{
-                  color: statusStyle.fg,
-                  backgroundColor: statusStyle.bg,
-                  borderColor: statusStyle.border,
-                }}
-              >
-                {statusStyle.label}
-              </div>
+              <StatusBadge
+                status={appointment.status as any}
+                size="sm"
+                showIcon={false}
+              />
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-gray-600">
