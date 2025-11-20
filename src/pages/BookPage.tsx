@@ -6,10 +6,12 @@
 import { useEffect, useState } from 'react';
 import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { store } from '../store';
 import { selectAllStaff } from '../store/slices/staffSlice';
 import {
   CalendarHeader,
+  CommandPalette,
   StaffSidebar,
   CustomerSearchModal,
   NewAppointmentModalV2,
@@ -44,6 +46,7 @@ export function BookPage() {
   const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     staffId: string;
@@ -51,6 +54,18 @@ export function BookPage() {
     staffName?: string;
     staffPhoto?: string;
   } | null>(null);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts({
+    enabled: true,
+    onShowHelp: () => {
+      // TODO: Create keyboard shortcuts help modal
+      console.log('Show keyboard shortcuts help');
+    },
+    onCommandPalette: () => {
+      setIsCommandPaletteOpen(true);
+    },
+  });
   
   // Filter state
   const [filters, setFilters] = useState<AppointmentFilters>({
@@ -824,6 +839,12 @@ export function BookPage() {
           existingAppointments={filteredAppointments || []}
         />
       </ErrorBoundary>
+
+      {/* Command Palette - Cmd+K Quick Actions */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
 
       {/* Floating Action Button - New Appointment */}
       <button
