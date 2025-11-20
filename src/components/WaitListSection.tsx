@@ -3,7 +3,7 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Plus, Timer } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Plus, Hourglass } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
@@ -956,7 +956,7 @@ export const WaitListSection = memo(function WaitListSection({
         <FrontDeskHeader
           title="Waiting Queue"
           count={waitlist.length}
-          icon={<Timer size={20} strokeWidth={2.5} />}
+          icon={<Hourglass size={20} strokeWidth={2.5} />}
           customTheme={waitingHeaderTheme}
           subtitle={waitlist.length > 0 ? `Avg ${avgWaitTime}m` : undefined}
           rightActions={
