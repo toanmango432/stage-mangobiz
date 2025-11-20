@@ -69,7 +69,7 @@ export function PendingHeader({
                 </span>
               </div>
               {ticketCount > 0 && (
-                <span className="text-2xs text-amber-600">Total $2,340</span>
+                <span className="text-xs text-amber-700 font-medium mt-0.5">Total $2,340 pending</span>
               )}
             </div>
           </div>

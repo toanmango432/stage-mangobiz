@@ -148,21 +148,21 @@ export function WaitListTicketCard({
           </div>
 
           {/* Compact content area */}
-          <div className="py-1.5 pr-12 pl-7 relative">
+          <div className="py-0.5 pr-12 pl-7 relative">
             {/* Single compact row */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-1">
               {/* Left: Client + Service */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <span className="font-semibold text-xs text-[#1a1614] truncate">{ticket.clientName}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-xs text-[#1a1614] truncate leading-tight">{ticket.clientName}</span>
                   {isFirstVisit && <span className="text-2xs">⭐</span>}
                   {hasNote && <span className="text-2xs">📋</span>}
                 </div>
-                <div className="text-2xs text-[#6b5d52] truncate">{ticket.service}</div>
+                <div className="text-2xs text-[#6b5d52] truncate leading-tight">{ticket.service}</div>
               </div>
 
               {/* Right: Wait time */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <span className="text-2xs text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
               </div>
             </div>
@@ -170,13 +170,13 @@ export function WaitListTicketCard({
             {/* Compact Assign button - Matched to ServiceTicketCard Done button */}
             <button
               onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
               style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
               onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.25)'}
               onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
               title="Assign Staff"
             >
-              <UserPlus size={14} strokeWidth={2.5} />
+              <UserPlus size={12} strokeWidth={2.5} />
             </button>
           </div>
 
@@ -241,16 +241,16 @@ export function WaitListTicketCard({
         </div>
 
         {/* Content area */}
-        <div className="py-1.5 pr-2.5 pl-8">
+        <div className="py-0.5 pr-2.5 pl-8">
           {/* Row 1: Client name + Wait time */}
-          <div className="flex items-start justify-between gap-3 mb-1.5">
+          <div className="flex items-start justify-between gap-1.5 mb-0.5">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#1a1614] truncate text-base leading-tight">{ticket.clientName}</span>
                 {isFirstVisit && <span className="text-sm flex-shrink-0">⭐</span>}
                 {hasNote && <StickyNote size={14} className="text-amber-500 flex-shrink-0" />}
               </div>
-              <div className="text-2xs text-[#8b7968] font-medium tracking-wide mb-0.5">{getLastVisitText()}</div>
+              <div className="text-2xs text-[#8b7968] font-medium tracking-wide leading-tight">{getLastVisitText()}</div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs text-[#8b7968] whitespace-nowrap">Waited {formatWaitTime(waitTime)}</span>
@@ -260,33 +260,23 @@ export function WaitListTicketCard({
           </div>
 
           {/* Divider - spans full content width */}
-          <div className="border-t border-[#e8dcc8]/50 my-1" />
+          <div className="border-t border-[#e8dcc8]/50" />
 
           {/* Row 2: Service + Assign button */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-1.5 mt-0.5">
             <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
 
-            {/* Assign button with background container - exactly matched to ServiceTicketCard structure */}
-            <div className="px-2 py-1 rounded-lg relative flex-shrink-0"
-                 style={{
-                   background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-                   boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                   border: '1px solid rgba(212, 184, 150, 0.15)',
-                   minWidth: '80px'
-                 }}>
-              {/* Inner div to establish height and space for button - matches ServiceTicketCard */}
-              <div className="flex items-center gap-1.5" style={{ paddingRight: '64px', minHeight: '32px' }}>
-                {/* Empty space - staff will appear here after assignment */}
-              </div>
+            {/* Assign button */}
+            <div className="flex-shrink-0">
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                className="absolute top-1/2 right-2 -translate-y-1/2 w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
                 onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.25)'}
                 onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
                 title="Assign Staff"
               >
-                <UserPlus size={24} strokeWidth={2.5} />
+                <UserPlus size={20} strokeWidth={2.5} />
               </button>
             </div>
           </div>

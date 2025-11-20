@@ -22,11 +22,11 @@ export function PaymentFooter({ ticketId, onMarkPaid, onCancel }: PaymentFooterP
             e.stopPropagation();
             onCancel(ticketId);
           }}
-          className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg border border-gray-300 text-gray-700 text-xs sm:text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 min-h-[44px] rounded-lg border-2 border-gray-400 text-gray-700 text-xs sm:text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
           title="Cancel"
           aria-label={`Cancel ticket ${ticketId}`}
         >
-          <X size={14} className="sm:w-4 sm:h-4" />
+          <X size={16} className="sm:w-[18px] sm:h-[18px]" />
           Cancel
         </button>
       )}
@@ -37,11 +37,11 @@ export function PaymentFooter({ ticketId, onMarkPaid, onCancel }: PaymentFooterP
           e.stopPropagation();
           onMarkPaid(ticketId);
         }}
-        className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg bg-blue-600 text-white text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
+        className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 min-h-[44px] rounded-lg bg-blue-600 text-white text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5"
         title="Mark as Paid"
         aria-label={`Mark ticket ${ticketId} as paid`}
       >
-        <CheckCircle size={14} className="sm:w-4 sm:h-4" />
+        <CheckCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
         Mark Paid
       </button>
     </div>

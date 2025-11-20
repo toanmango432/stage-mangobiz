@@ -19,10 +19,14 @@ import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
 import { syncManager } from '../../services/syncManager';
 import { NetworkStatus } from '../NetworkStatus';
+import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from '../frontdesk-settings/FrontDeskSettings';
+import { SettingsErrorBoundary } from '../frontdesk/SectionErrorBoundary';
 
 export function AppShell() {
   const [activeModule, setActiveModule] = useState('frontdesk');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
+  const [frontDeskSettings, setFrontDeskSettings] = useState<FrontDeskSettingsData>(defaultFrontDeskSettings);
   const { pendingTickets } = useTickets();
   const pendingCount = pendingTickets.length;
   const dispatch = useAppDispatch();
@@ -93,12 +97,23 @@ export function AppShell() {
     };
   }, [dispatch]);
 
+  // Handle settings change
+  const handleFrontDeskSettingsChange = (newSettings: Partial<FrontDeskSettingsData>) => {
+    setFrontDeskSettings(prev => ({
+      ...prev,
+      ...newSettings
+    }));
+  };
+
   const renderModule = () => {
     switch (activeModule) {
       case 'book':
         return <Book />;
       case 'frontdesk':
-        return <FrontDesk />;
+        return <FrontDesk
+          settingsData={frontDeskSettings}
+          onSettingsChange={handleFrontDeskSettingsChange}
+        />;
       case 'tickets':
         return <Tickets />;
       case 'team':
@@ -116,7 +131,10 @@ export function AppShell() {
       case 'ticket-preview':
         return <TicketColorPreview />;
       default:
-        return <FrontDesk />;
+        return <FrontDesk
+          settingsData={frontDeskSettings}
+          onSettingsChange={handleFrontDeskSettingsChange}
+        />;
     }
   };
 
@@ -139,9 +157,9 @@ export function AppShell() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* Network Status Indicator */}
       <NetworkStatus />
-      
+
       {/* Top Header - Always visible */}
-      <TopHeaderBar />
+      <TopHeaderBar onSettingsClick={() => setShowFrontDeskSettings(true)} />
 
       {/* Main Content Area - No scrolling, let sections handle it */}
       <main className="flex-1 overflow-hidden pt-10">
@@ -149,11 +167,21 @@ export function AppShell() {
       </main>
 
       {/* Bottom Navigation - Always visible */}
-      <BottomNavBar 
-        activeModule={activeModule} 
+      <BottomNavBar
+        activeModule={activeModule}
         onModuleChange={setActiveModule}
         pendingCount={pendingCount}
       />
+
+      {/* Front Desk Settings Modal */}
+      <SettingsErrorBoundary>
+        <FrontDeskSettings
+          isOpen={showFrontDeskSettings}
+          onClose={() => setShowFrontDeskSettings(false)}
+          currentSettings={frontDeskSettings}
+          onSettingsChange={handleFrontDeskSettingsChange}
+        />
+      </SettingsErrorBoundary>
     </div>
   );
 }

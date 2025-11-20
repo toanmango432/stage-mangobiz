@@ -72,7 +72,7 @@ export function ClientInfo({
       {/* Last Visit Text */}
       <div
         className="text-[9px] sm:text-[10px] md:text-xs font-medium tracking-wide mb-1.5 sm:mb-2"
-        style={{ color: '#8b7968' }}
+        style={{ color: '#6b5d52' }}
       >
         {getLastVisitText()}
       </div>

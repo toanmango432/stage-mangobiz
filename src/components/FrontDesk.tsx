@@ -11,17 +11,21 @@ import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Settings, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
-import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
+import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Clock } from 'lucide-react';
+import { FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
 import { ErrorBoundary } from './frontdesk/ErrorBoundary';
 import {
   TeamSectionErrorBoundary,
   WaitListErrorBoundary,
   ServiceSectionErrorBoundary,
-  ComingAppointmentsErrorBoundary,
-  SettingsErrorBoundary
+  ComingAppointmentsErrorBoundary
 } from './frontdesk/SectionErrorBoundary';
-function FrontDeskComponent() {
+interface FrontDeskComponentProps {
+  settingsData?: FrontDeskSettingsData;
+  onSettingsChange?: (settings: Partial<FrontDeskSettingsData>) => void;
+}
+
+function FrontDeskComponent({ settingsData = defaultFrontDeskSettings, onSettingsChange }: FrontDeskComponentProps) {
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
     // Force Coming section to be minimized by default - clear any old localStorage
@@ -77,12 +81,6 @@ function FrontDeskComponent() {
   });
   // Add state for create ticket modal
   const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
-  // Add state for the salon center settings
-  const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
-  const [frontDeskSettings, setFrontDeskSettings] = useState<FrontDeskSettingsData>(() => {
-    // Initialize with default settings or from localStorage if available
-    return defaultFrontDeskSettings;
-  });
   // Get ticket context functions
   const {
     createTicket
@@ -312,10 +310,11 @@ function FrontDeskComponent() {
   }] : [])];
   // Handle settings change
   const handleFrontDeskSettingsChange = (newSettings: Partial<FrontDeskSettingsData>) => {
-    setFrontDeskSettings(prev => ({
-      ...prev,
-      ...newSettings
-    }));
+    // Call parent handler if provided
+    if (onSettingsChange) {
+      onSettingsChange(newSettings);
+    }
+
     // Apply settings to the appropriate state variables
     if (newSettings.displayMode) {
       setIsCombinedView(newSettings.displayMode === 'tab');
@@ -337,45 +336,6 @@ function FrontDeskComponent() {
       setIsCombinedView(newSettings.combineSections);
       localStorage.setItem('salonCenterViewMode', newSettings.combineSections ? 'combined' : 'column');
     }
-  };
-  // Simplified Ticket Settings Component
-  const TicketsHeader = () => {
-    return (
-      <div className="absolute top-1 right-1 z-50 flex items-center gap-1">
-        {/* Settings icon in the top-right */}
-        <div className="relative" ref={ticketSettingsRef}>
-          <Tippy content="Front Desk Settings">
-            <button className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" onClick={() => setShowFrontDeskSettings(true)}>
-              <Settings size={16} />
-            </button>
-          </Tippy>
-          {/* Remove the old ticket settings dropdown */}
-        </div>
-        {/* Mobile/tablet controls - keep these but remove the background bar */}
-        {(deviceInfo.isMobile || deviceInfo.isTablet) && <div className="flex items-center space-x-1 mt-2">
-            <Tippy content="Sort tickets">
-              <button className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" onClick={() => {
-            setTicketSortOrder(ticketSortOrder === 'queue' ? 'time' : 'queue');
-            handleFrontDeskSettingsChange({
-              sortBy: ticketSortOrder === 'queue' ? 'time' : 'queue'
-            });
-          }}>
-                {ticketSortOrder === 'queue' ? <ListFilter size={16} /> : <Clock size={16} />}
-              </button>
-            </Tippy>
-            <Tippy content={showUpcomingAppointments ? 'Hide upcoming' : 'Show upcoming'}>
-              <button className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" onClick={() => {
-            setShowUpcomingAppointments(!showUpcomingAppointments);
-            handleFrontDeskSettingsChange({
-              showComingAppointments: !showUpcomingAppointments
-            });
-          }}>
-                {showUpcomingAppointments ? <Eye size={16} /> : <EyeOff size={16} />}
-              </button>
-            </Tippy>
-          </div>}
-      </div>
-    );
   };
   // Color tokens for section styling
   const colorTokens = {
@@ -606,8 +566,6 @@ function FrontDeskComponent() {
               </div>
             </div>}
           <div className="flex-1 flex flex-col relative h-full bg-white min-h-0">
-            {/* Position the TicketsHeader absolutely in the top right */}
-            <TicketsHeader />
             {/* Main content container */}
             <div className="flex flex-col h-full min-h-0">
               {/* Combined view */}
@@ -859,19 +817,20 @@ function FrontDeskComponent() {
       <FloatingActionButton onCreateTicket={() => setShowCreateTicketModal(true)} />
       {/* Create Ticket Modal */}
       <CreateTicketModal isOpen={showCreateTicketModal} onClose={() => setShowCreateTicketModal(false)} onSubmit={createTicket} />
-      {/* Add the new FrontDeskSettings component */}
-      <SettingsErrorBoundary>
-        <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />
-      </SettingsErrorBoundary>
     </div>
   );
 }
 
 // Export the component wrapped with error boundary for resilience
-export function FrontDesk() {
+export interface FrontDeskProps {
+  settingsData?: FrontDeskSettingsData;
+  onSettingsChange?: (settings: Partial<FrontDeskSettingsData>) => void;
+}
+
+export function FrontDesk({ settingsData = defaultFrontDeskSettings, onSettingsChange }: FrontDeskProps) {
   return (
     <ErrorBoundary>
-      <FrontDeskComponent />
+      <FrontDeskComponent settingsData={settingsData} onSettingsChange={onSettingsChange} />
     </ErrorBoundary>
   );
 }

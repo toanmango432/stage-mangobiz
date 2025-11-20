@@ -73,7 +73,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
       {modules.map((module) => {
         const Icon = module.icon;
         const isActive = activeModule === module.id;
-        const hasBadge = module.badge && module.badge > 0;
+        const hasBadge = module.badge !== undefined;
 
         return (
           <button
@@ -108,17 +108,25 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
               <div className="absolute inset-0 scale-0 bg-gradient-to-br from-orange-500/20 to-pink-500/20 rounded-full origin-center transition-transform duration-400 group-active:scale-150" />
             </div>
 
-            {/* Premium badge with gradient, ring, and glow */}
+            {/* Premium badge with gradient, ring, and conditional pulsing animation */}
             {hasBadge && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="absolute top-1 right-[calc(50%-12px)] min-w-[22px] h-[22px] px-2 bg-gradient-to-br from-red-500 via-pink-600 to-red-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center shadow-[0_0_12px_rgba(239,68,68,0.5),0_2px_8px_rgba(0,0,0,0.3)] ring-2 ring-white z-30"
-                style={{
-                  animation: hasBadge ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
-                }}
-              >
-                {module.badge! > 99 ? '99+' : module.badge}
+              <div className="absolute top-0 right-[calc(50%-24px)] z-30">
+                {/* Pulsing glow background - only pulse when count > 0, subtle when 0 */}
+                <div className={`absolute inset-0 bg-gradient-to-br from-red-500 to-pink-600 rounded-full blur-lg ${module.badge! > 0 ? 'opacity-60 animate-pulse' : 'opacity-20'}`}></div>
+                {/* Main badge with conditional scale pulse and opacity */}
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={`relative min-w-[28px] h-[28px] px-2 bg-gradient-to-br from-red-500 via-pink-600 to-red-500 text-white text-sm font-black rounded-full flex items-center justify-center ring-2 ring-white transition-all duration-300 ${
+                    module.badge! > 0
+                      ? 'opacity-100 shadow-[0_0_16px_rgba(239,68,68,0.6),0_4px_12px_rgba(0,0,0,0.4)] animate-[pulse_1.5s_ease-in-out_infinite]'
+                      : 'opacity-50 shadow-[0_0_8px_rgba(239,68,68,0.2),0_2px_6px_rgba(0,0,0,0.2)]'
+                  }`}
+                >
+                  <span className="tabular-nums leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                    {module.badge! > 99 ? '99+' : module.badge}
+                  </span>
+                </div>
               </div>
             )}
 

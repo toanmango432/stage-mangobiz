@@ -114,7 +114,7 @@ export function PendingTicketCard({
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
           border: '1px dashed #D8D8D8',
-          borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+          borderLeft: '3px solid rgba(245, 158, 11, 0.28)',
           borderRadius: '10px',
           boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
@@ -149,7 +149,7 @@ export function PendingTicketCard({
             {/* Left: Client + Service */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-0.5">
-                <span className="font-semibold text-xs text-[#1a1614] truncate">{ticket.clientName}</span>
+                <span className="font-semibold text-[#1a1614] truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.clientName}</span>
                 {hasStar && <span className="text-2xs">⭐</span>}
               </div>
               <div className="text-2xs text-[#6b5d52] truncate">{ticket.service}</div>
@@ -197,7 +197,7 @@ export function PendingTicketCard({
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
           border: '2px solid #e8dcc8',
-          borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+          borderLeft: '3px solid rgba(245, 158, 11, 0.28)',
           borderRadius: '10px',
           boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
@@ -250,7 +250,7 @@ export function PendingTicketCard({
           <div className="flex items-start justify-between gap-3 mb-1.5">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
+                <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>
                 {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
               </div>
               <div className="text-2xs text-[#8b7968] font-medium tracking-wide mb-0.5">{getLastVisitText()}</div>
@@ -267,7 +267,7 @@ export function PendingTicketCard({
 
           {/* Row 2: Service + Mark Paid button */}
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+            <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.service}</div>
 
             {/* Mark Paid button container */}
             <div className="px-2 py-1 rounded-lg relative flex-shrink-0"
@@ -316,7 +316,7 @@ export function PendingTicketCard({
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
           border: '2px solid #e8dcc8',
-          borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+          borderLeft: '3px solid rgba(245, 158, 11, 0.28)',
           borderRadius: '10px',
           boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
         }}
@@ -362,7 +362,7 @@ export function PendingTicketCard({
         <div className="flex items-start justify-between px-2 sm:px-3 pt-2 sm:pt-3 pb-1 pl-9 sm:pl-10">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5">
-              <span className="text-sm sm:text-base font-bold text-[#1a1614] truncate">{ticket.clientName}</span>
+              <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.clientName}</span>
               {hasStar && <span className="text-xs sm:text-sm flex-shrink-0">⭐</span>}
             </div>
             <div className="text-2xs text-[#8b7968] font-medium">{getLastVisitText()}</div>
@@ -370,7 +370,7 @@ export function PendingTicketCard({
         </div>
 
         <div className="px-2 sm:px-3 pb-2 sm:pb-3 text-xs sm:text-sm text-[#1a1614] font-semibold line-clamp-1">{ticket.service}</div>
-        <div className="mx-2 sm:mx-3 mb-2 border-t border-[#e8dcc8]/50" />
+        <div className="mx-2 sm:mx-3 mb-3 sm:mb-4 border-t border-[#e8dcc8]/50" />
 
         <div className="px-2 sm:px-3 pb-1 flex items-center justify-end">
           <div className="text-base sm:text-lg font-bold" style={{ fontFamily: PremiumTypography.fontFamily.mono }}>
@@ -428,7 +428,7 @@ export function PendingTicketCard({
       style={{
         background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
         border: '2px solid #e8dcc8',
-        borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+        borderLeft: '3px solid rgba(245, 158, 11, 0.28)',
         borderRadius: '10px',
         boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
       }}
@@ -475,8 +475,11 @@ export function PendingTicketCard({
 
       {/* Wrap-around number badge */}
       <div
-        className="absolute left-0 top-3 sm:top-4 md:top-5 w-10 sm:w-11 md:w-14 text-[#1a1614] flex items-center justify-center font-black text-base sm:text-lg md:text-2xl z-20"
+        className="absolute left-0 text-[#1a1614] flex items-center justify-center font-black z-20"
         style={{
+          top: 'clamp(12px, 2vw, 20px)',
+          width: 'clamp(40px, 5.5vw, 56px)',
+          fontSize: 'clamp(16px, 2.25vw, 24px)',
           height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)',
           background: 'rgba(245, 158, 11, 0.06)',
           borderTopRightRadius: '8px',
@@ -494,7 +497,7 @@ export function PendingTicketCard({
 
       <UnpaidWatermark />
 
-      <div className="pl-10 sm:pl-12 md:pl-14">
+      <div style={{ paddingLeft: 'clamp(44px, calc(5.5vw + 4px), 60px)' }}>
         <TicketHeader
           ticketId={ticket.id}
           isMenuOpen={isMenuOpen}
@@ -512,7 +515,7 @@ export function PendingTicketCard({
         lastVisitDate={ticket.lastVisitDate}
       />
 
-      <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 md:mb-4 border-t border-[#e8dcc8]/50" />
+      <div className="mx-2 sm:mx-3 md:mx-4 mb-3 sm:mb-4 md:mb-5 border-t border-[#e8dcc8]/50" />
 
       <PriceBreakdown
         subtotal={ticket.subtotal}

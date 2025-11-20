@@ -160,20 +160,20 @@ function ServiceTicketCardComponent({
             <div className="flex items-start justify-between gap-2 mb-0.5">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-xs text-[#1a1614] truncate">
+                  <span className="font-semibold text-[#1a1614] truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>
                     {ticket.clientName}
                   </span>
-                  {hasStar && <span className="text-[10px]">⭐</span>}
+                  {hasStar && <span style={{ fontSize: 'clamp(10px, 1.25vw, 12px)' }}>⭐</span>}
                   {hasNote && <StickyNote className="w-2.5 h-2.5 text-amber-500" />}
                 </div>
-                <div className="text-[9px] text-[#8b7968] mt-0.5 font-medium">
+                <div className="text-[#6b5d52] mt-0.5 font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>
                   {getLastVisitText()}
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="text-[9px] text-[#5a4d44] font-medium whitespace-nowrap">{formatTime(timeRemaining)}</span>
-                <div className="w-16 h-1 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
+                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)}</span>
+                <div className="w-20 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ height: '4px', minHeight: '4px', borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
                   <div
                     className="h-full transition-all duration-300"
                     style={{
@@ -184,27 +184,23 @@ function ServiceTicketCardComponent({
                     }}
                   />
                 </div>
-                <span className="text-xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
+                <span className="font-bold whitespace-nowrap" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)', color: currentStatus.text }}>{Math.round(progress)}%</span>
               </div>
             </div>
 
             {/* Row 2: Service + Staff badges + Done button - more compact */}
             <div className="flex items-center justify-between gap-2">
-              <div className="text-[11px] text-[#2d2520] font-semibold truncate flex-1">
+              <div className="text-[#2d2520] font-semibold truncate flex-1" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>
                 {ticket.service}
               </div>
 
-              <div className="px-1.5 py-1 rounded-md flex-shrink-0 flex items-center gap-1.5"
-                   style={{
-                     background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-                     boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                     border: '1px solid rgba(212, 184, 150, 0.15)'
-                   }}>
-                <div className="flex items-center gap-1">
+              <div className="flex-shrink-0 flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {staffList.slice(0, 2).map((staff, i) => (
                     <div key={i}
-                         className="text-white text-[9px] font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
+                         className="text-white font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
                          style={{
+                           fontSize: 'clamp(11px, 1.5vw, 13px)',
                            background: getStaffColor(staff),
                            boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)'
@@ -212,19 +208,19 @@ function ServiceTicketCardComponent({
                       {getFirstName(staff.name)}
                     </div>
                   ))}
-                  {staffList.length > 2 && <span className="text-[9px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}
+                  {staffList.length > 2 && <span className="text-[#6b5d52] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>+{staffList.length - 2}</span>}
                 </div>
 
                 {/* Done button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  className="flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                  style={{ width: 'clamp(32px, 4.5vw, 38px)', height: 'clamp(32px, 4.5vw, 38px)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
                   onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
                   onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
                   title="Mark as Done"
                 >
-                  <Check size={14} strokeWidth={2.5} />
+                  <Check style={{ width: 'clamp(14px, 2vw, 16px)', height: 'clamp(14px, 2vw, 16px)' }} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
@@ -248,52 +244,47 @@ function ServiceTicketCardComponent({
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-[#1a1614] truncate text-base">{ticket.clientName}</span>
-                    {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
+                    <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>
+                    {hasStar && <span className="flex-shrink-0" style={{ fontSize: 'clamp(12px, 1.5vw, 14px)' }}>⭐</span>}
                     {hasNote && <StickyNote className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
                   </div>
-                  <div className="text-[10px] text-[#8b7968] font-medium tracking-wide mb-1.5">{getLastVisitText()}</div>
+                  <div className="text-[#6b5d52] font-medium tracking-wide mb-1.5" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div>
                   <div className="border-t border-[#e8dcc8]/50 mb-2" />
                 </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-xs text-[#5a4d44] font-medium whitespace-nowrap">{formatTime(timeRemaining)}</span>
+                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)}</span>
                 <div className="w-24 h-1.5 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden"
                      style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
                   <div className="h-full transition-all duration-300"
                        style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)', borderRadius: '5px' }} />
                 </div>
-                <span className="text-sm font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
+                <span className="font-bold whitespace-nowrap" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)', color: currentStatus.text }}>{Math.round(progress)}%</span>
               </div>
             </div>
 
             {/* Row 2: Service + Staff badges + Done button */}
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 truncate">{ticket.service}</div>
+              <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.service}</div>
 
-              {/* Staff badges + Done button with background container */}
-              <div className="px-2 py-2 rounded-lg relative flex-shrink-0 flex items-center gap-2"
-                   style={{
-                     background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-                     boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-                     border: '1px solid rgba(212, 184, 150, 0.15)'
-                   }}>
-                <div className="flex items-center gap-1.5">
+              {/* Staff badges + Done button */}
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {staffList.map((staff, i) => (
-                    <div key={i} className="text-white text-xs font-semibold px-2 py-1 rounded-md border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
-                         style={{ background: getStaffColor(staff), boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                    <div key={i} className="text-white font-semibold px-2 py-1 rounded-md border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
+                         style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', background: getStaffColor(staff), boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
                       {getFirstName(staff.name)}
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  className="flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                  style={{ width: 'clamp(28px, 4vw, 34px)', height: 'clamp(28px, 4vw, 34px)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
                   onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
                   onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
                   title="Mark as Done"
                 >
-                  <Check size={20} strokeWidth={2.5} />
+                  <Check style={{ width: 'clamp(14px, 1.85vw, 16px)', height: 'clamp(14px, 1.85vw, 16px)' }} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
@@ -308,7 +299,7 @@ function ServiceTicketCardComponent({
     // GRID COMPACT VIEW - Same design language, more compact
     if (viewMode === 'grid-compact') {
       return (
-        <div onClick={() => onClick?.(ticket.id)} className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[5px] hover:shadow-2xl flex flex-col min-w-[220px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: '3px solid rgba(16, 185, 129, 0.18)', borderRadius: '10px', boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)' }}>
+        <div onClick={() => onClick?.(ticket.id)} className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[5px] hover:shadow-2xl flex flex-col min-w-[220px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: '3px solid rgba(16, 185, 129, 0.28)', borderRadius: '10px', boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)' }}>
           {/* Perforation dots - compact */}
           <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-2 z-10" style={{ opacity: 0.108 }}>{[...Array(10)].map((_, i) => (<div key={i} className="w-[1.5px] h-[1.5px] rounded-full bg-[#c4b5a0]" />))}</div>
 
@@ -328,8 +319,8 @@ function ServiceTicketCardComponent({
               </div>
             </div>
             <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Pause size={12} /> Pause</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end">
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#8b7968] hover:text-[#2d2520] p-0.5 rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0">
-                <MoreVertical size={12} />
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 min-w-[44px] min-h-[44px] rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center">
+                <MoreVertical size={16} />
               </button>
             </Tippy>
           </div>
@@ -342,29 +333,31 @@ function ServiceTicketCardComponent({
 
           {/* Progress info - compact */}
           <div className="px-2 pb-1 flex items-center justify-between">
-            <div className="text-[9px] text-[#5a4d44] font-medium">{formatTime(timeRemaining)} left</div>
-            <div className="text-xs font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
+            <div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)} left</div>
+            <div className="font-bold tracking-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }} style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
           </div>
 
-          {/* Progress bar - compact */}
+          {/* Progress bar - compact (increased height for better visibility) */}
           <div className="px-2 pb-1.5">
-            <div className="h-1 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
+            <div className="bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ height: '4px', minHeight: '4px', borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
               <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)', borderRadius: '5px' }} />
             </div>
           </div>
 
-          {/* Footer - compact */}
-          <div className="mt-auto mx-1 px-1.5 py-1.5 rounded-lg flex items-center justify-between gap-2" style={{ marginBottom: '6px', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
-            <div className="flex items-center flex-wrap gap-0.5 flex-1">
+          {/* Footer - compact with Done button inside */}
+          <div className="mt-auto mx-1 px-1 py-1 rounded-md flex items-center justify-between gap-1" style={{ marginBottom: '4px', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
+            <div className="flex items-center flex-wrap gap-0.5 flex-1 min-w-0">
               {staffList.slice(0, 2).map((staff, index) => (
                 <div key={index} className="text-white text-[9px] font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffColor(staff), boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
                   {getFirstName(staff.name)}
                 </div>
               ))}
-              {staffList.length > 2 && <span className="text-[9px] text-[#8b7968] font-medium">+{staffList.length - 2}</span>}
+              {staffList.length > 2 && <span className="text-[9px] text-[#6b5d52] font-medium">+{staffList.length - 2}</span>}
             </div>
-            <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'} title="Mark as Done">
-              <Check size={20} strokeWidth={2.5} />
+
+            {/* Done button - inside footer */}
+            <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0" style={{ width: 'clamp(32px, 4.5vw, 40px)', height: 'clamp(32px, 4.5vw, 40px)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'} title="Mark as Done">
+              <Check style={{ width: 'clamp(14px, 2vw, 18px)', height: 'clamp(14px, 2vw, 18px)' }} strokeWidth={2.5} />
             </button>
           </div>
 
@@ -377,15 +370,15 @@ function ServiceTicketCardComponent({
     // GRID NORMAL VIEW - Thermal Receipt Design
     if (viewMode === 'grid-normal') {
       return (
-        <div onClick={() => onClick?.(ticket.id)} className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[6px] hover:shadow-2xl flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: '3px solid rgba(16, 185, 129, 0.18)', borderRadius: '10px', boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)' }}>
+        <div onClick={() => onClick?.(ticket.id)} className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[6px] hover:shadow-2xl flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: '3px solid rgba(16, 185, 129, 0.28)', borderRadius: '10px', boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)' }}>
           {/* Perforation dots - lightened */}
           <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-2 sm:px-3 md:px-4 z-10" style={{ opacity: 0.108 }}>{[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}</div>
 
           {/* Dog-ear corner - top-right */}
           <div className="absolute top-0 right-0 w-7 h-7 z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
-          <div className="absolute left-0 top-3 sm:top-4 md:top-5 w-10 sm:w-11 md:w-14 text-[#1a1614] flex items-center justify-center font-black text-base sm:text-lg md:text-2xl z-20" style={{ height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)', background: 'rgba(16, 185, 129, 0.06)', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '2px solid rgba(16, 185, 129, 0.28)', borderRight: '2px solid rgba(16, 185, 129, 0.28)', borderBottom: '2px solid rgba(16, 185, 129, 0.28)', boxShadow: `3px 0 6px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, letterSpacing: '-0.02em', transform: 'translateX(-4px)' }}>{ticket.number}</div>
-          <div className="flex items-start justify-between px-2 sm:px-3 md:px-4 pt-3 sm:pt-4 md:pt-5 pb-1 pl-11 sm:pl-12 md:pl-14"><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="text-sm sm:text-base md:text-lg font-bold text-[#1a1614] truncate tracking-tight">{ticket.clientName}</span>{hasStar && <span className="text-xs sm:text-sm md:text-base flex-shrink-0">⭐</span>}{hasNote && <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />}</div><div className="text-[10px] sm:text-xs text-[#8b7968] font-medium tracking-wide">{getLastVisitText()}</div></div>
-            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Pause size={14} /> Pause</button><button onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><StickyNote size={14} /> Details</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#8b7968] hover:text-[#2d2520] p-1 sm:p-1.5 rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 -mr-0.5 sm:-mr-1"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
+          <div className="absolute left-0 text-[#1a1614] flex items-center justify-center font-black z-20" style={{ top: 'clamp(12px, 2vw, 20px)', width: 'clamp(40px, 5.5vw, 56px)', fontSize: 'clamp(16px, 2.25vw, 24px)', height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)', background: 'rgba(16, 185, 129, 0.06)', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '2px solid rgba(16, 185, 129, 0.28)', borderRight: '2px solid rgba(16, 185, 129, 0.28)', borderBottom: '2px solid rgba(16, 185, 129, 0.28)', boxShadow: `3px 0 6px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, letterSpacing: '-0.02em', transform: 'translateX(-4px)' }}>{ticket.number}</div>
+          <div className="flex items-start justify-between px-2 sm:px-3 md:px-4 pb-1" style={{ paddingTop: 'clamp(12px, 2vw, 20px)', paddingLeft: 'clamp(44px, calc(5.5vw + 4px), 60px)' }}><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="font-bold text-[#1a1614] truncate tracking-tight" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>{hasStar && <span className="text-xs sm:text-sm md:text-base flex-shrink-0">⭐</span>}{hasNote && <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />}</div><div className="text-[#6b5d52] font-medium tracking-wide" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div></div>
+            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Pause size={14} /> Pause</button><button onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><StickyNote size={14} /> Details</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 sm:p-2.5 min-w-[44px] min-h-[44px] rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
           </div>
           {/* Service name */}
           <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight line-clamp-2">{ticket.service}</div>
@@ -394,14 +387,16 @@ function ServiceTicketCardComponent({
           <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 border-t border-[#e8dcc8]/50" />
 
           {/* Progress row - improved text contrast, smaller percentage */}
-          <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-xs sm:text-sm text-[#5a4d44] font-medium">{formatTime(timeRemaining)} left</div><div className="text-sm sm:text-base md:text-lg font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
+          <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)} left</div><div className="text-sm sm:text-base md:text-lg font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
 
           {/* Progress bar - smoothed edges (6px radius) */}
           <div className="px-2 sm:px-3 md:px-4 pb-3 sm:pb-4 md:pb-5"><div className="h-1.5 sm:h-2 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}><div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)', borderRadius: '5px' }} /></div></div>
-          {/* Staff footer - optimized */}
-          <div className="mt-auto mx-2 sm:mx-3 md:mx-4 mb-2 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg flex items-center justify-between gap-2 sm:gap-3" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}>
-            <div className="flex items-center flex-wrap gap-1 sm:gap-1.5 md:gap-2 flex-1">{staffList.map((staff, index) => (<div key={index} className="text-white text-[9px] sm:text-[10px] md:text-xs font-semibold px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1.5 rounded sm:rounded-md md:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffColor(staff), boxShadow: `0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{getFirstName(staff.name)}</div>))}</div>
-            <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 min-w-[40px] min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'} title="Mark as Done"><Check size={20} className="sm:w-[22px] sm:h-[22px] md:w-6 md:h-6" strokeWidth={2.5} /></button>
+          {/* Staff footer with Done button inside */}
+          <div className="mt-auto mx-2 sm:mx-3 md:mx-4 mb-2 px-2 py-1.5 rounded-md flex items-center justify-between gap-1.5" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}>
+            <div className="flex items-center flex-wrap gap-1 sm:gap-1.5 md:gap-2 flex-1 min-w-0">{staffList.map((staff, index) => (<div key={index} className="text-white text-[9px] sm:text-[10px] md:text-xs font-semibold px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1.5 rounded sm:rounded-md md:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffColor(staff), boxShadow: `0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{getFirstName(staff.name)}</div>))}</div>
+
+            {/* Done button - inside footer */}
+            <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0" style={{ width: 'clamp(36px, 5vw, 44px)', height: 'clamp(36px, 5vw, 44px)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'} title="Mark as Done"><Check style={{ width: 'clamp(16px, 2.25vw, 20px)', height: 'clamp(16px, 2.25vw, 20px)' }} strokeWidth={2.5} /></button>
           </div>
 
           {/* Paper texture - enhanced for more tangibility */}
@@ -444,7 +439,7 @@ function ServiceTicketCardComponent({
         style={{
           background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
           border: '1px dashed #D8D8D8',
-          borderLeft: '3px solid rgba(16, 185, 129, 0.18)',
+          borderLeft: '3px solid rgba(16, 185, 129, 0.28)',
           borderRadius: '10px',
           boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}

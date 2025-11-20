@@ -1,6 +1,6 @@
 // Front Desk Module
-import { FrontDesk as FrontDeskContent } from '../FrontDesk';
+import { FrontDesk as FrontDeskContent, FrontDeskProps } from '../FrontDesk';
 
-export function FrontDesk() {
-  return <FrontDeskContent />;
+export function FrontDesk(props: FrontDeskProps) {
+  return <FrontDeskContent {...props} />;
 }

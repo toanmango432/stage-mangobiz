@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle, FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap } from 'lucide-react';
+import { Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle, FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap, Settings } from 'lucide-react';
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 
-export function TopHeaderBar() {
+interface TopHeaderBarProps {
+  onSettingsClick?: () => void;
+}
+
+export function TopHeaderBar({ onSettingsClick }: TopHeaderBarProps = {}) {
   const [selectedOrg, setSelectedOrg] = useState('Main Salon');
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -320,6 +326,18 @@ export function TopHeaderBar() {
           <Clock className="w-3 h-3 text-gray-500" />
           <span className="text-[10px] text-gray-700 font-medium">{currentTime}</span>
         </div>
+
+        {/* Front Desk Settings */}
+        {onSettingsClick && (
+          <Tippy content="Front Desk Settings">
+            <button
+              onClick={onSettingsClick}
+              className="p-1 hover:bg-gray-50 rounded-md transition-colors"
+            >
+              <Settings className="w-3.5 h-3.5 text-gray-600" />
+            </button>
+          </Tippy>
+        )}
 
         {/* User Profile */}
         <div className="relative">
