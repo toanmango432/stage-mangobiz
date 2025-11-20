@@ -146,6 +146,7 @@ function ServiceTicketCardComponent({
           style={{
             background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
             border: '1px dashed #D8D8D8',
+            borderLeft: '3px solid rgba(16, 185, 129, 0.18)',
             borderRadius: '10px',
             boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
           }}
@@ -161,13 +162,13 @@ function ServiceTicketCardComponent({
           {/* Compact ticket number badge */}
           <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-2xs z-20"
                style={{
-                 background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
+                 background: 'rgba(16, 185, 129, 0.06)',
                  borderTopRightRadius: '6px',
                  borderBottomRightRadius: '6px',
-                 borderTop: '1px solid rgba(212, 184, 150, 0.4)',
-                 borderRight: '1px solid rgba(212, 184, 150, 0.4)',
-                 borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-                 boxShadow: '1px 0 3px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
+                 borderTop: '2px solid rgba(16, 185, 129, 0.28)',
+                 borderRight: '2px solid rgba(16, 185, 129, 0.28)',
+                 borderBottom: '2px solid rgba(16, 185, 129, 0.28)',
+                 boxShadow: '2px 0 4px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
                  letterSpacing: '-0.02em',
                  transform: 'translateX(-2px)'
                }}>
@@ -245,6 +246,7 @@ function ServiceTicketCardComponent({
            style={{
              background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
              border: '1px dashed #D8D8D8',
+             borderLeft: '3px solid rgba(16, 185, 129, 0.18)',
              borderRadius: '10px',
              boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
            }}>
@@ -260,19 +262,17 @@ function ServiceTicketCardComponent({
         {/* Wrap-around ticket number badge at Row 1 height */}
         <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
              style={{
-               background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
-               borderTopRightRadius: '9px',
-               borderBottomRightRadius: '9px',
-               borderTop: '1.5px solid rgba(212, 184, 150, 0.5)',
-               borderRight: '1.5px solid rgba(212, 184, 150, 0.5)',
-               borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)',
-               boxShadow: '2.5px 0 7px rgba(139, 92, 46, 0.15), 1.5px 0 3.5px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 2px 0 rgba(255, 255, 255, 1), inset 0 -2px 2.5px rgba(139, 92, 46, 0.08), inset -1.5px 0 1.5px rgba(255, 255, 255, 0.6)',
+               background: 'rgba(16, 185, 129, 0.06)',
+               borderTopRightRadius: '8px',
+               borderBottomRightRadius: '8px',
+               borderTop: '2px solid rgba(16, 185, 129, 0.28)',
+               borderRight: '2px solid rgba(16, 185, 129, 0.28)',
+               borderBottom: '2px solid rgba(16, 185, 129, 0.28)',
+               boxShadow: '2px 0 4px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
                letterSpacing: '-0.02em',
                transform: 'translateX(-3px)'
              }}>
           {ticket.number}
-          <div className="absolute top-0 right-0 w-[1.2px] h-full"
-               style={{ background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)' }} />
         </div>
 
         {/* Content area */}

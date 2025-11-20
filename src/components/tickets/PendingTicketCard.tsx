@@ -113,7 +113,10 @@ export function PendingTicketCard({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-          boxShadow: '0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 3px rgba(139, 92, 46, 0.06)'
+          border: '1px dashed #D8D8D8',
+          borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+          borderRadius: '10px',
+          boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
       >
         {/* Minimal perforation dots */}
@@ -127,13 +130,13 @@ export function PendingTicketCard({
         {/* Compact ticket number badge */}
         <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-2xs z-20"
              style={{
-               background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
+               background: 'rgba(245, 158, 11, 0.06)',
                borderTopRightRadius: '6px',
                borderBottomRightRadius: '6px',
-               borderTop: '1px solid rgba(212, 184, 150, 0.4)',
-               borderRight: '1px solid rgba(212, 184, 150, 0.4)',
-               borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-               boxShadow: '1px 0 3px rgba(139, 92, 46, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1)',
+               borderTop: '2px solid rgba(245, 158, 11, 0.28)',
+               borderRight: '2px solid rgba(245, 158, 11, 0.28)',
+               borderBottom: '2px solid rgba(245, 158, 11, 0.28)',
+               boxShadow: '2px 0 4px rgba(245, 158, 11, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
                letterSpacing: '-0.02em',
                transform: 'translateX(-2px)'
              }}>
@@ -193,7 +196,10 @@ export function PendingTicketCard({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-          boxShadow: '0 2px 4px rgba(139, 92, 46, 0.12), 0 4px 6px rgba(139, 92, 46, 0.08)'
+          border: '2px solid #e8dcc8',
+          borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+          borderRadius: '10px',
+          boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
       >
         {/* Perforation dots */}
@@ -222,19 +228,17 @@ export function PendingTicketCard({
         {/* Wrap-around ticket number badge */}
         <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
              style={{
-               background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
-               borderTopRightRadius: '9px',
-               borderBottomRightRadius: '9px',
-               borderTop: '1.5px solid rgba(212, 184, 150, 0.5)',
-               borderRight: '1.5px solid rgba(212, 184, 150, 0.5)',
-               borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)',
-               boxShadow: '2.5px 0 7px rgba(139, 92, 46, 0.15), 1.5px 0 3.5px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 2px 0 rgba(255, 255, 255, 1), inset 0 -2px 2.5px rgba(139, 92, 46, 0.08), inset -1.5px 0 1.5px rgba(255, 255, 255, 0.6)',
+               background: 'rgba(245, 158, 11, 0.06)',
+               borderTopRightRadius: '8px',
+               borderBottomRightRadius: '8px',
+               borderTop: '2px solid rgba(245, 158, 11, 0.28)',
+               borderRight: '2px solid rgba(245, 158, 11, 0.28)',
+               borderBottom: '2px solid rgba(245, 158, 11, 0.28)',
+               boxShadow: '2px 0 4px rgba(245, 158, 11, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
                letterSpacing: '-0.02em',
                transform: 'translateX(-3px)'
              }}>
           {ticket.number}
-          <div className="absolute top-0 right-0 w-[1.2px] h-full"
-               style={{ background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)' }} />
         </div>
 
         {/* UNPAID watermark */}
@@ -312,7 +316,9 @@ export function PendingTicketCard({
         style={{
           background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
           border: '2px solid #e8dcc8',
-          boxShadow: '-2px 0 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
+          borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+          borderRadius: '10px',
+          boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
         }}
       >
         {/* Perforation dots */}
@@ -337,13 +343,13 @@ export function PendingTicketCard({
         <div className="absolute left-0 top-2 sm:top-3 w-8 sm:w-9 text-[#1a1614] flex items-center justify-center font-black text-sm sm:text-base z-20"
              style={{
                height: isFirstVisit ? 'clamp(1.65rem, 3.5vw, 2rem)' : 'clamp(1.5rem, 3vw, 1.85rem)',
-               background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 100%)',
-               borderTopRightRadius: '8px',
-               borderBottomRightRadius: '8px',
-               borderTop: '1px solid rgba(212, 184, 150, 0.4)',
-               borderRight: '1px solid rgba(212, 184, 150, 0.4)',
-               borderBottom: '1px solid rgba(212, 184, 150, 0.4)',
-               boxShadow: '2px 0 4px rgba(139, 92, 46, 0.12), 1px 0 2px rgba(139, 92, 46, 0.10), inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 2px rgba(139, 92, 46, 0.08)',
+               background: 'rgba(245, 158, 11, 0.06)',
+               borderTopRightRadius: '6px',
+               borderBottomRightRadius: '6px',
+               borderTop: '2px solid rgba(245, 158, 11, 0.28)',
+               borderRight: '2px solid rgba(245, 158, 11, 0.28)',
+               borderBottom: '2px solid rgba(245, 158, 11, 0.28)',
+               boxShadow: '2px 0 4px rgba(245, 158, 11, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
                letterSpacing: '-0.02em',
                transform: 'translateX(-3px)'
              }}>
@@ -409,7 +415,7 @@ export function PendingTicketCard({
   return (
     <div
       onClick={() => onClick?.(ticket.id)}
-      className="relative rounded-xl overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-[0.5deg] flex flex-col min-w-[280px] max-w-full cursor-pointer"
+      className="relative rounded-xl overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-[0.5deg] flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer"
       role="button"
       tabIndex={0}
       aria-label={`Pending payment ticket ${ticket.number} for ${ticket.clientName}`}
@@ -421,21 +427,14 @@ export function PendingTicketCard({
       }}
       style={{
         background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)',
-        border: '2px solid #F59E0B',
-        boxShadow: `
-          inset 0 0.5px 0 rgba(255,255,255,0.70),
-          inset 0 -0.8px 1px rgba(0,0,0,0.05),
-          0.5px 0.5px 0 rgba(255,255,255,0.80),
-          -3px 0 8px rgba(0,0,0,0.08),
-          2px 3px 4px rgba(0,0,0,0.04),
-          4px 8px 12px rgba(0,0,0,0.08),
-          0 0 0 1px rgba(245, 158, 11, 0.1)
-        `,
-        animation: 'amberGlow 3s ease-in-out infinite',
+        border: '2px solid #e8dcc8',
+        borderLeft: '3px solid rgba(245, 158, 11, 0.18)',
+        borderRadius: '10px',
+        boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
       }}
     >
       {/* Perforation dots */}
-      <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10 opacity-25">
+      <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-2 sm:px-3 md:px-4 z-10 opacity-25">
         {[...Array(20)].map((_, i) => (
           <div key={i} className="w-[3px] h-[3px] rounded-full bg-[#c4b5a0]" />
         ))}
@@ -476,39 +475,26 @@ export function PendingTicketCard({
 
       {/* Wrap-around number badge */}
       <div
-        className="absolute left-0 top-4 sm:top-5 w-11 sm:w-14 text-[#1a1614] flex items-center justify-center font-black text-lg sm:text-2xl z-20"
+        className="absolute left-0 top-3 sm:top-4 md:top-5 w-10 sm:w-11 md:w-14 text-[#1a1614] flex items-center justify-center font-black text-base sm:text-lg md:text-2xl z-20"
         style={{
-          height: isFirstVisit ? 'clamp(2.25rem, 5vw, 2.75rem)' : 'clamp(2rem, 4.5vw, 2.5rem)',
-          background: 'linear-gradient(135deg, #ffffff 0%, #fffcf7 50%, #fffbf5 100%)',
-          borderTopRightRadius: '10px',
-          borderBottomRightRadius: '10px',
-          borderTop: '1.5px solid rgba(212, 184, 150, 0.5)',
-          borderRight: '1.5px solid rgba(212, 184, 150, 0.5)',
-          borderBottom: '1.5px solid rgba(212, 184, 150, 0.5)',
-          boxShadow: `
-            3px 0 8px rgba(139, 92, 46, 0.15),
-            2px 0 4px rgba(139, 92, 46, 0.12),
-            1px 0 2px rgba(139, 92, 46, 0.10),
-            inset 0 2px 0 rgba(255, 255, 255, 1),
-            inset 0 -2px 3px rgba(139, 92, 46, 0.08),
-            inset -2px 0 2px rgba(255, 255, 255, 0.6)
-          `,
+          height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)',
+          background: 'rgba(245, 158, 11, 0.06)',
+          borderTopRightRadius: '8px',
+          borderBottomRightRadius: '8px',
+          borderTop: '2px solid rgba(245, 158, 11, 0.28)',
+          borderRight: '2px solid rgba(245, 158, 11, 0.28)',
+          borderBottom: '2px solid rgba(245, 158, 11, 0.28)',
+          boxShadow: `3px 0 6px rgba(245, 158, 11, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)`,
           letterSpacing: '-0.02em',
           transform: 'translateX(-4px)',
         }}
       >
         {ticket.number}
-        <div
-          className="absolute top-0 right-0 w-[1.5px] h-full"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(180, 150, 110, 0.3) 0%, rgba(139, 92, 46, 0.2) 50%, rgba(180, 150, 110, 0.3) 100%)',
-          }}
-        />
       </div>
 
       <UnpaidWatermark />
 
-      <div className="pl-12 sm:pl-14">
+      <div className="pl-10 sm:pl-12 md:pl-14">
         <TicketHeader
           ticketId={ticket.id}
           isMenuOpen={isMenuOpen}
@@ -526,7 +512,7 @@ export function PendingTicketCard({
         lastVisitDate={ticket.lastVisitDate}
       />
 
-      <div className="mx-3 sm:px-4 mb-3 sm:mb-4 border-t border-[#e8dcc8]/50" />
+      <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 md:mb-4 border-t border-[#e8dcc8]/50" />
 
       <PriceBreakdown
         subtotal={ticket.subtotal}

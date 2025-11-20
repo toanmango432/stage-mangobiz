@@ -54,24 +54,24 @@ export function ClientInfo({
   };
 
   return (
-    <div className="px-3 sm:px-4 pt-3 pb-2">
+    <div className="px-2 sm:px-3 md:px-4 pt-2 sm:pt-3 md:pt-3 pb-1 sm:pb-2">
       {/* Client Name with Icons */}
       <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
         <span
-          className="text-base sm:text-lg md:text-xl font-bold text-[#1a1614] truncate tracking-tight"
+          className="text-sm sm:text-base md:text-lg font-bold text-[#1a1614] truncate tracking-tight"
         >
           {clientName}
         </span>
         {hasStar && (
-          <span className="text-sm sm:text-base md:text-lg flex-shrink-0">⭐</span>
+          <span className="text-xs sm:text-sm md:text-base flex-shrink-0">⭐</span>
         )}
         {/* Note icon placeholder - can add when notes field is available */}
-        {/* {hasNote && <span className="text-sm sm:text-base md:text-lg flex-shrink-0">📋</span>} */}
+        {/* {hasNote && <span className="text-xs sm:text-sm md:text-base flex-shrink-0">📋</span>} */}
       </div>
 
       {/* Last Visit Text */}
       <div
-        className="text-[10px] sm:text-xs font-medium tracking-wide mb-2"
+        className="text-[9px] sm:text-[10px] md:text-xs font-medium tracking-wide mb-1.5 sm:mb-2"
         style={{ color: '#8b7968' }}
       >
         {getLastVisitText()}
@@ -84,7 +84,7 @@ export function ClientInfo({
           style={{ color: PremiumColors.text.secondary }}
         />
         <span
-          className="truncate text-sm sm:text-base font-semibold leading-snug tracking-tight"
+          className="truncate text-xs sm:text-sm md:text-base font-semibold leading-snug tracking-tight"
           style={{ color: '#1a1614' }}
         >
           {service}

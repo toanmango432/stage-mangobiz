@@ -16,29 +16,27 @@ export function PriceBreakdown({ subtotal, tax, tip }: PriceBreakdownProps) {
   const total = subtotal + tax + tip;
 
   return (
-    <div className="px-4 py-3 space-y-1">
+    <div className="px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 space-y-0.5 sm:space-y-1">
       <PriceRow label="Subtotal" amount={subtotal} />
       <PriceRow label="Tax" amount={tax} />
       <PriceRow label="Tip" amount={tip} />
 
       {/* Total Row */}
       <div
-        className="flex justify-between pt-2 mt-2 border-t"
+        className="flex justify-between pt-1.5 sm:pt-2 mt-1.5 sm:mt-2 border-t"
         style={{ borderColor: PremiumColors.borders.light }}
       >
         <span
-          className="font-semibold"
+          className="text-xs sm:text-sm font-semibold"
           style={{
-            fontSize: '14px',
             color: PremiumColors.text.primary,
           }}
         >
           Total:
         </span>
         <span
-          className="font-bold"
+          className="text-xs sm:text-sm font-bold"
           style={{
-            fontSize: '14px',
             color: PremiumColors.text.primary,
             fontFamily: PremiumTypography.fontFamily.mono,
           }}

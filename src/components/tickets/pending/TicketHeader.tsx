@@ -25,13 +25,13 @@ export function TicketHeader({
 }: TicketHeaderProps) {
   return (
     <div
-      className="flex justify-between items-center px-4 py-3 border-b border-dashed"
+      className="flex justify-between items-center px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 border-b border-dashed"
       style={{ borderColor: PremiumColors.borders.light }}
     >
       {/* Ticket ID Badge */}
       <div className="flex items-center gap-2">
         <div
-          className="text-xs px-2 py-0.5 rounded-md border"
+          className="text-2xs sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-md border"
           style={{
             background: '#EEF2FF',
             color: '#4338CA',
