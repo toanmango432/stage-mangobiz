@@ -23,6 +23,8 @@ import { PremiumAvatar, StatusBadge } from '../premium';
 import { getStatusColor, getStaffColor } from '../../constants/premiumDesignSystem';
 import { staggerDelayStyle } from '../../utils/animations';
 import { DayViewSkeleton } from './skeletons';
+import { useTimeSlotAvailability } from '../../hooks/useTimeSlotAvailability';
+import { getAvailabilityColorClass, formatAvailabilityTooltip } from '../../utils/availabilityCalculator';
 
 interface Staff {
   id: string;
@@ -140,6 +142,7 @@ function getAppointmentColor(status: string): string {
 }
 
 export const DaySchedule = memo(function DaySchedule({
+  date,
   staff,
   appointments,
   onAppointmentClick,
@@ -154,6 +157,9 @@ export const DaySchedule = memo(function DaySchedule({
   const [dragConflict, setDragConflict] = useState<{ hasConflict: boolean; conflictType?: string; message?: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ appointment: LocalAppointment; x: number; y: number } | null>(null);
   const timeLabels = useMemo(() => generateTimeLabels(), []);
+
+  // Get availability data for all time slots on this date
+  const availabilityMap = useTimeSlotAvailability(date);
 
   // Responsive slot configuration for touch targets
   // Mobile: 60min slots (60px), Tablet: 30min slots (30px), Desktop: 15min slots (15px)
@@ -427,14 +433,20 @@ export const DaySchedule = memo(function DaySchedule({
                 {onTimeSlotClick && timeLabels.map(({ hour }) => {
                   // Create responsive interval slots (60min mobile, 30min tablet, 15min desktop)
                   return Array.from({ length: slotConfig.intervalsPerHour }, (_, intervalIndex) => {
-                    const slotTime = new Date();
+                    const slotTime = new Date(date);
                     slotTime.setHours(hour, intervalIndex * slotConfig.minutesPerSlot, 0, 0);
                     const snappedTime = snapToGrid(slotTime);
-                    
-                    const isDropTarget = dragOverSlot?.staffId === staffMember.id && 
+
+                    // Get availability data for this time slot
+                    const slotKey = slotTime.toISOString();
+                    const availability = availabilityMap.get(slotKey);
+                    const availabilityClass = availability ? getAvailabilityColorClass(availability) : '';
+                    const availabilityTooltip = availability ? formatAvailabilityTooltip(availability) : '';
+
+                    const isDropTarget = dragOverSlot?.staffId === staffMember.id &&
                       dragOverSlot?.time.getHours() === snappedTime.getHours() &&
                       dragOverSlot?.time.getMinutes() === snappedTime.getMinutes();
-                    
+
                     // Check for conflicts if dragging
                     let slotConflict = null;
                     if (draggedAppointment && isDropTarget) {
@@ -492,6 +504,8 @@ export const DaySchedule = memo(function DaySchedule({
                           "focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 focus:z-10",
                           // Active state for press feedback
                           "active:scale-[0.98] active:bg-brand-100",
+                          // Availability highlighting
+                          !isDropTarget && availabilityClass,
                           isDropTarget
                             ? slotConflict?.hasConflict
                               ? getConflictColor(slotConflict.conflictType)
@@ -503,7 +517,11 @@ export const DaySchedule = memo(function DaySchedule({
                           top: `${hour * 60 + intervalIndex * slotConfig.minutesPerSlot}px`,
                           height: `${slotConfig.minutesPerSlot}px`,
                         }}
-                        title={isDropTarget && slotConflict?.hasConflict ? slotConflict.message : undefined}
+                        title={
+                          isDropTarget && slotConflict?.hasConflict
+                            ? slotConflict.message
+                            : availabilityTooltip || undefined
+                        }
                       />
                     );
                   });
