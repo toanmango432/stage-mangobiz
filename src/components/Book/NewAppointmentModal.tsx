@@ -20,6 +20,7 @@ import { generateSmartBookingSuggestions, createSmartBookingDefaults, SmartBooki
 import { SmartBookingPanel } from './SmartBookingPanel';
 import { Client as ClientType } from '../../types/client';
 import { Service as ServiceType } from '../../types/service';
+import { Staff as StaffType } from '../../types/staff';
 
 interface Client {
   id: string;
@@ -58,7 +59,7 @@ interface NewAppointmentModalProps {
   selectedStaffId?: string;
   selectedStaffName?: string;
   selectedStaffPhoto?: string;
-  onSave?: (appointment: any) => void;
+  onSave?: (appointment: LocalAppointment) => void;
   onCreateClient?: (name: string, phone: string) => Promise<Client>;
 }
 
@@ -345,7 +346,7 @@ export function NewAppointmentModal({
             updatedAt: new Date(),
             syncStatus: 'synced' as const,
           })),
-          allStaffFromRedux.map((s): any => ({
+          allStaffFromRedux.map((s): StaffType => ({
             id: s.id,
             salonId,
             name: s.name,
@@ -353,6 +354,12 @@ export function NewAppointmentModal({
             phone: s.phone || '',
             specialty: s.specialties?.[0],
             isActive: s.status === 'available' || s.status === 'on-break',
+            role: s.role || 'technician',
+            hireDate: s.hireDate || new Date(),
+            commissionRate: s.commissionRate || 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            syncStatus: 'synced' as const,
           })),
           salonId
         );

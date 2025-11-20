@@ -436,6 +436,80 @@ staffDB.getAvailable(salonId)
 | Summary | Bottom panel, on-demand | Always visible sidebar |
 | Best For | Individual appointments | Group events |
 
+## Performance Best Practices
+
+### Component Optimization
+
+The Book module components are optimized for performance using React's built-in optimization tools:
+
+**1. Memoization**
+- Critical components like `DaySchedule` are wrapped with `React.memo` to prevent unnecessary re-renders
+- Use `useMemo` for expensive computations (date grouping, filtering, sorting)
+- Example from DaySchedule.v2:
+```tsx
+const timeLabels = useMemo(() => generateTimeLabels(), []);
+const appointmentsByStaff = useMemo(() => groupAppointmentsByStaff(appointments), [appointments]);
+```
+
+**2. useCallback for Event Handlers**
+When using Book components, wrap event handlers with `useCallback` to prevent child re-renders:
+
+```tsx
+import { useCallback } from 'react';
+
+function MyCalendar() {
+  const handleAppointmentClick = useCallback((appointment: LocalAppointment) => {
+    console.log('Clicked:', appointment.id);
+  }, []); // Empty deps if handler doesn't use external state
+
+  const handleTimeSlotClick = useCallback((staffId: string, time: Date) => {
+    openBookingModal(staffId, time);
+  }, [openBookingModal]); // Include dependencies
+
+  return (
+    <DaySchedule
+      appointments={appointments}
+      staff={staff}
+      onAppointmentClick={handleAppointmentClick}
+      onTimeSlotClick={handleTimeSlotClick}
+    />
+  );
+}
+```
+
+**3. Key Props**
+All list renders use proper `key` props for optimal reconciliation:
+- Appointment lists use `appointment.id`
+- Date groups use `dateString`
+- Staff columns use `staff.id`
+
+**4. Avoid Inline Functions**
+❌ **Bad** (creates new function on every render):
+```tsx
+<DaySchedule onAppointmentClick={(apt) => handleClick(apt)} />
+```
+
+✅ **Good** (stable reference):
+```tsx
+const handleClick = useCallback((apt) => {
+  // handle click
+}, []);
+<DaySchedule onAppointmentClick={handleClick} />
+```
+
+**5. Lazy Loading**
+- Use `selectedDate` and `selectedStaffIds` filters to limit rendered data
+- Don't load all appointments at once - fetch by date range
+- Example:
+```tsx
+const visibleAppointments = useMemo(() =>
+  appointments.filter(apt =>
+    isSameDay(apt.scheduledStartTime, selectedDate)
+  ),
+  [appointments, selectedDate]
+);
+```
+
 ## Error Handling
 
 ### BookErrorBoundary

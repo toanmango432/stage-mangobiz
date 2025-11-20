@@ -91,7 +91,7 @@ interface NewAppointmentModalV2Props {
   selectedTime?: Date;
   selectedStaffId?: string;
   selectedStaffName?: string;
-  onSave?: (appointment: any) => void;
+  onSave?: (appointment: LocalAppointment) => void;
   viewMode?: 'slide' | 'fullpage';
 }
 
