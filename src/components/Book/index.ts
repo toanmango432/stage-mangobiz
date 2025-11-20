@@ -3,6 +3,7 @@
  * Export all appointment calendar components
  */
 
+export { BookErrorBoundary } from './BookErrorBoundary';
 export { AppointmentCard } from './AppointmentCard';
 export { CalendarHeader } from './CalendarHeader';
 export { DaySchedule } from './DaySchedule.v2';

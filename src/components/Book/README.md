@@ -436,6 +436,46 @@ staffDB.getAvailable(salonId)
 | Summary | Bottom panel, on-demand | Always visible sidebar |
 | Best For | Individual appointments | Group events |
 
+## Error Handling
+
+### BookErrorBoundary
+
+The Book module includes an error boundary component to gracefully handle runtime errors and prevent the entire application from crashing.
+
+**Usage:**
+
+```tsx
+import { BookErrorBoundary } from './components/Book';
+
+function App() {
+  return (
+    <BookErrorBoundary>
+      <DaySchedule {...props} />
+      {/* Other calendar components */}
+    </BookErrorBoundary>
+  );
+}
+```
+
+**Features:**
+- Catches errors in any child component within the Book module
+- Displays user-friendly error message with recovery options
+- Shows error details in development mode for debugging
+- Provides "Try Again" and "Reload Page" recovery options
+- Logs errors to console (can be extended to send to error tracking service)
+
+**Custom Fallback UI:**
+
+```tsx
+<BookErrorBoundary
+  fallback={
+    <div>Custom error message</div>
+  }
+>
+  {/* Components */}
+</BookErrorBoundary>
+```
+
 ## Contributing
 
 When adding new features to the Book module:
@@ -444,7 +484,7 @@ When adding new features to the Book module:
 2. Maintain z-index hierarchy (10, 30, 40)
 3. Use conditional rendering over overlays
 4. Add TypeScript types for all props
-5. Include error handling
+5. Include error handling and wrap critical components in error boundaries
 6. Update this documentation
 
 ## Related Modules
