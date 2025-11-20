@@ -14,6 +14,7 @@ import { TicketColorPreview } from '../TicketColorPreview';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { useAppDispatch } from '../../store/hooks';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
+import { addLocalAppointment } from '../../store/slices/appointmentsSlice';
 import { setOnlineStatus } from '../../store/slices/syncSlice';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
@@ -55,12 +56,28 @@ export function AppShell() {
         // 3. Load staff into Redux
         await dispatch(fetchAllStaff(salonId));
         console.log('✅ Staff loaded into Redux');
-        
-        // 4. Start sync manager
+
+        // 4. Load appointments into Redux
+        const appointments = await db.appointments.toArray();
+        appointments.forEach((apt: any) => {
+          dispatch(addLocalAppointment({
+            ...apt,
+            scheduledStartTime: new Date(apt.scheduledStartTime),
+            scheduledEndTime: new Date(apt.scheduledEndTime),
+            actualStartTime: apt.actualStartTime ? new Date(apt.actualStartTime) : undefined,
+            actualEndTime: apt.actualEndTime ? new Date(apt.actualEndTime) : undefined,
+            checkInTime: apt.checkInTime ? new Date(apt.checkInTime) : undefined,
+            createdAt: new Date(apt.createdAt),
+            updatedAt: new Date(apt.updatedAt),
+          }));
+        });
+        console.log(`✅ Loaded ${appointments.length} appointments into Redux`);
+
+        // 5. Start sync manager
         syncManager.start();
         console.log('✅ Sync Manager started');
-        
-        // 5. Set initial online status
+
+        // 6. Set initial online status
         dispatch(setOnlineStatus(navigator.onLine));
         
         setIsInitialized(true);
