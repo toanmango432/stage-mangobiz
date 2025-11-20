@@ -50,7 +50,6 @@ The Command Palette (`Cmd+K`) provides:
   - Appointments
   - Navigation
   - Views
-  - Clients
   - Settings
 - **Keyboard navigation** - Use arrow keys to navigate, Enter to select
 - **Smart shortcuts** - Displays keyboard shortcuts next to each command
@@ -65,18 +64,11 @@ The Command Palette (`Cmd+K`) provides:
 - Go to Today
 - Go to Tomorrow
 - Go to Next Week
-- Go to Dashboard
-- Go to Front Desk
-- Go to Reports
 
 **Views:**
 - Day View
 - Week View
 - Month View
-
-**Clients:**
-- New Client
-- View All Clients
 
 **Settings:**
 - Clear All Filters

@@ -26,7 +26,6 @@ import {
   Home,
   ChevronRight,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   openCreateModal,
@@ -57,7 +56,6 @@ interface CommandAction {
 
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [recentActions, setRecentActions] = useState<string[]>([]);
@@ -195,34 +193,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       },
     },
 
-    // Clients
-    {
-      id: 'new-client',
-      label: 'New Client',
-      description: 'Add a new client to the system',
-      icon: User,
-      category: 'clients',
-      keywords: ['customer', 'add', 'create'],
-      action: () => {
-        // Navigate to clients page with add modal
-        navigate('/clients?action=add');
-        onClose();
-        trackAction('new-client');
-      },
-    },
-    {
-      id: 'view-clients',
-      label: 'View All Clients',
-      description: 'Browse all clients',
-      icon: Users,
-      category: 'clients',
-      keywords: ['customers', 'directory', 'list'],
-      action: () => {
-        navigate('/clients');
-        onClose();
-        trackAction('view-clients');
-      },
-    },
+    // Note: Client management commands removed - they require router navigation
+    // which is not available in the current component context.
+    // These can be re-added when proper navigation context is available.
 
     // Filters
     {
@@ -239,47 +212,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       },
     },
 
-    // Navigation - Other Pages
-    {
-      id: 'go-to-dashboard',
-      label: 'Go to Dashboard',
-      description: 'View analytics and overview',
-      icon: Home,
-      category: 'navigation',
-      keywords: ['home', 'main', 'overview'],
-      action: () => {
-        navigate('/dashboard');
-        onClose();
-        trackAction('go-to-dashboard');
-      },
-    },
-    {
-      id: 'go-to-front-desk',
-      label: 'Go to Front Desk',
-      description: 'Manage tickets and check-ins',
-      icon: LayoutGrid,
-      category: 'navigation',
-      keywords: ['tickets', 'checkin', 'checkout'],
-      action: () => {
-        navigate('/frontdesk');
-        onClose();
-        trackAction('go-to-front-desk');
-      },
-    },
-    {
-      id: 'go-to-reports',
-      label: 'Go to Reports',
-      description: 'View business reports and analytics',
-      icon: TrendingUp,
-      category: 'navigation',
-      keywords: ['analytics', 'stats', 'metrics'],
-      action: () => {
-        navigate('/reports');
-        onClose();
-        trackAction('go-to-reports');
-      },
-    },
-  ], [dispatch, navigate, onClose]);
+    // Note: Cross-module navigation commands (Dashboard, Front Desk, Reports) removed
+    // They require router context which is not available in this component.
+    // These can be re-added when proper navigation context is available.
+  ], [dispatch, onClose]);
 
   // Track action usage for MRU sorting
   const trackAction = useCallback((actionId: string) => {
@@ -343,7 +279,6 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       appointments: [],
       navigation: [],
       views: [],
-      clients: [],
       settings: [],
     };
 
@@ -414,13 +349,6 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               ))}
             </Command.Group>
 
-            {/* Clients */}
-            <Command.Group heading="Clients" className="mb-2">
-              {commandsByCategory.clients.map((cmd) => (
-                <CommandItem key={cmd.id} command={cmd} />
-              ))}
-            </Command.Group>
-
             {/* Settings */}
             {commandsByCategory.settings.length > 0 && (
               <Command.Group heading="Settings" className="mb-2">
@@ -446,7 +374,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 </span>
               </div>
               <span className="text-slate-400">
-                {commands.length} commands available
+                {commands.length} command{commands.length !== 1 ? 's' : ''} available
               </span>
             </div>
           </div>
