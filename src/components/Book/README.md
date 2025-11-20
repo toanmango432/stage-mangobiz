@@ -11,8 +11,8 @@ The Book module provides a complete solution for managing salon appointments, in
 ### Core Components
 
 #### Appointment Modals
-- **NewAppointmentModal** - Legacy appointment creation modal
-- **NewAppointmentModalV2** - Enhanced appointment modal with improved UX
+- **NewAppointmentModal** - ⚠️ **DEPRECATED** - Legacy appointment creation modal (use V2 instead)
+- **NewAppointmentModalV2** - ✅ **Recommended** - Enhanced appointment modal with improved UX
   - Client-first workflow
   - Full-height dropdown for client selection
   - Conditional rendering for step-by-step guidance
@@ -435,6 +435,55 @@ staffDB.getAvailable(salonId)
 | Service Assignment | Per staff, then add clients | Per member, inline |
 | Summary | Bottom panel, on-demand | Always visible sidebar |
 | Best For | Individual appointments | Group events |
+
+## Migration Guide
+
+### Migrating from NewAppointmentModal to NewAppointmentModalV2
+
+The legacy `NewAppointmentModal` component is deprecated and will be removed in a future version. Please migrate to `NewAppointmentModalV2`.
+
+**Why Migrate?**
+- Better client-first workflow with recent client suggestions
+- Improved UX with conditional rendering
+- Full-height dropdown for better client selection
+- Inline client creation without switching panels
+- Better TypeScript support with proper typing
+- Actively maintained with new features
+
+**Migration Steps:**
+
+1. **Update Import Statement**
+```tsx
+// Before (deprecated)
+import { NewAppointmentModal } from './components/Book';
+
+// After (recommended)
+import { NewAppointmentModalV2 } from './components/Book';
+```
+
+2. **Update Component Usage**
+```tsx
+// The props are 100% compatible - just rename the component!
+<NewAppointmentModalV2
+  isOpen={isOpen}
+  onClose={onClose}
+  selectedDate={selectedDate}
+  selectedTime={selectedTime}
+  selectedStaffId={selectedStaffId}
+  onSave={handleSave}
+/>
+```
+
+3. **No Code Changes Required**
+- All props are compatible between V1 and V2
+- The `onSave` callback signature is identical
+- Event handlers work the same way
+
+**Breaking Changes:** None! The V2 component is a drop-in replacement.
+
+**Timeline:**
+- **Now**: V1 is deprecated with console warnings in development
+- **Next Major Version**: V1 will be removed entirely
 
 ## Performance Best Practices
 

@@ -1,6 +1,34 @@
 /**
- * New Appointment Modal - Fresha-Inspired Design
+ * New Appointment Modal - Fresha-Inspired Design (LEGACY)
  * 3-Panel Layout: Client | Calendar | Services
+ *
+ * ⚠️ **DEPRECATED**: This component is deprecated and will be removed in a future version.
+ * Please use `NewAppointmentModalV2` instead, which provides:
+ * - Better client-first workflow
+ * - Improved UX with conditional rendering
+ * - Full-height dropdown for client selection
+ * - Recent client suggestions
+ * - Inline client creation
+ * - Better TypeScript support
+ *
+ * Migration Guide:
+ * ```tsx
+ * // Old (deprecated)
+ * import { NewAppointmentModal } from './components/Book';
+ *
+ * // New (recommended)
+ * import { NewAppointmentModalV2 } from './components/Book';
+ *
+ * // Props are compatible - just rename the import!
+ * <NewAppointmentModalV2
+ *   isOpen={isOpen}
+ *   onClose={onClose}
+ *   selectedDate={date}
+ *   onSave={handleSave}
+ * />
+ * ```
+ *
+ * @deprecated Use NewAppointmentModalV2 instead
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -51,6 +79,9 @@ interface Staff {
   photo?: string;
 }
 
+/**
+ * @deprecated Use NewAppointmentModalV2 instead
+ */
 interface NewAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,6 +94,9 @@ interface NewAppointmentModalProps {
   onCreateClient?: (name: string, phone: string) => Promise<Client>;
 }
 
+/**
+ * @deprecated Use NewAppointmentModalV2 instead. This legacy version will be removed in a future release.
+ */
 export function NewAppointmentModal({
   isOpen,
   onClose,
@@ -74,6 +108,16 @@ export function NewAppointmentModal({
   onSave,
   onCreateClient,
 }: NewAppointmentModalProps) {
+  // Deprecation warning (only in development)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '[DEPRECATED] NewAppointmentModal is deprecated and will be removed in a future version. ' +
+        'Please use NewAppointmentModalV2 instead. See component documentation for migration guide.'
+      );
+    }
+  }, []);
+
   // State
   const [isMinimized, setIsMinimized] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
