@@ -8,6 +8,11 @@ import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
 import { useTickets } from '../hooks/useTicketsCompat';
+import { FrontDeskSettingsData } from './frontdesk-settings/types';
+
+interface StaffSidebarProps {
+  settings?: FrontDeskSettingsData;
+}
 // Function to get salon staff images based on specialty and ID
 const getSalonStaffImage = (id: number, specialty?: string) => {
   // Map staff IDs to specific profile images from the provided screenshot
@@ -45,7 +50,7 @@ export const determineStaffStatus = (staff, inServiceTickets) => {
     status: hasActiveTickets ? 'busy' : 'ready'
   };
 };
-export function StaffSidebar() {
+export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undefined }) {
   // ⚙️ FEATURE FLAG - Set to false to revert to original styling
   const USE_NEW_TEAM_STYLING = true;
 
@@ -55,6 +60,7 @@ export function StaffSidebar() {
     inService,
     staff
   } = useTickets();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   // Updated to support both status types
@@ -72,6 +78,9 @@ export function StaffSidebar() {
     const savedSettings = localStorage.getItem('teamSettings');
     return savedSettings ? JSON.parse(savedSettings) : defaultTeamSettings;
   });
+
+  // Use settings from FrontDeskSettings if provided, otherwise use local teamSettings
+  const effectiveOrganizeBy = settings?.organizeBy || teamSettings.organizeBy;
   // New state for Turn Tracker modal
   const [showTurnTracker, setShowTurnTracker] = useState(false);
   // Listen for global FAB event to open Turn Tracker
@@ -471,7 +480,7 @@ export function StaffSidebar() {
   const filteredStaff = staff.filter(staffMember => {
     const matchesSearch = staffMember.name.toLowerCase().includes(searchQuery.toLowerCase());
     // Handle filtering based on organization structure
-    if (teamSettings.organizeBy === 'busyStatus') {
+    if (effectiveOrganizeBy === 'busyStatus') {
       // When using Busy/Ready organization
       return matchesSearch && (statusFilter === null || staffMember.status === statusFilter);
     } else {
@@ -489,7 +498,7 @@ export function StaffSidebar() {
   // Calculate the staff counts for each status
   const calculateStaffCounts = () => {
     // Get the filtered staff list based on organization method
-    const staffToCount = teamSettings.organizeBy === 'busyStatus' ? staff.filter(s => s.status !== 'off') // Exclude clocked out staff for busy/ready view
+    const staffToCount = effectiveOrganizeBy === 'busyStatus' ? staff.filter(s => s.status !== 'off') // Exclude clocked out staff for busy/ready view
       : staff; // Include all staff for clocked in/out view
     const clockedInCount = staffToCount.filter(s => s.status === 'ready' || s.status === 'busy').length;
     const clockedOutCount = staffToCount.filter(s => s.status === 'off').length;
@@ -533,7 +542,7 @@ export function StaffSidebar() {
       </span>
     </button>;
     // Generate status pills based on organization mode
-    const statusPills = teamSettings.organizeBy === 'busyStatus' ? staffStatus.filter(status => status.type === 'busyStatus').map(status => {
+    const statusPills = effectiveOrganizeBy === 'busyStatus' ? staffStatus.filter(status => status.type === 'busyStatus').map(status => {
       const isActive = statusFilter === status.id;
       // Ready = GREEN, Busy = RED
       const activeColors = {

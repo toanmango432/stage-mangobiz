@@ -162,11 +162,11 @@ export function TopHeaderBar({
 
   return (
     <header className={`
-      bg-gradient-to-b from-white/50 via-orange-50/35 to-white/25
+      bg-gradient-to-b from-gray-100/50 to-gray-50/30
       backdrop-blur-xl backdrop-saturate-[1.8]
-      border-b border-white/40
-      rounded-b-xl md:rounded-b-2xl
-      shadow-[0_8px_32px_rgba(251,146,60,0.15),0_4px_12px_rgba(0,0,0,0.1),inset_0_2px_0_rgba(255,255,255,1),inset_0_-1px_0_rgba(255,255,255,0.4)]
+      border border-white/70
+      rounded-b-2xl md:rounded-b-3xl
+      shadow-[0_8px_32px_rgba(31,38,135,0.1),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(255,255,255,0.3)]
       h-12 md:h-16 flex items-center px-2.5 md:px-4 fixed top-0 left-0 right-0 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
@@ -226,20 +226,21 @@ export function TopHeaderBar({
                 key={module.id}
                 onClick={() => onModuleChange?.(module.id)}
                 className={`
-                  relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl transition-all duration-200 group
-                  min-h-[48px]
+                  relative flex items-center gap-3 px-6 py-3 rounded-xl transition-all duration-150 group
+                  min-h-[52px] transform
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
                   ${isActive
-                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 ring-1 ring-orange-400/50'
-                    : 'text-gray-700 bg-white/30 hover:bg-white/50 hover:text-gray-900 ring-1 ring-white/40 hover:ring-white/60'
+                    ? 'bg-orange-50 text-orange-600 shadow-sm border-b-2 border-orange-500'
+                    : 'text-gray-700 bg-white shadow-md hover:shadow-lg hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98] active:shadow-sm active:bg-gray-100'
                   }
                 `}
               >
                 <Icon
-                  size={22}
+                  size={24}
                   strokeWidth={isActive ? 2.5 : 2}
-                  className="transition-transform duration-200"
+                  className="transition-transform duration-200 group-hover:scale-110"
                 />
-                <span className={`text-base ${isActive ? 'font-bold' : 'font-semibold'}`}>
+                <span className={`text-lg ${isActive ? 'font-bold' : 'font-semibold'}`}>
                   {module.label}
                 </span>
               </button>
@@ -250,16 +251,17 @@ export function TopHeaderBar({
           <button
             onClick={() => onModuleChange?.('more')}
             className={`
-              relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200
-              min-h-[44px]
+              relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl transition-all duration-150 group
+              min-h-[48px] transform
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
               ${activeModule === 'more'
-                ? 'bg-gray-600 text-white shadow-md ring-1 ring-gray-500/50'
-                : 'text-gray-600 bg-white/20 hover:bg-white/40 hover:text-gray-800 ring-1 ring-white/30 hover:ring-white/50'
+                ? 'bg-gray-100 text-gray-700 shadow-sm border-b-2 border-gray-500'
+                : 'text-gray-600 bg-white shadow-md hover:shadow-lg hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98] active:shadow-sm active:bg-gray-100'
               }
             `}
           >
-            <MoreHorizontal size={18} />
-            <span className={`text-sm ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
+            <MoreHorizontal size={20} className="transition-transform duration-200 group-hover:scale-110" />
+            <span className={`text-base ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
               More
             </span>
           </button>

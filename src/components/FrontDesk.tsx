@@ -583,7 +583,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         {/* Sidebar with improved mobile handling */}
         <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-30 h-full transition-transform duration-300 ease-in-out`}>
           <TeamSectionErrorBoundary>
-            <StaffSidebar />
+            <StaffSidebar settings={frontDeskSettings} />
           </TeamSectionErrorBoundary>
         </div>
         {/* Overlay for mobile sidebar */}
