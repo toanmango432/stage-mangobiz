@@ -119,16 +119,28 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const [waitListTabDropdownOpen, setWaitListTabDropdownOpen] = useState(false);
   // New state for ticket config settings
   const [showTicketSettings, setShowTicketSettings] = useState(false);
-  const [ticketSortOrder, setTicketSortOrder] = useState<'queue' | 'time'>(() => {
-    const saved = localStorage.getItem('ticketSortOrder');
-    return saved === 'queue' || saved === 'time' ? saved as 'queue' | 'time' : 'queue';
-  });
-  const [showUpcomingAppointments, setShowUpcomingAppointments] = useState(() => {
-    // Force Coming section to be visible - reset any previous hide state
-    localStorage.setItem('showUpcomingAppointments', 'true');
-    return true;
-  });
+
+  // Initialize local UI states from Redux settings (will sync via useEffect)
+  const [ticketSortOrder, setTicketSortOrder] = useState<'queue' | 'time'>(
+    frontDeskSettings.sortBy || 'queue'
+  );
+  const [showUpcomingAppointments, setShowUpcomingAppointments] = useState(
+    frontDeskSettings.showComingAppointments
+  );
+
   const ticketSettingsRef = useRef<HTMLDivElement>(null);
+
+  // Sync local states with Redux when settings change
+  useEffect(() => {
+    setTicketSortOrder(frontDeskSettings.sortBy);
+    setShowUpcomingAppointments(frontDeskSettings.showComingAppointments);
+    setIsCombinedView(
+      frontDeskSettings.displayMode === 'tab' || frontDeskSettings.combineSections
+    );
+    setCombinedCardViewMode(
+      frontDeskSettings.viewStyle === 'compact' ? 'compact' : 'normal'
+    );
+  }, [frontDeskSettings]);
 
   // Calculate metrics for mobile tabs - must be after showUpcomingAppointments is defined
   const mobileTabsData = useMemo((): MobileTab[] => {
@@ -273,11 +285,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   useEffect(() => {
     localStorage.setItem('activeCombinedTab', activeCombinedTab);
   }, [activeCombinedTab]);
-  // Save ticket settings to localStorage
-  useEffect(() => {
-    localStorage.setItem('ticketSortOrder', ticketSortOrder);
-    localStorage.setItem('showUpcomingAppointments', showUpcomingAppointments.toString());
-  }, [ticketSortOrder, showUpcomingAppointments]);
+
+  // NOTE: ticketSortOrder and showUpcomingAppointments are now saved via Redux
+  // (removed redundant localStorage saves - Redux saveSettings handles this)
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -462,31 +473,13 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   }] : [])];
   // Handle settings change
   const handleFrontDeskSettingsChange = (newSettings: Partial<FrontDeskSettingsData>) => {
-    // Update Redux store
+    // Update Redux store - this will trigger the useEffect that syncs local states
     dispatch(updateSettings(newSettings));
     dispatch(saveSettings());
 
-    // Apply settings to the appropriate state variables
-    if (newSettings.displayMode) {
-      setIsCombinedView(newSettings.displayMode === 'tab');
-      localStorage.setItem('salonCenterViewMode', newSettings.displayMode === 'tab' ? 'combined' : 'column');
-    }
-    if (newSettings.viewStyle) {
-      setCombinedCardViewMode(newSettings.viewStyle === 'compact' ? 'compact' : 'normal');
-      localStorage.setItem('combinedCardMode', newSettings.viewStyle === 'compact' ? 'compact' : 'normal');
-    }
-    if (newSettings.sortBy) {
-      setTicketSortOrder(newSettings.sortBy);
-      localStorage.setItem('ticketSortOrder', newSettings.sortBy);
-    }
-    if (newSettings.showComingAppointments !== undefined) {
-      setShowUpcomingAppointments(newSettings.showComingAppointments);
-      localStorage.setItem('showUpcomingAppointments', newSettings.showComingAppointments.toString());
-    }
-    if (newSettings.combineSections !== undefined) {
-      setIsCombinedView(newSettings.combineSections);
-      localStorage.setItem('salonCenterViewMode', newSettings.combineSections ? 'combined' : 'column');
-    }
+    // NOTE: Removed redundant localStorage writes - Redux saveSettings handles persistence
+    // NOTE: Removed manual state updates - useEffect syncs local states from Redux automatically
+    // This prevents state desynchronization and duplicate data storage
   };
   // Simplified Ticket Settings Component
   const TicketsHeader = () => {
@@ -507,7 +500,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
           </Tippy>
           <Tippy content={showUpcomingAppointments ? 'Hide upcoming' : 'Show upcoming'}>
             <button className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" onClick={() => {
-              setShowUpcomingAppointments(!showUpcomingAppointments);
+              // Toggle Coming Appointments visibility via Redux
               handleFrontDeskSettingsChange({
                 showComingAppointments: !showUpcomingAppointments
               });
