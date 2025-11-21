@@ -13,37 +13,47 @@ interface OperationTemplatesSectionProps {
   isCompact?: boolean;
 }
 
-// Get template info
+// Get template info - User-type focused naming
 const getTemplateInfo = (template: FrontDeskSettingsData['operationTemplate']) => {
   switch (template) {
     case 'frontDeskBalanced':
       return {
-        title: 'Front Desk Balanced',
-        description: 'Balanced view of team and tickets with 40/60 ratio',
+        title: 'Reception Desk',
+        subtitle: 'Balanced View',
+        description: 'See both your team and tickets at a glance',
+        userType: 'Front Desk Staff',
         layoutRatio: { team: 40, ticket: 60 }
       };
     case 'frontDeskTicketCenter':
       return {
-        title: 'Front Desk Ticket Center',
-        description: 'Ticket-focused view with minimal team display',
+        title: 'Express Queue',
+        subtitle: 'Ticket-First View',
+        description: 'Maximize ticket visibility for fast-paced environments',
+        userType: 'Front Desk Staff',
         layoutRatio: { team: 10, ticket: 90 }
       };
     case 'teamWithOperationFlow':
       return {
-        title: 'Team with Operation Flow',
-        description: 'Team-focused view with operation flow',
+        title: 'Provider View',
+        subtitle: 'Team-Focused Layout',
+        description: 'Large staff cards with current client and appointments',
+        userType: 'Service Provider',
         layoutRatio: { team: 80, ticket: 20 }
       };
     case 'teamInOut':
       return {
-        title: 'Team In/Out',
-        description: 'Full team view focused on clock in/out status',
+        title: 'Quick Checkout',
+        subtitle: 'Simple Clock In/Out',
+        description: 'Full-screen team view for easy checkout',
+        userType: 'Service Provider',
         layoutRatio: { team: 100, ticket: 0 }
       };
     default:
       return {
         title: 'Custom Template',
+        subtitle: 'Custom Layout',
         description: 'Custom configuration',
+        userType: 'Mixed',
         layoutRatio: { team: 50, ticket: 50 }
       };
   }
@@ -152,11 +162,16 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                   </div>
                 </div>
               </div>
-              <h5 className="text-sm font-medium text-gray-800">
-                {templateInfo.title}
-              </h5>
+              <div className="flex items-center justify-between">
+                <h5 className="text-sm font-medium text-gray-800">
+                  {templateInfo.title}
+                </h5>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${templateInfo.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                  {templateInfo.userType}
+                </span>
+              </div>
               <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                {templateInfo.description}
+                {templateInfo.subtitle} - {templateInfo.description}
               </p>
               <button
                 onClick={onChangeTemplate}
@@ -217,9 +232,15 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
               </div>
             </div>
             <div className="lg:flex-1">
-              <h5 className="text-base font-semibold text-gray-800 mb-1">
-                {templateInfo.title}
-              </h5>
+              <div className="flex items-center gap-2 mb-1">
+                <h5 className="text-base font-semibold text-gray-800">
+                  {templateInfo.title}
+                </h5>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${templateInfo.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                  {templateInfo.userType}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mb-1">{templateInfo.subtitle}</p>
               <p className="text-sm text-gray-500 mb-3">
                 {templateInfo.description}
               </p>

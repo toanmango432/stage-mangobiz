@@ -194,13 +194,16 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       setCurrentTemplateIndex(prev => prev === 0 ? 3 : prev - 1);
     }
   };
-  // Get template details
+  // Get template details - User-type focused naming
   const getTemplateDetails = (template: FrontDeskSettingsData['operationTemplate']) => {
     switch (template) {
       case 'frontDeskBalanced':
         return {
-          title: 'Front Desk Balanced',
-          description: 'Best for front desk–led salons that want balanced staff & ticket visibility',
+          title: 'Reception Desk',
+          subtitle: 'Balanced View',
+          description: 'See both your team and tickets at a glance. Perfect for receptionists who manage walk-ins and appointments.',
+          bestFor: 'Front desk staff who coordinate between clients and providers',
+          userType: 'Front Desk Staff',
           teamRatio: 40,
           ticketRatio: 60,
           teamMode: 'column',
@@ -210,8 +213,11 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
         };
       case 'frontDeskTicketCenter':
         return {
-          title: 'Front Desk Ticket Center',
-          description: 'Best for busy salons where reception prioritizes ticket speed',
+          title: 'Express Queue',
+          subtitle: 'Ticket-First View',
+          description: 'Maximize ticket visibility for fast-paced environments. Staff info available in a compact sidebar.',
+          bestFor: 'High-volume salons where speed is priority',
+          userType: 'Front Desk Staff',
           teamRatio: 10,
           ticketRatio: 90,
           teamMode: 'tab',
@@ -221,8 +227,11 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
         };
       case 'teamWithOperationFlow':
         return {
-          title: 'Team with Operation Flow',
-          description: 'Best for staff-driven salons that still want waitlist + in service flow',
+          title: 'Provider View',
+          subtitle: 'Team-Focused Layout',
+          description: 'Large staff cards show current client and upcoming appointments. Small ticket panel for context.',
+          bestFor: 'Service providers who manage their own clients',
+          userType: 'Service Provider',
           teamRatio: 80,
           ticketRatio: 20,
           teamMode: 'column',
@@ -232,8 +241,11 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
         };
       case 'teamInOut':
         return {
-          title: 'Team In/Out',
-          description: 'Best for salons with Quick In/Out (booth rentals, barbershops)',
+          title: 'Quick Checkout',
+          subtitle: 'Simple Clock In/Out',
+          description: 'Full-screen team view for easy clock-in and quick checkout. Tap a name to start or complete service.',
+          bestFor: 'Low-tech salons, booth rentals, barbershops',
+          userType: 'Service Provider',
           teamRatio: 100,
           ticketRatio: 0,
           teamMode: 'column',
@@ -439,11 +451,10 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             <div className="bg-[#27AE60] text-white p-1.5 rounded-lg mr-3 shadow-sm">
               <Layers size={20} />
             </div>
-            Choose Your Operation Template
+            Who Uses This Screen?
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Every salon runs differently. Answer a few quick questions, and
-            we'll suggest the best setup for you.
+            Tell us who will primarily use this screen, and we'll set up the perfect layout.
           </p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close template setup">
@@ -453,147 +464,99 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       {/* Main Content */}
       <main className="template-setup-main flex-1 overflow-y-auto apple-scroll">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6">
-          {/* Questions Section - Redesigned for compact layout */}
-          <section className="template-setup-questions mb-4 max-w-3xl mx-auto">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2 px-1 flex items-center">
-              <span>Tell us about your salon</span>
-              <span className="text-xs text-gray-500 ml-2">
-                (3 quick questions)
-              </span>
-            </h2>
-            <div className="space-y-2">
-              {/* Question 1: Primary Focus */}
-              <div ref={question1Ref} className={`question-card rounded-lg p-3 bg-white shadow-sm ${quickAnswers.primaryFocus ? 'answered border-l-2 border-[#27AE60]' : ''}`}>
-                <div className="flex items-center">
-                  <div className="step-indicator w-5 h-5 text-xs flex-shrink-0">
+          {/* Questions Section - Simplified user-type focused flow */}
+          <section className="template-setup-questions mb-6 max-w-3xl mx-auto">
+            <div className="space-y-3">
+              {/* Main Question: Who will use this screen? */}
+              <div ref={question1Ref} className={`question-card rounded-xl p-4 bg-white shadow-sm border ${quickAnswers.primaryFocus ? 'border-[#27AE60]/30' : 'border-gray-100'}`}>
+                <div className="flex items-center mb-3">
+                  <div className="step-indicator w-6 h-6 text-xs flex-shrink-0">
                     1
                   </div>
                   <div className="ml-2 flex-grow">
-                    <h3 className="text-sm font-medium text-gray-800">
-                      Who runs the front of your salon?
+                    <h3 className="text-base font-medium text-gray-800">
+                      Who will use this screen most?
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5 mb-1.5">
-                      This helps us determine the best layout for your team
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      This determines the layout focus - team cards or tickets
                     </p>
                   </div>
-                  {quickAnswers.primaryFocus && <div className="ml-auto text-[#27AE60] flex-shrink-0">
-                      <CheckCircle size={16} />
-                    </div>}
                 </div>
-                <div className="mt-1.5 flex gap-2 items-stretch">
-                  <button className={`answer-option flex-1 px-2 py-1.5 rounded-md text-sm ${quickAnswers.primaryFocus === 'frontDesk' ? 'selected bg-[#27AE60]/5 border-[#27AE60] text-gray-900' : 'bg-white text-gray-700'}`} onClick={() => updateQuickAnswer('primaryFocus', 'frontDesk')}>
-                    <div className="flex items-center justify-center">
-                      {quickAnswers.primaryFocus === 'frontDesk' && <Check size={12} className="text-[#27AE60] mr-1" />}
-                      <span>Front Desk Staff</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <button className={`answer-option flex flex-col items-center p-4 rounded-lg text-center ${quickAnswers.primaryFocus === 'frontDesk' ? 'selected bg-[#3B82F6]/5 border-[#3B82F6] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('primaryFocus', 'frontDesk')}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${quickAnswers.primaryFocus === 'frontDesk' ? 'bg-[#3B82F6]/10' : 'bg-gray-200'}`}>
+                      <FileText size={24} className={quickAnswers.primaryFocus === 'frontDesk' ? 'text-[#3B82F6]' : 'text-gray-500'} />
                     </div>
-                    <span className="text-xs text-gray-500 block mt-0.5">
-                      Reception handles tickets
-                    </span>
+                    <span className={`font-medium ${quickAnswers.primaryFocus === 'frontDesk' ? 'text-[#3B82F6]' : 'text-gray-700'}`}>Front Desk Staff</span>
+                    <span className="text-xs text-gray-500 mt-1">Receptionist manages tickets</span>
                   </button>
-                  <button className={`answer-option flex-1 px-2 py-1.5 rounded-md text-sm ${quickAnswers.primaryFocus === 'staff' ? 'selected bg-[#27AE60]/5 border-[#27AE60] text-gray-900' : 'bg-white text-gray-700'}`} onClick={() => updateQuickAnswer('primaryFocus', 'staff')}>
-                    <div className="flex items-center justify-center">
-                      {quickAnswers.primaryFocus === 'staff' && <Check size={12} className="text-[#27AE60] mr-1" />}
-                      <span>Service Providers</span>
+                  <button className={`answer-option flex flex-col items-center p-4 rounded-lg text-center ${quickAnswers.primaryFocus === 'staff' ? 'selected bg-[#8E44AD]/5 border-[#8E44AD] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('primaryFocus', 'staff')}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${quickAnswers.primaryFocus === 'staff' ? 'bg-[#8E44AD]/10' : 'bg-gray-200'}`}>
+                      <Users size={24} className={quickAnswers.primaryFocus === 'staff' ? 'text-[#8E44AD]' : 'text-gray-500'} />
                     </div>
-                    <span className="text-xs text-gray-500 block mt-0.5">
-                      Stylists manage clients
-                    </span>
+                    <span className={`font-medium ${quickAnswers.primaryFocus === 'staff' ? 'text-[#8E44AD]' : 'text-gray-700'}`}>Service Providers</span>
+                    <span className="text-xs text-gray-500 mt-1">Stylists manage their clients</span>
                   </button>
                 </div>
               </div>
-              {/* Question 2: Operation Style - Conditional based on Q1 */}
-              <div ref={question2Ref} className={`question-card rounded-lg p-3 bg-white shadow-sm ${quickAnswers.operationStyle ? 'answered border-l-2 border-[#27AE60]' : ''}`}>
-                <div className="flex items-center">
-                  <div className="step-indicator w-5 h-5 text-xs flex-shrink-0">
-                    2
+
+              {/* Question 2: Workflow Style - Only show after Q1 is answered */}
+              {quickAnswers.primaryFocus && (
+                <div ref={question2Ref} className={`question-card rounded-xl p-4 bg-white shadow-sm border ${quickAnswers.operationStyle ? 'border-[#27AE60]/30' : 'border-gray-100'}`}>
+                  <div className="flex items-center mb-3">
+                    <div className="step-indicator w-6 h-6 text-xs flex-shrink-0">
+                      2
+                    </div>
+                    <div className="ml-2 flex-grow">
+                      <h3 className="text-base font-medium text-gray-800">
+                        {quickAnswers.primaryFocus === 'frontDesk' ? 'How should tickets be displayed?' : 'How do providers work with clients?'}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {quickAnswers.primaryFocus === 'frontDesk' ? 'Choose your preferred ticket/team balance' : 'Select the workflow that matches your salon'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-2 flex-grow">
-                    <h3 className="text-sm font-medium text-gray-800">
-                      {quickAnswers.primaryFocus === 'frontDesk' ? 'What do you want to focus on more?' : 'How do staff handle clients?'}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-0.5 mb-1.5">
-                      {quickAnswers.primaryFocus === 'frontDesk' ? 'Choose how to balance staff visibility and tickets' : 'Select the workflow that matches your salon'}
-                    </p>
-                  </div>
-                  {quickAnswers.operationStyle && <div className="ml-auto text-[#27AE60] flex-shrink-0">
-                      <CheckCircle size={16} />
-                    </div>}
-                </div>
-                <div className="mt-1.5 flex gap-2 items-stretch">
-                  <button className={`answer-option flex-1 px-2 py-1.5 rounded-md text-sm ${quickAnswers.operationStyle === 'flow' ? 'selected bg-[#27AE60]/5 border-[#27AE60] text-gray-900' : 'bg-white text-gray-700'}`} onClick={() => updateQuickAnswer('operationStyle', 'flow')}>
-                    <div className="flex items-center justify-center">
-                      {quickAnswers.operationStyle === 'flow' && <Check size={12} className="text-[#27AE60] mr-1" />}
-                      <span>
-                        {quickAnswers.primaryFocus === 'frontDesk' ? 'Both staff & tickets' : 'Step by Step Flow'}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button className={`answer-option flex flex-col p-3 rounded-lg ${quickAnswers.operationStyle === 'flow' ? 'selected bg-[#27AE60]/5 border-[#27AE60] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('operationStyle', 'flow')}>
+                      <span className={`font-medium ${quickAnswers.operationStyle === 'flow' ? 'text-[#27AE60]' : 'text-gray-700'}`}>
+                        {quickAnswers.primaryFocus === 'frontDesk' ? 'Balanced View' : 'Full Service Flow'}
                       </span>
-                    </div>
-                    <span className="text-xs text-gray-500 block mt-0.5">
-                      {quickAnswers.primaryFocus === 'frontDesk' ? 'Balanced team & ticket view' : 'Waitlist → Service → Checkout'}
-                    </span>
-                  </button>
-                  <button className={`answer-option flex-1 px-2 py-1.5 rounded-md text-sm ${quickAnswers.operationStyle === 'inOut' ? 'selected bg-[#27AE60]/5 border-[#27AE60] text-gray-900' : 'bg-white text-gray-700'}`} onClick={() => updateQuickAnswer('operationStyle', 'inOut')}>
-                    <div className="flex items-center justify-center">
-                      {quickAnswers.operationStyle === 'inOut' && <Check size={12} className="text-[#27AE60] mr-1" />}
-                      <span>
-                        {quickAnswers.primaryFocus === 'frontDesk' ? 'Tickets & clients' : 'Quick In/Out'}
+                      <span className="text-xs text-gray-500 mt-1">
+                        {quickAnswers.primaryFocus === 'frontDesk' ? 'See team status alongside tickets' : 'Track waiting → in-service → checkout'}
                       </span>
-                    </div>
-                    <span className="text-xs text-gray-500 block mt-0.5">
-                      {quickAnswers.primaryFocus === 'frontDesk' ? 'Focus on ticket board' : 'Clock in/out only'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              {/* Question 3: Appointment Relevance */}
-              <div ref={question3Ref} className={`question-card rounded-lg p-3 bg-white shadow-sm ${quickAnswers.showAppointments !== undefined ? 'answered border-l-2 border-[#27AE60]' : ''}`}>
-                <div className="flex items-center">
-                  <div className="step-indicator w-5 h-5 text-xs flex-shrink-0">
-                    3
+                    </button>
+                    <button className={`answer-option flex flex-col p-3 rounded-lg ${quickAnswers.operationStyle === 'inOut' ? 'selected bg-[#27AE60]/5 border-[#27AE60] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('operationStyle', 'inOut')}>
+                      <span className={`font-medium ${quickAnswers.operationStyle === 'inOut' ? 'text-[#27AE60]' : 'text-gray-700'}`}>
+                        {quickAnswers.primaryFocus === 'frontDesk' ? 'Ticket-First' : 'Quick In/Out'}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        {quickAnswers.primaryFocus === 'frontDesk' ? 'Maximize ticket board space' : 'Simple clock in/out & checkout'}
+                      </span>
+                    </button>
                   </div>
-                  <div className="ml-2 flex-grow">
-                    <h3 className="text-sm font-medium text-gray-800">
-                      Do you want to see upcoming appointments?
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-0.5 mb-1.5">
-                      Choose whether to display upcoming appointments
-                    </p>
+                </div>
+              )}
+
+              {/* Suggested Template Banner - Show after both questions answered */}
+              {quickAnswers.primaryFocus && quickAnswers.operationStyle && (
+                <div className="rounded-xl p-4 bg-gradient-to-r from-[#27AE60]/10 to-[#3498DB]/10 border border-[#27AE60]/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <CheckCircle size={20} className="text-[#27AE60] mr-3" />
+                      <div>
+                        <span className="text-sm text-gray-600">Based on your answers, we recommend:</span>
+                        <div className="font-semibold text-gray-800">
+                          {getTemplateDetails(getSuggestedTemplate())?.title}
+                          <span className="text-gray-500 font-normal ml-2">
+                            ({getTemplateDetails(getSuggestedTemplate())?.subtitle})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight size={20} className="text-[#27AE60]" />
                   </div>
-                  {quickAnswers.showAppointments !== undefined && <div className="ml-auto text-[#27AE60] flex-shrink-0">
-                      <CheckCircle size={16} />
-                    </div>}
                 </div>
-                <div className="mt-1.5 flex gap-2 items-stretch">
-                  <button className={`answer-option flex-1 px-2 py-1.5 rounded-md text-sm ${quickAnswers.showAppointments === true ? 'selected bg-[#27AE60]/5 border-[#27AE60] text-gray-900' : 'bg-white text-gray-700'}`} onClick={() => updateQuickAnswer('showAppointments', true)}>
-                    <div className="flex items-center justify-center">
-                      {quickAnswers.showAppointments === true && <Check size={12} className="text-[#27AE60] mr-1" />}
-                      <span>Yes, show appointments</span>
-                    </div>
-                    <span className="text-xs text-gray-500 block mt-0.5">
-                      See upcoming client bookings
-                    </span>
-                  </button>
-                  <button className={`answer-option flex-1 px-2 py-1.5 rounded-md text-sm ${quickAnswers.showAppointments === false ? 'selected bg-[#27AE60]/5 border-[#27AE60] text-gray-900' : 'bg-white text-gray-700'}`} onClick={() => updateQuickAnswer('showAppointments', false)}>
-                    <div className="flex items-center justify-center">
-                      {quickAnswers.showAppointments === false && <Check size={12} className="text-[#27AE60] mr-1" />}
-                      <span>No, focus on today</span>
-                    </div>
-                    <span className="text-xs text-gray-500 block mt-0.5">
-                      Prioritize current operations
-                    </span>
-                  </button>
-                </div>
-              </div>
-              {/* Suggested Template Message */}
-              {quickAnswers.primaryFocus && quickAnswers.operationStyle && quickAnswers.showAppointments !== undefined && <div className="text-center py-1.5 px-3 rounded-md bg-[#27AE60]/10 text-[#27AE60] text-sm font-medium flex items-center justify-center">
-                    <CheckCircle size={14} className="mr-1.5" />
-                    <span>
-                      Suggested:{' '}
-                      <strong>
-                        {getTemplateDetails(getSuggestedTemplate())?.title}
-                      </strong>
-                    </span>
-                    <ArrowRight size={14} className="ml-1.5" />
-                  </div>}
+              )}
             </div>
           </section>
           {/* Template Grid - Keeping this section unchanged */}
@@ -894,11 +857,23 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                       </div>
                       {/* Template Info */}
                       <div className="p-4 bg-white">
-                        <h3 className="text-base font-semibold text-gray-800 mb-1.5 flex items-center">
-                          {details.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-4 min-h-[40px]">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="text-base font-semibold text-gray-800">
+                              {details.title}
+                            </h3>
+                            <span className="text-xs text-gray-500">{details.subtitle}</span>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${details.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                            {details.userType}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
                           {details.description}
+                        </p>
+                        <p className="text-xs text-gray-500 mb-4 flex items-center">
+                          <Check size={12} className="text-[#27AE60] mr-1" />
+                          Best for: {details.bestFor}
                         </p>
                         {/* Pre-Config Settings (Collapsible) */}
                         <div className="mb-4">
@@ -1292,11 +1267,23 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                       </div>
                       {/* Template Info */}
                       <div className="p-4 bg-white">
-                        <h3 className="text-base font-semibold text-gray-800 mb-1.5 flex items-center">
-                          {details.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="text-base font-semibold text-gray-800">
+                              {details.title}
+                            </h3>
+                            <span className="text-xs text-gray-500">{details.subtitle}</span>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${details.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                            {details.userType}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
                           {details.description}
+                        </p>
+                        <p className="text-xs text-gray-500 mb-4 flex items-center">
+                          <Check size={12} className="text-[#27AE60] mr-1" />
+                          Best for: {details.bestFor}
                         </p>
                         {/* Pre-Config Settings (Collapsible) */}
                         <div className="mb-4">
