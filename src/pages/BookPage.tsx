@@ -7,12 +7,14 @@ import { useEffect, useState } from 'react';
 import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useBookSidebar } from '../hooks/useBookSidebar';
 import { store } from '../store';
 import { selectAllStaff } from '../store/slices/staffSlice';
 import {
   CalendarHeader,
   CommandPalette,
   StaffSidebar,
+  BookSidebar,
   CustomerSearchModal,
   NewAppointmentModalV2,
   AppointmentDetailsModal,
@@ -39,7 +41,10 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 export function BookPage() {
   const dispatch = useAppDispatch();
-  
+
+  // Sidebar state (persisted to localStorage)
+  const { isOpen: isSidebarOpen, toggle: toggleSidebar } = useBookSidebar(true);
+
   // Modal states
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
@@ -610,9 +615,13 @@ export function BookPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Staff Sidebar - Hidden on mobile */}
+      {/* Book Sidebar - Calendar + Staff Filter (Desktop) */}
       <div className="hidden lg:block">
-        <StaffSidebar
+        <BookSidebar
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
           staff={staffWithCounts}
           selectedStaffIds={selectedStaffIds}
           onStaffSelection={handleStaffSelection}
@@ -668,6 +677,8 @@ export function BookPage() {
           staff={allStaff.map(s => ({ id: s.id, name: s.name }))}
           selectedStaffIds={selectedStaffIds}
           onStaffFilterChange={handleStaffSelection}
+          sidebarOpen={isSidebarOpen}
+          onSidebarToggle={toggleSidebar}
         />
 
         {/* Calendar + Sidebars */}
