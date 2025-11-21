@@ -628,31 +628,19 @@ export function BookPage() {
         />
       </div>
 
-      {/* Mobile Staff Drawer */}
-      {isStaffDrawerOpen && (
-        <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setIsStaffDrawerOpen(false)}
-          />
-
-          {/* Drawer */}
-          <div className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white z-50 lg:hidden animate-slide-in-right shadow-premium-2xl">
-            <StaffSidebar
-              staff={staffWithCounts}
-              selectedStaffIds={selectedStaffIds}
-              onStaffSelection={(staffIds) => {
-                handleStaffSelection(staffIds);
-                // Auto-close drawer after selection on mobile
-                if (window.innerWidth < 1024) {
-                  setTimeout(() => setIsStaffDrawerOpen(false), 300);
-                }
-              }}
-            />
-          </div>
-        </>
-      )}
+      {/* Mobile Drawer - BookSidebar with calendar + staff */}
+      <div className="lg:hidden">
+        <BookSidebar
+          isOpen={isStaffDrawerOpen}
+          onToggle={() => setIsStaffDrawerOpen(false)}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          staff={staffWithCounts}
+          selectedStaffIds={selectedStaffIds}
+          onStaffSelection={handleStaffSelection}
+          mode="drawer"
+        />
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">

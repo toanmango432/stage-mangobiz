@@ -24,6 +24,8 @@ interface BookSidebarProps {
   staff: StaffMember[];
   selectedStaffIds: string[];
   onStaffSelection: (staffIds: string[]) => void;
+  /** Mode: 'sidebar' for desktop, 'drawer' for mobile overlay */
+  mode?: 'sidebar' | 'drawer';
   className?: string;
 }
 
@@ -81,8 +83,10 @@ export const BookSidebar = memo(function BookSidebar({
   staff,
   selectedStaffIds,
   onStaffSelection,
+  mode = 'sidebar',
   className,
 }: BookSidebarProps) {
+  const isDrawer = mode === 'drawer';
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
   const [currentYear, setCurrentYear] = useState(selectedDate.getFullYear());
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,6 +156,32 @@ export const BookSidebar = memo(function BookSidebar({
     onStaffSelection([]);
   };
 
+  // Drawer mode: full overlay with backdrop
+  if (isDrawer) {
+    if (!isOpen) return null;
+
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-black/50 z-40 animate-fade-in"
+          onClick={onToggle}
+        />
+        {/* Drawer */}
+        <div
+          className={cn(
+            'fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white z-50',
+            'flex flex-col shadow-2xl animate-slide-in-right',
+            className
+          )}
+        >
+          {renderContent()}
+        </div>
+      </>
+    );
+  }
+
+  // Sidebar mode: inline collapsible
   return (
     <div
       className={cn(
@@ -160,15 +190,24 @@ export const BookSidebar = memo(function BookSidebar({
         className
       )}
     >
+      {renderContent()}
+    </div>
+  );
+
+  function renderContent() {
+    return (
+      <>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-sm font-medium text-gray-900">Quick Access</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 min-h-[52px]">
+        <span className="text-sm font-medium text-gray-900">
+          {isDrawer ? 'Date & Staff' : 'Quick Access'}
+        </span>
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 transition-colors"
-          title="Collapse sidebar"
+          className="p-2 rounded-md hover:bg-gray-100 text-gray-400 transition-colors"
+          title={isDrawer ? 'Close' : 'Collapse sidebar'}
         >
-          <PanelLeftClose className="w-4 h-4" />
+          <PanelLeftClose className="w-5 h-5" />
         </button>
       </div>
 
@@ -375,6 +414,7 @@ export const BookSidebar = memo(function BookSidebar({
           </p>
         </div>
       </div>
-    </div>
-  );
+      </>
+    );
+  }
 });

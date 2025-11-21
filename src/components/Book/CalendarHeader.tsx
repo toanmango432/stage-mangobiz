@@ -95,15 +95,15 @@ export const CalendarHeader = memo(function CalendarHeader({
       'sticky top-0 z-30',
       // Subtle shadow
       'shadow-sm',
-      // Compact padding
-      'px-4 py-3',
+      // Responsive padding
+      'px-2 sm:px-4 py-2 sm:py-3',
       className
     )}>
       <div className="max-w-[1600px] mx-auto">
         {/* Single Row: All Controls */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Left: Sidebar Toggle + Date Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Sidebar Toggle - Only when sidebar is closed */}
             {!sidebarOpen && onSidebarToggle && (
               <button
@@ -116,14 +116,14 @@ export const CalendarHeader = memo(function CalendarHeader({
               </button>
             )}
 
-            {/* Staff Button - Mobile Only */}
+            {/* Staff Button - Mobile Only (opens drawer with calendar + staff) */}
             {onStaffDrawerOpen && (
               <button
                 onClick={onStaffDrawerOpen}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                aria-label="Select staff"
+                className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                aria-label="Open calendar and staff filter"
               >
-                <Users className="w-5 h-5 text-gray-400" />
+                <Users className="w-5 h-5 text-gray-600" />
               </button>
             )}
 
@@ -141,7 +141,7 @@ export const CalendarHeader = memo(function CalendarHeader({
                 {/* Previous Button */}
                 <button
                   onClick={handlePrevDay}
-                  className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
                   aria-label="Previous day"
                 >
                   <ChevronLeft className="w-5 h-5 text-gray-400" />
@@ -155,7 +155,7 @@ export const CalendarHeader = memo(function CalendarHeader({
                 )}>
                   <button
                     onClick={() => setIsDatePickerOpen(true)}
-                    className="px-3 py-2 rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-sm font-normal text-gray-700 min-w-[140px]"
+                    className="px-2 sm:px-3 py-2 min-h-[40px] rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-xs sm:text-sm font-normal text-gray-700"
                     title="Click to open date picker"
                   >
                     {formatDateDisplay(selectedDate)}
@@ -176,7 +176,7 @@ export const CalendarHeader = memo(function CalendarHeader({
                 {/* Next Button */}
                 <button
                   onClick={handleNextDay}
-                  className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
                   aria-label="Next day"
                 >
                   <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -204,8 +204,8 @@ export const CalendarHeader = memo(function CalendarHeader({
           )}
 
           {/* Right: Actions & Settings */}
-          <div className="flex items-center gap-4">
-            {/* Icon Buttons Group */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Icon Buttons Group - Desktop only */}
             <div className="hidden lg:flex items-center gap-1">
               {/* Settings Button */}
               {onSettingsClick && (
@@ -251,7 +251,7 @@ export const CalendarHeader = memo(function CalendarHeader({
             {onNewAppointment && (
               <button
                 onClick={onNewAppointment}
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm font-normal"
+                className="px-3 sm:px-4 py-2 min-h-[40px] rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm font-normal"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add</span>
