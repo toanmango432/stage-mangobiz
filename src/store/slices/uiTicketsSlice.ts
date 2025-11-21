@@ -52,6 +52,13 @@ export interface PendingTicket {
   technician?: string;
   techColor?: string;
   techId?: string;
+  // Multi-staff support
+  assignedStaff?: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
+  lastVisitDate?: Date | null;
 }
 
 export interface CompletionDetails {
@@ -266,6 +273,8 @@ export const completeTicket = createAsyncThunk(
       technician: ticket?.technician,
       techColor: ticket?.techColor,
       techId: ticket?.techId,
+      assignedStaff: ticket?.assignedStaff,
+      lastVisitDate: ticket?.lastVisitDate,
     };
 
     return {

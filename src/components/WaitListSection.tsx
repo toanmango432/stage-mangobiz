@@ -1109,7 +1109,7 @@ export const WaitListSection = memo(function WaitListSection({
                 />
               ))}
             </div> : <div
-              className="space-y-2"
+              className="space-y-2 pt-2"
               style={{
                 transform: `scale(${cardScale})`,
                 transformOrigin: 'top left',

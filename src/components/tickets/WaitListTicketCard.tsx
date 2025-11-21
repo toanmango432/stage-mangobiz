@@ -225,7 +225,7 @@ export function WaitListTicketCard({
         </div>
 
         {/* Wrap-around ticket number badge at Row 1 height */}
-        <div className="absolute left-0 top-[12px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
+        <div className="absolute left-0 top-[2px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
              style={{
                background: 'rgba(139, 92, 246, 0.06)',
                borderTopRightRadius: '8px',
@@ -241,7 +241,7 @@ export function WaitListTicketCard({
         </div>
 
         {/* Content area */}
-        <div className="py-0.5 pr-2.5 pl-8">
+        <div className="py-0.5 pr-2.5 pl-11">
           {/* Row 1: Client name + Wait time */}
           <div className="flex items-start justify-between gap-1.5 mb-0.5">
             <div className="flex-1 min-w-0">

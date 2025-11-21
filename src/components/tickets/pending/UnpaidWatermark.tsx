@@ -9,14 +9,15 @@ import { PremiumTypography } from '../../../constants/premiumDesignTokens';
 export function UnpaidWatermark() {
   return (
     <div
-      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none select-none"
+      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -rotate-12 opacity-[0.15] pointer-events-none select-none"
       aria-hidden="true"
     >
       <div
-        className="text-[#FF6B6B] font-bold text-3xl tracking-[0.2em] uppercase"
+        className="text-[#B8860B] font-black text-5xl tracking-[0.25em] uppercase"
         style={{
           fontFamily: PremiumTypography.fontFamily.mono,
-          textShadow: '0 0 1px rgba(255,107,107,0.2)',
+          textShadow: '0 0 2px rgba(184, 134, 11, 0.3), 0 1px 3px rgba(184, 134, 11, 0.2)',
+          WebkitTextStroke: '0.5px rgba(184, 134, 11, 0.3)',
         }}
       >
         UNPAID
