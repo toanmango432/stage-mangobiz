@@ -5,9 +5,8 @@
  */
 
 import { memo, useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, PanelLeftClose } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PanelLeftClose, Search, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { StaffChip } from './StaffChip';
 
 interface StaffMember {
   id: string;
@@ -42,19 +41,16 @@ function getCalendarGrid(year: number, month: number): (Date | null)[] {
 
   const grid: (Date | null)[] = [];
 
-  // Previous month's trailing days
   for (let i = firstDay - 1; i >= 0; i--) {
     const prevMonth = month === 0 ? 11 : month - 1;
     const prevYear = month === 0 ? year - 1 : year;
     grid.push(new Date(prevYear, prevMonth, daysInPrevMonth - i));
   }
 
-  // Current month's days
   for (let day = 1; day <= daysInMonth; day++) {
     grid.push(new Date(year, month, day));
   }
 
-  // Fill remaining cells (up to 42 for 6 rows)
   const remainingCells = 42 - grid.length;
   for (let day = 1; day <= remainingCells; day++) {
     const nextMonth = month === 11 ? 0 : month + 1;
@@ -89,11 +85,19 @@ export const BookSidebar = memo(function BookSidebar({
 }: BookSidebarProps) {
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
   const [currentYear, setCurrentYear] = useState(selectedDate.getFullYear());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const calendarGrid = useMemo(
     () => getCalendarGrid(currentYear, currentMonth),
     [currentYear, currentMonth]
   );
+
+  const filteredStaff = useMemo(() => {
+    if (!searchQuery.trim()) return staff;
+    return staff.filter((s) =>
+      s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [staff, searchQuery]);
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
@@ -122,6 +126,14 @@ export const BookSidebar = memo(function BookSidebar({
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
     onDateChange(today);
+  };
+
+  const handleJumpWeeks = (weeks: number) => {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + weeks * 7);
+    setCurrentMonth(targetDate.getMonth());
+    setCurrentYear(targetDate.getFullYear());
+    onDateChange(targetDate);
   };
 
   const handleToggleStaff = (staffId: string) => {
@@ -221,13 +233,41 @@ export const BookSidebar = memo(function BookSidebar({
           })}
         </div>
 
-        {/* Today Button */}
-        <button
-          onClick={handleGoToToday}
-          className="w-full mt-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
-        >
-          Today
-        </button>
+        {/* Today + Week Jump Buttons */}
+        <div className="mt-3 space-y-2">
+          <button
+            onClick={handleGoToToday}
+            className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors border border-gray-200"
+          >
+            Today
+          </button>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => handleJumpWeeks(1)}
+              className="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+            >
+              +1w
+            </button>
+            <button
+              onClick={() => handleJumpWeeks(2)}
+              className="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+            >
+              +2w
+            </button>
+            <button
+              onClick={() => handleJumpWeeks(3)}
+              className="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+            >
+              +3w
+            </button>
+            <button
+              onClick={() => handleJumpWeeks(4)}
+              className="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+            >
+              +4w
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Staff Section */}
@@ -252,23 +292,79 @@ export const BookSidebar = memo(function BookSidebar({
           </div>
         </div>
 
+        {/* Search */}
+        <div className="px-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search staff..."
+              className="w-full pl-8 pr-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300"
+            />
+          </div>
+        </div>
+
         {/* Staff List */}
         <div className="flex-1 overflow-y-auto px-3 pb-3">
-          <div className="space-y-2">
-            {staff.map((staffMember, index) => (
-              <StaffChip
-                key={staffMember.id}
-                staff={{
-                  id: staffMember.id,
-                  name: staffMember.name,
-                  appointments: staffMember.appointmentCount || 0,
-                  isActive: staffMember.isAvailable,
-                }}
-                index={index}
-                isSelected={selectedStaffIds.includes(staffMember.id)}
-                onClick={() => handleToggleStaff(staffMember.id)}
-              />
-            ))}
+          <div className="space-y-1.5">
+            {filteredStaff.map((staffMember) => {
+              const isSelected = selectedStaffIds.includes(staffMember.id);
+              return (
+                <button
+                  key={staffMember.id}
+                  onClick={() => handleToggleStaff(staffMember.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all',
+                    'hover:border-gray-300',
+                    isSelected
+                      ? 'bg-gray-50 border-gray-300'
+                      : 'bg-white border-gray-200'
+                  )}
+                >
+                  {/* Avatar */}
+                  {staffMember.photo ? (
+                    <img
+                      src={staffMember.photo}
+                      alt={staffMember.name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white text-xs font-medium">
+                      {staffMember.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {staffMember.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {staffMember.appointmentCount || 0} appts
+                    </p>
+                  </div>
+
+                  {/* Checkbox */}
+                  <div
+                    className={cn(
+                      'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0',
+                      isSelected
+                        ? 'bg-gray-900 border-gray-900'
+                        : 'border-gray-300'
+                    )}
+                  >
+                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                </button>
+              );
+            })}
+            {filteredStaff.length === 0 && searchQuery && (
+              <div className="text-center py-4 text-xs text-gray-500">
+                No staff found
+              </div>
+            )}
           </div>
         </div>
 
