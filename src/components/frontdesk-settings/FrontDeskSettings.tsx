@@ -426,9 +426,11 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
         <OperationTemplateSetup
           isOpen={showTemplateSetup}
           onClose={() => setShowTemplateSetup(false)}
-          currentTemplate={settings.operationTemplate}
-          onTemplateChange={(template) => {
-            updateSetting('operationTemplate', template);
+          currentSettings={settings}
+          onSettingsChange={(newSettings) => {
+            Object.entries(newSettings).forEach(([key, value]) => {
+              updateSetting(key as keyof FrontDeskSettingsData, value);
+            });
             setShowTemplateSetup(false);
           }}
         />
