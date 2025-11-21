@@ -1,6 +1,11 @@
 // Front Desk Module
-import { FrontDesk as FrontDeskContent, FrontDeskProps } from '../FrontDesk';
+import { FrontDesk as FrontDeskContent } from '../FrontDesk';
 
-export function FrontDesk(props: FrontDeskProps) {
-  return <FrontDeskContent {...props} />;
+interface FrontDeskProps {
+  showFrontDeskSettings?: boolean;
+  setShowFrontDeskSettings?: (show: boolean) => void;
+}
+
+export function FrontDesk({ showFrontDeskSettings, setShowFrontDeskSettings }: FrontDeskProps) {
+  return <FrontDeskContent showFrontDeskSettings={showFrontDeskSettings} setShowFrontDeskSettings={setShowFrontDeskSettings} />;
 }

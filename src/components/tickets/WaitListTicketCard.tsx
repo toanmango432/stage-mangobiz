@@ -163,20 +163,20 @@ export function WaitListTicketCard({
 
               {/* Right: Wait time */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-2xs text-[#8b7968] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
+                <span className="text-2xs text-[#6b5d52] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
               </div>
             </div>
 
-            {/* Compact Assign button - Matched to ServiceTicketCard Done button */}
+            {/* Compact Assign button - Responsive: 44px mobile (accessibility), 28px desktop (space) */}
             <button
               onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-7 sm:h-7 min-w-[44px] sm:min-w-[28px] min-h-[44px] sm:min-h-[28px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
               style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
               onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.25)'}
               onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
               title="Assign Staff"
             >
-              <UserPlus size={12} strokeWidth={2.5} />
+              <UserPlus size={16} strokeWidth={2.5} />
             </button>
           </div>
 
@@ -250,11 +250,11 @@ export function WaitListTicketCard({
                 {isFirstVisit && <span className="text-sm flex-shrink-0">⭐</span>}
                 {hasNote && <StickyNote size={14} className="text-amber-500 flex-shrink-0" />}
               </div>
-              <div className="text-2xs text-[#8b7968] font-medium tracking-wide leading-tight">{getLastVisitText()}</div>
+              <div className="text-2xs text-[#6b5d52] font-medium tracking-wide leading-tight">{getLastVisitText()}</div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-[#8b7968] whitespace-nowrap">Waited {formatWaitTime(waitTime)}</span>
-              <span className="text-xs text-[#8b7968]">•</span>
+              <span className="text-xs text-[#6b5d52] whitespace-nowrap">Waited {formatWaitTime(waitTime)}</span>
+              <span className="text-xs text-[#6b5d52]">•</span>
               <span className="text-xs text-[#6b5d52] whitespace-nowrap">{ticket.time}</span>
             </div>
           </div>
@@ -270,13 +270,13 @@ export function WaitListTicketCard({
             <div className="flex-shrink-0">
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                className="w-11 h-11 sm:w-10 sm:h-10 min-w-[44px] sm:min-w-[40px] min-h-[44px] sm:min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
                 style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
                 onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.25)'}
                 onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
                 title="Assign Staff"
               >
-                <UserPlus size={20} strokeWidth={2.5} />
+                <UserPlus size={22} strokeWidth={2.5} />
               </button>
             </div>
           </div>
