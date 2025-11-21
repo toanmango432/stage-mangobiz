@@ -171,7 +171,7 @@ export const BookSidebar = memo(function BookSidebar({
         <div
           className={cn(
             'fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white z-50',
-            'flex flex-col shadow-2xl animate-slide-in-right',
+            'flex flex-col shadow-2xl animate-slide-in-left',
             className
           )}
         >
