@@ -628,20 +628,6 @@ export function BookPage() {
         />
       </div>
 
-      {/* Mobile Drawer - BookSidebar with calendar + staff */}
-      <div className="lg:hidden">
-        <BookSidebar
-          isOpen={isStaffDrawerOpen}
-          onToggle={() => setIsStaffDrawerOpen(false)}
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-          staff={staffWithCounts}
-          selectedStaffIds={selectedStaffIds}
-          onStaffSelection={handleStaffSelection}
-          mode="drawer"
-        />
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -661,7 +647,6 @@ export function BookPage() {
             setSelectedTimeSlot(null); // Clear any previous time slot selection
             setIsNewAppointmentOpen(true);
           }}
-          onStaffDrawerOpen={() => setIsStaffDrawerOpen(true)}
           staff={allStaff.map(s => ({ id: s.id, name: s.name }))}
           selectedStaffIds={selectedStaffIds}
           onStaffFilterChange={handleStaffSelection}

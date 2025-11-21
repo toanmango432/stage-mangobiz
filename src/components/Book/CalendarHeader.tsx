@@ -8,7 +8,7 @@ import { memo, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { CalendarView, TimeWindowMode, CALENDAR_VIEWS, TIME_WINDOW_MODES } from '../../constants/appointment';
 import { formatDateDisplay } from '../../utils/timeUtils';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Search, Plus, Users, Settings, RefreshCw, PanelLeftOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, Search, Plus, Settings, RefreshCw, PanelLeftOpen } from 'lucide-react';
 import { FilterPanel, AppointmentFilters } from './FilterPanel';
 import { DatePickerModal } from './DatePickerModal';
 import { ViewModeDropdown } from './ViewModeDropdown';
@@ -31,13 +31,12 @@ interface CalendarHeaderProps {
   onTodayClick: () => void;
   onFilterChange?: (filters: AppointmentFilters) => void;
   onNewAppointment?: () => void;
-  onStaffDrawerOpen?: () => void;
   onSettingsClick?: () => void;
   onRefreshClick?: () => void;
   staff?: Staff[];
   selectedStaffIds?: string[];
   onStaffFilterChange?: (staffIds: string[]) => void;
-  // Sidebar state - when open, hide date/staff from header
+  // Sidebar state - when open, hide date/staff from header (desktop only)
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
   className?: string;
@@ -54,7 +53,6 @@ export const CalendarHeader = memo(function CalendarHeader({
   onTodayClick,
   onFilterChange,
   onNewAppointment,
-  onStaffDrawerOpen,
   onSettingsClick,
   onRefreshClick,
   staff = [],
@@ -114,17 +112,6 @@ export const CalendarHeader = memo(function CalendarHeader({
                 title="Open sidebar"
               >
                 <PanelLeftOpen className="w-5 h-5 text-gray-400" />
-              </button>
-            )}
-
-            {/* Staff Button - Mobile Only (opens drawer with calendar + staff) */}
-            {onStaffDrawerOpen && (
-              <button
-                onClick={onStaffDrawerOpen}
-                className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
-                aria-label="Open calendar and staff filter"
-              >
-                <Users className="w-5 h-5 text-gray-600" />
               </button>
             )}
 
@@ -195,9 +182,12 @@ export const CalendarHeader = memo(function CalendarHeader({
             )}
           </div>
 
-          {/* Center: Staff Filter (desktop) - Only when sidebar is closed */}
-          {showStaffFilterDesktop && onStaffFilterChange && staff && staff.length > 0 && (
-            <div className="hidden md:block">
+          {/* Staff Filter - Always visible on mobile, conditional on desktop */}
+          {onStaffFilterChange && staff && staff.length > 0 && (
+            <div className={cn(
+              // On desktop: hide when sidebar is open (staff filter is in sidebar)
+              !showStaffFilterDesktop && 'lg:hidden'
+            )}>
               <StaffFilterDropdown
                 staff={staff}
                 selectedStaffIds={selectedStaffIds}
