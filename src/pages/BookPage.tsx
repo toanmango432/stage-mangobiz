@@ -655,9 +655,9 @@ export function BookPage() {
         />
 
         {/* Calendar + Sidebars */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden gap-4 p-4">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden gap-2 p-2 sm:gap-4 sm:p-4">
           {/* Calendar Area */}
-          <div className="flex-1 overflow-hidden w-full lg:w-auto relative">
+          <div className="flex-1 overflow-hidden w-full lg:w-auto relative min-h-0">
           {calendarView === 'day' && (
             <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
               <DaySchedule

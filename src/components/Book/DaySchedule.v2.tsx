@@ -244,21 +244,24 @@ export const DaySchedule = memo(function DaySchedule({
   }
 
   return (
-    <div className="flex h-full overflow-auto bg-gray-50 overscroll-contain">
+    <div className="flex h-full overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm">
       {/* Time Column */}
-      <div 
+      <div
         className="sticky left-0 z-10 bg-white border-r border-gray-200 flex-shrink-0"
-        style={{ width: calendar.timeColumn.width }}
+        style={{ width: isMobile ? '50px' : calendar.timeColumn.width }}
       >
         {/* Header spacer */}
-        <div style={{ height: calendar.staffColumn.headerHeight }} className="border-b border-gray-200" />
+        <div style={{ height: isMobile ? '60px' : calendar.staffColumn.headerHeight }} className="border-b border-gray-200" />
         
         {/* Time labels - Premium styling */}
         <div className="relative" style={{ height: `${gridHeight}px` }}>
           {timeLabels.map(({ hour, displayHour, period }) => (
             <div
               key={hour}
-              className="absolute w-full flex flex-col items-end justify-start pr-3"
+              className={cn(
+                "absolute w-full flex flex-col items-end justify-start",
+                isMobile ? "pr-1" : "pr-3"
+              )}
               style={{
                 top: `${hour * 60}px`,
                 height: '60px',
@@ -266,10 +269,16 @@ export const DaySchedule = memo(function DaySchedule({
             >
               {/* Two-line format: hour on first line, am/pm on second */}
               <div className="flex flex-col items-end" style={{ marginTop: '-8px' }}>
-                <span className="text-xs text-gray-800 font-semibold leading-tight tabular-nums">
-                  {displayHour}
+                <span className={cn(
+                  "text-gray-800 font-semibold leading-tight tabular-nums",
+                  isMobile ? "text-[10px]" : "text-xs"
+                )}>
+                  {isMobile ? displayHour.replace(':00', '') : displayHour}
                 </span>
-                <span className="text-[10px] text-gray-500 uppercase leading-tight tracking-wide">
+                <span className={cn(
+                  "text-gray-500 uppercase leading-tight tracking-wide",
+                  isMobile ? "text-[8px]" : "text-[10px]"
+                )}>
                   {period}
                 </span>
               </div>
@@ -367,17 +376,17 @@ export const DaySchedule = memo(function DaySchedule({
                   'sticky top-0 z-10',
                   'backdrop-blur-md bg-white/95',
                   'border-b border-gray-200/50',
-                  'flex flex-col items-center justify-center gap-2',
-                  'py-3',
+                  'flex items-center justify-center',
+                  isMobile ? 'gap-2 py-2 px-2 flex-row' : 'flex-col gap-2 py-3',
                   'shadow-premium-xs'
                 )}
-                style={{ height: calendar.staffColumn.headerHeight }}
+                style={{ height: isMobile ? '60px' : calendar.staffColumn.headerHeight }}
               >
                 {/* Premium Avatar with gradient and status */}
                 <PremiumAvatar
                   name={staffMember.name}
                   src={staffMember.photo}
-                  size="lg"
+                  size={isMobile ? "md" : "lg"}
                   showStatus
                   status="online"
                   colorIndex={staff.findIndex(s => s.id === staffMember.id)}
@@ -386,14 +395,22 @@ export const DaySchedule = memo(function DaySchedule({
                 />
 
                 {/* Name with better typography */}
-                <div className="text-center px-2">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                <div className={cn(
+                  "text-center",
+                  isMobile ? "flex-1 text-left" : "px-2"
+                )}>
+                  <p className={cn(
+                    "font-semibold text-gray-900 truncate",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}>
                     {staffMember.name}
                   </p>
                   {/* Appointment count */}
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {appointmentsByStaff[staffMember.id]?.length || 0} appointments
-                  </p>
+                  {!isMobile && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {appointmentsByStaff[staffMember.id]?.length || 0} appointments
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -738,8 +755,8 @@ export const DaySchedule = memo(function DaySchedule({
         <div
           className="absolute pointer-events-none z-30"
           style={{
-            top: `calc(${calendar.staffColumn.headerHeight} + ${currentTimePos}px - 4px)`,
-            left: `calc(${calendar.timeColumn.width} - 5px)`,
+            top: `calc(${isMobile ? '60px' : calendar.staffColumn.headerHeight} + ${currentTimePos}px - 4px)`,
+            left: `calc(${isMobile ? '50px' : calendar.timeColumn.width} - 5px)`,
           }}
         >
           <div
