@@ -11,6 +11,7 @@ import { Sales } from '../modules/Sales';
 import { More } from '../modules/More';
 import { HeaderColorPreview } from '../HeaderColorPreview';
 import { TicketColorPreview } from '../TicketColorPreview';
+import { LicenseSettings } from '../licensing/LicenseSettings';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { useAppDispatch } from '../../store/hooks';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -19,6 +20,8 @@ import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
 import { syncManager } from '../../services/syncManager';
 import { NetworkStatus } from '../NetworkStatus';
+import { LicenseBanner } from '../licensing/LicenseBanner';
+import { defaultsPopulator } from '../../services/defaultsPopulator';
 
 export function AppShell() {
   const [activeModule, setActiveModule] = useState('frontdesk');
@@ -34,7 +37,7 @@ export function AppShell() {
     async function initApp() {
       try {
         console.log('🚀 Initializing Mango POS...');
-        
+
         // 1. Initialize IndexedDB
         const dbReady = await initializeDatabase();
         if (!dbReady) {
@@ -42,8 +45,15 @@ export function AppShell() {
           return;
         }
         console.log('✅ Database initialized');
-        
-        // 2. Check if we need to seed data (first run)
+
+        // 2. Apply defaults from license (first-time setup)
+        try {
+          await defaultsPopulator.applyDefaults(salonId);
+        } catch (error) {
+          console.error('⚠️ Failed to apply defaults:', error);
+        }
+
+        // 3. Check if we need to seed data (first run)
         const staffCount = await db.staff.count();
         if (staffCount === 0) {
           console.log('🌱 First run detected - seeding database...');
@@ -52,27 +62,27 @@ export function AppShell() {
         } else {
           console.log(`✅ Database already seeded (${staffCount} staff members)`);
         }
-        
-        // 3. Load staff into Redux
+
+        // 4. Load staff into Redux
         await dispatch(fetchAllStaff(salonId));
         console.log('✅ Staff loaded into Redux');
-        
-        // 4. Start sync manager
+
+        // 5. Start sync manager
         syncManager.start();
         console.log('✅ Sync Manager started');
-        
-        // 5. Set initial online status
+
+        // 6. Set initial online status
         dispatch(setOnlineStatus(navigator.onLine));
-        
+
         setIsInitialized(true);
         console.log('🎉 App initialization complete!');
       } catch (error) {
         console.error('❌ App initialization failed:', error);
       }
     }
-    
+
     initApp();
-    
+
     // Cleanup on unmount
     return () => {
       syncManager.stop();
@@ -112,6 +122,8 @@ export function AppShell() {
         return <Sales />;
       case 'more':
         return <More onNavigate={setActiveModule} />;
+      case 'license':
+        return <LicenseSettings />;
       case 'header-preview':
         return <HeaderColorPreview />;
       case 'ticket-preview':
@@ -138,11 +150,14 @@ export function AppShell() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+      {/* License Status Banner */}
+      <LicenseBanner />
+
       {/* Network Status Indicator */}
       <NetworkStatus />
-      
+
       {/* Top Header - Always visible */}
-      <TopHeaderBar 
+      <TopHeaderBar
         onFrontDeskSettingsClick={activeModule === 'frontdesk' ? () => setShowFrontDeskSettings(true) : undefined}
       />
 
@@ -152,8 +167,8 @@ export function AppShell() {
       </main>
 
       {/* Bottom Navigation - Always visible */}
-      <BottomNavBar 
-        activeModule={activeModule} 
+      <BottomNavBar
+        activeModule={activeModule}
         onModuleChange={setActiveModule}
         pendingCount={pendingCount}
       />

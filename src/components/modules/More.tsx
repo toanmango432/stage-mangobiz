@@ -8,7 +8,8 @@ import {
   Settings,
   ChevronRight,
   Palette,
-  Ticket
+  Ticket,
+  Shield
 } from 'lucide-react';
 
 interface MoreProps {
@@ -18,6 +19,7 @@ interface MoreProps {
 export function More({ onNavigate }: MoreProps = {}) {
   const menuItems = [
     { id: 'sales', label: "Today's Sales", icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
+    { id: 'license', label: 'License & Activation', icon: Shield, color: 'text-orange-600', bg: 'bg-orange-50' },
     { id: 'devices', label: 'Device Manager', icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'account', label: 'Account', icon: User, color: 'text-purple-600', bg: 'bg-purple-50' },
     { id: 'closeout', label: 'End of Day Close Out', icon: Lock, color: 'text-red-600', bg: 'bg-red-50' },
