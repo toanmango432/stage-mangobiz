@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Users, Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
 import { Staff } from '../../types/staff';
 import { AddEditStaffModal } from './AddEditStaffModal';
+import { Button, Input, Select, Badge, Card } from '../ui';
 
 interface StaffManagementPageProps {
   staff: Staff[];
@@ -39,18 +40,18 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
 
   const filteredStaff = staff.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         s.email.toLowerCase().includes(searchQuery.toLowerCase());
+      s.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): 'success' | 'warning' | 'info' | 'default' => {
     switch (status) {
-      case 'available': return 'bg-green-100 text-green-700';
-      case 'busy': return 'bg-amber-100 text-amber-700';
-      case 'break': return 'bg-blue-100 text-blue-700';
-      case 'off': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'available': return 'success';
+      case 'busy': return 'warning';
+      case 'break': return 'info';
+      case 'off': return 'default';
+      default: return 'default';
     }
   };
 
@@ -68,40 +69,37 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
               <p className="text-sm text-gray-600">{staff.length} team members</p>
             </div>
           </div>
-          <button
+          <Button
             onClick={handleAddClick}
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all shadow-lg shadow-teal-500/30 font-medium"
+            variant="primary"
+            icon={<Plus className="w-5 h-5" />}
+            className="shadow-lg shadow-brand-500/30"
           >
-            <Plus className="w-5 h-5" />
-            <span>Add Staff</span>
-          </button>
+            Add Staff
+          </Button>
         </div>
 
-        {/* Search and Filter */}
         <div className="flex items-center space-x-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
+          <div className="flex-1">
+            <Input
+              icon={<Search className="w-5 h-5" />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search staff by name or email..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              fullWidth
             />
           </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
+          <div className="w-48">
+            <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Status</option>
               <option value="available">Available</option>
               <option value="busy">Busy</option>
               <option value="break">On Break</option>
               <option value="off">Off Duty</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
@@ -110,9 +108,11 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredStaff.map((staffMember) => (
-            <div
+            <Card
               key={staffMember.id}
-              className="bg-white rounded-xl border-2 border-gray-200 hover:border-teal-300 hover:shadow-lg transition-all p-5 space-y-4"
+              variant="outlined"
+              padding="lg"
+              className="hover:border-brand-300 hover:shadow-lg transition-all space-y-4"
             >
               {/* Avatar and Status */}
               <div className="flex items-start justify-between">
@@ -122,9 +122,9 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{staffMember.name}</h3>
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(staffMember.status)}`}>
+                    <Badge variant={getStatusVariant(staffMember.status)}>
                       {staffMember.status}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -159,25 +159,28 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
 
               {/* Actions */}
               <div className="flex items-center space-x-2 pt-3 border-t border-gray-200">
-                <button
+                <Button
                   onClick={() => handleEditClick(staffMember)}
-                  className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 hover:border-blue-200"
+                  icon={<Edit className="w-4 h-4" />}
                 >
-                  <Edit className="w-4 h-4" />
-                  <span>Edit</span>
-                </button>
-                <button
+                  Edit
+                </Button>
+                <Button
                   onClick={() => {
                     if (confirm(`Are you sure you want to remove ${staffMember.name}?`)) {
                       onDeleteStaff(staffMember.id);
                     }
                   }}
-                  className="flex items-center justify-center px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  variant="danger"
+                  size="sm"
+                  className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 hover:border-red-200 shadow-none"
+                  icon={<Trash2 className="w-4 h-4" />}
+                />
               </div>
-            </div>
+            </Card>
           ))}
         </div>
 
@@ -191,13 +194,14 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
                 : 'Get started by adding your first team member'}
             </p>
             {!searchQuery && statusFilter === 'all' && (
-              <button
+              <Button
                 onClick={handleAddClick}
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all shadow-lg font-medium"
+                variant="primary"
+                icon={<Plus className="w-5 h-5" />}
+                className="shadow-lg shadow-brand-500/30"
               >
-                <Plus className="w-5 h-5" />
-                <span>Add First Staff Member</span>
-              </button>
+                Add First Staff Member
+              </Button>
             )}
           </div>
         )}
@@ -211,6 +215,6 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
         staff={selectedStaff}
         mode={modalMode}
       />
-    </div>
+    </div >
   );
 }

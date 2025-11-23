@@ -19,6 +19,7 @@ export interface Appointment {
   clientId: string;
   clientName: string;
   clientPhone: string;
+  clientEmail?: string;
   staffId: string; // Primary staff
   staffName: string;
   services: AppointmentService[];

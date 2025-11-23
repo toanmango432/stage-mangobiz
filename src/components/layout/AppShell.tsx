@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
-import { BottomNavBar } from './BottomNavBar';
 import { Book } from '../modules/Book';
 import { FrontDesk } from '../modules/FrontDesk';
 import { Tickets } from '../modules/Tickets';
@@ -34,7 +33,7 @@ export function AppShell() {
     async function initApp() {
       try {
         console.log('🚀 Initializing Mango POS...');
-        
+
         // 1. Initialize IndexedDB
         const dbReady = await initializeDatabase();
         if (!dbReady) {
@@ -42,7 +41,7 @@ export function AppShell() {
           return;
         }
         console.log('✅ Database initialized');
-        
+
         // 2. Check if we need to seed data (first run)
         const staffCount = await db.staff.count();
         if (staffCount === 0) {
@@ -52,27 +51,27 @@ export function AppShell() {
         } else {
           console.log(`✅ Database already seeded (${staffCount} staff members)`);
         }
-        
+
         // 3. Load staff into Redux
         await dispatch(fetchAllStaff(salonId));
         console.log('✅ Staff loaded into Redux');
-        
+
         // 4. Start sync manager
         syncManager.start();
         console.log('✅ Sync Manager started');
-        
+
         // 5. Set initial online status
         dispatch(setOnlineStatus(navigator.onLine));
-        
+
         setIsInitialized(true);
         console.log('🎉 App initialization complete!');
       } catch (error) {
         console.error('❌ App initialization failed:', error);
       }
     }
-    
+
     initApp();
-    
+
     // Cleanup on unmount
     return () => {
       syncManager.stop();
@@ -140,23 +139,19 @@ export function AppShell() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* Network Status Indicator */}
       <NetworkStatus />
-      
+
       {/* Top Header - Always visible */}
-      <TopHeaderBar 
+      <TopHeaderBar
         onFrontDeskSettingsClick={activeModule === 'frontdesk' ? () => setShowFrontDeskSettings(true) : undefined}
-      />
-
-      {/* Main Content Area - No scrolling, let sections handle it */}
-      <main className="flex-1 overflow-hidden pt-10">
-        {renderModule()}
-      </main>
-
-      {/* Bottom Navigation - Always visible */}
-      <BottomNavBar 
-        activeModule={activeModule} 
+        activeModule={activeModule}
         onModuleChange={setActiveModule}
         pendingCount={pendingCount}
       />
+
+      {/* Main Content Area - No scrolling, let sections handle it */}
+      <main className="flex-1 overflow-hidden pt-14">
+        {renderModule()}
+      </main>
     </div>
   );
 }

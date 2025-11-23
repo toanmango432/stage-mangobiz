@@ -2,6 +2,7 @@ import { Search, Grid, List, ArrowUpDown, ChevronDown, ChevronUp, CreditCard } f
 import { useState, useRef, useEffect } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { Input, Button } from '../ui';
 
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 
@@ -79,11 +80,10 @@ export function PendingHeader({
             <Tippy content="Grid view">
               <button
                 onClick={() => onViewModeChange('grid')}
-                className={`p-2 transition-colors ${
-                  viewMode === 'grid'
+                className={`p-2 transition-colors ${viewMode === 'grid'
                     ? 'bg-amber-50 text-amber-600'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <Grid size={18} />
               </button>
@@ -91,11 +91,10 @@ export function PendingHeader({
             <Tippy content="List view">
               <button
                 onClick={() => onViewModeChange('list')}
-                className={`p-2 transition-colors border-l border-gray-300 ${
-                  viewMode === 'list'
+                className={`p-2 transition-colors border-l border-gray-300 ${viewMode === 'list'
                     ? 'bg-amber-50 text-amber-600'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <List size={18} />
               </button>
@@ -106,43 +105,42 @@ export function PendingHeader({
         {/* Search and Sort */}
         <div className="flex items-center gap-3">
           {/* Search */}
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
+          <div className="flex-1">
+            <Input
+              icon={<Search size={16} />}
               placeholder="Search by client, ticket #, or service..."
               value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+              fullWidth
             />
           </div>
 
           {/* Compact Toggle (conditional) */}
           {cardViewMode && onCardViewModeToggle && (
             <Tippy content={cardViewMode === 'compact' ? 'Expand cards' : 'Compact cards'}>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onCardViewModeToggle}
-                className="p-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                {cardViewMode === 'compact' ? (
-                  <ChevronDown size={18} />
-                ) : (
-                  <ChevronUp size={18} />
-                )}
-              </button>
+                icon={cardViewMode === 'compact' ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+              />
             </Tippy>
           )}
 
           {/* Sort Dropdown */}
           <div className="relative" ref={dropdownRef}>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+              className="whitespace-nowrap"
             >
-              <ArrowUpDown size={16} />
-              <span className="hidden sm:inline">{currentSortLabel}</span>
-              <ChevronDown size={14} className={`transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-            </button>
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={16} />
+                <span className="hidden sm:inline">{currentSortLabel}</span>
+                <ChevronDown size={14} className={`transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+              </div>
+            </Button>
 
             {showSortDropdown && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
@@ -153,11 +151,10 @@ export function PendingHeader({
                       onSortChange(option.id);
                       setShowSortDropdown(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                      sortBy === option.id
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortBy === option.id
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     {option.label}
                   </button>

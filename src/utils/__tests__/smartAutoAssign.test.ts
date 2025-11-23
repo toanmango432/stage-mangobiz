@@ -54,13 +54,13 @@ const createTestAppointment = (overrides: Partial<LocalAppointment> = {}): Local
       duration: 30,
     },
   ],
-  scheduledStartTime: '2025-01-15T10:00:00.000Z',
-  scheduledEndTime: '2025-01-15T10:30:00.000Z',
+  scheduledStartTime: new Date('2025-01-15T10:00:00.000Z'),
+  scheduledEndTime: new Date('2025-01-15T10:30:00.000Z'),
   status: 'confirmed',
   isGroupBooking: false,
   salonId: 'salon-1',
-  createdAt: '2025-01-01T00:00:00.000Z',
-  updatedAt: '2025-01-01T00:00:00.000Z',
+  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2025-01-01T00:00:00.000Z'),
   ...overrides,
 });
 

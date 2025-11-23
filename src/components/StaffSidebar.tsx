@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
-import { StaffCard } from './StaffCard';
+import { StaffCard as HorizontalCard } from './StaffCard';
+import { StaffCard as VerticalCard } from './StaffCardVertical';
 import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
@@ -47,7 +48,7 @@ export const determineStaffStatus = (staff, inServiceTickets) => {
 export function StaffSidebar() {
   // ⚙️ FEATURE FLAG - Set to false to revert to original styling
   const USE_NEW_TEAM_STYLING = true;
-  
+
   // Get context data including resetStaffStatus function and inService tickets
   const {
     resetStaffStatus,
@@ -298,32 +299,25 @@ export function StaffSidebar() {
     }
     // Check if using percentage-based width (either preset or custom)
     const isPercentageBased = widthType === 'percentage' || widthType === 'customPercentage';
+
+    // Use standard responsive grid columns based on container width
+    // We can use the sidebarWidth to determine the number of columns more dynamically
+    // or rely on Tailwind's responsive classes if the container width matches screen breakpoints.
+    // Since sidebarWidth is dynamic, we should calculate columns based on it.
+
+    const getCols = (width: number, minCardWidth: number) => {
+      const cols = Math.floor((width - 32) / minCardWidth); // 32px for padding
+      return Math.max(1, cols);
+    };
+
     if (viewMode === 'compact') {
-      if (isPercentageBased) {
-        // More columns for expanded view based on percentage width
-        if (widthPercentage >= 90) {
-          return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
-        } else if (widthPercentage >= 40) {
-          return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
-        }
-        return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3';
-      }
-      // Fixed width compact view
-      if (sidebarWidth >= 400) {
-        return 'grid-cols-2';
-      }
-      return 'grid-cols-1';
+      // Compact card min width ~150px
+      const cols = getCols(sidebarWidth, 160);
+      return `grid-cols-${cols}`;
     } else {
-      // Normal view
-      if (isPercentageBased) {
-        if (widthPercentage >= 90) {
-          return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
-        } else if (widthPercentage >= 40) {
-          return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3';
-        }
-        return 'grid-cols-1 sm:grid-cols-2';
-      }
-      return 'grid-cols-1';
+      // Normal card min width ~200px
+      const cols = getCols(sidebarWidth, 210);
+      return `grid-cols-${cols}`;
     }
   };
   // Get the gap and padding based on view mode
@@ -366,6 +360,15 @@ export function StaffSidebar() {
     if (sidebarWidth <= 100) {
       return 'ultra-compact';
     }
+
+    // Calculate effective column width to auto-downgrade view mode if too tight
+    const minWidth = viewMode === 'compact' ? 160 : 210;
+    const cols = Math.max(1, Math.floor((sidebarWidth - 32) / minWidth));
+    const effectiveWidth = (sidebarWidth - 32) / cols;
+
+    if (effectiveWidth < 140) return 'ultra-compact';
+    if (effectiveWidth < 180) return 'compact';
+
     return viewMode;
   };
   // Calculate display priority tiers based on available width
@@ -425,30 +428,30 @@ export function StaffSidebar() {
   };
   // Updated staff status to include both organization structures
   const staffStatus = [
-  // For Busy/Ready organization
-  {
-    id: 'ready',
-    label: 'Ready',
-    shortLabel: 'R',
-    type: 'busyStatus'
-  }, {
-    id: 'busy',
-    label: 'Busy',
-    shortLabel: 'B',
-    type: 'busyStatus'
-  },
-  // For Clocked In/Out organization
-  {
-    id: 'clockedIn',
-    label: 'Clocked In',
-    shortLabel: 'CI',
-    type: 'clockedStatus'
-  }, {
-    id: 'clockedOut',
-    label: 'Clocked Out',
-    shortLabel: 'CO',
-    type: 'clockedStatus'
-  }];
+    // For Busy/Ready organization
+    {
+      id: 'ready',
+      label: 'Ready',
+      shortLabel: 'R',
+      type: 'busyStatus'
+    }, {
+      id: 'busy',
+      label: 'Busy',
+      shortLabel: 'B',
+      type: 'busyStatus'
+    },
+    // For Clocked In/Out organization
+    {
+      id: 'clockedIn',
+      label: 'Clocked In',
+      shortLabel: 'CI',
+      type: 'clockedStatus'
+    }, {
+      id: 'clockedOut',
+      label: 'Clocked Out',
+      shortLabel: 'CO',
+      type: 'clockedStatus'
+    }];
   // Filter staff based on selected filter and search query
   const filteredStaff = staff.filter(staffMember => {
     const matchesSearch = staffMember.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -472,7 +475,7 @@ export function StaffSidebar() {
   const calculateStaffCounts = () => {
     // Get the filtered staff list based on organization method
     const staffToCount = teamSettings.organizeBy === 'busyStatus' ? staff.filter(s => s.status !== 'off') // Exclude clocked out staff for busy/ready view
-    : staff; // Include all staff for clocked in/out view
+      : staff; // Include all staff for clocked in/out view
     const clockedInCount = staffToCount.filter(s => s.status === 'ready' || s.status === 'busy').length;
     const clockedOutCount = staffToCount.filter(s => s.status === 'off').length;
     const readyCount = staffToCount.filter(s => s.status === 'ready').length;
@@ -501,19 +504,19 @@ export function StaffSidebar() {
     const useShortLabels = sidebarWidth < 360 || isUltraCompact;
     // All pill (always visible) - GRAY
     const allPill = <button onClick={() => setStatusFilter(null)} className={`${pillBaseClasses} ${pillPadding} rounded-full flex-shrink-0
-          ${statusFilter === null ? 
-            'bg-gray-500 text-white font-bold shadow-md scale-105 ring-2 ring-gray-400/30' : 
-            'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`} aria-label={`All, ${staffCounts.total}`}>
-        <span className={`${textSize} ${statusFilter === null ? 'font-bold' : 'font-normal'}`}>
-          {isUltraCompact ? 'A' : 'All'}
-        </span>
-        <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding}
-          ${statusFilter === null ? 
-            'bg-white text-gray-700 shadow-sm font-bold' : 
-            'bg-gray-100 text-gray-600'}`}>
-          {staffCounts.total}
-        </span>
-      </button>;
+          ${statusFilter === null ?
+        'bg-gray-500 text-white font-bold shadow-md scale-105 ring-2 ring-gray-400/30' :
+        'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`} aria-label={`All, ${staffCounts.total}`}>
+      <span className={`${textSize} ${statusFilter === null ? 'font-bold' : 'font-normal'}`}>
+        {isUltraCompact ? 'A' : 'All'}
+      </span>
+      <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding}
+          ${statusFilter === null ?
+          'bg-white text-gray-700 shadow-sm font-bold' :
+          'bg-gray-100 text-gray-600'}`}>
+        {staffCounts.total}
+      </span>
+    </button>;
     // Generate status pills based on organization mode
     const statusPills = teamSettings.organizeBy === 'busyStatus' ? staffStatus.filter(status => status.type === 'busyStatus').map(status => {
       const isActive = statusFilter === status.id;
@@ -527,47 +530,47 @@ export function StaffSidebar() {
         busy: 'bg-white text-gray-700 hover:bg-red-50 border border-gray-200'
       };
       const bgColor = isActive ? activeColors[status.id] : inactiveColors[status.id];
-      const badgeBg = isActive ? 
-        (status.id === 'ready' ? 'bg-white text-green-700 shadow-sm font-bold' : 'bg-white text-red-700 shadow-sm font-bold') : 
+      const badgeBg = isActive ?
+        (status.id === 'ready' ? 'bg-white text-green-700 shadow-sm font-bold' : 'bg-white text-red-700 shadow-sm font-bold') :
         'bg-gray-100 text-gray-600';
       // Use ultra-compact labels when in ultra-compact mode
       const label = isUltraCompact ? status.id === 'ready' ? 'R' : 'B' : status.label;
       return <button key={status.id} onClick={() => setStatusFilter(status.id)} className={`${pillBaseClasses} ${pillPadding} rounded-full flex-shrink-0 ${bgColor}`} aria-label={`${status.label}, ${status.id === 'ready' ? staffCounts.ready : staffCounts.busy}`}>
-                  <span className={`${textSize} ${isActive ? 'font-bold' : 'font-normal'}`}>
-                    {label}
-                  </span>
-                  <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding} ${badgeBg}`}>
-                    {status.id === 'ready' ? staffCounts.ready : staffCounts.busy}
-                  </span>
-                </button>;
+        <span className={`${textSize} ${isActive ? 'font-bold' : 'font-normal'}`}>
+          {label}
+        </span>
+        <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding} ${badgeBg}`}>
+          {status.id === 'ready' ? staffCounts.ready : staffCounts.busy}
+        </span>
+      </button>;
     }) :
-    // Clocked In/Out pills with responsive labels
-    staffStatus.filter(status => status.type === 'clockedStatus').map(status => {
-      const isActive = statusFilter === status.id;
-      const activeColors = {
-        clockedIn: 'bg-green-600 text-white font-bold shadow-md scale-105 ring-2 ring-green-200',
-        clockedOut: 'bg-gray-500 text-white font-bold shadow-md scale-105 ring-2 ring-gray-200'
-      };
-      const inactiveColors = isUltraCompact || isCompact ? {
-        clockedIn: 'bg-gray-50 text-gray-500 hover:bg-green-50/50 border border-gray-200/80',
-        clockedOut: 'bg-gray-50 text-gray-500 hover:bg-gray-100/50 border border-gray-200/80'
-      } : {
-        clockedIn: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
-        clockedOut: 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-      };
-      const bgColor = isActive ? activeColors[status.id] : inactiveColors[status.id];
-      const badgeBg = isActive ? status.id === 'clockedIn' ? 'bg-white text-green-700 shadow-sm' : 'bg-white text-gray-700 shadow-sm' : isUltraCompact || isCompact ? 'bg-gray-200/70 text-gray-500' : 'bg-gray-100 text-gray-600';
-      // Use ultra-compact labels for ultra-compact mode
-      const label = isUltraCompact ? status.id === 'clockedIn' ? 'I' : 'O' : useShortLabels ? status.id === 'clockedIn' ? 'In' : 'Out' : status.label;
-      return <button key={status.id} onClick={() => setStatusFilter(status.id)} className={`${pillBaseClasses} ${pillPadding} rounded-full flex-shrink-0 ${bgColor}`} aria-label={`${status.label}, ${status.id === 'clockedIn' ? staffCounts.clockedIn : staffCounts.clockedOut}`}>
-                  <span className={`${textSize} ${isActive ? 'font-bold' : 'font-normal'}`}>
-                    {label}
-                  </span>
-                  <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding} ${badgeBg}`}>
-                    {status.id === 'clockedIn' ? staffCounts.clockedIn : staffCounts.clockedOut}
-                  </span>
-                </button>;
-    });
+      // Clocked In/Out pills with responsive labels
+      staffStatus.filter(status => status.type === 'clockedStatus').map(status => {
+        const isActive = statusFilter === status.id;
+        const activeColors = {
+          clockedIn: 'bg-green-600 text-white font-bold shadow-md scale-105 ring-2 ring-green-200',
+          clockedOut: 'bg-gray-500 text-white font-bold shadow-md scale-105 ring-2 ring-gray-200'
+        };
+        const inactiveColors = isUltraCompact || isCompact ? {
+          clockedIn: 'bg-gray-50 text-gray-500 hover:bg-green-50/50 border border-gray-200/80',
+          clockedOut: 'bg-gray-50 text-gray-500 hover:bg-gray-100/50 border border-gray-200/80'
+        } : {
+          clockedIn: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
+          clockedOut: 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+        };
+        const bgColor = isActive ? activeColors[status.id] : inactiveColors[status.id];
+        const badgeBg = isActive ? status.id === 'clockedIn' ? 'bg-white text-green-700 shadow-sm' : 'bg-white text-gray-700 shadow-sm' : isUltraCompact || isCompact ? 'bg-gray-200/70 text-gray-500' : 'bg-gray-100 text-gray-600';
+        // Use ultra-compact labels for ultra-compact mode
+        const label = isUltraCompact ? status.id === 'clockedIn' ? 'I' : 'O' : useShortLabels ? status.id === 'clockedIn' ? 'In' : 'Out' : status.label;
+        return <button key={status.id} onClick={() => setStatusFilter(status.id)} className={`${pillBaseClasses} ${pillPadding} rounded-full flex-shrink-0 ${bgColor}`} aria-label={`${status.label}, ${status.id === 'clockedIn' ? staffCounts.clockedIn : staffCounts.clockedOut}`}>
+          <span className={`${textSize} ${isActive ? 'font-bold' : 'font-normal'}`}>
+            {label}
+          </span>
+          <span className={`${badgeClasses} ${badgeTextSize} ${badgePadding} ${badgeBg}`}>
+            {status.id === 'clockedIn' ? staffCounts.clockedIn : staffCounts.clockedOut}
+          </span>
+        </button>;
+      });
     // Container with horizontal scrolling for narrow widths
     const scrollableContainer = sidebarWidth < 300 ? 'overflow-x-auto snap-x scrollbar-hide' : 'overflow-visible';
     return <div className={`flex items-center ${pillSpacing} ${scrollableContainer}`} style={sidebarWidth < 300 ? {
@@ -576,9 +579,9 @@ export function StaffSidebar() {
       WebkitOverflowScrolling: 'touch',
       scrollSnapType: 'x mandatory'
     } : {}}>
-        {allPill}
-        {statusPills}
-      </div>;
+      {allPill}
+      {statusPills}
+    </div>;
   };
   // Render header based on view mode and width
   const renderHeader = () => {
@@ -588,129 +591,123 @@ export function StaffSidebar() {
         ? "border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85 -mt-0"
         : "border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
-          <div className="flex flex-col p-1.5 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1 rounded-lg flex items-center justify-center" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] text-white p-1 rounded-lg flex items-center justify-center shadow-md"}>
-                <Users size={12} className="stroke-[2.5px]" />
-              </div>
-              <Tippy content="Team Settings">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1 rounded-lg bg-teal-100/50 hover:bg-teal-100 text-teal-700 transition-all duration-200" : "p-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-[#3BB09A] border border-gray-200/50 shadow-sm transition-all duration-200"} onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
-                  <Settings size={12} />
-                </button>
-              </Tippy>
+        <div className="flex flex-col p-1.5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1 rounded-lg flex items-center justify-center" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] text-white p-1 rounded-lg flex items-center justify-center shadow-md"}>
+              <Users size={12} className="stroke-[2.5px]" />
             </div>
-            <div className="w-full pt-0.5">
-              {renderStatusPills(true, false)}
-            </div>
+            <Tippy content="Team Settings">
+              <button className={USE_NEW_TEAM_STYLING ? "p-1 rounded-lg bg-teal-100/50 hover:bg-teal-100 text-teal-700 transition-all duration-200" : "p-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-[#3BB09A] border border-gray-200/50 shadow-sm transition-all duration-200"} onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
+                <Settings size={12} />
+              </button>
+            </Tippy>
           </div>
-        </div>;
+          <div className="w-full pt-0.5">
+            {renderStatusPills(true, false)}
+          </div>
+        </div>
+      </div>;
     } else if (viewMode === 'compact') {
       const headerBg = USE_NEW_TEAM_STYLING
         ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
         : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
-          <div className="px-3 py-2.5">
-            {/* Row 1: Team title + Action icons (always together) */}
-            <div className="flex items-center justify-between gap-3 mb-2">
-              {/* Team title */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
-                  <Users size={16} />
-                </div>
-                <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
-              </div>
-              
-              {/* Action icons - Always on row 1 */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {teamSettings.showSearch && <Tippy content="Search">
-                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
-                      <Search size={15} />
-                    </button>
-                  </Tippy>}
-                <Tippy content="Filter">
-                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
-                    <Filter size={15} />
-                  </button>
-                </Tippy>
-                {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
-                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
-                      {getViewModeIcon()}
-                    </button>
-                  </Tippy>}
-                <Tippy content="Team Settings">
-                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
-                    <Settings size={15} />
-                  </button>
-                </Tippy>
-              </div>
+        <div className="px-3 py-2.5">
+          {/* Row 1: Team title + Action icons (always together) */}
+          <div className="flex items-center justify-between gap-3 mb-2">
+            {/* Team title */}
+            <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
+              <Users size={16} />
             </div>
-            
-            {/* Row 2: Status pills (always on separate row) */}
-            <div className="flex items-center gap-1.5">
-              {renderStatusPills(false, false)}
+            <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
+            {/* Action icons - Always on row 1 */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {teamSettings.showSearch && <Tippy content="Search">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
+                  <Search size={15} />
+                </button>
+              </Tippy>}
+              <Tippy content="Filter">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
+                  <Filter size={15} />
+                </button>
+              </Tippy>
+              {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
+                  {getViewModeIcon()}
+                </button>
+              </Tippy>}
+              <Tippy content="Team Settings">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
+                  <Settings size={15} />
+                </button>
+              </Tippy>
             </div>
           </div>
-          {showSearch && <div className="px-3 pb-2.5">
-              <div className="relative">
-                <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>}
-        </div>;
+
+          {/* Row 2: Status pills (always on separate row) */}
+          <div className="flex items-center gap-1.5">
+            {renderStatusPills(false, false)}
+          </div>
+        </div>
+        {showSearch && <div className="px-3 pb-2.5">
+          <div className="relative">
+            <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>}
+      </div>;
     } else {
       // Normal view - Responsive design
       const headerBg = USE_NEW_TEAM_STYLING
         ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
         : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
-          <div className="px-3 py-2.5">
-            {/* Row 1: Team title + Action icons (always together) */}
-            <div className="flex items-center justify-between gap-3 mb-2">
-              {/* Team title */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
-                  <Users size={16} />
-                </div>
-                <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
-              </div>
-              
-              {/* Action icons - Always on row 1 */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {teamSettings.showSearch && <Tippy content="Search">
-                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
-                      <Search size={15} />
-                    </button>
-                  </Tippy>}
-                <Tippy content="Filter">
-                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
-                    <Filter size={15} />
-                  </button>
-                </Tippy>
-                {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
-                    <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
-                      {getViewModeIcon()}
-                    </button>
-                  </Tippy>}
-                <Tippy content="Team Settings">
-                  <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
-                    <Settings size={15} />
-                  </button>
-                </Tippy>
-              </div>
+        <div className="px-3 py-2.5">
+          {/* Row 1: Team title + Action icons (always together) */}
+          <div className="flex items-center justify-between gap-3 mb-2">
+            {/* Team title */}
+            <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
+              <Users size={16} />
             </div>
-            
-            {/* Row 2: Status pills (always on separate row) */}
-            <div className="flex items-center gap-1.5">
-              {renderStatusPills(false, false)}
+            <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
+            {/* Action icons - Always on row 1 */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {teamSettings.showSearch && <Tippy content="Search">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
+                  <Search size={15} />
+                </button>
+              </Tippy>}
+              <Tippy content="Filter">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
+                  <Filter size={15} />
+                </button>
+              </Tippy>
+              {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
+                  {getViewModeIcon()}
+                </button>
+              </Tippy>}
+              <Tippy content="Team Settings">
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
+                  <Settings size={15} />
+                </button>
+              </Tippy>
             </div>
           </div>
-          {showSearch && <div className="px-3 pb-2.5">
-              <div className="relative">
-                <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>}
-        </div>;
+
+          {/* Row 2: Status pills (always on separate row) */}
+          <div className="flex items-center gap-1.5">
+            {renderStatusPills(false, false)}
+          </div>
+        </div>
+        {showSearch && <div className="px-3 pb-2.5">
+          <div className="relative">
+            <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>}
+      </div>;
     }
   };
   // Get the priority tiers based on current width and view mode
@@ -719,262 +716,141 @@ export function StaffSidebar() {
   const teamSidebarClasses = USE_NEW_TEAM_STYLING
     ? "relative h-full border-r-[3px] border-teal-300/60 bg-gradient-to-b from-teal-50/95 via-teal-50/95 to-teal-100/90 flex flex-col overflow-hidden transition-all duration-300"
     : "relative h-full border-r border-[#E2D9DC] bg-[#FBF8F9] flex flex-col overflow-hidden shadow-xl transition-all duration-300";
-  
+
   const teamSidebarStyle = USE_NEW_TEAM_STYLING
     ? {
-        width: `${sidebarWidth}px`,
-        boxShadow: '6px 0 16px -4px rgba(20, 184, 166, 0.25), 2px 0 8px -2px rgba(0, 0, 0, 0.08)'
-      }
+      width: `${sidebarWidth}px`,
+      boxShadow: '6px 0 16px -4px rgba(20, 184, 166, 0.25), 2px 0 8px -2px rgba(0, 0, 0, 0.08)'
+    }
     : {
-        width: `${sidebarWidth}px`,
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
-      };
-  
+      width: `${sidebarWidth}px`,
+      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
+    };
+
   return <div className={teamSidebarClasses} style={teamSidebarStyle}>
-      {renderHeader()}
-      <div className="flex-1 overflow-auto bg-gradient-to-b from-[#FBF8F9] to-[#F7F2F4] relative min-h-0">
-        {filteredStaff.length > 0 ? <div className={`grid ${getGridColumns()} ${getGapAndPadding()}`}>
-            {filteredStaff.map((staffMember, index) => {
-          // Create a modified staff object with updated image URL
-          // Convert string ID to number for StaffCard compatibility
-          const staffIdNumber = typeof staffMember.id === 'string' 
-            ? parseInt(staffMember.id.replace(/\D/g, '')) || index + 1
+    {renderHeader()}
+    <div className="flex-1 overflow-auto bg-gradient-to-b from-[#FBF8F9] to-[#F7F2F4] relative min-h-0">
+      {filteredStaff.length > 0 ? <div className={`grid ${getGridColumns()} ${getGapAndPadding()}`}>
+        {filteredStaff.map((staffMember, index) => {
+          // Convert string ID to number for compatibility
+          const staffIdNumber = typeof staffMember.id === 'string'
+            ? parseInt(staffMember.id.replace(/\\D/g, '')) || index + 1
             : staffMember.id;
-          
+
           const modifiedStaffMember = {
             ...staffMember,
             id: staffIdNumber,
-            image: getSalonStaffImage(staffIdNumber, staffMember.specialty)
+            image: getSalonStaffImage(staffIdNumber, staffMember.specialty),
           };
-          // For testing purposes, assign different progress levels to busy staff
+
+          // Choose card component based on settings
+          const CardComponent = teamSettings.cardLayout === 'vertical' ? VerticalCard : HorizontalCard;
+
+          // For testing, add dummy ticket info for busy staff
           if (staffMember.status === 'busy') {
-            // Apply test case progress levels to busy staff
-            const busyStaffIndex = filteredStaff.filter(s => s.status === 'busy').findIndex(s => s.id === staffMember.id);
-            let progressLevel = 0.67; // Default amber level
-            if (busyStaffIndex === 0) {
-              // First busy staff: Green (≤25%)
-              progressLevel = 0.25;
-            } else if (busyStaffIndex === 1) {
-              // Second busy staff: Amber (26-75%)
-              progressLevel = 0.67;
-            } else if (busyStaffIndex === 2) {
-              // Third busy staff: Red, not over (76-100%)
-              progressLevel = 0.85;
-            } else if (busyStaffIndex === 3) {
-              // Fourth busy staff: Red, overtime (>100%)
-              progressLevel = 1.2;
-            }
-            // Add current ticket info for busy staff with the appropriate progress level
             modifiedStaffMember.activeTickets = [{
               id: 1000 + staffIdNumber,
+              ticketNumber: 100 + staffIdNumber,
               clientName: 'Test Client',
               serviceName: 'Test Service',
-              status: 'in-service'
+              status: 'in-service',
             }];
-            // Add test ticket timing information
-            if (!modifiedStaffMember.currentTicketInfo) {
-              const totalTime = 45;
-              const timeElapsed = Math.round(totalTime * progressLevel);
-              const timeLeft = progressLevel > 1 ? Math.round((progressLevel - 1) * totalTime) : Math.round(totalTime - timeElapsed);
-              modifiedStaffMember.currentTicketInfo = {
-                timeLeft,
-                totalTime,
-                progress: progressLevel,
-                startTime: '10:15AM'
-              };
-            }
+            modifiedStaffMember.currentTicketInfo = {
+              timeLeft: 10,
+              totalTime: 45,
+              progress: 0.67,
+              startTime: '10:15AM',
+            };
           }
-          // Create tooltip content based on staff status and info
-          const getTooltipContent = () => {
-            const status = modifiedStaffMember.status === 'ready' ? 'Ready' : modifiedStaffMember.status === 'busy' ? 'Busy' : 'Clocked Out';
-            const tooltipContent = <div className="p-2 max-w-xs">
-                    <p className="font-bold text-sm mb-1">
-                      {modifiedStaffMember.name}
-                    </p>
-                    <div className="text-xs space-y-1">
-                      <p>
-                        <span className="font-medium">Status:</span> {status}
-                      </p>
-                      {modifiedStaffMember.turnCount !== undefined && <p>
-                          <span className="font-medium">Turns:</span>{' '}
-                          {modifiedStaffMember.turnCount}
-                        </p>}
-                      {modifiedStaffMember.clockedInTime && <p>
-                          <span className="font-medium">Clocked in:</span>{' '}
-                          {modifiedStaffMember.clockedInTime}
-                        </p>}
-                      {modifiedStaffMember.status === 'busy' && modifiedStaffMember.currentTicketInfo && <>
-                            <p>
-                              <span className="font-medium">
-                                Current service:
-                              </span>{' '}
-                              Test Service
-                            </p>
-                            <p>
-                              <span className="font-medium">Client:</span> Test
-                              Client
-                            </p>
-                            <p>
-                              <span className="font-medium">Started:</span>{' '}
-                              {modifiedStaffMember.currentTicketInfo.startTime}
-                            </p>
-                            <p>
-                              <span className="font-medium">Progress:</span>{' '}
-                              {Math.round(modifiedStaffMember.currentTicketInfo.progress * 100)}
-                              %
-                              {modifiedStaffMember.currentTicketInfo.progress > 1 && ' (overtime)'}
-                            </p>
-                          </>}
-                    </div>
-                  </div>;
-            return tooltipContent;
-          };
-          return <div key={staffMember.id} className="w-full min-w-[80px]">
-                  <Tippy content={getTooltipContent()} placement="right" duration={[200, 0]} delay={[300, 0]} animation="shift-away" interactive={true} appendTo={() => document.body}>
-                    <div className="transition-all duration-300 hover:scale-[1.03] hover:shadow-lg rounded-[14px] cursor-pointer">
-                      <StaffCard staff={modifiedStaffMember} viewMode={getCardViewMode()} isDraggable={true} isSelected={false}
-                // Pass the priority tiers to control what content is displayed
-                displayConfig={{
-                  // Core content visibility settings
-                  showName: true,
-                  showQueueNumber: priorityTiers.tier1,
-                  showAvatar: priorityTiers.tier1,
-                  showTurnCount: priorityTiers.tier2,
-                  showStatus: priorityTiers.tier3,
-                  showClockedInTime: priorityTiers.tier4,
-                  showNextAppointment: priorityTiers.tier5,
-                  showSalesAmount: priorityTiers.tier6,
-                  showTickets: priorityTiers.tier7,
-                  showLastService: priorityTiers.tier8,
-                  // Height optimization settings - NEW/ENHANCED
-                  reducedHeight: true,
-                  heightReductionPercentage: 15,
-                  // Vertical spacing optimizations - NEW
-                  reducedVerticalPadding: true,
-                  reducedLineHeight: true,
-                  condensedVerticalGaps: true,
-                  tightenNameMetaGap: true,
-                  tightenMetaChipGap: true,
-                  // Content preservation settings - NEW
-                  preserveAvatarSize: true,
-                  preserveNameVisibility: true,
-                  preserveQueueNumber: true,
-                  preserveTurnCount: true,
-                  preserveStatusIndicator: true,
-                  preserveProgressIndicator: true,
-                  // Smart content hiding - NEW
-                  hideNextAppointmentWhenTight: true,
-                  smartContentPriority: true,
-                  // Ensure clear separation between top and bottom sections
-                  enhancedSeparator: true,
-                  // Add new props to control busy status styling
-                  busyIndicatorPosition: 'top-left',
-                  grayOutFullCard: false,
-                  // Ensure text is clearly visible in ultra-compact view
-                  ultraCompactTextColor: 'text-gray-900',
-                  ultraCompactNameWeight: 'font-bold',
-                  ultraCompactNameSize: 'text-xs',
-                  // Force name below avatar in ultra-compact view
-                  ultraCompactNamePosition: 'below-avatar',
-                  forceNameBelowAvatar: true,
-                  namePositionUltraCompact: 'below',
-                  // Ensure name is always visible in ultra-compact view
-                  alwaysShowNameInUltraCompact: true,
-                  verticalLayoutInUltraCompact: true,
-                  // Improve contrast for better readability
-                  improveTextContrast: true,
-                  // Notch behavior settings
-                  notchOverlapsAvatar: true,
-                  showNotchForAllStates: true,
-                  expandedBusyNotch: false,
-                  compactReadyNotch: true,
-                  decorativeReadyNotch: true,
-                  // Fix for avatar visibility in ready state
-                  minimalReadyNotchOverlap: true,
-                  preserveAvatarVisibility: true,
-                  readyNotchHeight: 'minimal',
-                  statusSpecificNotchBehavior: true,
-                  separateNotchFromAvatar: false,
-                  // Busy notch content configuration
-                  showNotchProgress: true,
-                  showNotchTimeRemaining: true,
-                  boldRemainingTime: true,
-                  lighterTotalTime: true,
-                  showNotchPercentage: true,
-                  alignPercentageRight: true,
-                  notchProgressFlush: true,
-                  // Styling for ready notch
-                  thinnerReadyNotch: true,
-                  lighterReadyNotch: true,
-                  appleStyleNotch: true,
-                  elevatedReadyNotch: true,
-                  // Responsive notch settings - updated for priority order
-                  responsiveNotchContent: true,
-                  adaptiveTimeDisplay: true,
-                  hideOverflowText: true,
-                  maintainNotchHeight: true,
-                  // Status-specific color coding
-                  dynamicProgressColors: true,
-                  showOverTimeIndicator: true,
-                  // Priority settings for minimized view
-                  prioritizeTimeDisplay: true,
-                  fallbackToPercentage: true,
-                  alwaysShowProgressBar: true,
-                  compactProgressDisplay: true,
-                  minimizedNotchHeight: 'auto',
-                  useCompactTimeFormat: true,
-                  progressBarMinHeight: 4,
-                  condensedNotchPadding: true,
-                  optimizeForNarrowWidths: true,
-                  // Layout and sizing consistency
-                  consistentCardHeight: true,
-                  normalizeNotchHeight: true,
-                  balancedContentPadding: true,
-                  uniformCardLayout: true,
-                  preserveContentAlignment: true,
-                  compactBusyNotchDisplay: true,
-                  readyCardPaddingCompensation: true,
-                  // Hover effects
-                  hoverEffect: true,
-                  hoverScaleEffect: true,
-                  hoverShadowEffect: true,
-                  // NEW - Single row optimization flags
-                  singleRowOptimization: true,
-                  preventVerticalOverflow: true,
-                  maintainHorizontalLayout: true,
-                  noHorizontalScroll: true // Prevent horizontal scrolling
-                }} />
-                    </div>
-                  </Tippy>
-                </div>;
+
+          // Add mock data for Last Service and Next Appointment
+          // In a real app, this would come from the backend
+          modifiedStaffMember.lastServiceTime = '10:30 AM';
+          modifiedStaffMember.nextAppointmentTime = '2:00 PM';
+
+          const getTooltipContent = () => (
+            <div className="p-2 max-w-xs">
+              <p className="font-bold text-sm mb-1">{modifiedStaffMember.name}</p>
+              <div className="text-xs space-y-1">
+                <p><span className="font-medium">Status:</span> {modifiedStaffMember.status}</p>
+                {modifiedStaffMember.turnCount !== undefined && (
+                  <p><span className="font-medium">Turns:</span> {modifiedStaffMember.turnCount}</p>
+                )}
+                {modifiedStaffMember.clockedInTime && (
+                  <p><span className="font-medium">Clocked in:</span> {modifiedStaffMember.clockedInTime}</p>
+                )}
+                {modifiedStaffMember.status === 'busy' && modifiedStaffMember.currentTicketInfo && (
+                  <>
+                    <p><span className="font-medium">Current service:</span> {modifiedStaffMember.currentTicketInfo.serviceName || 'Test Service'}</p>
+                    <p><span className="font-medium">Client:</span> {modifiedStaffMember.currentTicketInfo.clientName || 'Test Client'}</p>
+                    <p><span className="font-medium">Started:</span> {modifiedStaffMember.currentTicketInfo.startTime}</p>
+                    <p><span className="font-medium">Progress:</span> {Math.round(modifiedStaffMember.currentTicketInfo.progress * 100)}%</p>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+
+          return (
+            <div key={modifiedStaffMember.id} className="w-full min-w-[80px]">
+              <Tippy
+                content={getTooltipContent()}
+                placement="right"
+                duration={[200, 0]}
+                delay={[300, 0]}
+                animation="shift-away"
+                interactive={true}
+                appendTo={() => document.body}
+              >
+                <div className="transition-all duration-300 hover:scale-[1.03] hover:shadow-lg rounded-[14px] cursor-pointer">
+                  <CardComponent
+                    staff={modifiedStaffMember}
+                    viewMode={getCardViewMode()}
+                    displayConfig={{
+                      showName: true,
+                      showQueueNumber: true,
+                      showAvatar: true,
+                      showTurnCount: true,
+                      showStatus: true,
+                      showClockedInTime: true,
+                      showNextAppointment: true,
+                      showSalesAmount: true,
+                      showTickets: true,
+                      showLastService: true,
+                    }}
+                  />
+                </div>
+              </Tippy>
+            </div>
+          );
         })}
-          </div> : <div className={`p-${sidebarWidth <= 100 ? '2' : viewMode === 'compact' ? '3' : '5'} text-center text-gray-500 ${sidebarWidth <= 100 ? 'text-[9px]' : viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>
-            <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4 backdrop-blur-sm">
-              <p>No technicians match your filters</p>
-            </div>
-          </div>}
+      </div> : <div className={`p-${sidebarWidth <= 100 ? '2' : viewMode === 'compact' ? '3' : '5'} text-center text-gray-500 ${sidebarWidth <= 100 ? 'text-[9px]' : viewMode === 'compact' ? 'text-xs' : 'text-sm'}`}>
+        <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4 backdrop-blur-sm">
+          <p>No technicians match your filters</p>
+        </div>
+      </div>}
+    </div>
+    {/* Team Settings Panel */}
+    <TeamSettingsPanel isOpen={showTeamSettings} onClose={() => setShowTeamSettings(false)} currentSettings={teamSettings} onSettingsChange={handleTeamSettingsChange} />
+    {/* Reset Confirmation Modal */}
+    {showResetConfirmation && <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white p-4 rounded-lg shadow-xl max-w-md">
+        <h3 className="text-lg font-bold mb-2">Reset All Staff Status?</h3>
+        <p className="mb-4">
+          This will set all clocked-in staff to "Ready" status and move all
+          tickets back to the waiting list.
+        </p>
+        <div className="flex justify-end space-x-2">
+          <button className="px-3 py-1.5 bg-gray-200 rounded-md" onClick={() => setShowResetConfirmation(false)}>
+            Cancel
+          </button>
+          <button className="px-3 py-1.5 bg-red-500 text-white rounded-md" onClick={handleConfirmReset}>
+            Reset
+          </button>
+        </div>
       </div>
-      {/* Team Settings Panel */}
-      <TeamSettingsPanel isOpen={showTeamSettings} onClose={() => setShowTeamSettings(false)} currentSettings={teamSettings} onSettingsChange={handleTeamSettingsChange} />
-      {/* Reset Confirmation Modal */}
-      {showResetConfirmation && <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded-lg shadow-xl max-w-md">
-            <h3 className="text-lg font-bold mb-2">Reset All Staff Status?</h3>
-            <p className="mb-4">
-              This will set all clocked-in staff to "Ready" status and move all
-              tickets back to the waiting list.
-            </p>
-            <div className="flex justify-end space-x-2">
-              <button className="px-3 py-1.5 bg-gray-200 rounded-md" onClick={() => setShowResetConfirmation(false)}>
-                Cancel
-              </button>
-              <button className="px-3 py-1.5 bg-red-500 text-white rounded-md" onClick={handleConfirmReset}>
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>}
-      {/* Turn Tracker Modal */}
-      <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
-    </div>;
+    </div>}
+    {/* Turn Tracker Modal */}
+    <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
+  </div>;
 }

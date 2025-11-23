@@ -92,7 +92,9 @@ Object.defineProperty(window, 'sessionStorage', {
 // Set up global test constants
 beforeAll(() => {
   // Set a consistent test date/time
-  vi.useFakeTimers();
+  vi.useFakeTimers({
+    toFake: ['Date'],
+  });
   vi.setSystemTime(new Date('2024-02-10 10:00:00'));
 });
 

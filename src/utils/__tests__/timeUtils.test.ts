@@ -16,11 +16,8 @@ import {
   calculateDuration,
   addMinutes,
   formatTimeDisplay,
-  formatDateDisplay,
   formatDurationDisplay,
   isWithinBusinessHours,
-  isToday,
-  isPast,
   startOfDay,
   endOfDay,
   formatPhoneNumber,
@@ -212,7 +209,7 @@ describe('timeUtils', () => {
       const end1 = new Date('2025-01-01T10:00:00');
       const start2 = new Date('2025-01-01T09:30:00');
       const end2 = new Date('2025-01-01T10:30:00');
-      
+
       expect(timeRangesOverlap(start1, end1, start2, end2)).toBe(true);
     });
 
@@ -221,22 +218,20 @@ describe('timeUtils', () => {
       const end1 = new Date('2025-01-01T10:00:00');
       const start2 = new Date('2025-01-01T10:00:00');
       const end2 = new Date('2025-01-01T11:00:00');
-      
+
       expect(timeRangesOverlap(start1, end1, start2, end2)).toBe(false);
     });
   });
 
   describe('getTimeSlots', () => {
     it('should generate 15-minute time slots', () => {
-      const start = new Date('2025-01-01T09:00:00');
-      const end = new Date('2025-01-01T10:00:00');
-      const slots = getTimeSlots(start, end);
-      
+      const slots = getTimeSlots(9, 10);
+
       expect(slots.length).toBe(4); // 9:00, 9:15, 9:30, 9:45
-      expect(slots[0].getMinutes()).toBe(0);
-      expect(slots[1].getMinutes()).toBe(15);
-      expect(slots[2].getMinutes()).toBe(30);
-      expect(slots[3].getMinutes()).toBe(45);
+      expect(slots[0]).toContain('9:00');
+      expect(slots[1]).toContain('9:15');
+      expect(slots[2]).toContain('9:30');
+      expect(slots[3]).toContain('9:45');
     });
   });
 

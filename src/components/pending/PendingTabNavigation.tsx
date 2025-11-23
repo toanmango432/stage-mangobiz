@@ -1,7 +1,8 @@
-import { ArrowUpDown, MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { Tabs, Tab, Button } from '../ui';
 
 type PaymentType = 'all' | 'card' | 'cash' | 'venmo';
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
@@ -66,29 +67,23 @@ export function PendingTabNavigation({
     <nav className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
       <div className="flex items-center justify-between">
         {/* Tabs */}
-        <div className="flex gap-1 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {tab.label}
-              <span
-                className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  activeTab === tab.id
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
+        <div className="flex-1 overflow-x-auto">
+          <Tabs
+            value={activeTab}
+            onChange={(val: string) => onTabChange(val as PaymentType)}
+            variant="pills"
+            className="border-none"
+          >
+            {tabs.map((tab) => (
+              <Tab
+                key={tab.id}
+                value={tab.id}
+                label={tab.label}
+                badge={tab.count}
+                variant="pills"
+              />
+            ))}
+          </Tabs>
         </div>
 
         {/* Controls */}
@@ -96,29 +91,26 @@ export function PendingTabNavigation({
           {/* Card View Mode Toggle (if in grid view) */}
           {cardViewMode && onCardViewModeToggle && (
             <Tippy content={cardViewMode === 'compact' ? 'Expand cards' : 'Compact cards'}>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={onCardViewModeToggle}
-                className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                {cardViewMode === 'compact' ? (
-                  <ChevronDown size={18} />
-                ) : (
-                  <ChevronUp size={18} />
-                )}
-              </button>
+                icon={cardViewMode === 'compact' ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+              />
             </Tippy>
           )}
 
           {/* Sort Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <Tippy content="Sort options">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-300"
+                icon={<ArrowUpDown size={16} />}
               >
-                <ArrowUpDown size={16} />
                 <span className="hidden sm:inline">{currentSortLabel}</span>
-              </button>
+              </Button>
             </Tippy>
 
             {showSortDropdown && (
@@ -130,11 +122,10 @@ export function PendingTabNavigation({
                       onSortChange(option.id);
                       setShowSortDropdown(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                      sortBy === option.id
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortBy === option.id
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     {option.label}
                   </button>

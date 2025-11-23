@@ -78,7 +78,7 @@ export function NewAppointmentModal({
   const [clientSearch, setClientSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  
+
   // Aggressively clear client when modal state changes
   const [lastOpenState, setLastOpenState] = useState(isOpen);
   const [selectedServices, setSelectedServices] = useState<SelectedServiceWithStaff[]>([]);
@@ -93,8 +93,8 @@ export function NewAppointmentModal({
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
-  
-  
+
+
   // Detect when modal transitions from closed to open
   useEffect(() => {
     if (isOpen && !lastOpenState) {
@@ -107,11 +107,11 @@ export function NewAppointmentModal({
       setPendingService(null);
       setSmartSuggestions(null);
     }
-    
+
     // Track open state changes
     setLastOpenState(isOpen);
   }, [isOpen, lastOpenState]);
-  
+
   // Data from IndexedDB
   const [clients, setClients] = useState<Client[]>([]);
   const [recentClients, setRecentClients] = useState<Client[]>([]); // NEW: Recent clients
@@ -119,15 +119,15 @@ export function NewAppointmentModal({
   const [searching, setSearching] = useState(false);
   const salonId = getTestSalonId();
   const debouncedSearch = useDebounce(clientSearch, 300);
-  
+
   // Get all staff and appointments from Redux
   const allStaffFromRedux = useAppSelector(selectAllStaff) || [];
   const allAppointmentsFromRedux = useAppSelector(selectAllAppointments) || [];
-  
+
   // Smart booking suggestions state
   const [smartSuggestions, setSmartSuggestions] = useState<SmartBookingSuggestion | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  
+
   // Keep allServices reference for suggestions
   const allServices = useMemo(() => services, [services]);
 
@@ -199,7 +199,7 @@ export function NewAppointmentModal({
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
-  
+
   // Search clients from IndexedDB (debounced)
   useEffect(() => {
     async function searchClients() {
@@ -207,7 +207,7 @@ export function NewAppointmentModal({
         setClients([]);
         return;
       }
-      
+
       setSearching(true);
       try {
         const results = await clientsDB.search(salonId, debouncedSearch);
@@ -226,7 +226,7 @@ export function NewAppointmentModal({
         setSearching(false);
       }
     }
-    
+
     searchClients();
   }, [debouncedSearch, salonId]);
 
@@ -283,18 +283,18 @@ export function NewAppointmentModal({
   // Filter services
   const filteredServices = useMemo(() => {
     let filtered = services;
-    
+
     if (selectedCategory !== 'All') {
       filtered = filtered.filter((s: Service) => s.category === selectedCategory);
     }
-    
+
     if (serviceSearch) {
       const query = serviceSearch.toLowerCase();
       filtered = filtered.filter(
         (s: Service) => s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query)
       );
     }
-    
+
     return filtered;
   }, [services, selectedCategory, serviceSearch]);
 
@@ -308,7 +308,7 @@ export function NewAppointmentModal({
   // Handlers
   const handleSelectClient = async (client: Client) => {
     setSelectedClient(client);
-    
+
     // Generate smart booking suggestions when client is selected
     if (client && allServices.length > 0 && allStaffFromRedux.length > 0) {
       setLoadingSuggestions(true);
@@ -327,7 +327,7 @@ export function NewAppointmentModal({
           updatedAt: (client as any).updatedAt || new Date(),
           syncStatus: (client as any).syncStatus || 'synced',
         };
-        
+
         const suggestions = await generateSmartBookingSuggestions(
           fullClient,
           date,
@@ -356,7 +356,7 @@ export function NewAppointmentModal({
           })),
           salonId
         );
-        
+
         setSmartSuggestions(suggestions);
       } catch (error) {
         console.error('Failed to generate smart suggestions:', error);
@@ -365,14 +365,14 @@ export function NewAppointmentModal({
       }
     }
   };
-  
+
   // Handle quick booking
   const handleUseQuickBooking = () => {
     if (!smartSuggestions?.quickBooking) return;
-    
+
     const defaults = createSmartBookingDefaults(smartSuggestions);
     if (!defaults) return;
-    
+
     // Pre-fill services
     defaults.services.forEach(service => {
       const serviceData = allServices.find(s => s.id === service.id);
@@ -385,15 +385,15 @@ export function NewAppointmentModal({
         }]);
       }
     });
-    
+
     // Set time
     const [hours, minutes] = [defaults.time.getHours(), defaults.time.getMinutes()];
     setTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
-    
+
     // Scroll to services section or auto-book
     // For now, just pre-fills the form
   };
-  
+
   // Handle suggestion selection
   const handleSelectSuggestedService = (serviceId: string) => {
     const service = allServices.find(s => s.id === serviceId);
@@ -402,14 +402,14 @@ export function NewAppointmentModal({
       setShowStaffSelector(true);
     }
   };
-  
+
   const handleSelectSuggestedStaff = (staffId: string) => {
     if (pendingService) {
       handleAddService(pendingService, staffId);
       setPendingService(null);
     }
   };
-  
+
   const handleSelectSuggestedTime = (selectedTime: Date) => {
     const [hours, minutes] = [selectedTime.getHours(), selectedTime.getMinutes()];
     setTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
@@ -422,10 +422,10 @@ export function NewAppointmentModal({
       const [hours, minutes] = time.split(':').map(Number);
       const scheduledStartTime = new Date(date);
       scheduledStartTime.setHours(hours, minutes, 0, 0);
-      
+
       const scheduledEndTime = new Date(scheduledStartTime);
       scheduledEndTime.setMinutes(scheduledEndTime.getMinutes() + service.duration);
-      
+
       // Create temporary appointment for auto-assign
       const tempAppointment: Partial<LocalAppointment> = {
         clientId: selectedClient?.id || '',
@@ -437,14 +437,14 @@ export function NewAppointmentModal({
           price: service.price,
         }],
       };
-      
+
       // Get all existing appointments from Redux
       const existingAppointments = allAppointmentsFromRedux.filter(
         apt => apt.id !== tempAppointment.id && // Exclude self if editing
-               apt.status !== 'cancelled' &&
-               apt.status !== 'no-show'
+          apt.status !== 'cancelled' &&
+          apt.status !== 'no-show'
       ) as LocalAppointment[];
-      
+
       // Auto-assign staff
       const assignment = autoAssignStaff(
         tempAppointment as LocalAppointment,
@@ -459,7 +459,7 @@ export function NewAppointmentModal({
         })),
         NEXT_AVAILABLE_STAFF_ID
       );
-      
+
       if (assignment && assignment.staffId) {
         const assignedStaff = allStaffFromRedux.find(s => s.id === assignment.staffId);
         if (assignedStaff) {
@@ -491,18 +491,18 @@ export function NewAppointmentModal({
     } else {
       // Regular staff assignment
       const staff = allStaffFromRedux.find(s => s.id === staffId) || mockStaff.find(s => s.id === staffId);
-    if (!staff) return;
-    
-    if (!selectedServices.find(s => s.id === service.id)) {
-      const serviceWithStaff: SelectedServiceWithStaff = {
-        ...service,
+      if (!staff) return;
+
+      if (!selectedServices.find(s => s.id === service.id)) {
+        const serviceWithStaff: SelectedServiceWithStaff = {
+          ...service,
           assignedStaffId: staffId as string,
-        assignedStaffName: staff.name,
-      };
-      setSelectedServices([...selectedServices, serviceWithStaff]);
+          assignedStaffName: staff.name,
+        };
+        setSelectedServices([...selectedServices, serviceWithStaff]);
+      }
     }
-    }
-    
+
     setPendingService(null);
     setShowStaffSelector(false);
   };
@@ -529,7 +529,7 @@ export function NewAppointmentModal({
       alert('Please select at least one service');
       return;
     }
-    
+
     // Auto-create Walk-in client if none selected
     const finalClient = selectedClient || {
       id: `walk-in-${Date.now()}`,
@@ -600,94 +600,94 @@ export function NewAppointmentModal({
       {/* Modal - Slide from Right, Full screen on mobile */}
       <div className={cn(
         "fixed z-50 bg-white shadow-2xl flex flex-col transition-all duration-300",
-        isMinimized 
-          ? "right-4 bottom-20 top-auto left-auto w-80 sm:w-96 h-16 rounded-lg" 
+        isMinimized
+          ? "right-4 bottom-20 top-auto left-auto w-80 sm:w-96 h-16 rounded-lg"
           : "right-0 top-0 bottom-16 sm:bottom-20 w-full max-w-full sm:max-w-4xl animate-slide-in-right"
       )}>
-          {/* Header */}
-          <div className={cn(
-            "flex items-center justify-between bg-white shrink-0",
-            isMinimized ? "px-4 py-3 border-0" : "px-6 py-4 border-b border-gray-200"
-          )}>
-            <div className="flex-1">
-              <h2 className={cn(
-                "font-bold text-gray-900",
-                isMinimized ? "text-base" : "text-2xl"
-              )}>
-                New Appointment
-              </h2>
-              {!isMinimized && (
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {date.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'long', 
-                    day: 'numeric',
-                    year: 'numeric'
+        {/* Header */}
+        <div className={cn(
+          "flex items-center justify-between bg-white shrink-0",
+          isMinimized ? "px-4 py-3 border-0" : "px-6 py-4 border-b border-gray-200"
+        )}>
+          <div className="flex-1">
+            <h2 className={cn(
+              "font-bold text-gray-900",
+              isMinimized ? "text-base" : "text-2xl"
+            )}>
+              New Appointment
+            </h2>
+            {!isMinimized && (
+              <p className="text-sm text-gray-500 mt-0.5">
+                {date.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title={isMinimized ? "Maximize" : "Minimize"}
+            >
+              {isMinimized ? (
+                <Maximize2 className="w-5 h-5 text-gray-500" />
+              ) : (
+                <Minimize2 className="w-5 h-5 text-gray-500" />
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        {/* NEW: Context Banner - Shows which staff/time was clicked */}
+        {!isMinimized && selectedStaffName && selectedTime && (
+          <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-b border-teal-200 px-6 py-3">
+            <div className="flex items-center space-x-3">
+              {selectedStaffPhoto ? (
+                <img
+                  src={selectedStaffPhoto}
+                  alt={selectedStaffName}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-teal-400"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
+                  {selectedStaffName.charAt(0)}
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-teal-900">
+                  Booking with {selectedStaffName}
+                </p>
+                <p className="text-xs text-teal-700">
+                  {selectedTime.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })} • {selectedTime.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
                   })}
                 </p>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title={isMinimized ? "Maximize" : "Minimize"}
-              >
-                {isMinimized ? (
-                  <Maximize2 className="w-5 h-5 text-gray-500" />
-                ) : (
-                  <Minimize2 className="w-5 h-5 text-gray-500" />
-                )}
-              </button>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-          </div>
-
-          {/* NEW: Context Banner - Shows which staff/time was clicked */}
-          {!isMinimized && selectedStaffName && selectedTime && (
-            <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-b border-teal-200 px-6 py-3">
-              <div className="flex items-center space-x-3">
-                {selectedStaffPhoto ? (
-                  <img
-                    src={selectedStaffPhoto}
-                    alt={selectedStaffName}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-teal-400"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
-                    {selectedStaffName.charAt(0)}
-                  </div>
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-teal-900">
-                    Booking with {selectedStaffName}
-                  </p>
-                  <p className="text-xs text-teal-700">
-                    {selectedTime.toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    })} • {selectedTime.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-                <div className="px-3 py-1 bg-teal-500 text-white text-xs font-semibold rounded-full">
-                  Staff Pre-Selected
-                </div>
+              </div>
+              <div className="px-3 py-1 bg-teal-500 text-white text-xs font-semibold rounded-full">
+                Staff Pre-Selected
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Content - 2 Panels (Side-by-side on desktop, stacked on mobile) */}
-          {!isMinimized && (
+        {/* Content - 2 Panels (Side-by-side on desktop, stacked on mobile) */}
+        {!isMinimized && (
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
             {/* LEFT PANEL: Client Selection / Profile */}
             <div className="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col bg-gray-50 overflow-y-auto">
@@ -700,6 +700,7 @@ export function NewAppointmentModal({
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
                         id="client-search-input"
+                        data-testid="client-search-input"
                         type="text"
                         placeholder="Search by name or phone..."
                         value={clientSearch}
@@ -763,16 +764,17 @@ export function NewAppointmentModal({
                     {/* Add New Client */}
                     {!showCreateClientForm ? (
                       <>
-                        <button 
+                        <button
                           onClick={() => setShowCreateClientForm(true)}
                           className="w-full p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center justify-center space-x-2 text-teal-600 font-medium"
                         >
                           <Plus className="w-5 h-5" />
                           <span>Add New Client</span>
                         </button>
-                        
+
                         {/* Skip Client - Book as Walk-in */}
                         <button
+                          data-testid="walk-in-button"
                           onClick={() => {
                             setSelectedClient({
                               id: `walk-in-${Date.now()}`,
@@ -828,11 +830,11 @@ export function NewAppointmentModal({
                           <button
                             onClick={async () => {
                               if (!newClientName.trim() || !newClientPhone.trim()) return;
-                              
+
                               setIsCreatingClient(true);
                               try {
                                 let createdClient: Client;
-                                
+
                                 if (onCreateClient) {
                                   // Use callback if provided
                                   createdClient = await onCreateClient(newClientName.trim(), newClientPhone.trim());
@@ -845,7 +847,7 @@ export function NewAppointmentModal({
                                     phone: newClientPhone.trim(),
                                   });
                                 }
-                                
+
                                 // Select the newly created client
                                 await handleSelectClient({
                                   id: createdClient.id,
@@ -855,7 +857,7 @@ export function NewAppointmentModal({
                                   membershipLevel: createdClient.loyaltyTier,
                                   totalVisits: createdClient.totalVisits || 0,
                                 });
-                                
+
                                 setShowCreateClientForm(false);
                                 setNewClientName('');
                                 setNewClientPhone('');
@@ -880,7 +882,7 @@ export function NewAppointmentModal({
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Show message if no results */}
                     {clientSearch.length >= 2 && filteredClients.length === 0 && !searching && !showCreateClientForm && (
                       <div className="w-full p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
@@ -889,7 +891,7 @@ export function NewAppointmentModal({
                         </p>
                       </div>
                     )}
-                    
+
                     {/* Show loading state */}
                     {searching && (
                       <div className="w-full p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
@@ -908,7 +910,7 @@ export function NewAppointmentModal({
                     >
                       ← Change Client
                     </button>
-                    
+
                     <div className="bg-white rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold text-lg">
@@ -919,7 +921,7 @@ export function NewAppointmentModal({
                           <p className="text-sm text-gray-600">{selectedClient.phone}</p>
                         </div>
                       </div>
-                      
+
                       {selectedClient.membershipLevel && (
                         <div className="flex items-center space-x-2 mb-2">
                           <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded">
@@ -930,7 +932,7 @@ export function NewAppointmentModal({
                           </span>
                         </div>
                       )}
-                      
+
                       {selectedClient.email && (
                         <p className="text-xs text-gray-500 mt-2">{selectedClient.email}</p>
                       )}
@@ -959,7 +961,7 @@ export function NewAppointmentModal({
                       />
                     </div>
                   )}
-                  
+
                   {selectedClient && loadingSuggestions && (
                     <div className="mt-4 bg-purple-50 rounded-lg p-4 border border-purple-200">
                       <div className="flex items-center justify-center space-x-2">
@@ -970,7 +972,7 @@ export function NewAppointmentModal({
                   )}
                 </div>
               )}
-              
+
               {/* Date, Time, Staff, Summary - ALWAYS VISIBLE */}
               <div className="flex flex-col p-6 space-y-4">
                 <div className="space-y-4">
@@ -1050,7 +1052,7 @@ export function NewAppointmentModal({
               {/* Service Header */}
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Services</h3>
-                
+
                 {/* Search */}
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -1127,6 +1129,7 @@ export function NewAppointmentModal({
                     return (
                       <button
                         key={service.id}
+                        data-testid={`service-item-${service.id}`}
                         onClick={() => handleSelectServiceForStaffAssignment(service)}
                         disabled={!!isSelected}
                         className={cn(
@@ -1159,10 +1162,10 @@ export function NewAppointmentModal({
               </div>
             </div>
           </div>
-          )}
+        )}
 
-          {/* Footer - Always Visible */}
-          {!isMinimized && (
+        {/* Footer - Always Visible */}
+        {!isMinimized && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 shrink-0">
             <button
               onClick={onClose}
@@ -1171,6 +1174,7 @@ export function NewAppointmentModal({
               Cancel
             </button>
             <button
+              data-testid="book-appointment-button"
               onClick={handleBook}
               disabled={!canBook}
               className={cn(
@@ -1183,12 +1187,12 @@ export function NewAppointmentModal({
               Book Appointment
             </button>
           </div>
-          )}
-        </div>
+        )}
+      </div>
 
       {/* Staff Selector Modal */}
       {showStaffSelector && pendingService && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" data-testid="staff-selector-modal">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowStaffSelector(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
@@ -1203,10 +1207,11 @@ export function NewAppointmentModal({
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            
+
             <div className="space-y-2">
               {/* Next Available Option */}
               <button
+                data-testid="next-available-button"
                 onClick={() => handleAddService(pendingService, NEXT_AVAILABLE_STAFF_ID)}
                 className={cn(
                   'w-full flex items-center space-x-3 p-4 rounded-lg border-2 transition-all text-left',
@@ -1231,6 +1236,7 @@ export function NewAppointmentModal({
                 return (
                   <button
                     key={staff.id}
+                    data-testid={`staff-button-${staff.id}`}
                     onClick={() => handleAddService(pendingService, staff.id)}
                     className={cn(
                       'w-full flex items-center space-x-3 p-4 rounded-lg border-2 transition-all text-left',
@@ -1260,6 +1266,6 @@ export function NewAppointmentModal({
           </div>
         </div>
       )}
-      </>
+    </>
   );
 }

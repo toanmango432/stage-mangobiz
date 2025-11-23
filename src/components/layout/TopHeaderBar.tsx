@@ -1,11 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle, FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap, Settings } from 'lucide-react';
+import { 
+  Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle, 
+  FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap, Settings,
+  LayoutGrid, Receipt, CreditCard, MoreHorizontal
+} from 'lucide-react';
 
 interface TopHeaderBarProps {
   onFrontDeskSettingsClick?: () => void;
+  activeModule?: string;
+  onModuleChange?: (module: string) => void;
+  pendingCount?: number;
 }
 
-export function TopHeaderBar({ onFrontDeskSettingsClick }: TopHeaderBarProps = {}) {
+export function TopHeaderBar({ 
+  onFrontDeskSettingsClick,
+  activeModule = 'frontdesk',
+  onModuleChange,
+  pendingCount = 0
+}: TopHeaderBarProps) {
   const [selectedOrg, setSelectedOrg] = useState('Main Salon');
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -41,6 +53,16 @@ export function TopHeaderBar({ onFrontDeskSettingsClick }: TopHeaderBarProps = {
   }, [isSearchExpanded]);
 
   const organizations = ['Main Salon', 'Downtown Branch', 'Westside Location'];
+
+  // Navigation Modules
+  const modules = [
+    { id: 'book', label: 'Book', icon: Calendar },
+    { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
+    { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
+    { id: 'checkout', label: 'Checkout', icon: CreditCard },
+    { id: 'sales', label: 'Sales', icon: FileText },
+    { id: 'more', label: 'More', icon: MoreHorizontal },
+  ];
 
   // Universal Smart Search - AI-like suggestions across all system entities
   const searchCategories = [
@@ -138,26 +160,26 @@ export function TopHeaderBar({ onFrontDeskSettingsClick }: TopHeaderBarProps = {
   });
 
   return (
-    <header className={`bg-white/90 backdrop-blur-lg border-b border-gray-200/80 h-9 flex items-center px-2.5 shadow-sm fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-out ${
+    <header className={`bg-white/90 backdrop-blur-lg border-b border-gray-200/80 h-14 flex items-center px-4 shadow-sm fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-out ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       {/* Left Section - Brand & Organization */}
-      <div className="flex items-center gap-2.5 min-w-[240px]">
+      <div className="flex items-center gap-4 min-w-[240px]">
         {/* Logo */}
-        <div className="flex items-center gap-1.5">
-          <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-pink-500 rounded-md flex items-center justify-center">
-            <span className="text-white font-bold text-[10px]">M</span>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-xs">M</span>
           </div>
-          <span className="font-semibold text-gray-900 text-sm">Mango Biz</span>
+          <span className="font-bold text-gray-900 text-lg tracking-tight">Mango</span>
         </div>
 
         {/* Organization Selector */}
-        <div className="relative">
+        <div className="relative hidden md:block">
           <button
             onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
           >
-            <span className="text-[11px] text-gray-700">{selectedOrg}</span>
+            <span className="text-xs font-medium text-gray-700">{selectedOrg}</span>
             <ChevronDown className="w-3 h-3 text-gray-500" />
           </button>
 
@@ -180,46 +202,87 @@ export function TopHeaderBar({ onFrontDeskSettingsClick }: TopHeaderBarProps = {
             </div>
           )}
         </div>
-
       </div>
 
-      {/* Center Section - Universal Smart Search */}
-      <div className="flex-1 flex justify-center">
+      {/* Center Section - Navigation */}
+      <div className="flex-1 flex justify-center items-center h-full">
+        <nav className="flex items-center gap-1 h-full">
+          {modules.map((module) => {
+            const Icon = module.icon;
+            const isActive = activeModule === module.id;
+            const hasBadge = module.badge !== undefined && module.badge > 0;
+
+            return (
+              <button
+                key={module.id}
+                onClick={() => onModuleChange?.(module.id)}
+                className={`
+                  relative flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 group
+                  ${isActive 
+                    ? 'bg-orange-50 text-orange-600' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                <span className={`text-sm font-medium ${isActive ? 'font-semibold' : ''}`}>
+                  {module.label}
+                </span>
+                
+                {/* Active Indicator Dot */}
+                {isActive && (
+                  <span className="absolute -bottom-[19px] left-1/2 -translate-x-1/2 w-1 h-1 bg-orange-500 rounded-full" />
+                )}
+
+                {/* Badge */}
+                {hasBadge && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm border border-white">
+                    {module.badge! > 99 ? '99+' : module.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Right Section - Search, Actions & User */}
+      <div className="flex items-center gap-3 min-w-[240px] justify-end">
+        {/* Compact Search */}
         <div className={`relative transition-all duration-300 ease-out ${
-          isSearchExpanded ? 'w-full max-w-3xl' : 'w-96'
+          isSearchExpanded ? 'w-64' : 'w-48'
         }`}>
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
             ref={searchInputRef}
             type="text"
-            placeholder={isSearchExpanded ? "Search anything: tickets, clients, services, staff, appointments..." : "Universal search..."}
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className="w-full pl-7 pr-12 py-1 bg-gray-50/80 border border-gray-200/80 rounded-md text-[11px] focus:outline-none focus:ring-1 focus:ring-orange-400 focus:border-orange-400 focus:bg-white transition-all placeholder:text-gray-400"
+            className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-400 transition-all placeholder:text-gray-400"
           />
-          {/* Keyboard shortcut hint */}
           {!isSearchExpanded && (
-            <div className="absolute right-1.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-gray-200/60 rounded text-gray-500 text-[9px] font-medium">
+            <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-gray-200/50 rounded text-gray-500 text-[9px] font-medium">
               <Command size={8} />
               <span>K</span>
             </div>
           )}
-          
-          {/* Universal Smart Search Results */}
+
+          {/* Search Results Dropdown */}
           {showSearchSuggestions && isSearchExpanded && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
+              {/* Reuse existing search results logic */}
               {!searchQuery ? (
-                /* Quick Actions & Recent when empty */
                 <>
-                  <div className="p-2 border-b border-gray-100">
-                    <div className="text-[9px] font-bold text-gray-400 mb-1.5 px-2 uppercase tracking-wide">Quick Actions</div>
+                  <div className="p-3 border-b border-gray-100">
+                    <div className="text-[10px] font-bold text-gray-400 mb-2 px-1 uppercase tracking-wide">Quick Actions</div>
                     <div className="grid grid-cols-2 gap-1">
                       {quickActions.map((action, idx) => (
                         <button
                           key={idx}
-                          className="flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 text-left transition-colors group"
+                          className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 text-left transition-colors group"
                           onClick={() => {
                             setSearchQuery(action.prefix);
                             searchInputRef.current?.focus();
@@ -228,134 +291,81 @@ export function TopHeaderBar({ onFrontDeskSettingsClick }: TopHeaderBarProps = {
                           <div className="text-gray-400 group-hover:text-orange-500 mt-0.5">{action.icon}</div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[11px] font-medium text-gray-700 group-hover:text-gray-900">{action.label}</div>
-                            <div className="text-[9px] text-gray-400 truncate">{action.desc}</div>
                           </div>
-                          {action.prefix && (
-                            <span className="text-[9px] text-gray-400 font-mono mt-0.5">{action.prefix}</span>
-                          )}
                         </button>
                       ))}
                     </div>
                   </div>
-                  
-                  {recentSearches.length > 0 && (
-                    <div className="p-2">
-                      <div className="text-[9px] font-bold text-gray-400 mb-1.5 px-2 uppercase tracking-wide">Recent Searches</div>
-                      <div className="space-y-0.5">
-                        {recentSearches.map((search, idx) => (
-                          <button
-                            key={idx}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 text-left transition-colors group"
-                            onClick={() => {
-                              setSearchQuery(search);
-                              searchInputRef.current?.focus();
-                            }}
-                          >
-                            <Clock size={11} className="text-gray-400 group-hover:text-orange-500" />
-                            <span className="text-[11px] text-gray-700 group-hover:text-gray-900">{search}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </>
               ) : (
-                /* Multi-category search results */
                 <div className="divide-y divide-gray-100">
                   {searchCategories.filter(cat => cat.results.length > 0).map((category, catIdx) => (
                     <div key={catIdx} className="p-2">
                       <div className="flex items-center gap-1.5 mb-1.5 px-2">
                         <div className={`${category.color}`}>{category.icon}</div>
-                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{category.category}</span>
-                        <span className="ml-auto text-[9px] text-gray-400">{category.results.length}</span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{category.category}</span>
                       </div>
                       <div className="space-y-0.5">
                         {category.results.map((result, idx) => (
                           <button
                             key={idx}
-                            className={`w-full flex items-start gap-2 px-2 py-1.5 rounded-md hover:${category.bgColor} text-left transition-colors group`}
-                            onClick={() => {
-                              console.log('Selected:', result);
-                              setShowSearchSuggestions(false);
-                            }}
+                            className={`w-full flex items-start gap-2 px-2 py-1.5 rounded-lg hover:${category.bgColor} text-left transition-colors group`}
+                            onClick={() => setShowSearchSuggestions(false)}
                           >
-                            <div className={`${category.color} mt-0.5 opacity-60 group-hover:opacity-100`}>
-                              {category.icon}
-                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-[11px] font-medium text-gray-900 truncate">{result.name}</div>
-                              <div className="text-[9px] text-gray-500 truncate">{result.meta}</div>
+                              <div className="text-[10px] text-gray-500 truncate">{result.meta}</div>
                             </div>
-                            <div className="text-[9px] text-gray-400 font-mono mt-0.5">{result.id}</div>
                           </button>
                         ))}
                       </div>
                     </div>
                   ))}
-                  
-                  {searchCategories.every(cat => cat.results.length === 0) && (
-                    <div className="p-8 text-center">
-                      <Search className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-xs text-gray-500">No results found for "{searchQuery}"</p>
-                      <p className="text-[10px] text-gray-400 mt-1">Try different keywords or filters</p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Right Section - Actions & User */}
-      <div className="flex items-center gap-2 min-w-[140px] justify-end">
         {/* Front Desk Settings */}
         {onFrontDeskSettingsClick && (
           <button 
             onClick={onFrontDeskSettingsClick}
-            className="p-1 hover:bg-gray-50 rounded-md transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             title="Front Desk Settings"
           >
-            <Settings className="w-3.5 h-3.5 text-gray-600" />
+            <Settings className="w-4 h-4 text-gray-600" />
           </button>
         )}
 
         {/* Notifications */}
-        <button className="relative p-1 hover:bg-gray-50 rounded-md transition-colors">
-          <Bell className="w-3.5 h-3.5 text-gray-600" />
+        <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <Bell className="w-4 h-4 text-gray-600" />
           {notificationCount > 0 && (
-            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-bold">
-              {notificationCount}
-            </span>
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
           )}
         </button>
 
-        {/* Clock */}
-        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50/80 rounded-md">
-          <Clock className="w-3 h-3 text-gray-500" />
-          <span className="text-[10px] text-gray-700 font-medium">{currentTime}</span>
-        </div>
-
         {/* User Profile */}
-        <div className="relative">
+        <div className="relative pl-2 border-l border-gray-200">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="w-6 h-6 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center hover:shadow-md transition-shadow"
+            className="flex items-center gap-2 hover:bg-gray-50 rounded-full pl-1 pr-2 py-1 transition-colors"
           >
-            <User className="w-3.5 h-3.5 text-white" />
+            <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-xs">A</span>
+            </div>
+            <ChevronDown className="w-3 h-3 text-gray-400" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-              <div className="px-4 py-2 border-b border-gray-100">
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
+              <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-sm font-medium text-gray-900">Admin User</p>
                 <p className="text-xs text-gray-500">admin@mangobiz.com</p>
               </div>
               <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                 Profile Settings
-              </button>
-              <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                Preferences
               </button>
               <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100">
                 Sign Out
