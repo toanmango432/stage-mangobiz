@@ -1,0 +1,92 @@
+/**
+ * Staff Card Container Queries CSS
+ * Progressive enhancement for container-based responsive design
+ */
+
+/* Enable container queries on the grid wrapper */
+.staff-card-grid {
+  container-type: inline-size;
+  container-name: staff-grid;
+}
+
+/* Individual card containers */
+.staff-card-container {
+  container-type: inline-size;
+  container-name: staff-card;
+}
+
+/* Container query breakpoints for individual cards */
+@container staff-card (max-width: 140px) {
+  .staff-card-content {
+    /* Ultra compact adjustments */
+    --card-padding: 0.25rem;
+    --avatar-size: 60px;
+    --name-size: 0.75rem;
+  }
+}
+
+@container staff-card (min-width: 141px) and (max-width: 180px) {
+  .staff-card-content {
+    /* Compact adjustments */
+    --card-padding: 0.5rem;
+    --avatar-size: 80px;
+    --name-size: 0.875rem;
+  }
+}
+
+@container staff-card (min-width: 181px) and (max-width: 240px) {
+  .staff-card-content {
+    /* Normal adjustments */
+    --card-padding: 0.75rem;
+    --avatar-size: 100px;
+    --name-size: 1rem;
+  }
+}
+
+@container staff-card (min-width: 241px) {
+  .staff-card-content {
+    /* Comfortable adjustments */
+    --card-padding: 1rem;
+    --avatar-size: 120px;
+    --name-size: 1.125rem;
+  }
+}
+
+/* Fallback for browsers without container query support */
+@supports not (container-type: inline-size) {
+  .staff-card-content {
+    /* Use default responsive classes */
+    --card-padding: 0.75rem;
+    --avatar-size: 100px;
+    --name-size: 1rem;
+  }
+}
+
+/* Grid auto-fit with container awareness */
+@container staff-grid (max-width: 300px) {
+  .staff-card-grid-inner {
+    grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+    gap: 0.5rem;
+  }
+}
+
+@container staff-grid (min-width: 301px) and (max-width: 600px) {
+  .staff-card-grid-inner {
+    grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+    gap: 0.75rem;
+  }
+}
+
+@container staff-grid (min-width: 601px) and (max-width: 900px) {
+  .staff-card-grid-inner {
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+    gap: 1rem;
+  }
+}
+
+@container staff-grid (min-width: 901px) {
+  .staff-card-grid-inner {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 1rem;
+  }
+}

@@ -3,7 +3,7 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
 import { StaffCard as HorizontalCard } from './StaffCard';
-import { StaffCardVertical as VerticalCard } from './StaffCard';
+import { StaffCardVertical as VerticalCard } from './StaffCard/StaffCardVertical';
 import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
@@ -732,7 +732,7 @@ export function StaffSidebar() {
   return <div className={teamSidebarClasses} style={teamSidebarStyle}>
     {renderHeader()}
     <div className="flex-1 overflow-auto bg-gradient-to-b from-[#FBF8F9] to-[#F7F2F4] relative min-h-0">
-      {filteredStaff.length > 0 ? <div className={`grid ${getGridColumns()} ${getGapAndPadding()}`}>
+      {filteredStaff.length > 0 ? <div className={`staff-card-grid grid ${getGridColumns()} ${getGapAndPadding()}`}>
         {filteredStaff.map((staffMember, index) => {
           // Convert string ID to number for compatibility
           const staffIdNumber = typeof staffMember.id === 'string'

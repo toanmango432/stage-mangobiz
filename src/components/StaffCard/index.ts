@@ -13,6 +13,7 @@ export { StaffCardAvatar } from './components/StaffCardAvatar';
 export { StaffCardTicket } from './components/StaffCardTicket';
 export { StaffCardTimeline } from './components/StaffCardTimeline';
 export { StaffCardMetrics } from './components/StaffCardMetrics';
+export { StaffCardSkeleton, StaffCardSkeletonGrid } from './components/StaffCardSkeleton';
 
 // Hooks
 export { useStaffCardLayout } from './hooks/useStaffCardLayout';
@@ -47,3 +48,14 @@ export {
   truncateText,
   formatProgress,
 } from './utils/formatters';
+
+// Touch Target Utilities
+export {
+  MIN_TOUCH_TARGET_SIZE,
+  isTouchTargetValid,
+  getTouchTargetPadding,
+  touchTargetStyle,
+  TOUCH_TARGET_CLASSES,
+  getResponsiveTouchTarget,
+  useTouchDevice,
+} from './utils/touchTargets';

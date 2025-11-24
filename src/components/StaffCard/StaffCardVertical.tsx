@@ -19,6 +19,8 @@ import { StaffCardAvatar } from './components/StaffCardAvatar';
 import { StaffCardTicket } from './components/StaffCardTicket';
 import { StaffCardTimeline } from './components/StaffCardTimeline';
 import { StaffCardMetrics } from './components/StaffCardMetrics';
+import { TOUCH_TARGET_CLASSES } from './utils/touchTargets';
+import './styles/containerQueries.css';
 
 // ============================================================================
 // TYPES
@@ -157,7 +159,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
     return (
       <div
-        className={`group relative flex flex-col transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-xl ${
+        className={`staff-card-container group relative flex flex-col transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-xl ${
           isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''
         }`}
         style={cardStyle}
@@ -213,10 +215,10 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
               </div>
             )}
 
-            {/* More Options Button */}
+            {/* More Options Button - Enhanced Touch Target */}
             {!layout.isUltra && (
               <button
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-900 transition-colors z-30 bg-white/80 hover:bg-white rounded-full p-1.5 shadow-sm backdrop-blur-sm"
+                className={`absolute top-3 right-3 text-gray-500 hover:text-gray-900 transition-colors z-30 bg-white/80 hover:bg-white rounded-full shadow-sm backdrop-blur-sm ${TOUCH_TARGET_CLASSES.flex}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   // Handle options menu
