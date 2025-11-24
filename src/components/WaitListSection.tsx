@@ -1062,7 +1062,7 @@ export const WaitListSection = memo(function WaitListSection({
           }
         />
       )}
-      <div className={`flex-1 overflow-auto px-4 pb-4 ${headerContentSpacer} scroll-smooth`}>
+      <div className={`flex-1 overflow-auto px-4 pb-16 ${headerContentSpacer} scroll-smooth`}>
         {/* Show content based on whether there are tickets */}
         {waitlist.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-3"

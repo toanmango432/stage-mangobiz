@@ -1,10 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
-import { StaffCard as HorizontalCard } from './StaffCard';
+import { Search, Filter, ChevronUp, ChevronDown, Settings, Users } from 'lucide-react';
 import { StaffCard as VerticalCard } from './StaffCardVertical';
-import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
 import { useTickets } from '../hooks/useTicketsCompat';
@@ -156,11 +154,11 @@ export function StaffSidebar() {
         break;
       case 'wide':
         setWidthType('percentage');
-        setWidthPercentage(40);
-        setSidebarWidth(Math.round(windowWidth * 0.4));
+        setWidthPercentage(30);
+        setSidebarWidth(Math.round(windowWidth * 0.3));
         localStorage.setItem('staffSidebarWidthType', 'percentage');
-        localStorage.setItem('staffSidebarWidthPercentage', '40');
-        localStorage.setItem('staffSidebarWidth', Math.round(windowWidth * 0.4).toString());
+        localStorage.setItem('staffSidebarWidthPercentage', '30');
+        localStorage.setItem('staffSidebarWidth', Math.round(windowWidth * 0.3).toString());
         break;
       case 'fullScreen':
         setWidthType('percentage');
@@ -291,52 +289,72 @@ export function StaffSidebar() {
     resetStaffStatus();
     setShowResetConfirmation(false);
   };
-  // Determine number of grid columns based on sidebar width and view mode
+
+
+  // --- SMART GRID ORCHESTRATION ---
+  // Viewability-First: Maintain optimal card size, allow natural scrolling
   const getGridColumns = () => {
-    // Special case for ultra compact width
-    if (sidebarWidth <= 100) {
+    const width = sidebarWidth - 32; // Available width (minus padding)
+    const staffCount = filteredStaff.length;
+
+    // If no staff, default to 1 column
+    if (staffCount === 0) {
       return 'grid-cols-1';
     }
-    // Check if using percentage-based width (either preset or custom)
-    const isPercentageBased = widthType === 'percentage' || widthType === 'customPercentage';
 
-    // Use standard responsive grid columns based on container width
-    // We can use the sidebarWidth to determine the number of columns more dynamically
-    // or rely on Tailwind's responsive classes if the container width matches screen breakpoints.
-    // Since sidebarWidth is dynamic, we should calculate columns based on it.
-
-    const getCols = (width: number, minCardWidth: number) => {
-      const cols = Math.floor((width - 32) / minCardWidth); // 32px for padding
-      return Math.max(1, cols);
-    };
-
-    if (viewMode === 'compact') {
-      // Compact card min width ~150px
-      const cols = getCols(sidebarWidth, 160);
-      return `grid-cols-${cols}`;
-    } else {
-      // Normal card min width ~200px
-      const cols = getCols(sidebarWidth, 210);
-      return `grid-cols-${cols}`;
+    // SPECIFIC OVERRIDE: 30% width (Wide view) + Normal view mode = 3 columns
+    if (widthPercentage === 30 && viewMode === 'normal') {
+      return 'grid-cols-3';
     }
+
+    // VIEWABILITY-FIRST APPROACH:
+    // Set minimum card width for readability (never go below this)
+    const MIN_VIEWABLE_CARD_WIDTH = viewMode === 'compact' ? 180 : 200;
+
+    // Calculate maximum columns that maintain viewability
+    let cols = Math.floor(width / MIN_VIEWABLE_CARD_WIDTH);
+
+    // Ensure at least 1 column
+    cols = Math.max(1, cols);
+
+    // For very wide screens in full-screen mode, cap at a reasonable maximum
+    // to prevent cards from becoming too small
+    if (widthPercentage === 100 && cols > 12) {
+      cols = 12;
+    }
+
+    // Explicit lookup to ensure Tailwind generates these classes
+    const colsMap: Record<number, string> = {
+      1: 'grid-cols-1',
+      2: 'grid-cols-2',
+      3: 'grid-cols-3',
+      4: 'grid-cols-4',
+      5: 'grid-cols-5',
+      6: 'grid-cols-6',
+      7: 'grid-cols-7',
+      8: 'grid-cols-8',
+      9: 'grid-cols-9',
+      10: 'grid-cols-10',
+      11: 'grid-cols-11',
+      12: 'grid-cols-12',
+    };
+    return colsMap[cols] || 'grid-cols-1';
   };
-  // Get the gap and padding based on view mode
+  // Get the gap and padding based on view mode and screen width
   const getGapAndPadding = () => {
+    const width = sidebarWidth;
+
     if (viewMode === 'compact') {
-      if (sidebarWidth <= 100) {
-        return 'gap-0.5 p-0.5';
-      } else if (sidebarWidth <= 300) {
-        return 'gap-1 p-1.5';
-      } else {
-        return 'gap-2 p-2';
-      }
+      if (width <= 100) return 'gap-0.5 p-0.5';
+      if (width <= 300) return 'gap-1 p-1.5';
+      if (width <= 800) return 'gap-2 p-2';
+      return 'gap-3 p-3'; // Increased for wide compact view
     } else {
-      // For normal view, use responsive gaps based on sidebar width
-      if (sidebarWidth <= 300) {
-        return 'gap-1.5 p-2';
-      } else {
-        return 'gap-2 p-3';
-      }
+      // Normal view with generous spacing for full screen
+      if (width <= 300) return 'gap-1.5 p-2';
+      if (width <= 800) return 'gap-2 p-3';
+      if (width <= 1400) return 'gap-3 p-4'; // Medium-wide
+      return 'gap-4 p-5'; // Full screen: 16px gap, 20px padding
     }
   };
   // Get the appropriate view mode icon
@@ -359,6 +377,12 @@ export function StaffSidebar() {
   const getCardViewMode = (): 'ultra-compact' | 'compact' | 'normal' => {
     if (sidebarWidth <= 100) {
       return 'ultra-compact';
+    }
+
+    // For vertical cards at desktop widths (40%+), don't auto-downgrade
+    // Keep user's selected mode (normal/compact) to maintain card dimensions
+    if (teamSettings.cardLayout === 'vertical' && sidebarWidth >= 300) {
+      return viewMode;
     }
 
     // Calculate effective column width to auto-downgrade view mode if too tight
@@ -730,7 +754,9 @@ export function StaffSidebar() {
   return <div className={teamSidebarClasses} style={teamSidebarStyle}>
     {renderHeader()}
     <div className="flex-1 overflow-auto bg-gradient-to-b from-[#FBF8F9] to-[#F7F2F4] relative min-h-0">
-      {filteredStaff.length > 0 ? <div className={`grid ${getGridColumns()} ${getGapAndPadding()}`}>
+      {filteredStaff.length > 0 ? <div
+        className={`grid ${getGridColumns()} ${getGapAndPadding()}`}
+      >
         {filteredStaff.map((staffMember, index) => {
           // Convert string ID to number for compatibility
           const staffIdNumber = typeof staffMember.id === 'string'
@@ -743,8 +769,8 @@ export function StaffSidebar() {
             image: getSalonStaffImage(staffIdNumber, staffMember.specialty),
           };
 
-          // Choose card component based on settings
-          const CardComponent = teamSettings.cardLayout === 'vertical' ? VerticalCard : HorizontalCard;
+          // Always use VerticalCard
+          const CardComponent = VerticalCard;
 
           // For testing, add dummy ticket info for busy staff
           if (staffMember.status === 'busy') {
@@ -792,20 +818,29 @@ export function StaffSidebar() {
           );
 
           return (
-            <div key={modifiedStaffMember.id} className="w-full min-w-[80px]">
+            <div key={modifiedStaffMember.id} className="w-full min-w-[80px]" style={{
+              // In full screen mode, fill the grid cell height
+              height: widthPercentage === 100 ? '100%' : 'auto'
+            }}>
               <Tippy
                 content={getTooltipContent()}
                 placement="right"
                 duration={[200, 0]}
                 delay={[300, 0]}
                 animation="shift-away"
+                theme="translucent"
                 interactive={true}
-                appendTo={() => document.body}
+                appendTo={document.body}
               >
-                <div className="transition-all duration-300 hover:scale-[1.03] hover:shadow-lg rounded-[14px] cursor-pointer">
+                <div className="transition-all duration-300 hover:scale-[1.03] hover:shadow-lg rounded-[14px] cursor-pointer" style={{
+                  // In full screen mode, make card fill the container
+                  height: widthPercentage === 100 ? '100%' : 'auto'
+                }}>
                   <CardComponent
                     staff={modifiedStaffMember}
                     viewMode={getCardViewMode()}
+                    fillHeight={widthPercentage === 100}
+                    isDraggable={true}
                     displayConfig={{
                       showName: true,
                       showQueueNumber: true,

@@ -398,7 +398,7 @@ export const TeamSettingsPanel: React.FC<TeamSettingsProps> = ({
                   <label className="flex items-center">
                     <input type="radio" name="viewWidth" checked={settings.viewWidth === 'wide'} onChange={() => updateSetting('viewWidth', 'wide')} className="w-4 h-4 text-[#3BB09A] border-gray-300 focus:ring-[#3BB09A]" />
                     <span className="ml-2 text-sm text-gray-700">
-                      Wide (40% of screen)
+                      Wide (30% of screen)
                     </span>
                   </label>
                   <label className="flex items-center">
@@ -607,7 +607,7 @@ export const TeamSettingsPanel: React.FC<TeamSettingsProps> = ({
                       <label className="flex items-center">
                         <input type="radio" name="viewWidth" checked={settings.viewWidth === 'wide'} onChange={() => updateSetting('viewWidth', 'wide')} className="w-4 h-4 text-[#3BB09A] border-gray-300 focus:ring-[#3BB09A]" />
                         <span className="ml-2 text-sm text-gray-700">
-                          Wide (40% of screen)
+                          Wide (30% of screen)
                         </span>
                       </label>
                       <label className="flex items-center">
