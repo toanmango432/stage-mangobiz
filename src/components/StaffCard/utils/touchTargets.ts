@@ -26,6 +26,8 @@ export const getTouchTargetPadding = (
 /**
  * Touch target style generator
  * Creates an invisible expanded hit area for small interactive elements
+ * Note: Pseudo-elements can't be defined in inline styles.
+ * Use TOUCH_TARGET_CLASSES instead for consistent touch targets.
  */
 export const touchTargetStyle = (
   elementWidth: number,
@@ -38,17 +40,11 @@ export const touchTargetStyle = (
     return {};
   }
 
+  // Return padding that expands the clickable area
   return {
     position: 'relative',
-    // Expand clickable area with pseudo-element
-    '::before': {
-      content: '""',
-      position: 'absolute',
-      top: -paddingY,
-      right: -paddingX,
-      bottom: -paddingY,
-      left: -paddingX,
-    },
+    padding: `${paddingY}px ${paddingX}px`,
+    margin: `-${paddingY}px -${paddingX}px`,
   };
 };
 
