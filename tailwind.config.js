@@ -216,6 +216,28 @@ export default {
         '600': '600ms',
         '800': '800ms',
       },
+
+      // Staff Card Responsive Grid Utilities
+      gridTemplateColumns: {
+        // Auto-fit grids for responsive staff cards
+        'auto-fill-card-xs': 'repeat(auto-fill, minmax(120px, 1fr))',
+        'auto-fill-card-sm': 'repeat(auto-fill, minmax(160px, 1fr))',
+        'auto-fill-card-md': 'repeat(auto-fill, minmax(200px, 1fr))',
+        'auto-fill-card-lg': 'repeat(auto-fill, minmax(240px, 1fr))',
+        'auto-fill-card-xl': 'repeat(auto-fill, minmax(280px, 1fr))',
+
+        // Auto-fit with max constraint for better control
+        'auto-fit-card-xs': 'repeat(auto-fit, minmax(min(120px, 100%), 1fr))',
+        'auto-fit-card-sm': 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))',
+        'auto-fit-card-md': 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',
+        'auto-fit-card-lg': 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
+        'auto-fit-card-xl': 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+      },
+
+      // Container query support
+      supports: {
+        'container-queries': '@supports (container-type: inline-size)',
+      },
     },
   },
   plugins: [],

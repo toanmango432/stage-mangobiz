@@ -3,7 +3,7 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
 import { StaffCard as HorizontalCard } from './StaffCard';
-import { StaffCard as VerticalCard } from './StaffCardVertical';
+import { StaffCardVertical as VerticalCard } from './StaffCard';
 import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
@@ -291,33 +291,35 @@ export function StaffSidebar() {
     resetStaffStatus();
     setShowResetConfirmation(false);
   };
-  // Determine number of grid columns based on sidebar width and view mode
+  // Determine responsive grid class based on sidebar width and view mode
   const getGridColumns = () => {
     // Special case for ultra compact width
     if (sidebarWidth <= 100) {
       return 'grid-cols-1';
     }
-    // Check if using percentage-based width (either preset or custom)
-    const isPercentageBased = widthType === 'percentage' || widthType === 'customPercentage';
 
-    // Use standard responsive grid columns based on container width
-    // We can use the sidebarWidth to determine the number of columns more dynamically
-    // or rely on Tailwind's responsive classes if the container width matches screen breakpoints.
-    // Since sidebarWidth is dynamic, we should calculate columns based on it.
-
-    const getCols = (width: number, minCardWidth: number) => {
-      const cols = Math.floor((width - 32) / minCardWidth); // 32px for padding
-      return Math.max(1, cols);
-    };
-
+    // Use CSS Grid auto-fit for true responsive behavior
+    // This eliminates the need for dynamic class generation
     if (viewMode === 'compact') {
-      // Compact card min width ~150px
-      const cols = getCols(sidebarWidth, 160);
-      return `grid-cols-${cols}`;
+      // Compact cards: minimum 160px
+      if (sidebarWidth < 200) {
+        return 'grid-cols-auto-fit-card-xs'; // 120px min
+      } else if (sidebarWidth < 350) {
+        return 'grid-cols-auto-fit-card-sm'; // 160px min
+      } else {
+        return 'grid-cols-auto-fit-card-md'; // 200px min
+      }
     } else {
-      // Normal card min width ~200px
-      const cols = getCols(sidebarWidth, 210);
-      return `grid-cols-${cols}`;
+      // Normal cards: minimum 200px
+      if (sidebarWidth < 250) {
+        return 'grid-cols-auto-fit-card-sm'; // 160px min
+      } else if (sidebarWidth < 500) {
+        return 'grid-cols-auto-fit-card-md'; // 200px min
+      } else if (sidebarWidth < 750) {
+        return 'grid-cols-auto-fit-card-lg'; // 240px min
+      } else {
+        return 'grid-cols-auto-fit-card-xl'; // 280px min
+      }
     }
   };
   // Get the gap and padding based on view mode
@@ -802,7 +804,7 @@ export function StaffSidebar() {
                 interactive={true}
                 appendTo={() => document.body}
               >
-                <div className="transition-all duration-300 hover:scale-[1.03] hover:shadow-lg rounded-[14px] cursor-pointer">
+                <div>
                   <CardComponent
                     staff={modifiedStaffMember}
                     viewMode={getCardViewMode()}
