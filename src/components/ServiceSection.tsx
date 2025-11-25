@@ -966,7 +966,7 @@ export const ServiceSection = memo(function ServiceSection({
           }
         />
       )}
-      <div id="service-content" className="flex-1 overflow-auto p-3 pb-16 scroll-smooth">
+      <div id="service-content" className={`flex-1 overflow-auto p-3 scroll-smooth ${isMobile ? 'pb-3' : 'pb-16'}`}>
         {/* Show content based on whether there are tickets */}
         {serviceTickets.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-3"
