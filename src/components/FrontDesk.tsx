@@ -15,6 +15,7 @@ import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertica
 import { useSwipeGestures } from '../hooks/useGestures';
 import { haptics } from '../utils/haptics';
 import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
+import { MobileTeamSection } from './frontdesk/MobileTeamSection';
 import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
 import { ErrorBoundary } from './frontdesk/ErrorBoundary';
 import {
@@ -99,6 +100,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     createTicket,
     waitlist = [],
     serviceTickets = [],
+    staff = [],
   } = useTickets();
 
   // Calculate metrics for mobile tabs
@@ -125,7 +127,24 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     // Coming appointments metrics (placeholder - would come from appointments data)
     const comingCount = 0; // TODO: Get from appointments
 
+    // Team metrics
+    const teamCount = staff.length;
+    const readyCount = staff.filter((s: any) => s.status === 'ready').length;
+    const busyCount = staff.filter((s: any) => s.status === 'busy').length;
+    const teamSecondary = readyCount > 0 ? `${readyCount} ready` : undefined;
+
     return [
+      {
+        id: 'team',
+        label: 'Team',
+        shortLabel: 'Team',
+        icon: 'team' as const,
+        metrics: {
+          count: teamCount,
+          secondary: teamSecondary,
+        },
+        color: tabColors.team,
+      },
       {
         id: 'service',
         label: 'In Service',
@@ -160,7 +179,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         color: tabColors.appointments,
       }] : []),
     ];
-  }, [serviceTickets, waitlist, showUpcomingAppointments]);
+  }, [serviceTickets, waitlist, staff, showUpcomingAppointments]);
   // State for dropdown menus
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [showWaitListDropdown, setShowWaitListDropdown] = useState(false);
@@ -194,8 +213,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         setActiveCombinedTab('waitList');
       }
     } else {
-      // Non-combined view: waitList -> service -> comingAppointments
-      const tabs = ['waitList', 'service', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
+      // Non-combined view: team -> service -> waitList -> comingAppointments
+      const tabs = ['team', 'service', 'waitList', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
       const currentIndex = tabs.indexOf(activeMobileSection);
       if (currentIndex < tabs.length - 1) {
         haptics.selection();
@@ -212,8 +231,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         setActiveCombinedTab('service');
       }
     } else {
-      // Non-combined view: comingAppointments -> service -> waitList
-      const tabs = ['waitList', 'service', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
+      // Non-combined view: comingAppointments -> waitList -> service -> team
+      const tabs = ['team', 'service', 'waitList', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
       const currentIndex = tabs.indexOf(activeMobileSection);
       if (currentIndex > 0) {
         haptics.selection();
@@ -829,6 +848,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                         isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
                         hideHeader={true}
                       />
+                    </div>}
+                    {/* Team Section - Show when active on mobile/tablet */}
+                    {activeMobileSection === 'team' && <div className="h-full">
+                      <MobileTeamSection className="h-full" />
                     </div>}
                   </> : <>
                     {/* Desktop layout with horizontal expansion/collapse - UPDATED FOR PROPER ALIGNMENT */}

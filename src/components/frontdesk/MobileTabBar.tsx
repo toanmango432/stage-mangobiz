@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { FileText, Users, Calendar, Clock } from 'lucide-react';
+import { FileText, Users, Calendar, Clock, UserCircle } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 
 export interface TabMetrics {
@@ -14,7 +14,7 @@ export interface MobileTab {
   id: string;
   label: string;
   shortLabel?: string; // For very small screens
-  icon: 'service' | 'waiting' | 'appointments';
+  icon: 'service' | 'waiting' | 'appointments' | 'team';
   metrics: TabMetrics;
   color: {
     active: string;    // bg color when active
@@ -34,6 +34,7 @@ const iconMap = {
   service: FileText,
   waiting: Users,
   appointments: Calendar,
+  team: UserCircle,
 };
 
 export const MobileTabBar = memo(function MobileTabBar({
@@ -126,5 +127,10 @@ export const tabColors = {
     active: 'bg-emerald-50',
     text: 'text-emerald-700',
     badge: 'bg-emerald-500',
+  },
+  team: {
+    active: 'bg-teal-50',
+    text: 'text-teal-700',
+    badge: 'bg-teal-500',
   },
 };
