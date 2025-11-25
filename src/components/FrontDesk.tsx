@@ -103,10 +103,29 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     staff = [],
   } = useTickets();
 
-  // Calculate metrics for mobile tabs
+  // State for dropdown menus
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [showWaitListDropdown, setShowWaitListDropdown] = useState(false);
+  const serviceDropdownRef = useRef<HTMLDivElement>(null);
+  const waitListDropdownRef = useRef<HTMLDivElement>(null);
+  // Add state for Wait List tab dropdown
+  const [waitListTabDropdownOpen, setWaitListTabDropdownOpen] = useState(false);
+  // New state for ticket config settings
+  const [showTicketSettings, setShowTicketSettings] = useState(false);
+  const [ticketSortOrder, setTicketSortOrder] = useState<'queue' | 'time'>(() => {
+    const saved = localStorage.getItem('ticketSortOrder');
+    return saved === 'queue' || saved === 'time' ? saved as 'queue' | 'time' : 'queue';
+  });
+  const [showUpcomingAppointments, setShowUpcomingAppointments] = useState(() => {
+    // Force Coming section to be visible - reset any previous hide state
+    localStorage.setItem('showUpcomingAppointments', 'true');
+    return true;
+  });
+  const ticketSettingsRef = useRef<HTMLDivElement>(null);
+
+  // Calculate metrics for mobile tabs - must be after showUpcomingAppointments is defined
   const mobileTabsData = useMemo((): MobileTab[] => {
     // Service metrics
-    const activeServiceCount = serviceTickets.filter(t => t.status !== 'paused').length;
     const pausedCount = serviceTickets.filter(t => t.status === 'paused').length;
     const serviceSecondary = pausedCount > 0 ? `${pausedCount} paused` : undefined;
 
@@ -179,25 +198,6 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       }] : []),
     ];
   }, [serviceTickets, waitlist, staff, showUpcomingAppointments]);
-  // State for dropdown menus
-  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
-  const [showWaitListDropdown, setShowWaitListDropdown] = useState(false);
-  const serviceDropdownRef = useRef<HTMLDivElement>(null);
-  const waitListDropdownRef = useRef<HTMLDivElement>(null);
-  // Add state for Wait List tab dropdown
-  const [waitListTabDropdownOpen, setWaitListTabDropdownOpen] = useState(false);
-  // New state for ticket config settings
-  const [showTicketSettings, setShowTicketSettings] = useState(false);
-  const [ticketSortOrder, setTicketSortOrder] = useState<'queue' | 'time'>(() => {
-    const saved = localStorage.getItem('ticketSortOrder');
-    return saved === 'queue' || saved === 'time' ? saved as 'queue' | 'time' : 'queue';
-  });
-  const [showUpcomingAppointments, setShowUpcomingAppointments] = useState(() => {
-    // Force Coming section to be visible - reset any previous hide state
-    localStorage.setItem('showUpcomingAppointments', 'true');
-    return true;
-  });
-  const ticketSettingsRef = useRef<HTMLDivElement>(null);
   // Toggle Wait List tab dropdown - fixed to not expect event parameter
   const toggleWaitListTabDropdown = () => {
     setWaitListTabDropdownOpen(!waitListTabDropdownOpen);
