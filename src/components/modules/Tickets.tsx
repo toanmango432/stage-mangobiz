@@ -26,29 +26,31 @@ export function Tickets() {
   return (
     <div className="absolute inset-0 flex flex-col bg-white">
       {/* Sub-tabs for ticket types */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2 flex gap-1 overflow-x-auto no-scrollbar">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-              activeTab === tab.id
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {tab.label}
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
+        <div className="flex gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white/20 text-white'
-                  : 'bg-gray-200 text-gray-600'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              {tab.count}
-            </span>
-          </button>
-        ))}
+              {tab.label}
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                  activeTab === tab.id
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content area - fills remaining space */}
