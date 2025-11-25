@@ -103,8 +103,8 @@ export function Tickets() {
         </div>
       </div>
 
-      {/* Section Content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      {/* Section Content - sections handle their own scrolling */}
+      <div className="flex-1 min-h-0 overflow-hidden">
         {activeTab === 'coming' ? (
           <ComingAppointments
             isMinimized={false}
