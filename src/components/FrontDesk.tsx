@@ -850,8 +850,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                       />
                     </div>}
                     {/* Team Section - Show when active on mobile/tablet */}
-                    {activeMobileSection === 'team' && <div className="h-full">
-                      <MobileTeamSection className="h-full" />
+                    {activeMobileSection === 'team' && <div className="h-full flex flex-col min-h-0">
+                      <MobileTeamSection className="flex-1 min-h-0" />
                     </div>}
                   </> : <>
                     {/* Desktop layout with horizontal expansion/collapse - UPDATED FOR PROPER ALIGNMENT */}
