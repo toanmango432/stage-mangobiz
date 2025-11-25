@@ -4,8 +4,7 @@ import { WaitListSection } from '../WaitListSection';
 import { ComingAppointments } from '../ComingAppointments';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
-import { Clock, Users, Activity, Minimize2, Maximize2 } from 'lucide-react';
-import { ViewModeToggle } from '../frontdesk/ViewModeToggle';
+import { Clock, Users, Activity, ChevronUp, ChevronDown } from 'lucide-react';
 
 export function Tickets() {
   // Tickets module now only shows: Coming, Waiting, In Service
@@ -13,33 +12,11 @@ export function Tickets() {
   const [activeTab, setActiveTab] = useState<'coming' | 'waitlist' | 'inservice'>('inservice');
   const { waitlist = [], serviceTickets = [], comingAppointments = [] } = useTickets();
 
-  // View settings - using localStorage like FrontDesk.tsx
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-    const saved = localStorage.getItem('mobileTicketsViewMode');
-    return saved === 'grid' || saved === 'list' ? saved : 'grid';
-  });
-  const [cardViewMode, setCardViewMode] = useState<'normal' | 'compact'>(() => {
-    const saved = localStorage.getItem('mobileTicketsCardViewMode');
-    return saved === 'normal' || saved === 'compact' ? saved : 'normal';
-  });
-  // minimizedLineView controls compact mode for LIST view (cardViewMode is for GRID view)
+  // View settings - line view only, with compact/normal toggle
   const [minimizedLineView, setMinimizedLineView] = useState<boolean>(() => {
     const saved = localStorage.getItem('mobileTicketsMinimizedLineView');
     return saved === 'true';
   });
-
-  // Persist view settings
-  const handleViewModeChange = (mode: 'grid' | 'list') => {
-    haptics.selection();
-    setViewMode(mode);
-    localStorage.setItem('mobileTicketsViewMode', mode);
-  };
-
-  const handleCardViewModeChange = (mode: 'normal' | 'compact') => {
-    haptics.selection();
-    setCardViewMode(mode);
-    localStorage.setItem('mobileTicketsCardViewMode', mode);
-  };
 
   const handleMinimizedLineViewChange = (minimized: boolean) => {
     haptics.selection();
@@ -112,35 +89,17 @@ export function Tickets() {
             </span>
           </div>
 
-          {/* Right: View Settings */}
-          <div className="flex items-center gap-1">
-            {/* Grid/List Toggle - using existing ViewModeToggle */}
-            <ViewModeToggle
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              size="sm"
-            />
-
-            {/* Normal/Compact Toggle - different behavior for grid vs list */}
-            <button
-              onClick={() => {
-                if (viewMode === 'grid') {
-                  handleCardViewModeChange(cardViewMode === 'normal' ? 'compact' : 'normal');
-                } else {
-                  handleMinimizedLineViewChange(!minimizedLineView);
-                }
-              }}
-              className={`p-2 rounded-lg transition-all min-w-[40px] min-h-[40px] flex items-center justify-center ${
-                (viewMode === 'grid' ? cardViewMode === 'compact' : minimizedLineView)
-                  ? 'bg-orange-100 text-orange-600'
-                  : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {(viewMode === 'grid' ? cardViewMode === 'compact' : minimizedLineView)
-                ? <Minimize2 size={18} />
-                : <Maximize2 size={18} />}
-            </button>
-          </div>
+          {/* Right: Compact/Normal Toggle */}
+          <button
+            onClick={() => handleMinimizedLineViewChange(!minimizedLineView)}
+            className={`p-2 rounded-lg transition-all min-w-[40px] min-h-[40px] flex items-center justify-center ${
+              minimizedLineView
+                ? 'bg-orange-100 text-orange-600'
+                : 'bg-gray-200 text-gray-600'
+            }`}
+          >
+            {minimizedLineView ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+          </button>
         </div>
       </div>
 
@@ -160,10 +119,7 @@ export function Tickets() {
             isMobile={true}
             hideHeader={true}
             isCombinedView={true}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            cardViewMode={cardViewMode}
-            setCardViewMode={setCardViewMode}
+            viewMode="list"
             minimizedLineView={minimizedLineView}
             setMinimizedLineView={setMinimizedLineView}
           />
@@ -174,10 +130,7 @@ export function Tickets() {
             isMobile={true}
             hideHeader={true}
             isCombinedView={true}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            cardViewMode={cardViewMode}
-            setCardViewMode={setCardViewMode}
+            viewMode="list"
             minimizedLineView={minimizedLineView}
             setMinimizedLineView={setMinimizedLineView}
           />
