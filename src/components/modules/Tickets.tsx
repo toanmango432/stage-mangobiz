@@ -25,9 +25,9 @@ export function Tickets() {
 
   return (
     <div className="absolute inset-0 flex flex-col bg-white">
-      {/* Row 1: Tabs */}
+      {/* Row 1: Tabs - ensure all 3 are visible */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
-        <div className="flex gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -37,16 +37,16 @@ export function Tickets() {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   isActive
                     ? 'bg-orange-500 text-white shadow-md'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                <Icon size={16} />
-                <span>{tab.label}</span>
+                <Icon size={14} />
+                <span className="truncate">{tab.label}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                  className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
                     isActive
                       ? 'bg-white/25 text-white'
                       : 'bg-gray-200 text-gray-700'
