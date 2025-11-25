@@ -26,7 +26,7 @@ export function Tickets() {
   return (
     <div className="absolute inset-0 flex flex-col bg-white">
       {/* Row 1: Tabs - ensure all 3 are visible */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2 relative z-10">
         <div className="grid grid-cols-3 gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -60,25 +60,28 @@ export function Tickets() {
         </div>
       </div>
 
-      {/* Section Content - sections manage their own view settings */}
-      <div className="flex-1 overflow-auto">
+      {/* Section Content */}
+      <div className="flex-1 min-h-0 overflow-auto">
         {activeTab === 'coming' ? (
           <ComingAppointments
             isMinimized={false}
             onToggleMinimize={() => {}}
             isMobile={true}
+            hideHeader={true}
           />
         ) : activeTab === 'waitlist' ? (
           <WaitListSection
             isMinimized={false}
             onToggleMinimize={() => {}}
             isMobile={true}
+            hideHeader={true}
           />
         ) : activeTab === 'inservice' ? (
           <ServiceSection
             isMinimized={false}
             onToggleMinimize={() => {}}
             isMobile={true}
+            hideHeader={true}
           />
         ) : null}
       </div>
