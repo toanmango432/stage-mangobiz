@@ -18,7 +18,7 @@ export function Tickets() {
     { id: 'inservice' as const, label: 'In Service', count: serviceTickets.length },
   ], [waitlist.length, serviceTickets.length]);
 
-  const handleTabChange = (tabId: typeof activeTab) => {
+  const handleTabChange = (tabId: 'coming' | 'waitlist' | 'inservice') => {
     haptics.selection();
     setActiveTab(tabId);
   };
@@ -94,30 +94,28 @@ export function Tickets() {
 
         {/* Section Content */}
         <div className="flex-1 overflow-auto">
-          {activeTab === 'coming' && (
+          {activeTab === 'coming' ? (
             <ComingAppointments
               isMinimized={false}
               onToggleMinimize={() => {}}
               isMobile={true}
               hideHeader={true}
             />
-          )}
-          {activeTab === 'waitlist' && (
+          ) : activeTab === 'waitlist' ? (
             <WaitListSection
               isMinimized={false}
               onToggleMinimize={() => {}}
               isMobile={true}
               hideHeader={true}
             />
-          )}
-          {activeTab === 'inservice' && (
+          ) : activeTab === 'inservice' ? (
             <ServiceSection
               isMinimized={false}
               onToggleMinimize={() => {}}
               isMobile={true}
               hideHeader={true}
             />
-          )}
+          ) : null}
         </div>
       </div>
     </div>
