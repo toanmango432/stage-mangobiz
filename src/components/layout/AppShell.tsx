@@ -10,6 +10,7 @@ import { Sales } from '../modules/Sales';
 import { More } from '../modules/More';
 import { HeaderColorPreview } from '../HeaderColorPreview';
 import { TicketColorPreview } from '../TicketColorPreview';
+import { LicenseSettings } from '../licensing/LicenseSettings';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -19,6 +20,8 @@ import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
 import { syncManager } from '../../services/syncManager';
 import { NetworkStatus } from '../NetworkStatus';
+import { LicenseBanner } from '../licensing/LicenseBanner';
+import { defaultsPopulator } from '../../services/defaultsPopulator';
 
 export function AppShell() {
   const [activeModule, setActiveModule] = useState('frontdesk');
@@ -46,7 +49,14 @@ export function AppShell() {
         }
         console.log('✅ Database initialized');
 
-        // 2. Check if we need to seed data (first run)
+        // 2. Apply defaults from license (first-time setup)
+        try {
+          await defaultsPopulator.applyDefaults(salonId);
+        } catch (error) {
+          console.error('⚠️ Failed to apply defaults:', error);
+        }
+
+        // 3. Check if we need to seed data (first run)
         const staffCount = await db.staff.count();
         if (staffCount === 0) {
           console.log('🌱 First run detected - seeding database...');
@@ -56,11 +66,11 @@ export function AppShell() {
           console.log(`✅ Database already seeded (${staffCount} staff members)`);
         }
 
-        // 3. Load staff into Redux
+        // 4. Load staff into Redux
         await dispatch(fetchAllStaff(salonId));
         console.log('✅ Staff loaded into Redux');
 
-        // 4. Load appointments into Redux
+        // 5. Load appointments into Redux
         const appointments = await db.appointments.toArray();
         appointments.forEach((apt: any) => {
           dispatch(addLocalAppointment({
@@ -76,11 +86,12 @@ export function AppShell() {
         });
         console.log(`✅ Loaded ${appointments.length} appointments into Redux`);
 
-        // 5. Start sync manager
+
+        // 6. Start sync manager
         syncManager.start();
         console.log('✅ Sync Manager started');
 
-        // 6. Set initial online status
+        // 7. Set initial online status
         dispatch(setOnlineStatus(navigator.onLine));
 
         setIsInitialized(true);
@@ -131,6 +142,8 @@ export function AppShell() {
         return <Sales />;
       case 'more':
         return <More onNavigate={setActiveModule} />;
+      case 'license':
+        return <LicenseSettings />;
       case 'header-preview':
         return <HeaderColorPreview />;
       case 'ticket-preview':
@@ -157,6 +170,9 @@ export function AppShell() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+      {/* License Status Banner */}
+      <LicenseBanner />
+
       {/* Network Status Indicator */}
       <NetworkStatus />
 
