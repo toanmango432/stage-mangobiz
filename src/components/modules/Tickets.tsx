@@ -4,13 +4,37 @@ import { WaitListSection } from '../WaitListSection';
 import { ComingAppointments } from '../ComingAppointments';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
-import { Clock, Users, Activity } from 'lucide-react';
+import { Clock, Users, Activity, Minimize2, Maximize2 } from 'lucide-react';
+import { ViewModeToggle } from '../frontdesk/ViewModeToggle';
 
 export function Tickets() {
   // Tickets module now only shows: Coming, Waiting, In Service
   // Pending payments are accessed via the dedicated Pending tab in bottom nav
   const [activeTab, setActiveTab] = useState<'coming' | 'waitlist' | 'inservice'>('inservice');
-  const { waitlist = [], serviceTickets = [] } = useTickets();
+  const { waitlist = [], serviceTickets = [], comingAppointments = [] } = useTickets();
+
+  // View settings - using localStorage like FrontDesk.tsx
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    const saved = localStorage.getItem('mobileTicketsViewMode');
+    return saved === 'grid' || saved === 'list' ? saved : 'grid';
+  });
+  const [cardViewMode, setCardViewMode] = useState<'normal' | 'compact'>(() => {
+    const saved = localStorage.getItem('mobileTicketsCardViewMode');
+    return saved === 'normal' || saved === 'compact' ? saved : 'normal';
+  });
+
+  // Persist view settings
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    haptics.selection();
+    setViewMode(mode);
+    localStorage.setItem('mobileTicketsViewMode', mode);
+  };
+
+  const handleCardViewModeChange = (mode: 'normal' | 'compact') => {
+    haptics.selection();
+    setCardViewMode(mode);
+    localStorage.setItem('mobileTicketsCardViewMode', mode);
+  };
 
   const tabs = useMemo(() => [
     { id: 'inservice' as const, label: 'In Service', icon: Activity },
@@ -60,6 +84,47 @@ export function Tickets() {
         </div>
       </div>
 
+      {/* Row 2: Metrics & View Settings */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 px-3 py-2">
+        <div className="flex items-center justify-between">
+          {/* Left: Metrics */}
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-gray-900">
+              {activeTab === 'inservice' ? serviceTickets.length :
+               activeTab === 'waitlist' ? waitlist.length :
+               comingAppointments.length}
+            </span>
+            <span className="text-xs text-gray-500">
+              {activeTab === 'inservice' ? (serviceTickets.length === 1 ? 'ticket' : 'tickets') :
+               activeTab === 'waitlist' ? (waitlist.length === 1 ? 'waiting' : 'waiting') :
+               'upcoming'}
+            </span>
+          </div>
+
+          {/* Right: View Settings */}
+          <div className="flex items-center gap-1">
+            {/* Grid/List Toggle - using existing ViewModeToggle */}
+            <ViewModeToggle
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              size="sm"
+            />
+
+            {/* Normal/Compact Toggle */}
+            <button
+              onClick={() => handleCardViewModeChange(cardViewMode === 'normal' ? 'compact' : 'normal')}
+              className={`p-2 rounded-lg transition-all min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                cardViewMode === 'compact'
+                  ? 'bg-orange-100 text-orange-600'
+                  : 'bg-gray-200 text-gray-600'
+              }`}
+            >
+              {cardViewMode === 'compact' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Section Content */}
       <div className="flex-1 min-h-0 overflow-auto">
         {activeTab === 'coming' ? (
@@ -75,6 +140,10 @@ export function Tickets() {
             onToggleMinimize={() => {}}
             isMobile={true}
             hideHeader={true}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            cardViewMode={cardViewMode}
+            setCardViewMode={setCardViewMode}
           />
         ) : activeTab === 'inservice' ? (
           <ServiceSection
@@ -82,6 +151,10 @@ export function Tickets() {
             onToggleMinimize={() => {}}
             isMobile={true}
             hideHeader={true}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            cardViewMode={cardViewMode}
+            setCardViewMode={setCardViewMode}
           />
         ) : null}
       </div>
