@@ -23,13 +23,31 @@ import { NetworkStatus } from '../NetworkStatus';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 
 export function AppShell() {
-  const [activeModule, setActiveModule] = useState('frontdesk');
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
-
   // Mobile/tablet detection for responsive navigation
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const showBottomNav = isMobile || isTablet;
+
+  // Set appropriate default module based on device
+  // Mobile/tablet: default to 'team' since 'frontdesk' is not available
+  // Desktop: default to 'frontdesk'
+  const [activeModule, setActiveModule] = useState(() => {
+    // Check initial window width to determine default
+    return window.innerWidth < 1024 ? 'team' : 'frontdesk';
+  });
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
+
+  // Handle module switch when device type changes (e.g., resize)
+  useEffect(() => {
+    // If on mobile/tablet and activeModule is 'frontdesk', switch to 'team'
+    if (showBottomNav && activeModule === 'frontdesk') {
+      setActiveModule('team');
+    }
+    // If on desktop and activeModule is 'team' or 'tickets', switch to 'frontdesk'
+    if (isDesktop && (activeModule === 'team' || activeModule === 'tickets')) {
+      setActiveModule('frontdesk');
+    }
+  }, [showBottomNav, isDesktop, activeModule]);
 
   // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
   const pendingTickets = useAppSelector(selectPendingTickets);
