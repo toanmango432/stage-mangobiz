@@ -23,8 +23,6 @@ import { PremiumAvatar, StatusBadge } from '../premium';
 import { getStatusColor, getStaffColor } from '../../constants/premiumDesignSystem';
 import { staggerDelayStyle } from '../../utils/animations';
 import { DayViewSkeleton } from './skeletons';
-import { useTimeSlotAvailability } from '../../hooks/useTimeSlotAvailability';
-import { getAvailabilityColorClass, formatAvailabilityTooltip } from '../../utils/availabilityCalculator';
 
 interface Staff {
   id: string;
@@ -157,9 +155,6 @@ export const DaySchedule = memo(function DaySchedule({
   const [dragConflict, setDragConflict] = useState<{ hasConflict: boolean; conflictType?: string; message?: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ appointment: LocalAppointment; x: number; y: number } | null>(null);
   const timeLabels = useMemo(() => generateTimeLabels(), []);
-
-  // Get availability data for all time slots on this date
-  const availabilityMap = useTimeSlotAvailability(date);
 
   // Responsive slot configuration for touch targets
   // Mobile: 60min slots (60px), Tablet: 30min slots (30px), Desktop: 15min slots (15px)
@@ -454,12 +449,6 @@ export const DaySchedule = memo(function DaySchedule({
                     slotTime.setHours(hour, intervalIndex * slotConfig.minutesPerSlot, 0, 0);
                     const snappedTime = snapToGrid(slotTime);
 
-                    // Get availability data for this time slot
-                    const slotKey = slotTime.toISOString();
-                    const availability = availabilityMap.get(slotKey);
-                    const availabilityClass = availability ? getAvailabilityColorClass(availability) : '';
-                    const availabilityTooltip = availability ? formatAvailabilityTooltip(availability) : '';
-
                     const isDropTarget = dragOverSlot?.staffId === staffMember.id &&
                       dragOverSlot?.time.getHours() === snappedTime.getHours() &&
                       dragOverSlot?.time.getMinutes() === snappedTime.getMinutes();
@@ -474,7 +463,7 @@ export const DaySchedule = memo(function DaySchedule({
                         appointments
                       );
                     }
-                    
+
                     return (
                       <button
                         key={`slot-${hour}-${intervalIndex}`}
@@ -486,7 +475,7 @@ export const DaySchedule = memo(function DaySchedule({
                           e.dataTransfer.dropEffect = 'move';
                           const newSnappedTime = snapToGrid(slotTime);
                           setDragOverSlot({ staffId: staffMember.id, time: newSnappedTime });
-                          
+
                           // Check for conflicts
                           if (draggedAppointment) {
                             const conflict = checkDragConflict(
@@ -521,8 +510,7 @@ export const DaySchedule = memo(function DaySchedule({
                           "focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 focus:z-10",
                           // Active state for press feedback
                           "active:scale-[0.98] active:bg-brand-100",
-                          // Availability highlighting
-                          !isDropTarget && availabilityClass,
+                          // Drop target states
                           isDropTarget
                             ? slotConflict?.hasConflict
                               ? getConflictColor(slotConflict.conflictType)
@@ -537,7 +525,7 @@ export const DaySchedule = memo(function DaySchedule({
                         title={
                           isDropTarget && slotConflict?.hasConflict
                             ? slotConflict.message
-                            : availabilityTooltip || undefined
+                            : undefined
                         }
                       />
                     );
