@@ -124,18 +124,18 @@ export const CalendarHeader = memo(function CalendarHeader({
               {/* Today Button */}
               <button
                 onClick={onTodayClick}
-                className="hidden sm:inline-flex px-3 py-2 rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-sm font-normal text-gray-700"
+                className="hidden sm:inline-flex px-3 py-2.5 min-h-[44px] rounded-xl border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 active:bg-gray-100 transition-all text-sm font-normal text-gray-700"
               >
                 Today
               </button>
 
-              {/* Previous Button */}
+              {/* Previous Button - Mobile optimized touch target */}
               <button
                 onClick={handlePrevDay}
-                className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-gray-50 active:bg-gray-100 active:scale-95 transition-all"
                 aria-label="Previous day"
               >
-                <ChevronLeft className="w-5 h-5 text-gray-400" />
+                <ChevronLeft className="w-5 h-5 text-gray-500" />
               </button>
 
               {/* Current Date - Click to open date picker */}
@@ -146,7 +146,8 @@ export const CalendarHeader = memo(function CalendarHeader({
               )}>
                 <button
                   onClick={() => setIsDatePickerOpen(true)}
-                  className="px-2 sm:px-3 py-2 min-h-[40px] rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-xs sm:text-sm font-normal text-gray-700"
+                  className="px-3 sm:px-4 py-2.5 min-h-[44px] rounded-xl border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 active:bg-gray-100 active:scale-95 transition-all text-sm sm:text-base font-medium text-gray-700"
+                  style={{ fontSize: '16px' }}
                   title="Click to open date picker"
                 >
                   {formatDateDisplay(selectedDate)}
@@ -164,13 +165,13 @@ export const CalendarHeader = memo(function CalendarHeader({
                 />
               </div>
 
-              {/* Next Button */}
+              {/* Next Button - Mobile optimized touch target */}
               <button
                 onClick={handleNextDay}
-                className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-gray-50 active:bg-gray-100 active:scale-95 transition-all"
                 aria-label="Next day"
               >
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <ChevronRight className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
@@ -240,14 +241,14 @@ export const CalendarHeader = memo(function CalendarHeader({
               onViewChange={onViewChange}
             />
 
-            {/* New Appointment Button */}
+            {/* New Appointment Button - Touch optimized */}
             {onNewAppointment && (
               <button
                 data-testid="new-appointment-button"
                 onClick={onNewAppointment}
-                className="px-3 sm:px-4 py-2 min-h-[40px] rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm font-normal"
+                className="px-4 py-2.5 min-h-[44px] min-w-[44px] rounded-xl bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-700 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm font-medium shadow-sm"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 <span className="hidden sm:inline">Add</span>
               </button>
             )}
