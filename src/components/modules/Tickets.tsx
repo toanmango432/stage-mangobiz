@@ -23,7 +23,7 @@ export function Tickets() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-white">
       {/* Sub-tabs for ticket types */}
       <div className="bg-white border-b border-gray-200 px-2 py-2 flex gap-1 overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
@@ -50,8 +50,8 @@ export function Tickets() {
         ))}
       </div>
 
-      {/* Content area */}
-      <div className="flex-1 overflow-auto">
+      {/* Content area - min-h-0 allows flex shrinking, h-full establishes height context */}
+      <div className="flex-1 min-h-0 overflow-auto">
         {activeTab === 'coming' && (
           <ComingAppointments
             isMinimized={false}
