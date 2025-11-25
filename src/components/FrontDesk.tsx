@@ -21,6 +21,7 @@ import {
   ComingAppointmentsErrorBoundary,
   SettingsErrorBoundary
 } from './frontdesk/SectionErrorBoundary';
+import { PendingSectionFooter } from './frontdesk/PendingSectionFooter';
 interface FrontDeskComponentProps {
   showFrontDeskSettings?: boolean;
   setShowFrontDeskSettings?: (show: boolean) => void;
@@ -447,8 +448,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         {showSidebar && <div className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden backdrop-blur-sm" onClick={() => setShowSidebar(false)}></div>}
         {/* Enhanced visual separator between tech and service sections */}
         <div className="hidden md:block w-px bg-gray-200 relative"></div>
-        {/* Main content area with flex layout for optimal space usage */}
-        <div className="flex-1 flex flex-col h-full min-h-0 pb-0">
+        {/* Main content area with flex layout for optimal space usage - Added pb-10 for pending footer */}
+        <div className="flex-1 flex flex-col h-full min-h-0 pb-10">
           {/* Mobile/Tablet section tabs - show on mobile and tablet when not in combined view */}
           {(deviceInfo.isMobile || deviceInfo.isTablet) && !isCombinedView && <div className="flex overflow-x-auto no-scrollbar bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 whitespace-nowrap">
             {mobileSectionTabs.map(tab => <button key={tab.id} className={`inline-flex items-center h-14 min-w-[100px] px-3 text-[15px] font-medium whitespace-nowrap transition-colors ${activeMobileSection === tab.id ? 'text-[#00D0E0] border-b-2 border-[#00D0E0]' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setActiveMobileSection(tab.id)}>
@@ -861,6 +862,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       <SettingsErrorBoundary>
         <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />
       </SettingsErrorBoundary>
+      {/* Pending Section Footer */}
+      <PendingSectionFooter />
     </div>
   );
 }

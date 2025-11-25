@@ -10,8 +10,8 @@ import { Sales } from '../modules/Sales';
 import { More } from '../modules/More';
 import { HeaderColorPreview } from '../HeaderColorPreview';
 import { TicketColorPreview } from '../TicketColorPreview';
-import { useTickets } from '../../hooks/useTicketsCompat';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
 import { setOnlineStatus } from '../../store/slices/syncSlice';
 import { initializeDatabase, db } from '../../db/schema';
@@ -23,8 +23,11 @@ export function AppShell() {
   const [activeModule, setActiveModule] = useState('frontdesk');
   const [isInitialized, setIsInitialized] = useState(false);
   const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
-  const { pendingTickets } = useTickets();
+
+  // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
+  const pendingTickets = useAppSelector(selectPendingTickets);
   const pendingCount = pendingTickets.length;
+
   const dispatch = useAppDispatch();
   const salonId = getTestSalonId();
 

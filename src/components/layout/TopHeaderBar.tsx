@@ -234,10 +234,15 @@ export function TopHeaderBar({
                   <span className="absolute -bottom-[19px] left-1/2 -translate-x-1/2 w-1 h-1 bg-orange-500 rounded-full" />
                 )}
 
-                {/* Badge */}
+                {/* Badge with pulsing animation for Pending */}
                 {hasBadge && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm border border-white">
-                    {module.badge! > 99 ? '99+' : module.badge}
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    {/* Pulsing ring animation */}
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    {/* Badge content */}
+                    <span className="relative inline-flex min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full items-center justify-center shadow-md border border-white">
+                      {module.badge! > 99 ? '99+' : module.badge}
+                    </span>
                   </span>
                 )}
               </button>
