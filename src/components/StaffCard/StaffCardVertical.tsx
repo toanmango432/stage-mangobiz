@@ -301,7 +301,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                     {staff.lastServiceTime && (
                       <div className="flex items-center gap-1">
                         <div className="w-1 h-1 rounded-full bg-gray-400" />
-                        <span className="text-[9px] font-mono font-medium text-gray-500">
+                        <span className="text-xs font-mono font-medium text-gray-500">
                           {staff.lastServiceTime}
                         </span>
                       </div>
@@ -313,7 +313,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
                     {staff.nextAppointmentTime && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[9px] font-mono font-bold text-blue-600">
+                        <span className="text-xs font-mono font-bold text-blue-600">
                           {staff.nextAppointmentTime}
                         </span>
                         <div className="w-1 h-1 rounded-full bg-blue-400" />

@@ -152,26 +152,26 @@ export interface CardDimensions {
 export const CARD_DIMENSIONS: Record<'ultra-compact' | 'compact' | 'normal', CardDimensions> = {
   'ultra-compact': {
     width: '100%',
-    height: '200px',
-    avatarSize: '80px',
+    height: '180px',
+    avatarSize: '50px',
     borderRadius: '50%',
     containerPadding: 'p-1',
     cardRadius: '16px',
   },
   compact: {
     width: '100%',
-    height: '280px',
-    avatarSize: '100px',
+    height: '120px',
+    avatarSize: '50px',
     borderRadius: '50%',
-    containerPadding: 'p-2',
+    containerPadding: 'p-1',
     cardRadius: '20px',
   },
   normal: {
     width: '100%',
-    height: '340px',
-    avatarSize: '140px',
+    height: '320px',
+    avatarSize: '130px',
     borderRadius: '50%',
-    containerPadding: 'p-3',
+    containerPadding: 'p-2',
     cardRadius: '24px',
   },
 };
@@ -204,10 +204,10 @@ export const getResponsiveSizes = (
     badgeFont: isUltra ? '12px' : isCompact ? '16px' : '20px',
     notchHeight: isBusy ? (isUltra ? '28px' : '32px') : (isUltra ? '18px' : '24px'),
     nameSize: isUltra ? 'text-sm' : isCompact ? 'text-lg' : 'text-xl',
-    metaSize: isUltra ? 'text-[9px]' : 'text-xs',
+    metaSize: isUltra ? 'text-xs' : 'text-xs',
     iconSize: isUltra ? 9 : 11,
     borderWidth: isUltra ? '2px' : '4px',
-    timelineText: isUltra ? 'text-[9px]' : 'text-[10px]',
+    timelineText: isUltra ? 'text-xs' : 'text-xs',
     timelineGap: isUltra ? 'gap-1' : 'gap-3',
   };
 };

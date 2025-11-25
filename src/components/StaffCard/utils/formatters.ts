@@ -105,3 +105,13 @@ export const truncateText = (text: string, maxLength: number): string => {
 export const formatProgress = (progress: number): string => {
   return `${Math.round(progress * 100)}%`;
 };
+
+/**
+ * Format minutes for time display
+ * @param minutes - Duration in minutes
+ * @returns Formatted minutes string (e.g., "15m", "0m")
+ */
+export const formatMinutes = (minutes: number): string => {
+  if (!minutes || minutes <= 0) return '0m';
+  return `${Math.round(minutes)}m`;
+};

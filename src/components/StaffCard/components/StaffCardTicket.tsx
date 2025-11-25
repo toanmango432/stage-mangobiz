@@ -93,7 +93,7 @@ export const StaffCardTicket = React.memo<StaffCardTicketProps>(
                 </span>
                 <span
                   className={`${
-                    isUltra ? 'text-[9px]' : 'text-[10px]'
+                    isUltra ? 'text-xs' : 'text-xs'
                   } font-medium text-gray-500 truncate`}
                 >
                   {ticket.serviceName}
@@ -102,7 +102,7 @@ export const StaffCardTicket = React.memo<StaffCardTicketProps>(
 
               {/* Ticket Count Badge (Inline) */}
               {totalTickets > 1 && (
-                <span className="flex-shrink-0 bg-white text-gray-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-gray-200 shadow-sm mt-0.5">
+                <span className="flex-shrink-0 bg-white text-gray-500 text-xs font-bold px-1.5 py-0.5 rounded-full border border-gray-200 shadow-sm mt-0.5">
                   +{totalTickets - 1}
                 </span>
               )}

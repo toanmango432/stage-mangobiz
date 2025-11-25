@@ -2,8 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
-import { StaffCard as HorizontalCard } from './StaffCard';
-import { StaffCardVertical as VerticalCard } from './StaffCard/StaffCardVertical';
+import { StaffCardVertical } from './StaffCard/StaffCardVertical';
 import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
@@ -745,8 +744,8 @@ export function StaffSidebar() {
             image: getSalonStaffImage(staffIdNumber, staffMember.specialty),
           };
 
-          // Choose card component based on settings
-          const CardComponent = teamSettings.cardLayout === 'vertical' ? VerticalCard : HorizontalCard;
+          // Always use new modular StaffCardVertical
+          const CardComponent = StaffCardVertical;
 
           // For testing, add dummy ticket info for busy staff
           if (staffMember.status === 'busy') {

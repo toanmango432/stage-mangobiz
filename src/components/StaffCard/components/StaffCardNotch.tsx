@@ -6,7 +6,7 @@
 import React from 'react';
 import { Check, Minus, Clock } from 'lucide-react';
 import { getProgressColor, getProgressGradient } from '../constants/staffCardTokens';
-import { formatProgress } from '../utils/formatters';
+import { formatProgress, formatMinutes } from '../utils/formatters';
 
 interface CurrentTicketInfo {
   timeLeft: number;
@@ -67,9 +67,9 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
                   {/* Time Stack */}
                   <div className="flex flex-col items-end -space-y-0.5">
                     <span className="text-[11px] font-bold text-gray-900 tabular-nums leading-none">
-                      {ticketInfo.timeLeft}m
+                      {formatMinutes(ticketInfo.timeLeft)}
                     </span>
-                    <span className="text-[7px] text-gray-400 font-medium leading-none">
+                    <span className="text-xs text-gray-400 font-medium leading-none">
                       left
                     </span>
                   </div>
@@ -78,8 +78,8 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
                   <div className="w-px h-3.5 bg-gray-300/60" />
 
                   {/* Total Time */}
-                  <span className="text-[10px] text-gray-600 font-semibold tabular-nums">
-                    {ticketInfo.totalTime}m
+                  <span className="text-xs text-gray-600 font-semibold tabular-nums">
+                    {formatMinutes(ticketInfo.totalTime)}
                   </span>
                 </div>
               )}
@@ -111,7 +111,7 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
               <>
                 <Check size={12} className="text-emerald-500" strokeWidth={3} />
                 {!isUltra && (
-                  <span className="text-[9px] font-semibold text-emerald-600">
+                  <span className="text-xs font-semibold text-emerald-600">
                     Ready
                   </span>
                 )}
@@ -120,7 +120,7 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
               <>
                 <Minus size={12} className="text-gray-400" strokeWidth={3} />
                 {!isUltra && (
-                  <span className="text-[9px] font-semibold text-gray-500">
+                  <span className="text-xs font-semibold text-gray-500">
                     Off
                   </span>
                 )}

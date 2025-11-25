@@ -113,7 +113,7 @@ export const StaffCardAvatar = React.memo<StaffCardAvatarProps>(
           <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 z-20">
             <div className="flex items-center gap-1 bg-rose-600 text-white px-2.5 py-0.5 rounded-full shadow-md border-2 border-white">
               <CircleDot size={10} className="animate-pulse" />
-              <span className="text-[9px] font-bold uppercase tracking-wide">
+              <span className="text-xs font-bold uppercase tracking-wide">
                 Busy
               </span>
             </div>
