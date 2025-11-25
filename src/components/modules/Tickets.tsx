@@ -3,67 +3,19 @@ import { ServiceSection } from '../ServiceSection';
 import { WaitListSection } from '../WaitListSection';
 import { ComingAppointments } from '../ComingAppointments';
 import { useTickets } from '../../hooks/useTicketsCompat';
-import { PendingTicketCard } from '../tickets/PendingTicketCard';
-import { PaymentModal } from '../checkout/PaymentModal';
-import { Receipt } from 'lucide-react';
-import type { PaymentMethod, PaymentDetails } from '../../types';
-import type { PendingTicket } from '../../store/slices/uiTicketsSlice';
-import toast from 'react-hot-toast';
 import { haptics } from '../../utils/haptics';
 
 export function Tickets() {
-  const [activeTab, setActiveTab] = useState<'coming' | 'waitlist' | 'inservice' | 'pending'>('coming');
-  const { pendingTickets, waitlist = [], serviceTickets = [], markTicketAsPaid } = useTickets();
-
-  // Payment modal state for Pending tab
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<PendingTicket | null>(null);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  // Tickets module now only shows: Coming, Waiting, In Service
+  // Pending payments are accessed via the dedicated Pending tab in bottom nav
+  const [activeTab, setActiveTab] = useState<'coming' | 'waitlist' | 'inservice'>('coming');
+  const { waitlist = [], serviceTickets = [] } = useTickets();
 
   const tabs = useMemo(() => [
     { id: 'coming' as const, label: 'Coming', count: 0 }, // TODO: Get from appointments
     { id: 'waitlist' as const, label: 'Waiting', count: waitlist.length },
     { id: 'inservice' as const, label: 'In Service', count: serviceTickets.length },
-    { id: 'pending' as const, label: 'Pending', count: pendingTickets.length },
-  ], [waitlist.length, serviceTickets.length, pendingTickets.length]);
-
-  // Payment handlers
-  const handleOpenPaymentModal = (ticketId: string) => {
-    const ticket = pendingTickets.find(t => t.id === ticketId);
-    if (ticket) {
-      setSelectedTicket(ticket);
-      setIsPaymentModalOpen(true);
-    }
-  };
-
-  const handleClosePaymentModal = () => {
-    setIsPaymentModalOpen(false);
-    setSelectedTicket(null);
-  };
-
-  const handlePaymentConfirm = async (
-    paymentMethod: PaymentMethod,
-    paymentDetails: PaymentDetails,
-    tip: number
-  ) => {
-    if (!selectedTicket) return;
-    try {
-      await markTicketAsPaid(selectedTicket.id, paymentMethod, paymentDetails, tip);
-      toast.success(`Payment processed for ticket #${selectedTicket.number}`, {
-        duration: 3000,
-        position: 'top-center',
-      });
-      handleClosePaymentModal();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Payment failed');
-    }
-  };
-
-  const handleCancelTicket = (ticketId: string) => {
-    if (confirm('Cancel this pending payment?')) {
-      toast.success('Ticket cancelled');
-    }
-  };
+  ], [waitlist.length, serviceTickets.length]);
 
   const handleTabChange = (tabId: typeof activeTab) => {
     haptics.selection();
@@ -124,50 +76,7 @@ export function Tickets() {
             hideHeader={true}
           />
         )}
-        {activeTab === 'pending' && (
-          <div className="h-full p-3">
-            {pendingTickets.length > 0 ? (
-              <div className="space-y-3">
-                {pendingTickets.map(ticket => (
-                  <PendingTicketCard
-                    key={ticket.id}
-                    ticket={ticket}
-                    viewMode="normal"
-                    onMarkPaid={handleOpenPaymentModal}
-                    onCancel={handleCancelTicket}
-                    isMenuOpen={openDropdownId === ticket.id}
-                    onOpenMenu={(id, e) => {
-                      e.stopPropagation();
-                      setOpenDropdownId(openDropdownId === id ? null : id);
-                    }}
-                    onCloseMenu={() => setOpenDropdownId(null)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full py-12">
-                <div className="bg-gray-100 p-4 rounded-full mb-4">
-                  <Receipt size={40} className="text-gray-400" />
-                </div>
-                <h3 className="text-base font-semibold text-gray-700 mb-2">No pending payments</h3>
-                <p className="text-xs text-gray-500 text-center max-w-xs">
-                  Completed services will appear here for payment processing.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
-
-      {/* Payment Modal */}
-      {selectedTicket && (
-        <PaymentModal
-          isOpen={isPaymentModalOpen}
-          onClose={handleClosePaymentModal}
-          ticket={selectedTicket}
-          onConfirm={handlePaymentConfirm}
-        />
-      )}
     </div>
   );
 }

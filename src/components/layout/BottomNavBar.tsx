@@ -29,12 +29,13 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile: Book, Team, Tickets (with Pending inside), Checkout, More
+  // Mobile: Book, Team, Tickets, Pending, Checkout, More
   // Desktop: Book, Front Desk, Pending, Checkout, Sales, More
   const modules = isMobile ? [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'team', label: 'Team', icon: Users },
-    { id: 'tickets', label: 'Tickets', icon: Receipt, badge: pendingCount > 0 ? pendingCount : undefined },
+    { id: 'tickets', label: 'Tickets', icon: Receipt },
+    { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount > 0 ? pendingCount : undefined },
     { id: 'checkout', label: 'Checkout', icon: CreditCard },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ] : [
