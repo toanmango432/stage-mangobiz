@@ -24,9 +24,9 @@ export function Tickets() {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white">
       {/* Row 1: Tabs - ensure all 3 are visible */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2 relative z-10">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
         <div className="grid grid-cols-3 gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
