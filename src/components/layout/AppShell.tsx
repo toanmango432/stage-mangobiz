@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
+import { BottomNavBar } from './BottomNavBar';
 import { Book } from '../modules/Book';
 import { FrontDesk } from '../modules/FrontDesk';
 import { Tickets } from '../modules/Tickets';
@@ -19,11 +20,16 @@ import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
 import { syncManager } from '../../services/syncManager';
 import { NetworkStatus } from '../NetworkStatus';
+import { useBreakpoint } from '../../hooks/useMobileModal';
 
 export function AppShell() {
   const [activeModule, setActiveModule] = useState('frontdesk');
   const [isInitialized, setIsInitialized] = useState(false);
   const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
+
+  // Mobile/tablet detection for responsive navigation
+  const { isMobile, isTablet, isDesktop } = useBreakpoint();
+  const showBottomNav = isMobile || isTablet;
 
   // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
   const pendingTickets = useAppSelector(selectPendingTickets);
@@ -160,18 +166,28 @@ export function AppShell() {
       {/* Network Status Indicator */}
       <NetworkStatus />
 
-      {/* Top Header - Always visible */}
+      {/* Top Header - Always visible, but navigation hidden on mobile/tablet */}
       <TopHeaderBar
         onFrontDeskSettingsClick={activeModule === 'frontdesk' ? () => setShowFrontDeskSettings(true) : undefined}
         activeModule={activeModule}
         onModuleChange={setActiveModule}
         pendingCount={pendingCount}
+        hideNavigation={showBottomNav}
       />
 
-      {/* Main Content Area - No scrolling, let sections handle it */}
-      <main className="flex-1 overflow-hidden pt-14">
+      {/* Main Content Area - Add bottom padding when bottom nav is visible */}
+      <main className={`flex-1 overflow-hidden pt-14 ${showBottomNav ? 'pb-[72px]' : ''}`}>
         {renderModule()}
       </main>
+
+      {/* Bottom Navigation - Only on mobile and tablet */}
+      {showBottomNav && (
+        <BottomNavBar
+          activeModule={activeModule}
+          onModuleChange={setActiveModule}
+          pendingCount={pendingCount}
+        />
+      )}
     </div>
   );
 }
