@@ -91,7 +91,7 @@ interface NewAppointmentModalV2Props {
   selectedTime?: Date;
   selectedStaffId?: string;
   selectedStaffName?: string;
-  onSave?: (appointment: any) => void;
+  onSave?: (appointment: LocalAppointment) => void;
   viewMode?: 'slide' | 'fullpage';
 }
 
@@ -810,8 +810,10 @@ export function NewAppointmentModalV2({
   const modalClasses = cn(
     'fixed bg-white/95 backdrop-blur-xl z-[70] flex flex-col border',
     view === 'slide'
-      ? 'right-0 top-0 bottom-0 w-[90vw] max-w-6xl shadow-premium-3xl border-l border-gray-200/50'
-      : 'inset-6 rounded-3xl shadow-premium-3xl border-gray-200/50'
+      // Mobile: full screen, Desktop: slide panel
+      ? 'right-0 top-0 bottom-0 left-0 sm:left-auto w-full sm:w-[90vw] sm:max-w-6xl shadow-premium-3xl border-l-0 sm:border-l border-gray-200/50'
+      // Mobile: full screen, Desktop: centered modal with padding
+      : 'inset-0 sm:inset-6 rounded-none sm:rounded-3xl shadow-premium-3xl border-gray-200/50'
   );
 
   return (

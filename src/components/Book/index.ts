@@ -3,8 +3,10 @@
  * Export all appointment calendar components
  */
 
+export { BookErrorBoundary } from './BookErrorBoundary';
 export { AppointmentCard } from './AppointmentCard';
 export { CalendarHeader } from './CalendarHeader';
+export { CommandPalette } from './CommandPalette';
 export { DaySchedule } from './DaySchedule.v2';
 export { StaffColumn } from './StaffColumn';
 export { StaffSidebar } from './StaffSidebar';
@@ -24,3 +26,6 @@ export { DatePickerModal } from './DatePickerModal';
 export { SmartBookingPanel } from './SmartBookingPanel';
 export { ViewModeDropdown } from './ViewModeDropdown';
 export { StaffFilterDropdown } from './StaffFilterDropdown';
+export { QuickActionsBar } from './QuickActionsBar';
+export { ClientPreviewPopover } from './ClientPreviewPopover';
+export { BookSidebar } from './BookSidebar';

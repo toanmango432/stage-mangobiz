@@ -6,11 +6,15 @@
 import { useEffect, useState } from 'react';
 import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useBookSidebar } from '../hooks/useBookSidebar';
 import { store } from '../store';
 import { selectAllStaff } from '../store/slices/staffSlice';
 import {
   CalendarHeader,
+  CommandPalette,
   StaffSidebar,
+  BookSidebar,
   CustomerSearchModal,
   NewAppointmentModalV2,
   AppointmentDetailsModal,
@@ -37,13 +41,17 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 export function BookPage() {
   const dispatch = useAppDispatch();
-  
+
+  // Sidebar state (persisted to localStorage)
+  const { isOpen: isSidebarOpen, toggle: toggleSidebar } = useBookSidebar(true);
+
   // Modal states
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     staffId: string;
@@ -51,6 +59,18 @@ export function BookPage() {
     staffName?: string;
     staffPhoto?: string;
   } | null>(null);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts({
+    enabled: true,
+    onShowHelp: () => {
+      // TODO: Create keyboard shortcuts help modal
+      console.log('Show keyboard shortcuts help');
+    },
+    onCommandPalette: () => {
+      setIsCommandPaletteOpen(true);
+    },
+  });
   
   // Filter state
   const [filters, setFilters] = useState<AppointmentFilters>({
@@ -595,40 +615,18 @@ export function BookPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Staff Sidebar - Hidden on mobile */}
+      {/* Book Sidebar - Calendar + Staff Filter (Desktop) */}
       <div className="hidden lg:block">
-        <StaffSidebar
+        <BookSidebar
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
           staff={staffWithCounts}
           selectedStaffIds={selectedStaffIds}
           onStaffSelection={handleStaffSelection}
         />
       </div>
-
-      {/* Mobile Staff Drawer */}
-      {isStaffDrawerOpen && (
-        <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setIsStaffDrawerOpen(false)}
-          />
-
-          {/* Drawer */}
-          <div className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white z-50 lg:hidden animate-slide-in-right shadow-premium-2xl">
-            <StaffSidebar
-              staff={staffWithCounts}
-              selectedStaffIds={selectedStaffIds}
-              onStaffSelection={(staffIds) => {
-                handleStaffSelection(staffIds);
-                // Auto-close drawer after selection on mobile
-                if (window.innerWidth < 1024) {
-                  setTimeout(() => setIsStaffDrawerOpen(false), 300);
-                }
-              }}
-            />
-          </div>
-        </>
-      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -649,16 +647,17 @@ export function BookPage() {
             setSelectedTimeSlot(null); // Clear any previous time slot selection
             setIsNewAppointmentOpen(true);
           }}
-          onStaffDrawerOpen={() => setIsStaffDrawerOpen(true)}
           staff={allStaff.map(s => ({ id: s.id, name: s.name }))}
           selectedStaffIds={selectedStaffIds}
           onStaffFilterChange={handleStaffSelection}
+          sidebarOpen={isSidebarOpen}
+          onSidebarToggle={toggleSidebar}
         />
 
         {/* Calendar + Sidebars */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden gap-4 p-4">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden gap-2 p-2 sm:gap-4 sm:p-4">
           {/* Calendar Area */}
-          <div className="flex-1 overflow-hidden w-full lg:w-auto relative">
+          <div className="flex-1 overflow-hidden w-full lg:w-auto relative min-h-0">
           {calendarView === 'day' && (
             <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
               <DaySchedule
@@ -824,6 +823,12 @@ export function BookPage() {
           existingAppointments={filteredAppointments || []}
         />
       </ErrorBoundary>
+
+      {/* Command Palette - Cmd+K Quick Actions */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
 
       {/* Floating Action Button - New Appointment */}
       <button

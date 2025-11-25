@@ -33,7 +33,7 @@ interface GroupBookingModalProps {
   onClose: () => void;
   selectedDate?: Date;
   selectedTime?: Date;
-  onSave?: (booking: any) => void;
+  onSave?: (bookings: LocalAppointment[]) => void;
 }
 
 export function GroupBookingModal({

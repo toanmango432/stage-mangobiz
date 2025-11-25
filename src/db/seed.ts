@@ -706,8 +706,150 @@ export async function seedDatabase() {
   await db.services.bulkAdd(services);
   console.log(`✅ Seeded ${services.length} services`);
 
+  // Seed Appointments - Realistic calendar data
+  const appointments: any[] = [];
+  const statuses: ('confirmed' | 'pending' | 'checked-in' | 'completed' | 'cancelled' | 'no-show')[] = [
+    'confirmed', 'confirmed', 'confirmed', // More confirmed appointments
+    'pending', 'checked-in', 'completed', 'cancelled', 'no-show'
+  ];
+
+  // Helper to create time slots
+  const createAppointment = (
+    dayOffset: number,
+    hour: number,
+    minute: number,
+    clientIndex: number,
+    staffIndex: number,
+    serviceIndices: number[],
+    status: typeof statuses[number]
+  ) => {
+    const startTime = new Date();
+    startTime.setDate(startTime.getDate() + dayOffset);
+    startTime.setHours(hour, minute, 0, 0);
+
+    const client = clients[clientIndex % clients.length];
+    const staffMember = staff[staffIndex % staff.length];
+    const appointmentServices = serviceIndices.map(idx => {
+      const service = services[idx % services.length];
+      return {
+        serviceId: service.id,
+        serviceName: service.name,
+        staffId: staffMember.id,
+        staffName: staffMember.name,
+        duration: service.duration,
+        price: service.price,
+      };
+    });
+
+    const totalDuration = appointmentServices.reduce((sum, s) => sum + s.duration, 0);
+    const endTime = new Date(startTime.getTime() + totalDuration * 60000);
+
+    return {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      clientId: client.id,
+      clientName: client.name,
+      clientPhone: client.phone,
+      staffId: staffMember.id,
+      staffName: staffMember.name,
+      services: appointmentServices,
+      status,
+      scheduledStartTime: startTime,
+      scheduledEndTime: endTime,
+      actualStartTime: status === 'checked-in' || status === 'completed' ? startTime : undefined,
+      actualEndTime: status === 'completed' ? endTime : undefined,
+      checkInTime: status === 'checked-in' || status === 'completed' ? new Date(startTime.getTime() - 5 * 60000) : undefined,
+      notes: status === 'cancelled' ? 'Client requested cancellation' :
+             status === 'no-show' ? 'Did not show up' :
+             Math.random() > 0.7 ? 'First time client' : undefined,
+      source: 'walk-in' as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: 'system',
+      lastModifiedBy: 'system',
+      syncStatus: 'synced' as const,
+    };
+  };
+
+  // TODAY - Busy day with various statuses
+  appointments.push(
+    // Morning rush (9 AM - 12 PM)
+    createAppointment(0, 9, 0, 0, 0, [0, 1], 'completed'),
+    createAppointment(0, 9, 30, 1, 1, [2], 'completed'),
+    createAppointment(0, 10, 0, 2, 2, [3], 'checked-in'),
+    createAppointment(0, 10, 30, 0, 3, [4, 5], 'confirmed'),
+    createAppointment(0, 11, 0, 1, 4, [6], 'confirmed'),
+    createAppointment(0, 11, 30, 2, 5, [7, 8], 'confirmed'),
+
+    // Afternoon (12 PM - 5 PM)
+    createAppointment(0, 12, 0, 0, 6, [9], 'confirmed'),
+    createAppointment(0, 12, 30, 1, 7, [10, 11], 'pending'),
+    createAppointment(0, 13, 0, 2, 8, [12], 'confirmed'),
+    createAppointment(0, 13, 30, 0, 9, [13], 'no-show'),
+    createAppointment(0, 14, 0, 1, 10, [14, 15], 'confirmed'),
+    createAppointment(0, 14, 30, 2, 11, [16], 'cancelled'),
+    createAppointment(0, 15, 0, 0, 12, [17], 'confirmed'),
+    createAppointment(0, 15, 30, 1, 13, [18, 19], 'pending'),
+    createAppointment(0, 16, 0, 2, 14, [20], 'confirmed'),
+    createAppointment(0, 16, 30, 0, 15, [21], 'confirmed'),
+
+    // Evening (5 PM - 8 PM)
+    createAppointment(0, 17, 0, 1, 16, [22, 23], 'confirmed'),
+    createAppointment(0, 17, 30, 2, 17, [24], 'confirmed'),
+    createAppointment(0, 18, 0, 0, 18, [25], 'confirmed'),
+    createAppointment(0, 18, 30, 1, 19, [26, 27], 'pending'),
+  );
+
+  // TOMORROW - Full schedule
+  appointments.push(
+    createAppointment(1, 9, 0, 0, 0, [0, 1], 'confirmed'),
+    createAppointment(1, 9, 30, 1, 1, [2], 'confirmed'),
+    createAppointment(1, 10, 0, 2, 2, [3, 4], 'confirmed'),
+    createAppointment(1, 10, 30, 0, 3, [5], 'pending'),
+    createAppointment(1, 11, 0, 1, 4, [6, 7], 'confirmed'),
+    createAppointment(1, 11, 30, 2, 5, [8], 'confirmed'),
+    createAppointment(1, 12, 0, 0, 6, [9, 10], 'confirmed'),
+    createAppointment(1, 13, 0, 1, 7, [11], 'confirmed'),
+    createAppointment(1, 14, 0, 2, 8, [12, 13], 'confirmed'),
+    createAppointment(1, 15, 0, 0, 9, [14], 'confirmed'),
+    createAppointment(1, 16, 0, 1, 10, [15, 16], 'pending'),
+    createAppointment(1, 17, 0, 2, 11, [17], 'confirmed'),
+  );
+
+  // DAY AFTER TOMORROW - Moderate schedule
+  appointments.push(
+    createAppointment(2, 10, 0, 0, 0, [0], 'confirmed'),
+    createAppointment(2, 11, 0, 1, 1, [1, 2], 'confirmed'),
+    createAppointment(2, 13, 0, 2, 2, [3], 'pending'),
+    createAppointment(2, 14, 0, 0, 3, [4, 5], 'confirmed'),
+    createAppointment(2, 15, 0, 1, 4, [6], 'confirmed'),
+    createAppointment(2, 16, 0, 2, 5, [7, 8], 'confirmed'),
+  );
+
+  // NEXT WEEK - Sparse schedule
+  appointments.push(
+    createAppointment(7, 10, 0, 0, 0, [0, 1], 'confirmed'),
+    createAppointment(7, 14, 0, 1, 1, [2], 'pending'),
+    createAppointment(7, 16, 0, 2, 2, [3, 4], 'confirmed'),
+    createAppointment(8, 11, 0, 0, 3, [5], 'confirmed'),
+    createAppointment(8, 15, 0, 1, 4, [6, 7], 'confirmed'),
+  );
+
+  // Add some past appointments (yesterday) for history
+  appointments.push(
+    createAppointment(-1, 9, 0, 0, 0, [0], 'completed'),
+    createAppointment(-1, 10, 0, 1, 1, [1, 2], 'completed'),
+    createAppointment(-1, 11, 0, 2, 2, [3], 'completed'),
+    createAppointment(-1, 14, 0, 0, 3, [4], 'completed'),
+    createAppointment(-1, 15, 0, 1, 4, [5, 6], 'completed'),
+    createAppointment(-1, 16, 0, 2, 5, [7], 'no-show'),
+  );
+
+  await db.appointments.bulkAdd(appointments);
+  console.log(`✅ Seeded ${appointments.length} appointments`);
+
   console.log('🎉 Database seeding complete!');
-  return { staff, clients, services };
+  return { staff, clients, services, appointments };
 }
 
 // Get salon ID for testing

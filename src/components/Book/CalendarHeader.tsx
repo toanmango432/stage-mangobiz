@@ -8,7 +8,7 @@ import { memo, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { CalendarView, TimeWindowMode, CALENDAR_VIEWS, TIME_WINDOW_MODES } from '../../constants/appointment';
 import { formatDateDisplay } from '../../utils/timeUtils';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Search, Plus, Users, Settings, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, Search, Plus, Settings, RefreshCw, PanelLeftOpen } from 'lucide-react';
 import { FilterPanel, AppointmentFilters } from './FilterPanel';
 import { DatePickerModal } from './DatePickerModal';
 import { ViewModeDropdown } from './ViewModeDropdown';
@@ -31,12 +31,14 @@ interface CalendarHeaderProps {
   onTodayClick: () => void;
   onFilterChange?: (filters: AppointmentFilters) => void;
   onNewAppointment?: () => void;
-  onStaffDrawerOpen?: () => void;
   onSettingsClick?: () => void;
   onRefreshClick?: () => void;
   staff?: Staff[];
   selectedStaffIds?: string[];
   onStaffFilterChange?: (staffIds: string[]) => void;
+  // Sidebar state - when open, hide date/staff from header (desktop only)
+  sidebarOpen?: boolean;
+  onSidebarToggle?: () => void;
   className?: string;
 }
 
@@ -51,14 +53,19 @@ export const CalendarHeader = memo(function CalendarHeader({
   onTodayClick,
   onFilterChange,
   onNewAppointment,
-  onStaffDrawerOpen,
   onSettingsClick,
   onRefreshClick,
   staff = [],
   selectedStaffIds = [],
   onStaffFilterChange,
+  sidebarOpen = false,
+  onSidebarToggle,
   className,
 }: CalendarHeaderProps) {
+  // On desktop (lg+): hide date/staff controls when sidebar is open (they're in sidebar)
+  // On mobile/tablet (<lg): always show date controls in header (sidebar is drawer, not inline)
+  const showDateControlsDesktop = !sidebarOpen;
+  const showStaffFilterDesktop = !sidebarOpen;
   const [dateTransition, setDateTransition] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -87,82 +94,100 @@ export const CalendarHeader = memo(function CalendarHeader({
       'sticky top-0 z-30',
       // Subtle shadow
       'shadow-sm',
-      // Compact padding
-      'px-4 py-3',
+      // Responsive padding
+      'px-2 sm:px-4 py-2 sm:py-3',
       className
     )}>
       <div className="max-w-[1600px] mx-auto">
         {/* Single Row: All Controls */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: Date Navigation */}
-          <div className="flex items-center gap-2">
-            {/* Staff Button - Mobile Only */}
-            {onStaffDrawerOpen && (
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          {/* Left: Sidebar Toggle + Date Navigation */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Sidebar Toggle - Only when sidebar is closed */}
+            {!sidebarOpen && onSidebarToggle && (
               <button
-                onClick={onStaffDrawerOpen}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                aria-label="Select staff"
+                onClick={onSidebarToggle}
+                className="hidden lg:flex p-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200/60"
+                aria-label="Open sidebar"
+                title="Open sidebar"
               >
-                <Users className="w-5 h-5 text-gray-400" />
+                <PanelLeftOpen className="w-5 h-5 text-gray-400" />
               </button>
             )}
 
-            {/* Today Button */}
-            <button
-              onClick={onTodayClick}
-              className="hidden sm:inline-flex px-3 py-2 rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-sm font-normal text-gray-700"
-            >
-              Today
-            </button>
-
-            {/* Previous Button */}
-            <button
-              onClick={handlePrevDay}
-              className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-5 h-5 text-gray-400" />
-            </button>
-
-            {/* Current Date - Click to open date picker */}
+            {/* Date Controls - Always on mobile, conditional on desktop */}
             <div className={cn(
-              'relative',
-              'transition-all duration-300',
-              dateTransition && 'opacity-50 scale-95'
+              'flex items-center gap-1 sm:gap-2',
+              // On desktop: hide when sidebar is open
+              !showDateControlsDesktop && 'lg:hidden'
             )}>
+              {/* Today Button */}
               <button
-                onClick={() => setIsDatePickerOpen(true)}
-                className="px-3 py-2 rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-sm font-normal text-gray-700 min-w-[140px]"
-                title="Click to open date picker"
+                onClick={onTodayClick}
+                className="hidden sm:inline-flex px-3 py-2 rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-sm font-normal text-gray-700"
               >
-                {formatDateDisplay(selectedDate)}
+                Today
               </button>
 
-              {/* Date Picker Dropdown */}
-              <DatePickerModal
-                isOpen={isDatePickerOpen}
-                selectedDate={selectedDate}
-                onClose={() => setIsDatePickerOpen(false)}
-                onDateSelect={(date) => {
-                  onDateChange(date);
-                  setIsDatePickerOpen(false);
-                }}
-              />
+              {/* Previous Button */}
+              <button
+                onClick={handlePrevDay}
+                className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                aria-label="Previous day"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-400" />
+              </button>
+
+              {/* Current Date - Click to open date picker */}
+              <div className={cn(
+                'relative',
+                'transition-all duration-300',
+                dateTransition && 'opacity-50 scale-95'
+              )}>
+                <button
+                  onClick={() => setIsDatePickerOpen(true)}
+                  className="px-2 sm:px-3 py-2 min-h-[40px] rounded-lg border border-gray-200/60 bg-white hover:border-gray-300 hover:bg-gray-50/50 transition-all text-xs sm:text-sm font-normal text-gray-700"
+                  title="Click to open date picker"
+                >
+                  {formatDateDisplay(selectedDate)}
+                </button>
+
+                {/* Date Picker Dropdown */}
+                <DatePickerModal
+                  isOpen={isDatePickerOpen}
+                  selectedDate={selectedDate}
+                  onClose={() => setIsDatePickerOpen(false)}
+                  onDateSelect={(date) => {
+                    onDateChange(date);
+                    setIsDatePickerOpen(false);
+                  }}
+                />
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={handleNextDay}
+                className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                aria-label="Next day"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </button>
             </div>
 
-            {/* Next Button */}
-            <button
-              onClick={handleNextDay}
-              className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+            {/* Minimal date display when sidebar is open (desktop only) */}
+            {!showDateControlsDesktop && (
+              <span className="hidden lg:inline text-sm font-medium text-gray-700">
+                {formatDateDisplay(selectedDate)}
+              </span>
+            )}
           </div>
 
-          {/* Center: Staff Filter (desktop) */}
+          {/* Staff Filter - Always visible on mobile, conditional on desktop */}
           {onStaffFilterChange && staff && staff.length > 0 && (
-            <div className="hidden md:block">
+            <div className={cn(
+              // On desktop: hide when sidebar is open (staff filter is in sidebar)
+              !showStaffFilterDesktop && 'lg:hidden'
+            )}>
               <StaffFilterDropdown
                 staff={staff}
                 selectedStaffIds={selectedStaffIds}
@@ -172,8 +197,8 @@ export const CalendarHeader = memo(function CalendarHeader({
           )}
 
           {/* Right: Actions & Settings */}
-          <div className="flex items-center gap-4">
-            {/* Icon Buttons Group */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Icon Buttons Group - Desktop only */}
             <div className="hidden lg:flex items-center gap-1">
               {/* Settings Button */}
               {onSettingsClick && (
@@ -220,7 +245,7 @@ export const CalendarHeader = memo(function CalendarHeader({
               <button
                 data-testid="new-appointment-button"
                 onClick={onNewAppointment}
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm font-normal"
+                className="px-3 sm:px-4 py-2 min-h-[40px] rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm font-normal"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add</span>

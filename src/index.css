@@ -261,6 +261,19 @@ svg.crisp-icon {
   animation: slideInRight 0.3s ease-out;
 }
 
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
 .animate-slide-in-up {
   animation: slideInUp 0.3s ease-out;
 }
@@ -538,4 +551,169 @@ svg.crisp-icon {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+}
+
+/* ============================================================================
+   PHASE 1: STATUS BADGE ANIMATIONS
+   ============================================================================ */
+
+/* Pulse animation for confirmed status */
+@keyframes pulse-confirmed {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+/* Gentle pulse for pending status */
+@keyframes pulse-pending {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Active glow for checked-in status */
+@keyframes glow-active {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+}
+
+/* Status Badge Base */
+.status-badge {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Confirmed - Green with subtle pulse */
+.status-confirmed {
+  animation: pulse-confirmed 2.5s ease-in-out infinite;
+}
+
+/* Pending - Yellow with gentle pulse */
+.status-pending {
+  animation: pulse-pending 3s ease-in-out infinite;
+}
+
+/* Checked-in - Blue with active glow */
+.status-checked-in {
+  animation: glow-active 2s ease-in-out infinite;
+}
+
+/* Completed - No animation, static gray */
+.status-completed {
+  /* No animation for completed */
+}
+
+/* Cancelled - No animation, static red */
+.status-cancelled {
+  /* No animation for cancelled */
+}
+
+/* No-show - No animation, static red with alert */
+.status-no-show {
+  /* No animation for no-show */
+}
+
+/* Respect user preferences for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .status-confirmed,
+  .status-pending,
+  .status-checked-in {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   PHASE 1: SMART TIME SLOT HIGHLIGHTING
+   ============================================================================ */
+
+/* Highly Available - Green Glow */
+.timeslot-available-high {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+  border-left: 3px solid rgba(34, 197, 94, 0.4);
+  transition: all 0.3s ease-in-out;
+}
+
+.timeslot-available-high:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.06) 100%);
+  box-shadow: 0 2px 12px rgba(34, 197, 94, 0.15);
+  border-left-color: rgba(34, 197, 94, 0.6);
+}
+
+/* Moderately Available - Yellow/Amber Glow */
+.timeslot-available-medium {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(234, 179, 8, 0.03) 100%);
+  border-left: 3px solid rgba(234, 179, 8, 0.4);
+  transition: all 0.3s ease-in-out;
+}
+
+.timeslot-available-medium:hover {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(234, 179, 8, 0.06) 100%);
+  box-shadow: 0 2px 12px rgba(234, 179, 8, 0.15);
+  border-left-color: rgba(234, 179, 8, 0.6);
+}
+
+/* Low Availability - Red Tint */
+.timeslot-available-low {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%);
+  border-left: 3px solid rgba(239, 68, 68, 0.4);
+  transition: all 0.3s ease-in-out;
+}
+
+.timeslot-available-low:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.06) 100%);
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.15);
+  border-left-color: rgba(239, 68, 68, 0.6);
+}
+
+/* Outside Business Hours - Gray/Disabled */
+.timeslot-outside-hours {
+  background: rgba(148, 163, 184, 0.03);
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-left: 3px solid rgba(148, 163, 184, 0.2);
+}
+
+.timeslot-outside-hours:hover {
+  background: rgba(148, 163, 184, 0.05);
+  box-shadow: none;
+}
+
+/* Availability Indicator Dot */
+.availability-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.availability-dot-green {
+  background: rgb(34, 197, 94);
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.5);
+}
+
+.availability-dot-yellow {
+  background: rgb(234, 179, 8);
+  box-shadow: 0 0 4px rgba(234, 179, 8, 0.5);
+}
+
+.availability-dot-red {
+  background: rgb(239, 68, 68);
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+}
+
+.availability-dot-gray {
+  background: rgb(148, 163, 184);
 }

@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from 'react';
-import { TrendingUp, DollarSign, Users, Clock } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Clock, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface TimeSlot {
@@ -116,7 +116,7 @@ export function HeatmapCalendarView({
   /**
    * Get day summary
    */
-  const getDaySummary = (day: DayData): { icon: any; label: string; value: string } => {
+  const getDaySummary = (day: DayData): { icon: LucideIcon; label: string; value: string } => {
     switch (colorMode) {
       case 'utilization':
         return {

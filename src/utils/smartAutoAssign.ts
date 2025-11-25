@@ -119,9 +119,15 @@ export function calculateAssignmentScore(
   reasons.push('Skill level: qualified for service');
 
   // 6. Availability bonus (extra points)
-  if (isStaffAvailable(staffId, startTime, endTime, allAppointments)) {
+  // Only award if staff is truly available (no conflicts)
+  const available = isStaffAvailable(staffId, startTime, endTime, allAppointments);
+  if (available) {
     score += 10; // Available for this time slot
     reasons.push('Availability: free at this time');
+  } else {
+    // Penalize unavailable staff to ensure they rank lower
+    score -= 20;
+    reasons.push('WARNING: Time slot conflict detected');
   }
 
   return { staffId, score, reasons };
@@ -180,7 +186,16 @@ export function findBestStaffForAssignment(
   }
 
   // Return top-scoring staff
-  return scores[0];
+  const topStaff = scores[0];
+
+  // Final safety check: Ensure selected staff is actually available
+  // This prevents edge cases where scoring might select conflicting staff
+  if (!availableStaffIds.includes(topStaff.staffId)) {
+    console.warn(`Warning: Top-scoring staff ${topStaff.staffId} is not in available list. This should not happen.`);
+    return null;
+  }
+
+  return topStaff;
 }
 
 /**
@@ -237,11 +252,16 @@ export function autoAssignStaff(
   }
 
   // Specific staff requested - check availability
-  const requestedId = typeof requestedStaffId === 'number' 
-    ? requestedStaffId.toString() 
+  const requestedId = typeof requestedStaffId === 'number'
+    ? requestedStaffId.toString()
     : requestedStaffId;
 
-  if (isStaffAvailable(requestedId, startTime, endTime, allAppointments)) {
+  // Verify requested staff exists and is active
+  const requestedStaff = allStaff.find(s => s.id === requestedId);
+  if (!requestedStaff || requestedStaff.isActive === false) {
+    console.warn(`Requested staff ${requestedId} not found or inactive`);
+    // Fall through to suggest alternative
+  } else if (isStaffAvailable(requestedId, startTime, endTime, allAppointments)) {
     return {
       staffId: requestedId,
       reason: 'Requested staff is available',
@@ -249,7 +269,7 @@ export function autoAssignStaff(
     };
   }
 
-  // Requested staff not available - suggest alternative
+  // Requested staff not available or invalid - suggest alternative
   const alternative = findBestStaffForAssignment(
     appointment as LocalAppointment,
     startTime,
@@ -261,7 +281,7 @@ export function autoAssignStaff(
   if (alternative) {
     return {
       staffId: alternative.staffId,
-      reason: `Requested staff unavailable. ${alternative.reasons.join(', ')}`,
+      reason: `Requested staff ${requestedStaff ? 'unavailable' : 'not found'}. ${alternative.reasons.join(', ')}`,
       isAutomatic: true,
     };
   }

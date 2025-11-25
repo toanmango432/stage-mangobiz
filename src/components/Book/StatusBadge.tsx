@@ -1,8 +1,15 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { Check, Clock, XCircle, CheckCircle2, Users } from 'lucide-react';
+import { Check, Clock, XCircle, CheckCircle2, Users, User, AlertCircle, X } from 'lucide-react';
 
-type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'walkin';
+type AppointmentStatus =
+  | 'confirmed'
+  | 'pending'
+  | 'cancelled'
+  | 'completed'
+  | 'checked-in'
+  | 'no-show'
+  | 'walkin';
 
 interface StatusBadgeProps {
   status: AppointmentStatus;
@@ -12,38 +19,55 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-export function StatusBadge({ 
-  status, 
+export function StatusBadge({
+  status,
   size = 'md',
   showIcon = true,
   showDot = false,
-  className 
+  className
 }: StatusBadgeProps) {
   const statusConfig = {
     confirmed: {
       label: 'Confirmed',
       icon: CheckCircle2,
-      classes: 'bg-green-100 text-green-700 border-green-200',
+      classes: 'status-confirmed bg-green-100 text-green-800 border-green-300',
+      description: 'Appointment confirmed',
     },
     pending: {
       label: 'Pending',
       icon: Clock,
-      classes: 'bg-amber-100 text-amber-700 border-amber-200',
+      classes: 'status-pending bg-yellow-100 text-yellow-800 border-yellow-300',
+      description: 'Awaiting confirmation',
     },
-    cancelled: {
-      label: 'Cancelled',
-      icon: XCircle,
-      classes: 'bg-red-100 text-red-700 border-red-200',
+    'checked-in': {
+      label: 'Checked In',
+      icon: User,
+      classes: 'status-checked-in bg-blue-100 text-blue-800 border-blue-300',
+      description: 'Client has arrived',
     },
     completed: {
       label: 'Completed',
       icon: Check,
-      classes: 'bg-blue-100 text-blue-700 border-blue-200',
+      classes: 'status-completed bg-gray-100 text-gray-600 border-gray-300',
+      description: 'Service completed',
+    },
+    cancelled: {
+      label: 'Cancelled',
+      icon: X,
+      classes: 'status-cancelled bg-red-100 text-red-700 border-red-300',
+      description: 'Appointment cancelled',
+    },
+    'no-show': {
+      label: 'No Show',
+      icon: AlertCircle,
+      classes: 'status-no-show bg-red-100 text-red-800 border-red-400',
+      description: 'Client did not show up',
     },
     walkin: {
       label: 'Walk-in',
       icon: Users,
       classes: 'bg-blue-100 text-blue-700 border-blue-200',
+      description: 'Walk-in client',
     },
   };
   
@@ -61,14 +85,18 @@ export function StatusBadge({
   
   const config = statusConfig[status];
   const Icon = config.icon;
-  
+
   return (
-    <span className={cn(
-      'inline-flex items-center font-medium rounded-md border transition-colors',
-      config.classes,
-      sizeClasses[size],
-      className
-    )}>
+    <span
+      className={cn(
+        'inline-flex items-center font-medium rounded-full border',
+        'status-badge transition-all duration-300',
+        config.classes,
+        sizeClasses[size],
+        className
+      )}
+      title={config.description}
+    >
       {showDot && (
         <div className="w-1.5 h-1.5 rounded-full bg-current" />
       )}
@@ -85,10 +113,15 @@ export function StatusIndicator({ status }: { status: AppointmentStatus }) {
   const borderColors = {
     confirmed: 'border-green-400',
     pending: 'border-amber-400',
+    'checked-in': 'border-blue-500',
+    completed: 'border-gray-400',
     cancelled: 'border-red-400',
-    completed: 'border-blue-400',
+    'no-show': 'border-red-500',
     walkin: 'border-blue-500',
   };
-  
+
   return borderColors[status] || borderColors.pending;
 }
+
+// Export type for use in other components
+export type { AppointmentStatus };

@@ -11,8 +11,8 @@ The Book module provides a complete solution for managing salon appointments, in
 ### Core Components
 
 #### Appointment Modals
-- **NewAppointmentModal** - Legacy appointment creation modal
-- **NewAppointmentModalV2** - Enhanced appointment modal with improved UX
+- **NewAppointmentModal** - ⚠️ **DEPRECATED** - Legacy appointment creation modal (use V2 instead)
+- **NewAppointmentModalV2** - ✅ **Recommended** - Enhanced appointment modal with improved UX
   - Client-first workflow
   - Full-height dropdown for client selection
   - Conditional rendering for step-by-step guidance
@@ -436,6 +436,169 @@ staffDB.getAvailable(salonId)
 | Summary | Bottom panel, on-demand | Always visible sidebar |
 | Best For | Individual appointments | Group events |
 
+## Migration Guide
+
+### Migrating from NewAppointmentModal to NewAppointmentModalV2
+
+The legacy `NewAppointmentModal` component is deprecated and will be removed in a future version. Please migrate to `NewAppointmentModalV2`.
+
+**Why Migrate?**
+- Better client-first workflow with recent client suggestions
+- Improved UX with conditional rendering
+- Full-height dropdown for better client selection
+- Inline client creation without switching panels
+- Better TypeScript support with proper typing
+- Actively maintained with new features
+
+**Migration Steps:**
+
+1. **Update Import Statement**
+```tsx
+// Before (deprecated)
+import { NewAppointmentModal } from './components/Book';
+
+// After (recommended)
+import { NewAppointmentModalV2 } from './components/Book';
+```
+
+2. **Update Component Usage**
+```tsx
+// The props are 100% compatible - just rename the component!
+<NewAppointmentModalV2
+  isOpen={isOpen}
+  onClose={onClose}
+  selectedDate={selectedDate}
+  selectedTime={selectedTime}
+  selectedStaffId={selectedStaffId}
+  onSave={handleSave}
+/>
+```
+
+3. **No Code Changes Required**
+- All props are compatible between V1 and V2
+- The `onSave` callback signature is identical
+- Event handlers work the same way
+
+**Breaking Changes:** None! The V2 component is a drop-in replacement.
+
+**Timeline:**
+- **Now**: V1 is deprecated with console warnings in development
+- **Next Major Version**: V1 will be removed entirely
+
+## Performance Best Practices
+
+### Component Optimization
+
+The Book module components are optimized for performance using React's built-in optimization tools:
+
+**1. Memoization**
+- Critical components like `DaySchedule` are wrapped with `React.memo` to prevent unnecessary re-renders
+- Use `useMemo` for expensive computations (date grouping, filtering, sorting)
+- Example from DaySchedule.v2:
+```tsx
+const timeLabels = useMemo(() => generateTimeLabels(), []);
+const appointmentsByStaff = useMemo(() => groupAppointmentsByStaff(appointments), [appointments]);
+```
+
+**2. useCallback for Event Handlers**
+When using Book components, wrap event handlers with `useCallback` to prevent child re-renders:
+
+```tsx
+import { useCallback } from 'react';
+
+function MyCalendar() {
+  const handleAppointmentClick = useCallback((appointment: LocalAppointment) => {
+    console.log('Clicked:', appointment.id);
+  }, []); // Empty deps if handler doesn't use external state
+
+  const handleTimeSlotClick = useCallback((staffId: string, time: Date) => {
+    openBookingModal(staffId, time);
+  }, [openBookingModal]); // Include dependencies
+
+  return (
+    <DaySchedule
+      appointments={appointments}
+      staff={staff}
+      onAppointmentClick={handleAppointmentClick}
+      onTimeSlotClick={handleTimeSlotClick}
+    />
+  );
+}
+```
+
+**3. Key Props**
+All list renders use proper `key` props for optimal reconciliation:
+- Appointment lists use `appointment.id`
+- Date groups use `dateString`
+- Staff columns use `staff.id`
+
+**4. Avoid Inline Functions**
+❌ **Bad** (creates new function on every render):
+```tsx
+<DaySchedule onAppointmentClick={(apt) => handleClick(apt)} />
+```
+
+✅ **Good** (stable reference):
+```tsx
+const handleClick = useCallback((apt) => {
+  // handle click
+}, []);
+<DaySchedule onAppointmentClick={handleClick} />
+```
+
+**5. Lazy Loading**
+- Use `selectedDate` and `selectedStaffIds` filters to limit rendered data
+- Don't load all appointments at once - fetch by date range
+- Example:
+```tsx
+const visibleAppointments = useMemo(() =>
+  appointments.filter(apt =>
+    isSameDay(apt.scheduledStartTime, selectedDate)
+  ),
+  [appointments, selectedDate]
+);
+```
+
+## Error Handling
+
+### BookErrorBoundary
+
+The Book module includes an error boundary component to gracefully handle runtime errors and prevent the entire application from crashing.
+
+**Usage:**
+
+```tsx
+import { BookErrorBoundary } from './components/Book';
+
+function App() {
+  return (
+    <BookErrorBoundary>
+      <DaySchedule {...props} />
+      {/* Other calendar components */}
+    </BookErrorBoundary>
+  );
+}
+```
+
+**Features:**
+- Catches errors in any child component within the Book module
+- Displays user-friendly error message with recovery options
+- Shows error details in development mode for debugging
+- Provides "Try Again" and "Reload Page" recovery options
+- Logs errors to console (can be extended to send to error tracking service)
+
+**Custom Fallback UI:**
+
+```tsx
+<BookErrorBoundary
+  fallback={
+    <div>Custom error message</div>
+  }
+>
+  {/* Components */}
+</BookErrorBoundary>
+```
+
 ## Contributing
 
 When adding new features to the Book module:
@@ -444,7 +607,7 @@ When adding new features to the Book module:
 2. Maintain z-index hierarchy (10, 30, 40)
 3. Use conditional rendering over overlays
 4. Add TypeScript types for all props
-5. Include error handling
+5. Include error handling and wrap critical components in error boundaries
 6. Update this documentation
 
 ## Related Modules

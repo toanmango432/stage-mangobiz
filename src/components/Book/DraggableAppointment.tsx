@@ -333,9 +333,15 @@ export function BatchSelection({
 /**
  * Undo/Redo Manager Hook
  */
+type ActionData =
+  | { appointmentId: string; from: { staffId: string; time: Date }; to: { staffId: string; time: Date } } // move
+  | { appointments: Array<{ id: string; from: { staffId: string; time: Date }; to: { staffId: string; time: Date } }> } // batch-move
+  | { appointment: LocalAppointment } // create
+  | { appointmentId: string; appointment: LocalAppointment }; // delete
+
 interface Action {
   type: 'move' | 'batch-move' | 'create' | 'delete';
-  data: any;
+  data: ActionData;
   timestamp: number;
 }
 
