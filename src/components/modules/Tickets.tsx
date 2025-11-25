@@ -57,7 +57,6 @@ export function Tickets() {
             isMinimized={false}
             onToggleMinimize={() => {}}
             isMobile={true}
-            hideHeader={false}
           />
         )}
         {activeTab === 'waitlist' && (
@@ -65,7 +64,6 @@ export function Tickets() {
             isMinimized={false}
             onToggleMinimize={() => {}}
             isMobile={true}
-            hideHeader={false}
           />
         )}
         {activeTab === 'inservice' && (
@@ -73,7 +71,6 @@ export function Tickets() {
             isMinimized={false}
             onToggleMinimize={() => {}}
             isMobile={true}
-            hideHeader={false}
           />
         )}
       </div>
