@@ -22,6 +22,11 @@ export function Tickets() {
     const saved = localStorage.getItem('mobileTicketsCardViewMode');
     return saved === 'normal' || saved === 'compact' ? saved : 'normal';
   });
+  // minimizedLineView controls compact mode for LIST view (cardViewMode is for GRID view)
+  const [minimizedLineView, setMinimizedLineView] = useState<boolean>(() => {
+    const saved = localStorage.getItem('mobileTicketsMinimizedLineView');
+    return saved === 'true';
+  });
 
   // Persist view settings
   const handleViewModeChange = (mode: 'grid' | 'list') => {
@@ -34,6 +39,12 @@ export function Tickets() {
     haptics.selection();
     setCardViewMode(mode);
     localStorage.setItem('mobileTicketsCardViewMode', mode);
+  };
+
+  const handleMinimizedLineViewChange = (minimized: boolean) => {
+    haptics.selection();
+    setMinimizedLineView(minimized);
+    localStorage.setItem('mobileTicketsMinimizedLineView', minimized.toString());
   };
 
   const tabs = useMemo(() => [
@@ -110,16 +121,24 @@ export function Tickets() {
               size="sm"
             />
 
-            {/* Normal/Compact Toggle */}
+            {/* Normal/Compact Toggle - different behavior for grid vs list */}
             <button
-              onClick={() => handleCardViewModeChange(cardViewMode === 'normal' ? 'compact' : 'normal')}
+              onClick={() => {
+                if (viewMode === 'grid') {
+                  handleCardViewModeChange(cardViewMode === 'normal' ? 'compact' : 'normal');
+                } else {
+                  handleMinimizedLineViewChange(!minimizedLineView);
+                }
+              }}
               className={`p-2 rounded-lg transition-all min-w-[40px] min-h-[40px] flex items-center justify-center ${
-                cardViewMode === 'compact'
+                (viewMode === 'grid' ? cardViewMode === 'compact' : minimizedLineView)
                   ? 'bg-orange-100 text-orange-600'
                   : 'bg-gray-200 text-gray-600'
               }`}
             >
-              {cardViewMode === 'compact' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              {(viewMode === 'grid' ? cardViewMode === 'compact' : minimizedLineView)
+                ? <Minimize2 size={18} />
+                : <Maximize2 size={18} />}
             </button>
           </div>
         </div>
@@ -145,6 +164,8 @@ export function Tickets() {
             setViewMode={setViewMode}
             cardViewMode={cardViewMode}
             setCardViewMode={setCardViewMode}
+            minimizedLineView={minimizedLineView}
+            setMinimizedLineView={setMinimizedLineView}
           />
         ) : activeTab === 'inservice' ? (
           <ServiceSection
@@ -157,6 +178,8 @@ export function Tickets() {
             setViewMode={setViewMode}
             cardViewMode={cardViewMode}
             setCardViewMode={setCardViewMode}
+            minimizedLineView={minimizedLineView}
+            setMinimizedLineView={setMinimizedLineView}
           />
         ) : null}
       </div>
