@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useDeviceDetection } from '../hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
@@ -12,6 +12,8 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
+import { useSwipeGestures } from '../hooks/useGestures';
+import { haptics } from '../utils/haptics';
 import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
 import { ErrorBoundary } from './frontdesk/ErrorBoundary';
 import {
@@ -118,6 +120,57 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const toggleWaitListTabDropdown = () => {
     setWaitListTabDropdownOpen(!waitListTabDropdownOpen);
   };
+
+  // Swipe gesture handlers for tab navigation on mobile/tablet
+  const handleSwipeLeft = useCallback(() => {
+    if (isCombinedView) {
+      // Combined view: service <-> waitList
+      if (activeCombinedTab === 'service') {
+        haptics.selection();
+        setActiveCombinedTab('waitList');
+      }
+    } else {
+      // Non-combined view: waitList -> service -> comingAppointments
+      const tabs = ['waitList', 'service', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
+      const currentIndex = tabs.indexOf(activeMobileSection);
+      if (currentIndex < tabs.length - 1) {
+        haptics.selection();
+        setActiveMobileSection(tabs[currentIndex + 1]);
+      }
+    }
+  }, [isCombinedView, activeCombinedTab, activeMobileSection, showUpcomingAppointments]);
+
+  const handleSwipeRight = useCallback(() => {
+    if (isCombinedView) {
+      // Combined view: waitList -> service
+      if (['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)) {
+        haptics.selection();
+        setActiveCombinedTab('service');
+      }
+    } else {
+      // Non-combined view: comingAppointments -> service -> waitList
+      const tabs = ['waitList', 'service', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
+      const currentIndex = tabs.indexOf(activeMobileSection);
+      if (currentIndex > 0) {
+        haptics.selection();
+        setActiveMobileSection(tabs[currentIndex - 1]);
+      }
+    }
+  }, [isCombinedView, activeCombinedTab, activeMobileSection, showUpcomingAppointments]);
+
+  // Use swipe gestures hook - only on mobile/tablet
+  const { handlers: swipeHandlers, isSwiping } = useSwipeGestures(
+    {
+      onSwipeLeft: handleSwipeLeft,
+      onSwipeRight: handleSwipeRight,
+    },
+    {
+      threshold: 50,
+      velocity: 0.3,
+      preventScroll: false,
+    }
+  );
+
   // Save active mobile section to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('activeMobileSection', activeMobileSection);
@@ -611,7 +664,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
             {/* Main content container */}
             <div className="flex flex-col h-full min-h-0">
               {/* Combined view */}
-              {isCombinedView ? <div className="flex h-full overflow-hidden min-h-0 gap-2">
+              {isCombinedView ? <div
+                className={`flex h-full overflow-hidden min-h-0 gap-2 ${isSwiping ? 'select-none' : ''}`}
+                {...((deviceInfo.isMobile || deviceInfo.isTablet) ? swipeHandlers : {})}
+              >
                 {/* Main content area - takes remaining width */}
                 <div className="flex-1 overflow-hidden bg-gray-50 min-h-0" role="tabpanel" id={activeCombinedTab === 'waitList' ? 'waitlist-panel' : 'service-panel'}>
                   {/* Wait List Section - Show when active in combined view */}
@@ -660,7 +716,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                 </div>}
               </div> : <>
                 {/* Three-column layout for desktop - reordered to match workflow */}
-                <div className={`${deviceInfo.isMobile || deviceInfo.isTablet ? 'overflow-auto flex-1' : 'flex flex-1 overflow-hidden'} h-full`}>
+                <div
+                  className={`${deviceInfo.isMobile || deviceInfo.isTablet ? `overflow-auto flex-1 ${isSwiping ? 'select-none' : ''}` : 'flex flex-1 overflow-hidden'} h-full`}
+                  {...((deviceInfo.isMobile || deviceInfo.isTablet) ? swipeHandlers : {})}
+                >
                   {/* For tablet and mobile: Show sections based on active tab */}
                   {deviceInfo.isMobile || deviceInfo.isTablet ? <>
                     {/* Wait List Section - Show Coming + Waiting stacked on mobile/tablet */}
