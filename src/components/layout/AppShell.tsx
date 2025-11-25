@@ -193,11 +193,9 @@ export function AppShell() {
         hideNavigation={showBottomNav}
       />
 
-      {/* Main Content Area - Add bottom padding when bottom nav is visible */}
-      <main className={`flex-1 min-h-0 overflow-hidden pt-14 ${showBottomNav ? 'pb-[72px]' : ''}`}>
-        <div className="h-full overflow-auto">
-          {renderModule()}
-        </div>
+      {/* Main Content Area */}
+      <main className="relative flex-1 min-h-0 overflow-hidden pt-14 pb-[72px]">
+        {renderModule()}
       </main>
 
       {/* Bottom Navigation - Only on mobile and tablet */}
