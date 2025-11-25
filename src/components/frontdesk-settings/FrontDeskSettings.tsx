@@ -428,10 +428,11 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
           onClose={() => setShowTemplateSetup(false)}
           currentSettings={settings}
           onSettingsChange={(newSettings) => {
+            // Update each setting via Redux
             Object.entries(newSettings).forEach(([key, value]) => {
               updateSetting(key as keyof FrontDeskSettingsData, value);
             });
-            setShowTemplateSetup(false);
+            // Note: Don't close modal here - let OperationTemplateSetup handle it with toast
           }}
         />
       )}
