@@ -170,7 +170,6 @@ export const MobileTeamSection = memo(function MobileTeamSection({
   const { staff = [] } = useTickets();
   const [filter, setFilter] = useState<'all' | 'ready' | 'busy' | 'off'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Calculate staff counts
   const counts = useMemo(() => {

@@ -130,7 +130,6 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     // Team metrics
     const teamCount = staff.length;
     const readyCount = staff.filter((s: any) => s.status === 'ready').length;
-    const busyCount = staff.filter((s: any) => s.status === 'busy').length;
     const teamSecondary = readyCount > 0 ? `${readyCount} ready` : undefined;
 
     return [
