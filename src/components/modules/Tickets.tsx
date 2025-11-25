@@ -4,6 +4,7 @@ import { WaitListSection } from '../WaitListSection';
 import { ComingAppointments } from '../ComingAppointments';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
+import { Clock, Users, Activity } from 'lucide-react';
 
 export function Tickets() {
   // Tickets module now only shows: Coming, Waiting, In Service
@@ -51,28 +52,73 @@ export function Tickets() {
       </div>
 
       {/* Content area - fills remaining space */}
-      <div className="flex-1 overflow-auto">
-        {activeTab === 'coming' && (
-          <ComingAppointments
-            isMinimized={false}
-            onToggleMinimize={() => {}}
-            isMobile={true}
-          />
-        )}
-        {activeTab === 'waitlist' && (
-          <WaitListSection
-            isMinimized={false}
-            onToggleMinimize={() => {}}
-            isMobile={true}
-          />
-        )}
-        {activeTab === 'inservice' && (
-          <ServiceSection
-            isMinimized={false}
-            onToggleMinimize={() => {}}
-            isMobile={true}
-          />
-        )}
+      <div className="flex-1 overflow-auto flex flex-col">
+        {/* Section Header */}
+        <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            {activeTab === 'coming' && (
+              <>
+                <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
+                  <Clock size={16} className="text-sky-600" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">Coming Appointments</h2>
+                  <p className="text-xs text-gray-500">Upcoming scheduled visits</p>
+                </div>
+              </>
+            )}
+            {activeTab === 'waitlist' && (
+              <>
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Users size={16} className="text-amber-600" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">Waiting Queue</h2>
+                  <p className="text-xs text-gray-500">{waitlist.length} client{waitlist.length !== 1 ? 's' : ''} waiting</p>
+                </div>
+              </>
+            )}
+            {activeTab === 'inservice' && (
+              <>
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <Activity size={16} className="text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">In Service</h2>
+                  <p className="text-xs text-gray-500">{serviceTickets.length} client{serviceTickets.length !== 1 ? 's' : ''} being served</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Section Content */}
+        <div className="flex-1 overflow-auto">
+          {activeTab === 'coming' && (
+            <ComingAppointments
+              isMinimized={false}
+              onToggleMinimize={() => {}}
+              isMobile={true}
+              hideHeader={true}
+            />
+          )}
+          {activeTab === 'waitlist' && (
+            <WaitListSection
+              isMinimized={false}
+              onToggleMinimize={() => {}}
+              isMobile={true}
+              hideHeader={true}
+            />
+          )}
+          {activeTab === 'inservice' && (
+            <ServiceSection
+              isMinimized={false}
+              onToggleMinimize={() => {}}
+              isMobile={true}
+              hideHeader={true}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
