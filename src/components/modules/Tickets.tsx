@@ -9,13 +9,13 @@ import { Clock, Users, Activity } from 'lucide-react';
 export function Tickets() {
   // Tickets module now only shows: Coming, Waiting, In Service
   // Pending payments are accessed via the dedicated Pending tab in bottom nav
-  const [activeTab, setActiveTab] = useState<'coming' | 'waitlist' | 'inservice'>('coming');
+  const [activeTab, setActiveTab] = useState<'coming' | 'waitlist' | 'inservice'>('inservice');
   const { waitlist = [], serviceTickets = [] } = useTickets();
 
   const tabs = useMemo(() => [
-    { id: 'coming' as const, label: 'Coming', count: 0 }, // TODO: Get from appointments
-    { id: 'waitlist' as const, label: 'Waiting', count: waitlist.length },
     { id: 'inservice' as const, label: 'In Service', count: serviceTickets.length },
+    { id: 'waitlist' as const, label: 'Waiting', count: waitlist.length },
+    { id: 'coming' as const, label: 'Coming', count: 0 }, // TODO: Get from appointments
   ], [waitlist.length, serviceTickets.length]);
 
   const handleTabChange = (tabId: 'coming' | 'waitlist' | 'inservice') => {
