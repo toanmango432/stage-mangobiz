@@ -140,6 +140,7 @@ export function Tickets() {
             onToggleMinimize={() => {}}
             isMobile={true}
             hideHeader={true}
+            isCombinedView={true}
             viewMode={viewMode}
             setViewMode={setViewMode}
             cardViewMode={cardViewMode}
@@ -151,6 +152,7 @@ export function Tickets() {
             onToggleMinimize={() => {}}
             isMobile={true}
             hideHeader={true}
+            isCombinedView={true}
             viewMode={viewMode}
             setViewMode={setViewMode}
             cardViewMode={cardViewMode}
