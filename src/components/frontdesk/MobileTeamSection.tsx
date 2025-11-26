@@ -1,168 +1,38 @@
 /**
  * MobileTeamSection - Touch-optimized team view for mobile devices
  * Features:
- * - Horizontal scrolling staff cards with snap points
+ * - Vertical staff cards matching the app design
  * - Large touch targets (48px minimum)
  * - Quick status filters
  * - Haptic feedback on interactions
  */
 
 import { useState, useMemo, memo } from 'react';
-import { Users, Search, X, ChevronRight } from 'lucide-react';
+import { Users, Search, X } from 'lucide-react';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
-
-// Status badge colors
-const STATUS_COLORS = {
-  ready: {
-    bg: 'bg-emerald-500',
-    text: 'text-white',
-    ring: 'ring-emerald-200',
-    label: 'Ready',
-  },
-  busy: {
-    bg: 'bg-amber-500',
-    text: 'text-white',
-    ring: 'ring-amber-200',
-    label: 'Busy',
-  },
-  off: {
-    bg: 'bg-gray-400',
-    text: 'text-white',
-    ring: 'ring-gray-200',
-    label: 'Off',
-  },
-};
-
-// Staff images for demo
-const getStaffImage = (id: number) => {
-  const images = [
-    'https://images.unsplash.com/photo-1557862921-37829c790f19?q=80&w=200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-  ];
-  return images[(id - 1) % images.length];
-};
+import { StaffCardVertical, type StaffMember } from '../StaffCard/index';
 
 interface MobileTeamSectionProps {
   className?: string;
 }
 
-// Mobile-optimized staff card
-const MobileStaffCard = memo(function MobileStaffCard({
-  staff,
-  onClick,
-}: {
-  staff: any;
-  onClick?: () => void;
-}) {
-  const status = STATUS_COLORS[staff.status as keyof typeof STATUS_COLORS] || STATUS_COLORS.ready;
+// Convert UIStaff to StaffMember format for StaffCardVertical
+const convertToStaffMember = (staff: any): StaffMember => {
   const staffId = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 1 : staff.id;
-
-  return (
-    <button
-      onClick={() => {
-        haptics.selection();
-        onClick?.();
-      }}
-      className="flex-shrink-0 w-[140px] bg-white rounded-2xl shadow-sm border border-gray-100
-                 overflow-hidden active:scale-[0.98] transition-transform touch-manipulation"
-      style={{ minHeight: '160px' }}
-    >
-      {/* Status indicator strip */}
-      <div className={`h-1.5 ${status.bg}`} />
-
-      {/* Card content */}
-      <div className="p-3 flex flex-col items-center">
-        {/* Avatar with status ring */}
-        <div className={`relative w-16 h-16 rounded-full ring-2 ${status.ring} ring-offset-2`}>
-          <img
-            src={staff.image || getStaffImage(staffId)}
-            alt={staff.name}
-            className="w-full h-full rounded-full object-cover"
-          />
-          {/* Status dot */}
-          <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full ${status.bg}
-                         border-2 border-white flex items-center justify-center`}>
-            {staff.status === 'busy' && (
-              <span className="text-[8px] font-bold text-white">!</span>
-            )}
-          </div>
-        </div>
-
-        {/* Name */}
-        <h3 className="mt-2 text-sm font-semibold text-gray-900 truncate w-full text-center">
-          {staff.name}
-        </h3>
-
-        {/* Status label */}
-        <span className={`mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${status.bg} ${status.text}`}>
-          {status.label}
-        </span>
-
-        {/* Turn count if available */}
-        {staff.turnCount !== undefined && (
-          <div className="mt-1.5 text-[10px] text-gray-500">
-            <span className="font-medium">{staff.turnCount}</span> turns
-          </div>
-        )}
-      </div>
-    </button>
-  );
-});
-
-// Compact horizontal staff card for list view
-const CompactStaffCard = memo(function CompactStaffCard({
-  staff,
-  onClick,
-}: {
-  staff: any;
-  onClick?: () => void;
-}) {
-  const status = STATUS_COLORS[staff.status as keyof typeof STATUS_COLORS] || STATUS_COLORS.ready;
-  const staffId = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 1 : staff.id;
-
-  return (
-    <button
-      onClick={() => {
-        haptics.selection();
-        onClick?.();
-      }}
-      className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100
-                 active:bg-gray-50 transition-colors touch-manipulation"
-      style={{ minHeight: '64px' }}
-    >
-      {/* Avatar */}
-      <div className={`relative w-12 h-12 rounded-full ring-2 ${status.ring} flex-shrink-0`}>
-        <img
-          src={staff.image || getStaffImage(staffId)}
-          alt={staff.name}
-          className="w-full h-full rounded-full object-cover"
-        />
-        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full ${status.bg} border-2 border-white`} />
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0 text-left">
-        <h3 className="text-sm font-semibold text-gray-900 truncate">{staff.name}</h3>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${status.bg} ${status.text}`}>
-            {status.label}
-          </span>
-          {staff.turnCount !== undefined && (
-            <span className="text-[10px] text-gray-500">{staff.turnCount} turns</span>
-          )}
-        </div>
-      </div>
-
-      {/* Arrow */}
-      <ChevronRight size={18} className="text-gray-300 flex-shrink-0" />
-    </button>
-  );
-});
+  return {
+    id: staffId,
+    name: staff.name,
+    time: staff.time || '',
+    image: staff.image || '',
+    status: staff.status || 'ready',
+    color: staff.color || '#6B7280',
+    count: staff.count || 0,
+    turnCount: staff.turnCount,
+    lastServiceTime: staff.lastServiceTime,
+    nextAppointmentTime: staff.nextAppointmentTime,
+  };
+};
 
 export const MobileTeamSection = memo(function MobileTeamSection({
   className = '',
@@ -279,7 +149,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
         </div>
       </div>
 
-      {/* Staff content */}
+      {/* Staff content - Grid of vertical staff cards */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         {filteredStaff.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500">
@@ -288,21 +158,24 @@ export const MobileTeamSection = memo(function MobileTeamSection({
           </div>
         ) : filter === 'all' ? (
           // Grouped view when "All" is selected
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Ready section */}
             {groupedStaff.ready.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Ready ({groupedStaff.ready.length})
                   </h3>
                 </div>
-                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory">
+                <div className="grid grid-cols-2 gap-3">
                   {groupedStaff.ready.map((s: any) => (
-                    <div key={s.id} className="snap-start">
-                      <MobileStaffCard staff={s} />
-                    </div>
+                    <StaffCardVertical
+                      key={s.id}
+                      staff={convertToStaffMember(s)}
+                      viewMode="compact"
+                      onClick={() => haptics.selection()}
+                    />
                   ))}
                 </div>
               </div>
@@ -311,17 +184,20 @@ export const MobileTeamSection = memo(function MobileTeamSection({
             {/* Busy section */}
             {groupedStaff.busy.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-rose-500" />
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Busy ({groupedStaff.busy.length})
                   </h3>
                 </div>
-                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory">
+                <div className="grid grid-cols-2 gap-3">
                   {groupedStaff.busy.map((s: any) => (
-                    <div key={s.id} className="snap-start">
-                      <MobileStaffCard staff={s} />
-                    </div>
+                    <StaffCardVertical
+                      key={s.id}
+                      staff={convertToStaffMember(s)}
+                      viewMode="compact"
+                      onClick={() => haptics.selection()}
+                    />
                   ))}
                 </div>
               </div>
@@ -330,27 +206,35 @@ export const MobileTeamSection = memo(function MobileTeamSection({
             {/* Off section */}
             {groupedStaff.off.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-gray-400" />
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Off ({groupedStaff.off.length})
                   </h3>
                 </div>
-                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory">
+                <div className="grid grid-cols-2 gap-3">
                   {groupedStaff.off.map((s: any) => (
-                    <div key={s.id} className="snap-start">
-                      <MobileStaffCard staff={s} />
-                    </div>
+                    <StaffCardVertical
+                      key={s.id}
+                      staff={convertToStaffMember(s)}
+                      viewMode="compact"
+                      onClick={() => haptics.selection()}
+                    />
                   ))}
                 </div>
               </div>
             )}
           </div>
         ) : (
-          // List view for filtered results
-          <div className="space-y-2">
+          // Grid view for filtered results
+          <div className="grid grid-cols-2 gap-3">
             {filteredStaff.map((s: any) => (
-              <CompactStaffCard key={s.id} staff={s} />
+              <StaffCardVertical
+                key={s.id}
+                staff={convertToStaffMember(s)}
+                viewMode="compact"
+                onClick={() => haptics.selection()}
+              />
             ))}
           </div>
         )}
