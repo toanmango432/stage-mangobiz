@@ -18,9 +18,33 @@ interface MobileTeamSectionProps {
   className?: string;
 }
 
+// Map specialty string to valid Specialty type
+const mapSpecialty = (specialty?: string): 'neutral' | 'nails' | 'hair' | 'massage' | 'skincare' | 'waxing' | 'combo' | 'support' => {
+  if (!specialty) return 'neutral';
+  const lower = specialty.toLowerCase();
+  if (lower === 'nails' || lower === 'nail') return 'nails';
+  if (lower === 'hair') return 'hair';
+  if (lower === 'massage') return 'massage';
+  if (lower === 'skincare' || lower === 'skin') return 'skincare';
+  if (lower === 'waxing' || lower === 'wax') return 'waxing';
+  if (lower === 'combo') return 'combo';
+  if (lower === 'support') return 'support';
+  return 'neutral';
+};
+
 // Convert UIStaff to StaffMember format for StaffCardVertical
 const convertToStaffMember = (staff: any): StaffMember => {
   const staffId = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 1 : staff.id;
+
+  // Convert activeTickets format
+  const activeTickets = staff.activeTickets?.map((t: any) => ({
+    id: typeof t.id === 'string' ? parseInt(t.id.replace(/\D/g, '')) || 1 : t.id,
+    ticketNumber: t.ticketNumber,
+    clientName: t.clientName,
+    serviceName: t.serviceName,
+    status: t.status === 'in-service' ? 'in-service' : 'pending',
+  })) || undefined;
+
   return {
     id: staffId,
     name: staff.name,
@@ -29,9 +53,11 @@ const convertToStaffMember = (staff: any): StaffMember => {
     status: staff.status || 'ready',
     color: staff.color || '#6B7280',
     count: staff.count || 0,
+    specialty: mapSpecialty(staff.specialty),
     turnCount: staff.turnCount,
     lastServiceTime: staff.lastServiceTime,
     nextAppointmentTime: staff.nextAppointmentTime,
+    activeTickets,
   };
 };
 
