@@ -104,7 +104,7 @@ export function Tickets() {
       </div>
 
       {/* Section Content - sections handle their own scrolling */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden bg-white">
         {activeTab === 'coming' ? (
           <ComingAppointments
             isMinimized={false}

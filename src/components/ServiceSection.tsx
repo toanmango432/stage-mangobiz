@@ -855,7 +855,7 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
       </div>;
   }
-  return <div className="flex flex-col overflow-hidden h-full bg-white">
+  return <div className="flex-1 flex flex-col overflow-hidden bg-white">
       {!hideHeader && (
         <FrontDeskHeader
           title="In Service"

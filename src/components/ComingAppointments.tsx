@@ -217,7 +217,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   const nextCount = appointmentBuckets.within1Hour.length;
   const laterCount = appointmentBuckets.within3Hours.length + appointmentBuckets.moreThan3Hours.length;
 
-  return <div className={`bg-white ${!hideHeader ? 'border-l border-l-gray-200' : ''} flex flex-col transition-all duration-300 ease-in-out h-full`}>
+  return <div className={`flex-1 bg-white ${!hideHeader ? 'border-l border-l-gray-200' : ''} flex flex-col transition-all duration-300 ease-in-out`}>
       {/* Header - Hide on mobile when MobileTabBar shows metrics */}
       {!hideHeader && (
         <div className="px-3 py-2 border-b border-gray-200 flex-shrink-0">

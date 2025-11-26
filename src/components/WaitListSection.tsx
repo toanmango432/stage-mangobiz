@@ -950,7 +950,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>}
       </div>;
   }
-  return <div className="bg-white border-l border-l-gray-200 flex flex-col overflow-hidden h-full pb-0 transform-gpu transition-all duration-300 ease-in-out">
+  return <div className="flex-1 bg-white border-l border-l-gray-200 flex flex-col overflow-hidden pb-0 transform-gpu transition-all duration-300 ease-in-out">
       {/* Section header - hide when in combined view and hideHeader is true */}
       {!hideHeader && (
         <FrontDeskHeader
