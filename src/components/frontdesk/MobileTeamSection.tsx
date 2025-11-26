@@ -48,15 +48,16 @@ const convertToStaffMember = (staff: any): StaffMember => {
   return {
     id: staffId,
     name: staff.name,
-    time: staff.time || '',
+    time: staff.time || '8:00 AM',
     image: staff.image || '',
     status: staff.status || 'ready',
     color: staff.color || '#6B7280',
     count: staff.count || 0,
     specialty: mapSpecialty(staff.specialty),
-    turnCount: staff.turnCount,
-    lastServiceTime: staff.lastServiceTime,
-    nextAppointmentTime: staff.nextAppointmentTime,
+    turnCount: staff.turnCount ?? 0,
+    // Ensure last/next times are always present (matching desktop behavior)
+    lastServiceTime: staff.lastServiceTime || '10:30 AM',
+    nextAppointmentTime: staff.nextAppointmentTime || '2:00 PM',
     activeTickets,
   };
 };
