@@ -36,7 +36,7 @@ export function Tickets() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Row 1: Tabs - ensure all 3 are visible */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
         <div className="grid grid-cols-3 gap-1">
