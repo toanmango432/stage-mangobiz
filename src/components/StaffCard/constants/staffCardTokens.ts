@@ -152,26 +152,26 @@ export interface CardDimensions {
 export const CARD_DIMENSIONS: Record<'ultra-compact' | 'compact' | 'normal', CardDimensions> = {
   'ultra-compact': {
     width: '100%',
-    height: '180px',
-    avatarSize: '50px',
+    height: '160px',
+    avatarSize: '44px',
     borderRadius: '50%',
     containerPadding: 'p-1',
     cardRadius: '16px',
   },
   compact: {
     width: '100%',
-    height: '120px',
-    avatarSize: '50px',
+    height: '220px',
+    avatarSize: '64px',
     borderRadius: '50%',
-    containerPadding: 'p-1',
+    containerPadding: 'p-2',
     cardRadius: '20px',
   },
   normal: {
     width: '100%',
     height: '320px',
-    avatarSize: '130px',
+    avatarSize: '100px',
     borderRadius: '50%',
-    containerPadding: 'p-2',
+    containerPadding: 'p-3',
     cardRadius: '24px',
   },
 };
