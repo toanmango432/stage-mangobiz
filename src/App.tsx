@@ -6,29 +6,45 @@ import { AppShell } from './components/layout/AppShell';
 import { dataCleanupService } from './services/dataCleanupService';
 import { licenseManager, type LicenseState } from './services/licenseManager';
 import { ActivationScreen } from './components/licensing/ActivationScreen';
+import { initializeDatabase } from './db/schema';
 
-// Clear IndexedDB immediately on module load in development
-if (import.meta.env.DEV) {
-  indexedDB.deleteDatabase('mango-pos-db');
-  console.log('✅ IndexedDB cleared - using fresh mock data with lastVisitDate');
-}
+// NOTE: Database clearing disabled to preserve license key during development
+// To manually clear the database, use DevTools > Application > IndexedDB > Delete 'mango_biz_store_app'
+// if (import.meta.env.DEV) {
+//   indexedDB.deleteDatabase('mango_biz_store_app');
+//   console.log('✅ IndexedDB cleared - using fresh mock data with lastVisitDate');
+// }
 
 export function App() {
   const [licenseState, setLicenseState] = useState<LicenseState | null>(null);
   const [isLicenseChecked, setIsLicenseChecked] = useState(false);
 
   useEffect(() => {
-    // Initialize license manager first (before anything else)
+    // Initialize database first, then license manager
     async function initializeLicense() {
-      console.log('🔐 Checking license...');
+      console.log('🔐 Initializing database and checking license...');
 
       try {
+        // Initialize database FIRST (required for license manager to read settings)
+        const dbReady = await initializeDatabase();
+        if (!dbReady) {
+          console.error('Failed to initialize database');
+          setIsLicenseChecked(true);
+          return;
+        }
+        console.log('✅ Database initialized');
+
+        // Now check license
         const state = await licenseManager.initialize();
         setLicenseState(state);
 
         // Subscribe to license changes
         const unsubscribe = licenseManager.subscribe((newState) => {
           setLicenseState(newState);
+          // Ensure isLicenseChecked is true when we have a valid state
+          if (newState.status !== 'checking') {
+            setIsLicenseChecked(true);
+          }
         });
 
         // Start background checks if operational
