@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { PendingHeader } from '../pending';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
@@ -6,18 +6,44 @@ import { PaymentModal } from '../checkout/PaymentModal';
 import type { PaymentMethod, PaymentDetails } from '../../types';
 import type { PendingTicket } from '../../store/slices/uiTicketsSlice';
 import toast from 'react-hot-toast';
-import { Receipt } from 'lucide-react';
+import { Receipt, RefreshCw } from 'lucide-react';
+import { useBreakpoint } from '../../hooks/useMobileModal';
+import { usePullToRefresh } from '../../hooks/useGestures';
+import { haptics } from '../../utils/haptics';
 
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 
 export function Pending() {
   const { pendingTickets, markTicketAsPaid } = useTickets();
+  const { isMobile, isTablet } = useBreakpoint();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [cardViewMode, setCardViewMode] = useState<'normal' | 'compact'>('normal');
+
+  // Force list view on mobile for better usability
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode('list');
+      setCardViewMode('normal'); // Normal cards are better on mobile
+    }
+  }, [isMobile]);
+
+  // Pull to refresh for mobile
+  const { handlers: pullHandlers, isRefreshing, pullProgress, translateY } = usePullToRefresh({
+    onRefresh: async () => {
+      haptics.medium();
+      // Simulate a refresh - in a real app this would fetch new data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Tickets refreshed', {
+        duration: 2000,
+        position: 'top-center',
+      });
+    },
+    threshold: 80,
+  });
 
   // Toggle compact mode
   const toggleCardViewMode = () => {
@@ -151,26 +177,49 @@ export function Pending() {
         onSortChange={setSortBy}
         cardViewMode={cardViewMode}
         onCardViewModeToggle={toggleCardViewMode}
+        isMobile={isMobile}
       />
 
-      {/* Content - Direct ticket grid */}
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+      {/* Content - Direct ticket grid with pull-to-refresh on mobile */}
+      <main
+        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 relative"
+        {...((isMobile || isTablet) ? pullHandlers : {})}
+        style={{
+          transform: translateY > 0 ? `translateY(${translateY}px)` : undefined,
+          transition: isRefreshing ? 'transform 0.2s ease-out' : undefined,
+        }}
+      >
+        {/* Pull to refresh indicator */}
+        {(isMobile || isTablet) && (pullProgress > 0 || isRefreshing) && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 -top-2 flex items-center justify-center transition-all duration-200"
+            style={{
+              opacity: Math.min(pullProgress, 1),
+              transform: `translateY(${Math.min(pullProgress * 60, 60)}px)`,
+            }}
+          >
+            <div className={`p-2 bg-white rounded-full shadow-lg ${isRefreshing ? 'animate-spin' : ''}`}>
+              <RefreshCw size={20} className={pullProgress >= 1 ? 'text-amber-600' : 'text-gray-400'} />
+            </div>
+          </div>
+        )}
+
         {filteredTickets.length > 0 ? (
           viewMode === 'grid' ? (
             <div
-              className="grid gap-4"
-              style={{
+              className={`grid gap-3 sm:gap-4 ${isMobile ? 'grid-cols-1' : ''}`}
+              style={!isMobile ? {
                 gridTemplateColumns:
                   cardViewMode === 'compact'
                     ? 'repeat(auto-fill, minmax(240px, 1fr))'
                     : 'repeat(auto-fill, minmax(300px, 1fr))',
-              }}
+              } : undefined}
             >
               {filteredTickets.map(ticket => (
                 <PendingTicketCard
                   key={ticket.id}
                   ticket={ticket}
-                  viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
+                  viewMode={isMobile ? 'normal' : (cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal')}
                   onMarkPaid={handleOpenPaymentModal}
                   onCancel={handleCancelTicket}
                   isMenuOpen={openDropdownId === ticket.id}
@@ -180,7 +229,7 @@ export function Pending() {
               ))}
             </div>
           ) : (
-            <div className="space-y-2 max-w-5xl">
+            <div className={`space-y-3 ${isMobile ? '' : 'max-w-5xl'}`}>
               {filteredTickets.map(ticket => (
                 <PendingTicketCard
                   key={ticket.id}
@@ -197,14 +246,14 @@ export function Pending() {
           )
         ) : (
           // Empty state
-          <div className="flex flex-col items-center justify-center h-full py-12">
+          <div className="flex flex-col items-center justify-center h-full py-12 px-4">
             <div className="bg-gray-100 p-4 rounded-full mb-4">
-              <Receipt size={48} className="text-gray-400" />
+              <Receipt size={isMobile ? 40 : 48} className="text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            <h3 className={`font-semibold text-gray-700 mb-2 text-center ${isMobile ? 'text-base' : 'text-lg'}`}>
               {searchQuery ? 'No tickets found' : 'No pending payments'}
             </h3>
-            <p className="text-sm text-gray-500 max-w-md text-center">
+            <p className={`text-gray-500 max-w-md text-center ${isMobile ? 'text-xs' : 'text-sm'}`}>
               {searchQuery
                 ? 'Try adjusting your search criteria'
                 : 'All caught up! When services are completed, they will appear here for payment processing.'}

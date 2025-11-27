@@ -950,7 +950,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>}
       </div>;
   }
-  return <div className="bg-white border-l border-l-gray-200 flex flex-col overflow-hidden h-full pb-0 transform-gpu transition-all duration-300 ease-in-out">
+  return <div className="flex-1 bg-white border-l border-l-gray-200 flex flex-col overflow-hidden pb-0 transform-gpu transition-all duration-300 ease-in-out">
       {/* Section header - hide when in combined view and hideHeader is true */}
       {!hideHeader && (
         <FrontDeskHeader
@@ -1062,7 +1062,7 @@ export const WaitListSection = memo(function WaitListSection({
           }
         />
       )}
-      <div className={`flex-1 overflow-auto px-4 pb-16 ${headerContentSpacer} scroll-smooth`}>
+      <div className={`flex-1 overflow-auto px-4 bg-white ${isMobile ? 'pb-3' : 'pb-16'} ${headerContentSpacer} scroll-smooth`}>
         {/* Show content based on whether there are tickets */}
         {waitlist.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-3"

@@ -10,13 +10,15 @@ interface TopHeaderBarProps {
   activeModule?: string;
   onModuleChange?: (module: string) => void;
   pendingCount?: number;
+  hideNavigation?: boolean; // Hide nav tabs on mobile (handled by BottomNavBar)
 }
 
-export function TopHeaderBar({ 
+export function TopHeaderBar({
   onFrontDeskSettingsClick,
   activeModule = 'frontdesk',
   onModuleChange,
-  pendingCount = 0
+  pendingCount = 0,
+  hideNavigation = false
 }: TopHeaderBarProps) {
   const [selectedOrg, setSelectedOrg] = useState('Main Salon');
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
@@ -164,7 +166,7 @@ export function TopHeaderBar({
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       {/* Left Section - Brand & Organization */}
-      <div className="flex items-center gap-4 min-w-[240px]">
+      <div className={`flex items-center gap-4 ${hideNavigation ? 'flex-1' : 'min-w-[240px]'}`}>
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg flex items-center justify-center shadow-sm">
@@ -204,7 +206,8 @@ export function TopHeaderBar({
         </div>
       </div>
 
-      {/* Center Section - Navigation */}
+      {/* Center Section - Navigation (hidden on mobile/tablet when BottomNavBar is shown) */}
+      {!hideNavigation && (
       <div className="flex-1 flex justify-center items-center h-full">
         <nav className="flex items-center gap-1 h-full">
           {modules.map((module) => {
@@ -250,12 +253,13 @@ export function TopHeaderBar({
           })}
         </nav>
       </div>
+      )}
 
       {/* Right Section - Search, Actions & User */}
-      <div className="flex items-center gap-3 min-w-[240px] justify-end">
-        {/* Compact Search */}
+      <div className={`flex items-center gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
+        {/* Compact Search - smaller on mobile */}
         <div className={`relative transition-all duration-300 ease-out ${
-          isSearchExpanded ? 'w-64' : 'w-48'
+          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-36 sm:w-48' : 'w-48'
         }`}>
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
@@ -268,7 +272,7 @@ export function TopHeaderBar({
             onBlur={handleSearchBlur}
             className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-400 transition-all placeholder:text-gray-400"
           />
-          {!isSearchExpanded && (
+          {!isSearchExpanded && !hideNavigation && (
             <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-gray-200/50 rounded text-gray-500 text-[9px] font-medium">
               <Command size={8} />
               <span>K</span>

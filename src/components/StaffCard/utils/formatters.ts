@@ -31,18 +31,49 @@ export const formatClockedInTime = (_timeString: string): string => {
 
 /**
  * Format time without seconds for last/next appointments
- * @param timeString - Time string (currently unused, uses current time)
- * @returns Formatted time string (e.g., "2:45p")
+ * @param timeString - Time string (e.g., "2:30 PM", "14:30", "2:30p")
+ * @returns Formatted time string (e.g., "2:30p")
  */
 export const formatTime = (timeString?: string): string => {
   if (!timeString) return '-';
 
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const period = hours >= 12 ? 'p' : 'a';
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes.toString().padStart(2, '0')}${period}`;
+  // If already in short format like "2:30p", return as-is
+  if (/^\d{1,2}:\d{2}[ap]$/i.test(timeString)) {
+    return timeString.toLowerCase();
+  }
+
+  // Try to parse various time formats
+  const trimmed = timeString.trim();
+
+  // Match "2:30 PM" or "2:30PM" or "14:30"
+  const match12h = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm|a|p)?$/i);
+  if (match12h) {
+    let hours = parseInt(match12h[1], 10);
+    const minutes = match12h[2];
+    const periodInput = match12h[3]?.toLowerCase() || '';
+
+    // Determine period
+    let period: string;
+    if (periodInput === 'pm' || periodInput === 'p') {
+      period = 'p';
+      if (hours < 12) hours = hours; // Keep as-is for PM display
+    } else if (periodInput === 'am' || periodInput === 'a') {
+      period = 'a';
+    } else {
+      // No period provided, assume 24h format
+      period = hours >= 12 ? 'p' : 'a';
+      if (hours > 12) hours = hours - 12;
+      if (hours === 0) hours = 12;
+    }
+
+    // For 12-hour with PM indicator, convert display
+    const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+
+    return `${displayHours}:${minutes}${period}`;
+  }
+
+  // Return original if can't parse
+  return timeString;
 };
 
 /**

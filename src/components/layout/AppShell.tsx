@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
+import { BottomNavBar } from './BottomNavBar';
 import { Book } from '../modules/Book';
 import { FrontDesk } from '../modules/FrontDesk';
 import { Tickets } from '../modules/Tickets';
@@ -22,11 +23,34 @@ import { syncManager } from '../../services/syncManager';
 import { NetworkStatus } from '../NetworkStatus';
 import { LicenseBanner } from '../licensing/LicenseBanner';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
+import { useBreakpoint } from '../../hooks/useMobileModal';
 
 export function AppShell() {
-  const [activeModule, setActiveModule] = useState('frontdesk');
+  // Mobile/tablet detection for responsive navigation
+  const { isMobile, isTablet, isDesktop } = useBreakpoint();
+  const showBottomNav = isMobile || isTablet;
+
+  // Set appropriate default module based on device
+  // Mobile/tablet: default to 'team' since 'frontdesk' is not available
+  // Desktop: default to 'frontdesk'
+  const [activeModule, setActiveModule] = useState(() => {
+    // Check initial window width to determine default
+    return window.innerWidth < 1024 ? 'team' : 'frontdesk';
+  });
   const [isInitialized, setIsInitialized] = useState(false);
   const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
+
+  // Handle module switch when device type changes (e.g., resize)
+  useEffect(() => {
+    // If on mobile/tablet and activeModule is 'frontdesk', switch to 'team'
+    if (showBottomNav && activeModule === 'frontdesk') {
+      setActiveModule('team');
+    }
+    // If on desktop and activeModule is 'team' or 'tickets', switch to 'frontdesk'
+    if (isDesktop && (activeModule === 'team' || activeModule === 'tickets')) {
+      setActiveModule('frontdesk');
+    }
+  }, [showBottomNav, isDesktop, activeModule]);
 
   // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
   const pendingTickets = useAppSelector(selectPendingTickets);
@@ -176,18 +200,28 @@ export function AppShell() {
       {/* Network Status Indicator */}
       <NetworkStatus />
 
-      {/* Top Header - Always visible */}
+      {/* Top Header - Always visible, but navigation hidden on mobile/tablet */}
       <TopHeaderBar
         onFrontDeskSettingsClick={activeModule === 'frontdesk' ? () => setShowFrontDeskSettings(true) : undefined}
         activeModule={activeModule}
         onModuleChange={setActiveModule}
         pendingCount={pendingCount}
+        hideNavigation={showBottomNav}
       />
 
-      {/* Main Content Area - No scrolling, let sections handle it */}
-      <main className="flex-1 overflow-hidden pt-14">
+      {/* Main Content Area */}
+      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-14 bg-white ${showBottomNav ? 'pb-[72px]' : ''}`}>
         {renderModule()}
       </main>
+
+      {/* Bottom Navigation - Only on mobile and tablet */}
+      {showBottomNav && (
+        <BottomNavBar
+          activeModule={activeModule}
+          onModuleChange={setActiveModule}
+          pendingCount={pendingCount}
+        />
+      )}
     </div>
   );
 }

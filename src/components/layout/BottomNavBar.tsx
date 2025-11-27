@@ -17,7 +17,7 @@ interface BottomNavBarProps {
 
 export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }: BottomNavBarProps) {
   // Desktop: Show Front Desk (combined view)
-  // Mobile: Show Tickets and Team separately
+  // Mobile: Show Team and Tickets separately (no Front Desk)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -29,11 +29,13 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Mobile: Book, Team, Tickets, Pending, Checkout, More
+  // Desktop: Book, Front Desk, Pending, Checkout, Sales, More
   const modules = isMobile ? [
     { id: 'book', label: 'Book', icon: Calendar },
-    { id: 'tickets', label: 'Tickets', icon: Receipt },
     { id: 'team', label: 'Team', icon: Users },
-    { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount },
+    { id: 'tickets', label: 'Tickets', icon: Receipt },
+    { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount > 0 ? pendingCount : undefined },
     { id: 'checkout', label: 'Checkout', icon: CreditCard },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ] : [
@@ -51,7 +53,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className="relative bg-white/95 backdrop-blur-xl border-t border-gray-200/60 h-[72px] flex items-center justify-around px-3 shadow-[0_-8px_32px_rgba(0,0,0,0.08),0_-2px_8px_rgba(0,0,0,0.04)] sticky bottom-0 z-50"
+      className="relative bg-white/95 backdrop-blur-xl border-t border-gray-200/60 h-[72px] flex items-center justify-around px-3 shadow-[0_-8px_32px_rgba(0,0,0,0.08),0_-2px_8px_rgba(0,0,0,0.04)] fixed bottom-0 left-0 right-0 z-50"
     >
       {/* Animated background glow for active tab */}
       <div

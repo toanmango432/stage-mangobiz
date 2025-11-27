@@ -1,16 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { X, UserPlus, Calendar, Clock, Tag, User, Users, AlertCircle } from 'lucide-react';
+import { UserPlus, Calendar, Clock, Tag, User, Users, AlertCircle, Check } from 'lucide-react';
 import { useTickets } from '../hooks/useTicketsCompat';
+import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from './layout/MobileSheet';
+import { useBreakpoint } from '../hooks/useMobileModal';
+import { haptics } from '../utils/haptics';
+
 interface CreateTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (ticketData: any) => void;
 }
+
 export function CreateTicketModal({
   isOpen,
   onClose,
   onSubmit
 }: CreateTicketModalProps) {
+  const { isMobile } = useBreakpoint();
   // Form state
   const [clientName, setClientName] = useState('');
   const [clientType, setClientType] = useState('Regular');
@@ -53,8 +59,9 @@ export function CreateTicketModal({
     }
   }, [isOpen]);
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+
     // Validate form
     const newErrors: {
       clientName?: string;
@@ -66,11 +73,14 @@ export function CreateTicketModal({
     if (!service.trim()) {
       newErrors.service = 'Service is required';
     }
+
     // If there are errors, don't submit
     if (Object.keys(newErrors).length > 0) {
+      haptics.error();
       setErrors(newErrors);
       return;
     }
+
     // Create new ticket
     const ticketData = {
       clientName,
@@ -80,132 +90,235 @@ export function CreateTicketModal({
       notes,
       time
     };
+
     if (onSubmit) {
       onSubmit(ticketData);
     } else {
       createTicket(ticketData);
     }
-    // Close modal
+
+    // Success feedback and close
+    haptics.success();
     onClose();
   };
-  if (!isOpen) return null;
-  return <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose}></div>
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-11/12 max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-[#27AE60] p-4 text-white flex items-center justify-between">
-          <div className="flex items-center">
-            <UserPlus size={20} className="mr-2" />
-            <h2 className="text-lg font-bold">Create New Ticket</h2>
+
+  // Client type button for touch-friendly selection
+  const ClientTypeButton = ({ type, label }: { type: string; label: string }) => {
+    const isActive = clientType === type;
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          haptics.selection();
+          setClientType(type);
+        }}
+        className={`
+          flex-1 py-3 rounded-xl border-2 transition-all font-medium text-sm
+          min-h-[48px] active:scale-95
+          ${isActive
+            ? 'border-green-500 bg-green-50 text-green-700'
+            : 'border-gray-200 hover:border-gray-300 text-gray-600 active:bg-gray-50'
+          }
+        `}
+      >
+        {label}
+      </button>
+    );
+  };
+
+  // Duration button for touch-friendly selection
+  const DurationButton = ({ value, label }: { value: string; label: string }) => {
+    const isActive = duration === value;
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          haptics.selection();
+          setDuration(value);
+        }}
+        className={`
+          py-2.5 px-3 rounded-lg border-2 transition-all font-medium text-sm
+          min-h-[44px] active:scale-95
+          ${isActive
+            ? 'border-green-500 bg-green-50 text-green-700'
+            : 'border-gray-200 hover:border-gray-300 text-gray-600 active:bg-gray-50'
+          }
+        `}
+      >
+        {label}
+      </button>
+    );
+  };
+
+  const footer = (
+    <MobileSheetFooter stacked={isMobile}>
+      <MobileSheetButton
+        variant="secondary"
+        onClick={onClose}
+        fullWidth={isMobile}
+      >
+        Cancel
+      </MobileSheetButton>
+      <MobileSheetButton
+        variant="primary"
+        onClick={() => handleSubmit()}
+        fullWidth
+        className="bg-green-600 hover:bg-green-700 active:bg-green-800"
+      >
+        <Check size={20} />
+        Create Ticket
+      </MobileSheetButton>
+    </MobileSheetFooter>
+  );
+
+  return (
+    <MobileSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create New Ticket"
+      footer={footer}
+      fullScreenOnMobile={true}
+    >
+      <MobileSheetContent className="space-y-5">
+        {/* Client Name */}
+        <div>
+          <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">
+            Client Name <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <User size={18} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              id="clientName"
+              className={`
+                w-full pl-12 pr-4 py-3 border rounded-xl text-base
+                focus:outline-none focus:ring-2 transition-all
+                ${errors.clientName
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-green-500 focus:border-green-500'
+                }
+              `}
+              style={{ fontSize: '16px' }}
+              value={clientName}
+              onChange={(e) => {
+                setClientName(e.target.value);
+                if (errors.clientName) setErrors({ ...errors, clientName: undefined });
+              }}
+              placeholder="Enter client name"
+            />
           </div>
-          <button onClick={onClose} className="text-white hover:text-gray-200 transition-colors" aria-label="Close">
-            <X size={20} />
-          </button>
+          {errors.clientName && (
+            <p className="mt-2 text-sm text-red-600 flex items-center">
+              <AlertCircle size={14} className="mr-1 flex-shrink-0" />
+              {errors.clientName}
+            </p>
+          )}
         </div>
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4">
-          {/* Client Name */}
-          <div className="mb-4">
-            <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-1">
-              Client Name <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User size={16} className="text-gray-400" />
-              </div>
-              <input type="text" id="clientName" className={`w-full pl-10 pr-3 py-2 border ${errors.clientName ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-[#27AE60] focus:border-[#27AE60]'} rounded-md shadow-sm focus:outline-none focus:ring-2`} value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Enter client name" />
+
+        {/* Client Type - Touch-friendly buttons */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Client Type
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            <ClientTypeButton type="Regular" label="Regular" />
+            <ClientTypeButton type="VIP" label="VIP" />
+            <ClientTypeButton type="New" label="New" />
+            <ClientTypeButton type="Priority" label="Priority" />
+          </div>
+        </div>
+
+        {/* Service */}
+        <div>
+          <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-2">
+            Service <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Tag size={18} className="text-gray-400" />
             </div>
-            {errors.clientName && <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle size={14} className="mr-1" />
-                {errors.clientName}
-              </p>}
+            <input
+              type="text"
+              id="service"
+              className={`
+                w-full pl-12 pr-4 py-3 border rounded-xl text-base
+                focus:outline-none focus:ring-2 transition-all
+                ${errors.service
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-green-500 focus:border-green-500'
+                }
+              `}
+              style={{ fontSize: '16px' }}
+              value={service}
+              onChange={(e) => {
+                setService(e.target.value);
+                if (errors.service) setErrors({ ...errors, service: undefined });
+              }}
+              placeholder="Enter service type"
+            />
           </div>
-          {/* Client Type */}
-          <div className="mb-4">
-            <label htmlFor="clientType" className="block text-sm font-medium text-gray-700 mb-1">
-              Client Type
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Users size={16} className="text-gray-400" />
-              </div>
-              <select id="clientType" className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] appearance-none" value={clientType} onChange={e => setClientType(e.target.value)}>
-                <option value="Regular">Regular</option>
-                <option value="VIP">VIP</option>
-                <option value="New">New</option>
-                <option value="Priority">Priority</option>
-              </select>
+          {errors.service && (
+            <p className="mt-2 text-sm text-red-600 flex items-center">
+              <AlertCircle size={14} className="mr-1 flex-shrink-0" />
+              {errors.service}
+            </p>
+          )}
+        </div>
+
+        {/* Time */}
+        <div>
+          <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-2">
+            Time
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Clock size={18} className="text-gray-400" />
             </div>
+            <input
+              type="text"
+              id="time"
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              style={{ fontSize: '16px' }}
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              placeholder="HH:MM AM/PM"
+            />
           </div>
-          {/* Service */}
-          <div className="mb-4">
-            <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">
-              Service <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Tag size={16} className="text-gray-400" />
-              </div>
-              <input type="text" id="service" className={`w-full pl-10 pr-3 py-2 border ${errors.service ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-[#27AE60] focus:border-[#27AE60]'} rounded-md shadow-sm focus:outline-none focus:ring-2`} value={service} onChange={e => setService(e.target.value)} placeholder="Enter service type" />
-            </div>
-            {errors.service && <p className="mt-1 text-sm text-red-600 flex items-center">
-                <AlertCircle size={14} className="mr-1" />
-                {errors.service}
-              </p>}
+        </div>
+
+        {/* Duration - Touch-friendly buttons */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Duration
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <DurationButton value="15 min" label="15 min" />
+            <DurationButton value="30 min" label="30 min" />
+            <DurationButton value="45 min" label="45 min" />
+            <DurationButton value="1 hour" label="1 hour" />
+            <DurationButton value="1.5 hours" label="1.5 hrs" />
+            <DurationButton value="2 hours" label="2 hours" />
           </div>
-          {/* Time and Duration Row */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {/* Time */}
-            <div>
-              <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-1">
-                Time
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Clock size={16} className="text-gray-400" />
-                </div>
-                <input type="text" id="time" className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]" value={time} onChange={e => setTime(e.target.value)} placeholder="HH:MM AM/PM" />
-              </div>
-            </div>
-            {/* Duration */}
-            <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
-                Duration
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar size={16} className="text-gray-400" />
-                </div>
-                <select id="duration" className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] appearance-none" value={duration} onChange={e => setDuration(e.target.value)}>
-                  <option value="15 min">15 min</option>
-                  <option value="30 min">30 min</option>
-                  <option value="45 min">45 min</option>
-                  <option value="1 hour">1 hour</option>
-                  <option value="1.5 hours">1.5 hours</option>
-                  <option value="2 hours">2 hours</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          {/* Notes */}
-          <div className="mb-6">
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
-            </label>
-            <textarea id="notes" rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60]" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add any additional information"></textarea>
-          </div>
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-              Cancel
-            </button>
-            <button type="submit" className="px-4 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#219653] transition-colors shadow-md">
-              Create Ticket
-            </button>
-          </div>
-        </form>
-      </div>
-    </>;
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+            Notes
+          </label>
+          <textarea
+            id="notes"
+            rows={3}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+            style={{ fontSize: '16px' }}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add any additional information"
+          />
+        </div>
+      </MobileSheetContent>
+    </MobileSheet>
+  );
 }

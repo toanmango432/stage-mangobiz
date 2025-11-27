@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useDeviceDetection } from '../hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
@@ -12,6 +12,10 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
+import { useSwipeGestures } from '../hooks/useGestures';
+import { haptics } from '../utils/haptics';
+import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
+import { MobileTeamSection } from './frontdesk/MobileTeamSection';
 import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
 import { ErrorBoundary } from './frontdesk/ErrorBoundary';
 import {
@@ -91,10 +95,14 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     // Initialize with default settings or from localStorage if available
     return defaultFrontDeskSettings;
   });
-  // Get ticket context functions
+  // Get ticket context functions and data
   const {
-    createTicket
+    createTicket,
+    waitlist = [],
+    serviceTickets = [],
+    staff = [],
   } = useTickets();
+
   // State for dropdown menus
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [showWaitListDropdown, setShowWaitListDropdown] = useState(false);
@@ -114,10 +122,137 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     return true;
   });
   const ticketSettingsRef = useRef<HTMLDivElement>(null);
+
+  // Calculate metrics for mobile tabs - must be after showUpcomingAppointments is defined
+  const mobileTabsData = useMemo((): MobileTab[] => {
+    // Service metrics
+    const pausedCount = serviceTickets.filter(t => t.status === 'paused').length;
+    const serviceSecondary = pausedCount > 0 ? `${pausedCount} paused` : undefined;
+
+    // Wait list metrics
+    const waitingCount = waitlist.length;
+    const avgWaitTime = waitlist.length > 0
+      ? Math.round(waitlist.reduce((sum, t) => {
+          const waitMs = Date.now() - new Date(t.createdAt).getTime();
+          return sum + waitMs / 60000; // Convert to minutes
+        }, 0) / waitlist.length)
+      : 0;
+    const waitSecondary = avgWaitTime > 0 ? `${avgWaitTime}m avg` : undefined;
+    const hasLongWait = waitlist.some(t => {
+      const waitMs = Date.now() - new Date(t.createdAt).getTime();
+      return waitMs > 20 * 60 * 1000; // > 20 min
+    });
+
+    // Coming appointments metrics (placeholder - would come from appointments data)
+    const comingCount = 0; // TODO: Get from appointments
+
+    // Team metrics
+    const teamCount = staff.length;
+    const readyCount = staff.filter((s: any) => s.status === 'ready').length;
+    const teamSecondary = readyCount > 0 ? `${readyCount} ready` : undefined;
+
+    return [
+      {
+        id: 'team',
+        label: 'Team',
+        shortLabel: 'Team',
+        icon: 'team' as const,
+        metrics: {
+          count: teamCount,
+          secondary: teamSecondary,
+        },
+        color: tabColors.team,
+      },
+      {
+        id: 'service',
+        label: 'In Service',
+        shortLabel: 'Service',
+        icon: 'service',
+        metrics: {
+          count: serviceTickets.length,
+          secondary: serviceSecondary,
+        },
+        color: tabColors.service,
+      },
+      {
+        id: 'waitList',
+        label: 'Waiting',
+        shortLabel: 'Waiting',
+        icon: 'waiting',
+        metrics: {
+          count: waitingCount,
+          secondary: waitSecondary,
+          urgent: hasLongWait,
+        },
+        color: tabColors.waiting,
+      },
+      ...(showUpcomingAppointments ? [{
+        id: 'comingAppointments',
+        label: 'Appointments',
+        shortLabel: 'Appts',
+        icon: 'appointments' as const,
+        metrics: {
+          count: comingCount,
+        },
+        color: tabColors.appointments,
+      }] : []),
+    ];
+  }, [serviceTickets, waitlist, staff, showUpcomingAppointments]);
   // Toggle Wait List tab dropdown - fixed to not expect event parameter
   const toggleWaitListTabDropdown = () => {
     setWaitListTabDropdownOpen(!waitListTabDropdownOpen);
   };
+
+  // Swipe gesture handlers for tab navigation on mobile/tablet
+  const handleSwipeLeft = useCallback(() => {
+    if (isCombinedView) {
+      // Combined view: service <-> waitList
+      if (activeCombinedTab === 'service') {
+        haptics.selection();
+        setActiveCombinedTab('waitList');
+      }
+    } else {
+      // Non-combined view: team -> service -> waitList -> comingAppointments
+      const tabs = ['team', 'service', 'waitList', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
+      const currentIndex = tabs.indexOf(activeMobileSection);
+      if (currentIndex < tabs.length - 1) {
+        haptics.selection();
+        setActiveMobileSection(tabs[currentIndex + 1]);
+      }
+    }
+  }, [isCombinedView, activeCombinedTab, activeMobileSection, showUpcomingAppointments]);
+
+  const handleSwipeRight = useCallback(() => {
+    if (isCombinedView) {
+      // Combined view: waitList -> service
+      if (['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)) {
+        haptics.selection();
+        setActiveCombinedTab('service');
+      }
+    } else {
+      // Non-combined view: comingAppointments -> waitList -> service -> team
+      const tabs = ['team', 'service', 'waitList', ...(showUpcomingAppointments ? ['comingAppointments'] : [])];
+      const currentIndex = tabs.indexOf(activeMobileSection);
+      if (currentIndex > 0) {
+        haptics.selection();
+        setActiveMobileSection(tabs[currentIndex - 1]);
+      }
+    }
+  }, [isCombinedView, activeCombinedTab, activeMobileSection, showUpcomingAppointments]);
+
+  // Use swipe gestures hook - only on mobile/tablet
+  const { handlers: swipeHandlers, isSwiping } = useSwipeGestures(
+    {
+      onSwipeLeft: handleSwipeLeft,
+      onSwipeRight: handleSwipeRight,
+    },
+    {
+      threshold: 50,
+      velocity: 0.3,
+      preventScroll: false,
+    }
+  );
+
   // Save active mobile section to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('activeMobileSection', activeMobileSection);
@@ -450,24 +585,17 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         <div className="hidden md:block w-px bg-gray-200 relative"></div>
         {/* Main content area with flex layout for optimal space usage - Added pb-10 for pending footer */}
         <div className="flex-1 flex flex-col h-full min-h-0 pb-10">
-          {/* Mobile/Tablet section tabs - show on mobile and tablet when not in combined view */}
-          {(deviceInfo.isMobile || deviceInfo.isTablet) && !isCombinedView && <div className="flex overflow-x-auto no-scrollbar bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 whitespace-nowrap">
-            {mobileSectionTabs.map(tab => <button key={tab.id} className={`inline-flex items-center h-14 min-w-[100px] px-3 text-[15px] font-medium whitespace-nowrap transition-colors ${activeMobileSection === tab.id ? 'text-[#00D0E0] border-b-2 border-[#00D0E0]' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setActiveMobileSection(tab.id)}>
-              {tab.icon}
-              <span className="truncate">{tab.label}</span>
-              <span className={`ml-1.5 ${activeMobileSection === tab.id ? 'bg-[#00D0E0]/10 text-[#00D0E0]' : 'bg-gray-100 text-gray-600'} text-xs px-1.5 py-0.5 rounded-full`}>
-                {tab.count}
-              </span>
-            </button>)}
-            {/* Toggle combined view button for mobile */}
-            <Tippy content="Combine sections">
-              <button className="inline-flex items-center justify-center h-14 w-10 text-sm font-medium whitespace-nowrap text-gray-500 hover:text-[#00D0E0] hover:bg-gray-50 ml-3 opacity-80 hover:opacity-100" onClick={toggleCombinedView} aria-label="Combine sections">
-                <LayoutGrid size={20} />
-              </button>
-            </Tippy>
-          </div>}
-          {/* Combined view tabs - styled to match the design */}
-          {isCombinedView && <div className="flex items-center justify-between bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 md:h-14">
+          {/* Unified Mobile/Tablet Tab Bar - Clean and simple with metrics */}
+          {(deviceInfo.isMobile || deviceInfo.isTablet) && (
+            <MobileTabBar
+              tabs={mobileTabsData}
+              activeTab={activeMobileSection}
+              onTabChange={setActiveMobileSection}
+              className="sticky top-0 z-10 shadow-sm"
+            />
+          )}
+          {/* Combined view tabs - Desktop only (mobile uses MobileTabBar above) */}
+          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className="flex items-center justify-between bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 md:h-14">
             <div className="flex overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-2">
               {/* IMPORTANT NOTE: This tab order (In Service → Waiting Queue → Appointments) is FINAL and should NEVER be changed without explicit approval */}
               {/* In Service Tab - Blue #4DA6FF theme */}
@@ -611,7 +739,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
             {/* Main content container */}
             <div className="flex flex-col h-full min-h-0">
               {/* Combined view */}
-              {isCombinedView ? <div className="flex h-full overflow-hidden min-h-0 gap-2">
+              {isCombinedView ? <div
+                className={`flex h-full overflow-hidden min-h-0 gap-2 ${isSwiping ? 'select-none' : ''}`}
+                {...((deviceInfo.isMobile || deviceInfo.isTablet) ? swipeHandlers : {})}
+              >
                 {/* Main content area - takes remaining width */}
                 <div className="flex-1 overflow-hidden bg-gray-50 min-h-0" role="tabpanel" id={activeCombinedTab === 'waitList' ? 'waitlist-panel' : 'service-panel'}>
                   {/* Wait List Section - Show when active in combined view */}
@@ -660,7 +791,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                 </div>}
               </div> : <>
                 {/* Three-column layout for desktop - reordered to match workflow */}
-                <div className={`${deviceInfo.isMobile || deviceInfo.isTablet ? 'overflow-auto flex-1' : 'flex flex-1 overflow-hidden'} h-full`}>
+                <div
+                  className={`${deviceInfo.isMobile || deviceInfo.isTablet ? `overflow-auto flex-1 ${isSwiping ? 'select-none' : ''}` : 'flex flex-1 overflow-hidden'} h-full`}
+                  {...((deviceInfo.isMobile || deviceInfo.isTablet) ? swipeHandlers : {})}
+                >
                   {/* For tablet and mobile: Show sections based on active tab */}
                   {deviceInfo.isMobile || deviceInfo.isTablet ? <>
                     {/* Wait List Section - Show Coming + Waiting stacked on mobile/tablet */}
@@ -684,47 +818,39 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                         />
                       </div>}
 
-                      {/* Waiting Queue - Takes remaining space */}
+                      {/* Waiting Queue - Takes remaining space, hideHeader since MobileTabBar shows metrics */}
                       <div className="flex-1 min-h-0">
-                        <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} headerStyles={{
-                          bg: 'bg-[#F9FAFB]',
-                          accentColor: '#F59E0B',
-                          iconColor: 'text-[#9CA3AF]',
-                          activeIconColor: 'text-[#F59E0B]',
-                          titleColor: 'text-[#111827]',
-                          borderColor: 'border-[#E5E7EB]',
-                          counterBg: 'bg-[#E5E7EB]',
-                          counterText: 'text-[#6B7280]'
-                        }} />
+                        <WaitListSection
+                          isMinimized={false}
+                          onToggleMinimize={() => toggleSectionMinimize('waitList')}
+                          isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
+                          hideHeader={true}
+                        />
                       </div>
                     </div>}
                     {/* Service Section - Show when active on mobile/tablet */}
                     {activeMobileSection === 'service' && <div className="h-full flex flex-col">
-                      <div className="flex-grow mb-3">
-                        <ServiceSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} headerStyles={{
-                          bg: 'bg-[#F9FAFB]',
-                          accentColor: '#3B82F6',
-                          iconColor: 'text-[#9CA3AF]',
-                          activeIconColor: 'text-[#3B82F6]',
-                          titleColor: 'text-[#111827]',
-                          borderColor: 'border-[#E5E7EB]',
-                          counterBg: 'bg-[#E5E7EB]',
-                          counterText: 'text-[#6B7280]'
-                        }} />
+                      <div className="flex-grow">
+                        <ServiceSection
+                          isMinimized={false}
+                          onToggleMinimize={() => toggleSectionMinimize('service')}
+                          isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
+                          hideHeader={true}
+                        />
                       </div>
                     </div>}
                     {/* Coming Appointments Section - Show when active on mobile/tablet */}
                     {activeMobileSection === 'comingAppointments' && <div className="h-full pr-0">
-                      <ComingAppointments isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('comingAppointments')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} headerStyles={{
-                        bg: 'bg-[#F9FAFB]',
-                        accentColor: '#10B981',
-                        iconColor: 'text-[#9CA3AF]',
-                        activeIconColor: 'text-[#10B981]',
-                        titleColor: 'text-[#111827]',
-                        borderColor: 'border-[#E5E7EB]',
-                        counterBg: 'bg-[#E5E7EB]',
-                        counterText: 'text-[#6B7280]'
-                      }} />
+                      <ComingAppointments
+                        isMinimized={false}
+                        onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
+                        isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
+                        hideHeader={true}
+                      />
+                    </div>}
+                    {/* Team Section - Show when active on mobile/tablet */}
+                    {activeMobileSection === 'team' && <div className="h-full flex flex-col min-h-0">
+                      <MobileTeamSection className="flex-1 min-h-0" />
                     </div>}
                   </> : <>
                     {/* Desktop layout with horizontal expansion/collapse - UPDATED FOR PROPER ALIGNMENT */}

@@ -7,6 +7,7 @@ interface ComingAppointmentsProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
   isMobile?: boolean;
+  hideHeader?: boolean;
   headerStyles?: {
     bg: string;
     accentColor: string;
@@ -22,6 +23,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   isMinimized = false,
   onToggleMinimize,
   isMobile = false,
+  hideHeader = false,
   headerStyles
 }: ComingAppointmentsProps) {
   const {
@@ -215,50 +217,52 @@ export const ComingAppointments = memo(function ComingAppointments({
   const nextCount = appointmentBuckets.within1Hour.length;
   const laterCount = appointmentBuckets.within3Hours.length + appointmentBuckets.moreThan3Hours.length;
 
-  return <div className="bg-white border-l border-l-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full">
-      {/* Header - Always visible with metrics */}
-      <div className="px-3 py-2 border-b border-gray-200 flex-shrink-0">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-              <Clock size={14} strokeWidth={2.5} className="text-sky-600" />
+  return <div className={`flex-1 bg-white ${!hideHeader ? 'border-l border-l-gray-200' : ''} flex flex-col transition-all duration-300 ease-in-out`}>
+      {/* Header - Hide on mobile when MobileTabBar shows metrics */}
+      {!hideHeader && (
+        <div className="px-3 py-2 border-b border-gray-200 flex-shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
+                <Clock size={14} strokeWidth={2.5} className="text-sky-600" />
+              </div>
+              <h2 className="text-[13px] font-medium text-slate-600">Coming</h2>
+              <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
+              </span>
+              {lateCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold flex items-center gap-1">
+                  <span>Late</span>
+                  <span>{lateCount}</span>
+                </span>
+              )}
+              {nextCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-semibold flex items-center gap-1">
+                  <span>Next</span>
+                  <span>{nextCount}</span>
+                </span>
+              )}
+              {laterCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-600 text-[10px] font-semibold flex items-center gap-1">
+                  <span>Later</span>
+                  <span>{laterCount}</span>
+                </span>
+              )}
             </div>
-            <h2 className="text-[13px] font-medium text-slate-600">Coming</h2>
-            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
-              {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
-            </span>
-            {lateCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold flex items-center gap-1">
-                <span>Late</span>
-                <span>{lateCount}</span>
-              </span>
-            )}
-            {nextCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-semibold flex items-center gap-1">
-                <span>Next</span>
-                <span>{nextCount}</span>
-              </span>
-            )}
-            {laterCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-600 text-[10px] font-semibold flex items-center gap-1">
-                <span>Later</span>
-                <span>{laterCount}</span>
-              </span>
-            )}
+
+            <button
+              onClick={onToggleMinimize}
+              className="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/60 transition-all duration-200"
+              aria-label={isMinimized ? "Expand section" : "Collapse section"}
+            >
+              {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
           </div>
-
-          <button
-            onClick={onToggleMinimize}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/60 transition-all duration-200"
-            aria-label={isMinimized ? "Expand section" : "Collapse section"}
-          >
-            {isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
         </div>
-      </div>
+      )}
 
-      {/* Content - Collapsible */}
-      {!isMinimized && <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+      {/* Content - Collapsible (always show when header is hidden) */}
+      {(hideHeader || !isMinimized) && <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 
       {/* Timeframe tabs - simple and clean */}
       <div className="flex border-b border-gray-200 bg-white flex-shrink-0">
