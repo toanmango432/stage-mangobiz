@@ -5,7 +5,7 @@ import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
 import { dataCleanupService } from './services/dataCleanupService';
 import { licenseManager, type LicenseState } from './services/licenseManager';
-import { ActivationScreen } from './components/licensing/ActivationScreen';
+// import { ActivationScreen } from './components/licensing/ActivationScreen';
 import { initializeDatabase } from './db/schema';
 
 // NOTE: Database clearing disabled to preserve license key during development
@@ -108,18 +108,19 @@ export function App() {
     );
   }
 
-  // Show activation screen if not operational
-  if (licenseManager.isBlocked()) {
-    return (
-      <ActivationScreen
-        initialState={licenseState}
-        onActivated={() => {
-          // Force re-check
-          setIsLicenseChecked(false);
-        }}
-      />
-    );
-  }
+  // NOTE: License validation temporarily disabled for development
+  // Uncomment the code below to re-enable license checks
+  // if (licenseManager.isBlocked()) {
+  //   return (
+  //     <ActivationScreen
+  //       initialState={licenseState}
+  //       onActivated={() => {
+  //         // Force re-check
+  //         setIsLicenseChecked(false);
+  //       }}
+  //     />
+  //   );
+  // }
 
   // Normal app flow
   return (
