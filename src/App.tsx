@@ -7,6 +7,7 @@ import { AdminPortal } from './admin/AdminPortal';
 import { dataCleanupService } from './services/dataCleanupService';
 import { storeAuthManager, type StoreAuthState } from './services/storeAuthManager';
 import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
+import { initializeDatabase } from './db/schema';
 
 // NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
 // If you need to clear the database, do it manually via browser DevTools
@@ -20,6 +21,7 @@ export function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [authState, setAuthState] = useState<StoreAuthState | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [isDbInitialized, setIsDbInitialized] = useState(false);
 
   // Check URL path on mount and listen for changes
   useEffect(() => {
@@ -37,10 +39,37 @@ export function App() {
     };
   }, []);
 
-  // Initialize store auth manager (only for POS mode)
+  // Initialize database FIRST (before any other operations)
+  useEffect(() => {
+    async function initDB() {
+      console.log('🗄️ Initializing database...');
+      try {
+        const dbReady = await initializeDatabase();
+        if (dbReady) {
+          console.log('✅ Database initialized successfully');
+          setIsDbInitialized(true);
+        } else {
+          console.error('❌ Database initialization failed');
+          setIsDbInitialized(true); // Still set to true to prevent infinite loading
+        }
+      } catch (error) {
+        console.error('❌ Database initialization error:', error);
+        setIsDbInitialized(true); // Still set to true to prevent infinite loading
+      }
+    }
+
+    initDB();
+  }, []);
+
+  // Initialize store auth manager (only for POS mode, AFTER database is ready)
   useEffect(() => {
     // Skip auth check for admin mode
     if (isAdminMode) {
+      return;
+    }
+
+    // Wait for database to be initialized first
+    if (!isDbInitialized) {
       return;
     }
 
@@ -70,7 +99,7 @@ export function App() {
     return () => {
       cleanup?.then((unsubscribe) => unsubscribe?.());
     };
-  }, [isAdminMode]);
+  }, [isAdminMode, isDbInitialized]);
 
   // Data cleanup (only for authenticated POS mode)
   useEffect(() => {
@@ -133,8 +162,8 @@ export function App() {
     );
   }
 
-  // POS MODE: Show loading while checking auth
-  if (!isAuthChecked || !authState) {
+  // POS MODE: Show loading while checking auth OR database
+  if (!isDbInitialized || !isAuthChecked) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
         <div className="text-center space-y-4">
@@ -142,7 +171,7 @@ export function App() {
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Mango POS</h2>
-          <p className="text-gray-600">Checking authentication...</p>
+          <p className="text-gray-600">{!isDbInitialized ? 'Initializing database...' : 'Checking authentication...'}</p>
         </div>
       </div>
     );
@@ -154,8 +183,10 @@ export function App() {
       <StoreLoginScreen
         initialState={authState}
         onLoggedIn={() => {
-          // Force re-check
-          setIsAuthChecked(false);
+          // Login successful - auth state will be updated by subscription
+          // Just force a re-render by updating the state
+          const currentState = storeAuthManager.getState();
+          setAuthState(currentState);
         }}
       />
     );

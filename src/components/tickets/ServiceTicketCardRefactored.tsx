@@ -334,7 +334,7 @@ function ServiceTicketCardComponent({
           {/* Progress info - compact */}
           <div className="px-2 pb-1 flex items-center justify-between">
             <div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)} left</div>
-            <div className="font-bold tracking-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }} style={{ color: currentStatus.text }}>{Math.round(progress)}%</div>
+            <div className="font-bold tracking-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)', color: currentStatus.text }}>{Math.round(progress)}%</div>
           </div>
 
           {/* Progress bar - compact (increased height for better visibility) */}

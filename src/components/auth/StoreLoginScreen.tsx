@@ -59,15 +59,13 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
       if (result.status === 'active') {
         console.log('✅ Login successful - status: active');
         setSuccess('Login successful!');
-        setTimeout(() => {
-          onLoggedIn();
-        }, 1000);
+        // Call immediately - no need for artificial delay
+        onLoggedIn();
       } else if (result.status === 'offline_grace') {
         console.log('✅ Login successful - status: offline_grace');
         setSuccess('Logged in (offline mode).');
-        setTimeout(() => {
-          onLoggedIn();
-        }, 1000);
+        // Call immediately - no need for artificial delay
+        onLoggedIn();
       } else {
         // Handle all error statuses (not_logged_in, suspended, inactive, etc.)
         const errorMessage = result.message || 'Login failed. Please check your credentials.';
