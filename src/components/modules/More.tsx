@@ -9,25 +9,49 @@ import {
   ChevronRight,
   Palette,
   Ticket,
-  Shield
+  Shield,
+  Key,
+  LogOut
 } from 'lucide-react';
+import { storeAuthManager } from '../../services/storeAuthManager';
 
 interface MoreProps {
   onNavigate?: (module: string) => void;
 }
 
 export function More({ onNavigate }: MoreProps = {}) {
+  const handleMenuClick = async (itemId: string) => {
+    // Handle provider control center navigation to /admin
+    if (itemId === 'provider-control-center') {
+      window.location.href = '/admin';
+      return;
+    }
+    // Handle logout
+    if (itemId === 'logout') {
+      if (confirm('Are you sure you want to logout?')) {
+        await storeAuthManager.logoutStore();
+        // Force page reload to reset app state
+        window.location.reload();
+      }
+      return;
+    }
+    // Handle regular navigation
+    onNavigate?.(itemId);
+  };
+
   const menuItems = [
+    { id: 'provider-control-center', label: '🔐 Provider Control Center (DEV)', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'sales', label: "Today's Sales", icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-    { id: 'license', label: 'License & Activation', icon: Shield, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { id: 'devices', label: 'Device Manager', icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { id: 'license', label: 'License & Activation', icon: Key, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { id: 'devices', label: 'Device Manager', icon: Smartphone, color: 'text-cyan-600', bg: 'bg-cyan-50' },
     { id: 'account', label: 'Account', icon: User, color: 'text-purple-600', bg: 'bg-purple-50' },
     { id: 'closeout', label: 'End of Day Close Out', icon: Lock, color: 'text-red-600', bg: 'bg-red-50' },
-    { id: 'team', label: 'Team', icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { id: 'team', label: 'Team', icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
     { id: 'schedule', label: 'Schedule', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { id: 'admin', label: 'Admin Back Office', icon: Settings, color: 'text-gray-600', bg: 'bg-gray-50' },
     { id: 'header-preview', label: '🎨 Header Color Preview (DEV)', icon: Palette, color: 'text-pink-600', bg: 'bg-pink-50' },
     { id: 'ticket-preview', label: '🎫 Ticket Color Preview (DEV)', icon: Ticket, color: 'text-violet-600', bg: 'bg-violet-50' },
+    { id: 'logout', label: 'Logout', icon: LogOut, color: 'text-red-600', bg: 'bg-red-50' },
   ];
 
   return (
@@ -42,7 +66,7 @@ export function More({ onNavigate }: MoreProps = {}) {
               <button
                 key={item.id}
                 className="flex items-center gap-4 p-5 bg-white rounded-xl hover:shadow-md transition-all border border-gray-200 hover:border-gray-300 group"
-                onClick={() => onNavigate?.(item.id)}
+                onClick={() => handleMenuClick(item.id)}
               >
                 <div className={`w-12 h-12 ${item.bg} rounded-lg flex items-center justify-center`}>
                   <Icon className={`w-6 h-6 ${item.color}`} />

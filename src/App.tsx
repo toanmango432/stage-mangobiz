@@ -3,79 +3,84 @@ import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
+import { AdminPortal } from './admin/AdminPortal';
 import { dataCleanupService } from './services/dataCleanupService';
-import { licenseManager, type LicenseState } from './services/licenseManager';
-// import { ActivationScreen } from './components/licensing/ActivationScreen';
-import { initializeDatabase } from './db/schema';
+import { storeAuthManager, type StoreAuthState } from './services/storeAuthManager';
+import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
 
-// NOTE: Database clearing disabled to preserve license key during development
-// To manually clear the database, use DevTools > Application > IndexedDB > Delete 'mango_biz_store_app'
+// NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
+// If you need to clear the database, do it manually via browser DevTools
+// or uncomment this code temporarily:
 // if (import.meta.env.DEV) {
-//   indexedDB.deleteDatabase('mango_biz_store_app');
-//   console.log('✅ IndexedDB cleared - using fresh mock data with lastVisitDate');
+//   indexedDB.deleteDatabase('mango-pos-db');
+//   console.log('✅ IndexedDB cleared');
 // }
 
 export function App() {
-  const [licenseState, setLicenseState] = useState<LicenseState | null>(null);
-  const [isLicenseChecked, setIsLicenseChecked] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [authState, setAuthState] = useState<StoreAuthState | null>(null);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
+  // Check URL path on mount and listen for changes
   useEffect(() => {
-    // Initialize database first, then license manager
-    async function initializeLicense() {
-      console.log('🔐 Initializing database and checking license...');
+    const checkPath = () => {
+      setIsAdminMode(window.location.pathname.startsWith('/admin'));
+    };
 
-      try {
-        // Initialize database FIRST (required for license manager to read settings)
-        const dbReady = await initializeDatabase();
-        if (!dbReady) {
-          console.error('Failed to initialize database');
-          setIsLicenseChecked(true);
-          return;
-        }
-        console.log('✅ Database initialized');
+    checkPath();
 
-        // Now check license
-        const state = await licenseManager.initialize();
-        setLicenseState(state);
-
-        // Subscribe to license changes
-        const unsubscribe = licenseManager.subscribe((newState) => {
-          setLicenseState(newState);
-          // Ensure isLicenseChecked is true when we have a valid state
-          if (newState.status !== 'checking') {
-            setIsLicenseChecked(true);
-          }
-        });
-
-        // Start background checks if operational
-        if (state.status === 'active' || state.status === 'offline_grace') {
-          licenseManager.startBackgroundChecks();
-        }
-
-        setIsLicenseChecked(true);
-
-        return unsubscribe;
-      } catch (error) {
-        console.error('❌ License initialization failed:', error);
-        setIsLicenseChecked(true);
-      }
-    }
-
-    const cleanup = initializeLicense();
+    // Listen for URL changes (for manual navigation)
+    window.addEventListener('popstate', checkPath);
 
     return () => {
-      cleanup?.then((unsubscribe) => unsubscribe?.());
-      licenseManager.stopBackgroundChecks();
+      window.removeEventListener('popstate', checkPath);
     };
   }, []);
 
+  // Initialize store auth manager (only for POS mode)
   useEffect(() => {
-    if (!isLicenseChecked || !licenseState) return;
-    if (!licenseManager.isOperational()) return;
+    // Skip auth check for admin mode
+    if (isAdminMode) {
+      return;
+    }
+
+    async function initializeAuth() {
+      console.log('🔐 Checking store authentication...');
+
+      try {
+        const state = await storeAuthManager.initialize();
+        setAuthState(state);
+
+        // Subscribe to auth state changes
+        const unsubscribe = storeAuthManager.subscribe((newState) => {
+          setAuthState(newState);
+        });
+
+        setIsAuthChecked(true);
+
+        return unsubscribe;
+      } catch (error) {
+        console.error('❌ Auth initialization failed:', error);
+        setIsAuthChecked(true);
+      }
+    }
+
+    const cleanup = initializeAuth();
+
+    return () => {
+      cleanup?.then((unsubscribe) => unsubscribe?.());
+    };
+  }, [isAdminMode]);
+
+  // Data cleanup (only for authenticated POS mode)
+  useEffect(() => {
+    if (isAdminMode) return;
+    if (!isAuthChecked || !authState) return;
+    if (!storeAuthManager.isOperational()) return;
 
     // Run data cleanup on startup and schedule daily cleanup
-    // Using hardcoded salonId for now - should come from auth context
-    const salonId = 'salon_123';
+    // Use store ID from auth state
+    const salonId = authState.store?.storeId || 'salon_123';
 
     // Schedule automatic cleanup
     const cleanupInterval = dataCleanupService.scheduleAutoCleanup(salonId);
@@ -91,10 +96,45 @@ export function App() {
     return () => {
       clearInterval(cleanupInterval);
     };
-  }, [isLicenseChecked, licenseState]);
+  }, [isAdminMode, isAuthChecked, authState]);
 
-  // Show loading while checking license
-  if (!isLicenseChecked || !licenseState) {
+  // Toaster configuration (shared between modes)
+  const toasterConfig = {
+    position: 'top-right' as const,
+    toastOptions: {
+      duration: 3000,
+      style: {
+        background: '#fff',
+        color: '#374151',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      success: {
+        iconTheme: {
+          primary: '#10B981',
+          secondary: '#fff',
+        },
+      },
+      error: {
+        iconTheme: {
+          primary: '#EF4444',
+          secondary: '#fff',
+        },
+      },
+    },
+  };
+
+  // ADMIN MODE: Render AdminPortal without Redux Provider
+  if (isAdminMode) {
+    return (
+      <>
+        <AdminPortal />
+        <Toaster {...toasterConfig} />
+      </>
+    );
+  }
+
+  // POS MODE: Show loading while checking auth
+  if (!isAuthChecked || !authState) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
         <div className="text-center space-y-4">
@@ -102,53 +142,30 @@ export function App() {
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Mango POS</h2>
-          <p className="text-gray-600">Checking license...</p>
+          <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );
   }
 
-  // NOTE: License validation temporarily disabled for development
-  // Uncomment the code below to re-enable license checks
-  // if (licenseManager.isBlocked()) {
-  //   return (
-  //     <ActivationScreen
-  //       initialState={licenseState}
-  //       onActivated={() => {
-  //         // Force re-check
-  //         setIsLicenseChecked(false);
-  //       }}
-  //     />
-  //   );
-  // }
+  // POS MODE: Show login screen if not authenticated
+  if (storeAuthManager.isLoginRequired()) {
+    return (
+      <StoreLoginScreen
+        initialState={authState}
+        onLoggedIn={() => {
+          // Force re-check
+          setIsAuthChecked(false);
+        }}
+      />
+    );
+  }
 
-  // Normal app flow
+  // POS MODE: Normal app flow
   return (
     <Provider store={store}>
       <AppShell />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#fff',
-            color: '#374151',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
+      <Toaster {...toasterConfig} />
     </Provider>
   );
 }

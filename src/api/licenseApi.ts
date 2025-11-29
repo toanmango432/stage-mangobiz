@@ -1,6 +1,10 @@
 import axios, { AxiosError } from 'axios';
 
-const CONTROL_CENTER_URL = import.meta.env.VITE_CONTROL_CENTER_URL || 'http://localhost:4000';
+// Use empty string for same-origin requests (works with vite proxy)
+// Only fallback to localhost:4000 if env variable is completely undefined
+const CONTROL_CENTER_URL = import.meta.env.VITE_CONTROL_CENTER_URL !== undefined
+  ? import.meta.env.VITE_CONTROL_CENTER_URL
+  : 'http://localhost:4000';
 
 export interface ValidateLicenseRequest {
   licenseKey: string;

@@ -13,11 +13,13 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "admin:server": "tsx src/admin/api/devServer.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@reduxjs/toolkit": "^2.9.1",
+    "@supabase/supabase-js": "^2.84.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
@@ -61,6 +63,7 @@
     "fake-indexeddb": "^6.2.4",
     "postcss": "latest",
     "tailwindcss": "3.4.17",
+    "tsx": "^4.7.0",
     "typescript": "^5.5.4",
     "vite": "^5.2.0"
   }
