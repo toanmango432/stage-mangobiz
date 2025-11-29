@@ -58,13 +58,20 @@ export const WaitListSection = memo(function WaitListSection({
   const vipCount = waitlist.filter(ticket => ticket.clientType === 'VIP').length;
 
   // Calculate average wait time from ticket.time (check-in time)
-  const calculateWaitTime = (time: string): number => {
+  const calculateWaitTime = (time: string | undefined): number => {
+    if (!time || typeof time !== 'string' || !time.includes(':')) {
+      return 0;
+    }
     try {
       const startTime = new Date();
       const [hours, minutes] = time.split(':').map(Number);
+      if (isNaN(hours) || isNaN(minutes)) {
+        return 0;
+      }
       startTime.setHours(hours, minutes, 0, 0);
       const now = new Date();
-      return Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60));
+      const waitTime = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60);
+      return isNaN(waitTime) ? 0 : Math.max(0, waitTime);
     } catch {
       return 0;
     }
@@ -950,7 +957,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>}
       </div>;
   }
-  return <div className="flex-1 bg-white border-l border-l-gray-200 flex flex-col overflow-hidden pb-0 transform-gpu transition-all duration-300 ease-in-out">
+  return <div className="h-full flex-1 bg-white border-l border-l-gray-200 flex flex-col overflow-hidden pb-0 transform-gpu transition-all duration-300 ease-in-out">
       {/* Section header - hide when in combined view and hideHeader is true */}
       {!hideHeader && (
         <FrontDeskHeader

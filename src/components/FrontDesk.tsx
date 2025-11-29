@@ -571,8 +571,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     }
   };
   return (
-    <div className="flex h-full pb-0">
-      <div className="flex flex-1 pb-0">
+    <div className="flex h-full pb-0 overflow-hidden">
+      <div className="flex flex-1 pb-0 min-h-0 overflow-hidden">
         {/* Sidebar with improved mobile handling */}
         <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-30 h-full transition-transform duration-300 ease-in-out`}>
           <TeamSectionErrorBoundary>
@@ -584,7 +584,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         {/* Enhanced visual separator between tech and service sections */}
         <div className="hidden md:block w-px bg-gray-200 relative"></div>
         {/* Main content area with flex layout for optimal space usage - Added pb-10 for pending footer */}
-        <div className="flex-1 flex flex-col h-full min-h-0 pb-10">
+        <div className="flex-1 flex flex-col h-full min-h-0 pb-10 overflow-hidden">
           {/* Unified Mobile/Tablet Tab Bar - Clean and simple with metrics */}
           {(deviceInfo.isMobile || deviceInfo.isTablet) && (
             <MobileTabBar
@@ -733,11 +733,11 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
               </div>}
             </div>
           </div>}
-          <div className="flex-1 flex flex-col relative h-full bg-white min-h-0">
+          <div className="flex-1 flex flex-col relative h-full bg-white min-h-0 overflow-hidden">
             {/* Position the TicketsHeader absolutely in the top right */}
             <TicketsHeader />
             {/* Main content container */}
-            <div className="flex flex-col h-full min-h-0">
+            <div className="flex flex-col h-full min-h-0 flex-1 overflow-hidden">
               {/* Combined view */}
               {isCombinedView ? <div
                 className={`flex h-full overflow-hidden min-h-0 gap-2 ${isSwiping ? 'select-none' : ''}`}
@@ -746,8 +746,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                 {/* Main content area - takes remaining width */}
                 <div className="flex-1 overflow-hidden bg-gray-50 min-h-0" role="tabpanel" id={activeCombinedTab === 'waitList' ? 'waitlist-panel' : 'service-panel'}>
                   {/* Wait List Section - Show when active in combined view */}
-                  {activeCombinedTab === 'waitList' && <div className="h-full flex flex-col">
-                    <div className="h-full min-h-0">
+                  {activeCombinedTab === 'waitList' && <div className="h-full flex flex-col overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-hidden">
                       <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} headerStyles={{
                         bg: 'bg-[#F9FAFB]',
                         accentColor: '#F59E0B',
@@ -761,8 +761,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                     </div>
                   </div>}
                   {/* Service Section - Show when active in combined view */}
-                  {activeCombinedTab === 'service' && <div className="h-full flex flex-col min-h-0">
-                    <div className="h-full min-h-0">
+                  {activeCombinedTab === 'service' && <div className="h-full flex flex-col overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-hidden">
                       <ServiceSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} headerStyles={{
                         bg: 'bg-[#F9FAFB]',
                         accentColor: '#3B82F6',
@@ -798,7 +798,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                   {/* For tablet and mobile: Show sections based on active tab */}
                   {deviceInfo.isMobile || deviceInfo.isTablet ? <>
                     {/* Wait List Section - Show Coming + Waiting stacked on mobile/tablet */}
-                    {activeMobileSection === 'waitList' && <div className="h-full flex flex-col">
+                    {activeMobileSection === 'waitList' && <div className="h-full flex flex-col overflow-hidden">
                       {/* Coming Appointments - Minimized at top */}
                       {showUpcomingAppointments && <div className="flex-shrink-0">
                         <ComingAppointments
@@ -819,7 +819,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                       </div>}
 
                       {/* Waiting Queue - Takes remaining space, hideHeader since MobileTabBar shows metrics */}
-                      <div className="flex-1 min-h-0">
+                      <div className="flex-1 min-h-0 overflow-hidden">
                         <WaitListSection
                           isMinimized={false}
                           onToggleMinimize={() => toggleSectionMinimize('waitList')}
@@ -829,8 +829,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                       </div>
                     </div>}
                     {/* Service Section - Show when active on mobile/tablet */}
-                    {activeMobileSection === 'service' && <div className="h-full flex flex-col">
-                      <div className="flex-grow">
+                    {activeMobileSection === 'service' && <div className="h-full flex flex-col overflow-hidden">
+                      <div className="flex-1 min-h-0 overflow-hidden">
                         <ServiceSection
                           isMinimized={false}
                           onToggleMinimize={() => toggleSectionMinimize('service')}
@@ -861,7 +861,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                         <div className="flex flex-1 min-h-0 gap-0 relative pb-0">
                           {/* Left Column - In Service (resizable) */}
                           <div
-                            className={`h-full min-h-0 pb-0 ${minimizedSections.service ? 'w-[60px] flex-shrink-0' : minimizedSections.waitList ? 'flex-1' : ''}`}
+                            className={`h-full min-h-0 pb-0 overflow-hidden ${minimizedSections.service ? 'w-[60px] flex-shrink-0' : minimizedSections.waitList ? 'flex-1' : ''}`}
                             style={!minimizedSections.service && !minimizedSections.waitList ? { width: `${serviceWidth}%` } : undefined}
                           >
                             <ServiceSectionErrorBoundary>
@@ -918,7 +918,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
 
                           {/* Right Column - Coming + Waiting stacked vertically */}
                           <div
-                            className={`h-full min-h-0 pb-0 flex flex-col ${minimizedSections.waitList && minimizedSections.comingAppointments ? 'w-[60px] flex-shrink-0' : minimizedSections.service ? 'flex-1' : ''}`}
+                            className={`h-full min-h-0 pb-0 flex flex-col overflow-hidden ${minimizedSections.waitList && minimizedSections.comingAppointments ? 'w-[60px] flex-shrink-0' : minimizedSections.service ? 'flex-1' : ''}`}
                             style={!minimizedSections.service && !(minimizedSections.waitList && minimizedSections.comingAppointments) ? { width: `${100 - serviceWidth}%` } : undefined}
                           >
                             {/* Coming Appointments - Top */}
@@ -943,7 +943,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                             </div>}
 
                             {/* Waiting Queue - Bottom */}
-                            <div className={minimizedSections.waitList ? 'flex-shrink-0' : 'flex-1 min-h-0'}>
+                            <div className={minimizedSections.waitList ? 'flex-shrink-0' : 'flex-1 min-h-0 overflow-hidden'}>
                               <WaitListErrorBoundary>
                                 <WaitListSection
                                   isMinimized={minimizedSections.waitList}
