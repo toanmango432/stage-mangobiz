@@ -243,6 +243,24 @@ export function TopHeaderBar({
               </button>
             );
           })}
+
+          {/* Divider before More button */}
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+
+          {/* More Button - subtle, icon-only, secondary importance */}
+          <button
+            onClick={() => onModuleChange?.('more')}
+            className={`
+              relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200
+              ${activeModule === 'more'
+                ? 'bg-gray-200 text-gray-900'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+              }
+            `}
+            title="More options"
+          >
+            <MoreHorizontal size={20} />
+          </button>
         </nav>
       </div>
       )}
