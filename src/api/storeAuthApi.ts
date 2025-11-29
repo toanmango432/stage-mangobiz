@@ -89,6 +89,62 @@ export interface AuthError {
   details?: any;
 }
 
+// ==================== DEMO MODE ====================
+
+// Demo credentials that work without a backend server
+const DEMO_CREDENTIALS: Record<string, { password: string; store: { id: string; name: string; storeLoginId: string }; license: { tier: string; status: string } }> = {
+  'demo@salon.com': {
+    password: 'demo123',
+    store: { id: 'store-demo-001', name: 'Demo Salon & Spa', storeLoginId: 'demo@salon.com' },
+    license: { tier: 'professional', status: 'active' },
+  },
+  'admin@mangobiz.com': {
+    password: 'admin123',
+    store: { id: 'store-mango-001', name: 'Mango Business', storeLoginId: 'admin@mangobiz.com' },
+    license: { tier: 'enterprise', status: 'active' },
+  },
+};
+
+/**
+ * Check if credentials match demo mode
+ */
+function checkDemoCredentials(storeId: string, password: string): StoreLoginResponse | null {
+  const demo = DEMO_CREDENTIALS[storeId.toLowerCase()];
+  if (demo && demo.password === password) {
+    console.log('🎭 Demo mode: Using offline credentials for', storeId);
+    return {
+      success: true,
+      store: demo.store,
+      license: demo.license,
+      token: 'demo-token-' + Date.now(),
+      defaults: {
+        taxSettings: [{ name: 'Sales Tax', rate: 8.5, isDefault: true }],
+        categories: [
+          { name: 'Manicure', icon: '💅', color: '#FF6B9D' },
+          { name: 'Pedicure', icon: '🦶', color: '#4ECDC4' },
+          { name: 'Waxing', icon: '✨', color: '#95E1D3' },
+          { name: 'Facial', icon: '🧖', color: '#F9ED69' },
+        ],
+        items: [
+          { name: 'Basic Manicure', category: 'Manicure', duration: 30, price: 20 },
+          { name: 'Gel Manicure', category: 'Manicure', duration: 45, price: 35 },
+          { name: 'Basic Pedicure', category: 'Pedicure', duration: 45, price: 30 },
+          { name: 'Spa Pedicure', category: 'Pedicure', duration: 60, price: 50 },
+        ],
+        employeeRoles: [
+          { name: 'Manager', permissions: ['all'], color: '#10B981' },
+          { name: 'Technician', permissions: ['create_ticket', 'checkout'], color: '#3B82F6' },
+        ],
+        paymentMethods: [
+          { name: 'Cash', type: 'cash', isActive: true },
+          { name: 'Credit Card', type: 'card', isActive: true },
+        ],
+      },
+    };
+  }
+  return null;
+}
+
 // ==================== API FUNCTIONS ====================
 
 /**
@@ -98,6 +154,13 @@ export async function loginStore(
   storeId: string,
   password: string
 ): Promise<StoreLoginResponse> {
+  // First, check demo credentials (works offline)
+  const demoResponse = checkDemoCredentials(storeId, password);
+  if (demoResponse) {
+    return demoResponse;
+  }
+
+  // Try server authentication
   try {
     const response = await axios.post<StoreLoginResponse>(
       `${CONTROL_CENTER_URL}/api/auth/store`,
