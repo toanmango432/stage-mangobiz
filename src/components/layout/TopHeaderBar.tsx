@@ -162,7 +162,7 @@ export function TopHeaderBar({
   });
 
   return (
-    <header className={`bg-white/90 backdrop-blur-lg border-b border-gray-200/80 h-14 flex items-center px-4 shadow-sm fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-out ${
+    <header className={`bg-white/70 backdrop-blur-xl border-b border-gray-200/50 h-14 flex items-center px-4 fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-out ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       {/* Left Section - Brand & Organization */}
