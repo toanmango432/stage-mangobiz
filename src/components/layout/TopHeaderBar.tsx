@@ -244,22 +244,22 @@ export function TopHeaderBar({
             );
           })}
 
-          {/* Divider before More button */}
-          <div className="w-px h-6 bg-gray-200 mx-1" />
-
-          {/* More Button - subtle, icon-only, secondary importance */}
+          {/* More Button - styled as a lighter, secondary tab */}
           <button
             onClick={() => onModuleChange?.('more')}
             className={`
-              relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200
+              relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200
+              min-h-[44px]
               ${activeModule === 'more'
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                ? 'bg-gray-100 text-gray-900 border border-gray-300'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent'
               }
             `}
-            title="More options"
           >
-            <MoreHorizontal size={20} />
+            <MoreHorizontal size={18} />
+            <span className={`text-sm ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
+              More
+            </span>
           </button>
         </nav>
       </div>
