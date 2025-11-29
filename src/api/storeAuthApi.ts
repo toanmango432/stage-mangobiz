@@ -11,6 +11,15 @@ const CONTROL_CENTER_URL = import.meta.env.VITE_CONTROL_CENTER_URL !== undefined
   ? import.meta.env.VITE_CONTROL_CENTER_URL
   : 'http://localhost:4000';
 
+// Demo mode: Enable mock responses when no backend is available
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || true; // Default to true for development
+
+// Demo credentials
+const DEMO_CREDENTIALS = {
+  storeId: 'demo@salon.com',
+  password: 'demo123',
+};
+
 // ==================== TYPES ====================
 
 export interface StoreLoginRequest {
@@ -92,12 +101,58 @@ export interface AuthError {
 // ==================== API FUNCTIONS ====================
 
 /**
+ * Mock response for demo login
+ */
+function getDemoLoginResponse(): StoreLoginResponse {
+  return {
+    success: true,
+    store: {
+      id: 'demo_store_001',
+      name: 'Demo Salon',
+      storeLoginId: 'demo@salon.com',
+    },
+    license: {
+      tier: 'premium',
+      status: 'active',
+    },
+    token: 'demo_token_' + Date.now(),
+    defaults: {
+      taxSettings: [{ name: 'Sales Tax', rate: 8.25, isDefault: true }],
+      categories: [
+        { id: 'cat_1', name: 'Hair Services' },
+        { id: 'cat_2', name: 'Nail Services' },
+        { id: 'cat_3', name: 'Spa Services' },
+      ],
+      paymentMethods: [
+        { id: 'pm_1', name: 'Cash', isDefault: true },
+        { id: 'pm_2', name: 'Credit Card' },
+        { id: 'pm_3', name: 'Debit Card' },
+      ],
+    },
+  };
+}
+
+/**
  * Authenticate store with store ID and password
  */
 export async function loginStore(
   storeId: string,
   password: string
 ): Promise<StoreLoginResponse> {
+  // Check for demo credentials first (works even without backend)
+  if (DEMO_MODE) {
+    const isDemoCredentials =
+      storeId.toLowerCase() === DEMO_CREDENTIALS.storeId.toLowerCase() &&
+      password === DEMO_CREDENTIALS.password;
+
+    if (isDemoCredentials) {
+      console.log('✅ Demo login successful (mock mode)');
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return getDemoLoginResponse();
+    }
+  }
+
   try {
     const response = await axios.post<StoreLoginResponse>(
       `${CONTROL_CENTER_URL}/api/auth/store`,
@@ -108,6 +163,18 @@ export async function loginStore(
     console.log('✅ Store login successful:', response.data);
     return response.data;
   } catch (error) {
+    // In demo mode, if API fails and credentials match demo, still allow login
+    if (DEMO_MODE) {
+      const isDemoCredentials =
+        storeId.toLowerCase() === DEMO_CREDENTIALS.storeId.toLowerCase() &&
+        password === DEMO_CREDENTIALS.password;
+
+      if (isDemoCredentials) {
+        console.log('✅ Demo login successful (API unavailable, using mock)');
+        return getDemoLoginResponse();
+      }
+    }
+
     throw handleAuthError(error, 'Store login');
   }
 }
