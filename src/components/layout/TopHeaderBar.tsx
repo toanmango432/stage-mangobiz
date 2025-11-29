@@ -56,14 +56,13 @@ export function TopHeaderBar({
 
   const organizations = ['Main Salon', 'Downtown Branch', 'Westside Location'];
 
-  // Navigation Modules
+  // Navigation Modules - 4 core modules for busy salon staff
+  // Large, obvious buttons following "remote control" principle
   const modules = [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
-    { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
     { id: 'checkout', label: 'Checkout', icon: CreditCard },
     { id: 'sales', label: 'Sales', icon: FileText },
-    { id: 'more', label: 'More', icon: MoreHorizontal },
   ];
 
   // Universal Smart Search - AI-like suggestions across all system entities
@@ -162,7 +161,7 @@ export function TopHeaderBar({
   });
 
   return (
-    <header className={`bg-white/70 backdrop-blur-xl border-b border-gray-200/50 h-14 flex items-center px-4 fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-out ${
+    <header className={`bg-white/95 backdrop-blur-xl border-b-2 border-gray-200 h-16 flex items-center px-4 fixed top-0 left-0 right-0 z-50 shadow-sm transition-transform duration-300 ease-out ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       {/* Left Section - Brand & Organization */}
@@ -207,46 +206,39 @@ export function TopHeaderBar({
       </div>
 
       {/* Center Section - Navigation (hidden on mobile/tablet when BottomNavBar is shown) */}
+      {/* Large, obvious buttons for busy salon staff - "Remote Control" principle */}
       {!hideNavigation && (
       <div className="flex-1 flex justify-center items-center h-full">
-        <nav className="flex items-center gap-1 h-full">
+        <nav className="flex items-center gap-2 h-full">
           {modules.map((module) => {
             const Icon = module.icon;
             const isActive = activeModule === module.id;
-            const hasBadge = module.badge !== undefined && module.badge > 0;
 
             return (
               <button
                 key={module.id}
                 onClick={() => onModuleChange?.(module.id)}
                 className={`
-                  relative flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 group
-                  ${isActive 
-                    ? 'bg-orange-50 text-orange-600' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl transition-all duration-200 group
+                  min-h-[48px]
+                  ${isActive
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                   }
                 `}
               >
-                <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                <span className={`text-sm font-medium ${isActive ? 'font-semibold' : ''}`}>
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className="transition-transform duration-200"
+                />
+                <span className={`text-base ${isActive ? 'font-bold' : 'font-semibold'}`}>
                   {module.label}
                 </span>
-                
-                {/* Active Indicator Dot */}
-                {isActive && (
-                  <span className="absolute -bottom-[19px] left-1/2 -translate-x-1/2 w-1 h-1 bg-orange-500 rounded-full" />
-                )}
 
-                {/* Badge with pulsing animation for Pending */}
-                {hasBadge && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                    {/* Pulsing ring animation */}
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    {/* Badge content */}
-                    <span className="relative inline-flex min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full items-center justify-center shadow-md border border-white">
-                      {module.badge! > 99 ? '99+' : module.badge}
-                    </span>
-                  </span>
+                {/* Active Indicator Bar */}
+                {isActive && (
+                  <span className="absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-8 h-1 bg-orange-500 rounded-full" />
                 )}
               </button>
             );

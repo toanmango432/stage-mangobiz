@@ -210,7 +210,7 @@ export function AppShell() {
       />
 
       {/* Main Content Area */}
-      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-14 bg-white ${showBottomNav ? 'pb-[72px]' : ''}`}>
+      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-16 bg-white ${showBottomNav ? 'pb-[72px]' : ''}`}>
         {renderModule()}
       </main>
 
