@@ -162,11 +162,12 @@ export function TopHeaderBar({
 
   return (
     <header className={`
-      bg-gradient-to-r from-orange-50/95 via-white/90 to-orange-50/95
-      backdrop-blur-2xl backdrop-saturate-150
-      border-b border-orange-100/50
-      shadow-[0_1px_0_0_rgba(255,255,255,0.9),0_4px_20px_-4px_rgba(251,146,60,0.15)]
-      h-16 flex items-center px-4 fixed top-0 left-0 right-0 z-50
+      bg-gradient-to-b from-white/40 via-orange-50/30 to-white/20
+      backdrop-blur-xl backdrop-saturate-[1.8]
+      border border-white/60 border-b-white/30
+      rounded-b-2xl mx-2
+      shadow-[0_8px_32px_rgba(251,146,60,0.12),0_2px_8px_rgba(0,0,0,0.08),inset_0_2px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(255,255,255,0.3)]
+      h-16 flex items-center px-4 fixed top-0 left-2 right-2 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
