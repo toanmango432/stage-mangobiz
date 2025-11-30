@@ -165,20 +165,20 @@ export function TopHeaderBar({
       bg-gradient-to-b from-white/50 via-orange-50/35 to-white/25
       backdrop-blur-xl backdrop-saturate-[1.8]
       border-b border-white/40
-      rounded-b-2xl
+      rounded-b-xl md:rounded-b-2xl
       shadow-[0_8px_32px_rgba(251,146,60,0.15),0_4px_12px_rgba(0,0,0,0.1),inset_0_2px_0_rgba(255,255,255,1),inset_0_-1px_0_rgba(255,255,255,0.4)]
-      h-14 md:h-16 flex items-center px-3 md:px-4 fixed top-0 left-0 right-0 z-50
+      h-12 md:h-16 flex items-center px-2.5 md:px-4 fixed top-0 left-0 right-0 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
       {/* Left Section - Brand & Organization */}
       <div className={`flex items-center gap-4 ${hideNavigation ? 'flex-1' : 'min-w-[240px]'}`}>
-        {/* Logo - with subtle glow, smaller on mobile */}
-        <div className="flex items-center gap-1.5 md:gap-2">
-          <div className="w-8 h-8 md:w-9 md:h-9 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/25 ring-2 ring-white/50">
-            <span className="text-white font-bold text-xs md:text-sm">M</span>
+        {/* Logo - with subtle glow, compact on mobile */}
+        <div className="flex items-center gap-1 md:gap-2">
+          <div className="w-7 h-7 md:w-9 md:h-9 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/25 ring-1 md:ring-2 ring-white/50">
+            <span className="text-white font-bold text-[10px] md:text-sm">M</span>
           </div>
-          <span className="font-bold text-gray-900 text-base md:text-lg tracking-tight">Mango</span>
+          <span className="font-bold text-gray-900 text-sm md:text-lg tracking-tight">Mango</span>
         </div>
 
         {/* Organization Selector */}
@@ -268,12 +268,12 @@ export function TopHeaderBar({
       )}
 
       {/* Right Section - Search, Actions & User */}
-      <div className={`flex items-center gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
+      <div className={`flex items-center gap-1.5 md:gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
         {/* Compact Search - glass style */}
         <div className={`relative transition-all duration-300 ease-out ${
-          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-36 sm:w-48' : 'w-48'
+          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-28 sm:w-40' : 'w-48'
         }`}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+          <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-3 md:w-3.5 h-3 md:h-3.5 text-gray-500" />
           <input
             ref={searchInputRef}
             type="text"
@@ -282,7 +282,7 @@ export function TopHeaderBar({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className="w-full pl-9 pr-8 py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-300 focus:bg-white/60 transition-all placeholder:text-gray-500 text-gray-800"
+            className="w-full pl-7 md:pl-9 pr-2 md:pr-8 py-1.5 md:py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-full text-[10px] md:text-xs focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-300 focus:bg-white/60 transition-all placeholder:text-gray-500 text-gray-800"
           />
           {!isSearchExpanded && !hideNavigation && (
             <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-gray-200/50 rounded text-gray-500 text-[9px] font-medium">
@@ -348,35 +348,35 @@ export function TopHeaderBar({
           )}
         </div>
 
-        {/* Front Desk Settings - glass style */}
+        {/* Front Desk Settings - glass style, compact on mobile */}
         {onFrontDeskSettingsClick && (
           <button
             onClick={onFrontDeskSettingsClick}
-            className="p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60"
+            className="p-1.5 md:p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60"
             title="Front Desk Settings"
           >
-            <Settings className="w-4 h-4 text-gray-600" />
+            <Settings className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
           </button>
         )}
 
-        {/* Notifications - glass style with glowing badge */}
-        <button className="relative p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60">
-          <Bell className="w-4 h-4 text-gray-600" />
+        {/* Notifications - glass style with glowing badge, compact on mobile */}
+        <button className="relative p-1.5 md:p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60">
+          <Bell className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
           {notificationCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full shadow-lg shadow-red-500/50 animate-pulse"></span>
+            <span className="absolute top-0 right-0 md:top-0.5 md:right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 border md:border-2 border-white rounded-full shadow-lg shadow-red-500/50 animate-pulse"></span>
           )}
         </button>
 
-        {/* User Profile - glass style with ring */}
-        <div className="relative pl-2 border-l border-white/30">
+        {/* User Profile - glass style with ring, compact on mobile */}
+        <div className="relative md:pl-2 md:border-l border-white/30">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 bg-white/20 hover:bg-white/40 rounded-full pl-1 pr-2 py-1 transition-all ring-1 ring-white/30 hover:ring-white/50"
+            className="flex items-center gap-1 md:gap-2 bg-white/20 hover:bg-white/40 rounded-full pl-0.5 md:pl-1 pr-1 md:pr-2 py-0.5 md:py-1 transition-all ring-1 ring-white/30 hover:ring-white/50"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-md ring-2 ring-white/60">
-              <span className="text-white font-bold text-xs">A</span>
+            <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-md ring-1 md:ring-2 ring-white/60">
+              <span className="text-white font-bold text-[10px] md:text-xs">A</span>
             </div>
-            <ChevronDown className="w-3 h-3 text-gray-500" />
+            <ChevronDown className="w-2.5 h-2.5 md:w-3 md:h-3 text-gray-500 hidden sm:block" />
           </button>
 
           {showUserMenu && (
