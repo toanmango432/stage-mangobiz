@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { TeamMemberSettings, TeamSettingsSection, StaffRole } from './types';
 import { mockTeamMembers, roleLabels, teamSettingsTokens } from './constants';
 import { TeamMemberList } from './components/TeamMemberList';
+import { AddTeamMember } from './components/AddTeamMember';
 import { Button, Badge } from './components/SharedComponents';
 import { ProfileSection } from './sections/ProfileSection';
 import { ServicesSection } from './sections/ServicesSection';
@@ -25,6 +26,7 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
+  const [isAddingMember, setIsAddingMember] = useState(false);
 
   // Get selected member
   const selectedMember = useMemo(() => {
@@ -59,8 +61,14 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
   };
 
   const handleAddMember = () => {
-    // In a real app, this would open a modal or navigate to add member form
-    console.log('Add member clicked');
+    setIsAddingMember(true);
+  };
+
+  const handleSaveNewMember = (newMember: TeamMemberSettings) => {
+    setMembers((prev) => [newMember, ...prev]);
+    setSelectedMemberId(newMember.id);
+    setIsAddingMember(false);
+    setIsMobileListVisible(false);
   };
 
   const handleSave = () => {
@@ -289,6 +297,14 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
           </main>
         )}
       </div>
+
+      {/* Add Team Member Modal */}
+      {isAddingMember && (
+        <AddTeamMember
+          onClose={() => setIsAddingMember(false)}
+          onSave={handleSaveNewMember}
+        />
+      )}
     </div>
   );
 };
