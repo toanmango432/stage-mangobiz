@@ -595,45 +595,53 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
             />
           )}
           {/* Combined view tabs - Desktop only (mobile uses MobileTabBar above) */}
-          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className="flex items-center justify-between bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm sticky top-0 z-10 h-14 md:h-14">
-            <div className="flex overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-2">
-              {/* IMPORTANT NOTE: This tab order (In Service → Waiting Queue → Appointments) is FINAL and should NEVER be changed without explicit approval */}
-              {/* In Service Tab - Blue #4DA6FF theme */}
-              <button key="service" className={`inline-flex items-center h-10 min-w-[120px] px-4 text-[15px] font-medium whitespace-nowrap transition-all duration-200 relative rounded-xl ${activeCombinedTab === 'service' ? `${colorTokens.service.bg} ${colorTokens.service.text} shadow-sm ${colorTokens.service.border} ring-1 font-medium` : `text-gray-600 ${colorTokens.service.hoverText} ${colorTokens.service.hoverBg}`}`} onClick={() => setActiveCombinedTab('service')} role="tab" aria-selected={activeCombinedTab === 'service'} aria-controls="service-panel" id="service-tab">
-                <div className={`mr-2 p-1.5 rounded-full ${activeCombinedTab === 'service' ? colorTokens.service.iconBg : 'bg-gray-400'} shadow-sm`}>
-                  <FileText size={14} className="text-white" />
-                </div>
-                <span className={`truncate ${activeCombinedTab === 'service' ? 'tracking-wide' : ''}`}>
-                  In Service
+          {/* Simplified, subordinate styling to not compete with main header */}
+          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 sticky top-0 z-10 h-11">
+            <div className="flex items-center gap-1 px-2">
+              {/* Simplified tabs - subordinate to main header */}
+              {/* In Service Tab */}
+              <button
+                key="service"
+                onClick={() => setActiveCombinedTab('service')}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                  text-sm font-medium transition-all duration-150 min-h-[36px]
+                  ${activeCombinedTab === 'service'
+                    ? 'text-gray-900 bg-white shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }
+                `}
+                role="tab"
+                aria-selected={activeCombinedTab === 'service'}
+              >
+                <FileText size={16} className={activeCombinedTab === 'service' ? 'text-gray-700' : 'text-gray-400'} />
+                <span>In Service</span>
+                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${activeCombinedTab === 'service' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200/70 text-gray-500'}`}>
+                  {serviceTickets.length}
                 </span>
-                <div className={`ml-2 ${activeCombinedTab === 'service' ? colorTokens.service.iconBg : 'bg-gray-400'} text-white text-xs px-2 py-0.5 rounded-full shadow-sm`}>
-                  0
-                </div>
               </button>
-              {/* Waiting Queue Tab with dropdown for Walk-In and Appt - Yellow #FECF4D theme */}
-              <div className="flex items-center relative wait-list-tab-dropdown-container ml-2">
-                {/* Waiting Queue Tab */}
-                <button key="waitList" className={`inline-flex items-center h-10 min-w-[120px] px-4 text-[15px] font-medium whitespace-nowrap transition-all duration-200 relative rounded-xl ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? `${colorTokens.waitList.bg} ${colorTokens.waitList.text} shadow-sm ${colorTokens.waitList.border} ring-1 font-medium` : `text-gray-600 ${colorTokens.waitList.hoverText} ${colorTokens.waitList.hoverBg}`}`} onClick={() => setActiveCombinedTab('waitList')} role="tab" aria-selected={['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)} aria-controls="waitlist-panel" id="waitlist-tab">
-                  <div className={`mr-2 p-1.5 rounded-full ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? colorTokens.waitList.iconBg : 'bg-gray-400'} shadow-sm`}>
-                    <Users size={14} className="text-white" />
-                  </div>
-                  <span className={`truncate ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? 'tracking-wide' : ''}`}>
-                    {activeCombinedTab === 'waitList' ? 'Waiting Queue' : activeCombinedTab === 'walkIn' ? 'Walk-In' : activeCombinedTab === 'appt' ? 'Appt' : 'Waiting Queue'}
-                  </span>
-                  <div className={`ml-2 ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? colorTokens.waitList.iconBg : 'bg-gray-400'} text-white text-xs px-2 py-0.5 rounded-full shadow-sm`}>
-                    0
-                  </div>
-                </button>
-                {/* Dropdown toggle button - completely separate from main button */}
-                <button className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ml-1 ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? `${colorTokens.waitList.text} ${colorTokens.waitList.hoverBg} ${colorTokens.waitList.border} ring-1` : 'text-gray-400 hover:bg-gray-100'} transition-colors`} onClick={e => {
-                  e.stopPropagation();
-                  toggleWaitListTabDropdown();
-                }} aria-label="Show more options" aria-expanded={waitListTabDropdownOpen} aria-haspopup="true">
-                  <ChevronDown size={16} className={`${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? colorTokens.waitList.text : 'text-gray-600'}`} />
-                </button>
-              </div>
-              {/* Coming Appointments Tab - Removed as it should always be on the right side */}
-              {/* No longer needed as a tab */}
+
+              {/* Waiting Queue Tab */}
+              <button
+                key="waitList"
+                onClick={() => setActiveCombinedTab('waitList')}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                  text-sm font-medium transition-all duration-150 min-h-[36px]
+                  ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)
+                    ? 'text-gray-900 bg-white shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }
+                `}
+                role="tab"
+                aria-selected={['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)}
+              >
+                <Users size={16} className={['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? 'text-gray-700' : 'text-gray-400'} />
+                <span>Waiting</span>
+                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? 'bg-gray-200 text-gray-700' : 'bg-gray-200/70 text-gray-500'}`}>
+                  {waitlist.length}
+                </span>
+              </button>
             </div>
             {/* View controls - moved to the same row as tabs */}
             <div className="flex items-center space-x-1 pr-3 md:pr-4">

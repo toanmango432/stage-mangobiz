@@ -44,9 +44,9 @@ export const MobileTabBar = memo(function MobileTabBar({
   className = '',
 }: MobileTabBarProps) {
   return (
-    <div className={`bg-white border-b border-gray-200 ${className}`}>
-      {/* Tab buttons */}
-      <div className="flex">
+    <div className={`bg-gray-50 border-b border-gray-200 ${className}`}>
+      {/* Tab buttons - simplified and subordinate to main header */}
+      <div className="flex items-center h-11 px-2 gap-1">
         {tabs.map((tab) => {
           const Icon = iconMap[tab.icon];
           const isActive = activeTab === tab.id;
@@ -59,49 +59,39 @@ export const MobileTabBar = memo(function MobileTabBar({
                 onTabChange(tab.id);
               }}
               className={`
-                flex-1 flex flex-col items-center justify-center
-                min-h-[56px] py-2 px-1
-                transition-all duration-200 relative
-                active:scale-95
+                flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                text-sm font-medium transition-all duration-150
+                min-h-[36px]
                 ${isActive
-                  ? `${tab.color.active} border-b-2 ${tab.color.text.replace('text-', 'border-')}`
-                  : 'text-gray-500 hover:bg-gray-50 border-b-2 border-transparent'
+                  ? 'text-gray-900 bg-white shadow-sm border border-gray-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 }
               `}
               role="tab"
               aria-selected={isActive}
             >
-              {/* Icon + Count row */}
-              <div className="flex items-center gap-1.5">
-                <Icon size={18} className={isActive ? tab.color.text : 'text-gray-400'} />
-                <span className={`
-                  text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center
-                  ${isActive ? `${tab.color.badge} text-white` : 'bg-gray-200 text-gray-600'}
-                `}>
-                  {tab.metrics.count}
-                </span>
-                {/* Urgent indicator */}
-                {tab.metrics.urgent && (
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                )}
-              </div>
+              {/* Small icon */}
+              <Icon size={16} className={isActive ? 'text-gray-700' : 'text-gray-400'} />
 
-              {/* Label */}
-              <span className={`
-                text-xs font-medium mt-1 truncate max-w-full px-1
-                ${isActive ? tab.color.text : 'text-gray-500'}
-              `}>
+              {/* Label - hidden on very small screens */}
+              <span className="hidden sm:inline truncate">
                 {tab.shortLabel || tab.label}
               </span>
 
-              {/* Secondary metric */}
-              {tab.metrics.secondary && (
-                <span className={`
-                  text-[10px] mt-0.5
-                  ${isActive ? tab.color.text.replace('700', '600').replace('600', '500') : 'text-gray-400'}
-                `}>
-                  {tab.metrics.secondary}
-                </span>
+              {/* Count badge - small and muted */}
+              <span className={`
+                text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center
+                ${isActive
+                  ? 'bg-gray-200 text-gray-700'
+                  : 'bg-gray-200/70 text-gray-500'
+                }
+              `}>
+                {tab.metrics.count}
+              </span>
+
+              {/* Urgent indicator - small red dot */}
+              {tab.metrics.urgent && (
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
               )}
             </button>
           );
@@ -111,26 +101,26 @@ export const MobileTabBar = memo(function MobileTabBar({
   );
 });
 
-// Preset color schemes for tabs
+// Preset color schemes for tabs - neutral to stay subordinate to main header
 export const tabColors = {
   service: {
-    active: 'bg-blue-50',
-    text: 'text-blue-700',
-    badge: 'bg-blue-500',
+    active: 'bg-white',
+    text: 'text-gray-900',
+    badge: 'bg-gray-200',
   },
   waiting: {
-    active: 'bg-amber-50',
-    text: 'text-amber-700',
-    badge: 'bg-amber-500',
+    active: 'bg-white',
+    text: 'text-gray-900',
+    badge: 'bg-gray-200',
   },
   appointments: {
-    active: 'bg-emerald-50',
-    text: 'text-emerald-700',
-    badge: 'bg-emerald-500',
+    active: 'bg-white',
+    text: 'text-gray-900',
+    badge: 'bg-gray-200',
   },
   team: {
-    active: 'bg-teal-50',
-    text: 'text-teal-700',
-    badge: 'bg-teal-500',
+    active: 'bg-white',
+    text: 'text-gray-900',
+    badge: 'bg-gray-200',
   },
 };
