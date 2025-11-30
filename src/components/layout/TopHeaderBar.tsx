@@ -162,12 +162,12 @@ export function TopHeaderBar({
 
   return (
     <header className={`
-      bg-gradient-to-b from-white/40 via-orange-50/30 to-white/20
+      bg-gradient-to-b from-white/50 via-orange-50/35 to-white/25
       backdrop-blur-xl backdrop-saturate-[1.8]
-      border border-white/60 border-b-white/30
-      rounded-b-2xl mx-2
-      shadow-[0_8px_32px_rgba(251,146,60,0.12),0_2px_8px_rgba(0,0,0,0.08),inset_0_2px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(255,255,255,0.3)]
-      h-16 flex items-center px-4 fixed top-0 left-2 right-2 z-50
+      border border-white/70 border-b-white/40
+      rounded-2xl mx-3 mt-2
+      shadow-[0_12px_40px_rgba(251,146,60,0.18),0_4px_12px_rgba(0,0,0,0.12),inset_0_2px_0_rgba(255,255,255,1),inset_0_-1px_0_rgba(255,255,255,0.4)]
+      h-16 flex items-center px-4 fixed top-2 left-3 right-3 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
