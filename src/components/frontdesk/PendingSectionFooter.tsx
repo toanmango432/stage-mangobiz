@@ -5,7 +5,7 @@ import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { markTicketAsPaid } from '../../store/slices/uiTicketsSlice';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
 import { Pending } from '../modules/Pending';
-import { PaymentModal } from '../checkout/PaymentModal';
+import { PaymentModal } from '../checkout/LegacyPaymentModal';
 import type { PaymentMethod, PaymentDetails } from '../../types';
 
 type ViewMode = 'collapsed' | 'expanded' | 'fullView';

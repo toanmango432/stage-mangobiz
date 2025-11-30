@@ -300,25 +300,38 @@ export function StaffSidebar() {
 
     // Use CSS Grid auto-fit for true responsive behavior
     // This eliminates the need for dynamic class generation
-    if (viewMode === 'compact') {
-      // Compact cards: minimum 160px
+    if (viewMode === 'ultra-compact') {
+      // Ultra-compact cards: Maximum density (6-8 columns for wide screens)
       if (sidebarWidth < 200) {
-        return 'grid-cols-auto-fit-card-xs'; // 120px min
-      } else if (sidebarWidth < 350) {
-        return 'grid-cols-auto-fit-card-sm'; // 160px min
+        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]'; // 90px min
+      } else if (sidebarWidth < 400) {
+        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]';
+      } else if (sidebarWidth < 600) {
+        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]';
       } else {
-        return 'grid-cols-auto-fit-card-md'; // 200px min
+        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]'; // Allow 6-8 columns
+      }
+    } else if (viewMode === 'compact') {
+      // Compact cards: Aggressive density (4-5 columns preference)
+      if (sidebarWidth < 200) {
+        return 'grid-cols-[repeat(auto-fit,minmax(110px,1fr))]'; // 110px min
+      } else if (sidebarWidth < 450) {
+        return 'grid-cols-[repeat(auto-fit,minmax(110px,1fr))]'; // Keep 110px min to force more columns
+      } else if (sidebarWidth < 700) {
+        return 'grid-cols-[repeat(auto-fit,minmax(120px,1fr))]'; // 120px min
+      } else {
+        return 'grid-cols-[repeat(auto-fit,minmax(130px,1fr))]'; // 130px min
       }
     } else {
-      // Normal cards: minimum 200px
-      if (sidebarWidth < 250) {
-        return 'grid-cols-auto-fit-card-sm'; // 160px min
-      } else if (sidebarWidth < 500) {
+      // Normal cards: Optimized for density (3 columns preference)
+      if (sidebarWidth < 200) {
+        return 'grid-cols-auto-fit-card-xs'; // 120px min
+      } else if (sidebarWidth < 550) {
+        return 'grid-cols-auto-fit-card-sm'; // 160px min - Allows 3 cols at ~500px
+      } else if (sidebarWidth < 800) {
         return 'grid-cols-auto-fit-card-md'; // 200px min
-      } else if (sidebarWidth < 750) {
-        return 'grid-cols-auto-fit-card-lg'; // 240px min
       } else {
-        return 'grid-cols-auto-fit-card-xl'; // 280px min
+        return 'grid-cols-auto-fit-card-lg'; // 240px min
       }
     }
   };
@@ -743,6 +756,7 @@ export function StaffSidebar() {
             ...staffMember,
             id: staffIdNumber,
             image: getSalonStaffImage(staffIdNumber, staffMember.specialty),
+            time: staffMember.clockedInTime || '10:30a', // Add time field for metrics display
           };
 
           // Choose card component based on team settings

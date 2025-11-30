@@ -8,6 +8,7 @@ import { dataCleanupService } from './services/dataCleanupService';
 import { storeAuthManager, type StoreAuthState } from './services/storeAuthManager';
 import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
 import { initializeDatabase } from './db/schema';
+import { TooltipProvider } from './components/ui/tooltip';
 
 // NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
 // If you need to clear the database, do it manually via browser DevTools
@@ -195,8 +196,10 @@ export function App() {
   // POS MODE: Normal app flow
   return (
     <Provider store={store}>
-      <AppShell />
-      <Toaster {...toasterConfig} />
+      <TooltipProvider>
+        <AppShell />
+        <Toaster {...toasterConfig} />
+      </TooltipProvider>
     </Provider>
   );
 }

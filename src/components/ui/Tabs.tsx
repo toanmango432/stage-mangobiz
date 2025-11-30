@@ -1,147 +1,53 @@
-import { HTMLAttributes, forwardRef } from 'react';
+import * as React from "react"
+import * as TabsPrimitive from "@radix-ui/react-tabs"
 
-export interface TabProps extends HTMLAttributes<HTMLButtonElement> {
-    value: string;
-    active?: boolean;
-    label: React.ReactNode;
-    badge?: React.ReactNode;
-    onClick?: () => void;
-}
+import { cn } from "@/lib/utils"
 
-export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
-    value: string;
-    onChange: (value: string) => void;
-    variant?: 'default' | 'pills' | 'underline';
-}
+const Tabs = TabsPrimitive.Root
 
-/**
- * Standardized Tabs component
- * 
- * @example
- * <Tabs value={activeTab} onChange={setActiveTab}>
- *   <Tab value="tab1" label="Tab 1" />
- *   <Tab value="tab2" label="Tab 2" badge={5} />
- * </Tabs>
- */
-export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
-    (
-        {
-            value,
-            onChange,
-            variant = 'underline',
-            className = '',
-            children,
-            ...props
-        },
-        ref
-    ) => {
-        return (
-            <div
-                ref={ref}
-                className={`flex items-center gap-1 border-b border-gray-200 ${className}`}
-                {...props}
-            >
-                {/* We need to clone children to pass the active state and onClick handler */}
-                {Array.isArray(children)
-                    ? children.map((child: any) => {
-                        if (!child) return null;
-                        return {
-                            ...child,
-                            props: {
-                                ...child.props,
-                                active: child.props.value === value,
-                                onClick: () => onChange(child.props.value),
-                                variant, // Pass variant down if needed
-                            },
-                        };
-                    })
-                    : children && {
-                        ...(children as any),
-                        props: {
-                            ...(children as any).props,
-                            active: (children as any).props.value === value,
-                            onClick: () => onChange((children as any).props.value),
-                            variant,
-                        },
-                    }}
-            </div>
-        );
-    }
-);
+const TabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.List
+    ref={ref}
+    className={cn(
+      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      className
+    )}
+    {...props}
+  />
+))
+TabsList.displayName = TabsPrimitive.List.displayName
 
-Tabs.displayName = 'Tabs';
+const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
-export const Tab = forwardRef<HTMLButtonElement, TabProps & { variant?: string }>(
-    (
-        {
-            value,
-            active,
-            label,
-            badge,
-            onClick,
-            variant = 'underline',
-            className = '',
-            ...props
-        },
-        ref
-    ) => {
-        // Base styles
-        const baseStyles = `
-      px-4 py-2 font-medium text-sm transition-all duration-200 relative
-      focus:outline-none
-    `;
+const TabsContent = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content
+    ref={ref}
+    className={cn(
+      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      className
+    )}
+    {...props}
+  />
+))
+TabsContent.displayName = TabsPrimitive.Content.displayName
 
-        // Variant styles
-        const variantStyles = {
-            underline: `
-        rounded-t-lg -mb-px
-        ${active
-                    ? 'text-brand-600 bg-brand-50 border-b-2 border-brand-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }
-      `,
-            pills: `
-        rounded-lg
-        ${active
-                    ? 'bg-brand-600 text-white shadow-premium-sm'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }
-      `,
-            default: ''
-        };
-
-        return (
-            <button
-                ref={ref}
-                onClick={onClick}
-                className={`
-          ${baseStyles}
-          ${variantStyles[variant as keyof typeof variantStyles]}
-          ${className}
-        `}
-                role="tab"
-                aria-selected={active}
-                {...props}
-            >
-                <div className="flex items-center gap-2">
-                    {label}
-                    {badge && (
-                        <span
-                            className={`
-                px-1.5 py-0.5 rounded-full text-xs font-semibold
-                ${active
-                                    ? variant === 'pills' ? 'bg-white/20 text-white' : 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600'
-                                }
-              `}
-                        >
-                            {badge}
-                        </span>
-                    )}
-                </div>
-            </button>
-        );
-    }
-);
-
-Tab.displayName = 'Tab';
+export { Tabs, TabsList, TabsTrigger, TabsContent }

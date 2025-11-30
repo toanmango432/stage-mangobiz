@@ -38,8 +38,14 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
           height: notchHeight,
         }}
       >
-        {/* Notch Shape */}
-        <div className="absolute inset-0 bg-white rounded-b-xl shadow-sm border-b border-l border-r border-gray-200/50" />
+        {/* Notch Shape - Jewel Effect */}
+        <div
+          className="absolute inset-0 rounded-b-2xl shadow-md border-b border-l border-r border-white/50 backdrop-blur-md"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0.8))',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 -2px 4px rgba(0,0,0,0.02)',
+          }}
+        />
 
         {/* Busy State Content */}
         {isBusy && ticketInfo ? (
@@ -84,8 +90,8 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
                 </div>
               )}
 
-              {/* RIGHT: Progress Percentage */}
-              <div className="flex items-center">
+              {/* RIGHT: Progress Percentage (Centered if Ultra) */}
+              <div className={`flex items-center ${isUltra ? 'w-full justify-center' : ''}`}>
                 <span className="text-[14px] font-black text-gray-900 font-mono tabular-nums tracking-tight">
                   {formatProgress(ticketInfo.progress)}
                 </span>
@@ -109,7 +115,7 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
           <div className="absolute inset-0 flex items-center justify-center gap-1">
             {isReady ? (
               <>
-                <Check size={12} className="text-emerald-500" strokeWidth={3} />
+                <Check size={14} className="text-emerald-500" strokeWidth={3} />
                 {!isUltra && (
                   <span className="text-xs font-semibold text-emerald-600">
                     Ready
@@ -118,7 +124,7 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
               </>
             ) : (
               <>
-                <Minus size={12} className="text-gray-400" strokeWidth={3} />
+                <Minus size={14} className="text-gray-400" strokeWidth={3} />
                 {!isUltra && (
                   <span className="text-xs font-semibold text-gray-500">
                     Off

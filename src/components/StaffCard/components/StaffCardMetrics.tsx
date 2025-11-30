@@ -30,12 +30,12 @@ export const StaffCardMetrics = React.memo<StaffCardMetricsProps>(
     }
 
     return (
-      <div className="flex items-center justify-center bg-white/60 rounded-full border border-gray-200/50 shadow-sm px-3 py-1 mb-1 backdrop-blur-sm">
+      <div className="flex items-center justify-center gap-2.5 mt-1.5 mb-0.5">
         {showClockedInTime && (
-          <div className="flex items-center gap-1.5">
-            <Clock size={iconSize} className="text-gray-400" />
+          <div className="flex items-center gap-1">
+            <Clock size={iconSize} className="text-gray-400" strokeWidth={2.5} />
             <span
-              className={`${metaSize} font-mono tracking-tight text-gray-700 font-medium`}
+              className={`${metaSize} font-mono tracking-tight text-gray-600 font-semibold`}
             >
               {formatClockedInTime(time)}
             </span>
@@ -43,12 +43,12 @@ export const StaffCardMetrics = React.memo<StaffCardMetricsProps>(
         )}
 
         {showClockedInTime && showTurnCount && (
-          <div className="w-px h-3 bg-gray-300 mx-2.5" />
+          <div className="w-1 h-1 rounded-full bg-gray-300" />
         )}
 
         {showTurnCount && (
-          <div className="flex items-center gap-1.5" title="Turns">
-            <RefreshCw size={iconSize} className="text-gray-400" />
+          <div className="flex items-center gap-1" title="Turns">
+            <RefreshCw size={iconSize} className="text-gray-500" strokeWidth={2.5} />
             <span className={`${metaSize} font-mono font-bold text-gray-700`}>
               {turnCount}
             </span>

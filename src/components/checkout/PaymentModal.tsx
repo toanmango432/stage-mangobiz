@@ -1,425 +1,692 @@
-import { useState, useEffect } from 'react';
-import { CreditCard, DollarSign, Camera, Check, AlertCircle } from 'lucide-react';
-import { PaymentMethod } from '../../types/common';
-import { PaymentDetails } from '../../types/transaction';
-import { PendingTicket } from '../../types/Ticket';
-import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from '../layout/MobileSheet';
-import { useBreakpoint } from '../../hooks/useMobileModal';
-import { haptics } from '../../utils/haptics';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  CreditCard,
+  Banknote,
+  Gift,
+  X,
+  Check,
+  DollarSign,
+  Printer,
+  CircleDot,
+} from "lucide-react";
 
-interface PaymentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  ticket: PendingTicket;
-  onConfirm: (paymentMethod: PaymentMethod, paymentDetails: PaymentDetails, tip: number) => Promise<void>;
+export interface PaymentMethod {
+  type: "card" | "cash" | "gift_card" | "custom";
+  amount: number;
+  customName?: string;
+  tendered?: number;
 }
 
-export function PaymentModal({ isOpen, onClose, ticket, onConfirm }: PaymentModalProps) {
-  const { isMobile } = useBreakpoint();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [tipAmount, setTipAmount] = useState(ticket.tip || 0);
-  const [tipPercent, setTipPercent] = useState(0);
+export interface TipDistribution {
+  staffId: string;
+  staffName: string;
+  amount: number;
+}
 
-  // Card payment fields
-  const [cardLast4, setCardLast4] = useState('');
-  const [cardBrand, setCardBrand] = useState('');
-  const [authCode, setAuthCode] = useState('');
+interface PaymentModalProps {
+  open: boolean;
+  onClose: () => void;
+  total: number;
+  onComplete: (payment: {
+    methods: PaymentMethod[];
+    tip: number;
+    tipDistribution?: TipDistribution[];
+  }) => void;
+  staffMembers?: { id: string; name: string; serviceTotal?: number }[];
+}
 
-  // Cash payment fields
-  const [amountTendered, setAmountTendered] = useState(0);
+const TIP_PERCENTAGES = [15, 18, 20, 25];
 
-  // Venmo payment fields
-  const [venmoHandle, setVenmoHandle] = useState('');
-  const [venmoTransactionId, setVenmoTransactionId] = useState('');
+const STEPS = [
+  { id: 1, label: "Add Tip", sublabel: "optional" },
+  { id: 2, label: "Payment", sublabel: "required" },
+  { id: 3, label: "Complete", sublabel: "final" },
+];
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function StepIndicator({ currentStep, isFullyPaid }: { currentStep: number; isFullyPaid: boolean }) {
+  return (
+    <div className="flex items-center justify-center gap-2 sm:gap-4 py-4" data-testid="stepper-indicator">
+      {STEPS.map((step, index) => {
+        const isActive = step.id === currentStep;
+        const isCompleted = step.id < currentStep || (step.id === 3 && isFullyPaid);
+        const isLast = index === STEPS.length - 1;
 
-  const subtotal = ticket.subtotal || 0;
-  const tax = ticket.tax || 0;
-  const tipValue = tipAmount || (subtotal * tipPercent / 100);
-  const total = subtotal + tax + tipValue;
-  const changeDue = paymentMethod === 'cash' ? Math.max(0, amountTendered - total) : 0;
+        return (
+          <div key={step.id} className="flex items-center gap-2 sm:gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={`
+                  h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center
+                  transition-all duration-200 text-sm font-semibold
+                  ${isCompleted 
+                    ? "bg-primary text-primary-foreground" 
+                    : isActive 
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20" 
+                      : "bg-muted text-muted-foreground"
+                  }
+                `}
+                data-testid={`step-circle-${step.id}`}
+              >
+                {isCompleted ? (
+                  <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                ) : (
+                  step.id
+                )}
+              </div>
+              <div className="text-center">
+                <p className={`text-xs sm:text-sm font-medium ${isActive || isCompleted ? "text-foreground" : "text-muted-foreground"}`}>
+                  {step.label}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
+                  {step.sublabel}
+                </p>
+              </div>
+            </div>
+            {!isLast && (
+              <div 
+                className={`h-0.5 w-6 sm:w-12 mt-[-20px] sm:mt-[-24px] ${
+                  step.id < currentStep ? "bg-primary" : "bg-muted"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-  // Reset amount tendered when payment method or total changes
+export default function PaymentModal({
+  open,
+  onClose,
+  total,
+  onComplete,
+  staffMembers = [],
+}: PaymentModalProps) {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [tipPercentage, setTipPercentage] = useState<number | null>(20);
+  const [customTip, setCustomTip] = useState("");
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [currentMethod, setCurrentMethod] = useState<"card" | "cash" | "gift_card" | "custom" | null>(null);
+  const [cashTendered, setCashTendered] = useState("");
+  const [customPaymentName, setCustomPaymentName] = useState("");
+  const [showTipDistribution, setShowTipDistribution] = useState(false);
+  const [tipDistribution, setTipDistribution] = useState<TipDistribution[]>([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const tipAmount = tipPercentage
+    ? (total * tipPercentage) / 100
+    : parseFloat(customTip) || 0;
+
+  const totalWithTip = total + tipAmount;
+  const amountPaid = paymentMethods.reduce((sum, m) => sum + m.amount, 0);
+  const remaining = totalWithTip - amountPaid;
+  const isFullyPaid = remaining <= 0.01 && amountPaid > 0;
+
+  const totalCashTendered = paymentMethods
+    .filter(m => m.type === "cash")
+    .reduce((sum, m) => sum + (m.tendered || m.amount), 0);
+  const totalCashApplied = paymentMethods
+    .filter(m => m.type === "cash")
+    .reduce((sum, m) => sum + m.amount, 0);
+  const totalChangeToReturn = Math.max(0, totalCashTendered - totalCashApplied);
+
+  // Auto-advance to step 3 when fully paid
   useEffect(() => {
-    if (paymentMethod === 'cash') {
-      setAmountTendered(Math.ceil(total));
+    if (isFullyPaid && currentStep === 2) {
+      setCurrentStep(3);
     }
-  }, [paymentMethod, total]);
+  }, [isFullyPaid, currentStep]);
 
-  // Reset error when user changes inputs
-  useEffect(() => {
-    setError(null);
-  }, [paymentMethod, cardLast4, amountTendered, venmoHandle]);
-
-  const handleTipPercentClick = (percent: number) => {
-    haptics.selection();
-    setTipPercent(percent);
-    setTipAmount(0);
+  const handleQuickCash = (amount: number) => {
+    setCashTendered(amount.toString());
   };
 
-  const handleTipAmountChange = (amount: number) => {
-    setTipAmount(amount);
-    setTipPercent(0);
-  };
-
-  const handlePaymentMethodChange = (method: PaymentMethod) => {
-    haptics.light();
-    setPaymentMethod(method);
-  };
-
-  const validatePayment = (): string | null => {
-    if (paymentMethod === 'card') {
-      if (!cardLast4 || cardLast4.length !== 4 || !/^\d{4}$/.test(cardLast4)) {
-        return 'Please enter the last 4 digits of the card';
-      }
-    } else if (paymentMethod === 'cash') {
-      if (amountTendered < total) {
-        return `Amount tendered must be at least $${total.toFixed(2)}`;
-      }
-    } else if (paymentMethod === 'venmo') {
-      if (!venmoHandle || !venmoTransactionId) {
-        return 'Please enter Venmo handle and transaction ID';
+  const handleAddPayment = (amount?: number) => {
+    if (!currentMethod) return;
+    
+    let paymentAmount = amount;
+    let tenderedAmount = amount;
+    
+    if (!paymentAmount) {
+      if (currentMethod === "cash" && cashTendered) {
+        tenderedAmount = parseFloat(cashTendered);
+        paymentAmount = Math.min(tenderedAmount, remaining);
       }
     }
-    return null;
+
+    if (paymentAmount && paymentAmount > 0) {
+      const newPayment: PaymentMethod = {
+        type: currentMethod,
+        amount: Math.min(paymentAmount, remaining),
+      };
+      
+      if (currentMethod === "cash" && tenderedAmount) {
+        newPayment.tendered = tenderedAmount;
+      }
+      
+      if (currentMethod === "custom" && customPaymentName.trim()) {
+        newPayment.customName = customPaymentName.trim();
+      }
+      
+      setPaymentMethods([...paymentMethods, newPayment]);
+      setCashTendered("");
+      setCustomPaymentName("");
+      setCurrentMethod(null);
+    }
   };
 
-  const handleConfirm = async () => {
-    const validationError = validatePayment();
-    if (validationError) {
-      haptics.error();
-      setError(validationError);
+  const handleComplete = () => {
+    if (isFullyPaid) {
+      setShowSuccess(true);
+      
+      setTimeout(() => {
+        onComplete({
+          methods: paymentMethods,
+          tip: tipAmount,
+          tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
+        });
+        setCurrentStep(1);
+        setPaymentMethods([]);
+        setCashTendered("");
+        setTipPercentage(20);
+        setCustomTip("");
+        setShowTipDistribution(false);
+        setTipDistribution([]);
+        setShowSuccess(false);
+        setCurrentMethod(null);
+      }, 800);
+    }
+  };
+
+  const handleSelectTipPercentage = (percentage: number) => {
+    setTipPercentage(percentage);
+    setCustomTip("");
+  };
+
+  const handleCustomTipChange = (value: string) => {
+    setCustomTip(value);
+    setTipPercentage(null);
+  };
+
+  const handleAutoDistributeTip = () => {
+    if (tipAmount <= 0 || staffMembers.length === 0) return;
+    
+    const totalServiceRevenue = staffMembers.reduce((sum, s) => sum + (s.serviceTotal || 0), 0);
+    
+    if (totalServiceRevenue === 0) {
+      handleEqualSplitTip();
       return;
     }
+    
+    const distribution = staffMembers.map(staff => ({
+      staffId: staff.id,
+      staffName: staff.name,
+      amount: (tipAmount * (staff.serviceTotal || 0)) / totalServiceRevenue
+    }));
+    
+    setTipDistribution(distribution);
+    setShowTipDistribution(true);
+  };
 
-    setIsProcessing(true);
-    setError(null);
+  const handleEqualSplitTip = () => {
+    if (tipAmount <= 0 || staffMembers.length === 0) return;
+    
+    const amountPerStaff = tipAmount / staffMembers.length;
+    const distribution = staffMembers.map(staff => ({
+      staffId: staff.id,
+      staffName: staff.name,
+      amount: amountPerStaff
+    }));
+    
+    setTipDistribution(distribution);
+    setShowTipDistribution(true);
+  };
 
-    try {
-      const paymentDetails: PaymentDetails = {};
+  const PAYMENT_METHODS = [
+    { id: "card", label: "Credit Card", icon: CreditCard },
+    { id: "cash", label: "Cash", icon: Banknote },
+    { id: "gift_card", label: "Gift Card", icon: Gift },
+    { id: "custom", label: "Other", icon: DollarSign },
+  ];
 
-      if (paymentMethod === 'card') {
-        paymentDetails.cardLast4 = cardLast4;
-        paymentDetails.cardBrand = cardBrand || 'Unknown';
-        paymentDetails.authCode = authCode || `AUTH-${Date.now()}`;
-        paymentDetails.processor = 'Square';
-      } else if (paymentMethod === 'cash') {
-        paymentDetails.amountTendered = amountTendered;
-        paymentDetails.changeDue = changeDue;
-      } else if (paymentMethod === 'venmo') {
-        paymentDetails.accountHandle = venmoHandle;
-        paymentDetails.transactionId = venmoTransactionId;
-      }
+  const handleSelectMethod = (methodId: "card" | "cash" | "gift_card" | "custom") => {
+    setCurrentMethod(methodId);
+    // Ensure we're on step 2 when selecting a payment method
+    setCurrentStep(2);
+  };
 
-      paymentDetails.receiptNumber = `R-${Date.now()}`;
+  const quickCashAmounts = [
+    Math.ceil(remaining),
+    20,
+    50,
+    100,
+  ].filter((amount, index, arr) => arr.indexOf(amount) === index && amount >= remaining);
 
-      await onConfirm(paymentMethod, paymentDetails, tipValue);
-      haptics.success();
-      onClose();
-    } catch (err) {
-      haptics.error();
-      setError(err instanceof Error ? err.message : 'Payment processing failed');
-    } finally {
-      setIsProcessing(false);
+  const goToNextStep = () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
-  // Payment method button component with better touch targets
-  const PaymentMethodButton = ({
-    method,
-    icon: Icon,
-    label,
-    activeColor,
-  }: {
-    method: PaymentMethod;
-    icon: typeof CreditCard;
-    label: string;
-    activeColor: string;
-  }) => {
-    const isActive = paymentMethod === method;
-    const colorClasses: Record<string, { border: string; bg: string; text: string }> = {
-      blue: { border: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
-      green: { border: 'border-green-500', bg: 'bg-green-50', text: 'text-green-600' },
-      sky: { border: 'border-sky-500', bg: 'bg-sky-50', text: 'text-sky-600' },
-    };
-    const colors = colorClasses[activeColor];
-
-    return (
-      <button
-        onClick={() => handlePaymentMethodChange(method)}
-        className={`
-          flex-1 p-4 rounded-xl border-2 transition-all
-          min-h-[80px] flex flex-col items-center justify-center gap-2
-          active:scale-95
-          ${isActive ? `${colors.border} ${colors.bg}` : 'border-gray-200 hover:border-gray-300 active:bg-gray-50'}
-        `}
-      >
-        <Icon size={28} className={isActive ? colors.text : 'text-gray-400'} />
-        <div className={`text-sm font-semibold ${isActive ? colors.text : 'text-gray-600'}`}>
-          {label}
-        </div>
-      </button>
-    );
+  const goToPrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+      setCurrentMethod(null);
+    }
   };
-
-  // Tip percentage button with better touch targets
-  const TipButton = ({ percent }: { percent: number }) => {
-    const isActive = tipPercent === percent;
-    return (
-      <button
-        onClick={() => handleTipPercentClick(percent)}
-        className={`
-          flex-1 py-3 rounded-xl border-2 transition-all font-semibold
-          min-h-[48px] active:scale-95
-          ${isActive
-            ? 'border-amber-500 bg-amber-50 text-amber-700'
-            : 'border-gray-200 hover:border-gray-300 text-gray-700 active:bg-gray-50'
-          }
-        `}
-      >
-        {percent}%
-      </button>
-    );
-  };
-
-  const footer = (
-    <MobileSheetFooter stacked={isMobile}>
-      <MobileSheetButton
-        variant="secondary"
-        onClick={onClose}
-        disabled={isProcessing}
-        fullWidth={isMobile}
-      >
-        Cancel
-      </MobileSheetButton>
-      <MobileSheetButton
-        variant="primary"
-        onClick={handleConfirm}
-        disabled={isProcessing}
-        loading={isProcessing}
-        fullWidth
-        className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
-      >
-        {isProcessing ? 'Processing...' : (
-          <>
-            <Check size={20} />
-            Confirm Payment
-          </>
-        )}
-      </MobileSheetButton>
-    </MobileSheetFooter>
-  );
 
   return (
-    <MobileSheet
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Process Payment"
-      subtitle={`Ticket #${ticket.number} • ${ticket.clientName}`}
-      footer={footer}
-      fullScreenOnMobile={true}
-    >
-      <MobileSheetContent className="space-y-6">
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-            <AlertCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-red-800">{error}</p>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-h-[95vh] sm:max-h-[90vh] w-full max-w-full sm:max-w-3xl flex flex-col p-0">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 flex-shrink-0">
+          <DialogTitle className="text-lg sm:text-xl text-center">
+            Checkout
+          </DialogTitle>
+        </DialogHeader>
+
+        <StepIndicator currentStep={currentStep} isFullyPaid={isFullyPaid} />
+
+        {showSuccess && (
+          <div className="absolute inset-0 bg-background/95 flex items-center justify-center z-50 rounded-lg">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center checkmark-animate">
+                <Check className="h-10 w-10 text-primary checkmark-icon" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-1">All paid!</h3>
+                <p className="text-sm text-muted-foreground">Preparing your receipt...</p>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Service Info */}
-        <div className="bg-gray-50 rounded-xl p-4">
-          <div className="text-sm text-gray-600 mb-1">Service</div>
-          <div className="font-semibold text-gray-900">
-            {ticket.service}
-            {ticket.additionalServices > 0 && (
-              <span className="text-sm text-gray-500 ml-2">
-                +{ticket.additionalServices} more
-              </span>
-            )}
-          </div>
-          {ticket.technician && (
-            <div className="text-sm text-gray-600 mt-1">with {ticket.technician}</div>
-          )}
-        </div>
-
-        {/* Payment Method Selection - Touch-optimized */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Payment Method
-          </label>
-          <div className="flex gap-3">
-            <PaymentMethodButton method="card" icon={CreditCard} label="Card" activeColor="blue" />
-            <PaymentMethodButton method="cash" icon={DollarSign} label="Cash" activeColor="green" />
-            <PaymentMethodButton method="venmo" icon={Camera} label="Venmo" activeColor="sky" />
-          </div>
-        </div>
-
-        {/* Payment Method Specific Fields */}
-        {paymentMethod === 'card' && (
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Card Last 4 Digits *
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="1234"
-                value={cardLast4}
-                onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, ''))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Card Brand
-                </label>
-                <select
-                  value={cardBrand}
-                  onChange={(e) => setCardBrand(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  style={{ fontSize: '16px' }}
+            {currentStep === 1 && (
+              <>
+                <Card className="p-4 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Service total</span>
+                    <span className="text-xl font-bold">${total.toFixed(2)}</span>
+                  </div>
+                </Card>
+
+                <Separator />
+
+                <div>
+                  <label className="text-sm font-medium mb-3 block">Add a tip (optional)</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {TIP_PERCENTAGES.map((percentage) => (
+                      <Button
+                        key={percentage}
+                        variant={tipPercentage === percentage ? "default" : "outline"}
+                        onClick={() => handleSelectTipPercentage(percentage)}
+                        className="h-12 sm:h-11 text-sm sm:text-base"
+                        data-testid={`button-tip-${percentage}`}
+                      >
+                        <div className="flex flex-col items-center">
+                          <span>{percentage}%</span>
+                          <span className="text-xs opacity-70">${((total * percentage) / 100).toFixed(2)}</span>
+                        </div>
+                      </Button>
+                    ))}
+                    <Button
+                      variant={tipPercentage === 0 ? "default" : "outline"}
+                      onClick={() => {
+                        setTipPercentage(0);
+                        setCustomTip("0");
+                      }}
+                      className="h-12 sm:h-11 text-sm sm:text-base"
+                      data-testid="button-no-tip"
+                    >
+                      No Tip
+                    </Button>
+                  </div>
+                  <Input
+                    type="number"
+                    placeholder="Custom tip amount"
+                    value={customTip}
+                    onChange={(e) => handleCustomTipChange(e.target.value)}
+                    className="mt-3 h-11"
+                    data-testid="input-custom-tip"
+                  />
+                  
+                  {staffMembers.length > 1 && tipAmount > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAutoDistributeTip}
+                          className="flex-1"
+                          data-testid="button-auto-distribute-tip"
+                        >
+                          Auto-Distribute
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEqualSplitTip}
+                          className="flex-1"
+                          data-testid="button-equal-split-tip"
+                        >
+                          Split Equally
+                        </Button>
+                      </div>
+                      
+                      {showTipDistribution && tipDistribution.length > 0 && (
+                        <Card className="p-3 bg-green-500/5 border-green-500/20">
+                          <div className="text-xs font-medium text-muted-foreground mb-2">Tip Distribution</div>
+                          <div className="space-y-1">
+                            {tipDistribution.map((dist, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span>{dist.staffName}</span>
+                                <span className="font-semibold text-green-600 dark:text-green-500">
+                                  ${dist.amount.toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Your total (with tip)</span>
+                    <span className="text-2xl font-bold text-primary">${totalWithTip.toFixed(2)}</span>
+                  </div>
+                </Card>
+
+                <Button
+                  className="w-full h-12 text-base"
+                  onClick={goToNextStep}
+                  data-testid="button-continue-to-payment"
                 >
-                  <option value="">Select...</option>
-                  <option value="Visa">Visa</option>
-                  <option value="Mastercard">Mastercard</option>
-                  <option value="Amex">American Express</option>
-                  <option value="Discover">Discover</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Auth Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="Optional"
-                  value={authCode}
-                  onChange={(e) => setAuthCode(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  style={{ fontSize: '16px' }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+                  Continue to Payment
+                </Button>
+              </>
+            )}
 
-        {paymentMethod === 'cash' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Amount Tendered
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min={total}
-                  value={amountTendered}
-                  onChange={(e) => setAmountTendered(parseFloat(e.target.value) || 0)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  style={{ fontSize: '16px' }}
-                />
-              </div>
-            </div>
-            {changeDue > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="text-sm text-green-700">Change Due</div>
-                <div className="text-3xl font-bold text-green-900">${changeDue.toFixed(2)}</div>
+            {currentStep === 2 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goToPrevStep}
+                  className="gap-2 -ml-2"
+                  data-testid="button-back-to-tip"
+                >
+                  ← Back to tip
+                </Button>
+
+                {remaining > 0.01 ? (
+                  <Card className="p-4 sm:p-6 bg-primary/10 border-primary/30">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-1">Amount left to pay</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-primary" data-testid="text-amount-left">
+                        ${remaining.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        of ${totalWithTip.toFixed(2)} total
+                      </p>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="p-4 sm:p-6 bg-green-500/10 border-green-500/30">
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <Check className="h-6 w-6 text-green-600 dark:text-green-500" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-green-600 dark:text-green-500">All paid!</p>
+                        <p className="text-sm text-muted-foreground">Ready to complete</p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                <Separator />
+
+                {paymentMethods.length > 0 && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Payments applied</label>
+                      <div className="flex flex-wrap gap-2">
+                        {paymentMethods.map((method, index) => (
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            className="px-3 py-2 text-sm gap-2"
+                            data-testid={`badge-payment-${index}`}
+                          >
+                            <span className="capitalize">
+                              {method.customName || method.type.replace('_', ' ')}
+                            </span>
+                            <span className="font-bold">${method.amount.toFixed(2)}</span>
+                            {method.type === "cash" && method.tendered && method.tendered > method.amount && (
+                              <span className="text-xs opacity-70">
+                                (Cash received: ${method.tendered.toFixed(2)})
+                              </span>
+                            )}
+                            <button
+                              className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                              onClick={() => setPaymentMethods(paymentMethods.filter((_, i) => i !== index))}
+                              aria-label={`Remove ${method.customName || method.type.replace('_', ' ')} payment`}
+                              data-testid={`button-remove-payment-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {totalChangeToReturn > 0 && (
+                      <Card className="p-3 bg-amber-500/10 border-amber-500/20">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Change to give back</span>
+                          <span className="text-lg font-bold text-amber-600 dark:text-amber-500">
+                            ${totalChangeToReturn.toFixed(2)}
+                          </span>
+                        </div>
+                      </Card>
+                    )}
+
+                    <Separator />
+                  </>
+                )}
+
+                {remaining > 0.01 && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium mb-3 block">Choose payment method</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {PAYMENT_METHODS.map((method) => {
+                          const Icon = method.icon;
+                          const isSelected = currentMethod === method.id;
+                          return (
+                            <Card
+                              key={method.id}
+                              className={`p-4 sm:p-5 cursor-pointer hover-elevate active-elevate-2 flex flex-col items-center justify-center gap-2 ${
+                                isSelected ? "ring-2 ring-primary bg-primary/5" : ""
+                              }`}
+                              onClick={() => handleSelectMethod(method.id as any)}
+                              data-testid={`card-payment-method-${method.id}`}
+                            >
+                              <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center ${
+                                isSelected ? "bg-primary text-primary-foreground" : "bg-primary/10"
+                              }`}>
+                                <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isSelected ? "" : "text-primary"}`} />
+                              </div>
+                              <span className="text-xs sm:text-sm font-medium text-center">{method.label}</span>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {currentMethod && (
+                      <>
+                        <Separator />
+
+                        {currentMethod === "card" && (
+                          <Button
+                            className="w-full h-14 text-base"
+                            onClick={() => handleAddPayment(remaining)}
+                            data-testid="button-apply-card"
+                          >
+                            <CreditCard className="h-5 w-5 mr-2" />
+                            Apply ${remaining.toFixed(2)}
+                          </Button>
+                        )}
+
+                        {currentMethod === "cash" && (
+                          <div className="space-y-3">
+                            <label className="text-sm font-medium block">Cash received</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {quickCashAmounts.slice(0, 4).map((amount) => (
+                                <Button
+                                  key={amount}
+                                  variant={cashTendered === amount.toString() ? "default" : "outline"}
+                                  className="h-12 sm:h-14 text-base"
+                                  onClick={() => handleQuickCash(amount)}
+                                  data-testid={`button-quick-cash-${amount}`}
+                                >
+                                  ${amount}
+                                </Button>
+                              ))}
+                            </div>
+                            <Input
+                              type="number"
+                              placeholder="Enter amount received"
+                              value={cashTendered}
+                              onChange={(e) => setCashTendered(e.target.value)}
+                              className="text-lg h-12"
+                              data-testid="input-cash-received"
+                            />
+                            {cashTendered && parseFloat(cashTendered) >= remaining && (
+                              <Card className="p-3 bg-green-500/10 border-green-500/20">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium">Change to give back</span>
+                                  <span className="text-lg font-bold text-green-600 dark:text-green-500" data-testid="text-change-preview">
+                                    ${(parseFloat(cashTendered) - remaining).toFixed(2)}
+                                  </span>
+                                </div>
+                              </Card>
+                            )}
+                            <Button
+                              className="w-full h-14 text-base"
+                              onClick={() => handleAddPayment()}
+                              disabled={!cashTendered || parseFloat(cashTendered) <= 0}
+                              data-testid="button-apply-cash"
+                            >
+                              <Banknote className="h-5 w-5 mr-2" />
+                              Apply ${cashTendered ? Math.min(parseFloat(cashTendered), remaining).toFixed(2) : "0.00"}
+                            </Button>
+                          </div>
+                        )}
+
+                        {currentMethod === "gift_card" && (
+                          <Button
+                            className="w-full h-14 text-base"
+                            onClick={() => handleAddPayment(remaining)}
+                            data-testid="button-apply-gift-card"
+                          >
+                            <Gift className="h-5 w-5 mr-2" />
+                            Apply ${remaining.toFixed(2)}
+                          </Button>
+                        )}
+
+                        {currentMethod === "custom" && (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">Payment method name</label>
+                              <Input
+                                type="text"
+                                placeholder="e.g., Venmo, Check, PayPal"
+                                value={customPaymentName}
+                                onChange={(e) => setCustomPaymentName(e.target.value)}
+                                className="text-base h-12"
+                                data-testid="input-custom-payment-name"
+                              />
+                            </div>
+                            <Button
+                              className="w-full h-14 text-base"
+                              onClick={() => handleAddPayment(remaining)}
+                              disabled={!customPaymentName.trim()}
+                              data-testid="button-apply-custom"
+                            >
+                              <DollarSign className="h-5 w-5 mr-2" />
+                              Apply ${remaining.toFixed(2)} via {customPaymentName.trim() || "..."}
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+
+                {isFullyPaid && (
+                  <Button
+                    className="w-full h-14 text-base"
+                    onClick={handleComplete}
+                    data-testid="button-finish-print"
+                  >
+                    <Printer className="h-5 w-5 mr-2" />
+                    Finish & Print Receipt
+                  </Button>
+                )}
+              </>
+            )}
+
+            {currentStep === 3 && (
+              <div className="flex flex-col items-center justify-center py-8 gap-4">
+                <div className="h-20 w-20 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Check className="h-10 w-10 text-green-600 dark:text-green-500" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold mb-1">Payment Complete!</h3>
+                  <p className="text-muted-foreground">Transaction has been processed successfully.</p>
+                </div>
+                <Card className="w-full p-4 mt-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Service total</span>
+                      <span>${total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tip</span>
+                      <span className="text-green-600 dark:text-green-500">${tipAmount.toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold">
+                      <span>Total paid</span>
+                      <span>${totalWithTip.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </Card>
               </div>
             )}
           </div>
-        )}
-
-        {paymentMethod === 'venmo' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Venmo Handle *
-              </label>
-              <input
-                type="text"
-                placeholder="@username"
-                value={venmoHandle}
-                onChange={(e) => setVenmoHandle(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Transaction ID *
-              </label>
-              <input
-                type="text"
-                placeholder="Venmo transaction ID"
-                value={venmoTransactionId}
-                onChange={(e) => setVenmoTransactionId(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Tip Adjustment - Touch-optimized */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Adjust Tip
-          </label>
-          {/* Mobile: 3 buttons per row, Desktop: all in one row */}
-          <div className={`grid gap-2 mb-3 ${isMobile ? 'grid-cols-3' : 'grid-cols-5'}`}>
-            {[0, 15, 18, 20, 25].map((percent) => (
-              <TipButton key={percent} percent={percent} />
-            ))}
-          </div>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              placeholder="Custom amount"
-              value={tipAmount || ''}
-              onChange={(e) => handleTipAmountChange(parseFloat(e.target.value) || 0)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              style={{ fontSize: '16px' }}
-            />
-          </div>
         </div>
-
-        {/* Amount Breakdown */}
-        <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Subtotal</span>
-            <span className="font-mono">${subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Tax</span>
-            <span className="font-mono">${tax.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Tip</span>
-            <span className="font-mono">${tipValue.toFixed(2)}</span>
-          </div>
-          <div className="border-t border-gray-300 pt-3 mt-3">
-            <div className="flex justify-between items-baseline">
-              <span className="font-semibold text-gray-900">Total</span>
-              <span className="font-bold text-2xl font-mono">${total.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      </MobileSheetContent>
-    </MobileSheet>
+      </DialogContent>
+    </Dialog>
   );
 }

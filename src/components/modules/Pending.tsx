@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { PendingHeader } from '../pending';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
-import { PaymentModal } from '../checkout/PaymentModal';
+import { PaymentModal } from '../checkout/LegacyPaymentModal';
 import type { PaymentMethod, PaymentDetails } from '../../types';
 import type { PendingTicket } from '../../store/slices/uiTicketsSlice';
 import toast from 'react-hot-toast';

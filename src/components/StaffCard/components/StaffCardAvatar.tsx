@@ -56,6 +56,17 @@ export const StaffCardAvatar = React.memo<StaffCardAvatarProps>(
         className="relative mb-2 group-hover:scale-[1.02] transition-transform duration-300"
         style={{ width: size, height: size }}
       >
+        {/* Glowing Ring Container */}
+        <div
+          className={`absolute inset-0 rounded-full transition-all duration-500 ${isBusy ? 'opacity-100' : 'opacity-0'
+            }`}
+          style={{
+            boxShadow: '0 0 15px 2px rgba(225, 29, 72, 0.4), inset 0 0 10px rgba(225, 29, 72, 0.2)',
+            border: '2px solid rgba(225, 29, 72, 0.5)',
+            transform: 'scale(1.1)',
+          }}
+        />
+
         {/* Loading Placeholder */}
         {!imageLoaded && !imageError && (
           <div
@@ -77,17 +88,15 @@ export const StaffCardAvatar = React.memo<StaffCardAvatarProps>(
             loading="lazy"
             onLoad={handleLoad}
             onError={handleError}
-            className={`object-cover shadow-lg bg-white relative z-10 transition-opacity duration-300 ${
-              isBusy ? 'grayscale' : ''
-            } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`object-cover bg-white relative z-10 transition-all duration-500 ${isBusy ? 'grayscale contrast-125 brightness-90' : ''
+              } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             style={{
               width: size,
               height: size,
               borderRadius,
-              border: `${borderWidth} solid white`,
-              boxShadow: '0 8px 24px -6px rgba(0,0,0,0.15)',
-              // Performance optimization: isolate grayscale effect
-              willChange: isBusy ? 'filter' : 'auto',
+              border: isBusy ? '2px solid white' : `${borderWidth} solid white`,
+              boxShadow: isBusy ? 'none' : '0 20px 40px -12px rgba(0,0,0,0.25), 0 8px 16px -8px rgba(0,0,0,0.3)',
+              willChange: 'filter, transform',
               contain: 'layout style paint',
             }}
             // Responsive images for different pixel densities
@@ -96,7 +105,7 @@ export const StaffCardAvatar = React.memo<StaffCardAvatarProps>(
         ) : (
           // Error Fallback
           <div
-            className="flex items-center justify-center bg-gray-300 text-gray-600 font-bold text-2xl"
+            className="flex items-center justify-center bg-gray-300 text-gray-600 font-bold text-2xl relative z-10"
             style={{
               width: size,
               height: size,
@@ -108,12 +117,18 @@ export const StaffCardAvatar = React.memo<StaffCardAvatarProps>(
           </div>
         )}
 
-        {/* BUSY Badge - Below Avatar */}
+        {/* BUSY Badge - Premium Jewel Style */}
         {isBusy && !isUltra && (
-          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 z-20">
-            <div className="flex items-center gap-1 bg-rose-600 text-white px-2.5 py-0.5 rounded-full shadow-md border-2 border-white">
-              <CircleDot size={10} className="animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wide">
+          <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 z-20">
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full shadow-lg border border-white/20 backdrop-blur-sm"
+              style={{
+                background: 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)',
+                boxShadow: '0 4px 12px rgba(225, 29, 72, 0.3)',
+              }}
+            >
+              <CircleDot size={10} className="text-white animate-pulse" />
+              <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
                 Busy
               </span>
             </div>

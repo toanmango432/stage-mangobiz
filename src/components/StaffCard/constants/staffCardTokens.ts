@@ -20,74 +20,74 @@ export interface SpecialtyColors {
 export const SPECIALTY_COLORS: Record<string, SpecialtyColors> = {
   neutral: {
     base: '#F5F5F5',
-    borderColor: '#E0E0E0',
-    darkBorderColor: '#C0C0C0',
+    borderColor: '#E5E5E5',
+    darkBorderColor: '#D4D4D4',
     bgGradientFrom: '#FFFFFF',
-    bgGradientTo: '#F5F5F5',
-    textColor: '#424242',
-    iconColor: '#757575',
+    bgGradientTo: '#F8FAFC',
+    textColor: '#525252',
+    iconColor: '#737373',
   },
   nails: {
     base: '#F43F5E',
-    borderColor: '#F43F5E',
-    darkBorderColor: '#E11D48',
-    bgGradientFrom: '#FFF1F3',
-    bgGradientTo: '#FFE4E8',
-    textColor: '#881337',
+    borderColor: '#FDA4AF',
+    darkBorderColor: '#FB7185',
+    bgGradientFrom: '#FFF1F2',
+    bgGradientTo: '#FFE4E6',
+    textColor: '#9F1239',
     iconColor: '#E11D48',
   },
   hair: {
-    base: '#2563EB',
-    borderColor: '#2563EB',
-    darkBorderColor: '#1D4ED8',
+    base: '#3B82F6',
+    borderColor: '#93C5FD',
+    darkBorderColor: '#60A5FA',
     bgGradientFrom: '#EFF6FF',
     bgGradientTo: '#DBEAFE',
-    textColor: '#1E3A8A',
-    iconColor: '#1D4ED8',
+    textColor: '#1E40AF',
+    iconColor: '#2563EB',
   },
   massage: {
-    base: '#16A34A',
-    borderColor: '#16A34A',
-    darkBorderColor: '#15803D',
-    bgGradientFrom: '#F0FDF4',
-    bgGradientTo: '#DCFCE7',
-    textColor: '#14532D',
-    iconColor: '#15803D',
+    base: '#10B981',
+    borderColor: '#6EE7B7',
+    darkBorderColor: '#34D399',
+    bgGradientFrom: '#ECFDF5',
+    bgGradientTo: '#D1FAE5',
+    textColor: '#065F46',
+    iconColor: '#059669',
   },
   skincare: {
-    base: '#A855F7',
-    borderColor: '#A855F7',
-    darkBorderColor: '#9333EA',
-    bgGradientFrom: '#FAF5FF',
-    bgGradientTo: '#F3E8FF',
-    textColor: '#581C87',
-    iconColor: '#9333EA',
+    base: '#8B5CF6',
+    borderColor: '#C4B5FD',
+    darkBorderColor: '#A78BFA',
+    bgGradientFrom: '#F5F3FF',
+    bgGradientTo: '#EDE9FE',
+    textColor: '#5B21B6',
+    iconColor: '#7C3AED',
   },
   waxing: {
     base: '#06B6D4',
-    borderColor: '#06B6D4',
-    darkBorderColor: '#0891B2',
+    borderColor: '#67E8F9',
+    darkBorderColor: '#22D3EE',
     bgGradientFrom: '#ECFEFF',
     bgGradientTo: '#CFFAFE',
-    textColor: '#164E63',
+    textColor: '#155E75',
     iconColor: '#0891B2',
   },
   combo: {
-    base: '#EAB308',
-    borderColor: '#EAB308',
-    darkBorderColor: '#CA8A04',
-    bgGradientFrom: '#FEFCE8',
-    bgGradientTo: '#FEF08A',
-    textColor: '#713F12',
-    iconColor: '#CA8A04',
+    base: '#F59E0B',
+    borderColor: '#FCD34D',
+    darkBorderColor: '#FBBF24',
+    bgGradientFrom: '#FFFBEB',
+    bgGradientTo: '#FEF3C7',
+    textColor: '#92400E',
+    iconColor: '#D97706',
   },
   support: {
     base: '#F97316',
-    borderColor: '#F97316',
-    darkBorderColor: '#EA580C',
+    borderColor: '#FDBA74',
+    darkBorderColor: '#FB923C',
     bgGradientFrom: '#FFF7ED',
     bgGradientTo: '#FFEDD5',
-    textColor: '#7C2D12',
+    textColor: '#9A3412',
     iconColor: '#EA580C',
   },
 };
@@ -152,24 +152,24 @@ export interface CardDimensions {
 export const CARD_DIMENSIONS: Record<'ultra-compact' | 'compact' | 'normal', CardDimensions> = {
   'ultra-compact': {
     width: '100%',
-    height: '160px',
-    avatarSize: '44px',
+    height: '85px', // Reduced from 170px for maximum density
+    avatarSize: '50px', // Reduced from 70px
     borderRadius: '50%',
-    containerPadding: 'p-1',
-    cardRadius: '16px',
+    containerPadding: 'p-1', // Reduced from p-1.5
+    cardRadius: '12px', // Reduced from 16px
   },
   compact: {
     width: '100%',
-    height: '220px',
-    avatarSize: '64px',
+    height: '190px', // Increased from 170px to show metrics
+    avatarSize: '70px',
     borderRadius: '50%',
-    containerPadding: 'p-2',
-    cardRadius: '20px',
+    containerPadding: 'p-1.5',
+    cardRadius: '16px',
   },
   normal: {
     width: '100%',
-    height: '320px',
-    avatarSize: '100px',
+    height: '340px',
+    avatarSize: '160px',
     borderRadius: '50%',
     containerPadding: 'p-3',
     cardRadius: '24px',
@@ -200,15 +200,15 @@ export const getResponsiveSizes = (
   const isCompact = viewMode === 'compact';
 
   return {
-    badge: isUltra ? '24px' : isCompact ? '34px' : '42px',
-    badgeFont: isUltra ? '12px' : isCompact ? '16px' : '20px',
-    notchHeight: isBusy ? (isUltra ? '28px' : '32px') : (isUltra ? '18px' : '24px'),
-    nameSize: isUltra ? 'text-sm' : isCompact ? 'text-lg' : 'text-xl',
-    metaSize: isUltra ? 'text-xs' : 'text-xs',
-    iconSize: isUltra ? 9 : 11,
+    badge: isUltra ? '20px' : isCompact ? '28px' : '36px', // Increased from 16px for ultra
+    badgeFont: isUltra ? '11px' : isCompact ? '14px' : '16px', // Increased from 9px
+    notchHeight: isBusy ? (isUltra ? '9px' : '28px') : (isUltra ? '8px' : '20px'), // Reduced by 20% for ultra
+    nameSize: isUltra ? 'text-[13px]' : isCompact ? 'text-[14px]' : 'text-[17px]', // Balanced for compact
+    metaSize: isUltra ? 'text-[9px]' : isCompact ? 'text-[11px]' : 'text-xs', // Slightly larger for compact
+    iconSize: isUltra ? 10 : isCompact ? 12 : 14, // Balanced icon size
     borderWidth: isUltra ? '2px' : '4px',
-    timelineText: isUltra ? 'text-xs' : 'text-xs',
-    timelineGap: isUltra ? 'gap-1' : 'gap-3',
+    timelineText: isUltra ? 'text-[11px]' : isCompact ? 'text-[10px]' : 'text-xs', // Increased from 9px
+    timelineGap: isUltra ? 'gap-0.5' : 'gap-2', // Reduced from gap-1
   };
 };
 
@@ -216,17 +216,37 @@ export const getResponsiveSizes = (
 // SHADOWS & EFFECTS
 // ============================================================================
 
+// ============================================================================
+// SHADOWS & EFFECTS
+// ============================================================================
+
 export const CARD_SHADOWS = {
-  default: '0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)',
-  busy: '0 4px 20px rgba(225, 29, 72, 0.15), 0 1px 4px rgba(225, 29, 72, 0.1)',
-  hover: '0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06)',
-  avatar: '0 8px 24px -6px rgba(0,0,0,0.15)',
+  default: '0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -4px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+  busy: '0 10px 30px -5px rgba(225, 29, 72, 0.2), 0 4px 12px -4px rgba(225, 29, 72, 0.1), inset 0 0 0 1px rgba(225, 29, 72, 0.3)',
+  hover: '0 20px 40px -10px rgba(0, 0, 0, 0.12), 0 8px 16px -6px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+  avatar: '0 20px 40px -12px rgba(0,0,0,0.25), 0 8px 16px -8px rgba(0,0,0,0.3)',
+  innerGlow: 'inset 0 0 20px rgba(255, 255, 255, 0.5)',
+};
+
+export const GLASS_EFFECTS = {
+  card: {
+    background: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.4)',
+  },
+  overlay: {
+    background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 100%)',
+  },
+  busyOverlay: {
+    background: 'linear-gradient(135deg, rgba(225, 29, 72, 0.1) 0%, rgba(225, 29, 72, 0.05) 100%)',
+    backdropFilter: 'blur(2px)',
+  }
 };
 
 export const BUSY_OVERLAY = {
-  background: 'rgba(225, 29, 72, 0.35)',
-  mixBlendMode: 'multiply' as const,
-  filter: 'saturate(0.3)',
+  background: 'linear-gradient(135deg, rgba(225, 29, 72, 0.15), rgba(225, 29, 72, 0.05))',
+  mixBlendMode: 'normal' as const,
+  filter: 'none',
 };
 
 // ============================================================================
@@ -241,12 +261,12 @@ export const getProgressColor = (progress: number): string => {
 
 export const getProgressGradient = (progress: number): string => {
   if (progress <= 0.25) {
-    return 'rgba(16, 185, 129, 0.03)';
+    return 'linear-gradient(90deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.2))';
   }
   if (progress <= 0.75) {
-    return 'rgba(245, 158, 11, 0.03)';
+    return 'linear-gradient(90deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.2))';
   }
-  return 'rgba(239, 68, 68, 0.03)';
+  return 'linear-gradient(90deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.2))';
 };
 
 // ============================================================================
@@ -255,18 +275,19 @@ export const getProgressGradient = (progress: number): string => {
 
 export const ANIMATIONS = {
   cardHover: {
-    transition: 'all 0.3s ease-out',
-    transform: 'hover:-translate-y-1.5',
-    shadow: 'hover:shadow-xl',
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Spring-like
+    transform: 'hover:-translate-y-2',
+    shadow: 'hover:shadow-2xl',
   },
   avatarHover: {
-    transition: 'transform 0.3s',
-    transform: 'group-hover:scale-[1.02]',
+    transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+    transform: 'group-hover:scale-[1.05]',
   },
   progressBar: {
-    transition: 'all 0.7s ease-out',
+    transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   pulseAnimation: 'animate-pulse',
+  shimmer: 'animate-shimmer',
 };
 
 // ============================================================================
@@ -274,8 +295,8 @@ export const ANIMATIONS = {
 // ============================================================================
 
 export const LAYOUT = {
-  topSectionHeight: '70%',
-  bottomSectionHeight: '30%',
+  topSectionHeight: '80%',
+  bottomSectionHeight: '20%',
   notchWidthBusy: {
     ultra: '72%',
     normal: '60%',

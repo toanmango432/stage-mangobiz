@@ -30,6 +30,37 @@ export const StaffCardTicket = React.memo<StaffCardTicketProps>(
         ? TICKET_STYLES.statusColors['in-service']
         : TICKET_STYLES.statusColors.pending;
 
+    // Ultra-compact: Show only ticket number in a minimal badge
+    if (isUltra) {
+      return (
+        <div className="w-full flex justify-center">
+          <div
+            onClick={onClick}
+            className="relative px-2 py-0.5 bg-gradient-to-br from-[#FFFBF0] to-[#FFF8E7] border border-dashed border-[#E5E7EB] rounded cursor-pointer transition-all duration-200 hover:shadow-sm"
+            style={{
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Ticket ${ticket.ticketNumber || ticket.id}`}
+          >
+            {/* Ticket Number Only */}
+            <span className="text-[9px] font-mono font-bold text-gray-700">
+              #{ticket.ticketNumber || ticket.id}
+            </span>
+
+            {/* Ticket Count Badge (if > 1) */}
+            {totalTickets > 1 && (
+              <span className="ml-1 text-[8px] font-bold text-blue-600">
+                +{totalTickets - 1}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Normal/Compact: Full ticket display
     return (
       <div className="w-full relative z-10 px-1 perspective-1000">
         {/* Stack Effect (if > 1 ticket) */}
@@ -43,13 +74,13 @@ export const StaffCardTicket = React.memo<StaffCardTicketProps>(
         {/* Main Ticket Card */}
         <div
           onClick={onClick}
-          className="relative w-full h-[38px] bg-gradient-to-br from-[#FFFBF0] to-[#FFF8E7] border-2 border-dashed border-[#E5E7EB] rounded-lg cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group z-10 flex items-center overflow-hidden"
+          className={`relative w-full ${isUltra ? 'h-[28px]' : 'h-[32px]'} bg-gradient-to-br from-[#FFFBF0] to-[#FFF8E7] border-2 border-dashed border-[#E5E7EB] rounded-lg cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md group z-10 flex items-center overflow-hidden`}
           style={{
             boxShadow: TICKET_STYLES.shadow,
             WebkitMaskImage:
-              'radial-gradient(circle at -4px 50%, transparent 5px, black 5.5px), radial-gradient(circle at calc(100% + 4px) 50%, transparent 5px, black 5.5px)',
+              'radial-gradient(circle at -4px 50%, transparent 4px, black 4.5px), radial-gradient(circle at calc(100% + 4px) 50%, transparent 4px, black 4.5px)',
             maskImage:
-              'radial-gradient(circle at -4px 50%, transparent 5px, black 5.5px), radial-gradient(circle at calc(100% + 4px) 50%, transparent 5px, black 5.5px)',
+              'radial-gradient(circle at -4px 50%, transparent 4px, black 4.5px), radial-gradient(circle at calc(100% + 4px) 50%, transparent 4px, black 4.5px)',
             contain: 'layout style paint', // Performance optimization
           }}
           role="button"
@@ -57,7 +88,7 @@ export const StaffCardTicket = React.memo<StaffCardTicketProps>(
           aria-label={`Ticket ${ticket.ticketNumber || ticket.id} for ${ticket.clientName}`}
         >
           {/* Status Strip (Left Stub) */}
-          <div className="absolute left-0 top-0 bottom-0 w-[4px]">
+          <div className="absolute left-0 top-0 bottom-0 w-[3px]">
             <div
               className="absolute inset-0 opacity-80"
               style={{ background: statusColor }}
@@ -67,34 +98,32 @@ export const StaffCardTicket = React.memo<StaffCardTicketProps>(
           </div>
 
           {/* Ticket Number - Top Left Corner Tag */}
-          <div className="absolute top-0 left-[4px] px-1.5 py-[1px] bg-[#F3F0E6]/80 backdrop-blur-[1px] rounded-br-md border-b border-r border-black/5 z-20">
-            <span className="text-[8px] font-mono font-bold text-gray-400 leading-none block">
+          <div className="absolute top-0 left-[3px] px-1 py-[0.5px] bg-[#F3F0E6]/80 backdrop-blur-[1px] rounded-br-md border-b border-r border-black/5 z-20">
+            <span className="text-[7px] font-mono font-bold text-gray-400 leading-none block">
               #{ticket.ticketNumber || ticket.id}
             </span>
           </div>
 
           {/* Content Container */}
-          <div className="flex-1 flex items-center justify-between pl-3.5 pr-2">
+          <div className="flex-1 flex items-center justify-between pl-2.5 pr-1.5">
             {/* Left: Info */}
-            <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+            <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden">
               {/* Pulse Dot (In-Service only) */}
               {ticket.status === 'in-service' && (
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
               )}
 
               {/* Text: First Name + Service */}
-              <div className="flex items-baseline gap-1.5 truncate pt-1">
+              <div className="flex items-baseline gap-1 truncate pt-1">
                 <span
-                  className={`${
-                    isUltra ? 'text-[10px]' : 'text-[11px]'
-                  } font-bold text-gray-800 uppercase tracking-tight`}
+                  className={`${isUltra ? 'text-[9px]' : 'text-[10px]'
+                    } font-bold text-gray-800 uppercase tracking-tight`}
                 >
                   {formatClientName(ticket.clientName)}
                 </span>
                 <span
-                  className={`${
-                    isUltra ? 'text-xs' : 'text-xs'
-                  } font-medium text-gray-500 truncate`}
+                  className={`${isUltra ? 'text-[9px]' : 'text-[10px]'
+                    } font-medium text-gray-500 truncate`}
                 >
                   {ticket.serviceName}
                 </span>

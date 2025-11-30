@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mango POS - Technical Documentation v2.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #f97316;
+            --primary-dark: #ea580c;
+            --secondary: #0ea5e9;
+            --bg-dark: #1e293b;
+            --bg-light: #f8fafc;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --warning: #eab308;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: var(--bg-light);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #334155 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .header .version {
+            margin-top: 1rem;
+            padding: 0.25rem 1rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav a {
+            color: var(--text-dark);
+            text-decoration: none;
+            padding: 0.5rem 0.875rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .nav a:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav a.active {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            color: var(--bg-dark);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--primary);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--text-dark);
+            font-size: 1.3rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        h4 {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        p {
+            color: var(--text-light);
+            margin-bottom: 1rem;
+        }
+
+        .diagram-container {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .tech-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .tech-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .tech-card .icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tech-card h4 {
+            color: var(--text-dark);
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .tech-card p {
+            font-size: 0.8rem;
+            margin: 0.25rem 0 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-dark);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        code {
+            background: #e2e8f0;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+        }
+
+        .code-block {
+            background: var(--bg-dark);
+            color: #e2e8f0;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-primary { background: var(--primary); color: white; }
+        .badge-secondary { background: var(--secondary); color: white; }
+        .badge-success { background: var(--success); color: white; }
+        .badge-warning { background: var(--warning); color: var(--text-dark); }
+        .badge-error { background: var(--error); color: white; }
+        .badge-local { background: #8b5cf6; color: white; }
+        .badge-cloud { background: #06b6d4; color: white; }
+        .badge-hybrid { background: #f59e0b; color: white; }
+        .badge-merge { background: #10b981; color: white; }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .card h4 {
+            color: var(--primary);
+            margin-top: 0;
+        }
+
+        .card.local-only {
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .card.synced {
+            border-left: 4px solid var(--success);
+        }
+
+        .card.cloud-only {
+            border-left: 4px solid #06b6d4;
+        }
+
+        .card.hybrid {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .card.security {
+            border-left: 4px solid var(--error);
+        }
+
+        .storage-category {
+            margin: 2rem 0;
+        }
+
+        .storage-category h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .category-icon.local { background: #8b5cf6; color: white; }
+        .category-icon.synced { background: var(--success); color: white; }
+        .category-icon.cloud { background: #06b6d4; color: white; }
+        .category-icon.hybrid { background: #f59e0b; color: white; }
+        .category-icon.security { background: var(--error); color: white; }
+
+        .toc {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+            color: var(--bg-dark);
+        }
+
+        .toc ol {
+            columns: 2;
+            column-gap: 2rem;
+        }
+
+        .toc li {
+            margin: 0.5rem 0;
+        }
+
+        .toc a {
+            color: var(--text-dark);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            color: var(--primary);
+        }
+
+        .priority-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .priority-1 { color: #ef4444; }
+        .priority-2 { color: #f97316; }
+        .priority-3 { color: #eab308; }
+        .priority-4 { color: #22c55e; }
+        .priority-5 { color: #64748b; }
+
+        .alert-box {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .alert-box.info {
+            background: #eff6ff;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .alert-box.warning {
+            background: #fefce8;
+            border-left: 4px solid var(--warning);
+        }
+
+        .alert-box.success {
+            background: #f0fdf4;
+            border-left: 4px solid var(--success);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .nav-content { flex-direction: column; align-items: center; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .toc ol { columns: 1; }
+            section { padding: 1.5rem; }
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-dark);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Mango POS Offline V2</h1>
+        <p class="subtitle">Technical Architecture Documentation</p>
+        <span class="version">Version 2.0.0 | Last Updated: November 30, 2025</span>
+    </header>
+
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="#overview">Overview</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#data-storage">Data Storage</a>
+            <a href="#components">Components</a>
+            <a href="#state-management">State</a>
+            <a href="#database">Database</a>
+            <a href="#sync">Sync</a>
+            <a href="#conflicts">Conflicts</a>
+            <a href="#authentication">Auth</a>
+            <a href="#security">Security</a>
+            <a href="#api">API</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- TABLE OF CONTENTS -->
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ol>
+                <li><a href="#overview">System Overview</a></li>
+                <li><a href="#architecture">High-Level Architecture</a></li>
+                <li><a href="#data-storage">Data Storage Strategy</a></li>
+                <li><a href="#components">Component Hierarchy</a></li>
+                <li><a href="#state-management">State Management (Redux)</a></li>
+                <li><a href="#database">Database Schema (IndexedDB)</a></li>
+                <li><a href="#sync">Offline Sync System</a></li>
+                <li><a href="#conflicts">Conflict Resolution</a></li>
+                <li><a href="#authentication">Authentication Flow</a></li>
+                <li><a href="#security">Security Architecture</a></li>
+                <li><a href="#api">API Integration</a></li>
+            </ol>
+        </div>
+
+        <!-- SYSTEM OVERVIEW -->
+        <section id="overview">
+            <h2>System Overview</h2>
+            <p>Mango POS is an offline-first salon management system built with React, TypeScript, and IndexedDB. It provides comprehensive salon operations including appointment scheduling, ticket management, payment processing, and staff coordination - all designed to work seamlessly without internet connectivity.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>Key Capabilities</h4>
+                    <ul>
+                        <li>Appointment booking with smart staff assignment</li>
+                        <li>Real-time ticket management</li>
+                        <li>Offline-first data persistence with intelligent sync</li>
+                        <li>Multi-view front desk (Grid, Compact, Line)</li>
+                        <li>Turn tracking for staff rotation</li>
+                        <li>Payment processing and receipts</li>
+                        <li>Admin portal for multi-store management</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>Design Principles</h4>
+                    <ul>
+                        <li><strong>Offline-First:</strong> All operations work without internet; local storage is primary</li>
+                        <li><strong>Optimistic UI:</strong> Immediate feedback on all actions</li>
+                        <li><strong>Automatic Sync:</strong> Background sync with priority-based queue</li>
+                        <li><strong>Smart Conflict Resolution:</strong> Field-level merging with configurable strategies</li>
+                        <li><strong>Mobile Responsive:</strong> Works on all device sizes</li>
+                        <li><strong>PWA Ready:</strong> Installable as native app</li>
+                        <li><strong>Audit Everything:</strong> All mutations traceable to user, device, and time</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- HIGH-LEVEL ARCHITECTURE -->
+        <section id="architecture">
+            <h2>High-Level Architecture</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph Client["Client Application"]
+        UI[React Components]
+        Redux[Redux Store]
+        Hooks[Custom Hooks]
+        Services[Services Layer]
+        DB[(IndexedDB/Dexie)]
+        SecureStore[(Secure Storage)]
+    end
+
+    subgraph Backend["Backend Services"]
+        API[REST API]
+        WS[WebSocket Server]
+        Auth[Auth Service]
+        CC[Control Center]
+    end
+
+    subgraph External["External"]
+        Supabase[(Supabase/PostgreSQL)]
+    end
+
+    UI --> Redux
+    UI --> Hooks
+    Hooks --> Redux
+    Hooks --> Services
+    Redux --> Services
+    Services --> DB
+    Services --> SecureStore
+    Services --> API
+    Services --> WS
+    API --> Auth
+    API --> Supabase
+    CC --> Auth
+    WS --> Supabase
+
+    style UI fill:#f97316,color:#fff
+    style Redux fill:#764abc,color:#fff
+    style DB fill:#22c55e,color:#fff
+    style SecureStore fill:#ef4444,color:#fff
+    style API fill:#0ea5e9,color:#fff
+                </pre>
+            </div>
+
+            <h3>Architecture Layers</h3>
+            <table>
+                <tr>
+                    <th>Layer</th>
+                    <th>Responsibility</th>
+                    <th>Key Files</th>
+                </tr>
+                <tr>
+                    <td><strong>Presentation</strong></td>
+                    <td>React components, UI rendering, user interactions</td>
+                    <td><code>src/components/</code>, <code>src/pages/</code></td>
+                </tr>
+                <tr>
+                    <td><strong>State</strong></td>
+                    <td>Redux store, slices, selectors, async thunks</td>
+                    <td><code>src/store/</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Business Logic</strong></td>
+                    <td>Services, utilities, hooks for business rules</td>
+                    <td><code>src/services/</code>, <code>src/hooks/</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Data</strong></td>
+                    <td>IndexedDB operations, sync queue, API calls</td>
+                    <td><code>src/db/</code>, <code>src/api/</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Security</strong></td>
+                    <td>Encrypted storage, auth tokens, data isolation</td>
+                    <td><code>src/services/secureStorage.ts</code></td>
+                </tr>
+            </table>
+
+            <h3>Technology Stack</h3>
+            <div class="tech-stack">
+                <div class="tech-card">
+                    <div class="icon">&#9883;</div>
+                    <h4>React 18</h4>
+                    <p>UI Framework with Hooks</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128295;</div>
+                    <h4>TypeScript</h4>
+                    <p>Type-safe JavaScript</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#9889;</div>
+                    <h4>Vite</h4>
+                    <p>Build Tool & Dev Server</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128230;</div>
+                    <h4>Redux Toolkit</h4>
+                    <p>State Management</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128451;</div>
+                    <h4>Dexie.js</h4>
+                    <p>IndexedDB with Migrations</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#127912;</div>
+                    <h4>Tailwind CSS</h4>
+                    <p>Utility-first Styling</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128274;</div>
+                    <h4>Web Crypto API</h4>
+                    <p>AES-256-GCM Encryption</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- DATA STORAGE STRATEGY -->
+        <section id="data-storage">
+            <h2>Data Storage Strategy</h2>
+            <p>Data is categorized into four storage types based on sync requirements, security, and access patterns.</p>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart LR
+    subgraph Local["LOCAL ONLY"]
+        L1[UI Preferences]
+        L2[Sync Queue]
+        L3[Session Tokens]
+        L4[Draft Data]
+        L5[Conflict Snapshots]
+    end
+
+    subgraph Synced["LOCAL + CLOUD"]
+        S1[Appointments]
+        S2[Tickets]
+        S3[Transactions]
+        S4[Clients]
+        S5[Staff]
+        S6[Services]
+        S7[Products]
+    end
+
+    subgraph Cloud["CLOUD ONLY"]
+        C1[Tenants]
+        C2[Licenses]
+        C3[Admin Users]
+        C4[Audit Logs]
+        C5[Device Registry]
+    end
+
+    subgraph Hybrid["HYBRID"]
+        H1[License Tier]
+        H2[Feature Flags]
+        H3[Store Defaults]
+        H4[Tax Rates]
+    end
+
+    Local --> |Never synced| Device[(Device)]
+    Synced --> |Bidirectional| Both[(Local + Cloud)]
+    Cloud --> |API only| Server[(Supabase)]
+    Hybrid --> |Cached locally| Cache[(Cached)]
+
+    style Local fill:#8b5cf6,color:#fff
+    style Synced fill:#22c55e,color:#fff
+    style Cloud fill:#06b6d4,color:#fff
+    style Hybrid fill:#f59e0b,color:#fff
+                </pre>
+            </div>
+
+            <!-- SYNC PRIORITIES -->
+            <h3>Sync Priorities</h3>
+            <table>
+                <tr>
+                    <th>Priority</th>
+                    <th>Level</th>
+                    <th>Entities</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="priority-indicator priority-1">&#9679; CRITICAL</span></td>
+                    <td>1</td>
+                    <td>Transactions, Payments</td>
+                    <td>Must sync immediately when online</td>
+                </tr>
+                <tr>
+                    <td><span class="priority-indicator priority-2">&#9679; HIGH</span></td>
+                    <td>2</td>
+                    <td>Appointments, Tickets</td>
+                    <td>Business-critical operations</td>
+                </tr>
+                <tr>
+                    <td><span class="priority-indicator priority-3">&#9679; NORMAL</span></td>
+                    <td>3</td>
+                    <td>Clients, Staff</td>
+                    <td>Important but deferrable</td>
+                </tr>
+                <tr>
+                    <td><span class="priority-indicator priority-4">&#9679; LOW</span></td>
+                    <td>4</td>
+                    <td>Services, Products</td>
+                    <td>Reference data</td>
+                </tr>
+                <tr>
+                    <td><span class="priority-indicator priority-5">&#9679; BACKGROUND</span></td>
+                    <td>5</td>
+                    <td>Analytics, Preferences</td>
+                    <td>Sync when idle</td>
+                </tr>
+            </table>
+
+            <!-- LOCAL + CLOUD -->
+            <div class="storage-category">
+                <h3><span class="category-icon synced">&#128259;</span> Local + Cloud (Synced Data)</h3>
+                <p>Operational data that lives locally first, then syncs to cloud. This is the core offline-first data.</p>
+
+                <table>
+                    <tr>
+                        <th>Entity</th>
+                        <th>Local</th>
+                        <th>Cloud</th>
+                        <th>Sync</th>
+                        <th>Conflict Strategy</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Appointments</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-merge">Field-Merge</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tickets</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-merge">Field-Merge</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Transactions</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-warning">Server-Wins</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Clients</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-merge">Field-Merge</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Staff</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-secondary">Last-Write-Wins</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Services</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-warning">Server-Wins</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Products</strong></td>
+                        <td>IndexedDB</td>
+                        <td>PostgreSQL</td>
+                        <td>Bidirectional</td>
+                        <td><span class="badge badge-warning">Server-Wins</span></td>
+                    </tr>
+                </table>
+
+                <h4>Base Syncable Entity (v2):</h4>
+                <div class="code-block">
+interface BaseSyncableEntity {
+  id: string;                         // UUID v4
+  tenantId: string;
+  storeId: string;
+
+  // Sync metadata
+  syncStatus: 'local' | 'synced' | 'pending' | 'syncing' | 'conflict' | 'error';
+  version: number;                    // Monotonic counter
+  vectorClock: Record&lt;string, number&gt;; // { deviceId: lastSeenVersion }
+  lastSyncedVersion: number;
+
+  // Timestamps
+  createdAt: string;                  // ISO 8601
+  updatedAt: string;
+
+  // Audit trail
+  createdBy: string;
+  createdByDevice: string;
+  lastModifiedBy: string;
+  lastModifiedByDevice: string;
+
+  // Soft delete (tombstone)
+  isDeleted: boolean;
+  deletedAt?: string;
+  tombstoneExpiresAt?: string;
+}
+                </div>
+            </div>
+
+            <!-- SUMMARY -->
+            <h3>Summary</h3>
+            <div class="grid-4">
+                <div class="card local-only">
+                    <h4><span class="badge badge-local">LOCAL ONLY</span></h4>
+                    <p>UI prefs, sync queue, tokens, drafts, conflicts</p>
+                    <strong>9 types</strong>
+                </div>
+                <div class="card synced">
+                    <h4><span class="badge badge-success">LOCAL + CLOUD</span></h4>
+                    <p>Appointments, Tickets, Transactions, Clients, Staff, Services, Products</p>
+                    <strong>7 entities</strong>
+                </div>
+                <div class="card cloud-only">
+                    <h4><span class="badge badge-cloud">CLOUD ONLY</span></h4>
+                    <p>Tenants, Licenses, Admin Users, Audit Logs, Feature Flags</p>
+                    <strong>12+ tables</strong>
+                </div>
+                <div class="card hybrid">
+                    <h4><span class="badge badge-hybrid">HYBRID</span></h4>
+                    <p>License tier, Store defaults, Feature flags, Tax rates</p>
+                    <strong>7 types</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPONENT HIERARCHY -->
+        <section id="components">
+            <h2>Component Hierarchy</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TD
+    subgraph Entry["Entry Point"]
+        Index[index.tsx]
+        AppRouter[AppRouter.tsx]
+    end
+
+    subgraph Routes["Route Handler"]
+        App[App.tsx]
+    end
+
+    subgraph Modes["Application Modes"]
+        Admin[Admin Portal]
+        POS[POS Mode]
+    end
+
+    subgraph POSViews["POS Views"]
+        FD[FrontDesk]
+        Calendar[Calendar/Book]
+        Checkout[Checkout]
+        Settings[Settings]
+    end
+
+    subgraph FDViews["FrontDesk Views"]
+        Grid[Grid View]
+        Compact[Compact View]
+        Line[Line View]
+    end
+
+    Index --> AppRouter
+    AppRouter --> App
+    App --> |"/admin"| Admin
+    App --> |"/*"| POS
+    POS --> FD
+    POS --> Calendar
+    POS --> Checkout
+    POS --> Settings
+    FD --> Grid
+    FD --> Compact
+    FD --> Line
+
+    style Index fill:#f97316,color:#fff
+    style POS fill:#0ea5e9,color:#fff
+    style FD fill:#22c55e,color:#fff
+                </pre>
+            </div>
+
+            <h3>Key Components</h3>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Size</th>
+                    <th>Purpose</th>
+                </tr>
+                <tr>
+                    <td><code>FrontDesk.tsx</code></td>
+                    <td>~1004 lines</td>
+                    <td>Main front desk screen with view switching</td>
+                </tr>
+                <tr>
+                    <td><code>StaffCard.tsx</code></td>
+                    <td>~3500+ lines</td>
+                    <td>Complex staff card with appointments/tickets</td>
+                </tr>
+                <tr>
+                    <td><code>FrontDeskSettings.tsx</code></td>
+                    <td>~96KB</td>
+                    <td>Comprehensive settings panel</td>
+                </tr>
+                <tr>
+                    <td><code>Checkout.tsx</code></td>
+                    <td>~800+ lines</td>
+                    <td>Payment processing flow</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- STATE MANAGEMENT -->
+        <section id="state-management">
+            <h2>State Management (Redux)</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TD
+    subgraph Store["Redux Store"]
+        subgraph Domain["Domain State"]
+            Appts[appointmentsSlice]
+            Tickets[ticketsSlice]
+            Staff[staffSlice]
+            Clients[clientsSlice]
+            Trans[transactionsSlice]
+        end
+
+        subgraph System["System State"]
+            Auth[authSlice]
+            Sync[syncSlice]
+        end
+
+        subgraph UI["UI State"]
+            UIMain[uiSlice]
+            UITickets[uiTicketsSlice]
+            UIStaff[uiStaffSlice]
+        end
+    end
+
+    style Store fill:#764abc,color:#fff
+    style Appts fill:#f97316,color:#fff
+    style Auth fill:#22c55e,color:#fff
+    style UIMain fill:#0ea5e9,color:#fff
+                </pre>
+            </div>
+
+            <h3>Redux Slices</h3>
+            <table>
+                <tr>
+                    <th>Slice</th>
+                    <th>Async Thunks</th>
+                    <th>Selectors</th>
+                </tr>
+                <tr>
+                    <td><code>appointmentsSlice</code></td>
+                    <td>fetchAppointments, createAppointment, updateAppointment</td>
+                    <td>selectTodayAppointments, selectByStaff</td>
+                </tr>
+                <tr>
+                    <td><code>ticketsSlice</code></td>
+                    <td>fetchTickets, createTicket, updateTicket</td>
+                    <td>selectOpenTickets, selectByClient</td>
+                </tr>
+                <tr>
+                    <td><code>syncSlice</code></td>
+                    <td>pushChanges, pullChanges, resolveConflict</td>
+                    <td>selectPendingCount, selectSyncStatus</td>
+                </tr>
+                <tr>
+                    <td><code>authSlice</code></td>
+                    <td>loginStore, logout, validateSession</td>
+                    <td>selectIsAuthenticated, selectCurrentStore</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- DATABASE -->
+        <section id="database">
+            <h2>Database Schema (IndexedDB)</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+erDiagram
+    APPOINTMENTS {
+        string id PK
+        string storeId FK
+        string clientId FK
+        string staffId FK
+        string status
+        datetime scheduledStartTime
+        int version
+        json vectorClock
+        string syncStatus
+    }
+
+    TICKETS {
+        string id PK
+        string ticketNumber
+        string storeId FK
+        string clientId FK
+        string status
+        number total
+        int version
+        string syncStatus
+    }
+
+    CLIENTS {
+        string id PK
+        string storeId FK
+        string displayName
+        string phone
+        int totalVisits
+        number totalSpent
+        string syncStatus
+    }
+
+    STAFF {
+        string id PK
+        string storeId FK
+        string displayName
+        string role
+        string status
+        int turnQueuePosition
+    }
+
+    SYNC_QUEUE {
+        string id PK
+        string entity
+        string type
+        json payload
+        int priority
+        int attempts
+        string status
+    }
+
+    CONFLICTS {
+        string id PK
+        string entityType
+        string entityId
+        json localData
+        json serverData
+        string status
+    }
+
+    CLIENTS ||--o{ APPOINTMENTS : books
+    CLIENTS ||--o{ TICKETS : has
+    STAFF ||--o{ APPOINTMENTS : assigned
+    STAFF ||--o{ TICKETS : serves
+                </pre>
+            </div>
+
+            <h3>Schema Definition (Dexie.js v3)</h3>
+            <div class="code-block">
+db.version(3).stores({
+  appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime,
+                 [storeId+status], [storeId+scheduledStartTime], [storeId+isDeleted]',
+
+  tickets: 'id, ticketNumber, storeId, clientId, status, createdAt,
+            [storeId+status], [storeId+createdAt]',
+
+  transactions: 'id, ticketId, storeId, status, paymentMethod, createdAt,
+                 [storeId+createdAt], [storeId+status]',
+
+  clients: 'id, storeId, email, phone, displayName, [storeId+displayName],
+            [storeId+phone], [storeId+isDeleted]',
+
+  staff: 'id, storeId, email, role, status, [storeId+status], [storeId+role]',
+
+  services: 'id, storeId, categoryId, isActive, [storeId+categoryId]',
+
+  products: 'id, storeId, sku, categoryId, [storeId+categoryId]',
+
+  syncQueue: '++localId, id, entity, entityId, status, priority,
+              [status+priority], [entity+entityId]',
+
+  syncMeta: 'entity',
+  conflicts: 'id, entityType, entityId, status, [status+createdAt]',
+  cache: 'key, expiresAt',
+  settings: 'key',
+});
+            </div>
+        </section>
+
+        <!-- SYNC SYSTEM -->
+        <section id="sync">
+            <h2>Offline Sync System</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+sequenceDiagram
+    participant User
+    participant App
+    participant IndexedDB
+    participant SyncQueue
+    participant Server
+
+    User->>App: Create/Update Data
+    App->>App: Update Redux (Optimistic)
+    App->>IndexedDB: Save (syncStatus: 'pending')
+    App->>SyncQueue: Queue with idempotencyKey
+    App-->>User: UI Updated Immediately
+
+    Note over SyncQueue,Server: Background Sync (every 30s)
+    SyncQueue->>SyncQueue: Sort by priority
+    SyncQueue->>Server: Push batch (with version)
+
+    alt Success
+        Server-->>SyncQueue: Confirm with serverVersion
+        SyncQueue->>IndexedDB: Mark synced, update lastSyncedVersion
+    else Conflict
+        Server-->>SyncQueue: Return conflict info
+        SyncQueue->>SyncQueue: Apply resolution strategy
+        SyncQueue->>IndexedDB: Save merged data
+        SyncQueue->>Server: Push resolved version
+    else Error
+        Server-->>SyncQueue: Error response
+        SyncQueue->>SyncQueue: Calculate exponential backoff
+        SyncQueue->>SyncQueue: Schedule retry with jitter
+    end
+                </pre>
+            </div>
+
+            <h3>Sync Configuration</h3>
+            <table>
+                <tr>
+                    <th>Setting</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Sync Interval</td>
+                    <td>30 seconds</td>
+                    <td>Background sync frequency</td>
+                </tr>
+                <tr>
+                    <td>Batch Size</td>
+                    <td>50 operations</td>
+                    <td>Max operations per sync</td>
+                </tr>
+                <tr>
+                    <td>Max Retries</td>
+                    <td>5 attempts</td>
+                    <td>With exponential backoff</td>
+                </tr>
+                <tr>
+                    <td>Initial Backoff</td>
+                    <td>1 second</td>
+                    <td>First retry delay</td>
+                </tr>
+                <tr>
+                    <td>Max Backoff</td>
+                    <td>5 minutes</td>
+                    <td>Maximum retry delay</td>
+                </tr>
+                <tr>
+                    <td>Jitter Factor</td>
+                    <td>10%</td>
+                    <td>Random delay to prevent thundering herd</td>
+                </tr>
+                <tr>
+                    <td>Offline Grace</td>
+                    <td>7 days</td>
+                    <td>Before requiring re-auth</td>
+                </tr>
+            </table>
+
+            <h3>Retry Strategy</h3>
+            <div class="code-block">
+const RETRY_CONFIG = {
+  maxAttempts: 5,
+  initialBackoffMs: 1000,             // 1 second
+  maxBackoffMs: 300000,               // 5 minutes
+  backoffMultiplier: 2,
+  jitterFactor: 0.1,                  // 10% random jitter
+};
+
+function calculateNextRetry(attempts: number): number {
+  const baseBackoff = Math.min(
+    RETRY_CONFIG.initialBackoffMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempts),
+    RETRY_CONFIG.maxBackoffMs
+  );
+  const jitter = baseBackoff * RETRY_CONFIG.jitterFactor * Math.random();
+  return baseBackoff + jitter;
+}
+            </div>
+        </section>
+
+        <!-- CONFLICT RESOLUTION -->
+        <section id="conflicts">
+            <h2>Conflict Resolution</h2>
+
+            <p>The system uses vector clocks to detect concurrent modifications across devices, then applies entity-specific resolution strategies.</p>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+flowchart TD
+    A[Detect Conflict] --> B{Check Vector Clocks}
+    B --> |No Conflict| C[Accept Update]
+    B --> |Conflict Detected| D{Get Entity Config}
+
+    D --> E[Server-Wins]
+    D --> F[Last-Write-Wins]
+    D --> G[Field-Merge]
+    D --> H[Manual Resolution]
+
+    E --> I[Use Server Data]
+    F --> J[Compare Timestamps]
+    G --> K[Merge Per-Field Rules]
+    H --> L[Store for UI Resolution]
+
+    K --> M{Field Rule}
+    M --> |server| N[Use Server Value]
+    M --> |client| O[Use Client Value]
+    M --> |latest| P[Use Most Recent]
+    M --> |merge-array| Q[Union Arrays]
+    M --> |max| R[Use Maximum]
+
+    style A fill:#f97316,color:#fff
+    style G fill:#22c55e,color:#fff
+    style E fill:#eab308,color:#000
+                </pre>
+            </div>
+
+            <h3>Conflict Strategies by Entity</h3>
+            <table>
+                <tr>
+                    <th>Entity</th>
+                    <th>Strategy</th>
+                    <th>Field Rules</th>
+                </tr>
+                <tr>
+                    <td><strong>Appointments</strong></td>
+                    <td><span class="badge badge-merge">Field-Merge</span></td>
+                    <td>status: latest, notes: concat, services: merge-array, times: server</td>
+                </tr>
+                <tr>
+                    <td><strong>Tickets</strong></td>
+                    <td><span class="badge badge-merge">Field-Merge</span></td>
+                    <td>payments: server, services: merge-array, totals: server</td>
+                </tr>
+                <tr>
+                    <td><strong>Transactions</strong></td>
+                    <td><span class="badge badge-warning">Server-Wins</span></td>
+                    <td>All fields - financial data integrity</td>
+                </tr>
+                <tr>
+                    <td><strong>Clients</strong></td>
+                    <td><span class="badge badge-merge">Field-Merge</span></td>
+                    <td>visits/spent: max, tags: merge-array, contact: latest</td>
+                </tr>
+                <tr>
+                    <td><strong>Staff</strong></td>
+                    <td><span class="badge badge-secondary">Last-Write-Wins</span></td>
+                    <td>todayStats: server, status: server</td>
+                </tr>
+                <tr>
+                    <td><strong>Services/Products</strong></td>
+                    <td><span class="badge badge-warning">Server-Wins</span></td>
+                    <td>Reference data - server authoritative</td>
+                </tr>
+            </table>
+
+            <h3>Field Merge Rules</h3>
+            <div class="grid-3">
+                <div class="card">
+                    <h4>server</h4>
+                    <p>Always use server value</p>
+                </div>
+                <div class="card">
+                    <h4>client</h4>
+                    <p>Always use client value</p>
+                </div>
+                <div class="card">
+                    <h4>latest</h4>
+                    <p>Compare timestamps, use most recent</p>
+                </div>
+                <div class="card">
+                    <h4>merge-array</h4>
+                    <p>Union of both arrays by ID</p>
+                </div>
+                <div class="card">
+                    <h4>merge-concat</h4>
+                    <p>Concatenate strings with separator</p>
+                </div>
+                <div class="card">
+                    <h4>max / min / sum</h4>
+                    <p>Numeric operations</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AUTHENTICATION -->
+        <section id="authentication">
+            <h2>Authentication Flow</h2>
+
+            <div class="diagram-container">
+                <pre class="mermaid">
+stateDiagram-v2
+    [*] --> CheckingAuth: App Loads
+    CheckingAuth --> NotLoggedIn: No Store ID
+    CheckingAuth --> OfflineGrace: Within 7 days
+    CheckingAuth --> OfflineExpired: Past 7 days
+    CheckingAuth --> Active: Valid Session
+
+    NotLoggedIn --> LoginScreen: Show Login
+    LoginScreen --> Checking: Submit Credentials
+    Checking --> Active: Success
+    Checking --> NotLoggedIn: Invalid
+    Checking --> Suspended: Account Issue
+
+    OfflineGrace --> Active: Continue Offline
+    OfflineExpired --> LoginScreen: Force Login
+
+    Active --> [*]: Use App
+    Suspended --> [*]: Show Message
+                </pre>
+            </div>
+
+            <h3>Auth States</h3>
+            <table>
+                <tr>
+                    <th>State</th>
+                    <th>Description</th>
+                    <th>User Experience</th>
+                </tr>
+                <tr>
+                    <td><code>not_logged_in</code></td>
+                    <td>No store session exists</td>
+                    <td>Show login screen</td>
+                </tr>
+                <tr>
+                    <td><code>active</code></td>
+                    <td>Logged in and validated</td>
+                    <td>Full app access</td>
+                </tr>
+                <tr>
+                    <td><code>offline_grace</code></td>
+                    <td>Offline but within 7-day grace</td>
+                    <td>Full access, warning shown</td>
+                </tr>
+                <tr>
+                    <td><code>offline_expired</code></td>
+                    <td>Grace period expired</td>
+                    <td>Must reconnect to login</td>
+                </tr>
+                <tr>
+                    <td><code>suspended</code></td>
+                    <td>Account suspended</td>
+                    <td>Show suspended message</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- SECURITY -->
+        <section id="security">
+            <h2>Security Architecture</h2>
+
+            <div class="alert-box info">
+                <strong>New in v2:</strong> AES-256-GCM encryption using Web Crypto API for sensitive data storage.
+            </div>
+
+            <h3>Sensitive Data Classification</h3>
+            <table>
+                <tr>
+                    <th>Data Type</th>
+                    <th>Sensitivity</th>
+                    <th>Storage Method</th>
+                    <th>Encryption</th>
+                </tr>
+                <tr>
+                    <td><strong>License Key</strong></td>
+                    <td><span class="badge badge-error">High</span></td>
+                    <td>Encrypted IndexedDB</td>
+                    <td>AES-256-GCM</td>
+                </tr>
+                <tr>
+                    <td><strong>Auth Tokens</strong></td>
+                    <td><span class="badge badge-error">High</span></td>
+                    <td>Encrypted IndexedDB</td>
+                    <td>AES-256-GCM</td>
+                </tr>
+                <tr>
+                    <td><strong>Refresh Tokens</strong></td>
+                    <td><span class="badge badge-error">High</span></td>
+                    <td>Encrypted IndexedDB</td>
+                    <td>AES-256-GCM</td>
+                </tr>
+                <tr>
+                    <td><strong>Staff PINs</strong></td>
+                    <td><span class="badge badge-error">High</span></td>
+                    <td>Cloud only</td>
+                    <td>bcrypt hashed</td>
+                </tr>
+                <tr>
+                    <td><strong>Client PII</strong></td>
+                    <td><span class="badge badge-warning">Medium</span></td>
+                    <td>IndexedDB</td>
+                    <td>Application-level</td>
+                </tr>
+                <tr>
+                    <td><strong>Payment Card Details</strong></td>
+                    <td><span class="badge badge-error">Critical</span></td>
+                    <td><strong>Never stored</strong></td>
+                    <td>PCI compliance</td>
+                </tr>
+            </table>
+
+            <h3>Secure Storage Implementation</h3>
+            <div class="code-block">
+class SecureStorage {
+  private key: CryptoKey | null = null;
+
+  async initialize(deviceSecret: string): Promise&lt;void&gt; {
+    // Derive key using PBKDF2 with 100,000 iterations
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(deviceSecret),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+
+    const salt = await this.getOrCreateSalt();
+
+    this.key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async setItem(key: string, value: any): Promise&lt;void&gt; {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = new TextEncoder().encode(JSON.stringify(value));
+
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      this.key!,
+      data
+    );
+
+    // Store IV + ciphertext in IndexedDB
+    await this.db.put({ key, iv, data: encrypted });
+  }
+}
+            </div>
+
+            <h3>Data Isolation & Retention</h3>
+            <div class="grid-2">
+                <div class="card security">
+                    <h4>Data Isolation</h4>
+                    <ul>
+                        <li>All POS data filtered by <code>storeId</code></li>
+                        <li>All Admin data filtered by <code>tenantId</code></li>
+                        <li>Device registration prevents token sharing</li>
+                        <li>7-day offline grace period enforces re-validation</li>
+                        <li>Audit trail on all mutations</li>
+                    </ul>
+                </div>
+                <div class="card security">
+                    <h4>Data Retention</h4>
+                    <ul>
+                        <li><strong>Appointments:</strong> 90 days local / Archive after 2 years</li>
+                        <li><strong>Tickets:</strong> 1 year local / 7 years cloud (tax compliance)</li>
+                        <li><strong>Transactions:</strong> 7 years (tax compliance)</li>
+                        <li><strong>Clients:</strong> Anonymize after 3 years inactive (GDPR)</li>
+                        <li><strong>Audit Logs:</strong> 7 years cloud</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- API -->
+        <section id="api">
+            <h2>API Integration</h2>
+
+            <h3>API Endpoints</h3>
+            <table>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Purpose</th>
+                </tr>
+                <tr>
+                    <td><code>/auth/stores/login</code></td>
+                    <td>POST</td>
+                    <td>Store authentication</td>
+                </tr>
+                <tr>
+                    <td><code>/auth/members/login</code></td>
+                    <td>POST</td>
+                    <td>Member authentication</td>
+                </tr>
+                <tr>
+                    <td><code>/auth/pin/login</code></td>
+                    <td>POST</td>
+                    <td>PIN-based login</td>
+                </tr>
+                <tr>
+                    <td><code>/sync/push</code></td>
+                    <td>POST</td>
+                    <td>Push local changes (batched)</td>
+                </tr>
+                <tr>
+                    <td><code>/sync/pull</code></td>
+                    <td>GET</td>
+                    <td>Pull remote changes (since checkpoint)</td>
+                </tr>
+                <tr>
+                    <td><code>/sync/conflicts</code></td>
+                    <td>GET/POST</td>
+                    <td>Conflict resolution</td>
+                </tr>
+                <tr>
+                    <td><code>/appointments</code></td>
+                    <td>GET/POST</td>
+                    <td>List/Create appointments</td>
+                </tr>
+                <tr>
+                    <td><code>/appointments/{id}</code></td>
+                    <td>GET/PUT/DELETE</td>
+                    <td>Single appointment operations</td>
+                </tr>
+                <tr>
+                    <td><code>/tickets</code></td>
+                    <td>GET/POST</td>
+                    <td>List/Create tickets</td>
+                </tr>
+                <tr>
+                    <td><code>/tickets/{id}/complete</code></td>
+                    <td>POST</td>
+                    <td>Complete a ticket</td>
+                </tr>
+            </table>
+
+            <h3>API Client Configuration</h3>
+            <div class="code-block">
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '',
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' }
+});
+
+// Request interceptor for auth
+apiClient.interceptors.request.use(async (config) =&gt; {
+  const token = await secureStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>Mango POS Offline V2 - Technical Documentation</p>
+        <p>Version 2.0.0 | Generated: November 30, 2025</p>
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+            sequence: { useMaxWidth: true, wrap: true },
+            er: { useMaxWidth: true }
+        });
+
+        // Scroll Spy
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.nav a[href^="#"]');
+            const navMap = new Map();
+
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    navMap.set(href.substring(1), link);
+                }
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => link.classList.remove('active'));
+                        const activeLink = navMap.get(entry.target.getAttribute('id'));
+                        if (activeLink) activeLink.classList.add('active');
+                    }
+                });
+            }, { rootMargin: '-20% 0px -60% 0px' });
+
+            sections.forEach(section => observer.observe(section));
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.getElementById(this.getAttribute('href').substring(1));
+                    if (target) {
+                        const navHeight = document.querySelector('.nav').offsetHeight;
+                        window.scrollTo({ top: target.offsetTop - navHeight - 20, behavior: 'smooth' });
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            if (sections[0]) {
+                const firstLink = navMap.get(sections[0].getAttribute('id'));
+                if (firstLink) firstLink.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

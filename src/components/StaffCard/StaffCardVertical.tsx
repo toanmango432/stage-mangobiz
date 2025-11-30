@@ -5,11 +5,14 @@
 
 import React, { useMemo } from 'react';
 import { MoreVertical } from 'lucide-react';
-import {  SPECIALTY_COLORS,
+import {
+  SPECIALTY_COLORS,
   STATUS_COLORS,
   LAYOUT,
   CARD_SHADOWS,
   BUSY_OVERLAY,
+  ANIMATIONS,
+  GLASS_EFFECTS,
 } from './constants/staffCardTokens';
 import { formatStaffName } from './utils/formatters';
 import { useStaffCardLayout } from './hooks/useStaffCardLayout';
@@ -125,14 +128,17 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
         borderRadius: layout.dimensions.cardRadius,
         boxShadow: isBusy ? CARD_SHADOWS.busy : CARD_SHADOWS.default,
         border: isBusy
-          ? `2px solid rgba(225, 29, 72, 0.3)`
-          : `1px solid ${specialty.darkBorderColor}40`,
-        background: `linear-gradient(to bottom, ${specialty.bgGradientFrom}, ${specialty.bgGradientTo})`,
+          ? `1px solid rgba(225, 29, 72, 0.3)`
+          : GLASS_EFFECTS.card.border,
+        background: isBusy
+          ? '#FFF'
+          : `linear-gradient(to bottom right, ${specialty.bgGradientFrom}, ${specialty.bgGradientTo})`,
         cursor: isDraggable ? 'grab' : 'pointer',
         overflow: 'hidden',
         // Performance optimizations
         willChange: 'transform, box-shadow',
         contain: 'layout style paint',
+        transition: ANIMATIONS.cardHover.transition,
       }),
       [
         layout.dimensions,
@@ -159,16 +165,15 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
     return (
       <div
-        className={`staff-card-container group relative flex flex-col transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-xl ${
-          isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''
-        }`}
+        className={`staff-card-container group relative flex flex-col ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''
+          } ${ANIMATIONS.cardHover.transform} ${ANIMATIONS.cardHover.shadow}`}
         style={cardStyle}
         onClick={onClick}
         tabIndex={0}
         role="button"
         aria-label={`Staff card for ${staff.name}, status: ${status.label}`}
       >
-        {/* Busy State Overlay */}
+        {/* Busy State Overlay - Premium Gradient */}
         {isBusy && (
           <div
             className="absolute inset-0 z-10 pointer-events-none"
@@ -186,28 +191,29 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
           ticketInfo={staff.currentTicketInfo}
           notchWidth={notchWidth}
           notchHeight={layout.sizes.notchHeight}
-          isUltra={layout.isUltra}
+          isUltra={layout.isUltra || layout.isCompact}
         />
 
-        {/* TOP SECTION (70%) - Avatar & Info */}
+        {/* TOP SECTION (80%) - Avatar & Info */}
         <div
           className={`relative flex flex-col items-center z-20`}
           style={{ height: LAYOUT.topSectionHeight }}
         >
-          <div className={`${layout.dimensions.containerPadding} pt-8 w-full flex flex-col items-center`}>
+          <div className={`${layout.dimensions.containerPadding} ${layout.isUltra ? 'pt-6' : layout.isCompact ? 'pt-7' : 'pt-8'} w-full flex flex-col items-center h-full justify-center ${layout.isUltra ? 'gap-0.5' : layout.isCompact ? 'gap-0.5' : 'gap-1'}`}>
             {/* Queue Number Badge */}
             {config.showQueueNumber && (
               <div className="absolute top-3 left-3 z-30">
                 <div
-                  className="flex items-center justify-center font-bold font-mono backdrop-blur-md border border-gray-300/30 transition-all duration-300"
+                  className="flex items-center justify-center font-bold font-mono backdrop-blur-md transition-all duration-300"
                   style={{
                     width: layout.sizes.badge,
                     height: layout.sizes.badge,
                     fontSize: layout.sizes.badgeFont,
-                    borderRadius: layout.isUltra ? '10px' : layout.isCompact ? '12px' : '14px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                    borderRadius: '50%', // Circular badge
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
                     color: '#1f2937',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
                   }}
                 >
                   {staff.count}
@@ -215,123 +221,146 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
               </div>
             )}
 
-            {/* More Options Button - Enhanced Touch Target */}
+            {/* More Options Button - Relocated to Top Right */}
             {!layout.isUltra && (
-              <button
-                className={`absolute top-3 right-3 text-gray-500 hover:text-gray-900 transition-colors z-30 bg-white/80 hover:bg-white rounded-full shadow-sm backdrop-blur-sm ${TOUCH_TARGET_CLASSES.flex}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Handle options menu
-                }}
-                aria-label="More options"
-              >
-                <MoreVertical size={16} />
-              </button>
-            )}
+              <div className="absolute top-2 right-2 z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                  className="p-1.5 rounded-full hover:bg-black/5 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Handle menu click
+                  }}
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </div>)}
 
             {/* Avatar */}
             {config.showAvatar && (
-              <StaffCardAvatar
-                src={staff.image}
-                alt={staff.name}
-                size={layout.dimensions.avatarSize}
-                borderRadius={layout.dimensions.borderRadius}
-                borderWidth={layout.sizes.borderWidth}
-                isBusy={isBusy}
-                isUltra={layout.isUltra}
-              />
+              <div className="mb-1">
+                <StaffCardAvatar
+                  src={staff.image}
+                  alt={staff.name}
+                  size={layout.dimensions.avatarSize}
+                  borderRadius={layout.dimensions.borderRadius}
+                  borderWidth={layout.sizes.borderWidth}
+                  isBusy={isBusy}
+                  isUltra={layout.isUltra}
+                />
+              </div>
             )}
 
-            {/* Staff Name */}
+            {/* Staff Name - Premium Typography */}
             {config.showName && (
-              <div className="text-center w-full mb-1">
+              <div className="text-center w-full px-2">
                 <h3
-                  className={`${layout.sizes.nameSize} font-extrabold tracking-tight truncate px-1 drop-shadow-sm uppercase ${
-                    isBusy ? 'text-white' : 'text-gray-900'
-                  }`}
+                  className={`${layout.sizes.nameSize} font-black tracking-widest truncate uppercase ${isBusy ? 'text-rose-900' : specialty.textColor
+                    }`}
+                  style={{
+                    textShadow: '0 1px 2px rgba(255,255,255,0.5)',
+                    fontFamily: '"Inter", sans-serif',
+                    letterSpacing: '0.05em',
+                  }}
                 >
                   {displayName}
                 </h3>
               </div>
             )}
 
-            {/* Metrics (Clock-in Time & Turns) */}
-            <StaffCardMetrics
-              time={staff.time}
-              turnCount={staff.turnCount ?? 0}
-              showClockedInTime={config.showClockedInTime}
-              showTurnCount={config.showTurnCount}
-              metaSize={layout.sizes.metaSize}
-              iconSize={layout.sizes.iconSize}
-            />
+            {/* Metrics (Clock-in Time & Turns) - Minimalist Pills */}
+            {layout.isUltra ? (
+              // Ultra-compact: Always show turn count only
+              <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                <span className="text-[10px] font-bold text-gray-900 font-mono">
+                  {staff.turnCount ?? 0}
+                </span>
+              </div>
+            ) : (
+              // Normal & Compact: Show full metrics
+              <div className="w-full">
+                <StaffCardMetrics
+                  time={staff.time}
+                  turnCount={staff.turnCount ?? 0}
+                  showClockedInTime={config.showClockedInTime}
+                  showTurnCount={config.showTurnCount}
+                  metaSize={layout.sizes.metaSize}
+                  iconSize={layout.sizes.iconSize}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Elegant Divider */}
-        {config.enhancedSeparator && (
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300/50 to-transparent z-20" />
-        )}
 
-        {/* BOTTOM SECTION (30%) - Tickets or Timeline */}
-        <div
-          className={`relative flex flex-col justify-center z-20`}
-          style={{
-            height: LAYOUT.bottomSectionHeight,
-            background: isBusy
-              ? 'transparent'
-              : 'linear-gradient(to top, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.4) 100%)',
-            backdropFilter: isBusy ? 'none' : 'blur(4px)',
-            padding: layout.isUltra ? '0.375rem' : '0.75rem',
-          }}
-        >
-          {/* Busy State: Show Active Ticket */}
-          {isBusy && activeTicket ? (
-            <div className="w-full">
-              <StaffCardTicket
-                ticket={activeTicket}
-                totalTickets={staff.activeTickets?.length || 0}
+        {/* BOTTOM SECTION (20%) - Timeline & Status */}
+        {!layout.isUltra && (
+          <div
+            className={`relative z-20 flex flex-col justify-center px-3`}
+            style={{
+              height: LAYOUT.bottomSectionHeight,
+              background: GLASS_EFFECTS.card.background,
+              backdropFilter: 'blur(12px)',
+              borderTop: '1px solid rgba(255,255,255,0.3)',
+            }}
+          >
+            {isBusy && activeTicket ? (
+              <div className="w-full mt-1">
+                <StaffCardTicket
+                  ticket={activeTicket}
+                  totalTickets={staff.activeTickets?.length || 0}
+                  isUltra={layout.isUltra || layout.isCompact}
+                  onClick={() => onTicketClick?.(activeTicket.id)}
+                />
+
+                {/* Last & Next Timeline (Compact for Busy) */}
+                {!layout.isCompact &&
+                  (staff.lastServiceTime || staff.nextAppointmentTime) && (
+                    <div className="flex items-center justify-between w-full px-2 gap-2 mt-2.5">
+                      {staff.lastServiceTime && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                          <span className="text-xs font-mono font-medium text-gray-600">
+                            {staff.lastServiceTime}
+                          </span>
+                        </div>
+                      )}
+
+                      {staff.lastServiceTime && staff.nextAppointmentTime && (
+                        <div className="flex-1 h-px bg-gray-300/50" />
+                      )}
+
+                      {staff.nextAppointmentTime && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-mono font-bold text-blue-600">
+                            {staff.nextAppointmentTime}
+                          </span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+              </div>
+            ) : layout.isCompact ? (
+              // Compact Mode: Single Row "Next"
+              <div className="flex items-center justify-center gap-2 w-full">
+                <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
+                  Next
+                </span>
+                <span className="text-xs font-bold text-gray-700 font-mono">
+                  {staff.nextAppointmentTime || '2:00p'}
+                </span>
+              </div>
+            ) : (
+              // Normal Mode: Full Timeline
+              <StaffCardTimeline
+                lastServiceTime={staff.lastServiceTime}
+                nextAppointmentTime={staff.nextAppointmentTime}
+                timelineTextSize={layout.sizes.timelineText}
                 isUltra={layout.isUltra}
-                onClick={() => onTicketClick?.(activeTicket.id)}
               />
-
-              {/* Last & Next Timeline (Compact for Busy) */}
-              {!layout.isUltra &&
-                (staff.lastServiceTime || staff.nextAppointmentTime) && (
-                  <div className="flex items-center justify-between w-full px-2 gap-2 mt-2.5">
-                    {staff.lastServiceTime && (
-                      <div className="flex items-center gap-1">
-                        <div className="w-1 h-1 rounded-full bg-gray-400" />
-                        <span className="text-xs font-mono font-medium text-gray-500">
-                          {staff.lastServiceTime}
-                        </span>
-                      </div>
-                    )}
-
-                    {staff.lastServiceTime && staff.nextAppointmentTime && (
-                      <div className="flex-1 h-px bg-gray-200" />
-                    )}
-
-                    {staff.nextAppointmentTime && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-mono font-bold text-blue-600">
-                          {staff.nextAppointmentTime}
-                        </span>
-                        <div className="w-1 h-1 rounded-full bg-blue-400" />
-                      </div>
-                    )}
-                  </div>
-                )}
-            </div>
-          ) : (
-            /* Ready State: Show Timeline */
-            <StaffCardTimeline
-              lastServiceTime={staff.lastServiceTime}
-              nextAppointmentTime={staff.nextAppointmentTime}
-              timelineTextSize={layout.sizes.timelineText}
-              isUltra={layout.isUltra}
-            />
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
