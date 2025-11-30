@@ -12,12 +12,12 @@ import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, Users, LayoutGrid, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
+import { FileText, Users, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
 import { useSwipeGestures } from '../hooks/useGestures';
 import { haptics } from '../utils/haptics';
 import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
 import { MobileTeamSection } from './frontdesk/MobileTeamSection';
-import { FrontDeskSettings, FrontDeskSettingsData, defaultFrontDeskSettings } from './frontdesk-settings/FrontDeskSettings';
+import { FrontDeskSettings, FrontDeskSettingsData } from './frontdesk-settings/FrontDeskSettings';
 import { ErrorBoundary } from './frontdesk/ErrorBoundary';
 import {
   TeamSectionErrorBoundary,
@@ -29,7 +29,6 @@ import {
 import { PendingSectionFooter } from './frontdesk/PendingSectionFooter';
 import {
   selectFrontDeskSettings,
-  updateSetting,
   updateSettings,
   saveSettings
 } from '../store/slices/frontDeskSettingsSlice';

@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { X, Settings, Users, Layout, Layers, FileText, Workflow, ArrowRight, LayoutGrid, ChevronDown } from 'lucide-react';
+import { X, Settings, Users, Layers, FileText, Workflow, ArrowRight, LayoutGrid } from 'lucide-react';
 import FocusTrap from 'focus-trap-react';
 import { OperationTemplateSetup } from '../OperationTemplateSetup';
 import {
   FrontDeskSettingsProps,
   FrontDeskSettingsData
 } from './types';
-import { defaultFrontDeskSettings } from './constants';
 import { AccordionSection } from './components';
 import {
   OperationTemplatesSection,
@@ -21,12 +20,9 @@ import {
   selectFrontDeskSettings,
   selectHasUnsavedChanges,
   updateSetting as updateSettingAction,
-  updateSettings as updateSettingsAction,
   saveSettings,
-  discardChanges,
-  applyTemplate as applyTemplateAction
+  discardChanges
 } from '../../store/slices/frontDeskSettingsSlice';
-import type { RootState } from '../../store';
 
 export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   isOpen,
