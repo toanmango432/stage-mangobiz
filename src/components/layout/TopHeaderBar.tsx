@@ -173,10 +173,10 @@ export function TopHeaderBar({
     `}>
       {/* Left Section - Brand & Organization */}
       <div className={`flex items-center gap-4 ${hideNavigation ? 'flex-1' : 'min-w-[240px]'}`}>
-        {/* Logo */}
+        {/* Logo - with subtle glow */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-xs">M</span>
+          <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/25 ring-2 ring-white/50">
+            <span className="text-white font-bold text-sm">M</span>
           </div>
           <span className="font-bold text-gray-900 text-lg tracking-tight">Mango</span>
         </div>
@@ -229,8 +229,8 @@ export function TopHeaderBar({
                   relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl transition-all duration-200 group
                   min-h-[48px]
                   ${isActive
-                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 ring-1 ring-orange-400/50'
+                    : 'text-gray-700 bg-white/30 hover:bg-white/50 hover:text-gray-900 ring-1 ring-white/40 hover:ring-white/60'
                   }
                 `}
               >
@@ -242,24 +242,19 @@ export function TopHeaderBar({
                 <span className={`text-base ${isActive ? 'font-bold' : 'font-semibold'}`}>
                   {module.label}
                 </span>
-
-                {/* Active Indicator Bar */}
-                {isActive && (
-                  <span className="absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-8 h-1 bg-orange-500 rounded-full" />
-                )}
               </button>
             );
           })}
 
-          {/* More Button - styled as a lighter, secondary tab */}
+          {/* More Button - glass style, secondary importance */}
           <button
             onClick={() => onModuleChange?.('more')}
             className={`
               relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200
               min-h-[44px]
               ${activeModule === 'more'
-                ? 'bg-gray-100 text-gray-900 border border-gray-300'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent'
+                ? 'bg-gray-600 text-white shadow-md ring-1 ring-gray-500/50'
+                : 'text-gray-600 bg-white/20 hover:bg-white/40 hover:text-gray-800 ring-1 ring-white/30 hover:ring-white/50'
               }
             `}
           >
@@ -274,11 +269,11 @@ export function TopHeaderBar({
 
       {/* Right Section - Search, Actions & User */}
       <div className={`flex items-center gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
-        {/* Compact Search - smaller on mobile */}
+        {/* Compact Search - glass style */}
         <div className={`relative transition-all duration-300 ease-out ${
           isSearchExpanded ? 'w-64' : hideNavigation ? 'w-36 sm:w-48' : 'w-48'
         }`}>
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
           <input
             ref={searchInputRef}
             type="text"
@@ -287,7 +282,7 @@ export function TopHeaderBar({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-400 transition-all placeholder:text-gray-400"
+            className="w-full pl-9 pr-8 py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-300 focus:bg-white/60 transition-all placeholder:text-gray-500 text-gray-800"
           />
           {!isSearchExpanded && !hideNavigation && (
             <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-gray-200/50 rounded text-gray-500 text-[9px] font-medium">
@@ -353,35 +348,35 @@ export function TopHeaderBar({
           )}
         </div>
 
-        {/* Front Desk Settings */}
+        {/* Front Desk Settings - glass style */}
         {onFrontDeskSettingsClick && (
-          <button 
+          <button
             onClick={onFrontDeskSettingsClick}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60"
             title="Front Desk Settings"
           >
             <Settings className="w-4 h-4 text-gray-600" />
           </button>
         )}
 
-        {/* Notifications */}
-        <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+        {/* Notifications - glass style with glowing badge */}
+        <button className="relative p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60">
           <Bell className="w-4 h-4 text-gray-600" />
           {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+            <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full shadow-lg shadow-red-500/50 animate-pulse"></span>
           )}
         </button>
 
-        {/* User Profile */}
-        <div className="relative pl-2 border-l border-gray-200">
+        {/* User Profile - glass style with ring */}
+        <div className="relative pl-2 border-l border-white/30">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 hover:bg-gray-50 rounded-full pl-1 pr-2 py-1 transition-colors"
+            className="flex items-center gap-2 bg-white/20 hover:bg-white/40 rounded-full pl-1 pr-2 py-1 transition-all ring-1 ring-white/30 hover:ring-white/50"
           >
-            <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-md ring-2 ring-white/60">
               <span className="text-white font-bold text-xs">A</span>
             </div>
-            <ChevronDown className="w-3 h-3 text-gray-400" />
+            <ChevronDown className="w-3 h-3 text-gray-500" />
           </button>
 
           {showUserMenu && (
