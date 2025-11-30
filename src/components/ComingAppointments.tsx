@@ -3,11 +3,14 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { Clock, ChevronLeft, ChevronRight, User, Calendar, Tag, Plus, Star, AlertCircle, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, DollarSign, Pencil } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { FrontDeskSettingsData } from './frontdesk-settings/types';
+
 interface ComingAppointmentsProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
   isMobile?: boolean;
   hideHeader?: boolean;
+  settings?: FrontDeskSettingsData;
   headerStyles?: {
     bg: string;
     accentColor: string;
@@ -24,6 +27,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   onToggleMinimize,
   isMobile = false,
   hideHeader = false,
+  settings,
   headerStyles
 }: ComingAppointmentsProps) {
   const {

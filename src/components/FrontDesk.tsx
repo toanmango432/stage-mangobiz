@@ -793,7 +793,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                 </div>
                 {/* Coming Appointments Section - Always shown on right side when enabled */}
                 {showUpcomingAppointments && <div className={`transition-all duration-300 ease-in-out h-full ${minimizedSections.comingAppointments ? 'w-[60px] flex-shrink-0' : 'w-[280px]'}`}>
-                  <ComingAppointments isMinimized={minimizedSections.comingAppointments} onToggleMinimize={() => toggleSectionMinimize('comingAppointments')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} headerStyles={{
+                  <ComingAppointments isMinimized={minimizedSections.comingAppointments} onToggleMinimize={() => toggleSectionMinimize('comingAppointments')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} settings={frontDeskSettings} headerStyles={{
                     bg: 'bg-[#F9FAFB]',
                     accentColor: '#10B981',
                     iconColor: 'text-[#9CA3AF]',
@@ -820,6 +820,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                           isMinimized={true}
                           onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
                           isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
+                          settings={frontDeskSettings}
                           headerStyles={{
                             bg: 'bg-gradient-to-br from-sky-50/80 via-blue-50/60 to-cyan-50/40',
                             accentColor: '#0EA5E9',
@@ -862,6 +863,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                         onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
                         isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
                         hideHeader={true}
+                        settings={frontDeskSettings}
                       />
                     </div>}
                     {/* Team Section - Show when active on mobile/tablet */}
@@ -944,6 +946,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                                   isMinimized={minimizedSections.comingAppointments}
                                   onToggleMinimize={() => toggleSectionMinimize('comingAppointments')}
                                   isMobile={false}
+                                  settings={frontDeskSettings}
                                   headerStyles={{
                                     bg: colorTokens.comingAppointments.bg,
                                     accentColor: '#0EA5E9', // comingAppointments-500
