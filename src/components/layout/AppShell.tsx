@@ -13,6 +13,7 @@ import { Schedule } from '../modules/Schedule';
 import { HeaderColorPreview } from '../HeaderColorPreview';
 import { TicketColorPreview } from '../TicketColorPreview';
 import { LicenseSettings } from '../licensing/LicenseSettings';
+import { MenuSettings } from '../menu-settings';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -169,6 +170,8 @@ export function AppShell() {
         return <More onNavigate={setActiveModule} />;
       case 'schedule':
         return <Schedule />;
+      case 'category':
+        return <MenuSettings onBack={() => setActiveModule('more')} />;
       case 'license':
         return <LicenseSettings />;
       case 'header-preview':
