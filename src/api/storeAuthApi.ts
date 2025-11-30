@@ -89,7 +89,11 @@ export interface AuthError {
   details?: any;
 }
 
-// ==================== DEMO MODE ====================
+// ==================== OFFLINE/DEMO MODE ====================
+
+// Enable offline mode - bypasses cloud server entirely
+// Set to true to allow any credentials to work without server
+const OFFLINE_MODE_ENABLED = true;
 
 // Demo credentials that work without a backend server
 const DEMO_CREDENTIALS: Record<string, { password: string; store: { id: string; name: string; storeLoginId: string }; license: { tier: string; status: string } }> = {
@@ -104,6 +108,55 @@ const DEMO_CREDENTIALS: Record<string, { password: string; store: { id: string; 
     license: { tier: 'enterprise', status: 'active' },
   },
 };
+
+/**
+ * Generate offline login response for any credentials when offline mode is enabled
+ */
+function generateOfflineLoginResponse(storeId: string): StoreLoginResponse {
+  console.log('🔒 Offline mode: Bypassing cloud server for', storeId);
+  return {
+    success: true,
+    store: {
+      id: `store-offline-${Date.now()}`,
+      name: storeId.includes('@') ? storeId.split('@')[0] + "'s Salon" : storeId + ' Store',
+      storeLoginId: storeId,
+    },
+    license: { tier: 'professional', status: 'active' },
+    token: 'offline-token-' + Date.now(),
+    defaults: {
+      taxSettings: [{ name: 'Sales Tax', rate: 8.5, isDefault: true }],
+      categories: [
+        { name: 'Manicure', icon: '💅', color: '#FF6B9D' },
+        { name: 'Pedicure', icon: '🦶', color: '#4ECDC4' },
+        { name: 'Waxing', icon: '✨', color: '#95E1D3' },
+        { name: 'Facial', icon: '🧖', color: '#F9ED69' },
+        { name: 'Hair', icon: '💇', color: '#A78BFA' },
+        { name: 'Massage', icon: '💆', color: '#34D399' },
+      ],
+      items: [
+        { name: 'Basic Manicure', category: 'Manicure', duration: 30, price: 20 },
+        { name: 'Gel Manicure', category: 'Manicure', duration: 45, price: 35 },
+        { name: 'Basic Pedicure', category: 'Pedicure', duration: 45, price: 30 },
+        { name: 'Spa Pedicure', category: 'Pedicure', duration: 60, price: 50 },
+        { name: 'Women\'s Haircut', category: 'Hair', duration: 45, price: 55 },
+        { name: 'Men\'s Haircut', category: 'Hair', duration: 30, price: 30 },
+        { name: 'Swedish Massage', category: 'Massage', duration: 60, price: 80 },
+      ],
+      employeeRoles: [
+        { name: 'Owner', permissions: ['all'], color: '#8B5CF6' },
+        { name: 'Manager', permissions: ['all'], color: '#10B981' },
+        { name: 'Technician', permissions: ['create_ticket', 'checkout'], color: '#3B82F6' },
+        { name: 'Receptionist', permissions: ['create_ticket'], color: '#F59E0B' },
+      ],
+      paymentMethods: [
+        { name: 'Cash', type: 'cash', isActive: true },
+        { name: 'Credit Card', type: 'card', isActive: true },
+        { name: 'Debit Card', type: 'card', isActive: true },
+        { name: 'Check', type: 'check', isActive: true },
+      ],
+    },
+  };
+}
 
 /**
  * Check if credentials match demo mode
@@ -160,7 +213,15 @@ export async function loginStore(
     return demoResponse;
   }
 
-  // Try server authentication
+  // If offline mode is enabled, accept any credentials without server
+  if (OFFLINE_MODE_ENABLED) {
+    // Just require non-empty credentials
+    if (storeId.trim() && password.trim()) {
+      return generateOfflineLoginResponse(storeId);
+    }
+  }
+
+  // Try server authentication (only if offline mode is disabled)
   try {
     const response = await axios.post<StoreLoginResponse>(
       `${CONTROL_CENTER_URL}/api/auth/store`,
@@ -171,6 +232,11 @@ export async function loginStore(
     console.log('✅ Store login successful:', response.data);
     return response.data;
   } catch (error) {
+    // If server fails and offline mode is enabled, fall back to offline
+    if (OFFLINE_MODE_ENABLED && storeId.trim() && password.trim()) {
+      console.log('⚠️ Server unavailable, using offline mode');
+      return generateOfflineLoginResponse(storeId);
+    }
     throw handleAuthError(error, 'Store login');
   }
 }

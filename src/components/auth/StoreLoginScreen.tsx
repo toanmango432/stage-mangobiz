@@ -203,21 +203,21 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           onKeyDown={handleKeyDown}
         />
 
-        {/* Demo credentials */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800 font-medium mb-2">Demo Credentials:</p>
-          <p className="text-sm text-blue-700">
-            <span className="font-mono">demo@salon.com</span> / <span className="font-mono">demo123</span>
+        {/* Offline Mode Notice */}
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+          <p className="text-sm text-emerald-800 font-medium mb-2">Offline Mode Active</p>
+          <p className="text-sm text-emerald-700">
+            Enter any email and password to log in without a cloud server.
+          </p>
+          <p className="text-xs text-emerald-600 mt-2">
+            Demo: <span className="font-mono">demo@salon.com</span> / <span className="font-mono">demo123</span>
           </p>
         </div>
 
         {/* Help text */}
         <div className="text-center">
           <p className="text-sm text-gray-500">
-            Don't have store credentials?{' '}
-            <a href="#" className="text-orange-600 hover:text-orange-700 font-medium">
-              Contact your provider
-            </a>
+            Running in offline mode - no server required
           </p>
         </div>
       </div>

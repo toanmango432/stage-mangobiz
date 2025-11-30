@@ -1,0 +1,38 @@
+// Team Settings Module - Main exports
+export { TeamSettings } from './TeamSettings';
+export type {
+  TeamMemberSettings,
+  TeamMemberProfile,
+  TeamSettingsSection,
+  TeamSettingsUIState,
+  StaffRole,
+  ServicePricing,
+  WorkingHoursSettings,
+  WorkingDay,
+  TimeOffRequest,
+  ScheduleOverride,
+  RolePermissions,
+  Permission,
+  PermissionLevel,
+  CommissionSettings,
+  CommissionType,
+  CommissionTier,
+  PayrollSettings,
+  PayPeriod,
+  OnlineBookingSettings,
+  BookingBufferType,
+  NotificationPreferences,
+  PerformanceGoals,
+} from './types';
+export {
+  mockTeamMembers,
+  mockServices,
+  roleLabels,
+  teamSettingsTokens,
+  defaultWorkingHours,
+  dayNames,
+  dayNamesShort,
+  defaultPermissions,
+  serviceCategories,
+  permissionCategories,
+} from './constants';
