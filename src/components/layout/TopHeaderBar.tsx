@@ -167,18 +167,18 @@ export function TopHeaderBar({
       border-b border-white/40
       rounded-b-2xl
       shadow-[0_8px_32px_rgba(251,146,60,0.15),0_4px_12px_rgba(0,0,0,0.1),inset_0_2px_0_rgba(255,255,255,1),inset_0_-1px_0_rgba(255,255,255,0.4)]
-      h-16 flex items-center px-4 fixed top-0 left-0 right-0 z-50
+      h-14 md:h-16 flex items-center px-3 md:px-4 fixed top-0 left-0 right-0 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
       {/* Left Section - Brand & Organization */}
       <div className={`flex items-center gap-4 ${hideNavigation ? 'flex-1' : 'min-w-[240px]'}`}>
-        {/* Logo - with subtle glow */}
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/25 ring-2 ring-white/50">
-            <span className="text-white font-bold text-sm">M</span>
+        {/* Logo - with subtle glow, smaller on mobile */}
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <div className="w-8 h-8 md:w-9 md:h-9 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/25 ring-2 ring-white/50">
+            <span className="text-white font-bold text-xs md:text-sm">M</span>
           </div>
-          <span className="font-bold text-gray-900 text-lg tracking-tight">Mango</span>
+          <span className="font-bold text-gray-900 text-base md:text-lg tracking-tight">Mango</span>
         </div>
 
         {/* Organization Selector */}

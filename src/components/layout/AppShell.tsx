@@ -209,8 +209,8 @@ export function AppShell() {
         hideNavigation={showBottomNav}
       />
 
-      {/* Main Content Area - pt-16 for edge-to-edge header */}
-      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-16 bg-white ${showBottomNav ? 'pb-[72px]' : ''}`}>
+      {/* Main Content Area - responsive padding for header height (h-14 mobile, h-16 desktop) */}
+      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-14 md:pt-16 bg-white ${showBottomNav ? 'pb-[72px]' : ''}`}>
         {renderModule()}
       </main>
 
