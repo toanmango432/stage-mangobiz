@@ -161,9 +161,14 @@ export function TopHeaderBar({
   });
 
   return (
-    <header className={`bg-white/95 backdrop-blur-xl border-b-2 border-gray-200 h-16 flex items-center px-4 fixed top-0 left-0 right-0 z-50 shadow-sm transition-transform duration-300 ease-out ${
-      isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
-    }`}>
+    <header className={`
+      bg-white/80 backdrop-blur-2xl backdrop-saturate-150
+      border-b border-white/60
+      shadow-[0_1px_0_0_rgba(255,255,255,0.9),0_4px_16px_-4px_rgba(0,0,0,0.1)]
+      h-16 flex items-center px-4 fixed top-0 left-0 right-0 z-50
+      transition-transform duration-300 ease-out
+      ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
+    `}>
       {/* Left Section - Brand & Organization */}
       <div className={`flex items-center gap-4 ${hideNavigation ? 'flex-1' : 'min-w-[240px]'}`}>
         {/* Logo */}
