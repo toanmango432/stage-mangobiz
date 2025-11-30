@@ -9,6 +9,11 @@ export default {
       // PREMIUM DESIGN SYSTEM TOKENS
       // ========================================
 
+      // Custom breakpoints
+      screens: {
+        'xs': '475px', // Small mobile devices
+      },
+
       colors: {
         // shadcn/ui CSS Variable Colors - Required for checkout components
         border: "hsl(var(--border))",

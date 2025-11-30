@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { Receipt, ChevronUp, ChevronDown, Maximize2, X, Grid, List, DollarSign, CreditCard } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
@@ -11,7 +11,7 @@ import type { PaymentMethod, PaymentDetails } from '../../types';
 type ViewMode = 'collapsed' | 'expanded' | 'fullView';
 type DisplayMode = 'grid' | 'list';
 
-export function PendingSectionFooter() {
+export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const dispatch = useAppDispatch();
 
   // PERFORMANCE: Use direct Redux selector instead of useTickets() to avoid
@@ -97,9 +97,12 @@ export function PendingSectionFooter() {
   const resizeStartY = useRef(0);
   const resizeStartHeight = useRef(0);
 
-  // Calculate total amount
-  const totalAmount = pendingTickets.reduce((sum, ticket) =>
-    sum + ticket.subtotal + ticket.tax + ticket.tip, 0
+  // Calculate total amount (memoized for performance)
+  const totalAmount = useMemo(() =>
+    pendingTickets.reduce((sum, ticket) =>
+      sum + ticket.subtotal + ticket.tax + ticket.tip, 0
+    ),
+    [pendingTickets]
   );
 
   // Handle resize start
@@ -231,7 +234,7 @@ export function PendingSectionFooter() {
                 <div className="absolute -top-1 -right-1 flex h-5 w-5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 items-center justify-center">
-                    <span className="text-white text-[10px] font-bold">{pendingTickets.length}</span>
+                    <span className="text-white text-xs font-bold">{pendingTickets.length}</span>
                   </span>
                 </div>
                 <div className="p-2 bg-amber-400 rounded-lg shadow-md">
@@ -259,10 +262,9 @@ export function PendingSectionFooter() {
                     onClick={(e) => handleTicketClick(ticket, e)}
                     className="group relative px-5 py-3 bg-white rounded-xl shadow-lg border-2 border-amber-300 hover:border-amber-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 flex-shrink-0 min-w-[200px]"
                   >
-                    {/* Pulsing corner indicator */}
-                    <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 ring-2 ring-white"></span>
+                    {/* Static corner indicator - no pulsing for cleaner UI */}
+                    <div className="absolute -top-1.5 -right-1.5">
+                      <span className="inline-flex rounded-full h-3 w-3 bg-amber-500 ring-2 ring-white"></span>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -468,4 +470,4 @@ export function PendingSectionFooter() {
   }
 
   return null;
-}
+});

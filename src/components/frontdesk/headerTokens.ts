@@ -30,9 +30,9 @@ export const comingHeaderTheme = {
   iconWrapper: 'h-7 w-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center',
   countPill: 'bg-sky-50/70 text-sky-600 text-[11px] font-medium px-1.5 py-0.5 rounded-md',
   metrics: {
-    late: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium border border-red-200/30 bg-red-50/50 text-red-600`,
-    next: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium border border-blue-200/30 bg-blue-50/50 text-blue-600`,
-    later: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium border border-slate-200/30 bg-slate-50/50 text-slate-500`,
+    late: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-medium border border-red-200/30 bg-red-50/50 text-red-600`,
+    next: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-medium border border-blue-200/30 bg-blue-50/50 text-blue-600`,
+    later: `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-medium border border-slate-200/30 bg-slate-50/50 text-slate-500`,
   },
 };
 
@@ -57,7 +57,7 @@ export const waitingHeaderTheme: FrontDeskHeaderTheme = {
   iconWrapper: 'h-11 w-11 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center',
   countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
   titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
-  subtitleClass: 'text-2xs text-violet-600',
+  subtitleClass: 'text-xs text-violet-600',
 };
 
 export const serviceHeaderTheme: FrontDeskHeaderTheme = {
@@ -65,7 +65,7 @@ export const serviceHeaderTheme: FrontDeskHeaderTheme = {
   iconWrapper: 'h-11 w-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center',
   countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
   titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
-  subtitleClass: 'text-2xs text-emerald-600',
+  subtitleClass: 'text-xs text-emerald-600',
 };
 
 export const pendingHeaderTheme: FrontDeskHeaderTheme = {
@@ -73,8 +73,18 @@ export const pendingHeaderTheme: FrontDeskHeaderTheme = {
   iconWrapper: 'h-11 w-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center',
   countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
   titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
-  subtitleClass: 'text-2xs text-amber-600',
+  subtitleClass: 'text-xs text-amber-600',
 };
 
 export const headerContentSpacer = 'pt-0';
+
+// Semantic size tokens for consistent icon sizing
+export const headerIconSizes = {
+  primary: 'h-11 w-11',    // Main section headers (Service, Waiting, etc.)
+  supporting: 'h-8 w-8',   // Secondary/supporting headers
+  compact: 'h-7 w-7',      // Compact headers (Coming Appointments)
+};
+
+// WCAG 2.2 compliant touch target minimum
+export const minTouchTarget = 'min-h-[44px] min-w-[44px]';
 

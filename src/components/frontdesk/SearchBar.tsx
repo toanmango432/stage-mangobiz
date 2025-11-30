@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import clsx from 'clsx';
 
@@ -9,6 +9,8 @@ interface SearchBarProps {
   onClear?: () => void;
   className?: string;
   size?: 'sm' | 'md';
+  /** Show loading spinner instead of search icon */
+  isLoading?: boolean;
 }
 
 export function SearchBar({
@@ -17,7 +19,8 @@ export function SearchBar({
   onChange,
   onClear,
   className,
-  size = 'md'
+  size = 'md',
+  isLoading = false,
 }: SearchBarProps) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -35,13 +38,20 @@ export function SearchBar({
   return (
     <div className={clsx('relative', className)}>
       <div className="relative flex items-center">
-        <Search
-          size={iconSize}
-          className={clsx(
-            'absolute left-3 transition-colors',
-            isFocused ? 'text-slate-600' : 'text-slate-400'
-          )}
-        />
+        {isLoading ? (
+          <Loader2
+            size={iconSize}
+            className="absolute left-3 text-slate-400 animate-spin"
+          />
+        ) : (
+          <Search
+            size={iconSize}
+            className={clsx(
+              'absolute left-3 transition-colors',
+              isFocused ? 'text-slate-600' : 'text-slate-400'
+            )}
+          />
+        )}
         <input
           type="text"
           value={value}
@@ -69,6 +79,7 @@ export function SearchBar({
               'transition-all duration-200'
             )}
             aria-label="Clear search"
+            title="Clear search"
             type="button"
           >
             <X size={iconSize} />

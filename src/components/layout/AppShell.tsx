@@ -9,6 +9,7 @@ import { Pending } from '../modules/Pending';
 import { Checkout } from '../modules/Checkout';
 import { Sales } from '../modules/Sales';
 import { More } from '../modules/More';
+import { Schedule } from '../modules/Schedule';
 import { HeaderColorPreview } from '../HeaderColorPreview';
 import { TicketColorPreview } from '../TicketColorPreview';
 import { LicenseSettings } from '../licensing/LicenseSettings';
@@ -166,6 +167,8 @@ export function AppShell() {
         return <Sales />;
       case 'more':
         return <More onNavigate={setActiveModule} />;
+      case 'schedule':
+        return <Schedule />;
       case 'license':
         return <LicenseSettings />;
       case 'header-preview':
