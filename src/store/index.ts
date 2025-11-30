@@ -9,6 +9,7 @@ import syncReducer from './slices/syncSlice';
 import uiReducer from './slices/uiSlice';
 import uiTicketsReducer from './slices/uiTicketsSlice';
 import uiStaffReducer from './slices/uiStaffSlice';
+import frontDeskSettingsReducer from './slices/frontDeskSettingsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     ui: uiReducer,
     uiTickets: uiTicketsReducer,
     uiStaff: uiStaffReducer,
+    frontDeskSettings: frontDeskSettingsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

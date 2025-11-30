@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { X, Settings, Users, Layout, Layers, FileText, Workflow, ArrowRight, LayoutGrid, ChevronDown } from 'lucide-react';
 import FocusTrap from 'focus-trap-react';
 import { OperationTemplateSetup } from '../OperationTemplateSetup';
@@ -16,6 +17,16 @@ import {
   WorkflowRulesSection,
   LayoutSection
 } from './sections';
+import {
+  selectFrontDeskSettings,
+  selectHasUnsavedChanges,
+  updateSetting as updateSettingAction,
+  updateSettings as updateSettingsAction,
+  saveSettings,
+  discardChanges,
+  applyTemplate as applyTemplateAction
+} from '../../store/slices/frontDeskSettingsSlice';
+import type { RootState } from '../../store';
 
 export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   isOpen,
@@ -23,9 +34,13 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   currentSettings,
   onSettingsChange
 }) => {
-  const [settings, setSettings] = useState<FrontDeskSettingsData>(currentSettings);
+  // Redux state
+  const dispatch = useDispatch();
+  const settings = useSelector(selectFrontDeskSettings);
+  const hasChanges = useSelector(selectHasUnsavedChanges);
+
+  // Local UI state
   const [activeSection, setActiveSection] = useState<string>('operationTemplates');
-  const [hasChanges, setHasChanges] = useState(false);
   const previousActiveElement = useRef<Element | null>(null);
 
   // State for operation template setup
@@ -52,42 +67,27 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
     }));
   };
 
-  // Update local state when props change
-  useEffect(() => {
-    setSettings(currentSettings);
-    setHasChanges(false);
-  }, [currentSettings]);
-
   // Handle setting changes
   const updateSetting = <K extends keyof FrontDeskSettingsData>(
     key: K,
     value: FrontDeskSettingsData[K]
   ) => {
-    const newSettings = {
-      ...settings,
-      [key]: value
-    };
-
-    // Handle dependencies
-    if (key === 'inServiceActive' && value === true && !newSettings.waitListActive) {
-      // Auto-enable Wait List if In Service is enabled
-      newSettings.waitListActive = true;
-    }
-
-    setSettings(newSettings);
-    setHasChanges(true);
+    dispatch(updateSettingAction({ key, value }));
   };
 
   // Handle save
   const handleSave = () => {
+    dispatch(saveSettings());
+    // Also call the onSettingsChange callback for backward compatibility
     onSettingsChange(settings);
-    setHasChanges(false);
+    onClose();
   };
 
   // Handle cancel
   const handleCancel = () => {
-    setSettings(currentSettings);
-    setHasChanges(false);
+    if (hasChanges) {
+      dispatch(discardChanges());
+    }
     onClose();
   };
 

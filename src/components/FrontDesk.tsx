@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { useDeviceDetection } from '../hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
@@ -26,12 +27,22 @@ import {
   SettingsErrorBoundary
 } from './frontdesk/SectionErrorBoundary';
 import { PendingSectionFooter } from './frontdesk/PendingSectionFooter';
+import {
+  selectFrontDeskSettings,
+  updateSetting,
+  updateSettings,
+  saveSettings
+} from '../store/slices/frontDeskSettingsSlice';
+
 interface FrontDeskComponentProps {
   showFrontDeskSettings?: boolean;
   setShowFrontDeskSettings?: (show: boolean) => void;
 }
 
 function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setShowFrontDeskSettings: externalSetShowSettings }: FrontDeskComponentProps = {}) {
+  // Redux
+  const dispatch = useDispatch();
+  const frontDeskSettings = useSelector(selectFrontDeskSettings);
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
     // Force Coming section to be minimized by default - clear any old localStorage
@@ -91,10 +102,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const [internalShowSettings, internalSetShowSettings] = useState(false);
   const showFrontDeskSettings = externalShowSettings !== undefined ? externalShowSettings : internalShowSettings;
   const setShowFrontDeskSettings = externalSetShowSettings || internalSetShowSettings;
-  const [frontDeskSettings, setFrontDeskSettings] = useState<FrontDeskSettingsData>(() => {
-    // Initialize with default settings or from localStorage if available
-    return defaultFrontDeskSettings;
-  });
+
   // Get ticket context functions and data
   const {
     createTicket,
@@ -455,10 +463,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   }] : [])];
   // Handle settings change
   const handleFrontDeskSettingsChange = (newSettings: Partial<FrontDeskSettingsData>) => {
-    setFrontDeskSettings(prev => ({
-      ...prev,
-      ...newSettings
-    }));
+    // Update Redux store
+    dispatch(updateSettings(newSettings));
+    dispatch(saveSettings());
+
     // Apply settings to the appropriate state variables
     if (newSettings.displayMode) {
       setIsCombinedView(newSettings.displayMode === 'tab');
