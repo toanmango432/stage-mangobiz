@@ -7,12 +7,13 @@ import {
   Search,
   Package,
   Calendar,
+  CalendarRange,
   Globe,
   Check,
   Minus,
 } from 'lucide-react';
-import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants } from '../../../types/catalog';
-import { formatDuration, formatPrice, CATEGORY_COLORS } from '../constants';
+import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants, BundleBookingMode } from '../../../types/catalog';
+import { formatDuration, formatPrice, CATEGORY_COLORS, BUNDLE_BOOKING_MODES } from '../constants';
 
 export function PackageModal({
   isOpen,
@@ -38,6 +39,7 @@ export function PackageModal({
   // Settings
   const [validityDays, setValidityDays] = useState<number | undefined>();
   const [onlineBookingEnabled, setOnlineBookingEnabled] = useState(true);
+  const [bookingMode, setBookingMode] = useState<BundleBookingMode>('single-session');
 
   // UI State
   const [showServiceSelector, setShowServiceSelector] = useState(false);
@@ -74,6 +76,7 @@ export function PackageModal({
         setDiscountValue(pkg.discountValue);
         setValidityDays(pkg.validityDays);
         setOnlineBookingEnabled(pkg.onlineBookingEnabled);
+        setBookingMode(pkg.bookingMode || 'single-session');
         setCustomPrice(null);
       } else {
         setName('');
@@ -84,6 +87,7 @@ export function PackageModal({
         setDiscountValue(10);
         setValidityDays(undefined);
         setOnlineBookingEnabled(true);
+        setBookingMode('single-session');
         setCustomPrice(null);
       }
       setServiceSearch('');
@@ -156,6 +160,7 @@ export function PackageModal({
       discountValue,
       validityDays,
       onlineBookingEnabled,
+      bookingMode,
       bookingAvailability: onlineBookingEnabled ? 'both' : 'in-store',
     });
   };
@@ -417,6 +422,37 @@ export function PackageModal({
 
           {/* Settings */}
           <div className="space-y-4">
+            {/* Booking Mode */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Booking Mode
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {BUNDLE_BOOKING_MODES.map((mode) => {
+                  const Icon = mode.value === 'single-session' ? Calendar : CalendarRange;
+                  return (
+                    <button
+                      key={mode.value}
+                      onClick={() => setBookingMode(mode.value as BundleBookingMode)}
+                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                        bookingMode === mode.value
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon size={18} className={bookingMode === mode.value ? 'text-orange-600' : 'text-gray-600'} />
+                        <span className={`font-medium ${bookingMode === mode.value ? 'text-orange-700' : 'text-gray-900'}`}>
+                          {mode.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">{mode.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <Calendar size={20} className="text-gray-600" />

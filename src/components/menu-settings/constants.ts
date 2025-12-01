@@ -64,6 +64,72 @@ export const PROCESSING_TIME_OPTIONS = [
   { value: 60, label: '1 hour' },
 ];
 
+// Extra Time Types (Fresha-style)
+export const EXTRA_TIME_TYPES = [
+  { value: 'processing', label: 'Processing Time', description: 'Time for color/treatment to process (staff can serve others)' },
+  { value: 'blocked', label: 'Blocked Time', description: 'Reserved time after service (staff cannot serve others)' },
+  { value: 'finishing', label: 'Finishing Time', description: 'Time for final touches (staff stays with client)' },
+] as const;
+
+// Rebook Reminder Options (in days)
+export const REBOOK_REMINDER_OPTIONS = [
+  { value: 0, label: 'No reminder' },
+  { value: 7, label: '1 week' },
+  { value: 14, label: '2 weeks' },
+  { value: 21, label: '3 weeks' },
+  { value: 28, label: '4 weeks' },
+  { value: 42, label: '6 weeks' },
+  { value: 56, label: '8 weeks' },
+  { value: 84, label: '12 weeks' },
+];
+
+// Bundle Booking Mode Options (Fresha-style)
+export const BUNDLE_BOOKING_MODES = [
+  {
+    value: 'single-session',
+    label: 'Single Session',
+    description: 'All services booked together in one appointment',
+    icon: 'Calendar',
+  },
+  {
+    value: 'multiple-visits',
+    label: 'Multiple Visits',
+    description: 'Services can be booked across separate appointments',
+    icon: 'CalendarRange',
+  },
+] as const;
+
+// Add-on Group Selection Modes (Fresha-style)
+export const ADDON_SELECTION_MODES = [
+  {
+    value: 'single',
+    label: 'Single Selection',
+    description: 'Client can choose only one option from this group',
+  },
+  {
+    value: 'multiple',
+    label: 'Multiple Selection',
+    description: 'Client can choose multiple options from this group',
+  },
+] as const;
+
+// Add-on Group Min/Max Selection Options
+export const ADDON_MIN_SELECTION_OPTIONS = [
+  { value: 0, label: 'Optional (0)' },
+  { value: 1, label: 'At least 1' },
+  { value: 2, label: 'At least 2' },
+  { value: 3, label: 'At least 3' },
+];
+
+export const ADDON_MAX_SELECTION_OPTIONS = [
+  { value: 1, label: 'Maximum 1' },
+  { value: 2, label: 'Maximum 2' },
+  { value: 3, label: 'Maximum 3' },
+  { value: 4, label: 'Maximum 4' },
+  { value: 5, label: 'Maximum 5' },
+  { value: undefined, label: 'Unlimited' },
+];
+
 // Default Menu Settings
 export const defaultMenuSettings: MenuGeneralSettings = {
   defaultDuration: 60,

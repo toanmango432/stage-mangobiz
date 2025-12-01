@@ -97,6 +97,7 @@ export interface MenuService {
   // Core fields
   name: string;
   description?: string;
+  sku?: string; // Stock Keeping Unit for inventory/reporting
 
   // Pricing
   pricingType: PricingType;
@@ -111,6 +112,10 @@ export interface MenuService {
   // Extra time (Fresha-style: processing, blocked, finishing)
   extraTime?: number;
   extraTimeType?: ExtraTimeType;
+
+  // Client care
+  aftercareInstructions?: string; // Post-service care instructions
+  requiresPatchTest?: boolean; // Requires patch test before service (e.g., hair color)
 
   // Variants
   hasVariants: boolean;
@@ -342,12 +347,41 @@ export interface CatalogSettings {
   enableAddOns: boolean;
   enableVariants: boolean;
   allowCustomPricing: boolean;
+  bookingSequenceEnabled: boolean;
 
   // Timestamps & Sync
   createdAt: Date;
   updatedAt: Date;
   syncStatus: SyncStatus;
 }
+
+// ============================================
+// BOOKING SEQUENCE
+// ============================================
+
+/**
+ * BookingSequence - Defines the order services should be performed
+ * Used to ensure services are booked in a logical order (e.g., Cut → Color → Style)
+ */
+export interface BookingSequence {
+  id: string;
+  salonId: string;
+
+  // Ordered list of service IDs
+  serviceOrder: string[];
+
+  // Whether this sequence is enabled
+  isEnabled: boolean;
+
+  // Timestamps & Sync
+  createdAt: Date;
+  updatedAt: Date;
+  syncStatus: SyncStatus;
+}
+
+export type CreateBookingSequenceInput = Omit<BookingSequence,
+  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+>;
 
 // ============================================
 // UI STATE TYPES (for Redux slice)

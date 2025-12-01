@@ -8,57 +8,86 @@ import {
   Copy,
   EyeOff,
   Eye,
+  ChevronDown,
   ChevronRight,
   Zap,
   Globe,
   Link,
+  Layers,
 } from 'lucide-react';
 import type {
-  ServiceAddOn,
+  AddOnGroup,
+  AddOnOption,
+  AddOnGroupWithOptions,
   MenuServiceWithEmbeddedVariants,
   CategoryWithCount,
   CatalogViewMode,
 } from '../../../types/catalog';
 import { formatDuration, formatPrice } from '../constants';
-import { AddOnModal } from '../modals/AddOnModal';
+import { AddOnGroupModal } from '../modals/AddOnGroupModal';
+import { AddOnOptionModal } from '../modals/AddOnOptionModal';
 
 interface AddOnsSectionProps {
-  addOns: ServiceAddOn[];
+  addOnGroups: AddOnGroupWithOptions[];
   categories: CategoryWithCount[];
   services: MenuServiceWithEmbeddedVariants[];
   viewMode: CatalogViewMode;
   searchQuery?: string;
-  // Action callbacks
-  onCreate?: (data: Partial<ServiceAddOn>) => Promise<ServiceAddOn | null>;
-  onUpdate?: (id: string, data: Partial<ServiceAddOn>) => Promise<ServiceAddOn | null>;
-  onDelete?: (id: string) => Promise<boolean | null>;
+  // Group action callbacks
+  onCreateGroup?: (data: Partial<AddOnGroup>) => Promise<AddOnGroup | null | undefined>;
+  onUpdateGroup?: (id: string, data: Partial<AddOnGroup>) => Promise<AddOnGroup | null | undefined>;
+  onDeleteGroup?: (id: string) => Promise<boolean | null | undefined>;
+  // Option action callbacks
+  onCreateOption?: (data: Partial<AddOnOption>) => Promise<AddOnOption | null | undefined>;
+  onUpdateOption?: (id: string, data: Partial<AddOnOption>) => Promise<AddOnOption | null | undefined>;
+  onDeleteOption?: (id: string) => Promise<boolean | null | undefined>;
 }
 
 export function AddOnsSection({
-  addOns,
+  addOnGroups,
   categories,
   services,
-  viewMode,
+  // viewMode prop available for future grid/list toggle
   searchQuery = '',
-  onCreate,
-  onUpdate,
-  onDelete,
+  onCreateGroup,
+  onUpdateGroup,
+  onDeleteGroup,
+  onCreateOption,
+  onUpdateOption,
+  onDeleteOption,
 }: AddOnsSectionProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [editingAddOn, setEditingAddOn] = useState<ServiceAddOn | undefined>();
+  // Modal states
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showOptionModal, setShowOptionModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<AddOnGroup | undefined>();
+  const [editingOption, setEditingOption] = useState<AddOnOption | undefined>();
+  const [selectedGroupForOption, setSelectedGroupForOption] = useState<{ id: string; name: string } | null>(null);
+
+  // UI states
+  const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
 
-  // Filter add-ons
-  const filteredAddOns = addOns.filter(addon =>
-    addon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    addon.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter groups
+  const filteredGroups = addOnGroups.filter(group =>
+    group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    group.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    group.options.some(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Get applicable categories text
-  const getApplicableText = (addon: ServiceAddOn) => {
-    if (addon.applicableToAll) return 'All services';
+  // Toggle group expansion
+  const toggleGroupExpansion = (groupId: string) => {
+    setExpandedGroupIds(prev =>
+      prev.includes(groupId)
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
 
-    const catNames = addon.applicableCategoryIds
+  // Get applicable categories text
+  const getApplicableText = (group: AddOnGroup) => {
+    if (group.applicableToAll) return 'All services';
+
+    const catNames = group.applicableCategoryIds
       .map(id => categories.find(c => c.id === id)?.name)
       .filter(Boolean);
 
@@ -67,230 +96,199 @@ export function AddOnsSection({
     return `${catNames.length} categories`;
   };
 
-  // Handle save add-on
-  const handleSaveAddOn = async (addOnData: Partial<ServiceAddOn>) => {
-    if (editingAddOn) {
-      // Update existing
-      if (onUpdate) {
-        await onUpdate(editingAddOn.id, addOnData);
+  // Handle save group
+  const handleSaveGroup = async (groupData: Partial<AddOnGroup>) => {
+    if (editingGroup) {
+      if (onUpdateGroup) {
+        await onUpdateGroup(editingGroup.id, groupData);
       }
     } else {
-      // Create new
-      if (onCreate) {
-        await onCreate({
-          name: addOnData.name || 'New Add-on',
-          description: addOnData.description,
-          price: addOnData.price || 0,
-          duration: addOnData.duration || 15,
-          applicableToAll: addOnData.applicableToAll || false,
-          applicableCategoryIds: addOnData.applicableCategoryIds || [],
-          applicableServiceIds: addOnData.applicableServiceIds || [],
+      if (onCreateGroup) {
+        const newGroup = await onCreateGroup({
+          ...groupData,
           isActive: true,
-          displayOrder: addOns.length + 1,
-          onlineBookingEnabled: addOnData.onlineBookingEnabled ?? true,
+          displayOrder: addOnGroups.length + 1,
+        });
+        // Auto-expand newly created group
+        if (newGroup) {
+          setExpandedGroupIds(prev => [...prev, newGroup.id]);
+        }
+      }
+    }
+    setShowGroupModal(false);
+    setEditingGroup(undefined);
+  };
+
+  // Handle save option
+  const handleSaveOption = async (optionData: Partial<AddOnOption>) => {
+    if (editingOption) {
+      if (onUpdateOption) {
+        await onUpdateOption(editingOption.id, optionData);
+      }
+    } else {
+      if (onCreateOption && selectedGroupForOption) {
+        const group = addOnGroups.find(g => g.id === selectedGroupForOption.id);
+        await onCreateOption({
+          ...optionData,
+          groupId: selectedGroupForOption.id,
+          isActive: true,
+          displayOrder: (group?.options.length || 0) + 1,
         });
       }
     }
-    setShowModal(false);
-    setEditingAddOn(undefined);
+    setShowOptionModal(false);
+    setEditingOption(undefined);
+    setSelectedGroupForOption(null);
   };
 
-  // Handle delete
-  const handleDelete = async (addOnId: string) => {
-    if (confirm('Are you sure you want to delete this add-on?')) {
-      if (onDelete) {
-        await onDelete(addOnId);
+  // Handle delete group
+  const handleDeleteGroup = async (groupId: string) => {
+    if (confirm('Are you sure you want to delete this add-on group and all its options?')) {
+      if (onDeleteGroup) {
+        await onDeleteGroup(groupId);
       }
     }
   };
 
-  // Handle toggle active
-  const handleToggleActive = async (addOnId: string) => {
-    const addon = addOns.find(a => a.id === addOnId);
-    if (addon && onUpdate) {
-      await onUpdate(addOnId, { isActive: !addon.isActive });
+  // Handle delete option
+  const handleDeleteOption = async (optionId: string) => {
+    if (confirm('Are you sure you want to delete this option?')) {
+      if (onDeleteOption) {
+        await onDeleteOption(optionId);
+      }
     }
   };
 
-  // Handle duplicate
-  const handleDuplicate = async (addon: ServiceAddOn) => {
-    if (onCreate) {
-      await onCreate({
-        name: `${addon.name} (Copy)`,
-        description: addon.description,
-        price: addon.price,
-        duration: addon.duration,
-        applicableToAll: addon.applicableToAll,
-        applicableCategoryIds: addon.applicableCategoryIds,
-        applicableServiceIds: addon.applicableServiceIds,
+  // Handle toggle group active
+  const handleToggleGroupActive = async (group: AddOnGroup) => {
+    if (onUpdateGroup) {
+      await onUpdateGroup(group.id, { isActive: !group.isActive });
+    }
+  };
+
+  // Handle toggle option active
+  const handleToggleOptionActive = async (option: AddOnOption) => {
+    if (onUpdateOption) {
+      await onUpdateOption(option.id, { isActive: !option.isActive });
+    }
+  };
+
+  // Handle duplicate group
+  const handleDuplicateGroup = async (group: AddOnGroupWithOptions) => {
+    if (onCreateGroup) {
+      const newGroup = await onCreateGroup({
+        name: `${group.name} (Copy)`,
+        description: group.description,
+        selectionMode: group.selectionMode,
+        minSelections: group.minSelections,
+        maxSelections: group.maxSelections,
+        isRequired: group.isRequired,
+        applicableToAll: group.applicableToAll,
+        applicableCategoryIds: group.applicableCategoryIds,
+        applicableServiceIds: group.applicableServiceIds,
+        onlineBookingEnabled: group.onlineBookingEnabled,
         isActive: true,
-        displayOrder: addOns.length + 1,
-        onlineBookingEnabled: addon.onlineBookingEnabled,
+        displayOrder: addOnGroups.length + 1,
       });
+
+      // Copy options to new group
+      if (newGroup && onCreateOption) {
+        for (const option of group.options) {
+          await onCreateOption({
+            groupId: newGroup.id,
+            name: option.name,
+            description: option.description,
+            price: option.price,
+            duration: option.duration,
+            isActive: option.isActive,
+            displayOrder: option.displayOrder,
+          });
+        }
+        setExpandedGroupIds(prev => [...prev, newGroup.id]);
+      }
     }
   };
 
-  // Render Grid View
-  const renderGridView = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {filteredAddOns.map((addon) => (
+  // Calculate group totals
+  const getGroupStats = (group: AddOnGroupWithOptions) => {
+    const activeOptions = group.options.filter(o => o.isActive);
+    const totalPrice = activeOptions.reduce((sum, o) => sum + o.price, 0);
+    const avgPrice = activeOptions.length > 0 ? totalPrice / activeOptions.length : 0;
+    return {
+      optionCount: group.options.length,
+      activeCount: activeOptions.length,
+      avgPrice,
+    };
+  };
+
+  // Render Group Card
+  const renderGroupCard = (group: AddOnGroupWithOptions) => {
+    const isExpanded = expandedGroupIds.includes(group.id);
+    const stats = getGroupStats(group);
+
+    return (
+      <div
+        key={group.id}
+        className={`bg-white rounded-xl border border-gray-200 overflow-hidden transition-all ${
+          !group.isActive ? 'opacity-60' : ''
+        }`}
+      >
+        {/* Group Header */}
         <div
-          key={addon.id}
-          className={`bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all ${
-            !addon.isActive ? 'opacity-60' : ''
-          }`}
-        >
-          {/* Header */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-              <Zap size={20} className="text-amber-500" />
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setExpandedMenuId(expandedMenuId === addon.id ? null : addon.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                <MoreVertical size={16} />
-              </button>
-              {expandedMenuId === addon.id && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setExpandedMenuId(null)} />
-                  <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    <button
-                      onClick={() => {
-                        setEditingAddOn(addon);
-                        setShowModal(true);
-                        setExpandedMenuId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Edit3 size={14} /> Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleDuplicate(addon);
-                        setExpandedMenuId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Copy size={14} /> Duplicate
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleToggleActive(addon.id);
-                        setExpandedMenuId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      {addon.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
-                      {addon.isActive ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <hr className="my-1" />
-                    <button
-                      onClick={() => {
-                        handleDelete(addon.id);
-                        setExpandedMenuId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 size={14} /> Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Add-on Info */}
-          <h3 className="font-semibold text-gray-900 mb-1">{addon.name}</h3>
-          {addon.description && (
-            <p className="text-sm text-gray-500 line-clamp-2 mb-3">{addon.description}</p>
-          )}
-
-          {/* Meta Info */}
-          <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-            <span className="flex items-center gap-1">
-              <Clock size={14} />
-              +{formatDuration(addon.duration)}
-            </span>
-            <span className="flex items-center gap-1 font-medium text-gray-900">
-              +{formatPrice(addon.price)}
-            </span>
-          </div>
-
-          {/* Applicable To */}
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Link size={12} />
-            <span>{getApplicableText(addon)}</span>
-          </div>
-
-          {/* Tags */}
-          <div className="flex items-center gap-2 mt-3">
-            {!addon.isActive && (
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">
-                Inactive
-              </span>
-            )}
-            {addon.onlineBookingEnabled && (
-              <span className="px-2 py-0.5 bg-green-50 text-green-600 text-xs rounded-full flex items-center gap-1">
-                <Globe size={12} /> Online
-              </span>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  // Render List View
-  const renderListView = () => (
-    <div className="space-y-2">
-      {filteredAddOns.map((addon) => (
-        <div
-          key={addon.id}
-          className={`bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all ${
-            !addon.isActive ? 'opacity-60' : ''
-          }`}
+          className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={() => toggleGroupExpansion(group.id)}
         >
           <div className="flex items-center gap-4">
-            {/* Icon */}
-            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <Zap size={24} className="text-amber-500" />
+            {/* Expand Icon */}
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+              {isExpanded ? (
+                <ChevronDown size={18} className="text-purple-500" />
+              ) : (
+                <ChevronRight size={18} className="text-purple-500" />
+              )}
             </div>
 
-            {/* Info */}
+            {/* Group Icon */}
+            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <Layers size={20} className="text-purple-600" />
+            </div>
+
+            {/* Group Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">{addon.name}</h3>
-                {!addon.isActive && (
+                <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                {!group.isActive && (
                   <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">
                     Inactive
                   </span>
                 )}
+                {group.isRequired && (
+                  <span className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full">
+                    Required
+                  </span>
+                )}
               </div>
-              {addon.description && (
-                <p className="text-sm text-gray-500 truncate">{addon.description}</p>
+              {group.description && (
+                <p className="text-sm text-gray-500 truncate">{group.description}</p>
               )}
-              <p className="text-xs text-gray-400 mt-1">
-                Applies to: {getApplicableText(addon)}
-              </p>
-            </div>
-
-            {/* Duration */}
-            <div className="text-center px-4 hidden sm:block">
-              <p className="text-sm font-medium text-gray-900">+{formatDuration(addon.duration)}</p>
-              <p className="text-xs text-gray-500">Added time</p>
-            </div>
-
-            {/* Price */}
-            <div className="text-center px-4">
-              <p className="text-lg font-bold text-gray-900">+{formatPrice(addon.price)}</p>
-              <p className="text-xs text-gray-500">Price</p>
+              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Zap size={12} />
+                  {stats.optionCount} option{stats.optionCount !== 1 ? 's' : ''}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Link size={12} />
+                  {getApplicableText(group)}
+                </span>
+                <span className="capitalize">
+                  {group.selectionMode} selection
+                </span>
+              </div>
             </div>
 
             {/* Status Indicators */}
             <div className="flex items-center gap-2">
-              {addon.onlineBookingEnabled && (
+              {group.onlineBookingEnabled && (
                 <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center" title="Online Booking">
                   <Globe size={16} className="text-green-600" />
                 </div>
@@ -298,30 +296,40 @@ export function AddOnsSection({
             </div>
 
             {/* Actions */}
-            <div className="relative">
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
-                onClick={() => setExpandedMenuId(expandedMenuId === addon.id ? null : addon.id)}
+                onClick={() => setExpandedMenuId(expandedMenuId === group.id ? null : group.id)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 <MoreVertical size={18} />
               </button>
-              {expandedMenuId === addon.id && (
+              {expandedMenuId === group.id && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setExpandedMenuId(null)} />
                   <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                     <button
                       onClick={() => {
-                        setEditingAddOn(addon);
-                        setShowModal(true);
+                        setEditingGroup(group);
+                        setShowGroupModal(true);
                         setExpandedMenuId(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                      <Edit3 size={14} /> Edit
+                      <Edit3 size={14} /> Edit Group
                     </button>
                     <button
                       onClick={() => {
-                        handleDuplicate(addon);
+                        setSelectedGroupForOption({ id: group.id, name: group.name });
+                        setShowOptionModal(true);
+                        setExpandedMenuId(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Plus size={14} /> Add Option
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDuplicateGroup(group);
                         setExpandedMenuId(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -330,94 +338,218 @@ export function AddOnsSection({
                     </button>
                     <button
                       onClick={() => {
-                        handleToggleActive(addon.id);
+                        handleToggleGroupActive(group);
                         setExpandedMenuId(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                      {addon.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
-                      {addon.isActive ? 'Deactivate' : 'Activate'}
+                      {group.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {group.isActive ? 'Deactivate' : 'Activate'}
                     </button>
                     <hr className="my-1" />
                     <button
                       onClick={() => {
-                        handleDelete(addon.id);
+                        handleDeleteGroup(group.id);
                         setExpandedMenuId(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
-                      <Trash2 size={14} /> Delete
+                      <Trash2 size={14} /> Delete Group
                     </button>
                   </div>
                 </>
               )}
             </div>
-
-            <ChevronRight size={18} className="text-gray-400" />
           </div>
         </div>
-      ))}
-    </div>
-  );
+
+        {/* Options List (when expanded) */}
+        {isExpanded && (
+          <div className="border-t border-gray-100">
+            {group.options.length > 0 ? (
+              <div className="divide-y divide-gray-50">
+                {group.options.map((option) => (
+                  <div
+                    key={option.id}
+                    className={`px-4 py-3 pl-16 flex items-center gap-4 hover:bg-gray-50 ${
+                      !option.isActive ? 'opacity-50' : ''
+                    }`}
+                  >
+                    {/* Option Icon */}
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <Zap size={16} className="text-amber-500" />
+                    </div>
+
+                    {/* Option Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{option.name}</span>
+                        {!option.isActive && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+                      {option.description && (
+                        <p className="text-sm text-gray-500 truncate">{option.description}</p>
+                      )}
+                    </div>
+
+                    {/* Duration */}
+                    <div className="text-sm text-gray-600 flex items-center gap-1">
+                      <Clock size={14} />
+                      +{formatDuration(option.duration)}
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-sm font-semibold text-gray-900 w-20 text-right">
+                      +{formatPrice(option.price)}
+                    </div>
+
+                    {/* Option Actions */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingOption(option);
+                          setSelectedGroupForOption({ id: group.id, name: group.name });
+                          setShowOptionModal(true);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        title="Edit option"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleToggleOptionActive(option)}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        title={option.isActive ? 'Deactivate' : 'Activate'}
+                      >
+                        {option.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteOption(option.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Delete option"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-6 pl-16 text-center">
+                <p className="text-sm text-gray-500 mb-2">No options in this group yet</p>
+                <button
+                  onClick={() => {
+                    setSelectedGroupForOption({ id: group.id, name: group.name });
+                    setShowOptionModal(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  <Plus size={14} />
+                  Add first option
+                </button>
+              </div>
+            )}
+
+            {/* Add Option Button */}
+            {group.options.length > 0 && (
+              <div className="px-4 py-3 pl-16 bg-gray-50">
+                <button
+                  onClick={() => {
+                    setSelectedGroupForOption({ id: group.id, name: group.name });
+                    setShowOptionModal(true);
+                  }}
+                  className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  <Plus size={14} />
+                  Add option
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Service Add-ons</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Add-on Groups</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Quick extras that can be added to any service
+              Organize add-ons into groups with selection rules
             </p>
           </div>
           <button
             onClick={() => {
-              setEditingAddOn(undefined);
-              setShowModal(true);
+              setEditingGroup(undefined);
+              setShowGroupModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium"
           >
             <Plus size={18} />
-            Add Add-on
+            Add Group
           </button>
         </div>
 
         {/* Content */}
-        {filteredAddOns.length > 0 ? (
-          viewMode === 'grid' || viewMode === 'compact' ? renderGridView() : renderListView()
+        {filteredGroups.length > 0 ? (
+          <div className="space-y-3">
+            {filteredGroups.map(renderGroupCard)}
+          </div>
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap size={24} className="text-gray-400" />
+              <Layers size={24} className="text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No add-ons yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No add-on groups yet</h3>
             <p className="text-gray-500 mb-4">
-              Create add-ons for quick upsells during checkout
+              Create groups to organize your add-ons with selection rules
             </p>
             <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+              onClick={() => setShowGroupModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
             >
               <Plus size={18} />
-              Create Add-on
+              Create Group
             </button>
           </div>
         )}
       </div>
 
-      {/* Add-on Modal */}
-      <AddOnModal
-        isOpen={showModal}
+      {/* Group Modal */}
+      <AddOnGroupModal
+        isOpen={showGroupModal}
         onClose={() => {
-          setShowModal(false);
-          setEditingAddOn(undefined);
+          setShowGroupModal(false);
+          setEditingGroup(undefined);
         }}
-        addOn={editingAddOn}
+        group={editingGroup}
         categories={categories}
         services={services}
-        onSave={handleSaveAddOn}
+        onSave={handleSaveGroup}
       />
+
+      {/* Option Modal */}
+      {selectedGroupForOption && (
+        <AddOnOptionModal
+          isOpen={showOptionModal}
+          onClose={() => {
+            setShowOptionModal(false);
+            setEditingOption(undefined);
+            setSelectedGroupForOption(null);
+          }}
+          option={editingOption}
+          groupId={selectedGroupForOption.id}
+          groupName={selectedGroupForOption.name}
+          onSave={handleSaveOption}
+        />
+      )}
     </div>
   );
 }

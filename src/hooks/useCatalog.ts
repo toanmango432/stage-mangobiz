@@ -24,6 +24,9 @@ import type {
   ServicePackage,
   CategoryWithCount,
   ServiceAddOn,
+  AddOnGroup,
+  AddOnOption,
+  AddOnGroupWithOptions,
   MenuGeneralSettings,
   EmbeddedVariant,
   MenuServiceWithEmbeddedVariants,
@@ -133,6 +136,26 @@ export function useCatalog({ salonId, userId = 'system', toast = defaultToast }:
     },
     [salonId, ui.showInactive],
     [] as ServiceAddOn[]
+  );
+
+  // Add-on Groups with Options (for new grouped UI)
+  const addOnGroupsWithOptions = useLiveQuery(
+    async () => {
+      const groups = await addOnGroupsDB.getAll(salonId, ui.showInactive);
+      const options = await db.addOnOptions.where('salonId').equals(salonId).toArray();
+
+      // Build groups with nested options
+      const result: AddOnGroupWithOptions[] = groups.map(group => ({
+        ...group,
+        options: options
+          .filter(o => o.groupId === group.id && (ui.showInactive || o.isActive))
+          .sort((a, b) => a.displayOrder - b.displayOrder),
+      }));
+
+      return result.sort((a, b) => a.displayOrder - b.displayOrder);
+    },
+    [salonId, ui.showInactive],
+    [] as AddOnGroupWithOptions[]
   );
 
   // Settings
@@ -519,6 +542,105 @@ export function useCatalog({ salonId, userId = 'system', toast = defaultToast }:
     );
   }, [withErrorHandling]);
 
+  // ==================== ADD-ON GROUP ACTIONS ====================
+  // For the new grouped UI
+
+  const createAddOnGroup = useCallback(async (data: Partial<AddOnGroup>) => {
+    return withErrorHandling(
+      async () => {
+        const group = await addOnGroupsDB.create({
+          name: data.name || '',
+          description: data.description,
+          selectionMode: data.selectionMode || 'single',
+          minSelections: data.minSelections ?? 0,
+          maxSelections: data.maxSelections,
+          isRequired: data.isRequired ?? false,
+          applicableToAll: data.applicableToAll ?? true,
+          applicableCategoryIds: data.applicableCategoryIds || [],
+          applicableServiceIds: data.applicableServiceIds || [],
+          isActive: data.isActive ?? true,
+          displayOrder: data.displayOrder ?? 0,
+          onlineBookingEnabled: data.onlineBookingEnabled ?? true,
+        }, salonId);
+        return group;
+      },
+      'Add-on group created',
+      'Failed to create add-on group'
+    );
+  }, [salonId, withErrorHandling]);
+
+  const updateAddOnGroup = useCallback(async (id: string, data: Partial<AddOnGroup>) => {
+    return withErrorHandling(
+      async () => {
+        await addOnGroupsDB.update(id, data);
+        return await addOnGroupsDB.getById(id);
+      },
+      'Add-on group updated',
+      'Failed to update add-on group'
+    );
+  }, [withErrorHandling]);
+
+  const deleteAddOnGroup = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        // Delete all options in the group first
+        const options = await addOnOptionsDB.getByGroup(id, true);
+        for (const option of options) {
+          await addOnOptionsDB.delete(option.id);
+        }
+        // Then delete the group
+        await addOnGroupsDB.delete(id);
+        return true;
+      },
+      'Add-on group deleted',
+      'Failed to delete add-on group'
+    );
+  }, [withErrorHandling]);
+
+  // ==================== ADD-ON OPTION ACTIONS ====================
+
+  const createAddOnOption = useCallback(async (data: Partial<AddOnOption>) => {
+    return withErrorHandling(
+      async () => {
+        if (!data.groupId) throw new Error('Group ID is required');
+        const option = await addOnOptionsDB.create({
+          groupId: data.groupId,
+          name: data.name || '',
+          description: data.description,
+          price: data.price || 0,
+          duration: data.duration || 0,
+          isActive: data.isActive ?? true,
+          displayOrder: data.displayOrder ?? 0,
+        }, salonId);
+        return option;
+      },
+      'Option added',
+      'Failed to add option'
+    );
+  }, [salonId, withErrorHandling]);
+
+  const updateAddOnOption = useCallback(async (id: string, data: Partial<AddOnOption>) => {
+    return withErrorHandling(
+      async () => {
+        await addOnOptionsDB.update(id, data);
+        return await addOnOptionsDB.getById(id);
+      },
+      'Option updated',
+      'Failed to update option'
+    );
+  }, [withErrorHandling]);
+
+  const deleteAddOnOption = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await addOnOptionsDB.delete(id);
+        return true;
+      },
+      'Option deleted',
+      'Failed to delete option'
+    );
+  }, [withErrorHandling]);
+
   // ==================== SETTINGS ACTIONS ====================
 
   const updateSettings = useCallback(async (data: Partial<MenuGeneralSettings>) => {
@@ -558,6 +680,7 @@ export function useCatalog({ salonId, userId = 'system', toast = defaultToast }:
     filteredPackages,
     addOns,
     filteredAddOns,
+    addOnGroupsWithOptions,
     settings,
 
     // UI State
@@ -589,10 +712,20 @@ export function useCatalog({ salonId, userId = 'system', toast = defaultToast }:
     updatePackage,
     deletePackage,
 
-    // Add-on Actions
+    // Add-on Actions (legacy flat format)
     createAddOn,
     updateAddOn,
     deleteAddOn,
+
+    // Add-on Group Actions (new grouped format)
+    createAddOnGroup,
+    updateAddOnGroup,
+    deleteAddOnGroup,
+
+    // Add-on Option Actions
+    createAddOnOption,
+    updateAddOnOption,
+    deleteAddOnOption,
 
     // Settings Actions
     updateSettings,

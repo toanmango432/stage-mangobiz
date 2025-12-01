@@ -109,18 +109,36 @@ export interface BaseSyncableEntity {
 
 ## Todo Checklist
 
-- [ ] **Decision:** Choose Option A, B, or C for technical debt
-- [ ] Task 2.1: Implement 3 Extra Time Types dropdown (processing/blocked/finishing)
-- [ ] Task 2.2: Add SKU field to MenuService type and ServiceModal
-- [ ] Task 2.3: Add cost/COGS field to MenuService type and ServiceModal
-- [ ] Task 2.4: Add Bundle Booking Mode selector in Package UI
-- [ ] Task 2.5: Connect Staff Permissions to real staff data
-- [ ] Task 2.6: Add Rebook Reminder field in ServiceModal
-- [ ] Task 2.7: Add Aftercare Instructions textarea in ServiceModal
-- [ ] Task 2.8: Add Patch Test Required toggle in ServiceModal
+- [x] **Decision:** Option B chosen - defer technical debt, ship Phase 2 faster
+- [x] Task 2.1: Implement 3 Extra Time Types dropdown (processing/blocked/finishing)
+- [x] Task 2.2: Add SKU field to MenuService type and ServiceModal
+- [x] Task 2.3: Add cost/COGS field to MenuService type and ServiceModal
+- [x] Task 2.4: Add Bundle Booking Mode selector in Package UI
+- [x] Task 2.5: Connect Staff Permissions to real staff data (already implemented via Redux teamSlice)
+- [x] Task 2.6: Add Rebook Reminder field in ServiceModal
+- [x] Task 2.7: Add Aftercare Instructions textarea in ServiceModal
+- [x] Task 2.8: Add Patch Test Required toggle in ServiceModal
 - [ ] Review: Verify all changes on frontend
 
 ---
 
 ## Review Section
-*To be filled after implementation*
+
+### Phase 2 Implementation Complete - Dec 1, 2025
+
+**Files Modified:**
+1. `src/types/catalog.ts` - Added `sku`, `aftercareInstructions`, `requiresPatchTest` fields
+2. `src/components/menu-settings/constants.ts` - Added `EXTRA_TIME_TYPES`, `REBOOK_REMINDER_OPTIONS`, `BUNDLE_BOOKING_MODES`
+3. `src/components/menu-settings/modals/ServiceModal.tsx` - Added UI for all new service fields
+4. `src/components/menu-settings/modals/PackageModal.tsx` - Added Bundle Booking Mode selector
+
+**Features Added:**
+- Extra Time Type selector (Processing/Blocked/Finishing) in ServiceModal Pricing tab
+- SKU field in ServiceModal Advanced tab
+- Cost (COGS) field in ServiceModal Advanced tab
+- Patch Test Required toggle in ServiceModal Advanced tab
+- Rebook Reminder dropdown in ServiceModal Advanced tab
+- Aftercare Instructions textarea in ServiceModal Advanced tab
+- Bundle Booking Mode selector (Single Session/Multiple Visits) in PackageModal
+
+**Note:** Staff Permissions section was already fully implemented with real Redux data via `teamSlice`.

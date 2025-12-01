@@ -56,8 +56,7 @@ export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProp
     filteredServices,
     packages,
     filteredPackages,
-    addOns,
-    filteredAddOns,
+    addOnGroupsWithOptions,
     settings,
     // UI State
     ui,
@@ -79,9 +78,13 @@ export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProp
     createPackage,
     updatePackage,
     deletePackage,
-    createAddOn,
-    updateAddOn,
-    deleteAddOn,
+    // Add-on Group/Option Actions
+    createAddOnGroup,
+    updateAddOnGroup,
+    deleteAddOnGroup,
+    createAddOnOption,
+    updateAddOnOption,
+    deleteAddOnOption,
     updateSettings,
   } = catalog;
 
@@ -90,10 +93,10 @@ export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProp
     { id: 'categories', label: 'Categories', icon: <FolderOpen size={18} />, count: categories?.length || 0 },
     { id: 'services', label: 'Services', icon: <Sparkles size={18} />, count: services?.length || 0 },
     { id: 'packages', label: 'Packages', icon: <Package size={18} />, count: packages?.length || 0 },
-    { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOns?.length || 0 },
+    { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOnGroupsWithOptions?.length || 0 },
     { id: 'staff', label: 'Staff Permissions', icon: <Users size={18} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-  ], [categories, services, packages, addOns]);
+  ], [categories, services, packages, addOnGroupsWithOptions]);
 
   // Render content based on active tab
   const renderContent = () => {
@@ -140,14 +143,17 @@ export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProp
       case 'addons':
         return (
           <AddOnsSection
-            addOns={filteredAddOns || []}
+            addOnGroups={addOnGroupsWithOptions || []}
             categories={categories || []}
             services={services || []}
             viewMode={ui.viewMode}
             searchQuery={ui.searchQuery}
-            onCreate={createAddOn}
-            onUpdate={updateAddOn}
-            onDelete={deleteAddOn}
+            onCreateGroup={createAddOnGroup}
+            onUpdateGroup={updateAddOnGroup}
+            onDeleteGroup={deleteAddOnGroup}
+            onCreateOption={createAddOnOption}
+            onUpdateOption={updateAddOnOption}
+            onDeleteOption={deleteAddOnOption}
           />
         );
       case 'staff':

@@ -10,9 +10,13 @@ import {
   Info,
   GripVertical,
   Star,
+  FileText,
+  AlertTriangle,
+  CalendarClock,
+  Package,
 } from 'lucide-react';
-import type { EmbeddedVariant, ServiceModalProps } from '../../../types/catalog';
-import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, formatDuration } from '../constants';
+import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType } from '../../../types/catalog';
+import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, EXTRA_TIME_TYPES, REBOOK_REMINDER_OPTIONS, formatDuration } from '../constants';
 
 export function ServiceModal({
   isOpen,
@@ -33,6 +37,16 @@ export function ServiceModal({
   // Duration
   const [duration, setDuration] = useState(60);
   const [extraTime, setExtraTime] = useState(0);
+  const [extraTimeType, setExtraTimeType] = useState<ExtraTimeType>('processing');
+
+  // SKU & Cost
+  const [sku, setSku] = useState('');
+  const [cost, setCost] = useState<number | undefined>(undefined);
+
+  // Client Care
+  const [rebookReminderDays, setRebookReminderDays] = useState(0);
+  const [aftercareInstructions, setAftercareInstructions] = useState('');
+  const [requiresPatchTest, setRequiresPatchTest] = useState(false);
 
   // Variants
   const [hasVariants, setHasVariants] = useState(false);
@@ -64,6 +78,12 @@ export function ServiceModal({
         setPrice(service.price);
         setDuration(service.duration);
         setExtraTime(service.extraTime || 0);
+        setExtraTimeType(service.extraTimeType || 'processing');
+        setSku(service.sku || '');
+        setCost(service.cost);
+        setRebookReminderDays(service.rebookReminderDays || 0);
+        setAftercareInstructions(service.aftercareInstructions || '');
+        setRequiresPatchTest(service.requiresPatchTest || false);
         setHasVariants(service.hasVariants || false);
         setVariants(service.variants || []);
         setAllStaffCanPerform(service.allStaffCanPerform);
@@ -80,6 +100,12 @@ export function ServiceModal({
         setPrice(0);
         setDuration(60);
         setExtraTime(0);
+        setExtraTimeType('processing');
+        setSku('');
+        setCost(undefined);
+        setRebookReminderDays(0);
+        setAftercareInstructions('');
+        setRequiresPatchTest(false);
         setHasVariants(false);
         setVariants([]);
         setAllStaffCanPerform(true);
@@ -144,6 +170,12 @@ export function ServiceModal({
       price,
       duration,
       extraTime: extraTime || undefined,
+      extraTimeType: extraTime > 0 ? extraTimeType : undefined,
+      sku: sku.trim() || undefined,
+      cost: cost !== undefined ? cost : undefined,
+      rebookReminderDays: rebookReminderDays || undefined,
+      aftercareInstructions: aftercareInstructions.trim() || undefined,
+      requiresPatchTest: requiresPatchTest || undefined,
       hasVariants,
       allStaffCanPerform,
       onlineBookingEnabled,
@@ -350,6 +382,34 @@ export function ServiceModal({
                 </div>
               </div>
 
+              {/* Extra Time Type (only show if extra time > 0) */}
+              {extraTime > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Extra Time Type
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {EXTRA_TIME_TYPES.map((type) => (
+                      <button
+                        key={type.value}
+                        onClick={() => setExtraTimeType(type.value as ExtraTimeType)}
+                        className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                          extraTimeType === type.value
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title={type.description}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    {EXTRA_TIME_TYPES.find(t => t.value === extraTimeType)?.description}
+                  </p>
+                </div>
+              )}
+
               {/* Variants Toggle */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
@@ -540,7 +600,46 @@ export function ServiceModal({
 
           {/* Advanced Tab */}
           {activeTab === 'advanced' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* SKU & Cost Section */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <Package size={14} className="inline mr-1.5" />
+                    SKU
+                  </label>
+                  <input
+                    type="text"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="e.g., SVC-001"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">For inventory & reporting</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <DollarSign size={14} className="inline mr-1.5" />
+                    Cost (COGS)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={cost ?? ''}
+                      onChange={(e) => setCost(e.target.value ? Number(e.target.value) : undefined)}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Cost of goods/supplies</p>
+                </div>
+              </div>
+
+              {/* Staff Permissions */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Users size={20} className="text-gray-600" />
@@ -563,6 +662,16 @@ export function ServiceModal({
                 </button>
               </div>
 
+              {!allStaffCanPerform && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+                  <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-blue-700">
+                    Staff permissions can be configured in the Staff Permissions tab after saving this service.
+                  </p>
+                </div>
+              )}
+
+              {/* Taxable */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-900">Taxable</p>
@@ -582,14 +691,62 @@ export function ServiceModal({
                 </button>
               </div>
 
-              {!allStaffCanPerform && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-                  <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-blue-700">
-                    Staff permissions can be configured in the Staff Permissions tab after saving this service.
-                  </p>
+              {/* Patch Test Required */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle size={20} className="text-amber-600" />
+                  <div>
+                    <p className="font-medium text-gray-900">Requires Patch Test</p>
+                    <p className="text-sm text-gray-500">Client must complete a patch test before service</p>
+                  </div>
                 </div>
-              )}
+                <button
+                  onClick={() => setRequiresPatchTest(!requiresPatchTest)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    requiresPatchTest ? 'bg-orange-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      requiresPatchTest ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Rebook Reminder */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <CalendarClock size={14} className="inline mr-1.5" />
+                  Rebook Reminder
+                </label>
+                <select
+                  value={rebookReminderDays}
+                  onChange={(e) => setRebookReminderDays(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  {REBOOK_REMINDER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Send reminder to client after this service</p>
+              </div>
+
+              {/* Aftercare Instructions */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <FileText size={14} className="inline mr-1.5" />
+                  Aftercare Instructions
+                </label>
+                <textarea
+                  value={aftercareInstructions}
+                  onChange={(e) => setAftercareInstructions(e.target.value)}
+                  placeholder="e.g., Avoid washing hair for 24 hours after color treatment..."
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Instructions sent to client after service</p>
+              </div>
             </div>
           )}
         </div>
