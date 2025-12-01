@@ -104,8 +104,8 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
           customWidthPercentage: 80,
           displayMode: 'column',
           combineSections: false,
-          showComingAppointments: false,
-          organizeBy: 'clockedStatus'
+          showComingAppointments: true,
+          organizeBy: 'busyStatus'
         };
         break;
       case 'teamInOut':

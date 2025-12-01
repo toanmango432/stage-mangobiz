@@ -168,8 +168,8 @@ export const CARD_DIMENSIONS: Record<'ultra-compact' | 'compact' | 'normal', Car
   },
   normal: {
     width: '100%',
-    height: '300px',
-    avatarSize: '140px', // Reduced from 160px
+    height: '280px', // Optimized from 300px
+    avatarSize: '130px', // Optimized from 140px
     borderRadius: '50%',
     containerPadding: 'p-3',
     cardRadius: '24px',
@@ -203,7 +203,7 @@ export const getResponsiveSizes = (
     badge: isUltra ? '20px' : isCompact ? '28px' : '36px', // Increased from 16px for ultra
     badgeFont: isUltra ? '11px' : isCompact ? '14px' : '16px', // Increased from 9px
     notchHeight: isBusy ? (isUltra ? '9px' : '28px') : (isUltra ? '8px' : '20px'), // Reduced by 20% for ultra
-    nameSize: isUltra ? 'text-[13px]' : isCompact ? 'text-[14px]' : 'text-[17px]', // Balanced for compact
+    nameSize: isUltra ? 'text-[13px]' : isCompact ? 'text-[14px]' : 'text-[18px]', // Slightly increased for normal
     metaSize: isUltra ? 'text-[9px]' : isCompact ? 'text-[11px]' : 'text-xs', // Slightly larger for compact
     iconSize: isUltra ? 10 : isCompact ? 12 : 14, // Balanced icon size
     borderWidth: isUltra ? '2px' : '4px',
@@ -299,7 +299,7 @@ export const LAYOUT = {
   bottomSectionHeight: '20%',
   notchWidthBusy: {
     ultra: '72%',
-    normal: '60%',
+    normal: '78%', // Increased to prevent % cutoff
   },
   notchWidthReady: {
     ultra: '50%',

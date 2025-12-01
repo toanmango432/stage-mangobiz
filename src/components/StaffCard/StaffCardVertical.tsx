@@ -199,7 +199,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
           className={`relative flex flex-col items-center z-20`}
           style={{ height: LAYOUT.topSectionHeight }}
         >
-          <div className={`${layout.dimensions.containerPadding} ${layout.isUltra ? 'pt-9' : layout.isCompact ? 'pt-7' : 'pt-6'} w-full flex flex-col items-center h-full justify-center ${layout.isUltra ? 'gap-0.5' : layout.isCompact ? 'gap-0.5' : 'gap-1'}`}>
+          <div className={`${layout.dimensions.containerPadding} ${layout.isUltra ? 'pt-9' : layout.isCompact ? 'pt-7' : 'pt-5'} w-full flex flex-col items-center h-full justify-center ${layout.isUltra ? 'gap-0.5' : layout.isCompact ? 'gap-0.5' : 'gap-0.5'}`}>
             {/* Queue Number Badge */}
             {config.showQueueNumber && (
               <div className={`absolute ${layout.isUltra ? 'top-3 left-3' : 'top-5 left-3'} z-30`}>
@@ -297,7 +297,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
             }}
           >
             {isBusy && activeTicket ? (
-              <div className="w-full mt-1">
+              <div className="w-full flex flex-col h-full justify-between">
                 <StaffCardTicket
                   ticket={activeTicket}
                   totalTickets={staff.activeTickets?.length || 0}
@@ -308,27 +308,19 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                 {/* Last & Next Timeline (Compact for Busy) */}
                 {!layout.isCompact &&
                   (staff.lastServiceTime || staff.nextAppointmentTime) && (
-                    <div className="flex items-center justify-between w-full px-2 gap-2 mt-2.5">
+                    <div className="flex items-center justify-center w-full gap-2 pb-1">
                       {staff.lastServiceTime && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                          <span className="text-xs font-mono font-medium text-gray-600">
-                            {staff.lastServiceTime}
-                          </span>
-                        </div>
+                        <span className="text-[10px] font-mono font-medium text-gray-500">
+                          L: {staff.lastServiceTime.replace(' AM', 'a').replace(' PM', 'p')}
+                        </span>
                       )}
-
                       {staff.lastServiceTime && staff.nextAppointmentTime && (
-                        <div className="flex-1 h-px bg-gray-300/50" />
+                        <span className="text-[10px] text-gray-300">•</span>
                       )}
-
                       {staff.nextAppointmentTime && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-mono font-bold text-blue-600">
-                            {staff.nextAppointmentTime}
-                          </span>
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        </div>
+                        <span className="text-[10px] font-mono font-bold text-blue-600">
+                          N: {staff.nextAppointmentTime.replace(' AM', 'a').replace(' PM', 'p')}
+                        </span>
                       )}
                     </div>
                   )}

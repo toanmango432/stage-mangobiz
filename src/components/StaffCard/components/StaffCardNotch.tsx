@@ -59,40 +59,40 @@ export const StaffCardNotch = React.memo<StaffCardNotchProps>(
             />
 
             {/* Main Content Container */}
-            <div className="absolute inset-0 flex items-center justify-between px-2.5">
+            <div className="absolute inset-0 flex items-center justify-between px-2">
               {/* LEFT: Time Information Group */}
               {!isUltra && (
                 <div className="flex items-center gap-1.5">
                   {/* Clock Icon */}
                   <Clock
-                    size={9}
+                    size={8}
                     className="text-gray-400 flex-shrink-0"
                     strokeWidth={2.5}
                   />
 
-                  {/* Time Stack */}
-                  <div className="flex flex-col items-end -space-y-0.5">
-                    <span className="text-[11px] font-bold text-gray-900 tabular-nums leading-none">
+                  {/* Time Left Stack */}
+                  <div className="flex flex-col items-start -space-y-0.5">
+                    <span className="text-[9px] font-bold text-gray-900 tabular-nums leading-none">
                       {formatMinutes(ticketInfo.timeLeft)}
                     </span>
-                    <span className="text-xs text-gray-400 font-medium leading-none">
+                    <span className="text-[8px] font-normal text-gray-500 leading-none">
                       left
                     </span>
                   </div>
 
                   {/* Divider */}
-                  <div className="w-px h-3.5 bg-gray-300/60" />
+                  <div className="w-px h-3 bg-gray-300/60" />
 
                   {/* Total Time */}
-                  <span className="text-xs text-gray-600 font-semibold tabular-nums">
+                  <span className="text-[9px] text-gray-500 font-medium tabular-nums">
                     {formatMinutes(ticketInfo.totalTime)}
                   </span>
                 </div>
               )}
 
               {/* RIGHT: Progress Percentage (Centered if Ultra) */}
-              <div className={`flex items-center ${isUltra ? 'w-full justify-center' : ''}`}>
-                <span className="text-[14px] font-black text-gray-900 font-mono tabular-nums tracking-tight">
+              <div className={`flex items-center ${isUltra ? 'w-full justify-center' : 'pr-1'}`}>
+                <span className="text-[12px] font-black text-gray-900 font-mono tabular-nums tracking-tight">
                   {formatProgress(ticketInfo.progress)}
                 </span>
               </div>

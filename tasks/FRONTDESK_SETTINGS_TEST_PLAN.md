@@ -654,8 +654,8 @@ The FrontDesk Settings feature provides a centralized configuration system for t
     - customWidthPercentage: 80
     - displayMode: 'column'
     - combineSections: false
-    - showComingAppointments: false (changed to true based on code)
-    - organizeBy: 'clockedStatus' (changed to 'busyStatus' based on code)
+    - showComingAppointments: true
+    - organizeBy: 'busyStatus'
 
 #### Test Case 4.4.4: Quick Checkout (teamInOut)
 
@@ -891,11 +891,10 @@ The FrontDesk Settings feature provides a centralized configuration system for t
    - User must refresh other tabs to see changes
    - **Workaround:** Add window.storage event listener if needed
 
-2. **Template Settings Discrepancy**
-   - OperationTemplateSetup.tsx and OperationTemplatesSection.tsx have different settings for some templates
-   - Provider View: showComingAppointments differs (false vs true)
-   - Provider View: organizeBy differs (clockedStatus vs busyStatus)
-   - **Action Required:** Verify correct values and align both files
+2. ~~**Template Settings Discrepancy**~~ **RESOLVED (2025-12-01)**
+   - ✅ OperationTemplateSetup.tsx and OperationTemplatesSection.tsx now have aligned settings
+   - ✅ Provider View template correctly uses: `showComingAppointments: true`, `organizeBy: 'busyStatus'`
+   - **Resolution:** Updated OperationTemplatesSection.tsx to match OperationTemplateSetup.tsx
 
 3. **Mobile Template Navigation**
    - Swipe gestures may conflict with section scrolling on mobile
