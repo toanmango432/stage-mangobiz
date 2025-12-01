@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle, 
-  FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap, Settings,
+import {
+  Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle,
+  FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
   LayoutGrid, Receipt, CreditCard, MoreHorizontal
 } from 'lucide-react';
 
 interface TopHeaderBarProps {
-  onFrontDeskSettingsClick?: () => void;
   activeModule?: string;
   onModuleChange?: (module: string) => void;
   pendingCount?: number;
@@ -14,7 +13,6 @@ interface TopHeaderBarProps {
 }
 
 export function TopHeaderBar({
-  onFrontDeskSettingsClick,
   activeModule = 'frontdesk',
   onModuleChange,
   pendingCount = 0,
@@ -30,6 +28,15 @@ export function TopHeaderBar({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Live clock update
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Note: Auto-hide disabled because app uses overflow-hidden layout
   // where individual sections handle scrolling, not the window
@@ -153,11 +160,11 @@ export function TopHeaderBar({
     }, 200);
   };
 
-  // Get current time
-  const currentTime = new Date().toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
+  // Format time for display
+  const formattedTime = currentTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   });
 
   return (
@@ -171,24 +178,104 @@ export function TopHeaderBar({
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
-      {/* Left Section - Brand & Organization */}
-      <div className={`flex items-center gap-4 ${hideNavigation ? 'flex-1' : 'min-w-[240px]'}`}>
-        {/* Logo - with subtle glow, compact on mobile */}
-        <div className="flex items-center gap-1 md:gap-2">
-          <div className="w-7 h-7 md:w-9 md:h-9 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/25 ring-1 md:ring-2 ring-white/50">
-            <span className="text-white font-bold text-[10px] md:text-sm">M</span>
-          </div>
-          <span className="font-bold text-gray-900 text-sm md:text-lg tracking-tight">Mango</span>
+      {/* Left Section - Logo, Clock & Organization (subtle, secondary to nav) */}
+      <div className={`flex items-center gap-2 md:gap-2.5 ${hideNavigation ? 'flex-1' : 'min-w-[160px]'}`}>
+        {/* Mango Logo - Exact match to brand logo */}
+        <div className="flex-shrink-0 opacity-90">
+          <svg
+            viewBox="0 0 60 70"
+            className="w-7 h-8 md:w-8 md:h-9"
+          >
+            {/* Gradient definitions */}
+            <defs>
+              <linearGradient id="mangoBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FFC94D" />
+                <stop offset="40%" stopColor="#FFB833" />
+                <stop offset="100%" stopColor="#F5A623" />
+              </linearGradient>
+              <linearGradient id="leafGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#7CB342" />
+                <stop offset="100%" stopColor="#AED581" />
+              </linearGradient>
+            </defs>
+
+            {/* Leaf - bright green, angled */}
+            <path
+              d="M30 8 Q22 2 14 6 Q18 14 28 12 Z"
+              fill="url(#leafGrad)"
+            />
+            {/* Leaf vein/outline */}
+            <path
+              d="M28 10 Q22 7 16 8"
+              stroke="#558B2F"
+              strokeWidth="1.5"
+              fill="none"
+            />
+
+            {/* Stem - dark curved line */}
+            <path
+              d="M30 8 Q32 14 30 18"
+              stroke="#2D2D2D"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+
+            {/* Mango body - rounded organic shape */}
+            <ellipse
+              cx="30"
+              cy="42"
+              rx="22"
+              ry="26"
+              fill="url(#mangoBodyGrad)"
+            />
+
+            {/* Dark outline on mango - partial stroke like logo */}
+            <path
+              d="M30 16 Q10 22 10 42 Q10 60 24 66"
+              stroke="#2D2D2D"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+            />
+
+            {/* Bottom smile curve */}
+            <path
+              d="M20 56 Q30 62 42 52"
+              stroke="#2D2D2D"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+            />
+
+            {/* Highlight spots - pink/white like logo */}
+            <ellipse cx="38" cy="34" rx="5" ry="4" fill="#FFEEDD" opacity="0.7" />
+            <ellipse cx="42" cy="40" rx="3" ry="2.5" fill="#FFEEDD" opacity="0.5" />
+          </svg>
         </div>
 
-        {/* Organization Selector */}
-        <div className="relative hidden md:block">
+        {/* Clock - Elegant split typography */}
+        <div className="flex items-baseline gap-0.5">
+          <span className="text-sm font-semibold text-gray-600 tabular-nums tracking-tight">
+            {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false }).split(':')[0]}
+          </span>
+          <span className="text-sm font-semibold text-gray-400 animate-pulse">:</span>
+          <span className="text-sm font-medium text-gray-500 tabular-nums tracking-tight">
+            {currentTime.toLocaleTimeString('en-US', { minute: '2-digit' }).padStart(2, '0').slice(-2)}
+          </span>
+          <span className="text-[10px] font-medium text-gray-400 ml-0.5 uppercase">
+            {currentTime.getHours() >= 12 ? 'pm' : 'am'}
+          </span>
+        </div>
+
+        {/* Organization Selector - subtle */}
+        <div className="relative hidden lg:block">
           <button
             onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/40 transition-colors"
           >
-            <span className="text-xs font-medium text-gray-700">{selectedOrg}</span>
-            <ChevronDown className="w-3 h-3 text-gray-500" />
+            <span className="text-xs text-gray-500">{selectedOrg}</span>
+            <ChevronDown className="w-3 h-3 text-gray-400" />
           </button>
 
           {showOrgDropdown && (
@@ -275,7 +362,7 @@ export function TopHeaderBar({
         <div className={`relative transition-all duration-300 ease-out ${
           isSearchExpanded ? 'w-64' : hideNavigation ? 'w-28 sm:w-40' : 'w-48'
         }`}>
-          <Search className="absolute left-3 md:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 md:left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-600" strokeWidth={2.5} />
           <input
             ref={searchInputRef}
             type="text"
@@ -284,7 +371,7 @@ export function TopHeaderBar({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
+            className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm border border-gray-300/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
           />
           {!isSearchExpanded && !hideNavigation && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium">
@@ -350,22 +437,11 @@ export function TopHeaderBar({
           )}
         </div>
 
-        {/* Front Desk Settings - glass style */}
-        {onFrontDeskSettingsClick && (
-          <button
-            onClick={onFrontDeskSettingsClick}
-            className="p-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg transition-all"
-            title="Front Desk Settings"
-          >
-            <Settings className="w-4 h-4 text-gray-600" />
-          </button>
-        )}
-
         {/* Notifications - glass style with badge */}
         <button className="relative p-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg transition-all">
           <Bell className="w-4 h-4 text-gray-600" />
           {notificationCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notificationCount}</span>
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{notificationCount}</span>
           )}
         </button>
 

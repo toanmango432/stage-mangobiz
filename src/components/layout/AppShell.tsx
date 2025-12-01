@@ -181,6 +181,10 @@ export function AppShell() {
         return <TicketColorPreview />;
       case 'team-settings':
         return <TeamSettings onBack={() => setActiveModule('more')} />;
+      case 'frontdesk-settings':
+        return <FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
+          if (!show) setActiveModule('more');
+        }} />;
       default:
         return <FrontDesk />;
     }
@@ -211,7 +215,6 @@ export function AppShell() {
 
       {/* Top Header - Always visible, but navigation hidden on mobile/tablet */}
       <TopHeaderBar
-        onFrontDeskSettingsClick={activeModule === 'frontdesk' ? () => setShowFrontDeskSettings(true) : undefined}
         activeModule={activeModule}
         onModuleChange={setActiveModule}
         pendingCount={pendingCount}
