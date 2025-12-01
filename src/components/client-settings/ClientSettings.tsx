@@ -14,6 +14,7 @@ import { HistorySection } from './sections/HistorySection';
 import { NotesSection } from './sections/NotesSection';
 import { LoyaltySection } from './sections/LoyaltySection';
 import { WalletSection } from './sections/WalletSection';
+import { ClientExportModal, ClientImportModal } from './components/ClientDataExportImport';
 import type { AppDispatch, RootState } from '../../store';
 import {
   fetchClients,
@@ -162,6 +163,8 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState<Partial<EnhancedClient>>({});
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Convert clients to EnhancedClient format for UI
   const enhancedClients = useMemo(() => clients.map(clientToEnhanced), [clients]);
@@ -272,6 +275,37 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     }
   }, [dispatch, selectedClientFromStore, pendingUpdates]);
 
+  const handleImportClients = useCallback(async (importedClients: Partial<Client>[]) => {
+    for (const clientData of importedClients) {
+      try {
+        const newClient: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'> = {
+          salonId,
+          firstName: clientData.firstName || '',
+          lastName: clientData.lastName || '',
+          phone: clientData.phone || '',
+          email: clientData.email,
+          birthday: clientData.birthday,
+          gender: clientData.gender,
+          isBlocked: false,
+          isVip: false,
+        };
+        await dispatch(createClient(newClient)).unwrap();
+      } catch (error) {
+        console.error('Failed to import client:', error);
+      }
+    }
+    // Refresh client list
+    dispatch(fetchClients({
+      salonId,
+      filters: {
+        searchQuery: filters.searchQuery,
+        status: filterStatus,
+        loyaltyTier: filterTier,
+      },
+    }));
+    dispatch(fetchClientStats(salonId));
+  }, [dispatch, salonId, filters.searchQuery, filterStatus, filterTier]);
+
   const getTierBadgeStyle = (tier: LoyaltyTier) => {
     const colors = clientSettingsTokens.tierColors[tier];
     return {
@@ -302,6 +336,20 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowImportModal(true)}
+          >
+            <ImportIcon className="w-4 h-4" />
+            Import
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowExportModal(true)}
+          >
+            <ExportIcon className="w-4 h-4" />
+            Export
+          </Button>
           {hasUnsavedChanges && (
             <Badge variant="warning">Unsaved Changes</Badge>
           )}
@@ -514,6 +562,22 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
           onSave={handleSaveNewClient}
         />
       )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <ClientExportModal
+          clients={clients}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ClientImportModal
+          onImport={handleImportClients}
+          onClose={() => setShowImportModal(false)}
+        />
+      )}
     </div>
   );
 };
@@ -570,6 +634,18 @@ const WalletIcon: React.FC<{ className?: string }> = ({ className }) => (
 const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
+
+const ExportIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+  </svg>
+);
+
+const ImportIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
   </svg>
 );
 

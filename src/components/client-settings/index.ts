@@ -75,6 +75,11 @@ export {
   getClientSegment,
   getClientSegments,
 } from './components/ClientSegmentBadge';
+export {
+  ClientExportModal,
+  ClientImportModal,
+  exportClients,
+} from './components/ClientDataExportImport';
 
 // Sections
 export { ProfileSection } from './sections/ProfileSection';
