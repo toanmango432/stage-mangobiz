@@ -1,55 +1,112 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 import { FrontDeskSettingsData } from '../../components/frontdesk-settings/types';
 import { defaultFrontDeskSettings } from '../../components/frontdesk-settings/constants';
+import { getTemplateSettings } from '../../components/frontdesk-settings/templateConfigs';
+import {
+  loadSettings as loadSettingsFromDB,
+  saveSettings as saveSettingsToDb,
+  subscribeToSettingsChanges,
+} from '../../services/frontDeskSettingsStorage';
 
-// Load settings from localStorage on initialization
-const loadSettingsFromStorage = (): FrontDeskSettingsData => {
-  try {
-    const stored = localStorage.getItem('frontDeskSettings');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Merge with defaults to ensure all fields exist
-      return { ...defaultFrontDeskSettings, ...parsed };
-    }
-  } catch (error) {
-    console.error('Failed to load FrontDesk settings from localStorage:', error);
+// BUG-004 FIX: Extract dependency logic into reusable helper function
+// This ensures dependencies are enforced consistently across all reducers
+const applyDependencies = (settings: FrontDeskSettingsData): FrontDeskSettingsData => {
+  const result = { ...settings };
+
+  // Rule 1: In Service stage requires Wait List stage to be active
+  if (result.inServiceActive && !result.waitListActive) {
+    result.waitListActive = true;
   }
-  return defaultFrontDeskSettings;
+
+  // Rule 2: Disabling Wait List must also disable In Service
+  if (!result.waitListActive && result.inServiceActive) {
+    result.inServiceActive = false;
+  }
+
+  // Rule 3: showWaitList depends on waitListActive
+  if (!result.waitListActive && result.showWaitList) {
+    result.showWaitList = false;
+  }
+
+  // Rule 4: showInService depends on inServiceActive
+  if (!result.inServiceActive && result.showInService) {
+    result.showInService = false;
+  }
+
+  return result;
 };
 
 interface FrontDeskSettingsState {
   settings: FrontDeskSettingsData;
   hasUnsavedChanges: boolean;
   lastSaved: number | null;
+  isLoading: boolean;
+  isInitialized: boolean;
+  error: string | null;
 }
 
 const initialState: FrontDeskSettingsState = {
-  settings: loadSettingsFromStorage(),
+  settings: defaultFrontDeskSettings,
   hasUnsavedChanges: false,
-  lastSaved: Date.now(),
+  lastSaved: null,
+  isLoading: false,
+  isInitialized: false,
+  error: null,
 };
+
+// Async thunk to load settings from IndexedDB
+export const loadFrontDeskSettings = createAsyncThunk(
+  'frontDeskSettings/load',
+  async (_, { rejectWithValue }) => {
+    try {
+      const settings = await loadSettingsFromDB();
+      return settings;
+    } catch (error) {
+      console.error('Failed to load front desk settings:', error);
+      return rejectWithValue('Failed to load settings');
+    }
+  }
+);
+
+// Async thunk to save settings to IndexedDB
+export const saveFrontDeskSettings = createAsyncThunk(
+  'frontDeskSettings/save',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as RootState;
+      const settings = state.frontDeskSettings.settings;
+      const success = await saveSettingsToDb(settings);
+
+      if (!success) {
+        return rejectWithValue('Failed to save settings');
+      }
+
+      return Date.now();
+    } catch (error) {
+      console.error('Failed to save front desk settings:', error);
+      return rejectWithValue('Failed to save settings');
+    }
+  }
+);
 
 const frontDeskSettingsSlice = createSlice({
   name: 'frontDeskSettings',
   initialState,
   reducers: {
     // Update a single setting
-    updateSetting: <K extends keyof FrontDeskSettingsData>(
+    updateSetting: (
       state: FrontDeskSettingsState,
-      action: PayloadAction<{ key: K; value: FrontDeskSettingsData[K] }>
+      action: PayloadAction<{ key: keyof FrontDeskSettingsData; value: FrontDeskSettingsData[keyof FrontDeskSettingsData] }>
     ) => {
       const { key, value } = action.payload;
-      state.settings[key] = value as any;
+      state.settings = {
+        ...state.settings,
+        [key]: value
+      };
       state.hasUnsavedChanges = true;
-
-      // Apply dependencies
-      if (key === 'inServiceActive' && value === true && !state.settings.waitListActive) {
-        state.settings.waitListActive = true;
-      }
-      if (key === 'waitListActive' && value === false && state.settings.inServiceActive) {
-        state.settings.inServiceActive = false;
-      }
+      state.settings = applyDependencies(state.settings);
     },
 
     // Update multiple settings at once
@@ -62,94 +119,24 @@ const frontDeskSettingsSlice = createSlice({
         ...action.payload,
       };
       state.hasUnsavedChanges = true;
-
-      // Apply dependencies after batch update
-      if (state.settings.inServiceActive && !state.settings.waitListActive) {
-        state.settings.waitListActive = true;
-      }
+      state.settings = applyDependencies(state.settings);
     },
 
     // Apply a template preset
+    // ISSUE-001: Uses centralized template config from templateConfigs.ts
     applyTemplate: (
       state: FrontDeskSettingsState,
       action: PayloadAction<FrontDeskSettingsData['operationTemplate']>
     ) => {
       const template = action.payload;
-      let templateSettings: Partial<FrontDeskSettingsData> = {
-        operationTemplate: template,
-      };
-
-      // Apply preset values based on template
-      switch (template) {
-        case 'frontDeskBalanced':
-          templateSettings = {
-            ...templateSettings,
-            viewWidth: 'wide',
-            customWidthPercentage: 40,
-            displayMode: 'column',
-            combineSections: false,
-            showComingAppointments: true,
-            organizeBy: 'busyStatus',
-          };
-          break;
-        case 'frontDeskTicketCenter':
-          templateSettings = {
-            ...templateSettings,
-            viewWidth: 'compact',
-            customWidthPercentage: 10,
-            displayMode: 'tab',
-            combineSections: true,
-            showComingAppointments: true,
-            organizeBy: 'busyStatus',
-          };
-          break;
-        case 'teamWithOperationFlow':
-          templateSettings = {
-            ...templateSettings,
-            viewWidth: 'wide',
-            customWidthPercentage: 80,
-            displayMode: 'column',
-            combineSections: false,
-            showComingAppointments: false,
-            organizeBy: 'clockedStatus',
-          };
-          break;
-        case 'teamInOut':
-          templateSettings = {
-            ...templateSettings,
-            viewWidth: 'fullScreen',
-            customWidthPercentage: 100,
-            displayMode: 'column',
-            combineSections: false,
-            showComingAppointments: false,
-            organizeBy: 'clockedStatus',
-          };
-          break;
-      }
+      const templateSettings = getTemplateSettings(template);
 
       state.settings = {
         ...state.settings,
         ...templateSettings,
       };
       state.hasUnsavedChanges = true;
-    },
-
-    // Save settings (persist to localStorage)
-    saveSettings: (state: FrontDeskSettingsState) => {
-      try {
-        localStorage.setItem('frontDeskSettings', JSON.stringify(state.settings));
-        state.hasUnsavedChanges = false;
-        state.lastSaved = Date.now();
-
-        // Dispatch custom event for other components
-        window.dispatchEvent(
-          new CustomEvent('frontDeskSettingsUpdated', {
-            detail: state.settings,
-          })
-        );
-      } catch (error) {
-        console.error('Failed to save FrontDesk settings to localStorage:', error);
-      }
+      state.settings = applyDependencies(state.settings);
     },
 
     // Reset to default settings
@@ -158,13 +145,13 @@ const frontDeskSettingsSlice = createSlice({
       state.hasUnsavedChanges = true;
     },
 
-    // Discard unsaved changes
+    // Discard unsaved changes (will need to reload from DB)
     discardChanges: (state: FrontDeskSettingsState) => {
-      state.settings = loadSettingsFromStorage();
+      // This will be handled by re-dispatching loadFrontDeskSettings
       state.hasUnsavedChanges = false;
     },
 
-    // Replace all settings (used when loading from external source)
+    // Replace all settings (used for cross-tab sync)
     setSettings: (
       state: FrontDeskSettingsState,
       action: PayloadAction<FrontDeskSettingsData>
@@ -173,6 +160,47 @@ const frontDeskSettingsSlice = createSlice({
       state.hasUnsavedChanges = false;
       state.lastSaved = Date.now();
     },
+
+    // Clear error state
+    clearError: (state: FrontDeskSettingsState) => {
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    // Load settings
+    builder
+      .addCase(loadFrontDeskSettings.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loadFrontDeskSettings.fulfilled, (state, action) => {
+        state.settings = action.payload;
+        state.isLoading = false;
+        state.isInitialized = true;
+        state.hasUnsavedChanges = false;
+        state.error = null;
+      })
+      .addCase(loadFrontDeskSettings.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isInitialized = true;
+        state.error = action.payload as string;
+        // Keep default settings on error
+      });
+
+    // Save settings
+    builder
+      .addCase(saveFrontDeskSettings.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(saveFrontDeskSettings.fulfilled, (state, action) => {
+        state.hasUnsavedChanges = false;
+        state.lastSaved = action.payload;
+        state.error = null;
+      })
+      .addCase(saveFrontDeskSettings.rejected, (state, action) => {
+        state.error = action.payload as string;
+        // Keep hasUnsavedChanges true so user can retry
+      });
   },
 });
 
@@ -180,18 +208,29 @@ export const {
   updateSetting,
   updateSettings,
   applyTemplate,
-  saveSettings,
   resetSettings,
   discardChanges,
   setSettings,
+  clearError,
 } = frontDeskSettingsSlice.actions;
+
+// Legacy export for backwards compatibility
+// Components using saveSettings() will need to update to saveFrontDeskSettings()
+export const saveSettings = saveFrontDeskSettings;
 
 // Selectors
 export const selectFrontDeskSettings = (state: RootState) =>
   state.frontDeskSettings.settings;
 export const selectHasUnsavedChanges = (state: RootState) =>
   state.frontDeskSettings.hasUnsavedChanges;
-export const selectLastSaved = (state: RootState) => state.frontDeskSettings.lastSaved;
+export const selectLastSaved = (state: RootState) =>
+  state.frontDeskSettings.lastSaved;
+export const selectIsSettingsLoading = (state: RootState) =>
+  state.frontDeskSettings.isLoading;
+export const selectIsSettingsInitialized = (state: RootState) =>
+  state.frontDeskSettings.isInitialized;
+export const selectSettingsError = (state: RootState) =>
+  state.frontDeskSettings.error;
 
 // Specific setting selectors for performance
 export const selectOperationTemplate = (state: RootState) =>
@@ -208,5 +247,26 @@ export const selectWaitListActive = (state: RootState) =>
   state.frontDeskSettings.settings.waitListActive;
 export const selectInServiceActive = (state: RootState) =>
   state.frontDeskSettings.settings.inServiceActive;
+export const selectSortBy = (state: RootState) =>
+  state.frontDeskSettings.settings.sortBy;
+export const selectViewStyle = (state: RootState) =>
+  state.frontDeskSettings.settings.viewStyle;
+export const selectCombineSections = (state: RootState) =>
+  state.frontDeskSettings.settings.combineSections;
+
+// ISSUE-002: Memoized derived selectors to eliminate duplicate local state
+// These replace useState calls in FrontDesk.tsx that mirror Redux state
+export const selectIsCombinedView = createSelector(
+  [selectDisplayMode, selectCombineSections],
+  (displayMode, combineSections) => displayMode === 'tab' || combineSections
+);
+
+export const selectCardViewMode = createSelector(
+  [selectViewStyle],
+  (viewStyle): 'normal' | 'compact' => viewStyle === 'compact' ? 'compact' : 'normal'
+);
+
+// Export the subscription function for cross-tab sync setup
+export { subscribeToSettingsChanges };
 
 export default frontDeskSettingsSlice.reducer;

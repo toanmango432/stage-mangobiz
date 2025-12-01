@@ -1,31 +1,37 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Edit3,
   Trash2,
   MoreVertical,
   Clock,
-  DollarSign,
   Copy,
   EyeOff,
   Eye,
   ChevronRight,
   Zap,
-  Tag,
   Globe,
   Link,
 } from 'lucide-react';
-import type { ServiceAddOn, MenuService, ServiceCategory, ViewMode } from '../types';
+import type {
+  ServiceAddOn,
+  MenuServiceWithEmbeddedVariants,
+  CategoryWithCount,
+  CatalogViewMode,
+} from '../../../types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { AddOnModal } from '../modals/AddOnModal';
 
 interface AddOnsSectionProps {
   addOns: ServiceAddOn[];
-  categories: ServiceCategory[];
-  services: MenuService[];
-  viewMode: ViewMode;
-  onUpdate: (addOns: ServiceAddOn[]) => void;
+  categories: CategoryWithCount[];
+  services: MenuServiceWithEmbeddedVariants[];
+  viewMode: CatalogViewMode;
   searchQuery?: string;
+  // Action callbacks
+  onCreate?: (data: Partial<ServiceAddOn>) => Promise<ServiceAddOn | null>;
+  onUpdate?: (id: string, data: Partial<ServiceAddOn>) => Promise<ServiceAddOn | null>;
+  onDelete?: (id: string) => Promise<boolean | null>;
 }
 
 export function AddOnsSection({
@@ -33,8 +39,10 @@ export function AddOnsSection({
   categories,
   services,
   viewMode,
-  onUpdate,
   searchQuery = '',
+  onCreate,
+  onUpdate,
+  onDelete,
 }: AddOnsSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingAddOn, setEditingAddOn] = useState<ServiceAddOn | undefined>();
@@ -60,64 +68,66 @@ export function AddOnsSection({
   };
 
   // Handle save add-on
-  const handleSaveAddOn = (addOnData: Partial<ServiceAddOn>) => {
+  const handleSaveAddOn = async (addOnData: Partial<ServiceAddOn>) => {
     if (editingAddOn) {
-      const updated = addOns.map(addon =>
-        addon.id === editingAddOn.id
-          ? { ...addon, ...addOnData, updatedAt: new Date() }
-          : addon
-      );
-      onUpdate(updated);
+      // Update existing
+      if (onUpdate) {
+        await onUpdate(editingAddOn.id, addOnData);
+      }
     } else {
-      const newAddOn: ServiceAddOn = {
-        id: `addon-${Date.now()}`,
-        name: addOnData.name || 'New Add-on',
-        description: addOnData.description,
-        price: addOnData.price || 0,
-        duration: addOnData.duration || 15,
-        applicableToAll: addOnData.applicableToAll || false,
-        applicableCategoryIds: addOnData.applicableCategoryIds || [],
-        applicableServiceIds: addOnData.applicableServiceIds || [],
-        isActive: true,
-        displayOrder: addOns.length + 1,
-        onlineBookingEnabled: addOnData.onlineBookingEnabled ?? true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      onUpdate([...addOns, newAddOn]);
+      // Create new
+      if (onCreate) {
+        await onCreate({
+          name: addOnData.name || 'New Add-on',
+          description: addOnData.description,
+          price: addOnData.price || 0,
+          duration: addOnData.duration || 15,
+          applicableToAll: addOnData.applicableToAll || false,
+          applicableCategoryIds: addOnData.applicableCategoryIds || [],
+          applicableServiceIds: addOnData.applicableServiceIds || [],
+          isActive: true,
+          displayOrder: addOns.length + 1,
+          onlineBookingEnabled: addOnData.onlineBookingEnabled ?? true,
+        });
+      }
     }
     setShowModal(false);
     setEditingAddOn(undefined);
   };
 
   // Handle delete
-  const handleDelete = (addOnId: string) => {
+  const handleDelete = async (addOnId: string) => {
     if (confirm('Are you sure you want to delete this add-on?')) {
-      onUpdate(addOns.filter(addon => addon.id !== addOnId));
+      if (onDelete) {
+        await onDelete(addOnId);
+      }
     }
   };
 
   // Handle toggle active
-  const handleToggleActive = (addOnId: string) => {
-    const updated = addOns.map(addon =>
-      addon.id === addOnId
-        ? { ...addon, isActive: !addon.isActive, updatedAt: new Date() }
-        : addon
-    );
-    onUpdate(updated);
+  const handleToggleActive = async (addOnId: string) => {
+    const addon = addOns.find(a => a.id === addOnId);
+    if (addon && onUpdate) {
+      await onUpdate(addOnId, { isActive: !addon.isActive });
+    }
   };
 
   // Handle duplicate
-  const handleDuplicate = (addon: ServiceAddOn) => {
-    const newAddOn: ServiceAddOn = {
-      ...addon,
-      id: `addon-${Date.now()}`,
-      name: `${addon.name} (Copy)`,
-      displayOrder: addOns.length + 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    onUpdate([...addOns, newAddOn]);
+  const handleDuplicate = async (addon: ServiceAddOn) => {
+    if (onCreate) {
+      await onCreate({
+        name: `${addon.name} (Copy)`,
+        description: addon.description,
+        price: addon.price,
+        duration: addon.duration,
+        applicableToAll: addon.applicableToAll,
+        applicableCategoryIds: addon.applicableCategoryIds,
+        applicableServiceIds: addon.applicableServiceIds,
+        isActive: true,
+        displayOrder: addOns.length + 1,
+        onlineBookingEnabled: addon.onlineBookingEnabled,
+      });
+    }
   };
 
   // Render Grid View

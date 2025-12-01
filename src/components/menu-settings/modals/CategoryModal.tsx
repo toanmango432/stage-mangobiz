@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -14,10 +14,9 @@ import {
   Moon,
   Droplet,
   Flame,
-  Check,
 } from 'lucide-react';
-import type { ServiceCategory, CategoryModalProps } from '../types';
-import { CATEGORY_COLORS, CATEGORY_ICONS } from '../constants';
+import type { CategoryModalProps } from '../../../types/catalog';
+import { CATEGORY_COLORS } from '../constants';
 
 // Icon mapping
 const iconMap: Record<string, React.ElementType> = {

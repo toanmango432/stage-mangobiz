@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from '../store/hooks';
 import { useDeviceDetection } from '../hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
@@ -29,6 +30,10 @@ import {
 import { PendingSectionFooter } from './frontdesk/PendingSectionFooter';
 import {
   selectFrontDeskSettings,
+  selectSortBy,
+  selectShowComingAppointments,
+  selectIsCombinedView,
+  selectCardViewMode,
   updateSettings,
   saveSettings
 } from '../store/slices/frontDeskSettingsSlice';
@@ -39,9 +44,16 @@ interface FrontDeskComponentProps {
 }
 
 function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setShowFrontDeskSettings: externalSetShowSettings }: FrontDeskComponentProps = {}) {
-  // Redux
-  const dispatch = useDispatch();
+  // Redux - use useAppDispatch for async thunk support
+  const dispatch = useAppDispatch();
   const frontDeskSettings = useSelector(selectFrontDeskSettings);
+
+  // ISSUE-002: Use memoized selectors instead of duplicate local state
+  // These replace useState + useLayoutEffect sync pattern
+  const ticketSortOrder = useSelector(selectSortBy);
+  const showUpcomingAppointments = useSelector(selectShowComingAppointments);
+  const isCombinedView = useSelector(selectIsCombinedView);
+  const combinedCardViewMode = useSelector(selectCardViewMode);
   const [showSidebar, setShowSidebar] = useState(false);
   const [minimizedSections, setMinimizedSections] = useState(() => {
     // Force Coming section to be minimized by default - clear any old localStorage
@@ -64,14 +76,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
 
-  // New state for combined view
-  const [isCombinedView, setIsCombinedView] = useState(() => {
-    // Force Three-Column View to show Coming + Waiting stacked layout
-    localStorage.removeItem('salonCenterViewMode');
-    localStorage.setItem('viewLayout', 'columns');
-    // Always return false to force three-column view
-    return false;
-  });
+  // ISSUE-002: isCombinedView now comes from Redux selector (selectIsCombinedView)
   // New state for mobile/tablet section tabs
   const [activeMobileSection, setActiveMobileSection] = useState(() => {
     const saved = localStorage.getItem('activeMobileSection');
@@ -87,10 +92,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     const saved = localStorage.getItem('combinedViewMode');
     return saved === 'grid' || saved === 'list' ? saved as 'grid' | 'list' : 'list';
   });
-  const [combinedCardViewMode, setCombinedCardViewMode] = useState<'normal' | 'compact'>(() => {
-    const saved = localStorage.getItem('combinedCardMode');
-    return saved === 'normal' || saved === 'compact' ? saved as 'normal' | 'compact' : 'normal';
-  });
+  // ISSUE-002: combinedCardViewMode now comes from Redux selector (selectCardViewMode)
   const [combinedMinimizedLineView, setCombinedMinimizedLineView] = useState<boolean>(() => {
     const saved = localStorage.getItem('combinedMinimizedLineView');
     return saved === 'true' ? true : false;
@@ -120,27 +122,41 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   // New state for ticket config settings
   const [showTicketSettings, setShowTicketSettings] = useState(false);
 
-  // Initialize local UI states from Redux settings (will sync via useEffect)
-  const [ticketSortOrder, setTicketSortOrder] = useState<'queue' | 'time'>(
-    frontDeskSettings.sortBy || 'queue'
-  );
-  const [showUpcomingAppointments, setShowUpcomingAppointments] = useState(
-    frontDeskSettings.showComingAppointments
-  );
+  // ISSUE-002: Removed duplicate useState for ticketSortOrder, showUpcomingAppointments,
+  // isCombinedView, and combinedCardViewMode. These now come from Redux selectors.
+  // Helper callbacks to update Redux settings when user changes view modes:
+  const setIsCombinedView = useCallback((value: boolean) => {
+    dispatch(updateSettings({
+      displayMode: value ? 'tab' : 'column',
+      combineSections: value
+    }));
+  }, [dispatch]);
+
+  const setCombinedCardViewMode = useCallback((mode: 'normal' | 'compact') => {
+    dispatch(updateSettings({
+      viewStyle: mode === 'compact' ? 'compact' : 'expanded'
+    }));
+  }, [dispatch]);
+
+  const setTicketSortOrder = useCallback((order: 'queue' | 'time') => {
+    dispatch(updateSettings({ sortBy: order }));
+  }, [dispatch]);
+
+  // FEAT-014: Keyboard shortcut to open settings (Cmd+, or Ctrl+,)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd+, (Mac) or Ctrl+, (Windows)
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        setShowFrontDeskSettings(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setShowFrontDeskSettings]);
 
   const ticketSettingsRef = useRef<HTMLDivElement>(null);
-
-  // Sync local states with Redux when settings change
-  useEffect(() => {
-    setTicketSortOrder(frontDeskSettings.sortBy);
-    setShowUpcomingAppointments(frontDeskSettings.showComingAppointments);
-    setIsCombinedView(
-      frontDeskSettings.displayMode === 'tab' || frontDeskSettings.combineSections
-    );
-    setCombinedCardViewMode(
-      frontDeskSettings.viewStyle === 'compact' ? 'compact' : 'normal'
-    );
-  }, [frontDeskSettings]);
 
   // Calculate metrics for mobile tabs - must be after showUpcomingAppointments is defined
   const mobileTabsData = useMemo((): MobileTab[] => {

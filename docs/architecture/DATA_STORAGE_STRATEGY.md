@@ -2370,6 +2370,26 @@ function logSync(message: string, data?: object): void {
 
 ---
 
+## ⚠️ Planned Change: Opt-In Offline Mode
+
+> **Status:** Planned | **PRD:** [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md)
+
+A future update will change the default behavior:
+
+| Current | Planned |
+|---------|---------|
+| All devices → Offline-first (data stored locally) | All devices → Online-only by default |
+| Data persists on every device | Only designated devices store data locally |
+
+**Impact on this document:**
+- Section 1.2 (Local + Cloud) will become conditional based on device mode
+- New "Online-Only Mode" section will be added
+- Device registration will determine storage behavior
+
+See the PRD for full technical specifications.
+
+---
+
 ## Revision History
 
 | Version | Date | Author | Changes |

@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { X, Settings, Users, Layers, FileText, Workflow, ArrowRight, LayoutGrid } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { X, Settings, Users, Layers, FileText, Workflow, ArrowRight, LayoutGrid, Download, Upload, RotateCcw } from 'lucide-react';
+import { useAppDispatch } from '../../store/hooks';
 import FocusTrap from 'focus-trap-react';
 import { OperationTemplateSetup } from '../OperationTemplateSetup';
 import {
@@ -20,9 +21,29 @@ import {
   selectFrontDeskSettings,
   selectHasUnsavedChanges,
   updateSetting as updateSettingAction,
+  updateSettings,
   saveSettings,
-  discardChanges
+  discardChanges,
+  resetSettings
 } from '../../store/slices/frontDeskSettingsSlice';
+// BUG-011 FIX: Import error boundary for graceful error handling
+import { SectionErrorBoundary } from '../frontdesk/SectionErrorBoundary';
+// BUG-016 FIX: Import toast for save feedback (using react-hot-toast which is already in App.tsx)
+import toast from 'react-hot-toast';
+
+// FEAT-003: Settings export schema version
+const SETTINGS_EXPORT_VERSION = 1;
+
+// FEAT-003: Validate imported settings structure
+const validateImportedSettings = (data: unknown): data is { version: number; settings: FrontDeskSettingsData } => {
+  if (!data || typeof data !== 'object') return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.version !== 'number') return false;
+  if (!obj.settings || typeof obj.settings !== 'object') return false;
+  // Validate required keys exist
+  const requiredKeys = ['operationTemplate', 'displayMode', 'viewWidth', 'sortBy'];
+  return requiredKeys.every(key => key in (obj.settings as object));
+};
 
 export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   isOpen,
@@ -30,8 +51,8 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   currentSettings,
   onSettingsChange
 }) => {
-  // Redux state
-  const dispatch = useDispatch();
+  // Redux state - use useAppDispatch for async thunk support
+  const dispatch = useAppDispatch();
   const settings = useSelector(selectFrontDeskSettings);
   const hasChanges = useSelector(selectHasUnsavedChanges);
 
@@ -41,6 +62,14 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
 
   // State for operation template setup
   const [showTemplateSetup, setShowTemplateSetup] = useState(false);
+
+  // FEAT-003: State for import confirmation dialog
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingImportData, setPendingImportData] = useState<FrontDeskSettingsData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // FEAT-013: State for reset confirmation dialog
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Mobile view state
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
@@ -76,6 +105,8 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
     dispatch(saveSettings());
     // Also call the onSettingsChange callback for backward compatibility
     onSettingsChange(settings);
+    // BUG-016 FIX: Show toast feedback on successful save
+    toast.success('Settings saved successfully');
     onClose();
   };
 
@@ -91,6 +122,87 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   const handleOperationTemplatesClick = () => {
     setShowTemplateSetup(true);
   };
+
+  // FEAT-003: Export settings to JSON file
+  const handleExport = useCallback(() => {
+    const exportData = {
+      version: SETTINGS_EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      settings: settings,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `frontdesk-settings-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Settings exported successfully');
+  }, [settings]);
+
+  // FEAT-003: Handle file selection for import
+  const handleImportFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (!validateImportedSettings(data)) {
+          toast.error('Invalid settings file format');
+          return;
+        }
+        // Show confirmation dialog before applying
+        setPendingImportData(data.settings);
+        setShowImportConfirm(true);
+      } catch {
+        toast.error('Failed to parse settings file');
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset file input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  // FEAT-003: Confirm and apply imported settings
+  const handleImportConfirm = useCallback(() => {
+    if (pendingImportData) {
+      dispatch(updateSettings(pendingImportData));
+      toast.success('Settings imported successfully');
+    }
+    setPendingImportData(null);
+    setShowImportConfirm(false);
+  }, [dispatch, pendingImportData]);
+
+  // FEAT-003: Cancel import
+  const handleImportCancel = useCallback(() => {
+    setPendingImportData(null);
+    setShowImportConfirm(false);
+  }, []);
+
+  // FEAT-013: Handle reset to defaults with confirmation
+  const handleResetClick = useCallback(() => {
+    setShowResetConfirm(true);
+  }, []);
+
+  // FEAT-013: Confirm reset
+  const handleResetConfirm = useCallback(() => {
+    dispatch(resetSettings());
+    setShowResetConfirm(false);
+    toast.success('Settings reset to defaults');
+  }, [dispatch]);
+
+  // FEAT-013: Cancel reset
+  const handleResetCancel = useCallback(() => {
+    setShowResetConfirm(false);
+  }, []);
 
   // Handle keyboard events
   useEffect(() => {
@@ -205,6 +317,7 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
           {/* Mobile/Compact View - Accordion Style */}
           {isCompact ? (
             <div className="flex-1 overflow-y-auto p-4 apple-scroll bg-gray-50">
+              {/* BUG-011 FIX: Wrap each section in error boundary for graceful error handling */}
               {/* 1. Operation Templates */}
               <AccordionSection
                 title="Operation Templates"
@@ -212,12 +325,14 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
                 isOpen={openAccordions.operationTemplates}
                 onToggle={() => toggleAccordion('operationTemplates')}
               >
-                <OperationTemplatesSection
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  onChangeTemplate={handleOperationTemplatesClick}
-                  isCompact={true}
-                />
+                <SectionErrorBoundary sectionName="Operation Templates">
+                  <OperationTemplatesSection
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    onChangeTemplate={handleOperationTemplatesClick}
+                    isCompact={true}
+                  />
+                </SectionErrorBoundary>
               </AccordionSection>
 
               {/* 2. Team Section */}
@@ -227,11 +342,13 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
                 isOpen={openAccordions.teamSection}
                 onToggle={() => toggleAccordion('teamSection')}
               >
-                <TeamSection
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  isCompact={true}
-                />
+                <SectionErrorBoundary sectionName="Team Section">
+                  <TeamSection
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    isCompact={true}
+                  />
+                </SectionErrorBoundary>
               </AccordionSection>
 
               {/* 3. Ticket Section */}
@@ -241,11 +358,13 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
                 isOpen={openAccordions.ticketSection}
                 onToggle={() => toggleAccordion('ticketSection')}
               >
-                <TicketSection
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  isCompact={true}
-                />
+                <SectionErrorBoundary sectionName="Ticket Section">
+                  <TicketSection
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    isCompact={true}
+                  />
+                </SectionErrorBoundary>
               </AccordionSection>
 
               {/* 4. Workflow & Rules */}
@@ -255,11 +374,13 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
                 isOpen={openAccordions.workflowRules}
                 onToggle={() => toggleAccordion('workflowRules')}
               >
-                <WorkflowRulesSection
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  isCompact={true}
-                />
+                <SectionErrorBoundary sectionName="Workflow & Rules">
+                  <WorkflowRulesSection
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    isCompact={true}
+                  />
+                </SectionErrorBoundary>
               </AccordionSection>
 
               {/* 5. Layout Section */}
@@ -269,11 +390,13 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
                 isOpen={openAccordions.layoutSection}
                 onToggle={() => toggleAccordion('layoutSection')}
               >
-                <LayoutSection
-                  settings={settings}
-                  updateSetting={updateSetting}
-                  isCompact={true}
-                />
+                <SectionErrorBoundary sectionName="Layout Section">
+                  <LayoutSection
+                    settings={settings}
+                    updateSetting={updateSetting}
+                    isCompact={true}
+                  />
+                </SectionErrorBoundary>
               </AccordionSection>
             </div>
           ) : (
@@ -336,45 +459,56 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
               {/* Content Area */}
               <div className="flex-1 overflow-y-auto apple-scroll bg-white" style={{ height: '610px' }}>
                 <div className="p-5">
+                  {/* BUG-011 FIX: Wrap each section in error boundary for graceful error handling */}
                   {/* 1. Operation Templates */}
                   {activeSection === 'operationTemplates' && (
-                    <OperationTemplatesSection
-                      settings={settings}
-                      updateSetting={updateSetting}
-                      onChangeTemplate={handleOperationTemplatesClick}
-                    />
+                    <SectionErrorBoundary sectionName="Operation Templates">
+                      <OperationTemplatesSection
+                        settings={settings}
+                        updateSetting={updateSetting}
+                        onChangeTemplate={handleOperationTemplatesClick}
+                      />
+                    </SectionErrorBoundary>
                   )}
 
                   {/* 2. Team Section */}
                   {activeSection === 'teamSection' && (
-                    <TeamSection
-                      settings={settings}
-                      updateSetting={updateSetting}
-                    />
+                    <SectionErrorBoundary sectionName="Team Section">
+                      <TeamSection
+                        settings={settings}
+                        updateSetting={updateSetting}
+                      />
+                    </SectionErrorBoundary>
                   )}
 
                   {/* 3. Ticket Section */}
                   {activeSection === 'ticketSection' && (
-                    <TicketSection
-                      settings={settings}
-                      updateSetting={updateSetting}
-                    />
+                    <SectionErrorBoundary sectionName="Ticket Section">
+                      <TicketSection
+                        settings={settings}
+                        updateSetting={updateSetting}
+                      />
+                    </SectionErrorBoundary>
                   )}
 
                   {/* 4. Workflow & Rules */}
                   {activeSection === 'workflowRules' && (
-                    <WorkflowRulesSection
-                      settings={settings}
-                      updateSetting={updateSetting}
-                    />
+                    <SectionErrorBoundary sectionName="Workflow & Rules">
+                      <WorkflowRulesSection
+                        settings={settings}
+                        updateSetting={updateSetting}
+                      />
+                    </SectionErrorBoundary>
                   )}
 
                   {/* 5. Layout Section */}
                   {activeSection === 'layoutSection' && (
-                    <LayoutSection
-                      settings={settings}
-                      updateSetting={updateSetting}
-                    />
+                    <SectionErrorBoundary sectionName="Layout Section">
+                      <LayoutSection
+                        settings={settings}
+                        updateSetting={updateSetting}
+                      />
+                    </SectionErrorBoundary>
                   )}
                 </div>
               </div>
@@ -383,14 +517,57 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
 
           {/* Footer */}
           <div className="px-5 py-3.5 border-t border-gray-100 flex justify-between items-center bg-white">
-            <div className="text-sm text-gray-600" id="front-desk-settings-description">
+            {/* Left side: Reset, Export, Import */}
+            <div className="flex items-center space-x-2">
+              {/* FEAT-013: Reset to Defaults */}
+              <button
+                onClick={handleResetClick}
+                className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                title="Reset to default settings"
+              >
+                <RotateCcw size={14} className="mr-1.5" />
+                Reset
+              </button>
+
+              {/* FEAT-003: Export */}
+              <button
+                onClick={handleExport}
+                className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                title="Export settings to file"
+              >
+                <Download size={14} className="mr-1.5" />
+                Export
+              </button>
+
+              {/* FEAT-003: Import */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                title="Import settings from file"
+              >
+                <Upload size={14} className="mr-1.5" />
+                Import
+              </button>
+
+              {/* Hidden file input for import */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportFileSelect}
+                className="hidden"
+              />
+
+              {/* Unsaved changes indicator */}
               {hasChanges && (
-                <span className="flex items-center text-amber-600">
-                  <span className="w-2 h-2 bg-amber-600 rounded-full mr-2"></span>
-                  Unsaved changes
+                <span className="flex items-center text-xs text-amber-600 ml-2">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5"></span>
+                  Unsaved
                 </span>
               )}
             </div>
+
+            {/* Right side: Cancel and Save */}
             <div className="flex space-x-3">
               <button
                 onClick={handleCancel}
@@ -435,6 +612,62 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
             // Note: Don't close modal here - let OperationTemplateSetup handle it with toast
           }}
         />
+      )}
+
+      {/* FEAT-003: Import Confirmation Dialog */}
+      {showImportConfirm && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={handleImportCancel} />
+          <div className="relative bg-white rounded-xl shadow-2xl p-6 max-w-md mx-4 animate-slideIn">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Import Settings?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This will replace your current settings with the imported configuration. Any unsaved changes will be lost.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleImportCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImportConfirm}
+                className="px-4 py-2 text-sm font-medium bg-[#27AE60] text-white hover:bg-[#219653] rounded-lg transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* FEAT-013: Reset Confirmation Dialog */}
+      {showResetConfirm && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={handleResetCancel} />
+          <div className="relative bg-white rounded-xl shadow-2xl p-6 max-w-md mx-4 animate-slideIn">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Reset to Defaults?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This will reset all settings to their default values. This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleResetCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetConfirm}
+                className="px-4 py-2 text-sm font-medium bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

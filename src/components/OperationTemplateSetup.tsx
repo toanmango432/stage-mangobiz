@@ -2,6 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { X, ArrowLeft, Check, Layers, Users, FileText, Clock, LayoutDashboard, ArrowRight, Settings, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import { FrontDeskSettingsData } from './frontdesk-settings/FrontDeskSettings';
 import { createPortal } from 'react-dom';
+// BUG-010 FIX: Import FocusTrap for accessibility
+import FocusTrap from 'focus-trap-react';
+// ISSUE-001: Use centralized template config
+import { getTemplateSettings, getTemplateMetadata, getAllTemplateIds, TemplateMetadata } from './frontdesk-settings/templateConfigs';
 interface OperationTemplateSetupProps {
   isOpen: boolean;
   onClose: () => void;
@@ -76,62 +80,15 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
     }
   }, [quickAnswers]);
   // Apply template presets
+  // ISSUE-001: Use centralized template config
   const applyTemplate = (template: FrontDeskSettingsData['operationTemplate']) => {
-    let newSettings: Partial<FrontDeskSettingsData> = {
-      operationTemplate: template
-    };
-    // Apply preset values based on template
-    switch (template) {
-      case 'frontDeskBalanced':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'wide',
-          customWidthPercentage: 40,
-          displayMode: 'column',
-          combineSections: false,
-          showComingAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-        break;
-      case 'frontDeskTicketCenter':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'compact',
-          customWidthPercentage: 10,
-          displayMode: 'tab',
-          combineSections: true,
-          showComingAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-        break;
-      case 'teamWithOperationFlow':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'wide',
-          customWidthPercentage: 80,
-          displayMode: 'column',
-          combineSections: false,
-          showComingAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-        break;
-      case 'teamInOut':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'fullScreen',
-          customWidthPercentage: 100,
-          displayMode: 'column',
-          combineSections: false,
-          showComingAppointments: false,
-          organizeBy: 'clockedStatus'
-        };
-        break;
-    }
+    const newSettings = getTemplateSettings(template);
     // Update settings and mark changes
-    setSettings(prev => ({
-      ...prev,
+    const updatedSettings = {
+      ...settings,
       ...newSettings
-    }));
+    };
+    setSettings(updatedSettings);
     setHasChanges(true);
     // Update quick answers based on template
     setQuickAnswers({
@@ -139,6 +96,9 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       operationStyle: template === 'teamInOut' ? 'inOut' : 'flow',
       showAppointments: template !== 'teamInOut'
     });
+    // BUG-015 FIX: Auto-save template selection to Redux
+    // This ensures template changes are immediately applied without requiring manual save
+    onSettingsChange(updatedSettings);
   };
   // Update quick answers and apply changes
   const updateQuickAnswer = (key: keyof QuickAnswers, value: any) => {
@@ -194,69 +154,18 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       setCurrentTemplateIndex(prev => prev === 0 ? 3 : prev - 1);
     }
   };
-  // Get template details - User-type focused naming
-  const getTemplateDetails = (template: FrontDeskSettingsData['operationTemplate']) => {
-    switch (template) {
-      case 'frontDeskBalanced':
-        return {
-          title: 'Reception Desk',
-          subtitle: 'Balanced View',
-          description: 'See both your team and tickets at a glance. Perfect for receptionists who manage walk-ins and appointments.',
-          bestFor: 'Front desk staff who coordinate between clients and providers',
-          userType: 'Front Desk Staff',
-          teamRatio: 40,
-          ticketRatio: 60,
-          teamMode: 'column',
-          ticketMode: 'column',
-          showAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-      case 'frontDeskTicketCenter':
-        return {
-          title: 'Express Queue',
-          subtitle: 'Ticket-First View',
-          description: 'Maximize ticket visibility for fast-paced environments. Staff info available in a compact sidebar.',
-          bestFor: 'High-volume salons where speed is priority',
-          userType: 'Front Desk Staff',
-          teamRatio: 10,
-          ticketRatio: 90,
-          teamMode: 'tab',
-          ticketMode: 'column',
-          showAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-      case 'teamWithOperationFlow':
-        return {
-          title: 'Provider View',
-          subtitle: 'Team-Focused Layout',
-          description: 'Large staff cards show current client and upcoming appointments. Small ticket panel for context.',
-          bestFor: 'Service providers who manage their own clients',
-          userType: 'Service Provider',
-          teamRatio: 80,
-          ticketRatio: 20,
-          teamMode: 'column',
-          ticketMode: 'tab',
-          showAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-      case 'teamInOut':
-        return {
-          title: 'Quick Checkout',
-          subtitle: 'Simple Clock In/Out',
-          description: 'Full-screen team view for easy clock-in and quick checkout. Tap a name to start or complete service.',
-          bestFor: 'Low-tech salons, booth rentals, barbershops',
-          userType: 'Service Provider',
-          teamRatio: 100,
-          ticketRatio: 0,
-          teamMode: 'column',
-          ticketMode: 'none',
-          showAppointments: false,
-          organizeBy: 'clockedStatus'
-        };
-    }
+  // Get template details - ISSUE-001: Use centralized template metadata
+  // Returns extended metadata with computed ratios for UI display
+  const getTemplateDetails = (template: FrontDeskSettingsData['operationTemplate']): TemplateMetadata & { teamRatio: number; ticketRatio: number } => {
+    const metadata = getTemplateMetadata(template);
+    return {
+      ...metadata,
+      teamRatio: metadata.layoutRatio.team,
+      ticketRatio: metadata.layoutRatio.ticket,
+    };
   };
-  // Template cards array for easier rendering
-  const templates: FrontDeskSettingsData['operationTemplate'][] = ['frontDeskBalanced', 'frontDeskTicketCenter', 'teamWithOperationFlow', 'teamInOut'];
+  // Template cards array - ISSUE-001: Use centralized template list
+  const templates = getAllTemplateIds();
   if (!isOpen) return null;
   // Render the Toast component
   const Toast = () => {
@@ -275,7 +184,9 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
         </div>
       </div>, document.body);
   };
-  return <div className="template-setup fixed inset-0 z-[1060] bg-white overflow-hidden flex flex-col">
+  // BUG-010 FIX: Wrap modal in FocusTrap for accessibility and keyboard navigation
+  return <FocusTrap active={isOpen}>
+    <div className="template-setup fixed inset-0 z-[1060] bg-white overflow-hidden flex flex-col">
       <style>
         {`
           @keyframes slideInUp {
@@ -1465,5 +1376,6 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       </footer>
       {/* Toast Notification */}
       <Toast />
-    </div>;
+    </div>
+  </FocusTrap>;
 };

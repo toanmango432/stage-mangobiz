@@ -6,23 +6,23 @@
 
 import { memo, useMemo, useEffect, useState } from 'react';
 import { LocalAppointment } from '../../types/appointment';
-import { colors, calendar } from '../../constants/designSystem';
+import { calendar } from '../../constants/designSystem';
 import { cn } from '../../lib/utils';
 import { AppointmentContextMenu } from './AppointmentContextMenu';
 import {
   snapToGrid,
   checkDragConflict,
   getConflictColor,
-  calculateEndTime
 } from '../../utils/dragAndDropHelpers';
 import {
   calculateBufferBlocks,
   getBufferTimeStyle
 } from '../../utils/bufferTimeUtils';
-import { PremiumAvatar, StatusBadge } from '../premium';
-import { getStatusColor, getStaffColor } from '../../constants/premiumDesignSystem';
+import { PremiumAvatar } from '../premium';
+import { getStatusColor } from '../../constants/premiumDesignSystem';
 import { staggerDelayStyle } from '../../utils/animations';
 import { DayViewSkeleton } from './skeletons';
+import type { BlockedTimeEntry, BusinessClosedPeriod } from '../../types/schedule';
 
 interface Staff {
   id: string;
@@ -34,10 +34,16 @@ interface DayScheduleProps {
   date: Date;
   staff: Staff[];
   appointments: LocalAppointment[];
+  blockedTimeEntries?: BlockedTimeEntry[];
+  /** Business closure for the current date (if any) */
+  businessClosure?: BusinessClosedPeriod | null;
   onAppointmentClick: (appointment: LocalAppointment) => void;
   onTimeSlotClick?: (staffId: string, time: Date) => void;
   onAppointmentDrop?: (appointmentId: string, newStaffId: string, newTime: Date) => void;
   onStatusChange?: (appointmentId: string, newStatus: string) => void;
+  onBlockedTimeClick?: (entry: BlockedTimeEntry) => void;
+  /** Called when user clicks on the closure banner */
+  onClosureClick?: (closure: BusinessClosedPeriod) => void;
   isLoading?: boolean;
 }
 
@@ -118,35 +124,54 @@ function getAppointmentStyle(appointment: LocalAppointment) {
 }
 
 /**
- * Get appointment color based on status
+ * Get blocked time entry position and height
  */
-function getAppointmentColor(status: string): string {
-  switch (status) {
-    case 'scheduled':
-      return colors.appointment.scheduled;
-    case 'checked-in':
-      return colors.appointment.checkedIn;
-    case 'in-service':
-      return colors.appointment.inService;
-    case 'completed':
-      return colors.appointment.completed;
-    case 'cancelled':
-      return colors.appointment.cancelled;
-    case 'no-show':
-      return colors.appointment.noShow;
-    default:
-      return colors.appointment.scheduled;
-  }
+function getBlockedTimeStyle(entry: BlockedTimeEntry) {
+  const start = new Date(entry.startDateTime);
+  const end = new Date(entry.endDateTime);
+
+  const startHour = start.getHours();
+  const startMinute = start.getMinutes();
+  const endHour = end.getHours();
+  const endMinute = end.getMinutes();
+
+  const topMinutes = startHour * 60 + startMinute;
+  const durationMinutes = (endHour - startHour) * 60 + (endMinute - startMinute);
+
+  return {
+    top: `${topMinutes}px`,
+    height: `${Math.max(durationMinutes, 30)}px`, // Minimum 30px height
+  };
+}
+
+/**
+ * Format blocked time for display
+ */
+function formatBlockedTime(entry: BlockedTimeEntry): string {
+  const start = new Date(entry.startDateTime);
+  const end = new Date(entry.endDateTime);
+  const formatT = (d: Date) => {
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+    return `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+  return `${formatT(start)} - ${formatT(end)}`;
 }
 
 export const DaySchedule = memo(function DaySchedule({
   date,
   staff,
   appointments,
+  blockedTimeEntries = [],
+  businessClosure,
   onAppointmentClick,
   onTimeSlotClick,
   onAppointmentDrop,
   onStatusChange,
+  onBlockedTimeClick,
+  onClosureClick,
   isLoading = false,
 }: DayScheduleProps) {
   const [currentTimePos, setCurrentTimePos] = useState(getCurrentTimePosition());
@@ -217,6 +242,20 @@ export const DaySchedule = memo(function DaySchedule({
     return grouped;
   }, [staff, appointments]);
 
+  // Group blocked time entries by staff
+  const blockedTimeByStaff = useMemo(() => {
+    const grouped: Record<string, BlockedTimeEntry[]> = {};
+    staff.forEach(s => {
+      grouped[s.id] = [];
+    });
+    blockedTimeEntries.forEach(entry => {
+      if (grouped[entry.staffId]) {
+        grouped[entry.staffId].push(entry);
+      }
+    });
+    return grouped;
+  }, [staff, blockedTimeEntries]);
+
   // On mobile, show only one staff at a time to prevent horizontal scrolling
   const displayedStaff = useMemo(() => {
     if (isMobile && staff.length > 0) {
@@ -238,8 +277,73 @@ export const DaySchedule = memo(function DaySchedule({
     return <DayViewSkeleton />;
   }
 
+  // Check if business is closed (full day or partial)
+  const isBusinessClosed = !!businessClosure;
+  const isPartialClosure = businessClosure?.isPartialDay ?? false;
+
+  // For partial closures, calculate which hours are closed
+  const getClosedTimeRange = () => {
+    if (!businessClosure?.isPartialDay || !businessClosure.startTime || !businessClosure.endTime) {
+      return null;
+    }
+    const [startHour, startMin] = businessClosure.startTime.split(':').map(Number);
+    const [endHour, endMin] = businessClosure.endTime.split(':').map(Number);
+    return {
+      startMinutes: startHour * 60 + startMin,
+      endMinutes: endHour * 60 + endMin,
+    };
+  };
+
+  const closedTimeRange = getClosedTimeRange();
+
   return (
-    <div className="flex h-full overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm">
+    <div className="flex h-full overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm relative">
+      {/* Business Closure Banner - Sticky at top */}
+      {isBusinessClosed && (
+        <button
+          onClick={() => businessClosure && onClosureClick?.(businessClosure)}
+          className={cn(
+            'absolute top-0 left-0 right-0 z-50',
+            'flex items-center justify-center gap-3',
+            'py-3 px-4',
+            'text-white font-medium',
+            'shadow-lg',
+            'cursor-pointer hover:brightness-110 transition-all',
+            'backdrop-blur-sm'
+          )}
+          style={{
+            backgroundColor: businessClosure?.color || '#EF4444',
+          }}
+        >
+          {/* Closed Icon */}
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+
+          {/* Closure Info */}
+          <div className="text-center">
+            <span className="font-semibold">{businessClosure?.name || 'Business Closed'}</span>
+            {isPartialClosure && businessClosure?.startTime && businessClosure?.endTime && (
+              <span className="ml-2 text-sm opacity-90">
+                ({businessClosure.startTime} - {businessClosure.endTime})
+              </span>
+            )}
+          </div>
+
+          {/* Annual badge */}
+          {businessClosure?.isAnnual && (
+            <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+              Annual
+            </span>
+          )}
+
+          {/* Click hint */}
+          <svg className="w-4 h-4 opacity-70 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      )}
+
       {/* Time Column */}
       <div
         className="sticky left-0 z-10 bg-white border-r border-gray-200 flex-shrink-0"
@@ -441,6 +545,55 @@ export const DaySchedule = memo(function DaySchedule({
                   />
                 ))}
 
+                {/* Business Closure Overlay - Gray out closed hours */}
+                {isBusinessClosed && !isPartialClosure && (
+                  <div
+                    className="absolute inset-0 z-20 pointer-events-none"
+                    style={{
+                      backgroundColor: `${businessClosure?.color || '#EF4444'}10`,
+                      backgroundImage: `repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 10px,
+                        ${businessClosure?.color || '#EF4444'}08 10px,
+                        ${businessClosure?.color || '#EF4444'}08 20px
+                      )`,
+                    }}
+                  />
+                )}
+
+                {/* Partial Day Closure Overlay - Gray out specific hours */}
+                {isBusinessClosed && isPartialClosure && closedTimeRange && (
+                  <div
+                    className="absolute left-0 right-0 z-20 pointer-events-none"
+                    style={{
+                      top: `${closedTimeRange.startMinutes}px`,
+                      height: `${closedTimeRange.endMinutes - closedTimeRange.startMinutes}px`,
+                      backgroundColor: `${businessClosure?.color || '#EF4444'}15`,
+                      backgroundImage: `repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 10px,
+                        ${businessClosure?.color || '#EF4444'}10 10px,
+                        ${businessClosure?.color || '#EF4444'}10 20px
+                      )`,
+                      borderTop: `2px dashed ${businessClosure?.color || '#EF4444'}40`,
+                      borderBottom: `2px dashed ${businessClosure?.color || '#EF4444'}40`,
+                    }}
+                  >
+                    {/* Partial closure label */}
+                    <div
+                      className="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium"
+                      style={{
+                        backgroundColor: `${businessClosure?.color || '#EF4444'}20`,
+                        color: businessClosure?.color || '#EF4444',
+                      }}
+                    >
+                      Closed: {businessClosure?.startTime} - {businessClosure?.endTime}
+                    </div>
+                  </div>
+                )}
+
                 {/* Clickable time slots with responsive intervals */}
                 {onTimeSlotClick && timeLabels.map(({ hour }) => {
                   // Create responsive interval slots (60min mobile, 30min tablet, 15min desktop)
@@ -564,6 +717,82 @@ export const DaySchedule = memo(function DaySchedule({
                       }}
                       title={`${buffer.type === 'after' ? 'Buffer after' : buffer.type === 'before' ? 'Buffer before' : 'Gap buffer'}: ${Math.round(durationMinutes)} min`}
                     />
+                  );
+                })}
+
+                {/* Blocked Time Entries - Visual blocks with type color and emoji */}
+                {blockedTimeByStaff[staffMember.id]?.map((entry, index) => {
+                  const style = getBlockedTimeStyle(entry);
+                  const isRecurring = entry.seriesId !== null;
+
+                  return (
+                    <button
+                      key={entry.id}
+                      onClick={() => onBlockedTimeClick?.(entry)}
+                      className={cn(
+                        'absolute left-2 right-2',
+                        'rounded-lg',
+                        'border-2 border-dashed',
+                        'text-left p-2',
+                        'overflow-hidden',
+                        'group cursor-pointer',
+                        'transition-all duration-200',
+                        'hover:shadow-md hover:scale-[1.01] hover:z-10',
+                        'animate-fade-in',
+                        'z-5'
+                      )}
+                      style={{
+                        ...style,
+                        backgroundColor: `${entry.typeColor}15`,
+                        borderColor: `${entry.typeColor}60`,
+                        ...staggerDelayStyle(index, 30),
+                      }}
+                      title={`${entry.typeName}${isRecurring ? ' (recurring)' : ''}`}
+                    >
+                      {/* Emoji and Type Info */}
+                      <div className="flex items-start gap-2">
+                        <span
+                          className="text-lg flex-shrink-0"
+                          style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
+                        >
+                          {entry.typeEmoji}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="text-xs font-semibold truncate"
+                            style={{ color: entry.typeColor }}
+                          >
+                            {entry.typeName}
+                          </p>
+                          <p className="text-[10px] text-gray-500 truncate">
+                            {formatBlockedTime(entry)}
+                          </p>
+                          {isRecurring && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              <span className="text-[10px] text-gray-400">Recurring</span>
+                            </div>
+                          )}
+                          {entry.notes && (
+                            <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                              {entry.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Paid indicator badge */}
+                      {entry.isPaid && (
+                        <div
+                          className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-medium"
+                          style={{ backgroundColor: `${entry.typeColor}30`, color: entry.typeColor }}
+                        >
+                          Paid
+                        </div>
+                      )}
+                    </button>
                   );
                 })}
 

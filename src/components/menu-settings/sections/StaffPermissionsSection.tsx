@@ -1,51 +1,62 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Search,
   Check,
-  X,
   ChevronDown,
   ChevronRight,
   Users,
-  User,
   Sparkles,
-  Filter,
-  CheckSquare,
-  Square,
-  AlertCircle,
+  Save,
 } from 'lucide-react';
-import type { ServiceCategory, MenuService } from '../types';
+import toast from 'react-hot-toast';
+import { useSelector, useDispatch } from 'react-redux';
+import type { AppDispatch } from '../../../store';
+import {
+  selectAllTeamMembers,
+  selectTeamLoading,
+  updateMemberServices,
+  saveTeamMember,
+  fetchTeamMembers,
+} from '../../../store/slices/teamSlice';
+import type { TeamMemberSettings, ServicePricing } from '../../team-settings/types';
+import type { CategoryWithCount, MenuServiceWithEmbeddedVariants } from '../../../types/catalog';
 
 interface StaffPermissionsSectionProps {
-  categories: ServiceCategory[];
-  services: MenuService[];
+  categories: CategoryWithCount[];
+  services: MenuServiceWithEmbeddedVariants[];
 }
-
-// Mock staff data - replace with real data later
-const mockStaff = [
-  { id: 'staff-1', name: 'Emma Wilson', avatar: null, role: 'Senior Stylist', services: ['svc-1', 'svc-2', 'svc-3', 'svc-4', 'svc-5', 'svc-6'] },
-  { id: 'staff-2', name: 'James Chen', avatar: null, role: 'Colorist', services: ['svc-5', 'svc-6'] },
-  { id: 'staff-3', name: 'Sofia Rodriguez', avatar: null, role: 'Nail Technician', services: ['svc-7', 'svc-8', 'svc-9'] },
-  { id: 'staff-4', name: 'Michael Brown', avatar: null, role: 'Massage Therapist', services: ['svc-10', 'svc-11'] },
-  { id: 'staff-5', name: 'Olivia Taylor', avatar: null, role: 'Esthetician', services: ['svc-12', 'svc-13'] },
-  { id: 'staff-6', name: 'David Kim', avatar: null, role: 'Junior Stylist', services: ['svc-1', 'svc-2', 'svc-3'] },
-];
 
 export function StaffPermissionsSection({
   categories,
   services,
 }: StaffPermissionsSectionProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id));
-  const [staffPermissions, setStaffPermissions] = useState<Record<string, string[]>>(
-    mockStaff.reduce((acc, staff) => ({ ...acc, [staff.id]: staff.services }), {})
-  );
+  // Get team members from Redux (using TeamMemberSettings, not Staff)
+  const dispatch = useDispatch<AppDispatch>();
+  const allTeamMembers = useSelector(selectAllTeamMembers);
+  const isLoading = useSelector(selectTeamLoading);
 
-  // Filter staff by search
-  const filteredStaff = mockStaff.filter(staff =>
-    staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    staff.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id));
+  const [modifiedMemberIds, setModifiedMemberIds] = useState<Set<string>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load team members on mount if not already loaded
+  useEffect(() => {
+    if (allTeamMembers.length === 0 && !isLoading) {
+      dispatch(fetchTeamMembers(undefined));
+    }
+  }, [dispatch, allTeamMembers.length, isLoading]);
+
+  // Filter team members by search
+  const filteredMembers = useMemo(() => {
+    return allTeamMembers.filter(member =>
+      member.profile.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.profile.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.profile.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.profile.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [allTeamMembers, searchQuery]);
 
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {
@@ -61,75 +72,196 @@ export function StaffPermissionsSection({
     return services.filter(s => s.categoryId === categoryId && s.status === 'active');
   };
 
-  // Check if staff can perform service
-  const canPerformService = (staffId: string, serviceId: string) => {
-    return staffPermissions[staffId]?.includes(serviceId) || false;
+  // Check if member can perform service (using ServicePricing.canPerform)
+  const canPerformService = (member: TeamMemberSettings, serviceId: string): boolean => {
+    const servicePricing = member.services.find(s => s.serviceId === serviceId);
+    return servicePricing?.canPerform || false;
   };
 
-  // Check if staff can perform all services in category
-  const canPerformAllInCategory = (staffId: string, categoryId: string) => {
+  // Check if member can perform all services in category
+  const canPerformAllInCategory = (member: TeamMemberSettings, categoryId: string) => {
     const categoryServices = getServicesByCategory(categoryId);
-    return categoryServices.every(s => canPerformService(staffId, s.id));
+    if (categoryServices.length === 0) return false;
+    return categoryServices.every(s => canPerformService(member, s.id));
   };
 
-  // Check if staff can perform some services in category
-  const canPerformSomeInCategory = (staffId: string, categoryId: string) => {
+  // Check if member can perform some services in category
+  const canPerformSomeInCategory = (member: TeamMemberSettings, categoryId: string) => {
     const categoryServices = getServicesByCategory(categoryId);
-    const count = categoryServices.filter(s => canPerformService(staffId, s.id)).length;
+    const count = categoryServices.filter(s => canPerformService(member, s.id)).length;
     return count > 0 && count < categoryServices.length;
   };
 
+  // Get enabled service count for member
+  const getEnabledServiceCount = (member: TeamMemberSettings) => {
+    return member.services.filter(s => s.canPerform).length;
+  };
+
+  // Build or update ServicePricing array for a member
+  const buildServicePricingArray = (
+    currentServices: ServicePricing[],
+    serviceId: string,
+    enable: boolean,
+    catalogService?: MenuServiceWithEmbeddedVariants
+  ): ServicePricing[] => {
+    const existingIndex = currentServices.findIndex(s => s.serviceId === serviceId);
+
+    if (existingIndex !== -1) {
+      // Update existing
+      return currentServices.map(s =>
+        s.serviceId === serviceId ? { ...s, canPerform: enable } : s
+      );
+    } else if (catalogService) {
+      // Add new ServicePricing entry
+      const newPricing: ServicePricing = {
+        serviceId: catalogService.id,
+        serviceName: catalogService.name,
+        serviceCategory: catalogService.categoryId,
+        canPerform: enable,
+        defaultPrice: catalogService.price,
+        defaultDuration: catalogService.duration,
+      };
+      return [...currentServices, newPricing];
+    }
+    return currentServices;
+  };
+
   // Toggle service permission
-  const toggleServicePermission = (staffId: string, serviceId: string) => {
-    setStaffPermissions(prev => {
-      const current = prev[staffId] || [];
-      const newPermissions = current.includes(serviceId)
-        ? current.filter(id => id !== serviceId)
-        : [...current, serviceId];
-      return { ...prev, [staffId]: newPermissions };
-    });
+  const toggleServicePermission = (memberId: string, serviceId: string) => {
+    const member = allTeamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    const catalogService = services.find(s => s.id === serviceId);
+    const currentlyEnabled = canPerformService(member, serviceId);
+    const updatedServices = buildServicePricingArray(
+      member.services,
+      serviceId,
+      !currentlyEnabled,
+      catalogService
+    );
+
+    dispatch(updateMemberServices({ id: memberId, services: updatedServices }));
+    setModifiedMemberIds(prev => new Set(prev).add(memberId));
   };
 
   // Toggle all services in category
-  const toggleCategoryPermission = (staffId: string, categoryId: string) => {
+  const toggleCategoryPermission = (memberId: string, categoryId: string) => {
+    const member = allTeamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
     const categoryServices = getServicesByCategory(categoryId);
-    const allEnabled = canPerformAllInCategory(staffId, categoryId);
+    const allEnabled = canPerformAllInCategory(member, categoryId);
 
-    setStaffPermissions(prev => {
-      const current = prev[staffId] || [];
-      if (allEnabled) {
-        // Remove all category services
-        return {
-          ...prev,
-          [staffId]: current.filter(id => !categoryServices.some(s => s.id === id))
-        };
-      } else {
-        // Add all category services
-        const newIds = categoryServices.map(s => s.id);
-        return {
-          ...prev,
-          [staffId]: [...new Set([...current, ...newIds])]
-        };
-      }
+    let updatedServices = [...member.services];
+
+    categoryServices.forEach(catService => {
+      updatedServices = buildServicePricingArray(
+        updatedServices,
+        catService.id,
+        !allEnabled, // If all enabled, disable; otherwise enable
+        catService
+      );
     });
+
+    dispatch(updateMemberServices({ id: memberId, services: updatedServices }));
+    setModifiedMemberIds(prev => new Set(prev).add(memberId));
   };
 
-  // Get permission count for staff
-  const getPermissionCount = (staffId: string) => {
-    return staffPermissions[staffId]?.length || 0;
+  // Select All services for a member
+  const selectAllServices = (memberId: string) => {
+    const member = allTeamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    let updatedServices = [...member.services];
+
+    services.filter(s => s.status === 'active').forEach(catService => {
+      updatedServices = buildServicePricingArray(
+        updatedServices,
+        catService.id,
+        true,
+        catService
+      );
+    });
+
+    dispatch(updateMemberServices({ id: memberId, services: updatedServices }));
+    setModifiedMemberIds(prev => new Set(prev).add(memberId));
   };
 
-  // Selected staff data
-  const selectedStaff = selectedStaffId
-    ? mockStaff.find(s => s.id === selectedStaffId)
+  // Clear All services for a member
+  const clearAllServices = (memberId: string) => {
+    const member = allTeamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    const updatedServices = member.services.map(s => ({ ...s, canPerform: false }));
+    dispatch(updateMemberServices({ id: memberId, services: updatedServices }));
+    setModifiedMemberIds(prev => new Set(prev).add(memberId));
+  };
+
+  // Save all modified members to database
+  const savePermissions = useCallback(async () => {
+    if (modifiedMemberIds.size === 0) return;
+
+    setIsSaving(true);
+    try {
+      const promises = Array.from(modifiedMemberIds).map(memberId => {
+        const member = allTeamMembers.find(m => m.id === memberId);
+        if (member) {
+          return dispatch(saveTeamMember({ member })).unwrap();
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(promises);
+      setModifiedMemberIds(new Set());
+      toast.success(`Permissions saved for ${promises.length} team member${promises.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      toast.error('Failed to save permissions');
+      console.error('Save permissions error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [dispatch, modifiedMemberIds, allTeamMembers]);
+
+  // Selected member data
+  const selectedMember = selectedMemberId
+    ? allTeamMembers.find(m => m.id === selectedMemberId)
     : null;
+
+  // Get display name for member
+  const getDisplayName = (member: TeamMemberSettings) => {
+    return member.profile.displayName || `${member.profile.firstName} ${member.profile.lastName}`;
+  };
+
+  // Get initials for avatar
+  const getInitials = (member: TeamMemberSettings) => {
+    const first = member.profile.firstName?.[0] || '';
+    const last = member.profile.lastName?.[0] || '';
+    return `${first}${last}`.toUpperCase();
+  };
+
+  // Get member status display
+  const getMemberStatus = (member: TeamMemberSettings) => {
+    return member.isActive ? 'Active' : 'Inactive';
+  };
 
   return (
     <div className="h-full flex overflow-hidden">
-      {/* Staff List Sidebar */}
+      {/* Team Members Sidebar */}
       <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Team Members</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-900">Team Members</h3>
+            {modifiedMemberIds.size > 0 && (
+              <button
+                onClick={savePermissions}
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+              >
+                <Save size={14} />
+                {isSaving ? 'Saving...' : `Save (${modifiedMemberIds.size})`}
+              </button>
+            )}
+          </div>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -143,58 +275,64 @@ export function StaffPermissionsSection({
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
-          {filteredStaff.map((staff) => {
-            const permCount = getPermissionCount(staff.id);
-            const isSelected = selectedStaffId === staff.id;
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading team members...</div>
+          ) : filteredMembers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No team members found</div>
+          ) : (
+            filteredMembers.map((member) => {
+              const serviceCount = getEnabledServiceCount(member);
+              const isSelected = selectedMemberId === member.id;
 
-            return (
-              <button
-                key={staff.id}
-                onClick={() => setSelectedStaffId(staff.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors mb-1 ${
-                  isSelected
-                    ? 'bg-orange-50 border border-orange-200'
-                    : 'hover:bg-gray-100'
-                }`}
-              >
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-medium flex-shrink-0">
-                  {staff.name.split(' ').map(n => n[0]).join('')}
-                </div>
+              return (
+                <button
+                  key={member.id}
+                  onClick={() => setSelectedMemberId(member.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors mb-1 ${
+                    isSelected
+                      ? 'bg-orange-50 border border-orange-200'
+                      : 'hover:bg-gray-100'
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-medium flex-shrink-0">
+                    {getInitials(member)}
+                  </div>
 
-                {/* Info */}
-                <div className="flex-1 text-left min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{staff.name}</p>
-                  <p className="text-xs text-gray-500">{staff.role}</p>
-                </div>
+                  {/* Info */}
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{getDisplayName(member)}</p>
+                    <p className="text-xs text-gray-500">{getMemberStatus(member)}</p>
+                  </div>
 
-                {/* Service Count */}
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{permCount}</p>
-                  <p className="text-xs text-gray-500">services</p>
-                </div>
-              </button>
-            );
-          })}
+                  {/* Service Count */}
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{serviceCount}</p>
+                    <p className="text-xs text-gray-500">services</p>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 
       {/* Permissions Editor */}
       <div className="flex-1 overflow-y-auto">
-        {selectedStaff ? (
+        {selectedMember ? (
           <div className="p-6">
-            {/* Staff Header */}
+            {/* Member Header */}
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white text-xl font-medium">
-                {selectedStaff.name.split(' ').map(n => n[0]).join('')}
+                {getInitials(selectedMember)}
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">{selectedStaff.name}</h2>
-                <p className="text-gray-500">{selectedStaff.role}</p>
+                <h2 className="text-xl font-semibold text-gray-900">{getDisplayName(selectedMember)}</h2>
+                <p className="text-gray-500">{getMemberStatus(selectedMember)}</p>
               </div>
               <div className="ml-auto text-right">
                 <p className="text-2xl font-bold text-gray-900">
-                  {getPermissionCount(selectedStaff.id)}
+                  {getEnabledServiceCount(selectedMember)}
                 </p>
                 <p className="text-sm text-gray-500">services assigned</p>
               </div>
@@ -203,24 +341,13 @@ export function StaffPermissionsSection({
             {/* Quick Actions */}
             <div className="flex items-center gap-3 mb-6">
               <button
-                onClick={() => {
-                  const allServiceIds = services.filter(s => s.status === 'active').map(s => s.id);
-                  setStaffPermissions(prev => ({
-                    ...prev,
-                    [selectedStaff.id]: allServiceIds
-                  }));
-                }}
+                onClick={() => selectAllServices(selectedMember.id)}
                 className="px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
               >
                 Select All
               </button>
               <button
-                onClick={() => {
-                  setStaffPermissions(prev => ({
-                    ...prev,
-                    [selectedStaff.id]: []
-                  }));
-                }}
+                onClick={() => clearAllServices(selectedMember.id)}
                 className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Clear All
@@ -232,8 +359,8 @@ export function StaffPermissionsSection({
               {categories.filter(c => c.isActive).map((category) => {
                 const categoryServices = getServicesByCategory(category.id);
                 const isExpanded = expandedCategories.includes(category.id);
-                const allSelected = canPerformAllInCategory(selectedStaff.id, category.id);
-                const someSelected = canPerformSomeInCategory(selectedStaff.id, category.id);
+                const allSelected = canPerformAllInCategory(selectedMember, category.id);
+                const someSelected = canPerformSomeInCategory(selectedMember, category.id);
 
                 if (categoryServices.length === 0) return null;
 
@@ -247,7 +374,7 @@ export function StaffPermissionsSection({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleCategoryPermission(selectedStaff.id, category.id);
+                          toggleCategoryPermission(selectedMember.id, category.id);
                         }}
                         className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
                           allSelected
@@ -270,7 +397,7 @@ export function StaffPermissionsSection({
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900">{category.name}</h3>
                         <p className="text-xs text-gray-500">
-                          {categoryServices.filter(s => canPerformService(selectedStaff.id, s.id)).length} of {categoryServices.length} services
+                          {categoryServices.filter(s => canPerformService(selectedMember, s.id)).length} of {categoryServices.length} services
                         </p>
                       </div>
 
@@ -285,7 +412,7 @@ export function StaffPermissionsSection({
                     {isExpanded && (
                       <div className="border-t border-gray-100 divide-y divide-gray-50">
                         {categoryServices.map((service) => {
-                          const isEnabled = canPerformService(selectedStaff.id, service.id);
+                          const isEnabled = canPerformService(selectedMember, service.id);
 
                           return (
                             <div
@@ -293,7 +420,7 @@ export function StaffPermissionsSection({
                               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                             >
                               <button
-                                onClick={() => toggleServicePermission(selectedStaff.id, service.id)}
+                                onClick={() => toggleServicePermission(selectedMember.id, service.id)}
                                 className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
                                   isEnabled
                                     ? 'bg-orange-500 text-white'

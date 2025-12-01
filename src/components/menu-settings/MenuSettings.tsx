@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
   Search,
@@ -6,7 +6,6 @@ import {
   Grid3X3,
   List,
   LayoutGrid,
-  Filter,
   MoreVertical,
   Settings,
   Users,
@@ -15,26 +14,11 @@ import {
   FolderOpen,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-import type {
-  MenuSettingsTab,
-  ViewMode,
-  ServiceCategory,
-  MenuService,
-  ServicePackage,
-  ServiceAddOn,
-} from './types';
-
-import {
-  sampleCategories,
-  sampleServices,
-  samplePackages,
-  sampleAddOns,
-  defaultMenuSettings,
-} from './constants';
+import type { CatalogTab } from '../../types/catalog';
+import { useCatalog } from '../../hooks/useCatalog';
 
 import { CategoriesSection } from './sections/CategoriesSection';
 import { ServicesSection } from './sections/ServicesSection';
@@ -45,131 +29,139 @@ import { MenuGeneralSettingsSection } from './sections/MenuGeneralSettingsSectio
 
 interface MenuSettingsProps {
   onBack?: () => void;
+  salonId?: string;
 }
 
-export function MenuSettings({ onBack }: MenuSettingsProps) {
-  // State
-  const [activeTab, setActiveTab] = useState<MenuSettingsTab>('services');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [showInactive, setShowInactive] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProps) {
+  // Toast wrapper for useCatalog hook
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    if (type === 'success') {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
+  }, []);
 
-  // Data State (will be replaced with Redux/Database later)
-  const [categories, setCategories] = useState<ServiceCategory[]>(sampleCategories);
-  const [services, setServices] = useState<MenuService[]>(sampleServices);
-  const [packages, setPackages] = useState<ServicePackage[]>(samplePackages);
-  const [addOns, setAddOns] = useState<ServiceAddOn[]>(sampleAddOns);
-  const [settings, setSettings] = useState(defaultMenuSettings);
+  // Use the catalog hook for all data and actions
+  const catalog = useCatalog({
+    salonId,
+    userId: 'current-user', // TODO: Get from auth context
+    toast: showToast,
+  });
+
+  const {
+    // Data
+    categories,
+    services,
+    filteredServices,
+    packages,
+    filteredPackages,
+    addOns,
+    filteredAddOns,
+    settings,
+    // UI State
+    ui,
+    setActiveTab,
+    setSelectedCategory,
+    setSearchQuery,
+    setViewMode,
+    setShowInactive,
+    // Loading
+    isLoading,
+    // Actions
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    reorderCategories,
+    createService,
+    updateService,
+    deleteService,
+    createPackage,
+    updatePackage,
+    deletePackage,
+    createAddOn,
+    updateAddOn,
+    deleteAddOn,
+    updateSettings,
+  } = catalog;
 
   // Tab configuration
-  const tabs: { id: MenuSettingsTab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { id: 'categories', label: 'Categories', icon: <FolderOpen size={18} />, count: categories.length },
-    { id: 'services', label: 'Services', icon: <Sparkles size={18} />, count: services.length },
-    { id: 'packages', label: 'Packages', icon: <Package size={18} />, count: packages.length },
-    { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOns.length },
+  const tabs: { id: CatalogTab; label: string; icon: React.ReactNode; count?: number }[] = useMemo(() => [
+    { id: 'categories', label: 'Categories', icon: <FolderOpen size={18} />, count: categories?.length || 0 },
+    { id: 'services', label: 'Services', icon: <Sparkles size={18} />, count: services?.length || 0 },
+    { id: 'packages', label: 'Packages', icon: <Package size={18} />, count: packages?.length || 0 },
+    { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOns?.length || 0 },
     { id: 'staff', label: 'Staff Permissions', icon: <Users size={18} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-  ];
-
-  // Filtered data based on search and category
-  const filteredServices = useMemo(() => {
-    let result = services;
-
-    if (selectedCategoryId) {
-      result = result.filter(s => s.categoryId === selectedCategoryId);
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.description?.toLowerCase().includes(query)
-      );
-    }
-
-    if (!showInactive) {
-      result = result.filter(s => s.status === 'active');
-    }
-
-    return result;
-  }, [services, selectedCategoryId, searchQuery, showInactive]);
-
-  // Handler functions
-  const handleCategoryUpdate = (updatedCategories: ServiceCategory[]) => {
-    setCategories(updatedCategories);
-  };
-
-  const handleServiceUpdate = (updatedServices: MenuService[]) => {
-    setServices(updatedServices);
-  };
-
-  const handlePackageUpdate = (updatedPackages: ServicePackage[]) => {
-    setPackages(updatedPackages);
-  };
-
-  const handleAddOnUpdate = (updatedAddOns: ServiceAddOn[]) => {
-    setAddOns(updatedAddOns);
-  };
+  ], [categories, services, packages, addOns]);
 
   // Render content based on active tab
   const renderContent = () => {
-    switch (activeTab) {
+    switch (ui.activeTab) {
       case 'categories':
         return (
           <CategoriesSection
-            categories={categories}
-            services={services}
-            onUpdate={handleCategoryUpdate}
-            searchQuery={searchQuery}
+            categories={categories || []}
+            services={services || []}
+            searchQuery={ui.searchQuery}
+            onCreate={createCategory}
+            onUpdate={updateCategory}
+            onDelete={deleteCategory}
+            onReorder={reorderCategories}
           />
         );
       case 'services':
         return (
           <ServicesSection
-            services={filteredServices}
-            categories={categories}
-            viewMode={viewMode}
-            selectedCategoryId={selectedCategoryId}
-            onSelectCategory={setSelectedCategoryId}
-            onUpdate={handleServiceUpdate}
-            allServices={services}
+            services={filteredServices || []}
+            categories={categories || []}
+            viewMode={ui.viewMode}
+            selectedCategoryId={ui.selectedCategoryId}
+            onSelectCategory={setSelectedCategory}
+            allServices={services || []}
+            onCreate={createService}
+            onUpdate={updateService}
+            onDelete={deleteService}
           />
         );
       case 'packages':
         return (
           <PackagesSection
-            packages={packages}
-            services={services}
-            categories={categories}
-            viewMode={viewMode}
-            onUpdate={handlePackageUpdate}
-            searchQuery={searchQuery}
+            packages={filteredPackages || []}
+            services={services || []}
+            categories={categories || []}
+            viewMode={ui.viewMode}
+            searchQuery={ui.searchQuery}
+            onCreate={createPackage}
+            onUpdate={updatePackage}
+            onDelete={deletePackage}
           />
         );
       case 'addons':
         return (
           <AddOnsSection
-            addOns={addOns}
-            categories={categories}
-            services={services}
-            viewMode={viewMode}
-            onUpdate={handleAddOnUpdate}
-            searchQuery={searchQuery}
+            addOns={filteredAddOns || []}
+            categories={categories || []}
+            services={services || []}
+            viewMode={ui.viewMode}
+            searchQuery={ui.searchQuery}
+            onCreate={createAddOn}
+            onUpdate={updateAddOn}
+            onDelete={deleteAddOn}
           />
         );
       case 'staff':
         return (
           <StaffPermissionsSection
-            categories={categories}
-            services={services}
+            categories={categories || []}
+            services={services || []}
           />
         );
       case 'settings':
         return (
           <MenuGeneralSettingsSection
-            settings={settings}
-            onUpdate={setSettings}
+            settings={settings || undefined}
+            onUpdate={updateSettings}
           />
         );
       default:
@@ -201,16 +193,19 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
 
           {/* Quick Stats */}
           <div className="hidden lg:flex items-center gap-6">
+            {isLoading && (
+              <div className="text-sm text-gray-500">Loading...</div>
+            )}
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{categories?.length || 0}</p>
               <p className="text-xs text-gray-500">Categories</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{services.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{services?.length || 0}</p>
               <p className="text-xs text-gray-500">Services</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{packages.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{packages?.length || 0}</p>
               <p className="text-xs text-gray-500">Packages</p>
             </div>
           </div>
@@ -223,7 +218,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                activeTab === tab.id
+                ui.activeTab === tab.id
                   ? 'bg-orange-50 text-orange-600 border border-orange-200'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
@@ -232,7 +227,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
               {tab.label}
               {tab.count !== undefined && (
                 <span className={`px-1.5 py-0.5 text-xs rounded-full ${
-                  activeTab === tab.id
+                  ui.activeTab === tab.id
                     ? 'bg-orange-100 text-orange-700'
                     : 'bg-gray-100 text-gray-600'
                 }`}>
@@ -245,7 +240,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
       </div>
 
       {/* Toolbar */}
-      {(activeTab === 'services' || activeTab === 'packages' || activeTab === 'addons') && (
+      {(ui.activeTab === 'services' || ui.activeTab === 'packages' || ui.activeTab === 'addons') && (
         <div className="bg-white border-b border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Search */}
@@ -254,7 +249,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
               <input
                 type="text"
                 placeholder="Search services..."
-                value={searchQuery}
+                value={ui.searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
@@ -264,16 +259,16 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             <div className="flex items-center gap-2">
               {/* Show Inactive Toggle */}
               <button
-                onClick={() => setShowInactive(!showInactive)}
+                onClick={() => setShowInactive(!ui.showInactive)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  showInactive
+                  ui.showInactive
                     ? 'bg-gray-100 text-gray-900'
                     : 'text-gray-500 hover:bg-gray-50'
                 }`}
               >
-                {showInactive ? <Eye size={16} /> : <EyeOff size={16} />}
+                {ui.showInactive ? <Eye size={16} /> : <EyeOff size={16} />}
                 <span className="hidden sm:inline">
-                  {showInactive ? 'Showing All' : 'Active Only'}
+                  {ui.showInactive ? 'Showing All' : 'Active Only'}
                 </span>
               </button>
 
@@ -282,7 +277,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-1.5 rounded ${
-                    viewMode === 'grid'
+                    ui.viewMode === 'grid'
                       ? 'bg-white shadow text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -292,7 +287,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
                 <button
                   onClick={() => setViewMode('list')}
                   className={`p-1.5 rounded ${
-                    viewMode === 'list'
+                    ui.viewMode === 'list'
                       ? 'bg-white shadow text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -302,7 +297,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
                 <button
                   onClick={() => setViewMode('compact')}
                   className={`p-1.5 rounded ${
-                    viewMode === 'compact'
+                    ui.viewMode === 'compact'
                       ? 'bg-white shadow text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}

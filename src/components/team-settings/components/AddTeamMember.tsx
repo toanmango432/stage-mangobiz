@@ -13,10 +13,26 @@ import {
   mockServices
 } from '../constants';
 import { Button, Toggle } from './SharedComponents';
+import { isValidEmail } from '../validation/validate';
+
+// UUID v4 generator
+function generateUUID(): string {
+  // Use crypto.randomUUID if available (modern browsers)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback implementation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 interface AddTeamMemberProps {
   onClose: () => void;
   onSave: (member: TeamMemberSettings) => void;
+  existingEmails?: string[];
 }
 
 type WizardStep = 'basics' | 'schedule' | 'services' | 'review';
@@ -38,7 +54,7 @@ const STEPS: { id: WizardStep; label: string; description: string }[] = [
   { id: 'review', label: 'Review', description: 'Confirm & create' },
 ];
 
-export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave }) => {
+export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, existingEmails = [] }) => {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -66,22 +82,33 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave })
 
     if (!basics.firstName.trim()) {
       newErrors.firstName = 'First name is required';
+    } else if (basics.firstName.length > 100) {
+      newErrors.firstName = 'First name must be 100 characters or less';
     }
     if (!basics.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
+    } else if (basics.lastName.length > 100) {
+      newErrors.lastName = 'Last name must be 100 characters or less';
     }
     if (!basics.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(basics.email)) {
-      newErrors.email = 'Invalid email format';
+    } else if (!isValidEmail(basics.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    } else if (existingEmails.map(e => e.toLowerCase()).includes(basics.email.trim().toLowerCase())) {
+      newErrors.email = 'This email is already in use by another team member';
     }
     if (!basics.phone.trim()) {
       newErrors.phone = 'Phone is required';
+    } else if (basics.phone.length > 20) {
+      newErrors.phone = 'Phone must be 20 characters or less';
+    }
+    if (basics.bio && basics.bio.length > 1000) {
+      newErrors.bio = 'Bio must be 1000 characters or less';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [basics]);
+  }, [basics, existingEmails]);
 
   const handleNext = () => {
     if (currentStep === 'basics') {
@@ -107,18 +134,38 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave })
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Create the new team member
+    const now = new Date().toISOString();
+    const memberId = generateUUID();
+    const deviceId = typeof window !== 'undefined' ? `device-${window.navigator.userAgent.slice(0, 10)}` : 'web';
+
+    // Create the new team member with all sync fields
     const newMember: TeamMemberSettings = {
-      id: `tm-${Date.now()}`,
+      // Syncable entity fields
+      id: memberId,
+      tenantId: 'default-tenant',
+      storeId: 'default-store',
+      syncStatus: 'local',
+      version: 1,
+      vectorClock: { [deviceId]: 1 },
+      lastSyncedVersion: 0,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: 'system',
+      createdByDevice: deviceId,
+      lastModifiedBy: 'system',
+      lastModifiedByDevice: deviceId,
+      isDeleted: false,
+
+      // Profile
       profile: {
-        id: `tm-${Date.now()}`,
-        firstName: basics.firstName,
-        lastName: basics.lastName,
-        displayName: `${basics.firstName} ${basics.lastName[0]}.`,
-        email: basics.email,
-        phone: basics.phone,
-        title: basics.title || roleLabels[basics.role],
-        bio: basics.bio,
+        id: memberId,
+        firstName: basics.firstName.trim(),
+        lastName: basics.lastName.trim(),
+        displayName: `${basics.firstName.trim()} ${basics.lastName.trim()[0]}.`,
+        email: basics.email.trim().toLowerCase(),
+        phone: basics.phone.trim(),
+        title: basics.title?.trim() || roleLabels[basics.role],
+        bio: basics.bio?.trim(),
         hireDate: new Date().toISOString().split('T')[0],
       },
       services: services,
@@ -197,15 +244,16 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave })
       },
       performanceGoals: {},
       isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    // Simulate async save
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    onSave(newMember);
-    setIsSubmitting(false);
+    try {
+      onSave(newMember);
+    } catch (error) {
+      console.error('Failed to save new team member:', error);
+      setErrors({ submit: 'Failed to save team member. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);

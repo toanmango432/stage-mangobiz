@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
   Plus,
   Trash2,
-  Clock,
   DollarSign,
   Globe,
   Users,
-  ChevronDown,
   Info,
   GripVertical,
   Star,
 } from 'lucide-react';
-import type { MenuService, ServiceCategory, ServiceVariant, ServiceModalProps } from '../types';
+import type { EmbeddedVariant, ServiceModalProps } from '../../../types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, formatDuration } from '../constants';
 
 export function ServiceModal({
@@ -34,11 +32,11 @@ export function ServiceModal({
 
   // Duration
   const [duration, setDuration] = useState(60);
-  const [processingTime, setProcessingTime] = useState(0);
+  const [extraTime, setExtraTime] = useState(0);
 
   // Variants
   const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState<ServiceVariant[]>([]);
+  const [variants, setVariants] = useState<EmbeddedVariant[]>([]);
 
   // Staff
   const [allStaffCanPerform, setAllStaffCanPerform] = useState(true);
@@ -65,8 +63,8 @@ export function ServiceModal({
         setPricingType(service.pricingType as any);
         setPrice(service.price);
         setDuration(service.duration);
-        setProcessingTime(service.processingTime || 0);
-        setHasVariants(service.hasVariants);
+        setExtraTime(service.extraTime || 0);
+        setHasVariants(service.hasVariants || false);
         setVariants(service.variants || []);
         setAllStaffCanPerform(service.allStaffCanPerform);
         setOnlineBookingEnabled(service.onlineBookingEnabled);
@@ -81,7 +79,7 @@ export function ServiceModal({
         setPricingType('fixed');
         setPrice(0);
         setDuration(60);
-        setProcessingTime(0);
+        setExtraTime(0);
         setHasVariants(false);
         setVariants([]);
         setAllStaffCanPerform(true);
@@ -97,18 +95,19 @@ export function ServiceModal({
 
   // Add variant
   const addVariant = () => {
-    const newVariant: ServiceVariant = {
+    const newVariant: EmbeddedVariant = {
       id: `var-${Date.now()}`,
       name: '',
       duration: duration,
       price: price,
+      processingTime: extraTime,
       isDefault: variants.length === 0,
     };
     setVariants([...variants, newVariant]);
   };
 
   // Update variant
-  const updateVariant = (index: number, updates: Partial<ServiceVariant>) => {
+  const updateVariant = (index: number, updates: Partial<EmbeddedVariant>) => {
     const newVariants = [...variants];
     newVariants[index] = { ...newVariants[index], ...updates };
     setVariants(newVariants);
@@ -144,18 +143,16 @@ export function ServiceModal({
       pricingType,
       price,
       duration,
-      processingTime: processingTime || undefined,
+      extraTime: extraTime || undefined,
       hasVariants,
-      variants: hasVariants ? variants : [],
       allStaffCanPerform,
-      assignedStaffIds: [],
       onlineBookingEnabled,
       showPriceOnline,
       requiresDeposit,
       depositPercentage: requiresDeposit ? depositPercentage : undefined,
       taxable,
       bookingAvailability: onlineBookingEnabled ? 'both' : 'in-store',
-    });
+    }, hasVariants ? variants : undefined);
   };
 
   // Handle keyboard
@@ -339,11 +336,11 @@ export function ServiceModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Processing Time
+                    Extra Time
                   </label>
                   <select
-                    value={processingTime}
-                    onChange={(e) => setProcessingTime(Number(e.target.value))}
+                    value={extraTime}
+                    onChange={(e) => setExtraTime(Number(e.target.value))}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     {PROCESSING_TIME_OPTIONS.map((opt) => (

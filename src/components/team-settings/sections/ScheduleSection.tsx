@@ -1,39 +1,155 @@
-import React, { useState } from 'react';
-import type { WorkingHoursSettings, WorkingDay, TimeOffRequest, ScheduleOverride } from '../types';
+import React, { useState, useCallback, useMemo } from 'react';
+import type { WorkingHoursSettings, WorkingDay, Shift } from '../types';
 import { dayNames, dayNamesShort } from '../constants';
-import { Card, SectionHeader, Toggle, Button, Badge, Input, Select } from '../components/SharedComponents';
+import { Card, SectionHeader, Toggle, Button, Badge, Modal } from '../components/SharedComponents';
+import { TimeOffModal } from '../components/TimeOffModal';
+import { ScheduleOverrideModal } from '../components/ScheduleOverrideModal';
+import {
+  useStaffTimeOffRequests,
+  useStaffBlockedTimeEntries,
+  useTimeOffRequestMutations,
+  useBlockedTimeEntryMutations,
+} from '../../../hooks/useSchedule';
+import { useScheduleContext } from '../hooks/useScheduleContext';
+import { isValidTimeFormat } from '../validation/validate';
+import type { TimeOffRequest as ScheduleTimeOffRequest, BlockedTimeEntry } from '../../../types/schedule';
 
 interface ScheduleSectionProps {
   workingHours: WorkingHoursSettings;
+  memberId: string;
+  memberName: string;
   onChange: (workingHours: WorkingHoursSettings) => void;
 }
 
-export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, onChange }) => {
-  const [activeTab, setActiveTab] = useState<'regular' | 'timeoff' | 'overrides'>('regular');
-  const [showAddTimeOff, setShowAddTimeOff] = useState(false);
-  const [showAddOverride, setShowAddOverride] = useState(false);
+interface ShiftError {
+  dayOfWeek: number;
+  shiftIndex: number;
+  field: 'startTime' | 'endTime';
+  message: string;
+}
 
-  const updateRegularHours = (dayOfWeek: number, updates: Partial<WorkingDay>) => {
+export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, memberId, memberName, onChange }) => {
+  const context = useScheduleContext();
+
+  // Get data from unified schedule database
+  const { requests: timeOffRequests } = useStaffTimeOffRequests(memberId);
+  const { entries: blockedTimeEntries } = useStaffBlockedTimeEntries(memberId);
+  const { cancel: cancelTimeOffRequest } = useTimeOffRequestMutations(context || {
+    userId: '',
+    userName: '',
+    storeId: '',
+    tenantId: '',
+    deviceId: '',
+  });
+  const { remove: removeBlockedTime } = useBlockedTimeEntryMutations(context || {
+    userId: '',
+    userName: '',
+    storeId: '',
+    tenantId: '',
+    deviceId: '',
+  });
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'regular' | 'timeoff' | 'overrides'>('regular');
+
+  // Modal states
+  const [showTimeOffModal, setShowTimeOffModal] = useState(false);
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [editingTimeOff, setEditingTimeOff] = useState<ScheduleTimeOffRequest | undefined>(undefined);
+  const [editingBlockedTime, setEditingBlockedTime] = useState<BlockedTimeEntry | undefined>(undefined);
+
+  // Delete confirmation states
+  const [deleteTimeOffId, setDeleteTimeOffId] = useState<string | null>(null);
+  const [deleteBlockedTimeId, setDeleteBlockedTimeId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Action menu states
+  const [openTimeOffMenu, setOpenTimeOffMenu] = useState<string | null>(null);
+  const [openBlockedTimeMenu, setOpenBlockedTimeMenu] = useState<string | null>(null);
+
+  // Validation errors
+  const [shiftErrors, setShiftErrors] = useState<ShiftError[]>([]);
+
+  // Validate a shift
+  const validateShift = useCallback((
+    dayOfWeek: number,
+    shiftIndex: number,
+    startTime: string,
+    endTime: string,
+    allShifts: Shift[]
+  ): ShiftError[] => {
+    const errors: ShiftError[] = [];
+
+    // Format validation
+    if (!isValidTimeFormat(startTime)) {
+      errors.push({ dayOfWeek, shiftIndex, field: 'startTime', message: 'Use HH:mm format' });
+    }
+    if (!isValidTimeFormat(endTime)) {
+      errors.push({ dayOfWeek, shiftIndex, field: 'endTime', message: 'Use HH:mm format' });
+    }
+
+    // End > Start validation
+    if (startTime >= endTime) {
+      errors.push({ dayOfWeek, shiftIndex, field: 'endTime', message: 'End must be after start' });
+    }
+
+    // Overlap validation
+    allShifts.forEach((otherShift, otherIndex) => {
+      if (otherIndex !== shiftIndex) {
+        const overlaps =
+          (startTime >= otherShift.startTime && startTime < otherShift.endTime) ||
+          (endTime > otherShift.startTime && endTime <= otherShift.endTime) ||
+          (startTime <= otherShift.startTime && endTime >= otherShift.endTime);
+
+        if (overlaps) {
+          errors.push({ dayOfWeek, shiftIndex, field: 'startTime', message: `Overlaps shift ${otherIndex + 1}` });
+        }
+      }
+    });
+
+    return errors;
+  }, []);
+
+  // Get error for a specific shift field
+  const getShiftError = useCallback((dayOfWeek: number, shiftIndex: number, field: 'startTime' | 'endTime'): string | undefined => {
+    return shiftErrors.find(e => e.dayOfWeek === dayOfWeek && e.shiftIndex === shiftIndex && e.field === field)?.message;
+  }, [shiftErrors]);
+
+  const updateRegularHours = useCallback((dayOfWeek: number, updates: Partial<WorkingDay>) => {
     onChange({
       ...workingHours,
       regularHours: workingHours.regularHours.map((day) =>
         day.dayOfWeek === dayOfWeek ? { ...day, ...updates } : day
       ),
     });
-  };
+  }, [workingHours, onChange]);
 
-  const updateShift = (dayOfWeek: number, shiftIndex: number, field: 'startTime' | 'endTime', value: string) => {
+  const updateShift = useCallback((dayOfWeek: number, shiftIndex: number, field: 'startTime' | 'endTime', value: string) => {
     const day = workingHours.regularHours.find((d) => d.dayOfWeek === dayOfWeek);
     if (!day) return;
 
     const newShifts = [...day.shifts];
     newShifts[shiftIndex] = { ...newShifts[shiftIndex], [field]: value };
-    updateRegularHours(dayOfWeek, { shifts: newShifts });
-  };
 
-  const addShift = (dayOfWeek: number) => {
+    // Validate the shift
+    const errors = validateShift(dayOfWeek, shiftIndex,
+      field === 'startTime' ? value : newShifts[shiftIndex].startTime,
+      field === 'endTime' ? value : newShifts[shiftIndex].endTime,
+      newShifts
+    );
+
+    // Update errors - remove old errors for this day/shift/field and add new ones
+    setShiftErrors(prev => {
+      const filtered = prev.filter(e => !(e.dayOfWeek === dayOfWeek && e.shiftIndex === shiftIndex && e.field === field));
+      return [...filtered, ...errors.filter(e => e.field === field)];
+    });
+
+    updateRegularHours(dayOfWeek, { shifts: newShifts });
+  }, [workingHours.regularHours, updateRegularHours, validateShift]);
+
+  const addShift = useCallback((dayOfWeek: number) => {
     const day = workingHours.regularHours.find((d) => d.dayOfWeek === dayOfWeek);
-    if (!day) return;
+    if (!day || day.shifts.length >= 3) return; // Max 3 shifts
 
     const lastShift = day.shifts[day.shifts.length - 1];
     const newStart = lastShift ? addHours(lastShift.endTime, 1) : '09:00';
@@ -42,20 +158,24 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
     updateRegularHours(dayOfWeek, {
       shifts: [...day.shifts, { startTime: newStart, endTime: newEnd }],
     });
-  };
+  }, [workingHours.regularHours, updateRegularHours]);
 
-  const removeShift = (dayOfWeek: number, shiftIndex: number) => {
+  const removeShift = useCallback((dayOfWeek: number, shiftIndex: number) => {
     const day = workingHours.regularHours.find((d) => d.dayOfWeek === dayOfWeek);
     if (!day) return;
 
     const newShifts = day.shifts.filter((_, i) => i !== shiftIndex);
+
+    // Clear errors for this shift
+    setShiftErrors(prev => prev.filter(e => !(e.dayOfWeek === dayOfWeek && e.shiftIndex === shiftIndex)));
+
     updateRegularHours(dayOfWeek, {
       shifts: newShifts,
       isWorking: newShifts.length > 0,
     });
-  };
+  }, [workingHours.regularHours, updateRegularHours]);
 
-  const copyToAllDays = (sourceDayOfWeek: number) => {
+  const copyToAllDays = useCallback((sourceDayOfWeek: number) => {
     const sourceDay = workingHours.regularHours.find((d) => d.dayOfWeek === sourceDayOfWeek);
     if (!sourceDay) return;
 
@@ -67,7 +187,7 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
           : { ...day, shifts: [...sourceDay.shifts], isWorking: sourceDay.isWorking }
       ),
     });
-  };
+  }, [workingHours, onChange]);
 
   const addHours = (time: string, hours: number): string => {
     const [h, m] = time.split(':').map(Number);
@@ -75,15 +195,64 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
     return `${newH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   };
 
+  // Delete handlers
+  const handleDeleteTimeOff = useCallback(async () => {
+    if (!deleteTimeOffId || !context) return;
+    setIsDeleting(true);
+    try {
+      await cancelTimeOffRequest(deleteTimeOffId);
+      setDeleteTimeOffId(null);
+    } catch (error) {
+      console.error('Failed to cancel time off:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [cancelTimeOffRequest, deleteTimeOffId, context]);
+
+  const handleDeleteBlockedTime = useCallback(async () => {
+    if (!deleteBlockedTimeId || !context) return;
+    setIsDeleting(true);
+    try {
+      await removeBlockedTime(deleteBlockedTimeId);
+      setDeleteBlockedTimeId(null);
+    } catch (error) {
+      console.error('Failed to delete blocked time:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [removeBlockedTime, deleteBlockedTimeId, context]);
+
   // Calculate total weekly hours
-  const totalWeeklyHours = workingHours.regularHours.reduce((total, day) => {
-    if (!day.isWorking) return total;
-    return total + day.shifts.reduce((dayTotal, shift) => {
-      const [startH, startM] = shift.startTime.split(':').map(Number);
-      const [endH, endM] = shift.endTime.split(':').map(Number);
-      return dayTotal + (endH + endM / 60) - (startH + startM / 60);
+  const totalWeeklyHours = useMemo(() => {
+    return workingHours.regularHours.reduce((total, day) => {
+      if (!day.isWorking) return total;
+      return total + day.shifts.reduce((dayTotal, shift) => {
+        const [startH, startM] = shift.startTime.split(':').map(Number);
+        const [endH, endM] = shift.endTime.split(':').map(Number);
+        return dayTotal + (endH + endM / 60) - (startH + startM / 60);
+      }, 0);
     }, 0);
-  }, 0);
+  }, [workingHours.regularHours]);
+
+  // Sort time off requests by date (newest first)
+  const sortedTimeOffRequests = useMemo(() => {
+    return [...timeOffRequests].sort((a, b) =>
+      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    );
+  }, [timeOffRequests]);
+
+  // Sort blocked time entries by date (upcoming first)
+  const sortedBlockedTimeEntries = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return [...blockedTimeEntries]
+      .filter(e => e.startDateTime.split('T')[0] >= today) // Only show upcoming
+      .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+  }, [blockedTimeEntries]);
+
+  // Count pending requests
+  const pendingRequestsCount = useMemo(() => {
+    return timeOffRequests.filter(r => r.status === 'pending').length;
+  }, [timeOffRequests]);
 
   return (
     <div className="space-y-6">
@@ -101,21 +270,23 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
         </Card>
         <Card padding="md" className="text-center">
           <p className="text-2xl font-bold text-amber-600">
-            {workingHours.timeOffRequests.filter((r) => r.status === 'pending').length}
+            {pendingRequestsCount}
           </p>
           <p className="text-sm text-gray-500">Pending Requests</p>
         </Card>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg" role="tablist">
         {[
           { id: 'regular', label: 'Regular Hours', icon: <ClockIcon className="w-4 h-4" /> },
           { id: 'timeoff', label: 'Time Off', icon: <CalendarIcon className="w-4 h-4" /> },
-          { id: 'overrides', label: 'Overrides', icon: <EditIcon className="w-4 h-4" /> },
+          { id: 'overrides', label: 'Blocked Time', icon: <EditIcon className="w-4 h-4" /> },
         ].map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
             className={`
               flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium
@@ -175,39 +346,64 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
                   <div className="flex-1">
                     {day.isWorking ? (
                       <div className="space-y-2">
-                        {day.shifts.map((shift, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <input
-                              type="time"
-                              value={shift.startTime}
-                              onChange={(e) => updateShift(day.dayOfWeek, index, 'startTime', e.target.value)}
-                              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                            />
-                            <span className="text-gray-400">to</span>
-                            <input
-                              type="time"
-                              value={shift.endTime}
-                              onChange={(e) => updateShift(day.dayOfWeek, index, 'endTime', e.target.value)}
-                              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                            />
-                            {day.shifts.length > 1 && (
-                              <button
-                                onClick={() => removeShift(day.dayOfWeek, index)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
-                            )}
-                            {index === day.shifts.length - 1 && (
-                              <button
-                                onClick={() => addShift(day.dayOfWeek)}
-                                className="p-1.5 text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 rounded-lg transition-colors"
-                              >
-                                <PlusIcon className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                        {day.shifts.map((shift, index) => {
+                          const startError = getShiftError(day.dayOfWeek, index, 'startTime');
+                          const endError = getShiftError(day.dayOfWeek, index, 'endTime');
+
+                          return (
+                            <div key={index}>
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <input
+                                    type="time"
+                                    value={shift.startTime}
+                                    onChange={(e) => updateShift(day.dayOfWeek, index, 'startTime', e.target.value)}
+                                    className={`px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                      startError ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                                    }`}
+                                    aria-label={`${dayNames[day.dayOfWeek]} shift ${index + 1} start time`}
+                                  />
+                                </div>
+                                <span className="text-gray-400">to</span>
+                                <div>
+                                  <input
+                                    type="time"
+                                    value={shift.endTime}
+                                    onChange={(e) => updateShift(day.dayOfWeek, index, 'endTime', e.target.value)}
+                                    className={`px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${
+                                      endError ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                                    }`}
+                                    aria-label={`${dayNames[day.dayOfWeek]} shift ${index + 1} end time`}
+                                  />
+                                </div>
+                                {day.shifts.length > 1 && (
+                                  <button
+                                    onClick={() => removeShift(day.dayOfWeek, index)}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    aria-label={`Remove shift ${index + 1}`}
+                                  >
+                                    <TrashIcon className="w-4 h-4" />
+                                  </button>
+                                )}
+                                {index === day.shifts.length - 1 && day.shifts.length < 3 && (
+                                  <button
+                                    onClick={() => addShift(day.dayOfWeek)}
+                                    className="p-1.5 text-gray-400 hover:text-cyan-500 hover:bg-cyan-50 rounded-lg transition-colors"
+                                    aria-label="Add another shift"
+                                  >
+                                    <PlusIcon className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                              {/* Error messages */}
+                              {(startError || endError) && (
+                                <p className="mt-1 text-xs text-red-500" role="alert">
+                                  {startError || endError}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <span className="text-sm text-gray-400">Day off</span>
@@ -259,14 +455,17 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
                 variant="primary"
                 size="sm"
                 icon={<PlusIcon className="w-4 h-4" />}
-                onClick={() => setShowAddTimeOff(true)}
+                onClick={() => {
+                  setEditingTimeOff(undefined);
+                  setShowTimeOffModal(true);
+                }}
               >
-                Add Time Off
+                Request Time Off
               </Button>
             </div>
           </Card>
 
-          {workingHours.timeOffRequests.length === 0 ? (
+          {sortedTimeOffRequests.length === 0 ? (
             <Card padding="lg">
               <div className="text-center py-8">
                 <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -279,8 +478,17 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
           ) : (
             <Card padding="none">
               <div className="divide-y divide-gray-100">
-                {workingHours.timeOffRequests.map((request) => (
-                  <TimeOffRow key={request.id} request={request} />
+                {sortedTimeOffRequests.map((request) => (
+                  <TimeOffRow
+                    key={request.id}
+                    request={request}
+                    isMenuOpen={openTimeOffMenu === request.id}
+                    onToggleMenu={() => setOpenTimeOffMenu(openTimeOffMenu === request.id ? null : request.id)}
+                    onDelete={() => {
+                      setDeleteTimeOffId(request.id);
+                      setOpenTimeOffMenu(null);
+                    }}
+                  />
                 ))}
               </div>
             </Card>
@@ -288,41 +496,53 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
         </div>
       )}
 
-      {/* Schedule Overrides Tab */}
+      {/* Blocked Time Tab */}
       {activeTab === 'overrides' && (
         <div className="space-y-4">
           <Card padding="md">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-gray-900">Schedule Overrides</h3>
-                <p className="text-sm text-gray-500">One-time changes to regular hours</p>
+                <h3 className="font-semibold text-gray-900">Blocked Time</h3>
+                <p className="text-sm text-gray-500">One-time or recurring schedule blocks</p>
               </div>
               <Button
                 variant="primary"
                 size="sm"
                 icon={<PlusIcon className="w-4 h-4" />}
-                onClick={() => setShowAddOverride(true)}
+                onClick={() => {
+                  setEditingBlockedTime(undefined);
+                  setShowOverrideModal(true);
+                }}
               >
-                Add Override
+                Block Time
               </Button>
             </div>
           </Card>
 
-          {workingHours.scheduleOverrides.length === 0 ? (
+          {sortedBlockedTimeEntries.length === 0 ? (
             <Card padding="lg">
               <div className="text-center py-8">
                 <EditIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No schedule overrides</p>
+                <p className="text-gray-500">No upcoming blocked time</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Add overrides for specific dates
+                  Add blocked time for meetings, training, etc.
                 </p>
               </div>
             </Card>
           ) : (
             <Card padding="none">
               <div className="divide-y divide-gray-100">
-                {workingHours.scheduleOverrides.map((override) => (
-                  <OverrideRow key={override.id} override={override} />
+                {sortedBlockedTimeEntries.map((entry) => (
+                  <BlockedTimeRow
+                    key={entry.id}
+                    entry={entry}
+                    isMenuOpen={openBlockedTimeMenu === entry.id}
+                    onToggleMenu={() => setOpenBlockedTimeMenu(openBlockedTimeMenu === entry.id ? null : entry.id)}
+                    onDelete={() => {
+                      setDeleteBlockedTimeId(entry.id);
+                      setOpenBlockedTimeMenu(null);
+                    }}
+                  />
                 ))}
               </div>
             </Card>
@@ -367,38 +587,110 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
           ))}
         </div>
       </Card>
+
+      {/* Time Off Modal */}
+      <TimeOffModal
+        isOpen={showTimeOffModal}
+        onClose={() => {
+          setShowTimeOffModal(false);
+          setEditingTimeOff(undefined);
+        }}
+        memberId={memberId}
+        memberName={memberName}
+        existingRequest={editingTimeOff}
+      />
+
+      {/* Schedule Override Modal */}
+      <ScheduleOverrideModal
+        isOpen={showOverrideModal}
+        onClose={() => {
+          setShowOverrideModal(false);
+          setEditingBlockedTime(undefined);
+        }}
+        memberId={memberId}
+        memberName={memberName}
+        existingEntry={editingBlockedTime}
+      />
+
+      {/* Delete Time Off Confirmation */}
+      {deleteTimeOffId && (
+        <Modal
+          title="Cancel Time Off Request"
+          onClose={() => setDeleteTimeOffId(null)}
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to cancel this time off request? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setDeleteTimeOffId(null)} disabled={isDeleting}>
+                Keep Request
+              </Button>
+              <Button variant="danger" onClick={handleDeleteTimeOff} disabled={isDeleting}>
+                {isDeleting ? 'Canceling...' : 'Cancel Request'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Blocked Time Confirmation */}
+      {deleteBlockedTimeId && (
+        <Modal
+          title="Delete Blocked Time"
+          onClose={() => setDeleteBlockedTimeId(null)}
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete this blocked time? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setDeleteBlockedTimeId(null)} disabled={isDeleting}>
+                Keep
+              </Button>
+              <Button variant="danger" onClick={handleDeleteBlockedTime} disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
 
 // Time Off Row Component
-const TimeOffRow: React.FC<{ request: TimeOffRequest }> = ({ request }) => {
+interface TimeOffRowProps {
+  request: ScheduleTimeOffRequest;
+  isMenuOpen: boolean;
+  onToggleMenu: () => void;
+  onDelete: () => void;
+}
+
+const TimeOffRow: React.FC<TimeOffRowProps> = ({ request, isMenuOpen, onToggleMenu, onDelete }) => {
   const statusColors = {
     pending: { bg: 'bg-amber-50', text: 'text-amber-700', dot: '#FFA726' },
     approved: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: '#66BB6A' },
     denied: { bg: 'bg-red-50', text: 'text-red-700', dot: '#EF5350' },
+    cancelled: { bg: 'bg-gray-50', text: 'text-gray-700', dot: '#9E9E9E' },
   };
 
-  const typeLabels = {
-    vacation: 'Vacation',
-    sick: 'Sick Leave',
-    personal: 'Personal',
-    unpaid: 'Unpaid Leave',
-    other: 'Other',
-  };
+  const canCancel = request.status === 'pending';
 
   return (
     <div className="p-4 flex items-center gap-4">
-      <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center text-cyan-600">
-        <CalendarIcon className="w-5 h-5" />
+      <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center text-xl">
+        {request.typeEmoji}
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900">{typeLabels[request.type]}</span>
+          <span className="font-medium text-gray-900">{request.typeName}</span>
           <Badge
-            variant={request.status === 'approved' ? 'success' : request.status === 'denied' ? 'error' : 'warning'}
+            variant={request.status === 'approved' ? 'success' : request.status === 'denied' ? 'error' : request.status === 'cancelled' ? 'default' : 'warning'}
             dot
-            dotColor={statusColors[request.status].dot}
+            dotColor={statusColors[request.status]?.dot}
             size="sm"
           >
             {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
@@ -406,50 +698,104 @@ const TimeOffRow: React.FC<{ request: TimeOffRequest }> = ({ request }) => {
         </div>
         <p className="text-sm text-gray-500 mt-0.5">
           {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
+          {!request.isAllDay && request.startTime && request.endTime && (
+            <span className="ml-2 text-gray-400">
+              {request.startTime} - {request.endTime}
+            </span>
+          )}
         </p>
+        {request.notes && (
+          <p className="text-sm text-gray-400 mt-1 truncate max-w-xs">{request.notes}</p>
+        )}
       </div>
-      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-        <DotsIcon className="w-5 h-5" />
-      </button>
+      {canCancel && (
+        <div className="relative">
+          <button
+            onClick={onToggleMenu}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Actions menu"
+          >
+            <DotsIcon className="w-5 h-5" />
+          </button>
+          {isMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+              <button
+                onClick={onDelete}
+                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+              >
+                Cancel Request
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
-// Override Row Component
-const OverrideRow: React.FC<{ override: ScheduleOverride }> = ({ override }) => {
-  const typeLabels = {
-    day_off: 'Day Off',
-    custom_hours: 'Custom Hours',
-    extra_day: 'Extra Day',
-  };
+// Blocked Time Row Component
+interface BlockedTimeRowProps {
+  entry: BlockedTimeEntry;
+  isMenuOpen: boolean;
+  onToggleMenu: () => void;
+  onDelete: () => void;
+}
 
-  const typeColors = {
-    day_off: 'bg-red-100 text-red-600',
-    custom_hours: 'bg-amber-100 text-amber-600',
-    extra_day: 'bg-emerald-100 text-emerald-600',
+const BlockedTimeRow: React.FC<BlockedTimeRowProps> = ({ entry, isMenuOpen, onToggleMenu, onDelete }) => {
+  const startDate = new Date(entry.startDateTime);
+  const endDate = new Date(entry.endDateTime);
+
+  const frequencyLabels: Record<string, string> = {
+    once: 'One-time',
+    daily: 'Daily',
+    weekly: 'Weekly',
+    biweekly: 'Every 2 weeks',
+    monthly: 'Monthly',
   };
 
   return (
     <div className="p-4 flex items-center gap-4">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeColors[override.type]}`}>
-        <EditIcon className="w-5 h-5" />
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ backgroundColor: `${entry.typeColor}20` }}>
+        {entry.typeEmoji}
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900">{typeLabels[override.type]}</span>
+          <span className="font-medium text-gray-900">{entry.typeName}</span>
+          {entry.frequency !== 'once' && (
+            <Badge variant="default" size="sm">
+              {frequencyLabels[entry.frequency]}
+            </Badge>
+          )}
         </div>
         <p className="text-sm text-gray-500 mt-0.5">
-          {new Date(override.date).toLocaleDateString()}
-          {override.customShifts && override.customShifts.length > 0 && (
-            <span className="ml-2 text-gray-400">
-              {override.customShifts.map((s) => `${s.startTime}-${s.endTime}`).join(', ')}
-            </span>
-          )}
+          {startDate.toLocaleDateString()}
+          <span className="ml-2 text-gray-400">
+            {startDate.toTimeString().slice(0, 5)} - {endDate.toTimeString().slice(0, 5)}
+          </span>
         </p>
+        {entry.notes && (
+          <p className="text-sm text-gray-400 mt-1">{entry.notes}</p>
+        )}
       </div>
-      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-        <DotsIcon className="w-5 h-5" />
-      </button>
+      <div className="relative">
+        <button
+          onClick={onToggleMenu}
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          aria-label="Actions menu"
+        >
+          <DotsIcon className="w-5 h-5" />
+        </button>
+        {isMenuOpen && (
+          <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+            <button
+              onClick={onDelete}
+              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

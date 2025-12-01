@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Edit3,
@@ -13,22 +13,29 @@ import {
   Eye,
   ChevronRight,
   Sparkles,
-  GripVertical,
-  Tag,
   Layers,
 } from 'lucide-react';
-import type { MenuService, ServiceCategory, ViewMode } from '../types';
-import { formatDuration, formatPrice, CATEGORY_COLORS } from '../constants';
+import type {
+  MenuService,
+  MenuServiceWithEmbeddedVariants,
+  CategoryWithCount,
+  CatalogViewMode,
+  EmbeddedVariant,
+} from '../../../types/catalog';
+import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
 
 interface ServicesSectionProps {
-  services: MenuService[];
-  allServices: MenuService[];
-  categories: ServiceCategory[];
-  viewMode: ViewMode;
+  services: MenuServiceWithEmbeddedVariants[];
+  allServices: MenuServiceWithEmbeddedVariants[];
+  categories: CategoryWithCount[];
+  viewMode: CatalogViewMode;
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
-  onUpdate: (services: MenuService[]) => void;
+  // Action callbacks
+  onCreate?: (data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null>;
+  onUpdate?: (id: string, data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null | undefined>;
+  onDelete?: (id: string) => Promise<boolean | null>;
 }
 
 export function ServicesSection({
@@ -38,10 +45,12 @@ export function ServicesSection({
   viewMode,
   selectedCategoryId,
   onSelectCategory,
+  onCreate,
   onUpdate,
+  onDelete,
 }: ServicesSectionProps) {
   const [showModal, setShowModal] = useState(false);
-  const [editingService, setEditingService] = useState<MenuService | undefined>();
+  const [editingService, setEditingService] = useState<MenuServiceWithEmbeddedVariants | undefined>();
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
 
   // Get category by ID
@@ -50,73 +59,82 @@ export function ServicesSection({
   };
 
   // Handle save service
-  const handleSaveService = (serviceData: Partial<MenuService>) => {
+  const handleSaveService = async (serviceData: Partial<MenuService>, variants?: EmbeddedVariant[]) => {
     if (editingService) {
-      const updated = allServices.map(svc =>
-        svc.id === editingService.id
-          ? { ...svc, ...serviceData, updatedAt: new Date() }
-          : svc
-      );
-      onUpdate(updated);
+      // Update existing service
+      if (onUpdate) {
+        await onUpdate(editingService.id, serviceData, variants);
+      }
     } else {
-      const newService: MenuService = {
-        id: `svc-${Date.now()}`,
-        categoryId: serviceData.categoryId || categories[0]?.id || '',
-        name: serviceData.name || 'New Service',
-        description: serviceData.description,
-        pricingType: serviceData.pricingType || 'fixed',
-        price: serviceData.price || 0,
-        duration: serviceData.duration || 60,
-        processingTime: serviceData.processingTime,
-        hasVariants: serviceData.hasVariants || false,
-        variants: serviceData.variants || [],
-        assignedStaffIds: serviceData.assignedStaffIds || [],
-        allStaffCanPerform: serviceData.allStaffCanPerform ?? true,
-        bookingAvailability: serviceData.bookingAvailability || 'both',
-        onlineBookingEnabled: serviceData.onlineBookingEnabled ?? true,
-        requiresDeposit: serviceData.requiresDeposit || false,
-        taxable: serviceData.taxable ?? true,
-        status: 'active',
-        displayOrder: allServices.length + 1,
-        showPriceOnline: serviceData.showPriceOnline ?? true,
-        allowCustomDuration: serviceData.allowCustomDuration || false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      onUpdate([...allServices, newService]);
+      // Create new service
+      if (onCreate) {
+        await onCreate({
+          categoryId: serviceData.categoryId || categories[0]?.id || '',
+          name: serviceData.name || 'New Service',
+          description: serviceData.description,
+          pricingType: serviceData.pricingType || 'fixed',
+          price: serviceData.price || 0,
+          duration: serviceData.duration || 60,
+          extraTime: serviceData.extraTime,
+          hasVariants: (variants && variants.length > 0) || false,
+          allStaffCanPerform: serviceData.allStaffCanPerform ?? true,
+          bookingAvailability: serviceData.bookingAvailability || 'both',
+          onlineBookingEnabled: serviceData.onlineBookingEnabled ?? true,
+          requiresDeposit: serviceData.requiresDeposit || false,
+          taxable: serviceData.taxable ?? true,
+          status: 'active',
+          displayOrder: allServices.length + 1,
+          showPriceOnline: serviceData.showPriceOnline ?? true,
+          allowCustomDuration: serviceData.allowCustomDuration || false,
+        }, variants);
+      }
     }
     setShowModal(false);
     setEditingService(undefined);
   };
 
   // Handle delete
-  const handleDelete = (serviceId: string) => {
+  const handleDelete = async (serviceId: string) => {
     if (confirm('Are you sure you want to delete this service?')) {
-      onUpdate(allServices.filter(svc => svc.id !== serviceId));
+      if (onDelete) {
+        await onDelete(serviceId);
+      }
     }
   };
 
   // Handle toggle status
-  const handleToggleStatus = (serviceId: string) => {
-    const updated = allServices.map(svc =>
-      svc.id === serviceId
-        ? { ...svc, status: svc.status === 'active' ? 'inactive' : 'active' as any, updatedAt: new Date() }
-        : svc
-    );
-    onUpdate(updated);
+  const handleToggleStatus = async (serviceId: string) => {
+    const service = allServices.find(s => s.id === serviceId);
+    if (service && onUpdate) {
+      await onUpdate(serviceId, {
+        status: service.status === 'active' ? 'inactive' : 'active',
+      });
+    }
   };
 
   // Handle duplicate
-  const handleDuplicate = (service: MenuService) => {
-    const newService: MenuService = {
-      ...service,
-      id: `svc-${Date.now()}`,
-      name: `${service.name} (Copy)`,
-      displayOrder: allServices.length + 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    onUpdate([...allServices, newService]);
+  const handleDuplicate = async (service: MenuServiceWithEmbeddedVariants) => {
+    if (onCreate) {
+      await onCreate({
+        categoryId: service.categoryId,
+        name: `${service.name} (Copy)`,
+        description: service.description,
+        pricingType: service.pricingType,
+        price: service.price,
+        duration: service.duration,
+        extraTime: service.extraTime,
+        hasVariants: service.hasVariants,
+        allStaffCanPerform: service.allStaffCanPerform,
+        bookingAvailability: service.bookingAvailability,
+        onlineBookingEnabled: service.onlineBookingEnabled,
+        requiresDeposit: service.requiresDeposit,
+        taxable: service.taxable,
+        status: 'active',
+        displayOrder: allServices.length + 1,
+        showPriceOnline: service.showPriceOnline,
+        allowCustomDuration: service.allowCustomDuration,
+      }, service.variants);
+    }
   };
 
   // Render price display
@@ -223,7 +241,7 @@ export function ServicesSection({
 
             {/* Tags */}
             <div className="flex items-center gap-2 flex-wrap">
-              {service.hasVariants && (
+              {service.hasVariants && service.variants && service.variants.length > 0 && (
                 <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-xs rounded-full flex items-center gap-1">
                   <Layers size={12} /> {service.variants.length} variants
                 </span>
@@ -283,7 +301,7 @@ export function ServicesSection({
                   <span className="text-xs text-gray-500 px-2 py-0.5 bg-gray-100 rounded">
                     {category?.name || 'Uncategorized'}
                   </span>
-                  {service.hasVariants && (
+                  {service.hasVariants && service.variants && service.variants.length > 0 && (
                     <span className="text-xs text-purple-600 px-2 py-0.5 bg-purple-50 rounded">
                       {service.variants.length} variants
                     </span>

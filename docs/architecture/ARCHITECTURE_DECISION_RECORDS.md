@@ -35,6 +35,7 @@ Architecture Decision Records serve as:
 13. [ADR-013: Exponential Backoff with Jitter for Retries](#adr-013-exponential-backoff-with-jitter-for-retries)
 14. [ADR-014: Data Retention and Compliance Strategy](#adr-014-data-retention-and-compliance-strategy)
 15. [ADR-015: Audit Trail on All Mutations](#adr-015-audit-trail-on-all-mutations)
+16. [ADR-016: Opt-In Offline Mode (Planned)](#adr-016-opt-in-offline-mode-planned)
 
 ---
 
@@ -1004,10 +1005,78 @@ Cloud audit logs capture:
 
 ---
 
+## ADR-016: Opt-In Offline Mode (Planned)
+
+**Status:** Proposed
+**Date:** December 2025
+**Deciders:** Engineering Team
+
+### Context
+
+The current offline-first architecture stores business data on every device that logs in. While this ensures maximum reliability, it creates security and compliance concerns:
+
+- **Security risk:** Data exists on potentially 20+ unmanaged devices per store
+- **Ex-employee access:** 7-day grace period allows continued access after termination
+- **Compliance burden:** Client PII stored on personal devices (GDPR/CCPA concerns)
+- **Data sprawl:** No central control over which devices have business data
+- **Sync complexity:** More devices = more conflict resolution needed
+
+### Decision
+
+**Change the default behavior from "always offline" to "online-only by default" with opt-in offline capability for designated devices.**
+
+Key changes:
+1. New devices operate in online-only mode (no IndexedDB storage)
+2. Admins can designate specific devices as "offline-enabled"
+3. Store policy controls default mode and maximum offline devices
+4. Device registry tracks all registered devices and their modes
+
+### Rationale
+
+- **Security:** Reduces data exposure from 20+ devices to 2-3 trusted devices
+- **Compliance:** Easier to audit and manage data locations
+- **Flexibility:** Critical devices (front desk) still work offline
+- **Fast onboarding:** Online-only devices login instantly (no sync)
+- **Clean logout:** No data left behind on personal devices
+
+**Alternatives considered:**
+1. **Remote wipe only:** Doesn't prevent initial data storage
+2. **Shorter grace period:** Still stores data on all devices
+3. **Encryption-only:** Data still exists, just encrypted
+
+### Consequences
+
+**Positive:**
+- Dramatically reduced security risk surface
+- Simplified compliance and auditing
+- Faster login for most users
+- Fewer sync conflicts
+- Central device management
+
+**Negative:**
+- Online-only devices require network connectivity
+- Slower UX for online-only mode (API round-trips)
+- More code complexity (two data paths)
+- Testing burden (must test both modes)
+
+**Mitigations:**
+- Graceful degradation with clear error messages
+- DataProvider abstraction to minimize code duplication
+- Comprehensive test coverage for both modes
+- Clear UI indicators showing current mode
+
+### Related Documents
+- [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md) - Full product requirements
+- [DATA_STORAGE_STRATEGY.md](./DATA_STORAGE_STRATEGY.md) - Current storage architecture
+- [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) - System overview
+
+---
+
 ## Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 1.1 | Dec 1, 2025 | Engineering | Added ADR-016: Opt-In Offline Mode |
 | 1.0 | Nov 30, 2025 | Engineering | Initial ADR compilation |
 
 ---

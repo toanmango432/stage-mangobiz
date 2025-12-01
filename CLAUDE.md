@@ -1,162 +1,127 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> AI agent instructions for Mango POS Offline V2
 
-## Project Overview
+---
 
-Mango POS Offline V2 is an offline-first salon management system built with React, TypeScript, and IndexedDB. The application provides comprehensive salon operations management including appointment scheduling, ticket management, payment processing, and staff coordination - all designed to work seamlessly without internet connectivity.
+## Quick Reference
 
-## Common Development Commands
+| Item | Location |
+|------|----------|
+| **Tech Stack** | React 18, TypeScript, Redux Toolkit, Dexie.js (IndexedDB), Tailwind CSS |
+| **Dev Server** | `npm run dev` → localhost:5173 |
+| **Build** | `npm run build` |
+| **Test** | `npm test` |
+| **Full Docs** | `docs/INDEX.md` |
 
-```bash
-# Install dependencies
-npm install
+---
 
-# Start development server (runs on localhost:5173)
-npm run dev
+## ⚠️ Before Any Implementation
 
-# Build for production
-npm run build
+### 1. Read Required Documentation
 
-# Preview production build
-npm run preview
+| Change Type | Must Read |
+|-------------|-----------|
+| **Any change** | [TECHNICAL_DOCUMENTATION.md](./docs/architecture/TECHNICAL_DOCUMENTATION.md) |
+| **Data/Storage** | [DATA_STORAGE_STRATEGY.md](./docs/architecture/DATA_STORAGE_STRATEGY.md) |
+| **Book Module** | `docs/modules/book/BOOK_UX_IMPLEMENTATION_GUIDE.md` |
+| **Front Desk** | `docs/modules/frontdesk/` |
+| **Tickets** | `docs/modules/tickets/UNIFIED_TICKET_DESIGN_SYSTEM.md` |
+| **UI/Styling** | `src/constants/designSystem.ts`, `src/constants/premiumDesignTokens.ts` |
 
-# Run tests
-npm test
+### 2. Pre-Implementation Checklist
 
-# Run tests with UI
-npm run test:ui
+- [ ] Read relevant docs from table above
+- [ ] Check existing patterns in similar components
+- [ ] Verify TypeScript interfaces in `src/types/`
+- [ ] Use design tokens from `src/constants/`
+- [ ] Check utilities in `src/utils/` before creating new ones
 
-# Run tests with coverage
-npm run test:coverage
+---
 
-# Lint code
-npm run lint
+## Architecture Overview
 
-# Run a specific test file
-npm test src/utils/__tests__/timeUtils.test.ts
+```
+src/
+├── components/          # React components
+│   ├── Book/           # Appointment calendar
+│   ├── frontdesk/      # Ticket management
+│   ├── checkout/       # Payment processing
+│   ├── common/         # Reusable UI
+│   └── modules/        # Feature modules
+├── store/slices/       # Redux state (appointments, tickets, staff, clients, auth, sync)
+├── db/                 # IndexedDB operations (Dexie.js)
+│   └── database.ts     # All CRUD operations
+├── types/              # TypeScript interfaces
+├── utils/              # Utilities (smartAutoAssign, conflictDetection, etc.)
+├── constants/          # Design tokens
+└── hooks/              # Custom React hooks
 ```
 
-## High-Level Architecture
+---
 
-### State Management
-The application uses Redux Toolkit with the following key slices:
-- **appointmentsSlice**: Manages appointment scheduling and calendar state
-- **ticketsSlice**: Handles service tickets and checkout flow
-- **staffSlice**: Staff management and assignment
-- **clientsSlice**: Customer data and history
-- **transactionsSlice**: Payment and transaction records
-- **authSlice**: Authentication and user sessions
-- **syncSlice**: Offline/online synchronization state
-- **uiSlice, uiTicketsSlice, uiStaffSlice**: UI-specific state management
+## Critical Patterns
 
-### Data Persistence
-IndexedDB via Dexie.js provides local database functionality:
-- **Primary Database**: `src/db/database.ts` - Contains all CRUD operations for entities
-- **Schema Definition**: `src/db/schema.ts` - Defines IndexedDB tables and indexes
-- **Sync Queue**: Manages pending operations for server synchronization when online
+### Offline-First Data Flow (Current)
+```
+User Action → Redux (optimistic) → IndexedDB → Sync Queue → Server (when online)
+```
 
-### Core Modules
+> ⚠️ **Planned Change:** Offline mode will become opt-in per device. See [PRD-Opt-In-Offline-Mode.md](./docs/product/PRD-Opt-In-Offline-Mode.md)
 
-1. **Book Module** (`src/components/Book/`)
-   - Calendar views (day, week, month)
-   - Appointment creation and management
-   - Smart staff assignment with conflict detection
-   - Drag-and-drop rescheduling support
+### State Updates (Always follow this order)
+1. Update Redux state first (immediate UI feedback)
+2. Persist to IndexedDB (if offline-enabled device)
+3. Queue for server sync
 
-2. **Front Desk** (`src/components/frontdesk/`)
-   - Ticket management system
-   - Three view modes: Grid Normal, Grid Compact, Line View
-   - Real-time status updates
-   - Staff turn tracking
+### Component Rules
+- All props must have TypeScript interfaces
+- Handle loading, error, and offline states
+- Use `src/db/database.ts` for data operations (never direct IndexedDB access)
 
-3. **Checkout System** (`src/components/checkout/`)
-   - Payment processing
-   - Multiple payment methods support
-   - Receipt generation
-   - Transaction history
+### Styling Rules
+- Use Tailwind CSS with design tokens
+- Import from `src/constants/designSystem.ts`
+- Follow existing component patterns
 
-### Key Architectural Patterns
+---
 
-1. **Offline-First Design**
-   - All data operations work through IndexedDB first
-   - Sync queue captures changes for later server sync
-   - Optimistic UI updates for better user experience
+## Key Files
 
-2. **Component Organization**
-   - `/components/common/` - Reusable UI components
-   - `/components/shared/` - Shared business logic components
-   - `/components/modules/` - Feature-specific modules
-   - `/hooks/` - Custom React hooks for business logic
+| Purpose | File |
+|---------|------|
+| Database CRUD | `src/db/database.ts` |
+| Redux Store | `src/store/index.ts` |
+| Type Definitions | `src/types/index.ts` |
+| Design Tokens | `src/constants/designSystem.ts` |
+| Smart Assignment | `src/utils/smartAutoAssign.ts` |
+| Conflict Detection | `src/utils/conflictDetection.ts` |
 
-3. **Smart Features** (`src/utils/`)
-   - `smartAutoAssign.ts` - Intelligent staff assignment based on availability and skills
-   - `conflictDetection.ts` - Prevents double-booking
-   - `bufferTimeUtils.ts` - Manages service buffer times
-   - `clientHistoryAnalysis.ts` - Customer preference tracking
+---
 
-### Design System
-The application uses Tailwind CSS with custom design tokens:
-- `src/constants/designSystem.ts` - Core design system configuration
-- `src/constants/bookDesignTokens.ts` - Book module specific styling
-- `src/constants/premiumDesignTokens.ts` - Premium UI components styling
+## Common Commands
 
-### Testing Strategy
-- Unit tests use Vitest with React Testing Library
-- Database operations tested with fake-indexeddb
-- Component tests focus on user interactions
-- Test files co-located with source files in `__tests__` folders
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm test             # Run tests
+npm run lint         # Lint code
+```
 
-## Important Files and Locations
+---
 
-- **Entry Point**: `src/index.tsx`
-- **App Router**: `src/App.tsx`
-- **Redux Store**: `src/store/index.ts`
-- **Database Operations**: `src/db/database.ts`
-- **Type Definitions**: `src/types/` directory
-- **API Layer**: `src/api/` (for future backend integration)
-- **Utility Functions**: `src/utils/`
+## Don't
 
-## Development Workflow
+- ❌ Access IndexedDB directly from components
+- ❌ Create new utilities without checking `src/utils/`
+- ❌ Use inline styles instead of design tokens
+- ❌ Skip TypeScript interfaces for props
+- ❌ Ignore offline scenarios
 
-1. **Feature Development**
-   - Create feature branch from main
-   - Implement changes with TypeScript strict mode
-   - Ensure IndexedDB operations are properly handled
-   - Test offline functionality
+## Do
 
-2. **State Updates**
-   - Always update Redux state first for UI consistency
-   - Then persist to IndexedDB
-   - Queue sync operations when needed
-
-3. **Component Development**
-   - Use TypeScript interfaces for all props
-   - Implement proper loading and error states
-   - Consider offline scenarios in all components
-
-4. **Database Operations**
-   - Use the database access layer in `src/db/database.ts`
-   - Never access IndexedDB directly from components
-   - Always handle async operations properly
-
-## Current Implementation Status
-
-**Completed Features:**
-- Full IndexedDB integration with Dexie.js
-- Redux state management with persistence
-- Book module with calendar views
-- Front desk ticket management
-- Smart booking with conflict detection
-- Multiple view modes for front desk
-- Customer search and management
-
-**In Progress:**
-- Testing and QA improvements
-- Edit appointment functionality
-- Advanced status management
-
-**Planned Features:**
-- Backend API integration
-- Real-time multi-device synchronization
-- Advanced reporting and analytics
+- ✅ Read relevant docs before implementing
+- ✅ Follow existing component patterns
+- ✅ Use Redux → IndexedDB → Sync flow
+- ✅ Handle loading/error/offline states
+- ✅ Use design tokens for styling

@@ -30,6 +30,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   settings,
   headerStyles
 }: ComingAppointmentsProps) {
+  // All hooks must be called unconditionally (React rules of hooks)
   const {
     comingAppointments = []
   } = useTickets();
@@ -44,6 +45,10 @@ export const ComingAppointments = memo(function ComingAppointments({
   const [activeAppointment, setActiveAppointment] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+
+  // BUG-003 FIX: Check if component should be hidden based on settings
+  // This must come AFTER all hooks to comply with React rules
+  const shouldHide = settings && settings.showComingAppointments === false;
   // Updated color tokens for more premium Apple-like styling
   const colorTokens = {
     primary: '#34C759',
@@ -220,6 +225,12 @@ export const ComingAppointments = memo(function ComingAppointments({
   const lateCount = appointmentBuckets.late.length;
   const nextCount = appointmentBuckets.within1Hour.length;
   const laterCount = appointmentBuckets.within3Hours.length + appointmentBuckets.moreThan3Hours.length;
+
+  // BUG-003 FIX: Early return if component should be hidden
+  // This check comes after all hooks to comply with React rules
+  if (shouldHide) {
+    return null;
+  }
 
   return <div className={`flex-1 bg-white ${!hideHeader ? 'border-l border-l-gray-200' : ''} flex flex-col transition-all duration-300 ease-in-out`}>
       {/* Header - Hide on mobile when MobileTabBar shows metrics */}

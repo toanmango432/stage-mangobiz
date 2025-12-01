@@ -38,6 +38,7 @@ import { appointmentsDB, db } from '../db/database';
 import { getTestSalonId } from '../db/seed';
 import { NEXT_AVAILABLE_STAFF_ID } from '../constants/appointment';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { useClosedPeriodForDate } from '../hooks/useSchedule';
 
 export function BookPage() {
   const dispatch = useAppDispatch();
@@ -119,6 +120,10 @@ export function BookPage() {
   const selectedStaff = selectedStaffIds?.length > 0
     ? allStaff.filter(staff => selectedStaffIds.includes(staff.id))
     : allStaff;
+
+  // Get business closure for the selected date (if any)
+  const selectedDateString = selectedDate.toISOString().split('T')[0];
+  const businessClosure = useClosedPeriodForDate(selectedDateString);
 
   // Wrapped view change handler with transition animation
   const handleViewChangeWithTransition = (view: string) => {
@@ -668,6 +673,7 @@ export function BookPage() {
                   photo: s.avatar,
                 }))}
                 appointments={filteredAppointments || []}
+                businessClosure={businessClosure}
                 onAppointmentClick={handleAppointmentClick}
                 onTimeSlotClick={handleTimeSlotClick}
                 onAppointmentDrop={handleAppointmentDrop}

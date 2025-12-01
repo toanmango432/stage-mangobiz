@@ -10,6 +10,11 @@ import uiReducer from './slices/uiSlice';
 import uiTicketsReducer from './slices/uiTicketsSlice';
 import uiStaffReducer from './slices/uiStaffSlice';
 import frontDeskSettingsReducer from './slices/frontDeskSettingsSlice';
+import teamReducer from './slices/teamSlice';
+import scheduleReducer from './slices/scheduleSlice';
+import { teamStaffSyncMiddleware } from './middleware/teamStaffSyncMiddleware';
+// Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
+// See src/hooks/useCatalog.ts
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +29,8 @@ export const store = configureStore({
     uiTickets: uiTicketsReducer,
     uiStaff: uiStaffReducer,
     frontDeskSettings: frontDeskSettingsReducer,
+    team: teamReducer,
+    schedule: scheduleReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -63,9 +70,16 @@ export const store = configureStore({
           'uiTickets.pending',
           'uiStaff.loadedAt',
           'uiStaff.pending',
+          'team.members',
+          'team.sync.lastSyncAt',
+          // Schedule module
+          'schedule.timeOffTypes.items',
+          'schedule.timeOffRequests.items',
+          'schedule.blockedTimeTypes.items',
+          'schedule.blockedTimeEntries.items',
         ],
       },
-    }),
+    }).concat(teamStaffSyncMiddleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

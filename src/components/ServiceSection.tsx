@@ -56,6 +56,11 @@ export const ServiceSection = memo(function ServiceSection({
     return null;
   }
 
+  // BUG-009 FIX: Derive cardViewMode from settings.viewStyle when not in combined view
+  // This ensures settings.viewStyle affects individual sections in non-combined (three-column) view
+  const settingsCardViewMode = settings?.viewStyle === 'compact' ? 'compact' : 'normal';
+  const effectiveExternalCardViewMode = externalCardViewMode ?? (isCombinedView ? undefined : settingsCardViewMode);
+
   // Get service tickets from context with fallback to empty array
   const {
     serviceTickets = [],
@@ -94,7 +99,8 @@ export const ServiceSection = memo(function ServiceSection({
     isCombinedView,
     externalViewMode,
     externalSetViewMode,
-    externalCardViewMode,
+    // BUG-009 FIX: Use effective cardViewMode that respects settings.viewStyle
+    externalCardViewMode: effectiveExternalCardViewMode,
     externalSetCardViewMode,
     externalMinimizedLineView,
     externalSetMinimizedLineView,

@@ -856,3 +856,6 @@ export async function seedDatabase() {
 export function getTestSalonId() {
   return SALON_ID;
 }
+
+// Re-export catalog seed functions
+export { seedCatalog, needsCatalogSeed } from './catalogSeed';

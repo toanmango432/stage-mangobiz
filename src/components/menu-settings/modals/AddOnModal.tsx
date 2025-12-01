@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
-  Clock,
-  DollarSign,
   Globe,
   Check,
   Link,
   Zap,
 } from 'lucide-react';
-import type { ServiceAddOn, ServiceCategory, MenuService, AddOnModalProps } from '../types';
+import type { AddOnModalProps } from '../../../types/catalog';
 import { DURATION_OPTIONS } from '../constants';
 
 export function AddOnModal({
@@ -17,7 +15,6 @@ export function AddOnModal({
   onClose,
   addOn,
   categories,
-  services,
   onSave,
 }: AddOnModalProps) {
   // Basic Info

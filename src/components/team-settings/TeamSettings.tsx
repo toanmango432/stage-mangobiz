@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import type { TeamMemberSettings, TeamSettingsSection, StaffRole } from './types';
 import { mockTeamMembers, roleLabels, teamSettingsTokens } from './constants';
 import { TeamMemberList } from './components/TeamMemberList';
@@ -12,37 +13,136 @@ import { CommissionSection } from './sections/CommissionSection';
 import { OnlineBookingSection } from './sections/OnlineBookingSection';
 import { NotificationsSection } from './sections/NotificationsSection';
 
+// Redux imports
+import type { AppDispatch } from '../../store';
+import {
+  // Selectors
+  selectFilteredTeamMembers,
+  selectAllTeamMembers,
+  selectSelectedTeamMember,
+  selectTeamUI,
+  selectTeamLoading,
+  selectTeamError,
+  // Actions
+  setSelectedMember,
+  setActiveSection,
+  setSearchQuery,
+  setFilterRole,
+  setFilterStatus,
+  setIsAddingNew,
+  setHasUnsavedChanges,
+  setMobileListVisible,
+  updateMember,
+  addMember,
+  clearError,
+  // Thunks
+  fetchTeamMembers,
+  saveTeamMember,
+  archiveTeamMember,
+  restoreTeamMember,
+  deleteTeamMember,
+  setMembers,
+} from '../../store/slices/teamSlice';
+import { teamDB } from '../../db/teamOperations';
+
 interface TeamSettingsProps {
   onBack?: () => void;
 }
 
 export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
-  // State
-  const [members, setMembers] = useState<TeamMemberSettings[]>(mockTeamMembers);
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(mockTeamMembers[0]?.id || null);
-  const [activeSection, setActiveSection] = useState<TeamSettingsSection>('profile');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterRole, setFilterRole] = useState<StaffRole | 'all'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isMobileListVisible, setIsMobileListVisible] = useState(true);
-  const [isAddingMember, setIsAddingMember] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
 
-  // Get selected member
-  const selectedMember = useMemo(() => {
-    return members.find((m) => m.id === selectedMemberId) || null;
-  }, [members, selectedMemberId]);
+  // Redux selectors
+  const members = useSelector(selectFilteredTeamMembers);
+  const allMembers = useSelector(selectAllTeamMembers);
+  const selectedMember = useSelector(selectSelectedTeamMember);
+  const ui = useSelector(selectTeamUI);
+  const loading = useSelector(selectTeamLoading);
+  const error = useSelector(selectTeamError);
 
-  // Update member handler
-  const updateMember = (updates: Partial<TeamMemberSettings>) => {
+  // Get all existing emails for uniqueness validation
+  const existingEmails = allMembers.map(m => m.profile.email);
+
+  const {
+    selectedMemberId,
+    activeSection,
+    searchQuery,
+    filterRole,
+    filterStatus,
+    hasUnsavedChanges,
+    isMobileListVisible,
+    isAddingNew,
+  } = ui;
+
+  // Auto-save debounce timer ref
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Toast state for notifications
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Show toast helper
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // Load team data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // First try to fetch from IndexedDB (pass undefined to get all stores)
+        const result = await dispatch(fetchTeamMembers(undefined)).unwrap();
+
+        // If no data, seed with mock data
+        if (result.length === 0) {
+          await teamDB.seedInitialData(mockTeamMembers, 'system', 'seed');
+          dispatch(setMembers(mockTeamMembers));
+          // Select first member
+          if (mockTeamMembers.length > 0) {
+            dispatch(setSelectedMember(mockTeamMembers[0].id));
+          }
+        } else if (result.length > 0 && !selectedMemberId) {
+          // Select first member if none selected
+          dispatch(setSelectedMember(result[0].id));
+        }
+      } catch (err) {
+        console.error('Failed to load team data:', err);
+        // Fall back to mock data on error
+        dispatch(setMembers(mockTeamMembers));
+        if (mockTeamMembers.length > 0) {
+          dispatch(setSelectedMember(mockTeamMembers[0].id));
+        }
+      }
+    };
+
+    loadData();
+  }, [dispatch]);
+
+  // Update member handler with debounced auto-save
+  const handleUpdateMember = useCallback((updates: Partial<TeamMemberSettings>) => {
     if (!selectedMemberId) return;
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === selectedMemberId ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m
-      )
-    );
-    setHasUnsavedChanges(true);
-  };
+    dispatch(updateMember({ id: selectedMemberId, updates }));
+
+    // Clear existing timer
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    // Set new debounced auto-save (2 seconds)
+    saveTimerRef.current = setTimeout(async () => {
+      const currentMember = selectedMember;
+      if (currentMember) {
+        try {
+          await dispatch(saveTeamMember({ member: { ...currentMember, ...updates } })).unwrap();
+          dispatch(setHasUnsavedChanges(false));
+          showToast('Changes saved', 'success');
+        } catch (err) {
+          console.error('Auto-save failed:', err);
+          showToast('Auto-save failed', 'error');
+        }
+      }
+    }, 2000);
+  }, [dispatch, selectedMemberId, selectedMember, showToast]);
 
   // Section navigation items
   const sectionNav: { id: TeamSettingsSection; label: string; icon: React.ReactNode }[] = [
@@ -55,31 +155,112 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     { id: 'notifications', label: 'Notifications', icon: <BellIcon className="w-5 h-5" /> },
   ];
 
-  const handleSelectMember = (memberId: string) => {
-    setSelectedMemberId(memberId);
-    setIsMobileListVisible(false);
-  };
+  const handleSelectMember = useCallback((memberId: string) => {
+    dispatch(setSelectedMember(memberId));
+    dispatch(setMobileListVisible(false));
+  }, [dispatch]);
 
-  const handleAddMember = () => {
-    setIsAddingMember(true);
-  };
+  const handleAddMember = useCallback(() => {
+    dispatch(setIsAddingNew(true));
+  }, [dispatch]);
 
-  const handleSaveNewMember = (newMember: TeamMemberSettings) => {
-    setMembers((prev) => [newMember, ...prev]);
-    setSelectedMemberId(newMember.id);
-    setIsAddingMember(false);
-    setIsMobileListVisible(false);
-  };
+  const handleSaveNewMember = useCallback(async (newMember: TeamMemberSettings) => {
+    try {
+      await dispatch(saveTeamMember({ member: newMember })).unwrap();
+      dispatch(setSelectedMember(newMember.id));
+      dispatch(setIsAddingNew(false));
+      dispatch(setMobileListVisible(false));
+    } catch (err) {
+      console.error('Failed to save new member:', err);
+      // Still add to local state even if DB fails
+      dispatch(addMember(newMember));
+      dispatch(setSelectedMember(newMember.id));
+      dispatch(setIsAddingNew(false));
+      dispatch(setMobileListVisible(false));
+    }
+  }, [dispatch]);
 
-  const handleSave = () => {
-    // In a real app, this would save to backend/IndexedDB
-    console.log('Saving changes...', members);
-    setHasUnsavedChanges(false);
-  };
+  const handleSave = useCallback(async () => {
+    if (!selectedMember) return;
+
+    try {
+      await dispatch(saveTeamMember({ member: selectedMember })).unwrap();
+      dispatch(setHasUnsavedChanges(false));
+      showToast('Changes saved', 'success');
+    } catch (err) {
+      console.error('Failed to save changes:', err);
+      showToast('Failed to save changes', 'error');
+    }
+  }, [dispatch, selectedMember, showToast]);
+
+  // Archive member handler
+  const handleArchiveMember = useCallback(async () => {
+    if (!selectedMemberId) return;
+    try {
+      await dispatch(archiveTeamMember({ memberId: selectedMemberId })).unwrap();
+    } catch (err) {
+      console.error('Failed to archive member:', err);
+    }
+  }, [dispatch, selectedMemberId]);
+
+  // Restore member handler
+  const handleRestoreMember = useCallback(async () => {
+    if (!selectedMemberId) return;
+    try {
+      await dispatch(restoreTeamMember({ memberId: selectedMemberId })).unwrap();
+    } catch (err) {
+      console.error('Failed to restore member:', err);
+    }
+  }, [dispatch, selectedMemberId]);
+
+  // Delete member handler
+  const handleDeleteMember = useCallback(async () => {
+    if (!selectedMemberId) return;
+    try {
+      await dispatch(deleteTeamMember({ memberId: selectedMemberId })).unwrap();
+      dispatch(setSelectedMember(null));
+    } catch (err) {
+      console.error('Failed to delete member:', err);
+    }
+  }, [dispatch, selectedMemberId]);
+
+  const handleSearchChange = useCallback((query: string) => {
+    dispatch(setSearchQuery(query));
+  }, [dispatch]);
+
+  const handleFilterRoleChange = useCallback((role: StaffRole | 'all') => {
+    dispatch(setFilterRole(role));
+  }, [dispatch]);
+
+  const handleFilterStatusChange = useCallback((status: 'all' | 'active' | 'inactive') => {
+    dispatch(setFilterStatus(status as 'all' | 'active' | 'inactive' | 'archived'));
+  }, [dispatch]);
+
+  const handleSectionChange = useCallback((section: TeamSettingsSection) => {
+    dispatch(setActiveSection(section));
+  }, [dispatch]);
+
+  const handleBackToList = useCallback(() => {
+    dispatch(setMobileListVisible(true));
+  }, [dispatch]);
+
+  const handleCloseAddMember = useCallback(() => {
+    dispatch(setIsAddingNew(false));
+  }, [dispatch]);
 
   const getRoleColor = (role: StaffRole) => {
     return teamSettingsTokens.roleColors[role] || teamSettingsTokens.roleColors.stylist;
   };
+
+  // Clear error and timer on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [dispatch]);
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -101,13 +282,19 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          {loading && (
+            <span className="text-sm text-gray-500">Saving...</span>
+          )}
+          {error && (
+            <Badge variant="error">{error}</Badge>
+          )}
           {hasUnsavedChanges && (
             <Badge variant="warning">Unsaved Changes</Badge>
           )}
           <Button
             variant="primary"
             onClick={handleSave}
-            disabled={!hasUnsavedChanges}
+            disabled={!hasUnsavedChanges || loading}
           >
             Save Changes
           </Button>
@@ -120,7 +307,7 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
         <div className="lg:hidden">
           {!isMobileListVisible && selectedMember && (
             <button
-              onClick={() => setIsMobileListVisible(true)}
+              onClick={handleBackToList}
               className="fixed top-20 left-4 z-20 bg-white shadow-lg rounded-full p-2 border border-gray-200"
             >
               <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
@@ -141,11 +328,12 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
             onSelectMember={handleSelectMember}
             onAddMember={handleAddMember}
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onSearchChange={handleSearchChange}
             filterRole={filterRole}
-            onFilterRoleChange={setFilterRole}
-            filterStatus={filterStatus}
-            onFilterStatusChange={setFilterStatus}
+            onFilterRoleChange={handleFilterRoleChange}
+            filterStatus={filterStatus === 'archived' ? 'inactive' : filterStatus}
+            onFilterStatusChange={handleFilterStatusChange}
+            loading={loading && members.length === 0}
           />
         </aside>
 
@@ -205,7 +393,7 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                   {sectionNav.map((section) => (
                     <button
                       key={section.id}
-                      onClick={() => setActiveSection(section.id)}
+                      onClick={() => handleSectionChange(section.id)}
                       className={`
                         flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-lg
                         border-b-2 transition-all duration-200
@@ -229,29 +417,34 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                 <ProfileSection
                   profile={selectedMember.profile}
                   isActive={selectedMember.isActive}
-                  onChange={(profile) => updateMember({ profile })}
-                  onToggleActive={() => updateMember({ isActive: !selectedMember.isActive })}
+                  onChange={(profile) => handleUpdateMember({ profile })}
+                  onToggleActive={() => handleUpdateMember({ isActive: !selectedMember.isActive })}
+                  onArchive={handleArchiveMember}
+                  onRestore={handleRestoreMember}
+                  onDelete={handleDeleteMember}
                 />
               )}
 
               {activeSection === 'services' && (
                 <ServicesSection
                   services={selectedMember.services}
-                  onChange={(services) => updateMember({ services })}
+                  onChange={(services) => handleUpdateMember({ services })}
                 />
               )}
 
               {activeSection === 'schedule' && (
                 <ScheduleSection
                   workingHours={selectedMember.workingHours}
-                  onChange={(workingHours) => updateMember({ workingHours })}
+                  memberId={selectedMember.id}
+                  memberName={selectedMember.profile.displayName}
+                  onChange={(workingHours) => handleUpdateMember({ workingHours })}
                 />
               )}
 
               {activeSection === 'permissions' && (
                 <PermissionsSection
                   permissions={selectedMember.permissions}
-                  onChange={(permissions) => updateMember({ permissions })}
+                  onChange={(permissions) => handleUpdateMember({ permissions })}
                 />
               )}
 
@@ -259,15 +452,15 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                 <CommissionSection
                   commission={selectedMember.commission}
                   payroll={selectedMember.payroll}
-                  onCommissionChange={(commission) => updateMember({ commission })}
-                  onPayrollChange={(payroll) => updateMember({ payroll })}
+                  onCommissionChange={(commission) => handleUpdateMember({ commission })}
+                  onPayrollChange={(payroll) => handleUpdateMember({ payroll })}
                 />
               )}
 
               {activeSection === 'online-booking' && (
                 <OnlineBookingSection
                   settings={selectedMember.onlineBooking}
-                  onChange={(onlineBooking) => updateMember({ onlineBooking })}
+                  onChange={(onlineBooking) => handleUpdateMember({ onlineBooking })}
                   memberName={`${selectedMember.profile.firstName} ${selectedMember.profile.lastName}`}
                 />
               )}
@@ -275,7 +468,7 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
               {activeSection === 'notifications' && (
                 <NotificationsSection
                   notifications={selectedMember.notifications}
-                  onChange={(notifications) => updateMember({ notifications })}
+                  onChange={(notifications) => handleUpdateMember({ notifications })}
                 />
               )}
             </div>
@@ -299,11 +492,30 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
       </div>
 
       {/* Add Team Member Modal */}
-      {isAddingMember && (
+      {isAddingNew && (
         <AddTeamMember
-          onClose={() => setIsAddingMember(false)}
+          onClose={handleCloseAddMember}
           onSave={handleSaveNewMember}
+          existingEmails={existingEmails}
         />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`
+            fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white
+            flex items-center gap-2 z-50 animate-in slide-in-from-bottom-4 duration-200
+            ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}
+          `}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircleIcon className="w-5 h-5" />
+          ) : (
+            <ExclamationCircleIcon className="w-5 h-5" />
+          )}
+          <span className="font-medium">{toast.message}</span>
+        </div>
       )}
     </div>
   );
@@ -361,6 +573,18 @@ const BellIcon: React.FC<{ className?: string }> = ({ className }) => (
 const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
+
+const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ExclamationCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
 

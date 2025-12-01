@@ -1,34 +1,48 @@
-import React from 'react';
+import { useCallback } from 'react';
 import {
   Clock,
   DollarSign,
   Globe,
-  Percent,
   Package,
   Zap,
-  Calculator,
-  CreditCard,
   Settings,
   Info,
 } from 'lucide-react';
-import type { MenuGeneralSettings } from '../types';
+import type { MenuGeneralSettings } from '../../../types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS } from '../constants';
 
 interface MenuGeneralSettingsSectionProps {
-  settings: MenuGeneralSettings;
-  onUpdate: (settings: MenuGeneralSettings) => void;
+  settings?: MenuGeneralSettings;
+  onUpdate?: (settings: Partial<MenuGeneralSettings>) => Promise<MenuGeneralSettings | null | void>;
 }
 
+// Default settings if none provided
+const defaultSettings: MenuGeneralSettings = {
+  defaultDuration: 60,
+  defaultProcessingTime: 0,
+  currency: 'USD',
+  currencySymbol: '$',
+  taxRate: 0,
+  allowCustomPricing: true,
+  showPricesOnline: true,
+  requireDepositForOnlineBooking: false,
+  defaultDepositPercentage: 20,
+  enablePackages: true,
+  enableAddOns: true,
+};
+
 export function MenuGeneralSettingsSection({
-  settings,
+  settings = defaultSettings,
   onUpdate,
 }: MenuGeneralSettingsSectionProps) {
-  const updateSetting = <K extends keyof MenuGeneralSettings>(
+  const updateSetting = useCallback(<K extends keyof MenuGeneralSettings>(
     key: K,
     value: MenuGeneralSettings[K]
   ) => {
-    onUpdate({ ...settings, [key]: value });
-  };
+    if (onUpdate) {
+      onUpdate({ [key]: value });
+    }
+  }, [onUpdate]);
 
   return (
     <div className="h-full overflow-auto p-6">

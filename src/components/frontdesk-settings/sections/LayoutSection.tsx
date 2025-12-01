@@ -109,11 +109,32 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({
                 max="80"
                 step="5"
                 value={settings.customWidthPercentage}
-                onChange={(e) => updateSetting('customWidthPercentage', parseInt(e.target.value) || 40)}
+                onChange={(e) => {
+                  // BUG-008 FIX: Validate and clamp customWidthPercentage to valid range
+                  const rawValue = parseInt(e.target.value);
+                  if (isNaN(rawValue)) {
+                    updateSetting('customWidthPercentage', 40); // Default fallback
+                  } else {
+                    // Clamp value between 10 and 80
+                    const clampedValue = Math.max(10, Math.min(80, rawValue));
+                    updateSetting('customWidthPercentage', clampedValue);
+                  }
+                }}
+                onBlur={(e) => {
+                  // BUG-008 FIX: Re-validate on blur to catch edge cases
+                  const rawValue = parseInt(e.target.value);
+                  if (isNaN(rawValue) || rawValue < 10 || rawValue > 80) {
+                    const clampedValue = isNaN(rawValue) ? 40 : Math.max(10, Math.min(80, rawValue));
+                    updateSetting('customWidthPercentage', clampedValue);
+                  }
+                }}
                 disabled={settings.viewWidth !== 'custom'}
                 className="w-16 h-8 rounded-md border-gray-300 text-sm px-2 focus:ring-[#27AE60] focus:border-[#27AE60] disabled:bg-gray-100 disabled:text-gray-500"
               />
               <span className="ml-2 text-sm text-gray-700">%</span>
+              {settings.viewWidth === 'custom' && (settings.customWidthPercentage < 10 || settings.customWidthPercentage > 80) && (
+                <span className="ml-2 text-xs text-red-500">Must be 10-80%</span>
+              )}
             </div>
           </div>
         </div>

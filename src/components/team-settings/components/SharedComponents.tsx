@@ -643,6 +643,73 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   </label>
 );
 
+// Modal Component
+interface ModalProps {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export const Modal: React.FC<ModalProps> = ({
+  title,
+  children,
+  onClose,
+  size = 'md',
+}) => {
+  const sizes = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+  };
+
+  // Close on escape key
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div
+        className={`w-full ${sizes[size]} bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 id="modal-title" className="text-lg font-semibold text-gray-900">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close modal"
+          >
+            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {/* Content */}
+        <div className="px-6 py-4">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Textarea Component
 interface TextareaProps {
   label?: string;

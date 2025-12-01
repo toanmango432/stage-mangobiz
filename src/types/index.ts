@@ -7,3 +7,5 @@ export * from './staff';
 export * from './client';
 export * from './service';
 export * from './sync';
+export * from './catalog';
+export * from './schedule';

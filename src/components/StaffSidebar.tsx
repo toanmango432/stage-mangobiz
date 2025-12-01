@@ -81,6 +81,22 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
 
   // Use settings from FrontDeskSettings if provided, otherwise use local teamSettings
   const effectiveOrganizeBy = settings?.organizeBy || teamSettings.organizeBy;
+
+  // BUG-002 FIX: Sync viewWidth from FrontDeskSettings to StaffSidebar
+  useEffect(() => {
+    if (settings?.viewWidth) {
+      // Map FrontDeskSettings viewWidth to StaffSidebar width settings
+      const viewWidthMap: Record<string, string> = {
+        'ultraCompact': 'ultraCompact',
+        'compact': 'compact',
+        'wide': 'wide',
+        'fullScreen': 'fullScreen',
+        'custom': 'custom'
+      };
+      const mappedWidth = viewWidthMap[settings.viewWidth] || 'compact';
+      applyWidthSettings(mappedWidth, settings.customWidthPercentage || 40);
+    }
+  }, [settings?.viewWidth, settings?.customWidthPercentage]);
   // New state for Turn Tracker modal
   const [showTurnTracker, setShowTurnTracker] = useState(false);
   // Listen for global FAB event to open Turn Tracker

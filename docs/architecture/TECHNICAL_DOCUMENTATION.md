@@ -760,7 +760,8 @@ class SecureStorage {
 | Document | Description |
 |----------|-------------|
 | [DATA_STORAGE_STRATEGY.md](./DATA_STORAGE_STRATEGY.md) | Complete data storage architecture with entity schemas, sync, conflicts, security |
-| [Mango POS PRD v1.md](./Mango%20POS%20PRD%20v1.md) | Product requirements document |
+| [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md) | **Planned** - Online-only by default, opt-in offline mode |
+| [Mango POS PRD v1.md](../product/Mango%20POS%20PRD%20v1.md) | Product requirements document |
 
 ---
 

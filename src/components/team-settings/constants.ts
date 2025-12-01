@@ -137,10 +137,26 @@ export const mockServices: ServicePricing[] = [
   { serviceId: 's18', serviceName: 'Event Makeup', serviceCategory: 'makeup', canPerform: false, defaultPrice: 85, defaultDuration: 60 },
 ];
 
+// Default sync fields for mock data
+const defaultSyncFields = {
+  tenantId: 'default-tenant',
+  storeId: 'default-store',
+  syncStatus: 'synced' as const,
+  version: 1,
+  vectorClock: { seed: 1 },
+  lastSyncedVersion: 1,
+  createdBy: 'seed',
+  createdByDevice: 'seed',
+  lastModifiedBy: 'seed',
+  lastModifiedByDevice: 'seed',
+  isDeleted: false,
+};
+
 // Mock team members for the UI
 export const mockTeamMembers: TeamMemberSettings[] = [
   {
     id: 'tm1',
+    ...defaultSyncFields,
     profile: {
       id: 'tm1',
       firstName: 'Sarah',
@@ -243,6 +259,7 @@ export const mockTeamMembers: TeamMemberSettings[] = [
   },
   {
     id: 'tm2',
+    ...defaultSyncFields,
     profile: {
       id: 'tm2',
       firstName: 'Marcus',
@@ -348,6 +365,7 @@ export const mockTeamMembers: TeamMemberSettings[] = [
   },
   {
     id: 'tm3',
+    ...defaultSyncFields,
     profile: {
       id: 'tm3',
       firstName: 'Emily',
@@ -456,6 +474,7 @@ export const mockTeamMembers: TeamMemberSettings[] = [
   },
   {
     id: 'tm4',
+    ...defaultSyncFields,
     profile: {
       id: 'tm4',
       firstName: 'Jessica',
@@ -561,6 +580,7 @@ export const mockTeamMembers: TeamMemberSettings[] = [
   },
   {
     id: 'tm5',
+    ...defaultSyncFields,
     profile: {
       id: 'tm5',
       firstName: 'David',

@@ -12,7 +12,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 }) => (
   <div className="group flex items-start justify-between py-2 w-full">
     <div className="flex flex-col pr-3">
-      <span className={`text-sm font-medium ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>
+      <span className={`text-sm font-medium ${disabled ? 'text-gray-500' : 'text-gray-800'}`}>
         {label}
       </span>
       {description && (

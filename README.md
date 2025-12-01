@@ -1,8 +1,8 @@
 # Mango Offline POS Winsurf V1
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Status:** Active Development  
-**Last Updated:** October 31, 2025
+**Last Updated:** December 1, 2025
 
 Offline-first salon management system with real-time synchronization capabilities.
 
@@ -48,13 +48,20 @@ npm test
 
 ## Development
 
-See [WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md) for AI-assisted development workflow.
+See [Workflow Guide](./docs/guides/WORKFLOW_GUIDE.md) for AI-assisted development workflow.
 
 ## Documentation
 
-- [Current State Audit](./docs/CURRENT_STATE_AUDIT.md) - Feature inventory
-- [IndexedDB Integration](./docs/INDEXEDDB_INTEGRATION_COMPLETE.md) - Testing guide
-- [Workflow Guide](./WORKFLOW_GUIDE.md) - Development workflow
+📚 **[Documentation Index](./docs/INDEX.md)** - Complete documentation navigation
+
+### Quick Links
+
+| Category | Key Documents |
+|----------|---------------|
+| **Architecture** | [Technical Documentation](./docs/architecture/TECHNICAL_DOCUMENTATION.md) • [Data Storage Strategy](./docs/architecture/DATA_STORAGE_STRATEGY.md) |
+| **Product** | [PRD v1](./docs/product/Mango%20POS%20PRD%20v1.md) • [Feature Gap Analysis](./docs/product/FEATURE_GAP_ANALYSIS.md) |
+| **Guides** | [Workflow Guide](./docs/guides/WORKFLOW_GUIDE.md) • [Deployment](./docs/guides/DEPLOYMENT_INSTRUCTIONS.md) |
+| **Modules** | [Book](./docs/modules/book/) • [Front Desk](./docs/modules/frontdesk/) • [Tickets](./docs/modules/tickets/) |
 
 ## Project Status
 

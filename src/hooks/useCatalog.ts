@@ -1,0 +1,602 @@
+/**
+ * useCatalog Hook
+ * Single hook for all catalog data and operations
+ *
+ * Uses Dexie live queries directly (no Redux) for simplicity.
+ * This follows KISS principle - one source of truth in IndexedDB.
+ */
+
+import { useState, useCallback, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/schema';
+import {
+  serviceCategoriesDB,
+  menuServicesDB,
+  serviceVariantsDB,
+  servicePackagesDB,
+  addOnGroupsDB,
+  addOnOptionsDB,
+  catalogSettingsDB,
+} from '../db/database';
+import type {
+  ServiceCategory,
+  MenuService,
+  ServicePackage,
+  CategoryWithCount,
+  ServiceAddOn,
+  MenuGeneralSettings,
+  EmbeddedVariant,
+  MenuServiceWithEmbeddedVariants,
+  CatalogTab,
+  CatalogViewMode,
+} from '../types/catalog';
+import {
+  toServiceAddOn,
+  toEmbeddedVariant,
+  toMenuGeneralSettings,
+  fromMenuGeneralSettings,
+} from '../types/catalog';
+
+// Toast function type (we'll integrate with your toast system)
+type ToastFn = (message: string, type: 'success' | 'error') => void;
+
+// Default no-op toast
+const defaultToast: ToastFn = () => {};
+
+interface UseCatalogOptions {
+  salonId: string;
+  userId?: string;
+  toast?: ToastFn;
+}
+
+interface CatalogUIState {
+  activeTab: CatalogTab;
+  selectedCategoryId: string | null;
+  searchQuery: string;
+  viewMode: CatalogViewMode;
+  showInactive: boolean;
+}
+
+export function useCatalog({ salonId, userId = 'system', toast = defaultToast }: UseCatalogOptions) {
+  // ==================== UI STATE ====================
+  const [ui, setUI] = useState<CatalogUIState>({
+    activeTab: 'services',
+    selectedCategoryId: null,
+    searchQuery: '',
+    viewMode: 'grid',
+    showInactive: false,
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ==================== LIVE QUERIES ====================
+
+  // Categories with counts
+  const categoriesWithCounts = useLiveQuery(
+    async () => {
+      const cats = await serviceCategoriesDB.getAll(salonId, ui.showInactive);
+      const services = await db.menuServices.where('salonId').equals(salonId).toArray();
+
+      return cats.map(cat => ({
+        ...cat,
+        servicesCount: services.filter(s => s.categoryId === cat.id).length,
+        activeServicesCount: services.filter(s => s.categoryId === cat.id && s.status === 'active').length,
+      })) as CategoryWithCount[];
+    },
+    [salonId, ui.showInactive],
+    [] as CategoryWithCount[]
+  );
+
+  // Services with embedded variants
+  const servicesWithVariants = useLiveQuery(
+    async () => {
+      const services = await menuServicesDB.getAll(salonId, ui.showInactive);
+      const variants = await db.serviceVariants.where('salonId').equals(salonId).toArray();
+
+      return services.map(svc => ({
+        ...svc,
+        variants: variants
+          .filter(v => v.serviceId === svc.id && (ui.showInactive || v.isActive))
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map(toEmbeddedVariant),
+        processingTime: svc.extraTime,
+        assignedStaffIds: [], // Will be populated from assignments if needed
+      })) as MenuServiceWithEmbeddedVariants[];
+    },
+    [salonId, ui.showInactive],
+    [] as MenuServiceWithEmbeddedVariants[]
+  );
+
+  // Packages
+  const packages = useLiveQuery(
+    () => servicePackagesDB.getAll(salonId, ui.showInactive),
+    [salonId, ui.showInactive],
+    [] as ServicePackage[]
+  );
+
+  // Add-ons (converted to legacy format for UI compatibility)
+  const addOns = useLiveQuery(
+    async () => {
+      const groups = await addOnGroupsDB.getAll(salonId, ui.showInactive);
+      const options = await db.addOnOptions.where('salonId').equals(salonId).toArray();
+
+      // Convert to flat ServiceAddOn format for UI
+      const result: ServiceAddOn[] = [];
+      for (const group of groups) {
+        const groupOptions = options.filter(o => o.groupId === group.id && (ui.showInactive || o.isActive));
+        for (const option of groupOptions) {
+          result.push(toServiceAddOn(group, option));
+        }
+      }
+      return result.sort((a, b) => a.displayOrder - b.displayOrder);
+    },
+    [salonId, ui.showInactive],
+    [] as ServiceAddOn[]
+  );
+
+  // Settings
+  const catalogSettings = useLiveQuery(
+    () => catalogSettingsDB.getOrCreate(salonId),
+    [salonId]
+  );
+
+  // Convert to MenuGeneralSettings for UI
+  const settings = useMemo((): MenuGeneralSettings | null => {
+    if (!catalogSettings) return null;
+    return toMenuGeneralSettings(catalogSettings);
+  }, [catalogSettings]);
+
+  // ==================== FILTERED DATA ====================
+
+  const filteredServices = useMemo(() => {
+    let result = servicesWithVariants;
+
+    // Filter by category
+    if (ui.selectedCategoryId) {
+      result = result.filter(s => s.categoryId === ui.selectedCategoryId);
+    }
+
+    // Filter by search
+    if (ui.searchQuery) {
+      const query = ui.searchQuery.toLowerCase();
+      result = result.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.description?.toLowerCase().includes(query) ||
+        s.tags?.some(t => t.toLowerCase().includes(query))
+      );
+    }
+
+    return result;
+  }, [servicesWithVariants, ui.selectedCategoryId, ui.searchQuery]);
+
+  const filteredPackages = useMemo(() => {
+    if (!ui.searchQuery) return packages;
+    const query = ui.searchQuery.toLowerCase();
+    return packages.filter(p =>
+      p.name.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query)
+    );
+  }, [packages, ui.searchQuery]);
+
+  const filteredAddOns = useMemo(() => {
+    if (!ui.searchQuery) return addOns;
+    const query = ui.searchQuery.toLowerCase();
+    return addOns.filter(a =>
+      a.name.toLowerCase().includes(query) ||
+      a.description?.toLowerCase().includes(query)
+    );
+  }, [addOns, ui.searchQuery]);
+
+  // ==================== UI ACTIONS ====================
+
+  const setActiveTab = useCallback((tab: CatalogTab) => {
+    setUI(prev => ({ ...prev, activeTab: tab }));
+  }, []);
+
+  const setSelectedCategory = useCallback((id: string | null) => {
+    setUI(prev => ({ ...prev, selectedCategoryId: id }));
+  }, []);
+
+  const setSearchQuery = useCallback((query: string) => {
+    setUI(prev => ({ ...prev, searchQuery: query }));
+  }, []);
+
+  const setViewMode = useCallback((mode: CatalogViewMode) => {
+    setUI(prev => ({ ...prev, viewMode: mode }));
+  }, []);
+
+  const setShowInactive = useCallback((show: boolean) => {
+    setUI(prev => ({ ...prev, showInactive: show }));
+  }, []);
+
+  // ==================== CRUD OPERATIONS WITH ERROR HANDLING ====================
+
+  const withErrorHandling = useCallback(async <T>(
+    operation: () => Promise<T>,
+    successMessage?: string,
+    errorMessage?: string
+  ): Promise<T | null> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await operation();
+      if (successMessage) toast(successMessage, 'success');
+      return result;
+    } catch (err) {
+      const message = errorMessage || (err instanceof Error ? err.message : 'An error occurred');
+      setError(message);
+      toast(message, 'error');
+      console.error('Catalog operation error:', err);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  // ==================== CATEGORY ACTIONS ====================
+
+  const createCategory = useCallback(async (data: Partial<ServiceCategory>) => {
+    return withErrorHandling(
+      () => serviceCategoriesDB.create(data as any, userId, salonId),
+      'Category created',
+      'Failed to create category'
+    );
+  }, [salonId, userId, withErrorHandling]);
+
+  const updateCategory = useCallback(async (id: string, data: Partial<ServiceCategory>) => {
+    return withErrorHandling(
+      () => serviceCategoriesDB.update(id, data, userId),
+      'Category updated',
+      'Failed to update category'
+    );
+  }, [userId, withErrorHandling]);
+
+  const deleteCategory = useCallback(async (id: string) => {
+    // Check if category has services
+    const services = servicesWithVariants.filter(s => s.categoryId === id);
+    if (services.length > 0) {
+      toast('Cannot delete category with services. Move or delete services first.', 'error');
+      return false;
+    }
+
+    return withErrorHandling(
+      async () => {
+        await serviceCategoriesDB.delete(id);
+        return true;
+      },
+      'Category deleted',
+      'Failed to delete category'
+    );
+  }, [servicesWithVariants, withErrorHandling, toast]);
+
+  const reorderCategories = useCallback(async (orderedIds: string[]) => {
+    return withErrorHandling(
+      () => serviceCategoriesDB.reorder(salonId, orderedIds, userId),
+      undefined, // No success toast for reorder
+      'Failed to reorder categories'
+    );
+  }, [salonId, userId, withErrorHandling]);
+
+  // ==================== SERVICE ACTIONS ====================
+
+  const createService = useCallback(async (
+    data: Partial<MenuService>,
+    variants?: EmbeddedVariant[]
+  ) => {
+    return withErrorHandling(
+      async () => {
+        const service = await menuServicesDB.create(data as any, userId, salonId);
+
+        // Create variants if provided
+        if (variants && variants.length > 0) {
+          for (const v of variants) {
+            await serviceVariantsDB.create({
+              serviceId: service.id,
+              name: v.name,
+              duration: v.duration,
+              price: v.price,
+              extraTime: v.processingTime,
+              isDefault: v.isDefault || false,
+              displayOrder: variants.indexOf(v),
+              isActive: true,
+            }, salonId);
+          }
+        }
+
+        return service;
+      },
+      'Service created',
+      'Failed to create service'
+    );
+  }, [salonId, userId, withErrorHandling]);
+
+  const updateService = useCallback(async (
+    id: string,
+    data: Partial<MenuService>,
+    variants?: EmbeddedVariant[]
+  ) => {
+    return withErrorHandling(
+      async () => {
+        const service = await menuServicesDB.update(id, data, userId);
+
+        // Update variants if provided
+        if (variants !== undefined) {
+          // Get existing variants
+          const existing = await serviceVariantsDB.getByService(id, true);
+          const existingIds = existing.map(v => v.id);
+          const newIds = variants.filter(v => v.id).map(v => v.id);
+
+          // Delete removed variants
+          for (const ev of existing) {
+            if (!newIds.includes(ev.id)) {
+              await serviceVariantsDB.delete(ev.id);
+            }
+          }
+
+          // Update/create variants
+          for (let i = 0; i < variants.length; i++) {
+            const v = variants[i];
+            if (existingIds.includes(v.id)) {
+              // Update existing
+              await serviceVariantsDB.update(v.id, {
+                name: v.name,
+                duration: v.duration,
+                price: v.price,
+                extraTime: v.processingTime,
+                isDefault: v.isDefault,
+                displayOrder: i,
+              });
+            } else {
+              // Create new
+              await serviceVariantsDB.create({
+                serviceId: id,
+                name: v.name,
+                duration: v.duration,
+                price: v.price,
+                extraTime: v.processingTime,
+                isDefault: v.isDefault || false,
+                displayOrder: i,
+                isActive: true,
+              }, salonId);
+            }
+          }
+        }
+
+        return service;
+      },
+      'Service updated',
+      'Failed to update service'
+    );
+  }, [salonId, userId, withErrorHandling]);
+
+  const deleteService = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await menuServicesDB.delete(id);
+        return true;
+      },
+      'Service deleted',
+      'Failed to delete service'
+    );
+  }, [withErrorHandling]);
+
+  const archiveService = useCallback(async (id: string) => {
+    return withErrorHandling(
+      () => menuServicesDB.archive(id, userId),
+      'Service archived',
+      'Failed to archive service'
+    );
+  }, [userId, withErrorHandling]);
+
+  // ==================== PACKAGE ACTIONS ====================
+
+  const createPackage = useCallback(async (data: Partial<ServicePackage>) => {
+    return withErrorHandling(
+      () => servicePackagesDB.create(data as any, userId, salonId),
+      'Package created',
+      'Failed to create package'
+    );
+  }, [salonId, userId, withErrorHandling]);
+
+  const updatePackage = useCallback(async (id: string, data: Partial<ServicePackage>) => {
+    return withErrorHandling(
+      () => servicePackagesDB.update(id, data, userId),
+      'Package updated',
+      'Failed to update package'
+    );
+  }, [userId, withErrorHandling]);
+
+  const deletePackage = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await servicePackagesDB.delete(id);
+        return true;
+      },
+      'Package deleted',
+      'Failed to delete package'
+    );
+  }, [withErrorHandling]);
+
+  // ==================== ADD-ON ACTIONS ====================
+  // These work with the legacy ServiceAddOn format for UI compatibility
+
+  const createAddOn = useCallback(async (data: Partial<ServiceAddOn>) => {
+    return withErrorHandling(
+      async () => {
+        // Create a group with single option for simple add-ons
+        const group = await addOnGroupsDB.create({
+          name: data.name || '',
+          description: data.description,
+          selectionMode: 'single',
+          minSelections: 0,
+          maxSelections: 1,
+          isRequired: false,
+          applicableToAll: data.applicableToAll || false,
+          applicableCategoryIds: data.applicableCategoryIds || [],
+          applicableServiceIds: data.applicableServiceIds || [],
+          isActive: data.isActive ?? true,
+          displayOrder: data.displayOrder ?? 0,
+          onlineBookingEnabled: data.onlineBookingEnabled ?? true,
+        }, salonId);
+
+        const option = await addOnOptionsDB.create({
+          groupId: group.id,
+          name: data.name || '',
+          description: data.description,
+          price: data.price || 0,
+          duration: data.duration || 0,
+          isActive: data.isActive ?? true,
+          displayOrder: 0,
+        }, salonId);
+
+        return toServiceAddOn(group, option);
+      },
+      'Add-on created',
+      'Failed to create add-on'
+    );
+  }, [salonId, withErrorHandling]);
+
+  const updateAddOn = useCallback(async (id: string, data: Partial<ServiceAddOn>) => {
+    return withErrorHandling(
+      async () => {
+        // Find the option and its group
+        const option = await addOnOptionsDB.getById(id);
+        if (!option) throw new Error('Add-on not found');
+
+        const group = await addOnGroupsDB.getById(option.groupId);
+        if (!group) throw new Error('Add-on group not found');
+
+        // Update both
+        await addOnGroupsDB.update(group.id, {
+          name: data.name,
+          description: data.description,
+          applicableToAll: data.applicableToAll,
+          applicableCategoryIds: data.applicableCategoryIds,
+          applicableServiceIds: data.applicableServiceIds,
+          isActive: data.isActive,
+          displayOrder: data.displayOrder,
+          onlineBookingEnabled: data.onlineBookingEnabled,
+        });
+
+        await addOnOptionsDB.update(id, {
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          duration: data.duration,
+          isActive: data.isActive,
+        });
+
+        const updatedOption = await addOnOptionsDB.getById(id);
+        const updatedGroup = await addOnGroupsDB.getById(option.groupId);
+
+        return toServiceAddOn(updatedGroup!, updatedOption!);
+      },
+      'Add-on updated',
+      'Failed to update add-on'
+    );
+  }, [withErrorHandling]);
+
+  const deleteAddOn = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        const option = await addOnOptionsDB.getById(id);
+        if (option) {
+          // Check if this is the only option in the group
+          const groupOptions = await addOnOptionsDB.getByGroup(option.groupId, true);
+          if (groupOptions.length === 1) {
+            // Delete the whole group
+            await addOnGroupsDB.delete(option.groupId);
+          } else {
+            // Just delete the option
+            await addOnOptionsDB.delete(id);
+          }
+        }
+        return true;
+      },
+      'Add-on deleted',
+      'Failed to delete add-on'
+    );
+  }, [withErrorHandling]);
+
+  // ==================== SETTINGS ACTIONS ====================
+
+  const updateSettings = useCallback(async (data: Partial<MenuGeneralSettings>) => {
+    return withErrorHandling(
+      async () => {
+        // Merge with current settings and convert
+        const merged: MenuGeneralSettings = {
+          defaultDuration: data.defaultDuration ?? settings?.defaultDuration ?? 60,
+          defaultProcessingTime: data.defaultProcessingTime ?? settings?.defaultProcessingTime ?? 0,
+          currency: data.currency ?? settings?.currency ?? 'USD',
+          currencySymbol: data.currencySymbol ?? settings?.currencySymbol ?? '$',
+          taxRate: data.taxRate ?? settings?.taxRate ?? 0,
+          allowCustomPricing: data.allowCustomPricing ?? settings?.allowCustomPricing ?? true,
+          showPricesOnline: data.showPricesOnline ?? settings?.showPricesOnline ?? true,
+          requireDepositForOnlineBooking: data.requireDepositForOnlineBooking ?? settings?.requireDepositForOnlineBooking ?? false,
+          defaultDepositPercentage: data.defaultDepositPercentage ?? settings?.defaultDepositPercentage ?? 20,
+          enablePackages: data.enablePackages ?? settings?.enablePackages ?? true,
+          enableAddOns: data.enableAddOns ?? settings?.enableAddOns ?? true,
+        };
+        const updates = fromMenuGeneralSettings(merged);
+        await catalogSettingsDB.update(salonId, updates);
+        return merged;
+      },
+      'Settings updated',
+      'Failed to update settings'
+    );
+  }, [salonId, settings, withErrorHandling]);
+
+  // ==================== RETURN ====================
+
+  return {
+    // Data (live queries - automatically update)
+    categories: categoriesWithCounts,
+    services: servicesWithVariants,
+    filteredServices,
+    packages,
+    filteredPackages,
+    addOns,
+    filteredAddOns,
+    settings,
+
+    // UI State
+    ui,
+    setActiveTab,
+    setSelectedCategory,
+    setSearchQuery,
+    setViewMode,
+    setShowInactive,
+
+    // Loading/Error
+    isLoading,
+    error,
+
+    // Category Actions
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    reorderCategories,
+
+    // Service Actions
+    createService,
+    updateService,
+    deleteService,
+    archiveService,
+
+    // Package Actions
+    createPackage,
+    updatePackage,
+    deletePackage,
+
+    // Add-on Actions
+    createAddOn,
+    updateAddOn,
+    deleteAddOn,
+
+    // Settings Actions
+    updateSettings,
+  };
+}
+
+export type UseCatalogReturn = ReturnType<typeof useCatalog>;

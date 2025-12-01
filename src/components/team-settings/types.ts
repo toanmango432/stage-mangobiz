@@ -1,4 +1,7 @@
 // Team Settings Types - Comprehensive staff management for salon/spa
+// Updated to extend BaseSyncableEntity for production-ready sync support
+
+import type { BaseSyncableEntity, VectorClock, SyncStatus } from '../../types/common';
 
 export type StaffRole =
   | 'owner'
@@ -23,6 +26,17 @@ export type CommissionType = 'percentage' | 'tiered' | 'flat' | 'none';
 export type PayPeriod = 'weekly' | 'bi-weekly' | 'monthly' | 'per-service';
 
 export type BookingBufferType = 'before' | 'after' | 'both';
+
+// Time-off and schedule types
+export type TimeOffType = 'vacation' | 'sick' | 'personal' | 'unpaid' | 'other';
+export type TimeOffStatus = 'pending' | 'approved' | 'denied';
+export type ScheduleOverrideType = 'day_off' | 'custom_hours' | 'extra_day';
+
+// Shift type used in schedules
+export interface Shift {
+  startTime: string;
+  endTime: string;
+}
 
 export interface TeamMemberProfile {
   id: string;
@@ -80,8 +94,8 @@ export interface TimeOffRequest {
   id: string;
   startDate: string;
   endDate: string;
-  type: 'vacation' | 'sick' | 'personal' | 'unpaid' | 'other';
-  status: 'pending' | 'approved' | 'denied';
+  type: TimeOffType;
+  status: TimeOffStatus;
   notes?: string;
   requestedAt: string;
   respondedBy?: string;
@@ -91,11 +105,8 @@ export interface TimeOffRequest {
 export interface ScheduleOverride {
   id: string;
   date: string;
-  type: 'day_off' | 'custom_hours' | 'extra_day';
-  customShifts?: {
-    startTime: string;
-    endTime: string;
-  }[];
+  type: ScheduleOverrideType;
+  customShifts?: Shift[];
   reason?: string;
 }
 
@@ -227,8 +238,18 @@ export interface PerformanceGoals {
   averageTicketTarget?: number;
 }
 
-export interface TeamMemberSettings {
-  id: string;
+/**
+ * TeamMemberSettings extends BaseSyncableEntity for production-ready sync support.
+ *
+ * This entity syncs between local IndexedDB and cloud storage using:
+ * - Version vectors for conflict detection
+ * - Field-level merge for conflict resolution
+ * - Tombstone pattern for soft deletes
+ *
+ * See: docs/DATA_STORAGE_STRATEGY.md
+ */
+export interface TeamMemberSettings extends BaseSyncableEntity {
+  // Core team member data
   profile: TeamMemberProfile;
   services: ServicePricing[];
   workingHours: WorkingHoursSettings;
@@ -238,9 +259,120 @@ export interface TeamMemberSettings {
   onlineBooking: OnlineBookingSettings;
   notifications: NotificationPreferences;
   performanceGoals: PerformanceGoals;
+
+  // Active status (separate from isDeleted tombstone)
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+}
+
+/**
+ * Helper to create a new TeamMemberSettings with default sync fields.
+ * Use this when creating new team members.
+ */
+export function createTeamMemberDefaults(
+  id: string,
+  userId: string,
+  deviceId: string,
+  tenantId: string,
+  storeId: string,
+  profile: TeamMemberProfile
+): TeamMemberSettings {
+  const now = new Date().toISOString();
+  return {
+    // BaseSyncableEntity fields
+    id,
+    tenantId,
+    storeId,
+    syncStatus: 'local',
+    version: 1,
+    vectorClock: { [deviceId]: 1 },
+    lastSyncedVersion: 0,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: userId,
+    createdByDevice: deviceId,
+    lastModifiedBy: userId,
+    lastModifiedByDevice: deviceId,
+    isDeleted: false,
+
+    // TeamMemberSettings specific fields
+    profile,
+    services: [],
+    workingHours: {
+      regularHours: [],
+      timeOffRequests: [],
+      scheduleOverrides: [],
+      defaultBreakDuration: 30,
+      autoScheduleBreaks: true,
+    },
+    permissions: {
+      role: 'stylist',
+      permissions: [],
+      canAccessAdminPortal: false,
+      canAccessReports: false,
+      canModifyPrices: false,
+      canProcessRefunds: false,
+      canDeleteRecords: false,
+      canManageTeam: false,
+      canViewOthersCalendar: true,
+      canBookForOthers: false,
+      canEditOthersAppointments: false,
+      pinRequired: false,
+    },
+    commission: {
+      type: 'percentage',
+      basePercentage: 50,
+      productCommission: 10,
+      tipHandling: 'keep_all',
+    },
+    payroll: {
+      payPeriod: 'bi-weekly',
+    },
+    onlineBooking: {
+      isBookableOnline: true,
+      showOnWebsite: true,
+      showOnApp: true,
+      maxAdvanceBookingDays: 30,
+      minAdvanceBookingHours: 2,
+      bufferBetweenAppointments: 0,
+      bufferType: 'after',
+      allowDoubleBooking: false,
+      maxConcurrentAppointments: 1,
+      requireDeposit: false,
+      autoAcceptBookings: true,
+      acceptNewClients: true,
+      displayOrder: 0,
+    },
+    notifications: {
+      email: {
+        appointmentReminders: true,
+        appointmentChanges: true,
+        newBookings: true,
+        cancellations: true,
+        dailySummary: false,
+        weeklySummary: true,
+        marketingEmails: false,
+        systemUpdates: true,
+      },
+      sms: {
+        appointmentReminders: false,
+        appointmentChanges: false,
+        newBookings: false,
+        cancellations: false,
+        urgentAlerts: true,
+      },
+      push: {
+        appointmentReminders: true,
+        newBookings: true,
+        messages: true,
+        teamUpdates: true,
+      },
+      reminderTiming: {
+        firstReminder: 24,
+      },
+    },
+    performanceGoals: {},
+    isActive: true,
+  };
 }
 
 // UI State Types

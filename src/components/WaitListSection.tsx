@@ -56,6 +56,11 @@ export const WaitListSection = memo(function WaitListSection({
     return null;
   }
 
+  // BUG-009 FIX: Derive cardViewMode from settings.viewStyle when not in combined view
+  // This ensures settings.viewStyle affects individual sections in non-combined (three-column) view
+  const settingsCardViewMode = settings?.viewStyle === 'compact' ? 'compact' : 'normal';
+  const effectiveExternalCardViewMode = externalCardViewMode ?? (isCombinedView ? undefined : settingsCardViewMode);
+
   // Get waitlist from context
   const {
     waitlist,
@@ -108,7 +113,8 @@ export const WaitListSection = memo(function WaitListSection({
     isCombinedView,
     externalViewMode,
     externalSetViewMode,
-    externalCardViewMode,
+    // BUG-009 FIX: Use effective cardViewMode that respects settings.viewStyle
+    externalCardViewMode: effectiveExternalCardViewMode,
     externalSetCardViewMode,
     externalMinimizedLineView,
     externalSetMinimizedLineView,

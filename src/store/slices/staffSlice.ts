@@ -47,6 +47,13 @@ export const clockOutStaff = createAsyncThunk(
   }
 );
 
+export const updateStaffSpecialties = createAsyncThunk(
+  'staff/updateSpecialties',
+  async ({ staffId, specialties }: { staffId: string; specialties: string[] }) => {
+    return await staffDB.update(staffId, { specialties });
+  }
+);
+
 const staffSlice = createSlice({
   name: 'staff',
   initialState,
@@ -77,6 +84,12 @@ const staffSlice = createSlice({
         }
       })
       .addCase(clockOutStaff.fulfilled, (state, action) => {
+        if (action.payload) {
+          const index = state.items.findIndex(s => s.id === action.payload!.id);
+          if (index !== -1) state.items[index] = action.payload;
+        }
+      })
+      .addCase(updateStaffSpecialties.fulfilled, (state, action) => {
         if (action.payload) {
           const index = state.items.findIndex(s => s.id === action.payload!.id);
           if (index !== -1) state.items[index] = action.payload;

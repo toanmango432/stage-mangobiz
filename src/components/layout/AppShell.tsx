@@ -20,8 +20,14 @@ import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
 import { addLocalAppointment } from '../../store/slices/appointmentsSlice';
 import { setOnlineStatus } from '../../store/slices/syncSlice';
+import {
+  loadFrontDeskSettings,
+  setSettings,
+  subscribeToSettingsChanges,
+} from '../../store/slices/frontDeskSettingsSlice';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
+import { initializeCatalog } from '../../db/catalogSeed';
 import { syncManager } from '../../services/syncManager';
 import { NetworkStatus } from '../NetworkStatus';
 import { LicenseBanner } from '../licensing/LicenseBanner';
@@ -93,6 +99,14 @@ export function AppShell() {
           console.log(`✅ Database already seeded (${staffCount} staff members)`);
         }
 
+        // 3b. Initialize catalog (migrate legacy services or seed if empty)
+        try {
+          const catalogResult = await initializeCatalog(salonId, true);
+          console.log(`✅ Catalog initialized: ${catalogResult.action}`, catalogResult.details);
+        } catch (error) {
+          console.error('⚠️ Failed to initialize catalog:', error);
+        }
+
         // 4. Load staff into Redux
         await dispatch(fetchAllStaff(salonId));
         console.log('✅ Staff loaded into Redux');
@@ -114,11 +128,15 @@ export function AppShell() {
         console.log(`✅ Loaded ${appointments.length} appointments into Redux`);
 
 
-        // 6. Start sync manager
+        // 6. Load front desk settings from IndexedDB (per-user)
+        await dispatch(loadFrontDeskSettings());
+        console.log('✅ Front desk settings loaded');
+
+        // 7. Start sync manager
         syncManager.start();
         console.log('✅ Sync Manager started');
 
-        // 7. Set initial online status
+        // 8. Set initial online status
         dispatch(setOnlineStatus(navigator.onLine));
 
         setIsInitialized(true);
@@ -148,6 +166,19 @@ export function AppShell() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+    };
+  }, [dispatch]);
+
+  // Cross-tab sync for front desk settings
+  useEffect(() => {
+    // Subscribe to settings changes from other tabs
+    const unsubscribe = subscribeToSettingsChanges((newSettings) => {
+      console.log('📡 Settings updated from another tab');
+      dispatch(setSettings(newSettings));
+    });
+
+    return () => {
+      unsubscribe();
     };
   }, [dispatch]);
 

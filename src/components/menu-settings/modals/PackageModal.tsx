@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -6,14 +6,12 @@ import {
   Trash2,
   Search,
   Package,
-  DollarSign,
   Calendar,
   Globe,
-  ChevronDown,
   Check,
   Minus,
 } from 'lucide-react';
-import type { ServicePackage, MenuService, PackageService, PackageModalProps } from '../types';
+import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants } from '../../../types/catalog';
 import { formatDuration, formatPrice, CATEGORY_COLORS } from '../constants';
 
 export function PackageModal({
@@ -29,7 +27,7 @@ export function PackageModal({
   const [color, setColor] = useState('#F97316');
 
   // Services
-  const [selectedServices, setSelectedServices] = useState<PackageService[]>([]);
+  const [selectedServices, setSelectedServices] = useState<PackageServiceItem[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
 
   // Pricing
@@ -104,7 +102,7 @@ export function PackageModal({
   }, [services, serviceSearch]);
 
   // Add service to package
-  const addService = (service: MenuService) => {
+  const addService = (service: MenuServiceWithEmbeddedVariants) => {
     const existing = selectedServices.find(ps => ps.serviceId === service.id);
     if (existing) {
       setSelectedServices(prev =>

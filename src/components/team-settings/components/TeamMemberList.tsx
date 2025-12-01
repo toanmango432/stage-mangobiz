@@ -14,7 +14,23 @@ interface TeamMemberListProps {
   onFilterRoleChange: (role: StaffRole | 'all') => void;
   filterStatus: 'all' | 'active' | 'inactive';
   onFilterStatusChange: (status: 'all' | 'active' | 'inactive') => void;
+  loading?: boolean;
 }
+
+// Loading skeleton component
+const MemberSkeleton: React.FC = () => (
+  <div className="p-4 animate-pulse">
+    <div className="flex items-start gap-3">
+      <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+        <div className="h-3 bg-gray-200 rounded w-1/2 mb-2" />
+        <div className="h-5 bg-gray-200 rounded w-16" />
+      </div>
+      <div className="w-5 h-5 bg-gray-200 rounded" />
+    </div>
+  </div>
+);
 
 export const TeamMemberList: React.FC<TeamMemberListProps> = ({
   members,
@@ -27,6 +43,7 @@ export const TeamMemberList: React.FC<TeamMemberListProps> = ({
   onFilterRoleChange,
   filterStatus,
   onFilterStatusChange,
+  loading = false,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
@@ -144,7 +161,14 @@ export const TeamMemberList: React.FC<TeamMemberListProps> = ({
 
       {/* Member List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredMembers.length === 0 ? (
+        {loading ? (
+          // Loading skeleton
+          <div className="divide-y divide-gray-100">
+            {[1, 2, 3, 4].map((i) => (
+              <MemberSkeleton key={i} />
+            ))}
+          </div>
+        ) : filteredMembers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
               <UsersIcon className="w-6 h-6 text-gray-400" />

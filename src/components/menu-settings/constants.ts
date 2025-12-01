@@ -1,6 +1,12 @@
-// Menu Settings Constants - Default values, colors, and configuration
+/**
+ * Menu Settings Constants
+ * Default values, colors, icons, and configuration.
+ *
+ * Note: Sample data (sampleCategories, sampleServices, etc.) is deprecated.
+ * Use catalogSeed.ts for seeding the database with sample data.
+ */
 
-import type { MenuGeneralSettings, ServiceCategory, MenuService, ServicePackage, ServiceAddOn, StaffServicePermission } from './types';
+import type { MenuGeneralSettings } from './types';
 
 // Category Color Palette (Fresha-inspired)
 export const CATEGORY_COLORS = [
@@ -73,8 +79,11 @@ export const defaultMenuSettings: MenuGeneralSettings = {
   enableAddOns: true,
 };
 
-// Sample Categories for Demo
-export const sampleCategories: ServiceCategory[] = [
+/**
+ * @deprecated Use catalogSeed.ts for sample data.
+ * These sample data arrays are kept only for backward compatibility.
+ */
+export const sampleCategories: any[] = [
   {
     id: 'cat-1',
     name: 'Hair Services',
@@ -174,7 +183,8 @@ export const sampleCategories: ServiceCategory[] = [
 ];
 
 // Sample Services for Demo
-export const sampleServices: MenuService[] = [
+/** @deprecated Use catalogSeed.ts */
+export const sampleServices: any[] = [
   // Hair Services
   {
     id: 'svc-1',
@@ -515,7 +525,8 @@ export const sampleServices: MenuService[] = [
 ];
 
 // Sample Packages
-export const samplePackages: ServicePackage[] = [
+/** @deprecated Use catalogSeed.ts */
+export const samplePackages: any[] = [
   {
     id: 'pkg-1',
     name: 'Bridal Beauty Package',
@@ -582,7 +593,8 @@ export const samplePackages: ServicePackage[] = [
 ];
 
 // Sample Add-ons
-export const sampleAddOns: ServiceAddOn[] = [
+/** @deprecated Use catalogSeed.ts */
+export const sampleAddOns: any[] = [
   {
     id: 'addon-1',
     name: 'Scalp Massage',

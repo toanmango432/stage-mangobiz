@@ -1,41 +1,47 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Edit3,
   Trash2,
   MoreVertical,
   Clock,
-  DollarSign,
   Package,
   Copy,
   EyeOff,
   Eye,
   ChevronRight,
-  Tag,
   Calendar,
   Globe,
-  Percent,
 } from 'lucide-react';
-import type { ServicePackage, MenuService, ServiceCategory, ViewMode } from '../types';
+import type {
+  ServicePackage,
+  MenuServiceWithEmbeddedVariants,
+  CategoryWithCount,
+  CatalogViewMode,
+} from '../../../types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { PackageModal } from '../modals/PackageModal';
 
 interface PackagesSectionProps {
   packages: ServicePackage[];
-  services: MenuService[];
-  categories: ServiceCategory[];
-  viewMode: ViewMode;
-  onUpdate: (packages: ServicePackage[]) => void;
+  services: MenuServiceWithEmbeddedVariants[];
+  categories: CategoryWithCount[];
+  viewMode: CatalogViewMode;
   searchQuery?: string;
+  // Action callbacks
+  onCreate?: (data: Partial<ServicePackage>) => Promise<ServicePackage | null>;
+  onUpdate?: (id: string, data: Partial<ServicePackage>) => Promise<ServicePackage | null | undefined>;
+  onDelete?: (id: string) => Promise<boolean | null>;
 }
 
 export function PackagesSection({
   packages,
   services,
-  categories,
   viewMode,
-  onUpdate,
   searchQuery = '',
+  onCreate,
+  onUpdate,
+  onDelete,
 }: PackagesSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState<ServicePackage | undefined>();
@@ -56,66 +62,70 @@ export function PackagesSection({
   };
 
   // Handle save package
-  const handleSavePackage = (packageData: Partial<ServicePackage>) => {
+  const handleSavePackage = async (packageData: Partial<ServicePackage>) => {
     if (editingPackage) {
-      const updated = packages.map(pkg =>
-        pkg.id === editingPackage.id
-          ? { ...pkg, ...packageData, updatedAt: new Date() }
-          : pkg
-      );
-      onUpdate(updated);
+      // Update existing
+      if (onUpdate) {
+        await onUpdate(editingPackage.id, packageData);
+      }
     } else {
-      const newPackage: ServicePackage = {
-        id: `pkg-${Date.now()}`,
-        name: packageData.name || 'New Package',
-        description: packageData.description,
-        services: packageData.services || [],
-        originalPrice: packageData.originalPrice || 0,
-        packagePrice: packageData.packagePrice || 0,
-        discountType: packageData.discountType || 'fixed',
-        discountValue: packageData.discountValue || 0,
-        validityDays: packageData.validityDays,
-        bookingAvailability: packageData.bookingAvailability || 'both',
-        onlineBookingEnabled: packageData.onlineBookingEnabled ?? true,
-        isActive: true,
-        displayOrder: packages.length + 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      onUpdate([...packages, newPackage]);
+      // Create new
+      if (onCreate) {
+        await onCreate({
+          name: packageData.name || 'New Package',
+          description: packageData.description,
+          services: packageData.services || [],
+          originalPrice: packageData.originalPrice || 0,
+          packagePrice: packageData.packagePrice || 0,
+          discountType: packageData.discountType || 'fixed',
+          discountValue: packageData.discountValue || 0,
+          validityDays: packageData.validityDays,
+          bookingAvailability: packageData.bookingAvailability || 'both',
+          onlineBookingEnabled: packageData.onlineBookingEnabled ?? true,
+          isActive: true,
+          displayOrder: packages.length + 1,
+        });
+      }
     }
     setShowModal(false);
     setEditingPackage(undefined);
   };
 
   // Handle delete
-  const handleDelete = (packageId: string) => {
+  const handleDelete = async (packageId: string) => {
     if (confirm('Are you sure you want to delete this package?')) {
-      onUpdate(packages.filter(pkg => pkg.id !== packageId));
+      if (onDelete) {
+        await onDelete(packageId);
+      }
     }
   };
 
   // Handle toggle active
-  const handleToggleActive = (packageId: string) => {
-    const updated = packages.map(pkg =>
-      pkg.id === packageId
-        ? { ...pkg, isActive: !pkg.isActive, updatedAt: new Date() }
-        : pkg
-    );
-    onUpdate(updated);
+  const handleToggleActive = async (packageId: string) => {
+    const pkg = packages.find(p => p.id === packageId);
+    if (pkg && onUpdate) {
+      await onUpdate(packageId, { isActive: !pkg.isActive });
+    }
   };
 
   // Handle duplicate
-  const handleDuplicate = (pkg: ServicePackage) => {
-    const newPackage: ServicePackage = {
-      ...pkg,
-      id: `pkg-${Date.now()}`,
-      name: `${pkg.name} (Copy)`,
-      displayOrder: packages.length + 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    onUpdate([...packages, newPackage]);
+  const handleDuplicate = async (pkg: ServicePackage) => {
+    if (onCreate) {
+      await onCreate({
+        name: `${pkg.name} (Copy)`,
+        description: pkg.description,
+        services: pkg.services,
+        originalPrice: pkg.originalPrice,
+        packagePrice: pkg.packagePrice,
+        discountType: pkg.discountType,
+        discountValue: pkg.discountValue,
+        validityDays: pkg.validityDays,
+        bookingAvailability: pkg.bookingAvailability,
+        onlineBookingEnabled: pkg.onlineBookingEnabled,
+        isActive: true,
+        displayOrder: packages.length + 1,
+      });
+    }
   };
 
   // Calculate savings

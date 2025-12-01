@@ -22,15 +22,23 @@ import {
   Eye,
   Copy,
 } from 'lucide-react';
-import type { ServiceCategory, MenuService } from '../types';
-import { CATEGORY_COLORS, CATEGORY_ICONS } from '../constants';
+import type {
+  ServiceCategory,
+  MenuServiceWithEmbeddedVariants,
+  CategoryWithCount,
+} from '../../../types/catalog';
+import { CATEGORY_COLORS } from '../constants';
 import { CategoryModal } from '../modals/CategoryModal';
 
 interface CategoriesSectionProps {
-  categories: ServiceCategory[];
-  services: MenuService[];
-  onUpdate: (categories: ServiceCategory[]) => void;
+  categories: CategoryWithCount[];
+  services: MenuServiceWithEmbeddedVariants[];
   searchQuery?: string;
+  // Action callbacks (return types are flexible to match useCatalog hook)
+  onCreate?: (data: Partial<ServiceCategory>) => Promise<ServiceCategory | null | undefined>;
+  onUpdate?: (id: string, data: Partial<ServiceCategory>) => Promise<ServiceCategory | null | undefined>;
+  onDelete?: (id: string) => Promise<boolean | null | undefined>;
+  onReorder?: (orderedIds: string[]) => Promise<void | null>;
 }
 
 // Icon mapping
@@ -42,8 +50,11 @@ const iconMap: Record<string, React.ElementType> = {
 export function CategoriesSection({
   categories,
   services,
-  onUpdate,
   searchQuery = '',
+  onCreate,
+  onUpdate,
+  onDelete,
+  onReorder,
 }: CategoriesSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategory | undefined>();
@@ -56,73 +67,70 @@ export function CategoriesSection({
     cat.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Get service count for category
-  const getServiceCount = (categoryId: string) => {
-    return services.filter(s => s.categoryId === categoryId).length;
+  // Get service count for category (using the pre-computed count from CategoryWithCount)
+  const getServiceCount = (category: CategoryWithCount) => {
+    return category.servicesCount || services.filter(s => s.categoryId === category.id).length;
   };
 
   // Handle add/edit category
-  const handleSaveCategory = (categoryData: Partial<ServiceCategory>) => {
+  const handleSaveCategory = async (categoryData: Partial<ServiceCategory>) => {
     if (editingCategory) {
       // Update existing
-      const updated = categories.map(cat =>
-        cat.id === editingCategory.id
-          ? { ...cat, ...categoryData, updatedAt: new Date() }
-          : cat
-      );
-      onUpdate(updated);
+      if (onUpdate) {
+        await onUpdate(editingCategory.id, categoryData);
+      }
     } else {
-      // Add new
-      const newCategory: ServiceCategory = {
-        id: `cat-${Date.now()}`,
-        name: categoryData.name || 'New Category',
-        description: categoryData.description,
-        color: categoryData.color || CATEGORY_COLORS[0].value,
-        icon: categoryData.icon || 'Sparkles',
-        displayOrder: categories.length + 1,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      onUpdate([...categories, newCategory]);
+      // Create new
+      if (onCreate) {
+        await onCreate({
+          name: categoryData.name || 'New Category',
+          description: categoryData.description,
+          color: categoryData.color || CATEGORY_COLORS[0].value,
+          icon: categoryData.icon || 'Sparkles',
+          displayOrder: categories.length + 1,
+          isActive: true,
+        });
+      }
     }
     setShowModal(false);
     setEditingCategory(undefined);
   };
 
   // Handle delete category
-  const handleDelete = (categoryId: string) => {
-    const serviceCount = getServiceCount(categoryId);
+  const handleDelete = async (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    const serviceCount = category ? getServiceCount(category) : 0;
     if (serviceCount > 0) {
       alert(`Cannot delete category with ${serviceCount} services. Please move or delete services first.`);
       return;
     }
     if (confirm('Are you sure you want to delete this category?')) {
-      onUpdate(categories.filter(cat => cat.id !== categoryId));
+      if (onDelete) {
+        await onDelete(categoryId);
+      }
     }
   };
 
   // Handle toggle active
-  const handleToggleActive = (categoryId: string) => {
-    const updated = categories.map(cat =>
-      cat.id === categoryId
-        ? { ...cat, isActive: !cat.isActive, updatedAt: new Date() }
-        : cat
-    );
-    onUpdate(updated);
+  const handleToggleActive = async (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (category && onUpdate) {
+      await onUpdate(categoryId, { isActive: !category.isActive });
+    }
   };
 
   // Handle duplicate
-  const handleDuplicate = (category: ServiceCategory) => {
-    const newCategory: ServiceCategory = {
-      ...category,
-      id: `cat-${Date.now()}`,
-      name: `${category.name} (Copy)`,
-      displayOrder: categories.length + 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    onUpdate([...categories, newCategory]);
+  const handleDuplicate = async (category: ServiceCategory) => {
+    if (onCreate) {
+      await onCreate({
+        name: `${category.name} (Copy)`,
+        description: category.description,
+        color: category.color,
+        icon: category.icon,
+        displayOrder: categories.length + 1,
+        isActive: true,
+      });
+    }
   };
 
   // Drag and drop handlers
@@ -136,7 +144,7 @@ export function CategoriesSection({
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
+  const handleDrop = async (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     if (!draggedId || draggedId === targetId) return;
 
@@ -147,13 +155,11 @@ export function CategoriesSection({
     const [removed] = newCategories.splice(draggedIndex, 1);
     newCategories.splice(targetIndex, 0, removed);
 
-    // Update display order
-    const reordered = newCategories.map((cat, index) => ({
-      ...cat,
-      displayOrder: index + 1,
-    }));
-
-    onUpdate(reordered);
+    // Get the new ordered IDs and call onReorder
+    const orderedIds = newCategories.map(cat => cat.id);
+    if (onReorder) {
+      await onReorder(orderedIds);
+    }
     setDraggedId(null);
   };
 
@@ -194,8 +200,7 @@ export function CategoriesSection({
         <div className="space-y-2">
           {filteredCategories.map((category) => {
             const Icon = getIconComponent(category.icon || 'Sparkles');
-            const serviceCount = getServiceCount(category.id);
-            const colorObj = CATEGORY_COLORS.find(c => c.value === category.color);
+            const serviceCount = getServiceCount(category);
 
             return (
               <div

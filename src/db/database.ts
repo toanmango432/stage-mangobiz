@@ -479,3 +479,6 @@ export async function getDBStats() {
     pendingSync: queueCount,
   };
 }
+
+// Re-export catalog database operations
+export * from './catalogDatabase';

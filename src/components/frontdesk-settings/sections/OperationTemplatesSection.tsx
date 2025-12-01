@@ -2,6 +2,8 @@ import React from 'react';
 import { Layers, ArrowRight, Users, FileText } from 'lucide-react';
 import { FrontDeskSettingsData } from '../types';
 import { SectionHeader } from '../components';
+// ISSUE-001: Use centralized template config
+import { getTemplateSettings, getTemplateMetadata } from '../templateConfigs';
 
 interface OperationTemplatesSectionProps {
   settings: FrontDeskSettingsData;
@@ -13,117 +15,26 @@ interface OperationTemplatesSectionProps {
   isCompact?: boolean;
 }
 
-// Get template info - User-type focused naming
-const getTemplateInfo = (template: FrontDeskSettingsData['operationTemplate']) => {
-  switch (template) {
-    case 'frontDeskBalanced':
-      return {
-        title: 'Reception Desk',
-        subtitle: 'Balanced View',
-        description: 'See both your team and tickets at a glance',
-        userType: 'Front Desk Staff',
-        layoutRatio: { team: 40, ticket: 60 }
-      };
-    case 'frontDeskTicketCenter':
-      return {
-        title: 'Express Queue',
-        subtitle: 'Ticket-First View',
-        description: 'Maximize ticket visibility for fast-paced environments',
-        userType: 'Front Desk Staff',
-        layoutRatio: { team: 10, ticket: 90 }
-      };
-    case 'teamWithOperationFlow':
-      return {
-        title: 'Provider View',
-        subtitle: 'Team-Focused Layout',
-        description: 'Large staff cards with current client and appointments',
-        userType: 'Service Provider',
-        layoutRatio: { team: 80, ticket: 20 }
-      };
-    case 'teamInOut':
-      return {
-        title: 'Quick Checkout',
-        subtitle: 'Simple Clock In/Out',
-        description: 'Full-screen team view for easy checkout',
-        userType: 'Service Provider',
-        layoutRatio: { team: 100, ticket: 0 }
-      };
-    default:
-      return {
-        title: 'Custom Template',
-        subtitle: 'Custom Layout',
-        description: 'Custom configuration',
-        userType: 'Mixed',
-        layoutRatio: { team: 50, ticket: 50 }
-      };
-  }
-};
-
 export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps> = ({
   settings,
   updateSetting,
   onChangeTemplate,
   isCompact = false
 }) => {
-  const templateInfo = getTemplateInfo(settings.operationTemplate);
+  // ISSUE-001: Use centralized template metadata
+  const templateInfo = getTemplateMetadata(settings.operationTemplate);
 
-  // Apply template presets
+  // Apply template presets using centralized config
   const applyTemplate = (template: FrontDeskSettingsData['operationTemplate']) => {
-    let newSettings: Partial<FrontDeskSettingsData> = {
-      operationTemplate: template
-    };
+    // ISSUE-001: Use centralized template settings
+    const newSettings = getTemplateSettings(template);
 
-    // Apply preset values based on template
-    switch (template) {
-      case 'frontDeskBalanced':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'wide',
-          customWidthPercentage: 40,
-          displayMode: 'column',
-          combineSections: false,
-          showComingAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-        break;
-      case 'frontDeskTicketCenter':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'compact',
-          customWidthPercentage: 10,
-          displayMode: 'tab',
-          combineSections: true,
-          showComingAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-        break;
-      case 'teamWithOperationFlow':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'wide',
-          customWidthPercentage: 80,
-          displayMode: 'column',
-          combineSections: false,
-          showComingAppointments: true,
-          organizeBy: 'busyStatus'
-        };
-        break;
-      case 'teamInOut':
-        newSettings = {
-          ...newSettings,
-          viewWidth: 'fullScreen',
-          customWidthPercentage: 100,
-          displayMode: 'column',
-          combineSections: false,
-          showComingAppointments: false,
-          organizeBy: 'clockedStatus'
-        };
-        break;
-    }
-
-    // Apply all settings
-    Object.entries(newSettings).forEach(([key, value]) => {
-      updateSetting(key as keyof FrontDeskSettingsData, value as any);
+    // BUG-017 FIX: Apply all settings with proper type safety
+    (Object.keys(newSettings) as Array<keyof FrontDeskSettingsData>).forEach((key) => {
+      const value = newSettings[key];
+      if (value !== undefined) {
+        updateSetting(key, value);
+      }
     });
   };
 
