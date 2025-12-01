@@ -13,11 +13,12 @@ import {
   Clock,
   Store,
   Shield,
-  X,
-  AlertTriangle
+  AlertTriangle,
+  Cloud,
+  CloudOff
 } from 'lucide-react';
 import { devicesDB, storesDB, licensesDB } from '../db/database';
-import type { Device, Store as StoreType, License } from '../types';
+import type { Device, Store as StoreType, License, DeviceMode } from '../types';
 
 export function DeviceManagement() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -27,6 +28,7 @@ export function DeviceManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterStore, setFilterStore] = useState<string>('all');
+  const [filterMode, setFilterMode] = useState<string>('all');
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -91,6 +93,26 @@ export function DeviceManagement() {
     }
   }
 
+  async function handleEnableOffline(device: Device) {
+    try {
+      await devicesDB.enableOffline(device.id);
+      await loadData();
+      setActiveMenu(null);
+    } catch (error) {
+      console.error('Failed to enable offline mode:', error);
+    }
+  }
+
+  async function handleDisableOffline(device: Device) {
+    try {
+      await devicesDB.disableOffline(device.id);
+      await loadData();
+      setActiveMenu(null);
+    } catch (error) {
+      console.error('Failed to disable offline mode:', error);
+    }
+  }
+
   // Filter devices
   const filteredDevices = devices.filter(device => {
     // Status filter
@@ -100,6 +122,11 @@ export function DeviceManagement() {
 
     // Store filter
     if (filterStore !== 'all' && device.storeId !== filterStore) {
+      return false;
+    }
+
+    // Device mode filter
+    if (filterMode !== 'all' && device.deviceMode !== filterMode) {
       return false;
     }
 
@@ -134,6 +161,8 @@ export function DeviceManagement() {
     active: devices.filter(d => d.status === 'active').length,
     blocked: devices.filter(d => d.status === 'blocked').length,
     inactive: devices.filter(d => d.status === 'inactive').length,
+    offlineEnabled: devices.filter(d => d.deviceMode === 'offline-enabled').length,
+    onlineOnly: devices.filter(d => !d.deviceMode || d.deviceMode === 'online-only').length,
   };
 
   function formatDate(date: Date) {
@@ -168,6 +197,20 @@ export function DeviceManagement() {
       default:
         return 'bg-gray-100 text-gray-700';
     }
+  }
+
+  function getDeviceModeColor(mode: DeviceMode | undefined) {
+    if (mode === 'offline-enabled') {
+      return 'bg-amber-100 text-amber-700';
+    }
+    return 'bg-blue-100 text-blue-700';
+  }
+
+  function getDeviceModeLabel(mode: DeviceMode | undefined) {
+    if (mode === 'offline-enabled') {
+      return 'Offline-Enabled';
+    }
+    return 'Online-Only';
   }
 
   function getPlatformIcon(platform: string) {
@@ -211,7 +254,7 @@ export function DeviceManagement() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -219,7 +262,7 @@ export function DeviceManagement() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                <p className="text-sm text-gray-600">Total Devices</p>
+                <p className="text-sm text-gray-600">Total</p>
               </div>
             </div>
           </div>
@@ -253,6 +296,28 @@ export function DeviceManagement() {
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stats.inactive}</p>
                 <p className="text-sm text-gray-600">Inactive</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <CloudOff className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stats.offlineEnabled}</p>
+                <p className="text-sm text-gray-600">Offline</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
+                <Cloud className="w-5 h-5 text-sky-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stats.onlineOnly}</p>
+                <p className="text-sm text-gray-600">Online</p>
               </div>
             </div>
           </div>
@@ -306,6 +371,17 @@ export function DeviceManagement() {
                 );
               })}
             </select>
+
+            {/* Device Mode Filter */}
+            <select
+              value={filterMode}
+              onChange={(e) => setFilterMode(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="all">All Modes</option>
+              <option value="online-only">Online-Only</option>
+              <option value="offline-enabled">Offline-Enabled</option>
+            </select>
           </div>
         </div>
 
@@ -320,6 +396,7 @@ export function DeviceManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Store</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mode</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Seen</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -375,6 +452,18 @@ export function DeviceManagement() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            {device.deviceMode === 'offline-enabled' ? (
+                              <CloudOff className="w-4 h-4 text-amber-500" />
+                            ) : (
+                              <Cloud className="w-4 h-4 text-sky-500" />
+                            )}
+                            <span className={`px-2 py-1 text-xs font-semibold rounded ${getDeviceModeColor(device.deviceMode)}`}>
+                              {getDeviceModeLabel(device.deviceMode)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <Clock className="w-3 h-3" />
                             {formatTimeAgo(device.lastSeenAt)}
@@ -402,7 +491,27 @@ export function DeviceManagement() {
                               <MoreVertical className="w-4 h-4 text-gray-500" />
                             </button>
                             {activeMenu === device.id && (
-                              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                              <div className="absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                {/* Device Mode Toggle */}
+                                {device.deviceMode === 'offline-enabled' ? (
+                                  <button
+                                    onClick={() => handleDisableOffline(device)}
+                                    className="w-full px-4 py-2 text-left text-sm text-sky-600 hover:bg-sky-50 flex items-center gap-2 border-b border-gray-100"
+                                  >
+                                    <Cloud className="w-4 h-4" />
+                                    Switch to Online-Only
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleEnableOffline(device)}
+                                    className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2 border-b border-gray-100"
+                                  >
+                                    <CloudOff className="w-4 h-4" />
+                                    Enable Offline Mode
+                                  </button>
+                                )}
+
+                                {/* Status Toggle */}
                                 {device.status === 'blocked' ? (
                                   <button
                                     onClick={() => handleUnblock(device)}
@@ -446,7 +555,7 @@ export function DeviceManagement() {
               <Smartphone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">No devices found</p>
               <p className="text-sm text-gray-400 mt-1">
-                {searchQuery || filterStatus !== 'all' || filterStore !== 'all'
+                {searchQuery || filterStatus !== 'all' || filterStore !== 'all' || filterMode !== 'all'
                   ? 'Try adjusting your filters'
                   : 'Devices will appear here when they connect to the POS'}
               </p>

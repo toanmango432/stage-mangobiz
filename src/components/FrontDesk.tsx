@@ -13,7 +13,7 @@ import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, Users, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter, Hourglass, Activity } from 'lucide-react';
+import { FileText, Users, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter, Activity, Hourglass } from 'lucide-react';
 import { useSwipeGestures } from '../hooks/useGestures';
 import { haptics } from '../utils/haptics';
 import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
@@ -612,69 +612,100 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
             />
           )}
           {/* Combined view tabs - Desktop only (mobile uses MobileTabBar above) */}
-          {/* Enhanced tabs with section metrics */}
-          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className={`flex items-center justify-between ${subordinateTabTheme.container} sticky top-0 z-10 py-2 px-3`}>
-            <div className="flex items-center gap-2">
+          {/* Two-row tab design aligned with column headers */}
+          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className={`flex items-center justify-between ${subordinateTabTheme.container} sticky top-0 z-10`}>
+            <div className={subordinateTabTheme.tabWrapper} role="tablist">
               {/* In Service Tab */}
               <button
-                key="service"
                 onClick={() => setActiveCombinedTab('service')}
-                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
+                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'service' ? `${subordinateTabTheme.tab.active} ${subordinateTabTheme.tabActive.service}` : subordinateTabTheme.tab.inactive}`}
                 role="tab"
                 aria-selected={activeCombinedTab === 'service'}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeCombinedTab === 'service' ? 'bg-emerald-100' : 'bg-gray-100'}`}>
-                  <Activity size={18} className={activeCombinedTab === 'service' ? 'text-emerald-600' : 'text-gray-400'} />
+                {/* Icon */}
+                <div className={`${subordinateTabTheme.iconWrapper.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.iconWrapper.service.active : subordinateTabTheme.iconWrapper.service.inactive}`}>
+                  <Activity size={18} strokeWidth={2} />
                 </div>
-                <div className="flex flex-col items-start">
-                  <span>In Service</span>
-                  <span className={activeCombinedTab === 'service' ? subordinateTabTheme.metricBadge.active : subordinateTabTheme.metricBadge.inactive}>
-                    avg 45m
+                {/* Content */}
+                <div className={subordinateTabTheme.content}>
+                  {/* Row 1: Title + Count */}
+                  <div className={subordinateTabTheme.titleRow}>
+                    <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.title.active : subordinateTabTheme.title.inactive}`}>In Service</span>
+                    <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.count.service.active : subordinateTabTheme.count.service.inactive}`}>
+                      {serviceTickets.length}
+                    </span>
+                  </div>
+                  {/* Row 2: Metric */}
+                  <span className={`${subordinateTabTheme.metric.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.metric.service.active : subordinateTabTheme.metric.service.inactive}`}>
+                    {(() => {
+                      const avgDuration = serviceTickets.length > 0
+                        ? Math.round(serviceTickets.reduce((sum, t) => {
+                            const startTime = t.createdAt ? new Date(t.createdAt).getTime() : Date.now();
+                            return sum + (Date.now() - startTime) / 60000;
+                          }, 0) / serviceTickets.length)
+                        : 0;
+                      return avgDuration > 0 ? `Avg ${avgDuration}m` : 'No data';
+                    })()}
                   </span>
                 </div>
-                <span className={activeCombinedTab === 'service' ? subordinateTabTheme.countBadge.active : subordinateTabTheme.countBadge.inactive}>
-                  {serviceTickets.length}
-                </span>
               </button>
 
-              {/* Waiting Queue Tab */}
+              {/* Waiting Tab */}
               <button
-                key="waitList"
                 onClick={() => setActiveCombinedTab('waitList')}
-                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
+                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'waitList' ? `${subordinateTabTheme.tab.active} ${subordinateTabTheme.tabActive.waitList}` : subordinateTabTheme.tab.inactive}`}
                 role="tab"
                 aria-selected={activeCombinedTab === 'waitList'}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeCombinedTab === 'waitList' ? 'bg-violet-100' : 'bg-gray-100'}`}>
-                  <Hourglass size={18} className={activeCombinedTab === 'waitList' ? 'text-violet-600' : 'text-gray-400'} />
+                {/* Icon */}
+                <div className={`${subordinateTabTheme.iconWrapper.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.iconWrapper.waitList.active : subordinateTabTheme.iconWrapper.waitList.inactive}`}>
+                  <Hourglass size={18} strokeWidth={2} />
                 </div>
-                <div className="flex flex-col items-start">
-                  <span>Waiting</span>
-                  <span className={activeCombinedTab === 'waitList' ? subordinateTabTheme.metricBadge.active : subordinateTabTheme.metricBadge.inactive}>
-                    avg 12m
+                {/* Content */}
+                <div className={subordinateTabTheme.content}>
+                  {/* Row 1: Title + Count */}
+                  <div className={subordinateTabTheme.titleRow}>
+                    <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.title.active : subordinateTabTheme.title.inactive}`}>Waiting</span>
+                    <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.count.waitList.active : subordinateTabTheme.count.waitList.inactive}`}>
+                      {waitlist.length}
+                    </span>
+                  </div>
+                  {/* Row 2: Metric */}
+                  <span className={`${subordinateTabTheme.metric.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.metric.waitList.active : subordinateTabTheme.metric.waitList.inactive}`}>
+                    {(() => {
+                      const avgWait = waitlist.length > 0
+                        ? Math.round(waitlist.reduce((sum, t) => sum + (Date.now() - new Date(t.createdAt).getTime()) / 60000, 0) / waitlist.length)
+                        : 0;
+                      return avgWait > 0 ? `Avg ${avgWait}m` : 'No data';
+                    })()}
                   </span>
                 </div>
-                <span className={activeCombinedTab === 'waitList' ? subordinateTabTheme.countBadge.active : subordinateTabTheme.countBadge.inactive}>
-                  {waitlist.length}
-                </span>
               </button>
 
-              {/* Coming Appointments Tab */}
+              {/* Coming Tab */}
               {showUpcomingAppointments && (
                 <button
-                  key="comingAppointments"
                   onClick={() => setActiveCombinedTab('comingAppointments')}
-                  className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
+                  className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'comingAppointments' ? `${subordinateTabTheme.tab.active} ${subordinateTabTheme.tabActive.comingAppointments}` : subordinateTabTheme.tab.inactive}`}
                   role="tab"
                   aria-selected={activeCombinedTab === 'comingAppointments'}
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeCombinedTab === 'comingAppointments' ? 'bg-sky-100' : 'bg-gray-100'}`}>
-                    <Clock size={18} className={activeCombinedTab === 'comingAppointments' ? 'text-sky-600' : 'text-gray-400'} />
+                  {/* Icon */}
+                  <div className={`${subordinateTabTheme.iconWrapper.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.iconWrapper.comingAppointments.active : subordinateTabTheme.iconWrapper.comingAppointments.inactive}`}>
+                    <Clock size={18} strokeWidth={2} />
                   </div>
-                  <div className="flex flex-col items-start">
-                    <span>Coming</span>
-                    <span className={activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.metricBadge.active : subordinateTabTheme.metricBadge.inactive}>
-                      next 2h
+                  {/* Content */}
+                  <div className={subordinateTabTheme.content}>
+                    {/* Row 1: Title + Count */}
+                    <div className={subordinateTabTheme.titleRow}>
+                      <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.title.active : subordinateTabTheme.title.inactive}`}>Coming</span>
+                      <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.count.comingAppointments.active : subordinateTabTheme.count.comingAppointments.inactive}`}>
+                        0
+                      </span>
+                    </div>
+                    {/* Row 2: Metric */}
+                    <span className={`${subordinateTabTheme.metric.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.metric.comingAppointments.active : subordinateTabTheme.metric.comingAppointments.inactive}`}>
+                      Next 1hr
                     </span>
                   </div>
                 </button>
@@ -809,7 +840,6 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                     </div>
                   </div>}
                 </div>
-                {/* Coming Appointments Section - Removed from right side, now part of tabs */}
               </div> : <>
                 {/* Three-column layout for desktop - reordered to match workflow */}
                 <div

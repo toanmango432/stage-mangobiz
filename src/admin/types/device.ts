@@ -4,6 +4,7 @@
  */
 
 export type DeviceStatus = 'active' | 'inactive' | 'blocked';
+export type DeviceMode = 'online-only' | 'offline-enabled';
 
 export interface DeviceInfo {
   userAgent: string;
@@ -21,6 +22,7 @@ export interface Device {
   name?: string;                // Optional friendly name
   deviceInfo: DeviceInfo;
   status: DeviceStatus;
+  deviceMode: DeviceMode;       // Whether device can work offline
   lastSeenAt: Date;
   ipAddress?: string;
   createdAt: Date;
@@ -34,6 +36,7 @@ export interface CreateDeviceInput {
   deviceFingerprint: string;
   name?: string;
   deviceInfo: DeviceInfo;
+  deviceMode?: DeviceMode;      // Defaults to 'online-only'
   ipAddress?: string;
 }
 
@@ -41,5 +44,6 @@ export interface UpdateDeviceInput {
   name?: string;
   status?: DeviceStatus;
   deviceInfo?: DeviceInfo;
+  deviceMode?: DeviceMode;      // Can toggle device mode from admin
   ipAddress?: string;
 }

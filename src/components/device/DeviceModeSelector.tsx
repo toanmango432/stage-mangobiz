@@ -104,7 +104,7 @@ export function DeviceModeSelector({
               onClick={() => !isDisabled && onChange(option.mode)}
               onMouseEnter={() => setHoveredMode(option.mode)}
               onMouseLeave={() => setHoveredMode(null)}
-              disabled={isDisabled}
+              disabled={isDisabled || false}
               className={`
                 relative p-4 rounded-xl border-2 text-left transition-all
                 ${

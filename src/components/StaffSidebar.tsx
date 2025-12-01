@@ -649,10 +649,9 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
         </div>
       </div>;
     } else if (viewMode === 'compact') {
-      // Apple-style scroll shadow: enhanced 3-layer shadow for better visibility
       const headerBg = USE_NEW_TEAM_STYLING
-        ? "sticky top-0 z-10 bg-gradient-to-r from-teal-50/95 to-teal-100/95 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)]"
-        : "sticky top-0 z-10 bg-white/92 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)]";
+        ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
+        : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
         <div className="px-3 py-2.5">
           {/* Row 1: Team title + Action icons (always together) */}
@@ -701,10 +700,9 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       </div>;
     } else {
       // Normal view - Responsive design
-      // Apple-style scroll shadow: enhanced 3-layer shadow for better visibility
       const headerBg = USE_NEW_TEAM_STYLING
-        ? "sticky top-0 z-10 bg-gradient-to-r from-teal-50/95 to-teal-100/95 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)]"
-        : "sticky top-0 z-10 bg-white/92 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)]";
+        ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
+        : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
         <div className="px-3 py-2.5">
           {/* Row 1: Team title + Action icons (always together) */}

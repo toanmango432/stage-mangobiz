@@ -710,6 +710,7 @@ export const devicesDB = {
       id: uuidv4(),
       ...input,
       status: 'active',
+      deviceMode: input.deviceMode || 'online-only', // Default to online-only
       lastSeenAt: now,
       createdAt: now,
       updatedAt: now,
@@ -747,6 +748,14 @@ export const devicesDB = {
 
   async unblock(id: string): Promise<Device | undefined> {
     return await this.update(id, { status: 'active' });
+  },
+
+  async enableOffline(id: string): Promise<Device | undefined> {
+    return await this.update(id, { deviceMode: 'offline-enabled' });
+  },
+
+  async disableOffline(id: string): Promise<Device | undefined> {
+    return await this.update(id, { deviceMode: 'online-only' });
   },
 
   async recordActivity(id: string, ipAddress?: string): Promise<Device | undefined> {
