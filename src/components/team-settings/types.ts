@@ -1,7 +1,7 @@
 // Team Settings Types - Comprehensive staff management for salon/spa
 // Updated to extend BaseSyncableEntity for production-ready sync support
 
-import type { BaseSyncableEntity, VectorClock, SyncStatus } from '../../types/common';
+import type { BaseSyncableEntity } from '../../types/common';
 
 export type StaffRole =
   | 'owner'

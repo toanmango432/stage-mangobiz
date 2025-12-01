@@ -15,6 +15,8 @@ import { TicketColorPreview } from '../TicketColorPreview';
 import { LicenseSettings } from '../licensing/LicenseSettings';
 import { MenuSettings } from '../menu-settings';
 import { TeamSettings } from '../team-settings';
+import { RoleSettings } from '../role-settings';
+import { DeviceSettings } from '../device';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -212,10 +214,14 @@ export function AppShell() {
         return <TicketColorPreview />;
       case 'team-settings':
         return <TeamSettings onBack={() => setActiveModule('more')} />;
+      case 'role-settings':
+        return <RoleSettings onBack={() => setActiveModule('more')} />;
       case 'frontdesk-settings':
         return <FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
           if (!show) setActiveModule('more');
         }} />;
+      case 'devices':
+        return <DeviceSettings onBack={() => setActiveModule('more')} />;
       default:
         return <FrontDesk />;
     }
@@ -253,7 +259,7 @@ export function AppShell() {
       />
 
       {/* Main Content Area - responsive padding for header height (h-12 mobile, h-16 desktop) */}
-      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[72px]' : ''}`}>
+      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
         {renderModule()}
       </main>
 

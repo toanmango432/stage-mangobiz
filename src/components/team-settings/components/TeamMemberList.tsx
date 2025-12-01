@@ -1,7 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import type { TeamMemberSettings, StaffRole } from '../types';
-import { roleLabels, teamSettingsTokens } from '../constants';
+import { teamSettingsTokens } from '../constants';
 import { Avatar, Badge, Button } from './SharedComponents';
+import { allDefaultRoles } from '../../role-settings/constants';
+
+// Generate dynamic role labels from role-settings
+const getDynamicRoleLabels = (): Record<string, string> => {
+  const labels: Record<string, string> = {};
+  allDefaultRoles.forEach(role => {
+    labels[role.id] = role.name;
+  });
+  return labels;
+};
+
+const dynamicRoleLabels = getDynamicRoleLabels();
 
 interface TeamMemberListProps {
   members: TeamMemberSettings[];
@@ -125,9 +137,9 @@ export const TeamMemberList: React.FC<TeamMemberListProps> = ({
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="all">All Roles</option>
-                {Object.entries(roleLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+                {allDefaultRoles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
                   </option>
                 ))}
               </select>
@@ -228,7 +240,7 @@ export const TeamMemberList: React.FC<TeamMemberListProps> = ({
                             color: roleColor.text,
                           }}
                         >
-                          {roleLabels[member.permissions.role]}
+                          {dynamicRoleLabels[member.permissions.role] || member.permissions.role}
                         </span>
                         {member.onlineBooking.isBookableOnline && (
                           <span className="text-xs text-gray-400 flex items-center gap-1">

@@ -6,14 +6,25 @@ import type {
   ServicePricing
 } from '../types';
 import {
-  roleLabels,
   teamSettingsTokens,
   defaultWorkingHours,
   dayNames,
   mockServices
 } from '../constants';
 import { Button, Toggle } from './SharedComponents';
+import { allDefaultRoles } from '../../role-settings/constants';
 import { isValidEmail } from '../validation/validate';
+
+// Generate dynamic role labels from role-settings
+const getDynamicRoleLabels = (): Record<string, string> => {
+  const labels: Record<string, string> = {};
+  allDefaultRoles.forEach(role => {
+    labels[role.id] = role.name;
+  });
+  return labels;
+};
+
+const dynamicRoleLabels = getDynamicRoleLabels();
 
 // UUID v4 generator
 function generateUUID(): string {
@@ -164,7 +175,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
         displayName: `${basics.firstName.trim()} ${basics.lastName.trim()[0]}.`,
         email: basics.email.trim().toLowerCase(),
         phone: basics.phone.trim(),
-        title: basics.title?.trim() || roleLabels[basics.role],
+        title: basics.title?.trim() || dynamicRoleLabels[basics.role],
         bio: basics.bio?.trim(),
         hireDate: new Date().toISOString().split('T')[0],
       },
@@ -257,8 +268,39 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
   };
 
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
-  const getRoleColor = (role: StaffRole) =>
-    teamSettingsTokens.roleColors[role] || teamSettingsTokens.roleColors.stylist;
+
+  // Get role color from dynamic roles or fallback to static tokens
+  const getRoleColor = (roleId: string) => {
+    const roleDef = allDefaultRoles.find(r => r.id === roleId);
+    if (roleDef) {
+      // Convert Tailwind classes to color values
+      const bgMatch = roleDef.color.bg.match(/bg-(\w+)-(\d+)/);
+      const textMatch = roleDef.color.text.match(/text-(\w+)-(\d+)/);
+      const borderMatch = roleDef.color.border.match(/border-(\w+)-(\d+)/);
+
+      if (bgMatch && textMatch && borderMatch) {
+        // Return color token values for dynamic styling
+        const colorMap: Record<string, string> = {
+          'amber-100': '#fef3c7', 'amber-700': '#b45309', 'amber-300': '#fcd34d',
+          'purple-100': '#f3e8ff', 'purple-700': '#7c3aed', 'purple-300': '#c4b5fd',
+          'blue-100': '#dbeafe', 'blue-700': '#1d4ed8', 'blue-300': '#93c5fd',
+          'cyan-100': '#cffafe', 'cyan-700': '#0e7490', 'cyan-300': '#67e8f9',
+          'teal-100': '#ccfbf1', 'teal-700': '#0f766e', 'teal-300': '#5eead4',
+          'green-100': '#dcfce7', 'green-700': '#15803d', 'green-300': '#86efac',
+          'pink-100': '#fce7f3', 'pink-700': '#be185d', 'pink-300': '#f9a8d4',
+          'gray-100': '#f3f4f6', 'gray-700': '#374151', 'gray-300': '#d1d5db',
+        };
+
+        return {
+          bg: colorMap[`${bgMatch[1]}-${bgMatch[2]}`] || '#cffafe',
+          text: colorMap[`${textMatch[1]}-${textMatch[2]}`] || '#0e7490',
+          border: colorMap[`${borderMatch[1]}-${borderMatch[2]}`] || '#67e8f9',
+        };
+      }
+    }
+    // Fallback to static tokens
+    return teamSettingsTokens.roleColors[roleId as StaffRole] || teamSettingsTokens.roleColors.stylist;
+  };
 
   const toggleWorkingDay = (dayIndex: number) => {
     setWorkingHours(prev => prev.map((day, i) =>
@@ -462,13 +504,13 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
                   Role <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(Object.keys(roleLabels) as StaffRole[]).map((role) => {
-                    const colors = getRoleColor(role);
-                    const isSelected = basics.role === role;
+                  {allDefaultRoles.map((roleDef) => {
+                    const colors = getRoleColor(roleDef.id);
+                    const isSelected = basics.role === roleDef.id;
                     return (
                       <button
-                        key={role}
-                        onClick={() => setBasics({ ...basics, role })}
+                        key={roleDef.id}
+                        onClick={() => setBasics({ ...basics, role: roleDef.id as StaffRole })}
                         className={`
                           px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all
                           ${isSelected
@@ -482,7 +524,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
                           borderColor: isSelected ? colors.border : 'transparent',
                         }}
                       >
-                        {roleLabels[role]}
+                        {roleDef.name}
                       </button>
                     );
                   })}
@@ -499,7 +541,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
                   value={basics.title}
                   onChange={(e) => setBasics({ ...basics, title: e.target.value })}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                  placeholder={`e.g. ${roleLabels[basics.role]}, Lead Colorist, etc.`}
+                  placeholder={`e.g. ${dynamicRoleLabels[basics.role]}, Lead Colorist, etc.`}
                 />
               </div>
 
@@ -723,7 +765,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
                       {basics.firstName} {basics.lastName}
                     </h3>
                     <p className="text-gray-600 mt-0.5">
-                      {basics.title || roleLabels[basics.role]}
+                      {basics.title || dynamicRoleLabels[basics.role]}
                     </p>
                     <div className="mt-2">
                       <span
@@ -733,7 +775,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
                           color: getRoleColor(basics.role).text,
                         }}
                       >
-                        {roleLabels[basics.role]}
+                        {dynamicRoleLabels[basics.role]}
                       </span>
                     </div>
                   </div>

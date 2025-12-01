@@ -1,7 +1,51 @@
-import React, { useState } from 'react';
-import type { RolePermissions, Permission, StaffRole, PermissionLevel } from '../types';
-import { roleLabels, permissionCategories, teamSettingsTokens } from '../constants';
-import { Card, SectionHeader, Toggle, Button, Badge, Select, Input } from '../components/SharedComponents';
+import React, { useState, useCallback, useMemo } from 'react';
+import type { RolePermissions, StaffRole, PermissionLevel } from '../types';
+import { permissionCategories, teamSettingsTokens, defaultPermissions } from '../constants';
+import { Card, SectionHeader, Toggle, Button } from '../components/SharedComponents';
+import { allDefaultRoles } from '../../role-settings/constants';
+import type { QuickAccessPermissions } from '../../role-settings/types';
+
+// Type for quick access defaults
+type QuickAccessDefaults = Pick<RolePermissions,
+  'canAccessAdminPortal' | 'canAccessReports' | 'canModifyPrices' |
+  'canProcessRefunds' | 'canDeleteRecords' | 'canManageTeam' |
+  'canViewOthersCalendar' | 'canBookForOthers' | 'canEditOthersAppointments'
+>;
+
+// Helper function to convert RoleDefinition permissions to QuickAccessDefaults
+const convertToQuickAccessDefaults = (perms: QuickAccessPermissions): QuickAccessDefaults => ({
+  canAccessAdminPortal: perms.canAccessAdminPortal,
+  canAccessReports: perms.canAccessReports,
+  canModifyPrices: perms.canModifyPrices,
+  canProcessRefunds: perms.canProcessRefunds,
+  canDeleteRecords: perms.canDeleteRecords,
+  canManageTeam: perms.canManageTeam,
+  canViewOthersCalendar: perms.canViewOthersCalendar,
+  canBookForOthers: perms.canBookForOthers,
+  canEditOthersAppointments: perms.canEditOthersAppointments,
+});
+
+// Generate role default permissions dynamically from role-settings
+const generateRoleDefaultPermissions = (): Record<string, QuickAccessDefaults> => {
+  const permissions: Record<string, QuickAccessDefaults> = {};
+  allDefaultRoles.forEach(role => {
+    permissions[role.id] = convertToQuickAccessDefaults(role.quickAccessPermissions);
+  });
+  return permissions;
+};
+
+// Generate role labels dynamically from role-settings
+const generateRoleLabels = (): Record<string, string> => {
+  const labels: Record<string, string> = {};
+  allDefaultRoles.forEach(role => {
+    labels[role.id] = role.name;
+  });
+  return labels;
+};
+
+// Static exports for backwards compatibility
+const roleDefaultPermissions = generateRoleDefaultPermissions();
+const dynamicRoleLabels = generateRoleLabels();
 
 interface PermissionsSectionProps {
   permissions: RolePermissions;
@@ -12,6 +56,18 @@ export const PermissionsSection: React.FC<PermissionsSectionProps> = ({ permissi
   const [showPinSetup, setShowPinSetup] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Reset to role defaults handler
+  const handleResetToDefaults = useCallback(() => {
+    const defaults = roleDefaultPermissions[permissions.role];
+    onChange({
+      ...permissions,
+      ...defaults,
+      permissions: defaultPermissions, // Reset detailed permissions too
+    });
+    setShowResetConfirm(false);
+  }, [permissions, onChange]);
 
   const updatePermission = (permissionId: string, level: PermissionLevel) => {
     onChange({
@@ -22,8 +78,41 @@ export const PermissionsSection: React.FC<PermissionsSectionProps> = ({ permissi
     });
   };
 
-  const getRoleColor = (role: StaffRole) => {
-    return teamSettingsTokens.roleColors[role] || teamSettingsTokens.roleColors.stylist;
+  // Get current role definition from dynamic roles
+  const currentRoleDefinition = useMemo(() => {
+    return allDefaultRoles.find(r => r.id === permissions.role);
+  }, [permissions.role]);
+
+  // Get role color from either dynamic role or fallback to static tokens
+  const getRoleColor = (roleId: string) => {
+    const roleDef = allDefaultRoles.find(r => r.id === roleId);
+    if (roleDef) {
+      return {
+        bg: roleDef.color.bg.replace('bg-', ''),
+        text: roleDef.color.text.replace('text-', ''),
+        border: roleDef.color.border.replace('border-', ''),
+        bgClass: roleDef.color.bg,
+        textClass: roleDef.color.text,
+        borderClass: roleDef.color.border,
+      };
+    }
+    // Fallback to static tokens
+    const staticColor = teamSettingsTokens.roleColors[roleId as StaffRole];
+    return staticColor ? {
+      bg: staticColor.bg,
+      text: staticColor.text,
+      border: staticColor.border,
+      bgClass: `bg-${staticColor.bg}`,
+      textClass: `text-${staticColor.text}`,
+      borderClass: `border-${staticColor.border}`,
+    } : {
+      bg: 'cyan-100',
+      text: 'cyan-700',
+      border: 'cyan-300',
+      bgClass: 'bg-cyan-100',
+      textClass: 'text-cyan-700',
+      borderClass: 'border-cyan-300',
+    };
   };
 
   const roleColor = getRoleColor(permissions.role);
@@ -70,9 +159,9 @@ export const PermissionsSection: React.FC<PermissionsSectionProps> = ({ permissi
               onChange={(e) => onChange({ ...permissions, role: e.target.value as StaffRole })}
               className="w-full px-4 py-3 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
-              {Object.entries(roleLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
+              {allDefaultRoles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
                 </option>
               ))}
             </select>
@@ -80,30 +169,37 @@ export const PermissionsSection: React.FC<PermissionsSectionProps> = ({ permissi
 
           <div className="flex items-center">
             <div
-              className="w-full p-4 rounded-xl border-2"
-              style={{
-                backgroundColor: roleColor.bg,
-                borderColor: roleColor.border,
-              }}
+              className={`w-full p-4 rounded-xl border-2 ${roleColor.bgClass} ${roleColor.borderClass}`}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: roleColor.border }}
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center ${roleColor.borderClass.replace('border-', 'bg-')}`}
                 >
                   <UserIcon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold" style={{ color: roleColor.text }}>
-                    {roleLabels[permissions.role]}
+                  <p className={`font-semibold ${roleColor.textClass}`}>
+                    {currentRoleDefinition?.name || dynamicRoleLabels[permissions.role] || permissions.role}
                   </p>
-                  <p className="text-sm opacity-75" style={{ color: roleColor.text }}>
-                    {getRoleDescription(permissions.role)}
+                  <p className={`text-sm opacity-75 ${roleColor.textClass}`}>
+                    {currentRoleDefinition?.description || getRoleDescription(permissions.role)}
                   </p>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Reset to Defaults Button */}
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowResetConfirm(true)}
+          >
+            <RefreshIcon className="w-4 h-4 mr-2" />
+            Reset to Role Defaults
+          </Button>
         </div>
       </Card>
 
@@ -356,6 +452,32 @@ export const PermissionsSection: React.FC<PermissionsSectionProps> = ({ permissi
           ))}
         </div>
       </Card>
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <AlertIcon className="w-5 h-5 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Reset to Role Defaults?</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              This will reset all permissions to the default settings for the <strong>{currentRoleDefinition?.name || dynamicRoleLabels[permissions.role] || permissions.role}</strong> role.
+              Any custom permissions you've configured will be lost.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowResetConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleResetToDefaults}>
+                Reset Permissions
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -408,6 +530,12 @@ const getCategoryIcon = (category: string) => {
 const ShieldIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const RefreshIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
   </svg>
 );
 
