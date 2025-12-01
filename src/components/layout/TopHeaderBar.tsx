@@ -371,7 +371,7 @@ export function TopHeaderBar({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm border border-gray-300/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
+            className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
           />
           {!isSearchExpanded && !hideNavigation && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium">
