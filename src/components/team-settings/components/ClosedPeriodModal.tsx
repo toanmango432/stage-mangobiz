@@ -1,8 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Modal, Button, Toggle, Textarea } from './SharedComponents';
 import { useClosedPeriodMutations } from '../../../hooks/useSchedule';
 import { useScheduleContext } from '../hooks/useScheduleContext';
+import { useAppSelector } from '../../../store/hooks';
+import { selectAllAppointments } from '../../../store/slices/appointmentsSlice';
 import type { BusinessClosedPeriod, CreateBusinessClosedPeriodInput } from '../../../types/schedule';
+import type { LocalAppointment } from '../../../types/appointment';
 
 interface ClosedPeriodModalProps {
   isOpen: boolean;
@@ -179,6 +182,51 @@ export const ClosedPeriodModal: React.FC<ClosedPeriodModalProps> = ({
     ? Math.ceil((new Date(form.endDate).getTime() - new Date(form.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
     : null;
 
+  // Get all appointments from Redux store
+  const allAppointments = useAppSelector(selectAllAppointments) as LocalAppointment[];
+
+  // Calculate affected appointments
+  const affectedAppointments = useMemo((): LocalAppointment[] => {
+    if (!form.startDate || !form.endDate) return [];
+
+    const startDate = new Date(form.startDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(form.endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    return allAppointments.filter((apt: LocalAppointment) => {
+      // Skip cancelled/completed appointments
+      if (apt.status === 'cancelled' || apt.status === 'completed' || apt.status === 'no-show') {
+        return false;
+      }
+
+      const aptDate = new Date(apt.scheduledStartTime);
+
+      // Check if appointment falls within closure date range
+      if (aptDate < startDate || aptDate > endDate) {
+        return false;
+      }
+
+      // For partial day closures, check if appointment overlaps with closed hours
+      if (form.isPartialDay && form.startTime && form.endTime) {
+        const aptHour = aptDate.getHours();
+        const aptMinutes = aptDate.getMinutes();
+        const aptTimeMinutes = aptHour * 60 + aptMinutes;
+
+        const [closeStartH, closeStartM] = form.startTime.split(':').map(Number);
+        const [closeEndH, closeEndM] = form.endTime.split(':').map(Number);
+        const closeStartMinutes = closeStartH * 60 + closeStartM;
+        const closeEndMinutes = closeEndH * 60 + closeEndM;
+
+        // Check if appointment starts during closed hours
+        return aptTimeMinutes >= closeStartMinutes && aptTimeMinutes < closeEndMinutes;
+      }
+
+      return true;
+    });
+  }, [allAppointments, form.startDate, form.endDate, form.isPartialDay, form.startTime, form.endTime]);
+
   // Handle submit
   const handleSubmit = useCallback(async () => {
     if (!context) {
@@ -302,6 +350,58 @@ export const ClosedPeriodModal: React.FC<ClosedPeriodModalProps> = ({
             <span className="text-sm text-cyan-800">
               <strong>{duration}</strong> {duration === 1 ? 'day' : 'days'}
             </span>
+          </div>
+        )}
+
+        {/* Affected Appointments Preview */}
+        {affectedAppointments.length > 0 && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <WarningIcon className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-800">
+                  {affectedAppointments.length} appointment{affectedAppointments.length !== 1 ? 's' : ''} affected
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  The following appointments fall within this closure period:
+                </p>
+                <div className="mt-2 max-h-32 overflow-y-auto space-y-1.5">
+                  {affectedAppointments.slice(0, 5).map((apt) => {
+                    const aptDate = new Date(apt.scheduledStartTime);
+                    const timeStr = aptDate.toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    });
+                    const dateStr = aptDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                    return (
+                      <div
+                        key={apt.id}
+                        className="flex items-center justify-between text-xs bg-white/50 rounded px-2 py-1.5"
+                      >
+                        <span className="font-medium text-gray-800 truncate max-w-[150px]">
+                          {apt.clientName}
+                        </span>
+                        <span className="text-gray-600">
+                          {dateStr} at {timeStr}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {affectedAppointments.length > 5 && (
+                    <p className="text-xs text-amber-600 text-center pt-1">
+                      +{affectedAppointments.length - 5} more appointments
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-amber-600 mt-2 italic">
+                  These appointments may need to be rescheduled.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -455,6 +555,12 @@ const SpinnerIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24">
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+  </svg>
+);
+
+const WarningIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
   </svg>
 );
 

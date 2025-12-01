@@ -28,10 +28,20 @@ import type {
   ResourceBooking,
   StaffSchedule
 } from '../types/schedule';
+import type { DeviceMode } from '../types/device';
 
 export interface Settings {
   key: string;
   value: any;
+}
+
+// Device Settings for Opt-In Offline Mode
+export interface DeviceSettingsRecord {
+  deviceId: string;
+  mode: DeviceMode;
+  offlineModeEnabled: boolean;
+  lastSyncAt?: string;
+  registeredAt?: string;
 }
 
 export class MangoPOSDatabase extends Dexie {
@@ -63,6 +73,8 @@ export class MangoPOSDatabase extends Dexie {
   resources!: Table<Resource, string>;
   resourceBookings!: Table<ResourceBooking, string>;
   staffSchedules!: Table<StaffSchedule, string>;
+  // Device Settings for Opt-In Offline Mode
+  deviceSettings!: Table<DeviceSettingsRecord, string>;
 
   constructor() {
     super('mango_biz_store_app');
@@ -256,6 +268,43 @@ export class MangoPOSDatabase extends Dexie {
     }).upgrade(tx => {
       console.log('✅ Database upgraded to version 6: Added Schedule Module tables');
     });
+
+    // Version 7: Add Device Settings for Opt-In Offline Mode
+    // See: docs/product/PRD-Opt-In-Offline-Mode.md
+    this.version(7).stores({
+      // All existing tables unchanged
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, salonId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+
+      // Device Settings - stores device mode configuration locally
+      // Used to persist device mode across sessions without requiring server
+      deviceSettings: 'deviceId'
+    }).upgrade(tx => {
+      console.log('✅ Database upgraded to version 7: Added Device Settings for Opt-In Offline Mode');
+    });
   }
 }
 
@@ -303,5 +352,30 @@ export async function clearDatabase() {
   await db.resources.clear();
   await db.resourceBookings.clear();
   await db.staffSchedules.clear();
+  // Note: deviceSettings is intentionally NOT cleared here
+  // It should persist across data clears to maintain device identity
   console.log('🗑️  Database cleared');
+}
+
+// ==================== DEVICE SETTINGS ====================
+
+/**
+ * Get device settings from local database
+ */
+export async function getDeviceSettings(deviceId: string): Promise<DeviceSettingsRecord | undefined> {
+  return await db.deviceSettings.get(deviceId);
+}
+
+/**
+ * Save device settings to local database
+ */
+export async function saveDeviceSettings(settings: DeviceSettingsRecord): Promise<void> {
+  await db.deviceSettings.put(settings);
+}
+
+/**
+ * Clear device settings (used on logout/revocation)
+ */
+export async function clearDeviceSettings(deviceId: string): Promise<void> {
+  await db.deviceSettings.delete(deviceId);
 }

@@ -4,6 +4,8 @@
  */
 
 import { LocalAppointment } from '../types/appointment';
+import type { StaffSchedule } from '../types/schedule/staffSchedule';
+import { getScheduleForDate } from './scheduleUtils';
 
 /**
  * Snap time to 15-minute intervals
@@ -144,8 +146,123 @@ export function getConflictColor(conflictType?: string): string {
       return 'bg-yellow-200 border-yellow-400';
     case 'client-conflict':
       return 'bg-orange-200 border-orange-400';
+    case 'outside-hours':
+      return 'bg-gray-200 border-gray-400';
     default:
       return 'bg-teal-100 border-teal-400';
   }
+}
+
+/**
+ * Convert time string (HH:MM) to minutes from midnight
+ */
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+/**
+ * Check if an appointment time falls within staff working hours.
+ * Returns true if the appointment is valid, false if outside working hours.
+ */
+export function checkWithinWorkingHours(
+  schedule: StaffSchedule | null | undefined,
+  appointmentDate: string,  // 'YYYY-MM-DD'
+  startTime: Date,
+  endTime: Date
+): { isValid: boolean; message?: string } {
+  if (!schedule) {
+    // No schedule found - allow booking (staff hasn't set up schedule yet)
+    return { isValid: true };
+  }
+
+  const dayConfig = getScheduleForDate(schedule, appointmentDate);
+
+  if (!dayConfig || !dayConfig.isWorking) {
+    return {
+      isValid: false,
+      message: `${schedule.staffName} is not scheduled to work on this day`,
+    };
+  }
+
+  // Get appointment start/end in minutes from midnight
+  const appointmentStartMinutes = startTime.getHours() * 60 + startTime.getMinutes();
+  const appointmentEndMinutes = endTime.getHours() * 60 + endTime.getMinutes();
+
+  // Check if appointment falls within any of the staff's shifts
+  const workingShifts = dayConfig.shifts.filter(
+    s => s.type === 'regular' || s.type === 'overtime'
+  );
+
+  if (workingShifts.length === 0) {
+    return {
+      isValid: false,
+      message: `${schedule.staffName} has no shifts scheduled for this day`,
+    };
+  }
+
+  // Check if appointment fits within any shift
+  for (const shift of workingShifts) {
+    const shiftStartMinutes = timeToMinutes(shift.startTime);
+    const shiftEndMinutes = timeToMinutes(shift.endTime);
+
+    // Appointment must start and end within the shift
+    if (
+      appointmentStartMinutes >= shiftStartMinutes &&
+      appointmentEndMinutes <= shiftEndMinutes
+    ) {
+      return { isValid: true };
+    }
+  }
+
+  // Appointment doesn't fit any shift - provide helpful message
+  const shiftTimes = workingShifts
+    .map(s => `${s.startTime}-${s.endTime}`)
+    .join(', ');
+
+  return {
+    isValid: false,
+    message: `Appointment falls outside ${schedule.staffName}'s working hours (${shiftTimes})`,
+  };
+}
+
+/**
+ * Enhanced conflict check that includes working hours validation.
+ * Use this when you have access to the staff schedule.
+ */
+export function checkDragConflictWithSchedule(
+  appointment: LocalAppointment,
+  newStaffId: string,
+  newStartTime: Date,
+  existingAppointments: LocalAppointment[],
+  staffSchedule?: StaffSchedule | null
+): { hasConflict: boolean; conflictType?: string; message?: string } {
+  // First check working hours if schedule is available
+  if (staffSchedule && staffSchedule.staffId === newStaffId) {
+    const duration = Math.round(
+      (new Date(appointment.scheduledEndTime).getTime() -
+        new Date(appointment.scheduledStartTime).getTime()) / 60000
+    );
+    const newEndTime = calculateEndTime(newStartTime, duration);
+    const dateStr = newStartTime.toISOString().split('T')[0];
+
+    const hoursCheck = checkWithinWorkingHours(
+      staffSchedule,
+      dateStr,
+      newStartTime,
+      newEndTime
+    );
+
+    if (!hoursCheck.isValid) {
+      return {
+        hasConflict: true,
+        conflictType: 'outside-hours',
+        message: hoursCheck.message,
+      };
+    }
+  }
+
+  // Then check regular conflicts
+  return checkDragConflict(appointment, newStaffId, newStartTime, existingAppointments);
 }
 

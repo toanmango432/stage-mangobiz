@@ -364,3 +364,44 @@ No actual errors introduced by Phase 2 changes.
 3. Verify toast appears on save
 4. Add new member with existing email → verify error message
 5. Verify loading skeleton on initial load
+
+---
+
+## UX Pattern Update: 2025-12-01
+
+### Changed: Auto-Save → Manual Save Pattern
+
+Based on industry best practices (Stripe, Linear, Notion), we changed from auto-save to manual save pattern.
+
+**Reason:** Team Settings changes affect other users (permissions, scheduling) and require validation. Manual save provides:
+- A "panic button" (Discard) to revert unwanted changes
+- Clear feedback on unsaved state
+- Navigation guards to prevent accidental data loss
+- Loading state feedback during save operations
+
+### New Implementation:
+
+**TeamSettings.tsx:**
+- Removed `useRef` for auto-save timer
+- Added `showDiscardConfirm` state for discard confirmation modal
+- Added `pendingNavigation` state for navigation guard
+- Added `isSaving` state for save button loading state
+- Updated `handleUpdateMember` to only mark changes as unsaved (no auto-save)
+- Added `handleDiscard` function to reload data from database
+- Added `handleSelectMember` with navigation guard
+- Added `handleConfirmNavigation` and `handleCancelNavigation`
+- Updated header with Discard button (appears when changes exist)
+- Updated Save button with loading state
+- Added Discard confirmation modal
+- Added Navigation warning modal with "Save & Continue", "Don't Save", "Cancel" options
+
+### Testing Manual Save:
+1. Go to Team Settings → Select a member
+2. Make changes to any field
+3. Verify "Unsaved Changes" badge and "Discard" button appear
+4. Verify "Save Changes" button becomes enabled
+5. Click another team member → verify navigation warning modal
+6. Test "Save & Continue" → saves changes and switches
+7. Test "Don't Save" → discards changes and switches
+8. Test "Cancel" → stays on current member
+9. Test Discard button → shows confirmation, then reloads original data

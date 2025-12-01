@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { TeamMemberSettings, TeamSettingsSection, StaffRole } from './types';
 import { mockTeamMembers, roleLabels, teamSettingsTokens } from './constants';
@@ -74,11 +74,17 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     isAddingNew,
   } = ui;
 
-  // Auto-save debounce timer ref
-  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   // Toast state for notifications
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Discard confirmation modal
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  // Navigation warning state
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+  // Saving state for button feedback
+  const [isSaving, setIsSaving] = useState(false);
 
   // Show toast helper
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -118,31 +124,12 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     loadData();
   }, [dispatch]);
 
-  // Update member handler with debounced auto-save
+  // Update member handler - marks changes as unsaved (manual save pattern)
   const handleUpdateMember = useCallback((updates: Partial<TeamMemberSettings>) => {
     if (!selectedMemberId) return;
     dispatch(updateMember({ id: selectedMemberId, updates }));
-
-    // Clear existing timer
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-    }
-
-    // Set new debounced auto-save (2 seconds)
-    saveTimerRef.current = setTimeout(async () => {
-      const currentMember = selectedMember;
-      if (currentMember) {
-        try {
-          await dispatch(saveTeamMember({ member: { ...currentMember, ...updates } })).unwrap();
-          dispatch(setHasUnsavedChanges(false));
-          showToast('Changes saved', 'success');
-        } catch (err) {
-          console.error('Auto-save failed:', err);
-          showToast('Auto-save failed', 'error');
-        }
-      }
-    }, 2000);
-  }, [dispatch, selectedMemberId, selectedMember, showToast]);
+    dispatch(setHasUnsavedChanges(true));
+  }, [dispatch, selectedMemberId]);
 
   // Section navigation items
   const sectionNav: { id: TeamSettingsSection; label: string; icon: React.ReactNode }[] = [
@@ -156,9 +143,29 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
   ];
 
   const handleSelectMember = useCallback((memberId: string) => {
+    // If there are unsaved changes, show confirmation
+    if (hasUnsavedChanges) {
+      setPendingNavigation(memberId);
+      return;
+    }
     dispatch(setSelectedMember(memberId));
     dispatch(setMobileListVisible(false));
-  }, [dispatch]);
+  }, [dispatch, hasUnsavedChanges]);
+
+  // Confirm navigation (discard changes and switch member)
+  const handleConfirmNavigation = useCallback(() => {
+    if (pendingNavigation) {
+      dispatch(setSelectedMember(pendingNavigation));
+      dispatch(setMobileListVisible(false));
+      dispatch(setHasUnsavedChanges(false));
+      setPendingNavigation(null);
+    }
+  }, [dispatch, pendingNavigation]);
+
+  // Cancel navigation
+  const handleCancelNavigation = useCallback(() => {
+    setPendingNavigation(null);
+  }, []);
 
   const handleAddMember = useCallback(() => {
     dispatch(setIsAddingNew(true));
@@ -181,8 +188,9 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
   }, [dispatch]);
 
   const handleSave = useCallback(async () => {
-    if (!selectedMember) return;
+    if (!selectedMember || isSaving) return;
 
+    setIsSaving(true);
     try {
       await dispatch(saveTeamMember({ member: selectedMember })).unwrap();
       dispatch(setHasUnsavedChanges(false));
@@ -190,8 +198,26 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     } catch (err) {
       console.error('Failed to save changes:', err);
       showToast('Failed to save changes', 'error');
+    } finally {
+      setIsSaving(false);
     }
-  }, [dispatch, selectedMember, showToast]);
+  }, [dispatch, selectedMember, showToast, isSaving]);
+
+  // Discard changes handler - reloads member from database
+  const handleDiscard = useCallback(async () => {
+    if (!selectedMemberId) return;
+
+    try {
+      // Reload the member data from database
+      await dispatch(fetchTeamMembers(undefined)).unwrap();
+      dispatch(setHasUnsavedChanges(false));
+      setShowDiscardConfirm(false);
+      showToast('Changes discarded', 'success');
+    } catch (err) {
+      console.error('Failed to discard changes:', err);
+      showToast('Failed to discard changes', 'error');
+    }
+  }, [dispatch, selectedMemberId, showToast]);
 
   // Archive member handler
   const handleArchiveMember = useCallback(async () => {
@@ -252,13 +278,10 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     return teamSettingsTokens.roleColors[role] || teamSettingsTokens.roleColors.stylist;
   };
 
-  // Clear error and timer on unmount
+  // Clear error on unmount
   useEffect(() => {
     return () => {
       dispatch(clearError());
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
     };
   }, [dispatch]);
 
@@ -282,21 +305,27 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          {loading && (
-            <span className="text-sm text-gray-500">Saving...</span>
-          )}
           {error && (
             <Badge variant="error">{error}</Badge>
           )}
           {hasUnsavedChanges && (
             <Badge variant="warning">Unsaved Changes</Badge>
           )}
+          {hasUnsavedChanges && (
+            <Button
+              variant="outline"
+              onClick={() => setShowDiscardConfirm(true)}
+              disabled={isSaving}
+            >
+              Discard
+            </Button>
+          )}
           <Button
             variant="primary"
             onClick={handleSave}
-            disabled={!hasUnsavedChanges || loading}
+            disabled={!hasUnsavedChanges || isSaving}
           >
-            Save Changes
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </header>
@@ -515,6 +544,62 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
             <ExclamationCircleIcon className="w-5 h-5" />
           )}
           <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
+
+      {/* Discard Changes Confirmation Modal */}
+      {showDiscardConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <ExclamationCircleIcon className="w-5 h-5 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Discard Changes?</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              You have unsaved changes. Are you sure you want to discard them? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowDiscardConfirm(false)}>
+                Keep Editing
+              </Button>
+              <Button variant="danger" onClick={handleDiscard}>
+                Discard Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Warning Modal */}
+      {pendingNavigation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <ExclamationCircleIcon className="w-5 h-5 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Unsaved Changes</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              You have unsaved changes. Would you like to save them before switching to another team member?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={handleCancelNavigation}>
+                Cancel
+              </Button>
+              <Button variant="outline" onClick={handleConfirmNavigation}>
+                Don't Save
+              </Button>
+              <Button variant="primary" onClick={async () => {
+                await handleSave();
+                handleConfirmNavigation();
+              }}>
+                Save & Continue
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

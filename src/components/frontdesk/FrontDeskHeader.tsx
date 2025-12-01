@@ -29,6 +29,10 @@ interface FrontDeskHeaderProps {
   className?: string;
   customTheme?: FrontDeskHeaderTheme;
   subtitle?: string;
+  /** Whether to show metric pills (default: true) */
+  showMetricPills?: boolean;
+  /** Hide metric pills on mobile for simpler display */
+  hideMetricPillsOnMobile?: boolean;
 }
 
 const metricToneClass: Record<MetricPill['tone'], string> = {
@@ -52,8 +56,12 @@ export function FrontDeskHeader({
   className,
   customTheme,
   subtitle,
+  showMetricPills = true,
+  hideMetricPillsOnMobile = false,
 }: FrontDeskHeaderProps) {
   const theme = customTheme || getTheme(variant);
+  const shouldShowMetrics = showMetricPills && metricPills && metricPills.length > 0;
+
   return (
     <div className={clsx(frontDeskHeaderBase, theme.wrapper, className)}>
       <div className={clsx(frontDeskHeaderSpacing, theme.padding)}>
@@ -71,8 +79,11 @@ export function FrontDeskHeader({
                 <span className={clsx(theme.subtitleClass || 'text-2xs text-slate-600')}>{subtitle}</span>
               )}
             </div>
-            {metricPills && metricPills.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
+            {shouldShowMetrics && (
+              <div className={clsx(
+                'flex flex-wrap items-center gap-2',
+                hideMetricPillsOnMobile && 'hidden sm:flex'
+              )}>
                 {metricPills.map(({ label, value, tone }) => (
                   <span
                     key={`${label}-${value}`}

@@ -4,6 +4,8 @@ import {
   FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
   LayoutGrid, Receipt, CreditCard, MoreHorizontal
 } from 'lucide-react';
+import { useAppSelector } from '../../store/hooks';
+import { storeAuthManager } from '../../services/storeAuthManager';
 
 interface TopHeaderBarProps {
   activeModule?: string;
@@ -29,6 +31,13 @@ export function TopHeaderBar({
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showStatusTooltip, setShowStatusTooltip] = useState(false);
+
+  // Get online status and device mode from Redux/auth
+  const isOnline = useAppSelector((state) => state.sync?.isOnline ?? true);
+  const isSyncing = useAppSelector((state) => state.sync?.isSyncing ?? false);
+  const deviceMode = storeAuthManager.getDeviceMode();
+  const isOfflineEnabled = deviceMode === 'offline-enabled';
 
   // Live clock update
   useEffect(() => {
@@ -180,90 +189,223 @@ export function TopHeaderBar({
     `}>
       {/* Left Section - Logo, Clock & Organization (subtle, secondary to nav) */}
       <div className={`flex items-center gap-2 md:gap-2.5 ${hideNavigation ? 'flex-1' : 'min-w-[160px]'}`}>
-        {/* Mango Logo - Exact match to brand logo */}
-        <div className="flex-shrink-0 opacity-90">
+        {/* Mango Logo - Status-Aware Interactive Indicator */}
+        {/* Online: Vibrant colors with subtle glow | Offline: Grayscale with pulse | Syncing: Shimmer effect */}
+        <div
+          className="flex-shrink-0 relative cursor-pointer group"
+          onMouseEnter={() => setShowStatusTooltip(true)}
+          onMouseLeave={() => setShowStatusTooltip(false)}
+        >
+          {/* Glow effect for online status */}
+          {isOnline && (
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-400/30 to-yellow-300/20 rounded-full blur-md scale-110 animate-pulse" />
+          )}
+
+          {/* Syncing spinner ring */}
+          {isSyncing && (
+            <div className="absolute inset-[-4px] border-2 border-transparent border-t-blue-500 border-r-blue-400 rounded-full animate-spin" />
+          )}
+
           <svg
             viewBox="0 0 60 70"
-            className="w-7 h-8 md:w-8 md:h-9"
+            className={`w-7 h-8 md:w-8 md:h-9 relative z-10 transition-all duration-500
+              ${!isOnline ? 'grayscale opacity-60' : 'opacity-100'}
+              ${isSyncing ? 'scale-95' : 'scale-100'}
+              group-hover:scale-110
+            `}
           >
-            {/* Gradient definitions */}
+            {/* Gradient definitions - different colors for online vs offline */}
             <defs>
-              <linearGradient id="mangoBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              {/* Online: Vibrant orange-yellow gradient */}
+              <linearGradient id="mangoBodyGradOnline" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#FFC94D" />
                 <stop offset="40%" stopColor="#FFB833" />
                 <stop offset="100%" stopColor="#F5A623" />
               </linearGradient>
-              <linearGradient id="leafGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              {/* Offline: Muted gray gradient */}
+              <linearGradient id="mangoBodyGradOffline" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#A0A0A0" />
+                <stop offset="40%" stopColor="#888888" />
+                <stop offset="100%" stopColor="#707070" />
+              </linearGradient>
+              {/* Online: Bright green leaf */}
+              <linearGradient id="leafGradOnline" x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#7CB342" />
                 <stop offset="100%" stopColor="#AED581" />
               </linearGradient>
+              {/* Offline: Gray leaf */}
+              <linearGradient id="leafGradOffline" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#808080" />
+                <stop offset="100%" stopColor="#A0A0A0" />
+              </linearGradient>
             </defs>
 
-            {/* Leaf - bright green, angled */}
+            {/* Leaf */}
             <path
               d="M30 8 Q22 2 14 6 Q18 14 28 12 Z"
-              fill="url(#leafGrad)"
+              fill={isOnline ? "url(#leafGradOnline)" : "url(#leafGradOffline)"}
+              className="transition-all duration-500"
             />
-            {/* Leaf vein/outline */}
+            {/* Leaf vein */}
             <path
               d="M28 10 Q22 7 16 8"
-              stroke="#558B2F"
+              stroke={isOnline ? "#558B2F" : "#606060"}
               strokeWidth="1.5"
               fill="none"
+              className="transition-all duration-500"
             />
 
-            {/* Stem - dark curved line */}
+            {/* Stem */}
             <path
               d="M30 8 Q32 14 30 18"
-              stroke="#2D2D2D"
+              stroke={isOnline ? "#2D2D2D" : "#505050"}
               strokeWidth="2.5"
               fill="none"
               strokeLinecap="round"
+              className="transition-all duration-500"
             />
 
-            {/* Mango body - rounded organic shape */}
+            {/* Mango body */}
             <ellipse
               cx="30"
               cy="42"
               rx="22"
               ry="26"
-              fill="url(#mangoBodyGrad)"
+              fill={isOnline ? "url(#mangoBodyGradOnline)" : "url(#mangoBodyGradOffline)"}
+              className="transition-all duration-500"
             />
 
-            {/* Dark outline on mango - partial stroke like logo */}
+            {/* Dark outline */}
             <path
               d="M30 16 Q10 22 10 42 Q10 60 24 66"
-              stroke="#2D2D2D"
+              stroke={isOnline ? "#2D2D2D" : "#505050"}
               strokeWidth="2"
               fill="none"
               strokeLinecap="round"
+              className="transition-all duration-500"
             />
 
-            {/* Bottom smile curve */}
+            {/* Smile curve */}
             <path
               d="M20 56 Q30 62 42 52"
-              stroke="#2D2D2D"
+              stroke={isOnline ? "#2D2D2D" : "#505050"}
               strokeWidth="2"
               fill="none"
               strokeLinecap="round"
+              className="transition-all duration-500"
             />
 
-            {/* Highlight spots - pink/white like logo */}
-            <ellipse cx="38" cy="34" rx="5" ry="4" fill="#FFEEDD" opacity="0.7" />
-            <ellipse cx="42" cy="40" rx="3" ry="2.5" fill="#FFEEDD" opacity="0.5" />
+            {/* Highlight spots - only visible when online */}
+            <ellipse
+              cx="38"
+              cy="34"
+              rx="5"
+              ry="4"
+              fill={isOnline ? "#FFEEDD" : "#C0C0C0"}
+              opacity={isOnline ? 0.7 : 0.3}
+              className="transition-all duration-500"
+            />
+            <ellipse
+              cx="42"
+              cy="40"
+              rx="3"
+              ry="2.5"
+              fill={isOnline ? "#FFEEDD" : "#B0B0B0"}
+              opacity={isOnline ? 0.5 : 0.2}
+              className="transition-all duration-500"
+            />
+
+            {/* Status indicator dot in corner */}
+            <circle
+              cx="48"
+              cy="58"
+              r="6"
+              fill={isOnline ? "#22C55E" : (isOfflineEnabled ? "#F59E0B" : "#EF4444")}
+              stroke="white"
+              strokeWidth="2"
+              className={`transition-all duration-300 ${!isOnline && isOfflineEnabled ? 'animate-pulse' : ''}`}
+            />
           </svg>
+
+          {/* Status Tooltip - detailed info on hover */}
+          {showStatusTooltip && (
+            <div className="absolute top-full left-0 mt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isOnline ? 'bg-green-400' : (isOfflineEnabled ? 'bg-amber-400' : 'bg-red-400')
+                  }`} />
+                  <span className="font-medium">
+                    {isOnline
+                      ? 'Online'
+                      : isOfflineEnabled
+                        ? 'Offline Mode'
+                        : 'No Connection'}
+                  </span>
+                </div>
+                {isSyncing && (
+                  <div className="mt-1 text-gray-300 text-[10px]">Syncing data...</div>
+                )}
+                {!isOnline && isOfflineEnabled && (
+                  <div className="mt-1 text-gray-300 text-[10px]">Changes saved locally</div>
+                )}
+                {!isOnline && !isOfflineEnabled && (
+                  <div className="mt-1 text-gray-300 text-[10px]">Internet required</div>
+                )}
+                <div className="mt-1 text-gray-400 text-[10px]">
+                  Mode: {isOfflineEnabled ? 'Offline-Enabled' : 'Online-Only'}
+                </div>
+                {/* Tooltip arrow */}
+                <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 rotate-45" />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Clock - Elegant split typography */}
+        {/* Always-Visible Status Badge - shows without hover */}
+        {/* Only show when offline OR syncing - online is the "normal" state so no badge needed */}
+        {(!isOnline || isSyncing) && (
+          <div className={`
+            flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-semibold
+            transition-all duration-300 animate-in fade-in slide-in-from-left-2
+            ${isSyncing
+              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+              : isOfflineEnabled
+                ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                : 'bg-red-100 text-red-700 border border-red-200'
+            }
+          `}>
+            {/* Animated dot */}
+            <span className={`
+              w-1.5 h-1.5 rounded-full
+              ${isSyncing
+                ? 'bg-blue-500 animate-ping'
+                : isOfflineEnabled
+                  ? 'bg-amber-500 animate-pulse'
+                  : 'bg-red-500 animate-pulse'
+              }
+            `} />
+            <span className="hidden sm:inline">
+              {isSyncing
+                ? 'Syncing'
+                : isOfflineEnabled
+                  ? 'Offline'
+                  : 'No Connection'
+              }
+            </span>
+          </div>
+        )}
+
+        {/* Clock - Elegant split typography, compact on mobile */}
         <div className="flex items-baseline gap-0.5">
-          <span className="text-sm font-semibold text-gray-600 tabular-nums tracking-tight">
+          <span className="text-xs md:text-sm font-semibold text-gray-600 tabular-nums tracking-tight">
             {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false }).split(':')[0]}
           </span>
-          <span className="text-sm font-semibold text-gray-400 animate-pulse">:</span>
-          <span className="text-sm font-medium text-gray-500 tabular-nums tracking-tight">
+          <span className="text-xs md:text-sm font-semibold text-gray-400 animate-pulse">:</span>
+          <span className="text-xs md:text-sm font-medium text-gray-500 tabular-nums tracking-tight">
             {currentTime.toLocaleTimeString('en-US', { minute: '2-digit' }).padStart(2, '0').slice(-2)}
           </span>
-          <span className="text-[10px] font-medium text-gray-400 ml-0.5 uppercase">
+          <span className="text-[9px] md:text-[10px] font-medium text-gray-400 ml-0.5 uppercase">
             {currentTime.getHours() >= 12 ? 'pm' : 'am'}
           </span>
         </div>
@@ -313,8 +455,8 @@ export function TopHeaderBar({
                 key={module.id}
                 onClick={() => onModuleChange?.(module.id)}
                 className={`
-                  relative flex items-center gap-3 px-6 py-3 rounded-xl transition-all duration-150 group
-                  min-h-[52px] transform
+                  relative flex items-center gap-2 lg:gap-3 px-3 lg:px-5 xl:px-6 py-2 lg:py-3 rounded-xl transition-all duration-150 group
+                  min-h-[44px] lg:min-h-[52px] transform
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
                   ${isActive
                     ? 'bg-orange-50 text-orange-600 shadow-sm border-b-2 border-orange-500'
@@ -323,11 +465,11 @@ export function TopHeaderBar({
                 `}
               >
                 <Icon
-                  size={24}
+                  size={20}
+                  className="lg:w-6 lg:h-6 transition-transform duration-200 group-hover:scale-110"
                   strokeWidth={isActive ? 2.5 : 2}
-                  className="transition-transform duration-200 group-hover:scale-110"
                 />
-                <span className={`text-lg ${isActive ? 'font-bold' : 'font-semibold'}`}>
+                <span className={`text-base lg:text-lg ${isActive ? 'font-bold' : 'font-semibold'}`}>
                   {module.label}
                 </span>
               </button>
@@ -338,8 +480,8 @@ export function TopHeaderBar({
           <button
             onClick={() => onModuleChange?.('more')}
             className={`
-              relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl transition-all duration-150 group
-              min-h-[48px] transform
+              relative flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 xl:px-5 py-2 lg:py-2.5 rounded-xl transition-all duration-150 group
+              min-h-[44px] lg:min-h-[48px] transform
               focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
               ${activeModule === 'more'
                 ? 'bg-gray-100 text-gray-700 shadow-sm border-b-2 border-gray-500'
@@ -347,8 +489,8 @@ export function TopHeaderBar({
               }
             `}
           >
-            <MoreHorizontal size={20} className="transition-transform duration-200 group-hover:scale-110" />
-            <span className={`text-base ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
+            <MoreHorizontal size={18} className="lg:w-5 lg:h-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className={`text-sm lg:text-base ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
               More
             </span>
           </button>
@@ -360,7 +502,7 @@ export function TopHeaderBar({
       <div className={`flex items-center gap-2 md:gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
         {/* Compact Search - glass style */}
         <div className={`relative transition-all duration-300 ease-out ${
-          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-28 sm:w-40' : 'w-48'
+          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-32 sm:w-44 md:w-52' : 'w-40 lg:w-48'
         }`}>
           <Search className="absolute left-3 md:left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-600" strokeWidth={2.5} />
           <input

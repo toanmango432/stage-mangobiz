@@ -1189,3 +1189,272 @@ export function useClosedPeriodModals() {
 export function useClosedPeriodsLoading() {
   return useAppSelector(selectClosedPeriodsLoading);
 }
+
+// ==================== STAFF SCHEDULE HOOKS ====================
+
+import {
+  fetchStaffSchedules,
+  fetchStaffSchedulesByStaff,
+  fetchCurrentStaffSchedule,
+  createStaffSchedule,
+  updateStaffSchedule,
+  deleteStaffSchedule,
+  setSelectedStaffId as setStaffScheduleSelectedStaffId,
+  setSelectedScheduleId,
+  setEditingWeekNumber,
+  openScheduleModal,
+  closeScheduleModal,
+  clearStaffScheduleError,
+  selectStaffSchedules,
+  selectStaffSchedulesLoading,
+  selectStaffSchedulesError,
+  selectStaffSchedulesByStaffId,
+  selectCurrentStaffSchedule,
+  selectStaffScheduleLoadingByStaff,
+  selectStaffScheduleUI,
+  selectSelectedStaffSchedule,
+  selectEditingWeekNumber,
+  selectScheduleModalOpen,
+} from '../store/slices/staffScheduleSlice';
+import type { StaffSchedule, CreateStaffScheduleInput } from '../types/schedule/staffSchedule';
+import {
+  getScheduleForDate,
+  isStaffWorkingOnDate,
+  getWorkingHoursForDate,
+  getWeekNumberForDate,
+} from '../utils/scheduleUtils';
+
+/**
+ * Hook for fetching and managing all staff schedules for a store.
+ */
+export function useStaffSchedules(storeId: string) {
+  const dispatch = useAppDispatch();
+  const schedules = useAppSelector(selectStaffSchedules);
+  const loading = useAppSelector(selectStaffSchedulesLoading);
+  const error = useAppSelector(selectStaffSchedulesError);
+
+  const fetch = useCallback(() => {
+    if (storeId) {
+      dispatch(fetchStaffSchedules(storeId));
+    }
+  }, [dispatch, storeId]);
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return {
+    schedules,
+    loading,
+    error,
+    refetch: fetch,
+  };
+}
+
+/**
+ * Hook for fetching staff schedule for a specific staff member.
+ */
+export function useStaffScheduleForStaff(staffId: string) {
+  const dispatch = useAppDispatch();
+  const schedules = useAppSelector((state) => selectStaffSchedulesByStaffId(state, staffId));
+  const currentSchedule = useAppSelector((state) => selectCurrentStaffSchedule(state, staffId));
+  const loading = useAppSelector((state) => selectStaffScheduleLoadingByStaff(state, staffId));
+  const error = useAppSelector(selectStaffSchedulesError);
+
+  const fetch = useCallback(() => {
+    if (staffId) {
+      dispatch(fetchStaffSchedulesByStaff(staffId));
+    }
+  }, [dispatch, staffId]);
+
+  const fetchCurrent = useCallback(() => {
+    if (staffId) {
+      dispatch(fetchCurrentStaffSchedule(staffId));
+    }
+  }, [dispatch, staffId]);
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetch();
+    fetchCurrent();
+  }, [fetch, fetchCurrent]);
+
+  return {
+    schedules,
+    currentSchedule,
+    loading,
+    error,
+    refetch: fetch,
+    refetchCurrent: fetchCurrent,
+  };
+}
+
+/**
+ * Hook for getting the working hours for a staff member on a specific date.
+ * Useful for calendar integration.
+ */
+export function useStaffWorkingHoursForDate(staffId: string, date: string) {
+  const { currentSchedule, loading } = useStaffScheduleForStaff(staffId);
+
+  const workingHours = useMemo(() => {
+    if (!currentSchedule) return [];
+    return getWorkingHoursForDate(currentSchedule, date);
+  }, [currentSchedule, date]);
+
+  const isWorking = useMemo(() => {
+    if (!currentSchedule) return false;
+    return isStaffWorkingOnDate(currentSchedule, date);
+  }, [currentSchedule, date]);
+
+  const dayConfig = useMemo(() => {
+    if (!currentSchedule) return null;
+    return getScheduleForDate(currentSchedule, date);
+  }, [currentSchedule, date]);
+
+  return {
+    workingHours,
+    isWorking,
+    dayConfig,
+    loading,
+  };
+}
+
+/**
+ * Hook for getting which week of the pattern applies to a specific date.
+ */
+export function useWeekNumberForDate(schedule: StaffSchedule | null, date: string) {
+  return useMemo(() => {
+    if (!schedule) return 1;
+    if (schedule.patternType === 'fixed') return 1;
+    const anchorDate = schedule.patternAnchorDate || schedule.effectiveFrom;
+    return getWeekNumberForDate(anchorDate, date, schedule.patternWeeks);
+  }, [schedule, date]);
+}
+
+/**
+ * Hook for staff schedule mutations (create, update, delete).
+ */
+export function useStaffScheduleMutations(context: {
+  userId: string;
+  storeId: string;
+  tenantId: string;
+  deviceId: string;
+}) {
+  const dispatch = useAppDispatch();
+  const loading = useAppSelector(selectStaffSchedulesLoading);
+  const error = useAppSelector(selectStaffSchedulesError);
+
+  const create = useCallback(
+    async (input: CreateStaffScheduleInput) => {
+      const result = await dispatch(createStaffSchedule({ input, context }));
+      if (createStaffSchedule.rejected.match(result)) {
+        throw new Error(result.payload as string);
+      }
+      return result.payload as StaffSchedule;
+    },
+    [dispatch, context]
+  );
+
+  const update = useCallback(
+    async (id: string, updates: Partial<CreateStaffScheduleInput>) => {
+      const result = await dispatch(
+        updateStaffSchedule({
+          id,
+          updates,
+          userId: context.userId,
+          deviceId: context.deviceId,
+        })
+      );
+      if (updateStaffSchedule.rejected.match(result)) {
+        throw new Error(result.payload as string);
+      }
+      return result.payload as StaffSchedule;
+    },
+    [dispatch, context]
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      const result = await dispatch(
+        deleteStaffSchedule({
+          id,
+          userId: context.userId,
+          deviceId: context.deviceId,
+        })
+      );
+      if (deleteStaffSchedule.rejected.match(result)) {
+        throw new Error(result.payload as string);
+      }
+    },
+    [dispatch, context]
+  );
+
+  const clearError = useCallback(() => {
+    dispatch(clearStaffScheduleError());
+  }, [dispatch]);
+
+  return {
+    create,
+    update,
+    remove,
+    loading,
+    error,
+    clearError,
+  };
+}
+
+/**
+ * Hook for staff schedule modal UI state.
+ */
+export function useStaffScheduleModal() {
+  const dispatch = useAppDispatch();
+  const ui = useAppSelector(selectStaffScheduleUI);
+  const selectedSchedule = useAppSelector(selectSelectedStaffSchedule);
+  const editingWeek = useAppSelector(selectEditingWeekNumber);
+  const isOpen = useAppSelector(selectScheduleModalOpen);
+
+  const open = useCallback(
+    (params: { staffId?: string; scheduleId?: string } = {}) => {
+      dispatch(openScheduleModal(params));
+    },
+    [dispatch]
+  );
+
+  const close = useCallback(() => {
+    dispatch(closeScheduleModal());
+  }, [dispatch]);
+
+  const setWeek = useCallback(
+    (weekNumber: number) => {
+      dispatch(setEditingWeekNumber(weekNumber));
+    },
+    [dispatch]
+  );
+
+  const setStaffId = useCallback(
+    (staffId: string | null) => {
+      dispatch(setStaffScheduleSelectedStaffId(staffId));
+    },
+    [dispatch]
+  );
+
+  const setScheduleId = useCallback(
+    (scheduleId: string | null) => {
+      dispatch(setSelectedScheduleId(scheduleId));
+    },
+    [dispatch]
+  );
+
+  return {
+    isOpen,
+    selectedStaffId: ui.selectedStaffId,
+    selectedSchedule,
+    editingWeek,
+    open,
+    close,
+    setWeek,
+    setStaffId,
+    setScheduleId,
+  };
+}

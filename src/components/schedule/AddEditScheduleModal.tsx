@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { RegularScheduleTab } from "./AddEditScheduleModal/RegularScheduleTab";
+import { MultiWeekScheduleWrapper, type PatternType } from "./AddEditScheduleModal/MultiWeekScheduleWrapper";
 import { ExpandedDayTab } from "./AddEditScheduleModal/ExpandedDayTab";
 import { TimeOffTab } from "./AddEditScheduleModal/TimeOffTab";
 import { toast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle, Clock, User, ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createStaffScheduleInput, staffScheduleToUISchedule } from '@/utils/scheduleUtils';
+import { staffSchedulesDB } from '@/db/scheduleDatabase';
+import type { StaffSchedule } from '@/types/schedule/staffSchedule';
+import { selectCurrentUser, selectSalonId, selectDeviceId } from '@/store/slices/authSlice';
 export interface Staff {
   id: string;
   name: string;
@@ -85,6 +89,11 @@ export function AddEditScheduleModal({
   onSave,
   onTimeOffUpdate
 }: AddEditScheduleModalProps) {
+  // Auth selectors for database operations
+  const currentUser = useSelector(selectCurrentUser);
+  const salonId = useSelector(selectSalonId);
+  const deviceId = useSelector(selectDeviceId);
+
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialStaffId || "");
   const [openStaffSelect, setOpenStaffSelect] = useState(false);
   const [activeTab, setActiveTab] = useState<"regular" | "expanded" | "timeoff">(initialTab);
@@ -97,9 +106,23 @@ export function AddEditScheduleModal({
   });
   const [timeOffData, setTimeOffData] = useState<TimeOffRequest[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showUndoToast, setShowUndoToast] = useState(false);
+  const [_showUndoToast, setShowUndoToast] = useState(false);
   const [lastSavedData, setLastSavedData] = useState<ScheduleData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Multi-week schedule state
+  const [patternType, setPatternType] = useState<PatternType>('fixed');
+  const [patternWeeks, setPatternWeeks] = useState<number>(1);
+  const [weekSchedules, setWeekSchedules] = useState<ScheduleData[]>([{
+    staffId: "",
+    schedule: {},
+    repeatRules: {},
+    notes: {}
+  }]);
+  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [existingDbSchedule, setExistingDbSchedule] = useState<StaffSchedule | null>(null);
+  // Note: isLoadingSchedule can be used to show a loading indicator in the future
+  const [_isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const selectedStaff = staffList.find(staff => staff.id === selectedStaffId);
   const canSave = selectedStaffId && hasValidSchedule();
 
@@ -120,18 +143,77 @@ export function AddEditScheduleModal({
 
   // Initialize data when staff is selected
   useEffect(() => {
-    if (selectedStaffId) {
-      const existingSchedule = existingSchedules[selectedStaffId] || {};
+    if (!selectedStaffId) return;
+
+    const loadScheduleData = async () => {
+      setIsLoadingSchedule(true);
       const staffTimeOff = existingTimeOff.filter(request => request.employeeId === selectedStaffId);
-      setScheduleData({
-        staffId: selectedStaffId,
-        schedule: existingSchedule,
-        repeatRules: {},
-        notes: {}
-      });
       setTimeOffData(staffTimeOff);
-      setHasUnsavedChanges(false);
-    }
+
+      try {
+        // Try to load existing multi-week schedule from IndexedDB
+        const dbSchedule = await staffSchedulesDB.getCurrentForStaff(selectedStaffId);
+
+        if (dbSchedule && dbSchedule.weeks.length > 0) {
+          // Found existing schedule in IndexedDB - load it
+          setExistingDbSchedule(dbSchedule);
+          setPatternType(dbSchedule.patternType === 'rotating' ? 'rotating' : 'fixed');
+          setPatternWeeks(dbSchedule.patternWeeks);
+
+          // Convert all weeks to UI format
+          const uiWeekSchedules: ScheduleData[] = [];
+          for (let i = 1; i <= dbSchedule.patternWeeks; i++) {
+            const uiSchedule = staffScheduleToUISchedule(dbSchedule, i);
+            uiWeekSchedules.push(uiSchedule);
+          }
+
+          setWeekSchedules(uiWeekSchedules);
+          setScheduleData(uiWeekSchedules[0] || {
+            staffId: selectedStaffId,
+            schedule: {},
+            repeatRules: {},
+            notes: {}
+          });
+          setSelectedWeek(0);
+        } else {
+          // No schedule in IndexedDB - use legacy existingSchedules prop
+          const existingSchedule = existingSchedules[selectedStaffId] || {};
+          const initialScheduleData: ScheduleData = {
+            staffId: selectedStaffId,
+            schedule: existingSchedule,
+            repeatRules: {},
+            notes: {}
+          };
+          setScheduleData(initialScheduleData);
+          setWeekSchedules([initialScheduleData]);
+          setPatternType('fixed');
+          setPatternWeeks(1);
+          setSelectedWeek(0);
+          setExistingDbSchedule(null);
+        }
+      } catch (error) {
+        console.error('Failed to load schedule from IndexedDB:', error);
+        // Fallback to legacy existingSchedules prop
+        const existingSchedule = existingSchedules[selectedStaffId] || {};
+        const initialScheduleData: ScheduleData = {
+          staffId: selectedStaffId,
+          schedule: existingSchedule,
+          repeatRules: {},
+          notes: {}
+        };
+        setScheduleData(initialScheduleData);
+        setWeekSchedules([initialScheduleData]);
+        setPatternType('fixed');
+        setPatternWeeks(1);
+        setSelectedWeek(0);
+        setExistingDbSchedule(null);
+      } finally {
+        setIsLoadingSchedule(false);
+        setHasUnsavedChanges(false);
+      }
+    };
+
+    loadScheduleData();
   }, [selectedStaffId, existingSchedules, existingTimeOff]);
 
   // Reset when modal opens/closes
@@ -239,7 +321,7 @@ export function AddEditScheduleModal({
       conflicts
     };
   }
-  function handleSave() {
+  async function handleSave() {
     if (!canSave) return;
     setIsSaving(true);
     const summary = getWeeklySummary();
@@ -249,34 +331,79 @@ export function AddEditScheduleModal({
       ...scheduleData
     });
 
-    // Save the schedule
-    onSave(scheduleData);
+    try {
+      // Save to IndexedDB for both fixed and rotating patterns
+      if (selectedStaff && currentUser?.id && salonId && deviceId) {
+        const effectiveFrom = existingDbSchedule?.effectiveFrom || new Date().toISOString().split('T')[0];
+        const staffScheduleInput = createStaffScheduleInput(
+          selectedStaffId,
+          selectedStaff.name,
+          weekSchedules,
+          effectiveFrom
+        );
 
-    // Save time off updates
-    onTimeOffUpdate(timeOffData);
+        if (existingDbSchedule) {
+          // Update existing schedule
+          await staffSchedulesDB.update(
+            existingDbSchedule.id,
+            staffScheduleInput,
+            currentUser.id,
+            deviceId
+          );
+        } else {
+          // Create new schedule
+          await staffSchedulesDB.create(
+            staffScheduleInput,
+            currentUser.id,
+            salonId,
+            salonId,
+            deviceId
+          );
+        }
+      }
 
-    // Show success message with undo option
-    toast({
-      title: "Settings Saved",
-      description: <div className="space-y-2">
-          <p>
-            Schedule saved for {selectedStaff?.name}: {summary.daysScheduled} days, {summary.totalHours}h total
-          </p>
-        </div>,
-      action: <Button variant="outline" size="sm" onClick={handleUndo}>
-          Undo
-        </Button>
-    });
-    setHasUnsavedChanges(false);
-    setShowUndoToast(true);
-    setIsSaving(false);
+      // Also call the legacy onSave for backward compatibility
+      onSave(scheduleData);
 
-    // Auto-hide undo option after 10 seconds
-    setTimeout(() => {
-      setShowUndoToast(false);
-      setLastSavedData(null);
-    }, 10000);
-    onOpenChange(false);
+      // Save time off updates
+      onTimeOffUpdate(timeOffData);
+
+      // Show success message with undo option
+      toast({
+        title: "Settings Saved",
+        description: <div className="space-y-2">
+            <p>
+              Schedule saved for {selectedStaff?.name}: {summary.daysScheduled} days, {summary.totalHours}h total
+              {patternType === 'rotating' && patternWeeks > 1 && (
+                <span className="block text-xs text-muted-foreground mt-1">
+                  {patternWeeks}-week rotating pattern saved
+                </span>
+              )}
+            </p>
+          </div>,
+        action: <Button variant="outline" size="sm" onClick={handleUndo}>
+            Undo
+          </Button>
+      });
+      setHasUnsavedChanges(false);
+      setShowUndoToast(true);
+
+      // Auto-hide undo option after 10 seconds
+      setTimeout(() => {
+        setShowUndoToast(false);
+        setLastSavedData(null);
+      }, 10000);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to save schedule:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save the schedule. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   }
   function handleUndo() {
     if (lastSavedData) {
@@ -298,7 +425,8 @@ export function AddEditScheduleModal({
     }
     onOpenChange(false);
   }
-  function updateScheduleData(updates: Partial<ScheduleData>) {
+  // Note: updateScheduleData kept for potential future use with single-week mode
+  function _updateScheduleData(updates: Partial<ScheduleData>) {
     setScheduleData(prev => ({
       ...prev,
       ...updates
@@ -307,6 +435,57 @@ export function AddEditScheduleModal({
   }
   function updateTimeOffData(updates: TimeOffRequest[]) {
     setTimeOffData(updates);
+    setHasUnsavedChanges(true);
+  }
+
+  // Multi-week handlers
+  function handlePatternTypeChange(type: PatternType) {
+    setPatternType(type);
+    if (type === 'fixed') {
+      setPatternWeeks(1);
+      setSelectedWeek(0);
+    }
+    setHasUnsavedChanges(true);
+  }
+
+  function handlePatternWeeksChange(weeks: number) {
+    setPatternWeeks(weeks);
+    // Ensure we have enough week schedules
+    setWeekSchedules(prev => {
+      const newSchedules = [...prev];
+      while (newSchedules.length < weeks) {
+        newSchedules.push({
+          staffId: selectedStaffId,
+          schedule: {},
+          repeatRules: {},
+          notes: {}
+        });
+      }
+      return newSchedules.slice(0, weeks);
+    });
+    // Reset to week 0 if current week is beyond new count
+    if (selectedWeek >= weeks) {
+      setSelectedWeek(0);
+    }
+    setHasUnsavedChanges(true);
+  }
+
+  function handleWeekUpdate(weekIndex: number, updates: Partial<ScheduleData>) {
+    setWeekSchedules(prev => {
+      const newSchedules = [...prev];
+      newSchedules[weekIndex] = {
+        ...newSchedules[weekIndex],
+        ...updates
+      };
+      return newSchedules;
+    });
+    // Also update scheduleData for backward compatibility (uses week 0 for fixed patterns)
+    if (weekIndex === 0 || patternType === 'fixed') {
+      setScheduleData(prev => ({
+        ...prev,
+        ...updates
+      }));
+    }
     setHasUnsavedChanges(true);
   }
   const summary = getWeeklySummary();
@@ -400,22 +579,31 @@ export function AddEditScheduleModal({
                 <div className="flex-1 overflow-hidden min-h-0">
                   <TabsContent value="regular" className="h-full mt-3 sm:mt-4 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
                     <div className="flex-1 min-h-0">
-                      <RegularScheduleTab 
-                        scheduleData={scheduleData} 
-                        onUpdate={updateScheduleData} 
+                      <MultiWeekScheduleWrapper
+                        weekSchedules={weekSchedules}
+                        patternType={patternType}
+                        patternWeeks={patternWeeks}
+                        onPatternTypeChange={handlePatternTypeChange}
+                        onPatternWeeksChange={handlePatternWeeksChange}
+                        onWeekUpdate={handleWeekUpdate}
                         onSwitchToDay={(day) => {
-                          console.log('Switching to day:', day, 'Current activeTab:', activeTab);
                           setActiveTab("expanded");
                           setSelectedDay(day);
-                          console.log('After setting - activeTab should be expanded, selectedDay should be:', day);
                         }}
+                        selectedWeek={selectedWeek}
+                        onSelectedWeekChange={setSelectedWeek}
                       />
                     </div>
                   </TabsContent>
 
                   <TabsContent value="expanded" className="h-full mt-3 sm:mt-4 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
                     <div className="flex-1 min-h-0">
-                      <ExpandedDayTab scheduleData={scheduleData} selectedDay={selectedDay} onDayChange={setSelectedDay} onUpdate={updateScheduleData} />
+                      <ExpandedDayTab
+                        scheduleData={weekSchedules[selectedWeek] || scheduleData}
+                        selectedDay={selectedDay}
+                        onDayChange={setSelectedDay}
+                        onUpdate={(updates) => handleWeekUpdate(selectedWeek, updates)}
+                      />
                     </div>
                   </TabsContent>
 

@@ -56,7 +56,7 @@ export function PendingHeader({
   }, []);
 
   return (
-    <header className={`bg-white/70 border-b border-amber-100 backdrop-blur-md ${isMobile ? 'px-3 py-3' : 'px-4 sm:px-6 py-4'}`}>
+    <header className={`bg-white/92 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)] sticky top-0 z-30 ${isMobile ? 'px-3 py-3' : 'px-4 sm:px-6 py-4'}`}>
       <div className={`flex flex-col ${isMobile ? 'gap-3' : 'gap-4'}`}>
         {/* Title with Icon and Count */}
         <div className="flex items-center justify-between">

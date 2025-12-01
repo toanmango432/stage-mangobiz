@@ -538,6 +538,11 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({ workingHours, 
                     entry={entry}
                     isMenuOpen={openBlockedTimeMenu === entry.id}
                     onToggleMenu={() => setOpenBlockedTimeMenu(openBlockedTimeMenu === entry.id ? null : entry.id)}
+                    onEdit={() => {
+                      setEditingBlockedTime(entry);
+                      setShowOverrideModal(true);
+                      setOpenBlockedTimeMenu(null);
+                    }}
                     onDelete={() => {
                       setDeleteBlockedTimeId(entry.id);
                       setOpenBlockedTimeMenu(null);
@@ -738,10 +743,11 @@ interface BlockedTimeRowProps {
   entry: BlockedTimeEntry;
   isMenuOpen: boolean;
   onToggleMenu: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }
 
-const BlockedTimeRow: React.FC<BlockedTimeRowProps> = ({ entry, isMenuOpen, onToggleMenu, onDelete }) => {
+const BlockedTimeRow: React.FC<BlockedTimeRowProps> = ({ entry, isMenuOpen, onToggleMenu, onEdit, onDelete }) => {
   const startDate = new Date(entry.startDateTime);
   const endDate = new Date(entry.endDateTime);
 
@@ -787,6 +793,12 @@ const BlockedTimeRow: React.FC<BlockedTimeRowProps> = ({ entry, isMenuOpen, onTo
         </button>
         {isMenuOpen && (
           <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+            <button
+              onClick={onEdit}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Edit
+            </button>
             <button
               onClick={onDelete}
               className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"

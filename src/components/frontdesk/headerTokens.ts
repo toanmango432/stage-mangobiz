@@ -3,8 +3,10 @@
  * Update both ComingAppointments and WaitListSection together to keep parity.
  * Rollback note: remove consuming imports and delete this file to restore legacy styling.
  */
+// Apple-style scroll shadow: enhanced 3-layer shadow for better visibility
+// Layer 1: Sharp definition line | Layer 2: Medium depth blur | Layer 3: Large elevation blur
 export const frontDeskHeaderBase =
-  'flex-shrink-0 sticky top-0 z-30 backdrop-blur-md transition-all duration-200';
+  'flex-shrink-0 sticky top-0 z-30 backdrop-blur-xl backdrop-saturate-150 transition-all duration-200 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)]';
 
 export const frontDeskHeaderSpacing = 'px-5 py-4';
 
@@ -37,7 +39,7 @@ export const comingHeaderTheme = {
 };
 
 export const primaryHeaderTheme: FrontDeskHeaderTheme = {
-  wrapper: 'bg-white/70 border-b border-slate-200/60',
+  wrapper: 'bg-white/92 backdrop-blur-xl backdrop-saturate-150',
   iconWrapper: 'h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center',
   countBadge: 'bg-slate-100 text-slate-700 text-sm font-semibold px-3 py-1.5 rounded-lg',
   metricPill: 'font-medium',
@@ -45,7 +47,7 @@ export const primaryHeaderTheme: FrontDeskHeaderTheme = {
 };
 
 export const supportingHeaderTheme: FrontDeskHeaderTheme = {
-  wrapper: 'bg-white/60 border-b border-slate-200/50',
+  wrapper: 'bg-white/92 backdrop-blur-xl backdrop-saturate-150',
   iconWrapper: 'h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center',
   countBadge: 'bg-slate-100 text-slate-600 text-[12px] font-medium px-2 py-0.5 rounded-lg',
   titleClass: 'text-[14px] font-medium text-slate-600',
@@ -53,7 +55,7 @@ export const supportingHeaderTheme: FrontDeskHeaderTheme = {
 };
 
 export const waitingHeaderTheme: FrontDeskHeaderTheme = {
-  wrapper: 'bg-white/70 border-b border-violet-100 backdrop-blur-md',
+  wrapper: 'bg-white/92 backdrop-blur-xl backdrop-saturate-150',
   iconWrapper: 'h-11 w-11 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center',
   countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
   titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
@@ -61,7 +63,7 @@ export const waitingHeaderTheme: FrontDeskHeaderTheme = {
 };
 
 export const serviceHeaderTheme: FrontDeskHeaderTheme = {
-  wrapper: 'bg-white/70 border-b border-green-100 backdrop-blur-md',
+  wrapper: 'bg-white/92 backdrop-blur-xl backdrop-saturate-150',
   iconWrapper: 'h-11 w-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center',
   countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
   titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
@@ -69,7 +71,7 @@ export const serviceHeaderTheme: FrontDeskHeaderTheme = {
 };
 
 export const pendingHeaderTheme: FrontDeskHeaderTheme = {
-  wrapper: 'bg-white/70 border-b border-amber-100 backdrop-blur-md',
+  wrapper: 'bg-white/92 backdrop-blur-xl backdrop-saturate-150',
   iconWrapper: 'h-11 w-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center',
   countBadge: 'text-sm font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md',
   titleClass: 'text-xl font-semibold text-slate-900 leading-tight',
@@ -87,4 +89,100 @@ export const headerIconSizes = {
 
 // WCAG 2.2 compliant touch target minimum
 export const minTouchTarget = 'min-h-[44px] min-w-[44px]';
+
+// ============================================================================
+// SECTION HEADER STYLES
+// Used by FrontDesk.tsx headerStyles prop - replaces hardcoded hex values
+// Uses Tailwind config colors: waitList, service, comingAppointments, pendingTickets, closedTickets
+// ============================================================================
+
+export interface SectionHeaderStyles {
+  bg: string;
+  accentColor: string;
+  iconColor: string;
+  activeIconColor: string;
+  titleColor: string;
+  borderColor: string;
+  counterBg: string;
+  counterText: string;
+}
+
+export const sectionHeaderStyles: Record<string, SectionHeaderStyles> = {
+  waitList: {
+    bg: 'bg-gray-50',
+    accentColor: 'waitList-500',
+    iconColor: 'text-gray-400',
+    activeIconColor: 'text-waitList-500',
+    titleColor: 'text-gray-900',
+    borderColor: 'border-waitList-100',
+    counterBg: 'bg-gray-100',
+    counterText: 'text-gray-600',
+  },
+  service: {
+    bg: 'bg-gray-50',
+    accentColor: 'service-500',
+    iconColor: 'text-gray-400',
+    activeIconColor: 'text-service-500',
+    titleColor: 'text-gray-900',
+    borderColor: 'border-service-100',
+    counterBg: 'bg-gray-100',
+    counterText: 'text-gray-600',
+  },
+  comingAppointments: {
+    bg: 'bg-gray-50',
+    accentColor: 'comingAppointments-500',
+    iconColor: 'text-gray-400',
+    activeIconColor: 'text-comingAppointments-500',
+    titleColor: 'text-gray-900',
+    borderColor: 'border-comingAppointments-100',
+    counterBg: 'bg-gray-100',
+    counterText: 'text-gray-600',
+  },
+  pending: {
+    bg: 'bg-gray-50',
+    accentColor: 'pendingTickets-500',
+    iconColor: 'text-gray-400',
+    activeIconColor: 'text-pendingTickets-500',
+    titleColor: 'text-gray-900',
+    borderColor: 'border-pendingTickets-100',
+    counterBg: 'bg-gray-100',
+    counterText: 'text-gray-600',
+  },
+  closed: {
+    bg: 'bg-gray-50',
+    accentColor: 'closedTickets-400',
+    iconColor: 'text-gray-400',
+    activeIconColor: 'text-closedTickets-400',
+    titleColor: 'text-gray-900',
+    borderColor: 'border-closedTickets-200',
+    counterBg: 'bg-gray-100',
+    counterText: 'text-gray-600',
+  },
+} as const;
+
+// ============================================================================
+// SUBORDINATE TAB STYLES
+// Used for combined view tabs - subordinate to main section headers
+// ============================================================================
+
+export const subordinateTabTheme = {
+  container: 'bg-white/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_2px_0_rgba(0,0,0,0.1),0_4px_8px_-2px_rgba(0,0,0,0.12),0_8px_16px_-4px_rgba(0,0,0,0.1)]',
+  tab: {
+    base: 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 min-h-[44px]',
+    active: 'text-gray-900 bg-gray-100 shadow-sm border border-gray-200',
+    inactive: 'text-gray-500 hover:text-gray-700 hover:bg-gray-50',
+  },
+  countBadge: {
+    active: 'bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-0.5 rounded-full min-w-[22px] text-center',
+    inactive: 'bg-gray-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full min-w-[22px] text-center',
+  },
+  metricBadge: {
+    active: 'text-[11px] text-gray-500 font-normal',
+    inactive: 'text-[11px] text-gray-400 font-normal',
+  },
+  icon: {
+    active: 'text-gray-700',
+    inactive: 'text-gray-400',
+  },
+} as const;
 

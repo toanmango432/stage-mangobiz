@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Bell, 
-  Activity, 
-  MoreVertical, 
-  Info, 
-  Users, 
-  Plus, 
-  CalendarX, 
-  Settings, 
-  LayoutGrid, 
+import {
+  Bell,
+  Activity,
+  MoreVertical,
+  Info,
+  Users,
+  Plus,
+  CalendarX,
+  Settings,
+  LayoutGrid,
   Rows,
   Zap
 } from "lucide-react";
@@ -33,6 +33,7 @@ import { OnboardingTips } from "./OnboardingTips";
 import { SalonHoursBar } from "./SalonHoursBar";
 import { SettingsModal, AppSettings } from "./SettingsModal";
 import { ActivityFeed, ScheduleActivity } from "./ActivityFeed";
+import { useStaffSchedulesForWeek, UIScheduleByStaff } from "@/hooks/useStaffSchedules";
 
 const mockEmployees = [
   {
@@ -357,6 +358,15 @@ const mockFutureTimeOff = [
   { id: "f10", employeeId: "6", date: "2025-01-25", reason: "Family Event" }, // Saturday in 2 weeks
 ];
 
+// Helper to get the Monday of the current week
+function getWeekStartDate(date: Date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  d.setDate(diff);
+  return d.toISOString().split('T')[0];
+}
+
 export function ScheduleView() {
   const { toast } = useToast();
   const [timeOffModalOpen, setTimeOffModalOpen] = useState(false);
@@ -369,8 +379,38 @@ export function ScheduleView() {
   const [filteredEmployees, setFilteredEmployees] = useState(mockEmployees);
   const [selectedStaffIds, setSelectedStaffIds] = useState(["all"]);
   const [compactView, setCompactView] = useState(false);
-  const [schedule, setSchedule] = useState(mockSchedule);
+  const [localScheduleOverrides, setLocalScheduleOverrides] = useState<Record<string, Record<string, any[]>>>({});
   const [originalSchedules, setOriginalSchedules] = useState<Record<string, Record<string, any[]>>>({});
+
+  // Week start date for multi-week pattern calculation
+  // Note: setWeekStartDate can be used to navigate to different weeks in the future
+  const [weekStartDate, _setWeekStartDate] = useState(() => getWeekStartDate());
+
+  // Fetch staff schedules from IndexedDB
+  // Note: isLoadingSchedules can be used to show a loading indicator
+  const { uiSchedules: dbSchedules, isLoading: _isLoadingSchedules } = useStaffSchedulesForWeek(weekStartDate);
+
+  // Merge IndexedDB schedules with mock data (fallback for staff without schedules)
+  const schedule = useMemo(() => {
+    const merged: UIScheduleByStaff = { ...mockSchedule };
+
+    // Override with real data from IndexedDB where available
+    for (const staffId of Object.keys(dbSchedules)) {
+      if (Object.keys(dbSchedules[staffId]).length > 0) {
+        merged[staffId] = dbSchedules[staffId];
+      }
+    }
+
+    // Apply local overrides (e.g., quick off-day changes)
+    for (const staffId of Object.keys(localScheduleOverrides)) {
+      merged[staffId] = {
+        ...merged[staffId],
+        ...localScheduleOverrides[staffId],
+      };
+    }
+
+    return merged;
+  }, [dbSchedules, localScheduleOverrides]);
   
   // Mock activity data
   const [activities] = useState<ScheduleActivity[]>([
@@ -544,10 +584,10 @@ export function ScheduleView() {
       }
     }));
 
-    setSchedule(prevSchedule => ({
-      ...prevSchedule,
+    setLocalScheduleOverrides(prev => ({
+      ...prev,
       [staffId]: {
-        ...prevSchedule[staffId],
+        ...prev[staffId],
         [day]: [{ start: "", end: "", type: "off" as const, reason }]
       }
     }));
@@ -556,7 +596,7 @@ export function ScheduleView() {
   const handleRemoveOffDay = (staffId: string, day: string) => {
     // Restore the original schedule if it exists
     let originalDaySchedule = originalSchedules[staffId]?.[day];
-    
+
     // If no original schedule is stored (e.g., for existing off days in mock data),
     // try to infer a reasonable schedule from other days for this employee
     if (!originalDaySchedule || originalDaySchedule.length === 0) {
@@ -565,10 +605,10 @@ export function ScheduleView() {
         // Find a similar weekday schedule to use as template
         const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
         const weekends = ['SAT', 'SUN'];
-        
+
         const isWeekend = weekends.includes(day);
         const daysToCheck = isWeekend ? weekends : weekdays;
-        
+
         // Find the first non-off day with a schedule
         for (const otherDay of daysToCheck) {
           const otherDaySchedule = employeeSchedule[otherDay];
@@ -577,7 +617,7 @@ export function ScheduleView() {
             break;
           }
         }
-        
+
         // If still no schedule found, try any day
         if (!originalDaySchedule || originalDaySchedule.length === 0) {
           for (const otherDay of Object.keys(employeeSchedule)) {
@@ -588,21 +628,28 @@ export function ScheduleView() {
             }
           }
         }
-        
+
         // If still nothing, create a default schedule
         if (!originalDaySchedule || originalDaySchedule.length === 0) {
           originalDaySchedule = [{ start: "9a", end: "5p", type: "normal" }];
         }
       }
     }
-    
-    setSchedule(prevSchedule => ({
-      ...prevSchedule,
-      [staffId]: {
-        ...prevSchedule[staffId],
-        [day]: originalDaySchedule || []
+
+    // Clear the local override for this day (will fall back to DB/mock data)
+    setLocalScheduleOverrides(prev => {
+      const newOverrides = { ...prev };
+      if (newOverrides[staffId]) {
+        const staffOverrides = { ...newOverrides[staffId] };
+        delete staffOverrides[day];
+        if (Object.keys(staffOverrides).length === 0) {
+          delete newOverrides[staffId];
+        } else {
+          newOverrides[staffId] = staffOverrides;
+        }
       }
-    }));
+      return newOverrides;
+    });
 
     // Clean up the stored original schedule
     setOriginalSchedules(prev => {
@@ -619,10 +666,10 @@ export function ScheduleView() {
 
     const employeeName = mockEmployees.find(emp => emp.id === staffId)?.name || 'Staff member';
     const hasSchedule = originalDaySchedule && originalDaySchedule.length > 0;
-    
+
     toast({
       title: "Off Day Removed",
-      description: hasSchedule 
+      description: hasSchedule
         ? `${employeeName}'s schedule has been restored for ${day}.`
         : `${employeeName} is now available on ${day}.`,
     });

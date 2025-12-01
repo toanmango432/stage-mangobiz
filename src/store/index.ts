@@ -12,6 +12,7 @@ import uiStaffReducer from './slices/uiStaffSlice';
 import frontDeskSettingsReducer from './slices/frontDeskSettingsSlice';
 import teamReducer from './slices/teamSlice';
 import scheduleReducer from './slices/scheduleSlice';
+import staffScheduleReducer from './slices/staffScheduleSlice';
 import { teamStaffSyncMiddleware } from './middleware/teamStaffSyncMiddleware';
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
 // See src/hooks/useCatalog.ts
@@ -31,6 +32,7 @@ export const store = configureStore({
     frontDeskSettings: frontDeskSettingsReducer,
     team: teamReducer,
     schedule: scheduleReducer,
+    staffSchedule: staffScheduleReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -77,6 +79,11 @@ export const store = configureStore({
           'schedule.timeOffRequests.items',
           'schedule.blockedTimeTypes.items',
           'schedule.blockedTimeEntries.items',
+          'schedule.closedPeriods.items',
+          // Staff Schedule module
+          'staffSchedule.items',
+          'staffSchedule.byStaffId',
+          'staffSchedule.currentByStaffId',
         ],
       },
     }).concat(teamStaffSyncMiddleware),

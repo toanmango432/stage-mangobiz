@@ -6,7 +6,8 @@ import { PaymentModal } from '../checkout/LegacyPaymentModal';
 import type { PaymentMethod, PaymentDetails } from '../../types';
 import type { PendingTicket } from '../../store/slices/uiTicketsSlice';
 import toast from 'react-hot-toast';
-import { Receipt, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { FrontDeskEmptyState } from '../frontdesk/FrontDeskEmptyState';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 import { usePullToRefresh } from '../../hooks/useGestures';
 import { haptics } from '../../utils/haptics';
@@ -245,20 +246,7 @@ export function Pending() {
             </div>
           )
         ) : (
-          // Empty state
-          <div className="flex flex-col items-center justify-center h-full py-12 px-4">
-            <div className="bg-gray-100 p-4 rounded-full mb-4">
-              <Receipt size={isMobile ? 40 : 48} className="text-gray-400" />
-            </div>
-            <h3 className={`font-semibold text-gray-700 mb-2 text-center ${isMobile ? 'text-base' : 'text-lg'}`}>
-              {searchQuery ? 'No tickets found' : 'No pending payments'}
-            </h3>
-            <p className={`text-gray-500 max-w-md text-center ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              {searchQuery
-                ? 'Try adjusting your search criteria'
-                : 'All caught up! When services are completed, they will appear here for payment processing.'}
-            </p>
-          </div>
+          <FrontDeskEmptyState section="pending" hasFilters={!!searchQuery} />
         )}
       </main>
 

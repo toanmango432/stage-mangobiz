@@ -24,6 +24,12 @@ export interface StaffSchedule extends BaseSyncableEntity {
   effectiveFrom: string;
   /** When this schedule ends (null = ongoing) */
   effectiveUntil: string | null;
+  /**
+   * Anchor date for week pattern calculation.
+   * This is the reference point for "Week 1" of the pattern.
+   * Defaults to effectiveFrom if not specified.
+   */
+  patternAnchorDate: string;
 
   // === SOURCE ===
   /** Whether this is the initial default schedule */
@@ -71,4 +77,6 @@ export interface CreateStaffScheduleInput {
   weeks: WeekSchedule[];
   effectiveFrom: string;
   effectiveUntil?: string | null;
+  /** Anchor date for pattern calculation. Defaults to effectiveFrom. */
+  patternAnchorDate?: string;
 }

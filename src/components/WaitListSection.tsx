@@ -10,6 +10,7 @@ import { TicketDetailsModal } from './TicketDetailsModal';
 import { WaitListTicketCard, WaitListTicketCardRefactored } from './tickets';
 import { headerContentSpacer, waitingHeaderTheme } from './frontdesk/headerTokens';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
+import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
 import { FrontDeskSettingsData } from './frontdesk-settings/types';
 
 interface WaitListSectionProps {
@@ -1170,18 +1171,7 @@ export const WaitListSection = memo(function WaitListSection({
                   }}
                 />
               ))}
-            </div> : <div className="flex flex-col items-center justify-center h-full py-10">
-            <div className="bg-rose-50 p-3 rounded-full mb-3">
-              <Users size={24} className="text-rose-500" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-700 mb-1">
-              No clients in wait list
-            </h3>
-            <p className="text-sm text-gray-500 text-center max-w-md">
-              Checked In clients will be here or add client by clicking the "+"
-              button in the bottom right corner.
-            </p>
-          </div>}
+            </div> : <FrontDeskEmptyState section="waitList" />}
       </div>
       {/* Modals */}
       <AssignTicketModal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} onAssign={handleAssignSubmit} ticketId={selectedTicketId} />

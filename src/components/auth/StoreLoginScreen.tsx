@@ -1,6 +1,7 @@
 /**
  * Store Login Screen
  * Replaces the license key activation with store credentials login
+ * Login always defaults to online-only mode. Device mode is admin-controlled.
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -53,6 +54,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     setSuccess(null);
 
     try {
+      // Login always defaults to online-only mode. Device mode is admin-controlled.
       const result = await storeAuthManager.loginStore(storeId.trim(), password);
       console.log('🔐 Login result:', JSON.stringify(result, null, 2));
 
@@ -203,21 +205,11 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           onKeyDown={handleKeyDown}
         />
 
-        {/* Offline Mode Notice */}
+        {/* Demo credentials */}
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <p className="text-sm text-emerald-800 font-medium mb-2">Offline Mode Active</p>
-          <p className="text-sm text-emerald-700">
-            Enter any email and password to log in without a cloud server.
-          </p>
-          <p className="text-xs text-emerald-600 mt-2">
+          <p className="text-sm text-emerald-800 font-medium mb-2">Demo Mode</p>
+          <p className="text-xs text-emerald-600">
             Demo: <span className="font-mono">demo@salon.com</span> / <span className="font-mono">demo123</span>
-          </p>
-        </div>
-
-        {/* Help text */}
-        <div className="text-center">
-          <p className="text-sm text-gray-500">
-            Running in offline mode - no server required
           </p>
         </div>
       </div>

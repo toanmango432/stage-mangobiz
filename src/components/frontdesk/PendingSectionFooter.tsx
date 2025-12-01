@@ -22,30 +22,27 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const [selectedTicket, setSelectedTicket] = useState<typeof pendingTickets[0] | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-  // Get staff sidebar width from localStorage to position footer correctly
-  const [staffSidebarWidth, setStaffSidebarWidth] = useState(() => {
-    const savedWidth = localStorage.getItem('staffSidebarWidth');
-    return savedWidth ? parseInt(savedWidth) : 256; // Default 256px
-  });
-
-  // Listen for sidebar width changes
+  // Update CSS custom property when sidebar width changes
   useEffect(() => {
-    const handleStorageChange = () => {
+    const updateSidebarWidth = () => {
       const savedWidth = localStorage.getItem('staffSidebarWidth');
       if (savedWidth) {
-        setStaffSidebarWidth(parseInt(savedWidth));
+        document.documentElement.style.setProperty('--staff-sidebar-width', `${savedWidth}px`);
       }
     };
 
+    // Initialize from localStorage
+    updateSidebarWidth();
+
     // Listen for storage events from other tabs/windows
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', updateSidebarWidth);
 
     // Also listen for custom event from same window
-    window.addEventListener('staffSidebarWidthChanged', handleStorageChange);
+    window.addEventListener('staffSidebarWidthChanged', updateSidebarWidth);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('staffSidebarWidthChanged', handleStorageChange);
+      window.removeEventListener('storage', updateSidebarWidth);
+      window.removeEventListener('staffSidebarWidthChanged', updateSidebarWidth);
     };
   }, []);
 
@@ -198,7 +195,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
       <div
         className="fixed bottom-0 right-0 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 z-40"
         style={{
-          left: `${staffSidebarWidth}px`
+          left: 'var(--staff-sidebar-width)'
         }}
       >
         <div className="h-9 flex items-center justify-center px-4">
@@ -220,7 +217,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
         <div
           className="fixed bottom-0 right-0 bg-gradient-to-r from-amber-50 to-yellow-50 border-t-2 border-amber-400 shadow-2xl z-40"
           style={{
-            left: `${staffSidebarWidth}px`
+            left: 'var(--staff-sidebar-width)'
           }}
         >
           <div className="w-full flex items-center justify-between px-4 py-3 gap-4">
@@ -327,7 +324,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
         className="fixed bottom-0 right-0 bg-white border-t-2 border-amber-400 shadow-2xl z-40 flex flex-col"
         style={{
           height: `${expandedHeight}px`,
-          left: `${staffSidebarWidth}px`
+          left: 'var(--staff-sidebar-width)'
         }}
       >
         {/* Resize Handle */}

@@ -14,6 +14,9 @@
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
 
+  /* Staff sidebar width - updated via JavaScript on resize */
+  --staff-sidebar-width: 256px;
+
   /* shadcn/ui CSS Variables - Required for checkout components */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -48,6 +51,13 @@
 /* Modal Max Height with Safe Areas */
 .modal-max-height-safe {
   max-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 2rem);
+}
+
+/* Mobile sidebar - hidden on small screens */
+@media (max-width: 768px) {
+  :root {
+    --staff-sidebar-width: 0px;
+  }
 }
 
 /* Improve text rendering */

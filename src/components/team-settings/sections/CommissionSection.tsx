@@ -572,6 +572,122 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
               </div>
             </div>
           </Card>
+
+          {/* Deductions */}
+          <Card padding="lg">
+            <SectionHeader
+              title="Deductions"
+              subtitle="Pre-tax and post-tax payroll deductions"
+              icon={<MinusCircleIcon className="w-5 h-5" />}
+            />
+
+            <div className="space-y-3">
+              {(payroll.deductions || []).map((deduction, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Deduction Type
+                        </label>
+                        <input
+                          type="text"
+                          value={deduction.type}
+                          onChange={(e) => {
+                            const deductions = [...(payroll.deductions || [])];
+                            deductions[index] = { ...deductions[index], type: e.target.value };
+                            onPayrollChange({ ...payroll, deductions });
+                          }}
+                          placeholder="e.g., Health Insurance"
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Amount
+                        </label>
+                        <div className="relative">
+                          {!deduction.isPercentage && (
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                          )}
+                          <input
+                            type="number"
+                            value={deduction.amount}
+                            onChange={(e) => {
+                              const deductions = [...(payroll.deductions || [])];
+                              deductions[index] = { ...deductions[index], amount: Number(e.target.value) };
+                              onPayrollChange({ ...payroll, deductions });
+                            }}
+                            className={`w-full ${deduction.isPercentage ? 'px-3' : 'pl-7 pr-3'} py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                          />
+                          {deduction.isPercentage && (
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Type
+                        </label>
+                        <select
+                          value={deduction.isPercentage ? 'percentage' : 'fixed'}
+                          onChange={(e) => {
+                            const deductions = [...(payroll.deductions || [])];
+                            deductions[index] = { ...deductions[index], isPercentage: e.target.value === 'percentage' };
+                            onPayrollChange({ ...payroll, deductions });
+                          }}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        >
+                          <option value="fixed">Fixed Amount</option>
+                          <option value="percentage">Percentage</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const deductions = (payroll.deductions || []).filter((_, i) => i !== index);
+                        onPayrollChange({ ...payroll, deductions });
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {(!payroll.deductions || payroll.deductions.length === 0) && (
+                <div className="p-6 text-center text-gray-400 bg-gray-50 rounded-xl">
+                  <MinusCircleIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No deductions configured</p>
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<PlusIcon className="w-4 h-4" />}
+                onClick={() => {
+                  const deductions = [...(payroll.deductions || []), { type: '', amount: 0, isPercentage: false }];
+                  onPayrollChange({ ...payroll, deductions });
+                }}
+              >
+                Add Deduction
+              </Button>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-start gap-3">
+                <InfoIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">Common Deductions</p>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    Health Insurance, 401(k), Dental, Vision, Life Insurance, HSA contributions
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
         </>
       )}
     </div>
@@ -630,6 +746,18 @@ const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
 const TrashIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const MinusCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const InfoIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
 

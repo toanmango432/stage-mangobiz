@@ -13,12 +13,13 @@ import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, Users, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter } from 'lucide-react';
+import { FileText, Users, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter, Hourglass, Activity } from 'lucide-react';
 import { useSwipeGestures } from '../hooks/useGestures';
 import { haptics } from '../utils/haptics';
 import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
 import { MobileTeamSection } from './frontdesk/MobileTeamSection';
 import { FrontDeskSettings, FrontDeskSettingsData } from './frontdesk-settings/FrontDeskSettings';
+import { sectionHeaderStyles, subordinateTabTheme } from './frontdesk/headerTokens';
 import { ErrorBoundary } from './frontdesk/ErrorBoundary';
 import {
   TeamSectionErrorBoundary,
@@ -611,28 +612,27 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
             />
           )}
           {/* Combined view tabs - Desktop only (mobile uses MobileTabBar above) */}
-          {/* Simplified, subordinate styling to not compete with main header */}
-          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 sticky top-0 z-10 h-11">
-            <div className="flex items-center gap-1 px-2">
-              {/* Simplified tabs - subordinate to main header */}
+          {/* Enhanced tabs with section metrics */}
+          {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className={`flex items-center justify-between ${subordinateTabTheme.container} sticky top-0 z-10 py-2 px-3`}>
+            <div className="flex items-center gap-2">
               {/* In Service Tab */}
               <button
                 key="service"
                 onClick={() => setActiveCombinedTab('service')}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                  text-sm font-medium transition-all duration-150 min-h-[36px]
-                  ${activeCombinedTab === 'service'
-                    ? 'text-gray-900 bg-white shadow-sm border border-gray-200'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }
-                `}
+                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
                 role="tab"
                 aria-selected={activeCombinedTab === 'service'}
               >
-                <FileText size={16} className={activeCombinedTab === 'service' ? 'text-gray-700' : 'text-gray-400'} />
-                <span>In Service</span>
-                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${activeCombinedTab === 'service' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200/70 text-gray-500'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeCombinedTab === 'service' ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                  <Activity size={18} className={activeCombinedTab === 'service' ? 'text-emerald-600' : 'text-gray-400'} />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span>In Service</span>
+                  <span className={activeCombinedTab === 'service' ? subordinateTabTheme.metricBadge.active : subordinateTabTheme.metricBadge.inactive}>
+                    avg 45m
+                  </span>
+                </div>
+                <span className={activeCombinedTab === 'service' ? subordinateTabTheme.countBadge.active : subordinateTabTheme.countBadge.inactive}>
                   {serviceTickets.length}
                 </span>
               </button>
@@ -641,23 +641,44 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
               <button
                 key="waitList"
                 onClick={() => setActiveCombinedTab('waitList')}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                  text-sm font-medium transition-all duration-150 min-h-[36px]
-                  ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)
-                    ? 'text-gray-900 bg-white shadow-sm border border-gray-200'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }
-                `}
+                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
                 role="tab"
-                aria-selected={['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)}
+                aria-selected={activeCombinedTab === 'waitList'}
               >
-                <Users size={16} className={['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? 'text-gray-700' : 'text-gray-400'} />
-                <span>Waiting</span>
-                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${['waitList', 'walkIn', 'appt'].includes(activeCombinedTab) ? 'bg-gray-200 text-gray-700' : 'bg-gray-200/70 text-gray-500'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeCombinedTab === 'waitList' ? 'bg-violet-100' : 'bg-gray-100'}`}>
+                  <Hourglass size={18} className={activeCombinedTab === 'waitList' ? 'text-violet-600' : 'text-gray-400'} />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span>Waiting</span>
+                  <span className={activeCombinedTab === 'waitList' ? subordinateTabTheme.metricBadge.active : subordinateTabTheme.metricBadge.inactive}>
+                    avg 12m
+                  </span>
+                </div>
+                <span className={activeCombinedTab === 'waitList' ? subordinateTabTheme.countBadge.active : subordinateTabTheme.countBadge.inactive}>
                   {waitlist.length}
                 </span>
               </button>
+
+              {/* Coming Appointments Tab */}
+              {showUpcomingAppointments && (
+                <button
+                  key="comingAppointments"
+                  onClick={() => setActiveCombinedTab('comingAppointments')}
+                  className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
+                  role="tab"
+                  aria-selected={activeCombinedTab === 'comingAppointments'}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeCombinedTab === 'comingAppointments' ? 'bg-sky-100' : 'bg-gray-100'}`}>
+                    <Clock size={18} className={activeCombinedTab === 'comingAppointments' ? 'text-sky-600' : 'text-gray-400'} />
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span>Coming</span>
+                    <span className={activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.metricBadge.active : subordinateTabTheme.metricBadge.inactive}>
+                      next 2h
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
             {/* View controls - moved to the same row as tabs */}
             <div className="flex items-center space-x-1 pr-3 md:pr-4">
@@ -768,51 +789,27 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                 {...((deviceInfo.isMobile || deviceInfo.isTablet) ? swipeHandlers : {})}
               >
                 {/* Main content area - takes remaining width */}
-                <div className="flex-1 overflow-hidden bg-gray-50 min-h-0" role="tabpanel" id={activeCombinedTab === 'waitList' ? 'waitlist-panel' : 'service-panel'}>
+                <div className="flex-1 overflow-hidden bg-gray-50 min-h-0" role="tabpanel" id={`${activeCombinedTab}-panel`}>
                   {/* Wait List Section - Show when active in combined view */}
                   {activeCombinedTab === 'waitList' && <div className="h-full flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden">
-                      <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} settings={frontDeskSettings} headerStyles={{
-                        bg: 'bg-[#F9FAFB]',
-                        accentColor: '#F59E0B',
-                        iconColor: 'text-[#9CA3AF]',
-                        activeIconColor: 'text-[#F59E0B]',
-                        titleColor: 'text-[#111827]',
-                        borderColor: 'border-[#E5E7EB]',
-                        counterBg: 'bg-[#E5E7EB]',
-                        counterText: 'text-[#6B7280]'
-                      }} />
+                      <WaitListSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('waitList')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} settings={frontDeskSettings} headerStyles={sectionHeaderStyles.waitList} />
                     </div>
                   </div>}
                   {/* Service Section - Show when active in combined view */}
                   {activeCombinedTab === 'service' && <div className="h-full flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-hidden">
-                      <ServiceSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} settings={frontDeskSettings} headerStyles={{
-                        bg: 'bg-[#F9FAFB]',
-                        accentColor: '#3B82F6',
-                        iconColor: 'text-[#9CA3AF]',
-                        activeIconColor: 'text-[#3B82F6]',
-                        titleColor: 'text-[#111827]',
-                        borderColor: 'border-[#E5E7EB]',
-                        counterBg: 'bg-[#E5E7EB]',
-                        counterText: 'text-[#6B7280]'
-                      }} />
+                      <ServiceSection isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} viewMode={combinedViewMode} setViewMode={setCombinedViewMode} cardViewMode={combinedCardViewMode} setCardViewMode={setCombinedCardViewMode} minimizedLineView={combinedMinimizedLineView} setMinimizedLineView={setCombinedMinimizedLineView} isCombinedView={true} hideHeader={true} settings={frontDeskSettings} headerStyles={sectionHeaderStyles.service} />
+                    </div>
+                  </div>}
+                  {/* Coming Appointments Section - Show when active in combined view */}
+                  {activeCombinedTab === 'comingAppointments' && <div className="h-full flex flex-col overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <ComingAppointments isMinimized={false} onToggleMinimize={() => toggleSectionMinimize('comingAppointments')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} hideHeader={true} settings={frontDeskSettings} headerStyles={sectionHeaderStyles.comingAppointments} />
                     </div>
                   </div>}
                 </div>
-                {/* Coming Appointments Section - Always shown on right side when enabled */}
-                {showUpcomingAppointments && <div className={`transition-all duration-300 ease-in-out h-full ${minimizedSections.comingAppointments ? 'w-[60px] flex-shrink-0' : 'w-[280px]'}`}>
-                  <ComingAppointments isMinimized={minimizedSections.comingAppointments} onToggleMinimize={() => toggleSectionMinimize('comingAppointments')} isMobile={deviceInfo.isMobile || deviceInfo.isTablet} settings={frontDeskSettings} headerStyles={{
-                    bg: 'bg-[#F9FAFB]',
-                    accentColor: '#10B981',
-                    iconColor: 'text-[#9CA3AF]',
-                    activeIconColor: 'text-[#10B981]',
-                    titleColor: 'text-[#111827]',
-                    borderColor: 'border-[#E5E7EB]',
-                    counterBg: 'bg-[#E5E7EB]',
-                    counterText: 'text-[#6B7280]'
-                  }} />
-                </div>}
+                {/* Coming Appointments Section - Removed from right side, now part of tabs */}
               </div> : <>
                 {/* Three-column layout for desktop - reordered to match workflow */}
                 <div
@@ -831,14 +828,11 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                           isMobile={deviceInfo.isMobile || deviceInfo.isTablet}
                           settings={frontDeskSettings}
                           headerStyles={{
-                            bg: 'bg-gradient-to-br from-sky-50/80 via-blue-50/60 to-cyan-50/40',
-                            accentColor: '#0EA5E9',
-                            iconColor: 'text-[#9CA3AF]',
-                            activeIconColor: 'text-[#0EA5E9]',
-                            titleColor: 'text-[#111827]',
-                            borderColor: 'border-sky-200/30',
-                            counterBg: 'bg-sky-100',
-                            counterText: 'text-sky-700'
+                            ...sectionHeaderStyles.comingAppointments,
+                            bg: 'bg-gradient-to-br from-comingAppointments-50/80 via-blue-50/60 to-cyan-50/40',
+                            borderColor: 'border-comingAppointments-200/30',
+                            counterBg: 'bg-comingAppointments-100',
+                            counterText: 'text-comingAppointments-700'
                           }}
                         />
                       </div>}
@@ -893,14 +887,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                           >
                             <ServiceSectionErrorBoundary>
                               <ServiceSection isMinimized={minimizedSections.service} onToggleMinimize={() => toggleSectionMinimize('service')} isMobile={false} settings={frontDeskSettings} headerStyles={{
+                                ...sectionHeaderStyles.service,
                                 bg: colorTokens.service.bg,
-                                accentColor: '#22C55E', // service-500
-                                iconColor: 'text-gray-400',
                                 activeIconColor: colorTokens.service.text,
-                                titleColor: 'text-gray-900',
                                 borderColor: colorTokens.service.border.replace('ring', 'border'),
-                                counterBg: 'bg-service-100',
-                                counterText: 'text-service-700'
                               }} />
                             </ServiceSectionErrorBoundary>
                           </div>
@@ -957,14 +947,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                                   isMobile={false}
                                   settings={frontDeskSettings}
                                   headerStyles={{
+                                    ...sectionHeaderStyles.comingAppointments,
                                     bg: colorTokens.comingAppointments.bg,
-                                    accentColor: '#0EA5E9', // comingAppointments-500
-                                    iconColor: 'text-gray-400',
                                     activeIconColor: colorTokens.comingAppointments.text,
-                                    titleColor: 'text-gray-900',
                                     borderColor: colorTokens.comingAppointments.border.replace('ring', 'border'),
-                                    counterBg: 'bg-comingAppointments-100',
-                                    counterText: 'text-comingAppointments-700'
                                   }}
                                 />
                               </ComingAppointmentsErrorBoundary>
@@ -979,14 +965,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                                   isMobile={false}
                                   settings={frontDeskSettings}
                                   headerStyles={{
+                                    ...sectionHeaderStyles.waitList,
                                     bg: colorTokens.waitList.bg,
-                                    accentColor: '#A855F7', // waitList-500
-                                    iconColor: 'text-gray-400',
                                     activeIconColor: colorTokens.waitList.text,
-                                    titleColor: 'text-gray-900',
                                     borderColor: colorTokens.waitList.border.replace('ring', 'border'),
-                                    counterBg: 'bg-waitList-100',
-                                    counterText: 'text-waitList-700'
                                   }}
                                 />
                               </WaitListErrorBoundary>

@@ -52,7 +52,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
       role="navigation"
       aria-label="Main navigation"
       className="
-        relative h-[72px] flex items-center justify-around px-3
+        relative h-[68px] sm:h-[72px] flex items-center justify-around px-1.5 sm:px-3
         bg-gradient-to-t from-white/50 via-orange-50/35 to-white/25
         backdrop-blur-xl backdrop-saturate-[1.8]
         border-t border-white/40
@@ -79,8 +79,8 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
             aria-label={`${module.label} module`}
             aria-current={isActive ? 'page' : undefined}
             className={`
-              relative group flex flex-col items-center justify-center gap-1
-              flex-1 h-[56px] min-h-[44px] mx-0.5 rounded-xl
+              relative group flex flex-col items-center justify-center gap-0.5 sm:gap-1
+              flex-1 h-[52px] sm:h-[56px] min-h-[44px] mx-0.5 rounded-lg sm:rounded-xl
               transition-all duration-300 ease-out
               ${isActive
                 ? 'bg-orange-500/90 shadow-lg shadow-orange-500/30 ring-1 ring-orange-400/50 scale-105 -translate-y-0.5'
@@ -107,7 +107,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
               {/* Icon */}
               <div className={`relative transition-all duration-300 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-gray-800'}`}>
                 <Icon
-                  className={`w-6 h-6 transition-all duration-300 ${
+                  className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
                     isActive ? 'scale-110' : 'scale-100 group-hover:scale-105'
                   }`}
                   strokeWidth={isActive ? 2.5 : 2}
@@ -118,7 +118,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
 
             {/* Label */}
             <span
-              className={`text-[10px] transition-all duration-300 relative z-20 ${
+              className={`text-[9px] sm:text-[10px] transition-all duration-300 relative z-20 leading-tight ${
                 isActive
                   ? 'font-bold text-white'
                   : 'font-medium text-gray-600 group-hover:text-gray-800'

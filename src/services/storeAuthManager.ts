@@ -1,6 +1,7 @@
 /**
  * Store Authentication Manager
  * Manages store login session and member authentication
+ * Updated for opt-in offline mode with device mode selection
  */
 
 import { secureStorage } from './secureStorage';
@@ -12,6 +13,7 @@ import {
   type MemberLoginResponse,
   type AuthError,
 } from '../api/storeAuthApi';
+import type { DeviceMode } from '@/types/device';
 
 const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -32,6 +34,11 @@ export interface StoreSession {
   storeLoginId: string;
   tier: string;
   token?: string;
+  deviceMode?: DeviceMode;
+}
+
+export interface LoginOptions {
+  deviceMode?: DeviceMode;
 }
 
 export interface MemberSession {
@@ -85,13 +92,14 @@ class StoreAuthManager {
     // We have a stored session - check grace period
     if (lastValidation) {
       const timeSinceValidation = Date.now() - lastValidation;
+      const deviceMode = await this.getStoredDeviceMode();
 
       if (timeSinceValidation < OFFLINE_GRACE_PERIOD) {
         // Within grace period - allow offline use
         const daysRemaining = Math.ceil(
           (OFFLINE_GRACE_PERIOD - timeSinceValidation) / (24 * 60 * 60 * 1000)
         );
-        console.log(`✅ Store session restored (offline: ${daysRemaining} days remaining)`);
+        console.log(`✅ Store session restored (offline: ${daysRemaining} days remaining, mode: ${deviceMode})`);
 
         this.updateState({
           status: 'offline_grace',
@@ -100,6 +108,7 @@ class StoreAuthManager {
             storeName: await this.getStoredStoreName() || 'Your Store',
             storeLoginId: await this.getStoredStoreLoginId() || storeId,
             tier: tier || 'basic',
+            deviceMode,
           },
           message: `Offline mode: ${daysRemaining} day${daysRemaining > 1 ? 's' : ''} remaining.`,
         });
@@ -125,9 +134,13 @@ class StoreAuthManager {
 
   /**
    * Log in to a store
+   * @param storeId - Store ID or email
+   * @param password - Store password
+   * @param options - Login options including device mode
    */
-  async loginStore(storeId: string, password: string): Promise<StoreAuthState> {
-    console.log('🔐 Logging in to store:', storeId);
+  async loginStore(storeId: string, password: string, options?: LoginOptions): Promise<StoreAuthState> {
+    const deviceMode = options?.deviceMode || 'online-only';
+    console.log('🔐 Logging in to store:', storeId, 'with device mode:', deviceMode);
     this.updateState({ status: 'checking' });
 
     try {
@@ -154,7 +167,10 @@ class StoreAuthManager {
       }
       await secureStorage.setLastValidation(Date.now());
 
-      console.log('✅ Store login successful');
+      // Store device mode
+      await this.setStoredDeviceMode(deviceMode);
+
+      console.log('✅ Store login successful with device mode:', deviceMode);
       this.updateState({
         status: 'active',
         store: {
@@ -163,6 +179,7 @@ class StoreAuthManager {
           storeLoginId: response.store!.storeLoginId,
           tier: response.license?.tier || 'basic',
           token: response.token,
+          deviceMode,
         },
         defaults: response.defaults,
         message: 'Logged in successfully.',
@@ -286,6 +303,7 @@ class StoreAuthManager {
     await secureStorage.clearLicenseData();
     await this.clearStoredStoreName();
     await this.clearStoredStoreLoginId();
+    await this.clearStoredDeviceMode();
 
     this.updateState({
       status: 'not_logged_in',
@@ -410,6 +428,50 @@ class StoreAuthManager {
 
   private async clearStoredStoreLoginId(): Promise<void> {
     localStorage.removeItem('mango_store_login_id');
+  }
+
+  // Device mode storage methods
+  private async getStoredDeviceMode(): Promise<DeviceMode> {
+    const mode = localStorage.getItem('mango_device_mode');
+    return (mode === 'offline-enabled' ? 'offline-enabled' : 'online-only') as DeviceMode;
+  }
+
+  private async setStoredDeviceMode(mode: DeviceMode): Promise<void> {
+    localStorage.setItem('mango_device_mode', mode);
+  }
+
+  private async clearStoredDeviceMode(): Promise<void> {
+    localStorage.removeItem('mango_device_mode');
+  }
+
+  /**
+   * Get the current device mode
+   */
+  getDeviceMode(): DeviceMode {
+    return this.currentState.store?.deviceMode || 'online-only';
+  }
+
+  /**
+   * Update device mode (requires re-login for full effect)
+   */
+  async updateDeviceMode(mode: DeviceMode): Promise<void> {
+    await this.setStoredDeviceMode(mode);
+    if (this.currentState.store) {
+      this.updateState({
+        ...this.currentState,
+        store: {
+          ...this.currentState.store,
+          deviceMode: mode,
+        },
+      });
+    }
+  }
+
+  /**
+   * Check if offline mode is enabled for this device
+   */
+  isOfflineModeEnabled(): boolean {
+    return this.getDeviceMode() === 'offline-enabled';
   }
 }
 

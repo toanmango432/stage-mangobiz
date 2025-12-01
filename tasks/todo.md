@@ -1,101 +1,73 @@
-# Front Desk UI Improvement Plan
+# Improve Sticky Header Scroll Shadow Effect
 
-**Based on:** FRONT_DESK_UI_ASSESSMENT.md
-**Current Score:** 6.5/10
-**Target Score:** 8.5/10
-**Date:** November 30, 2025
+## Problem
+Current sticky headers have a very subtle shadow that's barely visible. Need to create a more visible, modern Apple-style scroll shadow that shows clear visual depth when content scrolls underneath.
 
----
+## Goal
+Create a MORE VISIBLE scroll shadow effect that:
+1. Shows a clear soft shadow at the bottom of sticky headers
+2. Creates visual depth when content scrolls underneath
+3. Uses frosted glass/blur effect for the header background
+4. Is elegant and not too heavy
 
-## Phase 1: Typography & Readability (Quick Win)
+## Current Implementation
+- Shadow: `shadow-[0_1px_3px_0_rgba(0,0,0,0.05),0_4px_12px_-2px_rgba(0,0,0,0.08)]`
+- Background: `bg-white/85 backdrop-blur-xl backdrop-saturate-150`
+- Issues: Too subtle, barely visible
 
-### Task 1.1: Audit and Fix Small Text
-- [ ] Find all instances of text smaller than 12px
-- [ ] Update to minimum 12px for body text, 14px for important info
-- [ ] Files to check: MobileTabBar, ticket cards, header tokens
+## Affected Files
+1. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/frontdesk/headerTokens.ts`
+2. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/pending/PendingHeader.tsx`
+3. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/StaffSidebar.tsx`
 
-### Task 1.2: Improve Text Contrast
-- [ ] Check light gray text on light backgrounds
-- [ ] Ensure WCAG AA compliance (4.5:1 ratio minimum)
-- [ ] Update slate-400 text to slate-500 or darker where needed
+## Tasks
 
----
+### Phase 1: Design Improved Shadow
+- [ ] Research Apple-style shadow patterns
+- [ ] Create enhanced shadow token with multiple layers
+- [ ] Design gradient overlay for "content scrolling under" effect
+- [ ] Balance visibility with elegance
 
-## Phase 2: Visual Hierarchy & Priority
+### Phase 2: Update Header Tokens
+- [ ] Update `frontDeskHeaderBase` in headerTokens.ts with new shadow
+- [ ] Update subordinateTabTheme shadow
+- [ ] Add documentation for the new shadow pattern
+- [ ] Ensure consistency across all header themes
 
-### Task 2.1: Add Urgency Indicators
-- [ ] Create visual emphasis for urgent/overdue items
-- [ ] Add "critical" state styling for VIP waiting > 30 min
-- [ ] Reduce pulsing animations (currently overused in PendingSectionFooter)
+### Phase 3: Update PendingHeader Component
+- [ ] Apply new shadow token to header element
+- [ ] Test visibility in different lighting conditions
+- [ ] Verify responsive behavior
 
-### Task 2.2: Simplify Visual Noise
-- [ ] Remove excessive pulsing animations on ticket cards
-- [ ] Consolidate floating action buttons
-- [ ] Reduce competing visual elements
+### Phase 4: Update StaffSidebar Component
+- [ ] Update headerBg variable in compact view mode (line 654)
+- [ ] Update headerBg variable in normal view mode (line 706)
+- [ ] Ensure consistent shadow across different sidebar widths
+- [ ] Test with different team styling modes (USE_NEW_TEAM_STYLING)
 
----
+### Phase 5: Testing & Validation
+- [ ] Test all headers in the Front Desk view
+- [ ] Verify shadow visibility when scrolling content
+- [ ] Check contrast and accessibility
+- [ ] Test on different screen sizes
+- [ ] Verify frosted glass effect works well with shadow
 
-## Phase 3: Action Clarity & Accessibility
+## Design Approach
 
-### Task 3.1: Touch Targets
-- [ ] Ensure all interactive elements are 44x44px minimum (WCAG 2.2)
-- [ ] Currently: MobileTabBar has 36px targets - needs fixing
-- [ ] Currently: ViewModeToggle has 48px - good
+### Enhanced Shadow Pattern
+Use a 3-layer shadow approach for better visibility:
+1. **Inner shadow**: Subtle dark line for definition (`0_1px_2px_0_rgba(0,0,0,0.12)`)
+2. **Mid shadow**: Medium blur for depth (`0_4px_12px_-2px_rgba(0,0,0,0.15)`)
+3. **Outer shadow**: Large blur for elevation (`0_8px_24px_-4px_rgba(0,0,0,0.12)`)
 
-### Task 3.2: Add Tooltips
-- [ ] Add tooltips to icon-only buttons
-- [ ] Explain view mode options (Grid vs List)
-- [ ] Add keyboard shortcut hints
-
----
-
-## Phase 4: Terminology Consistency
-
-### Task 4.1: Naming Audit
-- [ ] "Coming" vs "Coming Appointments" - standardize
-- [ ] "Turn Tracker" - add explanation or rename
-- [ ] Review all section headers for clarity
-
----
-
-## Implementation Priority
-
-1. **Phase 1** - Typography (biggest impact, easiest to implement)
-2. **Phase 2** - Visual hierarchy (reduces cognitive load)
-3. **Phase 3** - Accessibility (compliance + usability)
-4. **Phase 4** - Terminology (polish)
-
----
-
-## Files to Modify
-
-| File | Changes Needed |
-|------|----------------|
-| MobileTabBar.tsx | Increase touch targets from 36px to 44px |
-| PendingSectionFooter.tsx | Remove excessive pulsing animations |
-| headerTokens.ts | Review font size tokens |
-| tailwind.config.js | Add minimum font size utility if needed |
-| Ticket cards | Ensure text is 12px minimum |
-
----
+Combined: `shadow-[0_1px_2px_0_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.15),0_8px_24px_-4px_rgba(0,0,0,0.12)]`
 
 ## Success Criteria
+- [ ] Shadow is clearly visible but not harsh
+- [ ] Creates distinct visual separation when content scrolls
+- [ ] Maintains elegant Apple-style aesthetic
+- [ ] Works well with frosted glass background
+- [ ] Consistent across all header implementations
 
-- [ ] No text smaller than 12px
-- [ ] All touch targets 44px minimum
-- [ ] Reduced animation on non-critical elements
-- [ ] Improved contrast ratios
-- [ ] Consistent terminology
-
----
-
-## Review Section
-
-### Changes Made:
-(To be filled after implementation)
-
-### Issues Encountered:
-(To be filled during implementation)
-
-### Final Score:
-(To be assessed after implementation)
+## Review
+_To be filled after implementation_

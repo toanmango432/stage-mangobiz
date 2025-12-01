@@ -1409,6 +1409,7 @@ export const staffSchedulesDB = {
       weeks: input.weeks,
       effectiveFrom: input.effectiveFrom,
       effectiveUntil: input.effectiveUntil ?? null,
+      patternAnchorDate: input.patternAnchorDate ?? input.effectiveFrom,
       isDefault: false,
       copiedFromScheduleId: null,
     };

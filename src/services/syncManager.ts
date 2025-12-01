@@ -1,7 +1,16 @@
 import { syncQueueDB, settingsDB } from '../db/database';
 import { syncAPI } from '../api/endpoints';
 import { store } from '../store';
-import { setSyncing, setPendingOperations, setSyncComplete, setSyncError } from '../store/slices/syncSlice';
+import {
+  setSyncing,
+  setPendingOperations,
+  setSyncComplete,
+  setSyncError,
+  enableSync,
+  disableSync,
+  selectSyncEnabled,
+} from '../store/slices/syncSlice';
+import { selectIsOfflineEnabled, selectDeviceMode } from '../store/slices/authSlice';
 
 class SyncManager {
   private isSyncing = false;
@@ -10,11 +19,37 @@ class SyncManager {
   private readonly MAX_BATCH_SIZE = 50;
 
   /**
+   * Check if sync is allowed based on device mode
+   */
+  private isSyncAllowed(): boolean {
+    const state = store.getState();
+    const isOfflineEnabled = selectIsOfflineEnabled(state);
+    const syncEnabled = selectSyncEnabled(state);
+    const mode = selectDeviceMode(state);
+
+    // Only allow sync for offline-enabled devices
+    return isOfflineEnabled && syncEnabled && mode === 'offline-enabled';
+  }
+
+  /**
    * Start automatic sync process
+   * Only starts if device is in offline-enabled mode
    */
   start() {
-    console.log('🔄 Sync Manager: Starting...');
-    
+    // Check if offline mode is enabled
+    const state = store.getState();
+    const isOfflineEnabled = selectIsOfflineEnabled(state);
+    const mode = selectDeviceMode(state);
+
+    if (!isOfflineEnabled || mode !== 'offline-enabled') {
+      console.log('🔄 Sync Manager: Skipped (online-only mode)');
+      store.dispatch(disableSync('Device is in online-only mode'));
+      return;
+    }
+
+    console.log('🔄 Sync Manager: Starting (offline-enabled mode)...');
+    store.dispatch(enableSync());
+
     // Initial sync
     this.sync();
 
@@ -31,9 +66,9 @@ class SyncManager {
   /**
    * Stop automatic sync process
    */
-  stop() {
+  stop(reason?: string) {
     console.log('🔄 Sync Manager: Stopping...');
-    
+
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
@@ -41,6 +76,10 @@ class SyncManager {
 
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
+
+    if (reason) {
+      store.dispatch(disableSync(reason));
+    }
   }
 
   /**
@@ -67,6 +106,12 @@ class SyncManager {
   async sync() {
     // Don't sync if already syncing or offline
     if (this.isSyncing || !navigator.onLine) {
+      return;
+    }
+
+    // Check if sync is allowed (offline-enabled mode only)
+    if (!this.isSyncAllowed()) {
+      console.log('🔄 Sync: Skipped (sync not enabled for this device)');
       return;
     }
 

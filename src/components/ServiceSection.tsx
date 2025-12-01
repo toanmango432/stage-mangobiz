@@ -3,6 +3,7 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
 import { serviceHeaderTheme } from './frontdesk/headerTokens';
+import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
@@ -1054,18 +1055,7 @@ export const ServiceSection = memo(function ServiceSection({
                   }}
                 />
               ))}
-            </div> : <div className="flex flex-col items-center mt-24 py-8">
-            <div className={`${colorTokens.bg} p-3 rounded-full mb-3`}>
-              <Activity size={28} className={colorTokens.text} />
-            </div>
-            <h3 className="text-lg font-medium text-gray-700 mb-1">
-              No clients in service
-            </h3>
-            <p className="text-[13px] text-gray-500 text-center max-w-md">
-              Assigned clients will appear here. Assign a client from the Wait
-              List to begin service.
-            </p>
-          </div>}
+            </div> : <FrontDeskEmptyState section="service" />}
       </div>
       {/* Modals */}
       <EditTicketModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} ticketId={ticketToEdit} />

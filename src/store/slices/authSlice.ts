@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 import { loginUser, loginSalonMode, logoutUser, verifyToken } from './authThunks';
+import type { DeviceMode, DevicePolicy, AuthDeviceState } from '@/types/device';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -14,6 +15,10 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
+
+  // Device state for offline mode
+  device: AuthDeviceState | null;
+  storePolicy: DevicePolicy | null;
 }
 
 const initialState: AuthState = {
@@ -23,6 +28,10 @@ const initialState: AuthState = {
   token: null,
   loading: false,
   error: null,
+
+  // Device defaults
+  device: null,
+  storePolicy: null,
 };
 
 const authSlice = createSlice({
@@ -42,9 +51,29 @@ const authSlice = createSlice({
       state.salonId = null;
       state.token = null;
       state.error = null;
+      state.device = null;
+      state.storePolicy = null;
     },
     clearError: (state) => {
       state.error = null;
+    },
+
+    // Device management actions
+    setDevice: (state, action: PayloadAction<AuthDeviceState>) => {
+      state.device = action.payload;
+    },
+    setStorePolicy: (state, action: PayloadAction<DevicePolicy>) => {
+      state.storePolicy = action.payload;
+    },
+    updateDeviceMode: (state, action: PayloadAction<DeviceMode>) => {
+      if (state.device) {
+        state.device.mode = action.payload;
+        state.device.offlineModeEnabled = action.payload === 'offline-enabled';
+      }
+    },
+    clearDevice: (state) => {
+      state.device = null;
+      state.storePolicy = null;
     },
   },
   extraReducers: (builder) => {
@@ -107,10 +136,30 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuth, logout } = authSlice.actions;
+export const {
+  setAuth,
+  logout,
+  clearError,
+  setDevice,
+  setStorePolicy,
+  updateDeviceMode,
+  clearDevice,
+} = authSlice.actions;
+
+// Basic auth selectors
 export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
 export const selectCurrentUser = (state: RootState) => state.auth.user;
 export const selectSalonId = (state: RootState) => state.auth.salonId;
 export const selectToken = (state: RootState) => state.auth.token;
+
+// Device selectors
+export const selectDevice = (state: RootState) => state.auth.device;
+export const selectStorePolicy = (state: RootState) => state.auth.storePolicy;
+export const selectDeviceMode = (state: RootState): DeviceMode | null =>
+  state.auth.device?.mode ?? null;
+export const selectIsOfflineEnabled = (state: RootState): boolean =>
+  state.auth.device?.offlineModeEnabled ?? false;
+export const selectDeviceId = (state: RootState): string | null =>
+  state.auth.device?.id ?? null;
 
 export default authSlice.reducer;
