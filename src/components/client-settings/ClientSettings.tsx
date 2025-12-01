@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import type { EnhancedClient, ClientSettingsSection, LoyaltyTier } from './types';
-import { mockClients, clientSettingsTokens, tierLabels } from './constants';
+import type { Client } from '../../types';
+import { clientSettingsTokens, tierLabels } from './constants';
 import { ClientList } from './components/ClientList';
 import { AddClient } from './components/AddClient';
 import { Button, Badge, Avatar, ArrowLeftIcon } from './components/SharedComponents';
@@ -10,38 +12,198 @@ import { BeautyProfileSection } from './sections/BeautyProfileSection';
 import { HistorySection } from './sections/HistorySection';
 import { NotesSection } from './sections/NotesSection';
 import { LoyaltySection } from './sections/LoyaltySection';
+import type { AppDispatch, RootState } from '../../store';
+import {
+  fetchClients,
+  fetchClientStats,
+  createClient,
+  updateClient,
+  selectClient,
+  setFilters,
+  selectClients,
+  selectSelectedClient,
+  selectClientFilters,
+  selectClientsLoading,
+  selectClientsSaving,
+  selectClientStats,
+} from '../../store/slices/clientsSlice';
 
 interface ClientSettingsProps {
   onBack?: () => void;
 }
 
+// Adapter: Convert Client to EnhancedClient for UI compatibility
+function clientToEnhanced(client: Client): EnhancedClient {
+  return {
+    id: client.id,
+    salonId: client.salonId,
+    firstName: client.firstName,
+    lastName: client.lastName,
+    displayName: client.displayName,
+    nickname: client.nickname,
+    avatar: client.avatar,
+    gender: client.gender,
+    birthday: client.birthday,
+    contact: {
+      phone: client.phone,
+      phoneType: 'mobile',
+      email: client.email,
+      preferredContact: client.communicationPreferences?.preferredContact || 'phone',
+    },
+    address: client.address,
+    emergencyContact: client.emergencyContacts?.[0] ? {
+      name: client.emergencyContacts[0].name,
+      phone: client.emergencyContacts[0].phone,
+      relationship: client.emergencyContacts[0].relationship,
+    } : undefined,
+    source: client.source,
+    sourceDetails: client.sourceDetails,
+    referredByClientId: client.referredByClientId,
+    referredByClientName: client.referredByClientName,
+    hairProfile: client.hairProfile,
+    skinProfile: client.skinProfile,
+    nailProfile: client.nailProfile,
+    medicalInfo: client.medicalInfo,
+    preferences: client.preferences,
+    communicationPreferences: client.communicationPreferences || {
+      allowEmail: true,
+      allowSms: true,
+      allowPhone: true,
+      allowMarketing: false,
+      appointmentReminders: true,
+      reminderTiming: 24,
+      birthdayGreetings: true,
+      promotionalOffers: false,
+      newsletterSubscribed: false,
+    },
+    loyaltyInfo: client.loyaltyInfo || {
+      tier: 'bronze',
+      pointsBalance: 0,
+      lifetimePoints: 0,
+      referralCount: 0,
+      rewardsRedeemed: 0,
+    },
+    membership: client.membership,
+    giftCards: client.giftCards,
+    visitSummary: client.visitSummary || {
+      totalVisits: 0,
+      totalSpent: 0,
+      averageTicket: 0,
+      noShowCount: 0,
+      lateCancelCount: 0,
+    },
+    outstandingBalance: client.outstandingBalance,
+    storeCredit: client.storeCredit,
+    tags: client.tags,
+    notes: client.notes,
+    isVip: client.isVip,
+    isBlocked: client.isBlocked,
+    blockReason: client.blockReasonNote,
+    createdAt: client.createdAt,
+    updatedAt: client.updatedAt,
+    syncStatus: client.syncStatus,
+  };
+}
+
+// Adapter: Convert EnhancedClient updates back to Client format
+function enhancedUpdatesToClient(updates: Partial<EnhancedClient>): Partial<Client> {
+  const clientUpdates: Partial<Client> = {};
+
+  if (updates.firstName !== undefined) clientUpdates.firstName = updates.firstName;
+  if (updates.lastName !== undefined) clientUpdates.lastName = updates.lastName;
+  if (updates.displayName !== undefined) clientUpdates.displayName = updates.displayName;
+  if (updates.nickname !== undefined) clientUpdates.nickname = updates.nickname;
+  if (updates.avatar !== undefined) clientUpdates.avatar = updates.avatar;
+  if (updates.gender !== undefined) clientUpdates.gender = updates.gender;
+  if (updates.birthday !== undefined) clientUpdates.birthday = updates.birthday;
+  if (updates.contact) {
+    if (updates.contact.phone) clientUpdates.phone = updates.contact.phone;
+    if (updates.contact.email !== undefined) clientUpdates.email = updates.contact.email;
+  }
+  if (updates.address !== undefined) clientUpdates.address = updates.address;
+  if (updates.source !== undefined) clientUpdates.source = updates.source;
+  if (updates.hairProfile !== undefined) clientUpdates.hairProfile = updates.hairProfile;
+  if (updates.skinProfile !== undefined) clientUpdates.skinProfile = updates.skinProfile;
+  if (updates.nailProfile !== undefined) clientUpdates.nailProfile = updates.nailProfile;
+  if (updates.medicalInfo !== undefined) clientUpdates.medicalInfo = updates.medicalInfo;
+  if (updates.preferences !== undefined) clientUpdates.preferences = updates.preferences;
+  if (updates.communicationPreferences !== undefined) clientUpdates.communicationPreferences = updates.communicationPreferences;
+  if (updates.loyaltyInfo !== undefined) clientUpdates.loyaltyInfo = updates.loyaltyInfo;
+  if (updates.membership !== undefined) clientUpdates.membership = updates.membership;
+  if (updates.tags !== undefined) clientUpdates.tags = updates.tags;
+  if (updates.notes !== undefined) clientUpdates.notes = updates.notes;
+  if (updates.isVip !== undefined) clientUpdates.isVip = updates.isVip;
+  if (updates.isBlocked !== undefined) clientUpdates.isBlocked = updates.isBlocked;
+
+  return clientUpdates;
+}
+
 export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
-  // State
-  const [clients, setClients] = useState<EnhancedClient[]>(mockClients);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(mockClients[0]?.id || null);
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Redux state
+  const clients = useSelector(selectClients);
+  const selectedClientFromStore = useSelector(selectSelectedClient);
+  const filters = useSelector(selectClientFilters);
+  const loading = useSelector(selectClientsLoading);
+  const saving = useSelector(selectClientsSaving);
+  const stats = useSelector(selectClientStats);
+
+  // Get salonId from auth state or use a default
+  const salonId = useSelector((state: RootState) => state.auth?.user?.salonId || 'default-salon');
+
+  // Local UI state
   const [activeSection, setActiveSection] = useState<ClientSettingsSection>('profile');
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterTier, setFilterTier] = useState<LoyaltyTier | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'blocked' | 'vip'>('all');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
   const [isAddingClient, setIsAddingClient] = useState(false);
+  const [pendingUpdates, setPendingUpdates] = useState<Partial<EnhancedClient>>({});
 
-  // Get selected client
+  // Convert clients to EnhancedClient format for UI
+  const enhancedClients = useMemo(() => clients.map(clientToEnhanced), [clients]);
+
+  // Convert selected client to EnhancedClient format
   const selectedClient = useMemo(() => {
-    return clients.find((c) => c.id === selectedClientId) || null;
-  }, [clients, selectedClientId]);
+    if (!selectedClientFromStore) return null;
+    const enhanced = clientToEnhanced(selectedClientFromStore);
+    // Apply pending updates for immediate UI feedback
+    return { ...enhanced, ...pendingUpdates };
+  }, [selectedClientFromStore, pendingUpdates]);
 
-  // Update client handler
-  const updateClient = (updates: Partial<EnhancedClient>) => {
-    if (!selectedClientId) return;
-    setClients((prev) =>
-      prev.map((c) =>
-        c.id === selectedClientId ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c
-      )
-    );
+  // Fetch clients on mount
+  useEffect(() => {
+    dispatch(fetchClients({
+      salonId,
+      filters: {
+        searchQuery: filters.searchQuery,
+        status: filterStatus,
+        loyaltyTier: filterTier,
+      },
+    }));
+    dispatch(fetchClientStats(salonId));
+  }, [dispatch, salonId, filterStatus, filterTier, filters.searchQuery]);
+
+  // Search handler
+  const handleSearchChange = useCallback((query: string) => {
+    dispatch(setFilters({ searchQuery: query }));
+  }, [dispatch]);
+
+  // Filter handlers
+  const handleFilterTierChange = useCallback((tier: LoyaltyTier | 'all') => {
+    setFilterTier(tier);
+  }, []);
+
+  const handleFilterStatusChange = useCallback((status: 'all' | 'active' | 'blocked' | 'vip') => {
+    setFilterStatus(status);
+  }, []);
+
+  // Update client handler - accumulates changes locally
+  const handleUpdateClient = useCallback((updates: Partial<EnhancedClient>) => {
+    setPendingUpdates(prev => ({ ...prev, ...updates }));
     setHasUnsavedChanges(true);
-  };
+  }, []);
 
   // Section navigation items
   const sectionNav: { id: ClientSettingsSection; label: string; icon: React.ReactNode }[] = [
@@ -53,28 +215,58 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     { id: 'loyalty', label: 'Loyalty', icon: <StarIcon className="w-5 h-5" /> },
   ];
 
-  const handleSelectClient = (clientId: string) => {
-    setSelectedClientId(clientId);
+  const handleSelectClient = useCallback((clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      dispatch(selectClient(client));
+      setPendingUpdates({});
+      setHasUnsavedChanges(false);
+    }
     setIsMobileListVisible(false);
     setActiveSection('profile');
-  };
+  }, [dispatch, clients]);
 
-  const handleAddClient = () => {
+  const handleAddClient = useCallback(() => {
     setIsAddingClient(true);
-  };
+  }, []);
 
-  const handleSaveNewClient = (newClient: EnhancedClient) => {
-    setClients((prev) => [newClient, ...prev]);
-    setSelectedClientId(newClient.id);
-    setIsAddingClient(false);
-    setIsMobileListVisible(false);
-  };
+  const handleSaveNewClient = useCallback(async (newClient: EnhancedClient) => {
+    try {
+      const clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'> = {
+        salonId,
+        firstName: newClient.firstName,
+        lastName: newClient.lastName,
+        phone: newClient.contact.phone,
+        email: newClient.contact.email,
+        isBlocked: false,
+        isVip: false,
+      };
 
-  const handleSave = () => {
-    // In a real app, this would save to backend/IndexedDB
-    console.log('Saving changes...', clients);
-    setHasUnsavedChanges(false);
-  };
+      const result = await dispatch(createClient(clientData)).unwrap();
+      dispatch(selectClient(result));
+      setIsAddingClient(false);
+      setIsMobileListVisible(false);
+    } catch (error) {
+      console.error('Failed to create client:', error);
+    }
+  }, [dispatch, salonId]);
+
+  const handleSave = useCallback(async () => {
+    if (!selectedClientFromStore || Object.keys(pendingUpdates).length === 0) return;
+
+    try {
+      const clientUpdates = enhancedUpdatesToClient(pendingUpdates);
+      await dispatch(updateClient({
+        id: selectedClientFromStore.id,
+        updates: clientUpdates,
+      })).unwrap();
+
+      setPendingUpdates({});
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Failed to save changes:', error);
+    }
+  }, [dispatch, selectedClientFromStore, pendingUpdates]);
 
   const getTierBadgeStyle = (tier: LoyaltyTier) => {
     const colors = clientSettingsTokens.tierColors[tier];
@@ -99,7 +291,9 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
           )}
           <div>
             <h1 className="text-xl font-bold text-gray-900">Clients</h1>
-            <p className="text-sm text-gray-500">Manage your client database</p>
+            <p className="text-sm text-gray-500">
+              {stats.total} clients • {stats.vip} VIP • {stats.blocked} blocked
+            </p>
           </div>
         </div>
 
@@ -110,9 +304,9 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
           <Button
             variant="primary"
             onClick={handleSave}
-            disabled={!hasUnsavedChanges}
+            disabled={!hasUnsavedChanges || saving}
           >
-            Save Changes
+            {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </header>
@@ -139,16 +333,17 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
           `}
         >
           <ClientList
-            clients={clients}
-            selectedClientId={selectedClientId}
+            clients={enhancedClients}
+            selectedClientId={selectedClientFromStore?.id || null}
             onSelectClient={handleSelectClient}
             onAddClient={handleAddClient}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            searchQuery={filters.searchQuery}
+            onSearchChange={handleSearchChange}
             filterTier={filterTier}
-            onFilterTierChange={setFilterTier}
+            onFilterTierChange={handleFilterTierChange}
             filterStatus={filterStatus}
-            onFilterStatusChange={setFilterStatus}
+            onFilterStatusChange={handleFilterStatusChange}
+            loading={loading}
           />
         </aside>
 
@@ -237,21 +432,21 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
               {activeSection === 'profile' && (
                 <ProfileSection
                   client={selectedClient}
-                  onChange={updateClient}
+                  onChange={handleUpdateClient}
                 />
               )}
 
               {activeSection === 'preferences' && (
                 <PreferencesSection
                   client={selectedClient}
-                  onChange={updateClient}
+                  onChange={handleUpdateClient}
                 />
               )}
 
               {activeSection === 'beauty-profile' && (
                 <BeautyProfileSection
                   client={selectedClient}
-                  onChange={updateClient}
+                  onChange={handleUpdateClient}
                 />
               )}
 
@@ -264,14 +459,14 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
               {activeSection === 'notes' && (
                 <NotesSection
                   client={selectedClient}
-                  onChange={updateClient}
+                  onChange={handleUpdateClient}
                 />
               )}
 
               {activeSection === 'loyalty' && (
                 <LoyaltySection
                   client={selectedClient}
-                  onChange={updateClient}
+                  onChange={handleUpdateClient}
                 />
               )}
             </div>

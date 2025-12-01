@@ -21,6 +21,7 @@ interface ClientListProps {
   onFilterTierChange: (tier: LoyaltyTier | 'all') => void;
   filterStatus: 'all' | 'active' | 'blocked' | 'vip';
   onFilterStatusChange: (status: 'all' | 'active' | 'blocked' | 'vip') => void;
+  loading?: boolean;
 }
 
 export const ClientList: React.FC<ClientListProps> = ({
@@ -34,6 +35,7 @@ export const ClientList: React.FC<ClientListProps> = ({
   onFilterTierChange,
   filterStatus,
   onFilterStatusChange,
+  loading = false,
 }) => {
   // Filter and search clients
   const filteredClients = useMemo(() => {
@@ -151,7 +153,12 @@ export const ClientList: React.FC<ClientListProps> = ({
 
       {/* Client List */}
       <div className="flex-1 overflow-y-auto">
-        {sortedClients.length === 0 ? (
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Loading clients...</p>
+          </div>
+        ) : sortedClients.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
               <SearchInput value="" onChange={() => {}} className="w-6 h-6 text-gray-400" />
