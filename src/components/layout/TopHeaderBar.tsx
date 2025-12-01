@@ -162,11 +162,11 @@ export function TopHeaderBar({
 
   return (
     <header className={`
-      bg-gradient-to-b from-gray-100/50 to-gray-50/30
+      bg-gradient-to-b from-white/40 to-white/20
       backdrop-blur-xl backdrop-saturate-[1.8]
-      border border-white/70
+      border border-white/80
       rounded-b-2xl md:rounded-b-3xl
-      shadow-[0_8px_32px_rgba(31,38,135,0.1),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(255,255,255,0.3)]
+      shadow-[0_8px_32px_rgba(31,38,135,0.12),0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.8),inset_0_-1px_0_rgba(255,255,255,0.3)]
       h-12 md:h-16 flex items-center px-2.5 md:px-4 fixed top-0 left-0 right-0 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
@@ -270,12 +270,12 @@ export function TopHeaderBar({
       )}
 
       {/* Right Section - Search, Actions & User */}
-      <div className={`flex items-center gap-1.5 md:gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
+      <div className={`flex items-center gap-2 md:gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
         {/* Compact Search - glass style */}
         <div className={`relative transition-all duration-300 ease-out ${
           isSearchExpanded ? 'w-64' : hideNavigation ? 'w-28 sm:w-40' : 'w-48'
         }`}>
-          <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-3 md:w-3.5 h-3 md:h-3.5 text-gray-500" />
+          <Search className="absolute left-3 md:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             ref={searchInputRef}
             type="text"
@@ -284,11 +284,11 @@ export function TopHeaderBar({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className="w-full pl-7 md:pl-9 pr-2 md:pr-8 py-1.5 md:py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-full text-[10px] md:text-xs focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-300 focus:bg-white/60 transition-all placeholder:text-gray-500 text-gray-800"
+            className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
           />
           {!isSearchExpanded && !hideNavigation && (
-            <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 bg-gray-200/50 rounded text-gray-500 text-[9px] font-medium">
-              <Command size={8} />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium">
+              <Command size={10} />
               <span>K</span>
             </div>
           )}
@@ -350,35 +350,35 @@ export function TopHeaderBar({
           )}
         </div>
 
-        {/* Front Desk Settings - glass style, compact on mobile */}
+        {/* Front Desk Settings - glass style */}
         {onFrontDeskSettingsClick && (
           <button
             onClick={onFrontDeskSettingsClick}
-            className="p-1.5 md:p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60"
+            className="p-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg transition-all"
             title="Front Desk Settings"
           >
-            <Settings className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
+            <Settings className="w-4 h-4 text-gray-600" />
           </button>
         )}
 
-        {/* Notifications - glass style with glowing badge, compact on mobile */}
-        <button className="relative p-1.5 md:p-2 bg-white/30 hover:bg-white/50 rounded-full transition-all ring-1 ring-white/40 hover:ring-white/60">
-          <Bell className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600" />
+        {/* Notifications - glass style with badge */}
+        <button className="relative p-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg transition-all">
+          <Bell className="w-4 h-4 text-gray-600" />
           {notificationCount > 0 && (
-            <span className="absolute top-0 right-0 md:top-0.5 md:right-0.5 w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 border md:border-2 border-white rounded-full shadow-lg shadow-red-500/50 animate-pulse"></span>
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notificationCount}</span>
           )}
         </button>
 
-        {/* User Profile - glass style with ring, compact on mobile */}
-        <div className="relative md:pl-2 md:border-l border-white/30">
+        {/* User Profile - glass style */}
+        <div className="relative ml-1">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-1 md:gap-2 bg-white/20 hover:bg-white/40 rounded-full pl-0.5 md:pl-1 pr-1 md:pr-2 py-0.5 md:py-1 transition-all ring-1 ring-white/30 hover:ring-white/50"
+            className="flex items-center gap-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg pl-1 pr-2 py-1 transition-all"
           >
-            <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-orange-500 to-pink-500 rounded-full flex items-center justify-center shadow-md ring-1 md:ring-2 ring-white/60">
-              <span className="text-white font-bold text-[10px] md:text-xs">A</span>
+            <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-pink-500 rounded-md flex items-center justify-center">
+              <span className="text-white font-bold text-xs">A</span>
             </div>
-            <ChevronDown className="w-2.5 h-2.5 md:w-3 md:h-3 text-gray-500 hidden sm:block" />
+            <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
           </button>
 
           {showUserMenu && (

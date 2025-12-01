@@ -168,8 +168,8 @@ export const CARD_DIMENSIONS: Record<'ultra-compact' | 'compact' | 'normal', Car
   },
   normal: {
     width: '100%',
-    height: '340px',
-    avatarSize: '160px',
+    height: '300px',
+    avatarSize: '140px', // Reduced from 160px
     borderRadius: '50%',
     containerPadding: 'p-3',
     cardRadius: '24px',

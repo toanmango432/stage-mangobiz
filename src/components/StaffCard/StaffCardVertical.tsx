@@ -199,10 +199,10 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
           className={`relative flex flex-col items-center z-20`}
           style={{ height: LAYOUT.topSectionHeight }}
         >
-          <div className={`${layout.dimensions.containerPadding} ${layout.isUltra ? 'pt-6' : layout.isCompact ? 'pt-7' : 'pt-8'} w-full flex flex-col items-center h-full justify-center ${layout.isUltra ? 'gap-0.5' : layout.isCompact ? 'gap-0.5' : 'gap-1'}`}>
+          <div className={`${layout.dimensions.containerPadding} ${layout.isUltra ? 'pt-9' : layout.isCompact ? 'pt-7' : 'pt-6'} w-full flex flex-col items-center h-full justify-center ${layout.isUltra ? 'gap-0.5' : layout.isCompact ? 'gap-0.5' : 'gap-1'}`}>
             {/* Queue Number Badge */}
             {config.showQueueNumber && (
-              <div className="absolute top-3 left-3 z-30">
+              <div className={`absolute ${layout.isUltra ? 'top-3 left-3' : 'top-5 left-3'} z-30`}>
                 <div
                   className="flex items-center justify-center font-bold font-mono backdrop-blur-md transition-all duration-300"
                   style={{
@@ -237,7 +237,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
             {/* Avatar */}
             {config.showAvatar && (
-              <div className="mb-1">
+              <div className={layout.isUltra ? 'mb-0' : 'mb-1'}>
                 <StaffCardAvatar
                   src={staff.image}
                   alt={staff.name}
@@ -252,7 +252,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
             {/* Staff Name - Premium Typography */}
             {config.showName && (
-              <div className="text-center w-full px-2">
+              <div className={`text-center w-full px-2 ${layout.isUltra ? '-mt-1' : ''}`}>
                 <h3
                   className={`${layout.sizes.nameSize} font-black tracking-widest truncate uppercase ${isBusy ? 'text-rose-900' : specialty.textColor
                     }`}
@@ -268,15 +268,8 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
             )}
 
             {/* Metrics (Clock-in Time & Turns) - Minimalist Pills */}
-            {layout.isUltra ? (
-              // Ultra-compact: Always show turn count only
-              <div className="flex items-center justify-center gap-0.5 mt-0.5">
-                <span className="text-[10px] font-bold text-gray-900 font-mono">
-                  {staff.turnCount ?? 0}
-                </span>
-              </div>
-            ) : (
-              // Normal & Compact: Show full metrics
+            {/* Normal & Compact: Show full metrics */}
+            {!layout.isUltra && (
               <div className="w-full">
                 <StaffCardMetrics
                   time={staff.time}

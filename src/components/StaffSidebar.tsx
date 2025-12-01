@@ -336,7 +336,8 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       if (sidebarWidth < 200) {
         return 'grid-cols-auto-fit-card-xs'; // 120px min
       } else if (sidebarWidth < 550) {
-        return 'grid-cols-auto-fit-card-sm'; // 160px min - Allows 3 cols at ~500px
+        // Force 3 columns for ~400px width (approx 130px per card)
+        return 'grid-cols-[repeat(auto-fit,minmax(130px,1fr))]';
       } else if (sidebarWidth < 800) {
         return 'grid-cols-auto-fit-card-md'; // 200px min
       } else {
