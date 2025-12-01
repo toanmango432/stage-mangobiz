@@ -305,7 +305,9 @@ export type ClientSettingsSection =
   | 'profile'
   | 'preferences'
   | 'beauty-profile'
+  | 'safety'
   | 'history'
+  | 'wallet'
   | 'notes'
   | 'loyalty'
   | 'documents';
