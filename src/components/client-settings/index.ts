@@ -65,6 +65,16 @@ export { ConsultationFormsCard } from './components/ConsultationFormsCard';
 export { FormResponseViewer } from './components/FormResponseViewer';
 export { PointsAdjustmentModal } from './components/PointsAdjustmentModal';
 export { AvailableRewardsCard } from './components/AvailableRewardsCard';
+export { ReferralTrackingCard } from './components/ReferralTrackingCard';
+export { ClientReviewsCard } from './components/ClientReviewsCard';
+export { BulkActionsToolbar } from './components/BulkActionsToolbar';
+export {
+  ClientSegmentBadge,
+  SegmentFilter,
+  SegmentStats,
+  getClientSegment,
+  getClientSegments,
+} from './components/ClientSegmentBadge';
 
 // Sections
 export { ProfileSection } from './sections/ProfileSection';
