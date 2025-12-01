@@ -17,6 +17,7 @@ import { MenuSettings } from '../menu-settings';
 import { TeamSettings } from '../team-settings';
 import { RoleSettings } from '../role-settings';
 import { DeviceSettings } from '../device';
+import { ClientSettings } from '../client-settings';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -206,6 +207,8 @@ export function AppShell() {
         return <Schedule />;
       case 'category':
         return <MenuSettings onBack={() => setActiveModule('more')} />;
+      case 'clients':
+        return <ClientSettings onBack={() => setActiveModule('more')} />;
       case 'license':
         return <LicenseSettings />;
       case 'header-preview':

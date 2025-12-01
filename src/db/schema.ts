@@ -15,7 +15,14 @@ import type {
   AddOnGroup,
   AddOnOption,
   StaffServiceAssignment,
-  CatalogSettings
+  CatalogSettings,
+  // Client module types
+  PatchTest,
+  FormTemplate,
+  ClientFormResponse,
+  Referral,
+  ClientReview,
+  LoyaltyReward
 } from '../types';
 import type { TeamMemberSettings } from '../components/team-settings/types';
 import type {
@@ -76,6 +83,14 @@ export class MangoPOSDatabase extends Dexie {
   // Device Settings for Opt-In Offline Mode
   deviceSettings!: Table<DeviceSettingsRecord, string>;
 
+  // Client module tables (PRD v4.2)
+  patchTests!: Table<PatchTest, string>;
+  formTemplates!: Table<FormTemplate, string>;
+  formResponses!: Table<ClientFormResponse, string>;
+  referrals!: Table<Referral, string>;
+  clientReviews!: Table<ClientReview, string>;
+  loyaltyRewards!: Table<LoyaltyReward, string>;
+
   constructor() {
     super('mango_biz_store_app');
 
@@ -101,7 +116,7 @@ export class MangoPOSDatabase extends Dexie {
       services: 'id, salonId, category, syncStatus, [salonId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]'
-    }).upgrade(tx => {
+    }).upgrade(() => {
       // Migration will be handled automatically by Dexie
       console.log('✅ Database upgraded to version 2: Added compound indexes for better query performance');
     });
@@ -118,7 +133,7 @@ export class MangoPOSDatabase extends Dexie {
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       // Team Settings - comprehensive team member management
       teamMembers: 'id, profile.email, isActive, permissions.role, createdAt, updatedAt'
-    }).upgrade(tx => {
+    }).upgrade(() => {
       console.log('✅ Database upgraded to version 3: Added Team Settings tables');
     });
 
@@ -302,8 +317,49 @@ export class MangoPOSDatabase extends Dexie {
       // Device Settings - stores device mode configuration locally
       // Used to persist device mode across sessions without requiring server
       deviceSettings: 'deviceId'
-    }).upgrade(tx => {
+    }).upgrade(() => {
       console.log('✅ Database upgraded to version 7: Added Device Settings for Opt-In Offline Mode');
+    });
+
+    // Version 8: Add Client Module tables (PRD v4.2)
+    this.version(8).stores({
+      // All existing tables unchanged
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      // Updated clients with new indexes for blocking, sorting, filtering
+      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, salonId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      // Client module tables
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 8: Added Client Module tables');
     });
   }
 }
@@ -352,6 +408,13 @@ export async function clearDatabase() {
   await db.resources.clear();
   await db.resourceBookings.clear();
   await db.staffSchedules.clear();
+  // Client module tables
+  await db.patchTests.clear();
+  await db.formTemplates.clear();
+  await db.formResponses.clear();
+  await db.referrals.clear();
+  await db.clientReviews.clear();
+  await db.loyaltyRewards.clear();
   // Note: deviceSettings is intentionally NOT cleared here
   // It should persist across data clears to maintain device identity
   console.log('🗑️  Database cleared');

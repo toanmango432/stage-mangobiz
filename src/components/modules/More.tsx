@@ -14,7 +14,8 @@ import {
   Sparkles,
   UserCog,
   LayoutGrid,
-  Users
+  Users,
+  Heart
 } from 'lucide-react';
 import { storeAuthManager } from '../../services/storeAuthManager';
 
@@ -45,6 +46,7 @@ export function More({ onNavigate }: MoreProps = {}) {
   const menuItems = [
     { id: 'frontdesk-settings', label: 'Front Desk Settings', icon: LayoutGrid, color: 'text-orange-600', bg: 'bg-orange-50' },
     { id: 'category', label: 'Category', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { id: 'clients', label: 'Clients', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-50' },
     { id: 'provider-control-center', label: '🔐 Provider Control Center (DEV)', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'sales', label: "Today's Sales", icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
     { id: 'license', label: 'License & Activation', icon: Key, color: 'text-orange-600', bg: 'bg-orange-50' },
