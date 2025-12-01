@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Separator } from "@/components/ui/separator";
 import { MoreVertical, UserPlus } from "lucide-react";
 import { TicketService } from "./ServiceList";

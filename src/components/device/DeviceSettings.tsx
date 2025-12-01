@@ -1,21 +1,36 @@
 /**
- * Device Settings Page
- * Allows users to view and change device mode settings after login.
+ * Device Manager
+ * Clean, focused interface for managing device offline/online mode.
+ * Follows progressive disclosure - shows what's needed, when needed.
  */
 
 import { useState, useEffect } from 'react';
 import {
-  Smartphone,
   Cloud,
   CloudOff,
-  AlertTriangle,
   Check,
   RefreshCw,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Monitor,
+  Smartphone,
+  MoreHorizontal,
+  Clock,
 } from 'lucide-react';
 import { storeAuthManager } from '../../services/storeAuthManager';
-import { DeviceModeSelector } from './DeviceModeSelector';
 import type { DeviceMode } from '@/types/device';
+
+interface StoreDevice {
+  id: string;
+  name?: string;
+  deviceFingerprint: string;
+  deviceMode: DeviceMode;
+  status: 'active' | 'inactive' | 'blocked';
+  lastSeenAt: Date;
+  platform?: string;
+  isCurrentDevice?: boolean;
+}
 
 interface DeviceSettingsProps {
   onBack?: () => void;
@@ -23,226 +38,329 @@ interface DeviceSettingsProps {
 
 export function DeviceSettings({ onBack }: DeviceSettingsProps) {
   const [currentMode, setCurrentMode] = useState<DeviceMode>('online-only');
-  const [selectedMode, setSelectedMode] = useState<DeviceMode>('online-only');
   const [isLoading, setIsLoading] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [devices, setDevices] = useState<StoreDevice[]>([]);
+  const [showOtherDevices, setShowOtherDevices] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   useEffect(() => {
     const mode = storeAuthManager.getDeviceMode();
     setCurrentMode(mode);
-    setSelectedMode(mode);
+    loadDevices();
   }, []);
 
-  const handleModeChange = (mode: DeviceMode) => {
-    setSelectedMode(mode);
-    if (mode !== currentMode) {
-      setShowConfirmation(true);
-    } else {
-      setShowConfirmation(false);
+  const loadDevices = async () => {
+    try {
+      const allDevices = await storeAuthManager.getStoreDevices();
+      const currentFingerprint = storeAuthManager.getCurrentDeviceFingerprint();
+
+      const devicesWithCurrent = allDevices.map(d => ({
+        ...d,
+        isCurrentDevice: d.deviceFingerprint === currentFingerprint || d.id === 'current',
+      }));
+
+      setDevices(devicesWithCurrent);
+    } catch {
+      setDevices([{
+        id: 'current',
+        name: 'This Device',
+        deviceFingerprint: 'current',
+        deviceMode: currentMode,
+        status: 'active',
+        lastSeenAt: new Date(),
+        platform: navigator.platform,
+        isCurrentDevice: true,
+      }]);
     }
   };
 
-  const handleSaveMode = async () => {
-    if (selectedMode === currentMode) return;
+  const handleModeToggle = async () => {
+    const newMode: DeviceMode = currentMode === 'online-only' ? 'offline-enabled' : 'online-only';
 
     setIsLoading(true);
-    setMessage(null);
-
     try {
-      await storeAuthManager.updateDeviceMode(selectedMode);
-      setCurrentMode(selectedMode);
-      setShowConfirmation(false);
+      await storeAuthManager.updateDeviceMode(newMode);
+      setCurrentMode(newMode);
+      setShowSuccess(true);
 
-      if (selectedMode === 'offline-enabled') {
-        setMessage({
-          type: 'success',
-          text: 'Offline mode enabled! Reloading app to initialize local database...',
-        });
-      } else {
-        setMessage({
-          type: 'success',
-          text: 'Switched to online-only mode! Reloading app...',
-        });
-      }
-
-      // Auto-reload the app after a brief delay to show the success message
-      // This ensures the database is properly initialized for the new mode
       setTimeout(() => {
         window.location.reload();
-      }, 1500);
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: 'Failed to update device mode. Please try again.',
-      });
+      }, 1200);
+    } catch {
       setIsLoading(false);
     }
-    // Note: Don't set isLoading to false on success since we're reloading
   };
 
-  const handleCancel = () => {
-    setSelectedMode(currentMode);
-    setShowConfirmation(false);
+  const handleToggleOtherDeviceMode = async (device: StoreDevice) => {
+    const newMode: DeviceMode = device.deviceMode === 'offline-enabled' ? 'online-only' : 'offline-enabled';
+    try {
+      await storeAuthManager.updateRemoteDeviceMode(device.id, newMode);
+      await loadDevices();
+      setActiveMenu(null);
+    } catch (error) {
+      console.error('Failed to update device mode:', error);
+    }
   };
+
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
+  };
+
+  const isOffline = currentMode === 'offline-enabled';
+  const otherDevices = devices.filter(d => !d.isCurrentDevice);
+  const currentDevice = devices.find(d => d.isCurrentDevice);
 
   return (
-    <div className="h-full bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="h-full bg-gray-50 overflow-y-auto">
+      <div className="max-w-lg mx-auto px-4 py-6 sm:px-6">
+
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 mb-8">
           {onBack && (
             <button
               onClick={onBack}
-              className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              className="p-2 -ml-2 hover:bg-gray-100 rounded-xl transition-colors"
+              aria-label="Go back"
             >
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Device Settings</h1>
-            <p className="text-gray-600">Manage how this device operates</p>
+            <h1 className="text-xl font-semibold text-gray-900">Device Manager</h1>
+            <p className="text-sm text-gray-500">
+              {storeAuthManager.getState().store?.storeName || 'Your Store'}
+            </p>
           </div>
         </div>
 
-        {/* Current Status Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              currentMode === 'offline-enabled' ? 'bg-amber-100' : 'bg-blue-100'
+        {/* Main Mode Card */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+          {/* Status Display */}
+          <div className="p-6 text-center border-b border-gray-100">
+            <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 transition-colors ${
+              isOffline ? 'bg-amber-100' : 'bg-blue-100'
             }`}>
-              {currentMode === 'offline-enabled' ? (
-                <CloudOff className="w-6 h-6 text-amber-600" />
+              {isOffline ? (
+                <CloudOff className="w-8 h-8 text-amber-600" />
               ) : (
-                <Cloud className="w-6 h-6 text-blue-600" />
+                <Cloud className="w-8 h-8 text-blue-600" />
               )}
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Current Mode: {currentMode === 'offline-enabled' ? 'Offline-Enabled' : 'Online-Only'}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {currentMode === 'offline-enabled'
-                  ? 'This device can work without internet'
-                  : 'This device requires internet to operate'}
-              </p>
-            </div>
+
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {isOffline ? 'Offline Mode' : 'Online Mode'}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {isOffline
+                ? 'Data is stored locally and syncs when online'
+                : 'Requires internet connection to operate'
+              }
+            </p>
           </div>
 
-          {/* Device Info */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Store</p>
-              <p className="text-sm font-medium text-gray-900">
-                {storeAuthManager.getState().store?.storeName || 'Unknown'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Status</p>
-              <p className="text-sm font-medium text-green-600 flex items-center gap-1">
-                <Check className="w-4 h-4" />
-                {storeAuthManager.getState().status === 'active' ? 'Active' : 'Offline Grace'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Mode Selection */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Device Mode</h3>
-
-          <DeviceModeSelector
-            value={selectedMode}
-            onChange={handleModeChange}
-            disabled={isLoading}
-            showDescriptions={true}
-          />
-
-          {/* Confirmation Section */}
-          {showConfirmation && (
-            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-amber-800">
-                    Are you sure you want to change device mode?
-                  </p>
-                  <p className="text-sm text-amber-700 mt-1">
-                    {selectedMode === 'offline-enabled'
-                      ? 'Enabling offline mode will start storing data locally. This uses device storage.'
-                      : 'Switching to online-only will stop local data storage. You will need internet to use the app.'}
-                  </p>
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      onClick={handleSaveMode}
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {isLoading ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Confirm Change
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+          {/* Toggle Button */}
+          <div className="p-4">
+            {showSuccess ? (
+              <div className="flex items-center justify-center gap-2 py-3 text-green-600">
+                <Check className="w-5 h-5" />
+                <span className="font-medium">Mode updated! Reloading...</span>
               </div>
-            </div>
-          )}
-
-          {/* Status Message */}
-          {message && (
-            <div className={`mt-4 p-4 rounded-lg flex items-start gap-3 ${
-              message.type === 'success' ? 'bg-green-50 border border-green-200' :
-              message.type === 'warning' ? 'bg-amber-50 border border-amber-200' :
-              'bg-red-50 border border-red-200'
-            }`}>
-              {message.type === 'success' ? (
-                <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-              ) : message.type === 'warning' ? (
-                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              )}
-              <p className={`text-sm ${
-                message.type === 'success' ? 'text-green-800' :
-                message.type === 'warning' ? 'text-amber-800' :
-                'text-red-800'
-              }`}>
-                {message.text}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Info Section */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <Smartphone className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-blue-800">About Device Modes</p>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• <strong>Online-Only:</strong> Requires internet. Data is not stored locally.</li>
-                <li>• <strong>Offline-Enabled:</strong> Works without internet. Data syncs when online.</li>
-                <li>• The app will automatically reload when you change modes.</li>
-                <li>• No logout required - your session will be preserved.</li>
-              </ul>
-            </div>
+            ) : (
+              <button
+                onClick={handleModeToggle}
+                disabled={isLoading}
+                className={`w-full py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                  isOffline
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-amber-500 hover:bg-amber-600 text-white'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Switching...</span>
+                  </>
+                ) : (
+                  <>
+                    {isOffline ? <Cloud className="w-4 h-4" /> : <CloudOff className="w-4 h-4" />}
+                    <span>Switch to {isOffline ? 'Online Mode' : 'Offline Mode'}</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Mode Comparison */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className={`p-4 rounded-xl border-2 transition-colors ${
+            !isOffline ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+          }`}>
+            <Cloud className={`w-5 h-5 mb-2 ${!isOffline ? 'text-blue-600' : 'text-gray-400'}`} />
+            <p className={`text-sm font-medium ${!isOffline ? 'text-blue-900' : 'text-gray-700'}`}>
+              Online
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Real-time sync
+            </p>
+          </div>
+          <div className={`p-4 rounded-xl border-2 transition-colors ${
+            isOffline ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-white'
+          }`}>
+            <CloudOff className={`w-5 h-5 mb-2 ${isOffline ? 'text-amber-600' : 'text-gray-400'}`} />
+            <p className={`text-sm font-medium ${isOffline ? 'text-amber-900' : 'text-gray-700'}`}>
+              Offline
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Works anywhere
+            </p>
+          </div>
+        </div>
+
+        {/* Devices Section */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {/* This Device */}
+          <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+              <Monitor className="w-5 h-5 text-orange-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-900">This Device</p>
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-orange-500 text-white rounded">
+                  YOU
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 truncate">{navigator.platform}</p>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+              isOffline ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+            }`}>
+              {isOffline ? 'Offline' : 'Online'}
+            </span>
+          </div>
+
+          {/* Other Devices Toggle */}
+          {otherDevices.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowOtherDevices(!showOtherDevices)}
+                className="flex items-center gap-3 p-4 w-full hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-gray-900">Other Devices</p>
+                  <p className="text-xs text-gray-500">
+                    {otherDevices.length} device{otherDevices.length > 1 ? 's' : ''} registered
+                  </p>
+                </div>
+                {showOtherDevices ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+
+              {/* Other Devices List */}
+              {showOtherDevices && (
+                <div className="border-t border-gray-100 bg-gray-50">
+                  {otherDevices.map((device) => (
+                    <div
+                      key={device.id}
+                      className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        device.deviceMode === 'offline-enabled' ? 'bg-amber-100' : 'bg-blue-100'
+                      }`}>
+                        {device.deviceMode === 'offline-enabled' ? (
+                          <CloudOff className="w-4 h-4 text-amber-600" />
+                        ) : (
+                          <Cloud className="w-4 h-4 text-blue-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {device.name || `Device ${device.id.slice(0, 6)}`}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatTimeAgo(device.lastSeenAt)}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            device.status === 'active'
+                              ? 'bg-green-100 text-green-700'
+                              : device.status === 'blocked'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {device.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quick Action Menu */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setActiveMenu(activeMenu === device.id ? null : device.id)}
+                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                        </button>
+
+                        {activeMenu === device.id && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setActiveMenu(null)}
+                            />
+                            <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-200 z-20 overflow-hidden">
+                              <button
+                                onClick={() => handleToggleOtherDeviceMode(device)}
+                                className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                              >
+                                {device.deviceMode === 'offline-enabled' ? (
+                                  <>
+                                    <Cloud className="w-4 h-4 text-blue-600" />
+                                    <span>Switch to Online</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CloudOff className="w-4 h-4 text-amber-600" />
+                                    <span>Enable Offline</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Help Text */}
+        <p className="text-xs text-gray-400 text-center mt-6 px-4">
+          {isOffline
+            ? 'Your data is stored locally and will sync automatically when you reconnect.'
+            : 'Enable offline mode to continue working without an internet connection.'
+          }
+        </p>
+
       </div>
     </div>
   );

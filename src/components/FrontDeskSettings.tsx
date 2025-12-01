@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, cloneElement, Component } from 'react';
+import React, { useEffect, useState, useRef, cloneElement } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings, Users, Layout, Eye, Sliders, ArrowRight, CheckCircle2, Circle, ChevronDown, Info, LayoutDashboard, ListFilter, Clock, FileText, Columns, Workflow, Check, Layers, PlusCircle, StickyNote, Edit, CreditCard, Percent, Gift, PlayCircle, DollarSign, Trash2, Lock, AlertCircle, LayoutGrid } from 'lucide-react';
+import { X, Settings, Users, ArrowRight, CheckCircle2, Circle, ChevronDown, Info, Workflow, Check, Layers, PlusCircle, StickyNote, Edit, CreditCard, Percent, Gift, PlayCircle, DollarSign, Trash2, Lock, AlertCircle, LayoutGrid } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import FocusTrap from 'focus-trap-react';
@@ -156,7 +156,7 @@ const SegmentedControl: React.FC<{
   options,
   value,
   onChange,
-  name,
+  name: _name,
   disabled = false
 }) => <div className="flex p-0.5 bg-gray-100 rounded-lg w-full max-w-md">
     {options.map(option => <button key={option.value} type="button" disabled={disabled} className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ${value === option.value ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/50'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !disabled && onChange(option.value)}>
@@ -210,7 +210,7 @@ const AccordionSection: React.FC<{
     {isOpen && <div className="px-4 pb-4 pt-1 border-t border-gray-100">{children}</div>}
   </div>;
 // Template Card Component
-const TemplateCard: React.FC<{
+const _TemplateCard: React.FC<{
   id: string;
   title: string;
   description: string;
@@ -221,7 +221,7 @@ const TemplateCard: React.FC<{
     ticket: number;
   };
 }> = ({
-  id,
+  id: _id,
   title,
   description,
   isSelected,
@@ -327,6 +327,8 @@ export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   const previousActiveElement = useRef<Element | null>(null);
   // State for operation template setup
   const [showTemplateSetup, setShowTemplateSetup] = useState(false);
+  // Suppress unused component warning
+  void _TemplateCard;
   // Mobile view state
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     operationTemplates: true,

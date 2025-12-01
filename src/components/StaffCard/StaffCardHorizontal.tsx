@@ -146,7 +146,6 @@ export const StaffCardHorizontal = React.memo<StaffCardHorizontalProps>(
     const status = STATUS_COLORS[staff.status] || STATUS_COLORS.ready;
     const isBusy = status.isBusy;
     const isUltra = viewMode === 'ultra-compact';
-    const isCompact = viewMode === 'compact';
 
     const dimensions = HORIZONTAL_DIMENSIONS[viewMode];
     const sizes = getHorizontalSizes(viewMode, isBusy);

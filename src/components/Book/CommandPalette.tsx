@@ -8,22 +8,12 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Command } from 'cmdk';
 import {
   Calendar,
-  Clock,
-  Users,
   Plus,
   Search,
-  Grid,
-  List,
-  LayoutGrid,
-  Settings,
   ArrowRight,
   CalendarDays,
   CalendarRange,
-  User,
   Filter,
-  FileText,
-  TrendingUp,
-  Home,
   ChevronRight,
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';

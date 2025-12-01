@@ -160,50 +160,50 @@ export const sectionHeaderStyles: Record<string, SectionHeaderStyles> = {
 
 // ============================================================================
 // SUBORDINATE TAB STYLES
-// Aligned with column header design: Icon + Title + Count on row 1, Metric on row 2
-// Underline indicator for active state
+// Layout: Icon centered vertically | Title/Metric stacked | Count on right
+// Each tab has subtle background to indicate clickability
 // ============================================================================
 
 export const subordinateTabTheme = {
   container: 'bg-white border-b border-gray-200',
-  tabWrapper: 'flex items-stretch gap-0',
+  tabWrapper: 'flex items-stretch gap-3 px-4 py-2',
   tab: {
-    // Two-row layout aligned with column headers
-    base: 'relative flex items-center gap-3 px-5 py-2.5 transition-colors duration-150 cursor-pointer border-b-2 border-transparent',
-    active: 'border-b-2 bg-gray-50/50',
-    inactive: 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/30',
+    // Card-style tab with subtle background
+    base: 'relative flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-150 cursor-pointer',
+    active: 'bg-gray-50',
+    inactive: 'bg-gray-50/50 hover:bg-gray-100/60',
   },
-  // Section-specific active border colors
-  tabActive: {
-    service: 'border-service-500',
-    waitList: 'border-waitList-500',
-    comingAppointments: 'border-comingAppointments-500',
+  // Bottom indicator line
+  indicator: {
+    base: 'absolute bottom-0 left-3 right-3 h-[2px] rounded-full',
+    service: 'bg-service-500',
+    waitList: 'bg-waitList-500',
+    comingAppointments: 'bg-comingAppointments-500',
   },
-  // Icon wrapper - matches column header icon style
-  iconWrapper: {
-    base: 'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
-    service: { active: 'bg-service-100 text-service-600', inactive: 'bg-gray-100 text-gray-400' },
-    waitList: { active: 'bg-waitList-100 text-waitList-600', inactive: 'bg-gray-100 text-gray-400' },
-    comingAppointments: { active: 'bg-comingAppointments-100 text-comingAppointments-600', inactive: 'bg-gray-100 text-gray-400' },
+  // Icon - centered vertically (self-center when in flex row)
+  icon: {
+    base: 'flex-shrink-0',
+    service: { active: 'text-service-500', inactive: 'text-gray-400' },
+    waitList: { active: 'text-waitList-500', inactive: 'text-gray-400' },
+    comingAppointments: { active: 'text-comingAppointments-500', inactive: 'text-gray-400' },
   },
-  // Content area with title row and metric row
-  content: 'flex flex-col justify-center min-w-0',
-  // Row 1: Title + Count
-  titleRow: 'flex items-center gap-2',
+  // Center column: Title on top, Metric below
+  centerColumn: 'flex flex-col gap-0',
   title: {
-    base: 'text-sm font-medium leading-tight',
-    active: 'text-gray-900 font-semibold',
-    inactive: 'text-gray-600',
+    base: 'text-[13px] font-medium leading-tight',
+    service: { active: 'text-gray-900', inactive: 'text-gray-500' },
+    waitList: { active: 'text-gray-900', inactive: 'text-gray-500' },
+    comingAppointments: { active: 'text-gray-900', inactive: 'text-gray-500' },
   },
-  count: {
-    base: 'text-sm font-bold tabular-nums px-1.5 py-0.5 rounded',
-    service: { active: 'bg-service-100 text-service-700', inactive: 'bg-gray-100 text-gray-500' },
-    waitList: { active: 'bg-waitList-100 text-waitList-700', inactive: 'bg-gray-100 text-gray-500' },
-    comingAppointments: { active: 'bg-comingAppointments-100 text-comingAppointments-700', inactive: 'bg-gray-100 text-gray-500' },
-  },
-  // Row 2: Metric/subtitle
   metric: {
-    base: 'text-xs font-medium leading-tight mt-0.5',
+    base: 'text-[11px] font-medium leading-tight',
+    service: { active: 'text-service-500', inactive: 'text-gray-400' },
+    waitList: { active: 'text-waitList-500', inactive: 'text-gray-400' },
+    comingAppointments: { active: 'text-comingAppointments-500', inactive: 'text-gray-400' },
+  },
+  // Right: Count - moderate size
+  count: {
+    base: 'text-lg font-semibold tabular-nums ml-2',
     service: { active: 'text-service-600', inactive: 'text-gray-400' },
     waitList: { active: 'text-waitList-600', inactive: 'text-gray-400' },
     comingAppointments: { active: 'text-comingAppointments-600', inactive: 'text-gray-400' },

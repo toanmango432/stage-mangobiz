@@ -1,20 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Shield,
   Store,
   Settings,
-  Users,
   BookOpen,
   ToggleLeft,
-  Key,
   CheckCircle,
-  AlertTriangle,
-  Building2,
-  MapPin,
-  CreditCard,
-  Activity,
-  Zap,
-  Package
+  AlertTriangle
 } from 'lucide-react';
 import { LicenseManagementPanel } from './control-center/LicenseManagementPanel';
 import { StoreConfigurationPanel } from './control-center/StoreConfigurationPanel';

@@ -387,6 +387,7 @@ export interface Client {
   lastName: string;
   displayName?: string;
   nickname?: string;
+  name?: string; // Computed or legacy field for firstName + lastName
   phone: string;
   email?: string;
   avatar?: string;
@@ -429,11 +430,14 @@ export interface Client {
 
   // Loyalty & membership (PRD 2.3.6, 2.3.7)
   loyaltyInfo?: LoyaltyInfo;
+  loyaltyTier?: string; // Legacy or computed field for loyaltyInfo.tier
   membership?: MembershipInfo;
   giftCards?: GiftCardBalance[];
 
   // Financial
   visitSummary?: VisitSummary;
+  lastVisit?: string; // Legacy or computed field for visitSummary.lastVisitDate
+  totalVisits?: number; // Legacy or computed field for visitSummary.totalVisits
   outstandingBalance?: number;
   storeCredit?: number;
 

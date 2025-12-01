@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useReducer } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -53,21 +53,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import {
   X,
   Maximize2,
   Minimize2,
-  ChevronLeft,
   ChevronDown,
   ChevronUp,
-  ChevronRight,
   User,
   Scissors,
   AlertCircle,
-  CheckCircle2,
   Plus,
-  Search,
   Keyboard,
   Merge,
   ShoppingBag,

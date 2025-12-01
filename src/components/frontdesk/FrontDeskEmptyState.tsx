@@ -1,4 +1,4 @@
-import { LucideIcon, Users, Activity, CreditCard, Receipt, Clock } from 'lucide-react';
+import { LucideIcon, Hourglass, Activity, CreditCard, Receipt, Clock } from 'lucide-react';
 
 type SectionType = 'waitList' | 'service' | 'pending' | 'closed' | 'comingAppointments';
 
@@ -19,37 +19,37 @@ const sectionDefaults: Record<SectionType, {
   iconColor: string;
 }> = {
   waitList: {
-    icon: Users,
-    title: 'No clients in wait list',
-    description: 'Checked-in clients will appear here. Add a client by clicking the "+" button.',
+    icon: Hourglass,
+    title: 'No one waiting',
+    description: 'New walk-ins will appear here',
     iconBg: 'bg-waitList-50',
     iconColor: 'text-waitList-500',
   },
   service: {
     icon: Activity,
-    title: 'No clients in service',
-    description: 'Assigned clients will appear here. Assign a client from the Wait List to begin service.',
+    title: 'No active services',
+    description: 'Assign a technician to get started',
     iconBg: 'bg-service-50',
     iconColor: 'text-service-500',
   },
   pending: {
     icon: CreditCard,
     title: 'No pending payments',
-    description: 'When services are completed, they will appear here for payment processing.',
+    description: 'Completed services will appear here for checkout',
     iconBg: 'bg-pendingTickets-50',
     iconColor: 'text-pendingTickets-500',
   },
   closed: {
     icon: Receipt,
-    title: 'No closed tickets',
-    description: 'Completed transactions will appear here for your records.',
+    title: 'No closed tickets today',
+    description: 'Completed transactions will appear here',
     iconBg: 'bg-closedTickets-50',
     iconColor: 'text-closedTickets-400',
   },
   comingAppointments: {
     icon: Clock,
-    title: 'No upcoming appointments',
-    description: 'Scheduled appointments will appear here as they approach.',
+    title: 'No appointments coming up',
+    description: 'Scheduled appointments will appear here',
     iconBg: 'bg-comingAppointments-50',
     iconColor: 'text-comingAppointments-500',
   },

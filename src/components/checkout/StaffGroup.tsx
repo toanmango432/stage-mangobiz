@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,13 +20,8 @@ import {
   Pause,
   CheckCircle2,
   Trash2,
-  UserCircle2,
   Circle,
-  Plus,
   MoreVertical,
-  RefreshCw,
-  Percent,
-  DollarSign,
   RotateCcw,
   UserPlus,
   Shuffle,
@@ -35,7 +30,7 @@ import {
   Clock,
 } from "lucide-react";
 import { TicketService, ServiceStatus } from "./ServiceList";
-import { Reorder, useDragControls, motion, PanInfo } from "framer-motion";
+import { Reorder, motion, PanInfo } from "framer-motion";
 
 interface StaffGroupProps {
   staffId: string | null;
@@ -128,11 +123,11 @@ function ServiceItem({
     onUpdateService(service.id, { price: newPrice });
   };
 
-  const handlePan = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handlePan = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Only allow left swipe (negative offset)
     const offset = Math.min(0, info.offset.x);
     setSwipeOffset(offset);
-    
+
     // Reveal delete button if swiped more than 40px
     if (offset < -40) {
       setIsSwipeRevealed(true);
@@ -141,7 +136,7 @@ function ServiceItem({
     }
   };
 
-  const handlePanEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handlePanEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Snap to revealed or hidden state
     if (info.offset.x < -60) {
       // Snap to revealed
@@ -359,13 +354,9 @@ export default function StaffGroup({
   onRemoveStaff,
   onReassignStaff,
   onAddServiceToStaff,
-  onEditService,
-  onChangeService,
-  onDiscountService,
   onDuplicateServices,
   selectedServices = new Set(),
   onToggleServiceSelection,
-  onClearSelection,
   isActive = false,
   onActivate,
   totalStaffCount = 1,
@@ -373,7 +364,7 @@ export default function StaffGroup({
   // Timer tracking for in-progress services
   const [elapsedTimes, setElapsedTimes] = useState<Record<string, number>>({});
   // Status change announcements for screen readers
-  const [statusAnnouncement, setStatusAnnouncement] = useState<string>("");
+  const [statusAnnouncement] = useState<string>("");
   const [orderedServices, setOrderedServices] = useState(services);
 
   // Update ordered services when services prop changes
@@ -460,7 +451,7 @@ export default function StaffGroup({
       .forEach((s) => onUpdateService(s.id, { status: "completed" }));
   };
 
-  const handleToggleService = (serviceId: string, event: React.MouseEvent) => {
+  const handleToggleService = (serviceId: string, _event: React.MouseEvent) => {
     if (onToggleServiceSelection) {
       onToggleServiceSelection(serviceId);
     }

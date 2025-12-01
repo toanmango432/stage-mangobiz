@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import { Clock, ChevronLeft, ChevronRight, User, Calendar, Tag, Plus, Star, AlertCircle, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, DollarSign, Pencil } from 'lucide-react';
+import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from './frontdesk-settings/types';
@@ -25,10 +25,10 @@ interface ComingAppointmentsProps {
 export const ComingAppointments = memo(function ComingAppointments({
   isMinimized = false,
   onToggleMinimize,
-  isMobile = false,
+  isMobile: _isMobile = false,
   hideHeader = false,
   settings,
-  headerStyles
+  headerStyles: _headerStyles
 }: ComingAppointmentsProps) {
   // All hooks must be called unconditionally (React rules of hooks)
   const {
@@ -50,7 +50,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   // This must come AFTER all hooks to comply with React rules
   const shouldHide = settings && settings.showComingAppointments === false;
   // Updated color tokens for more premium Apple-like styling
-  const colorTokens = {
+  const _colorTokens = {
     primary: '#34C759',
     bg: 'bg-[#F8FAFC]',
     headerBg: 'bg-[#F0FDFA]',
@@ -78,6 +78,8 @@ export const ComingAppointments = memo(function ComingAppointments({
       shadow: 'shadow-sm'
     }
   };
+  // Suppress unused variable warning
+  void _colorTokens;
   // Toggle row expansion
   const toggleRowExpansion = (rowId: string) => {
     setExpandedRows(prev => ({
@@ -160,12 +162,6 @@ export const ComingAppointments = memo(function ComingAppointments({
     });
     return buckets;
   };
-  // Check if an appointment is late
-  const isAppointmentLate = (appointment: any): boolean => {
-    const now = currentTime.getTime();
-    const appointmentTime = new Date(appointment.appointmentTime).getTime();
-    return appointmentTime < now;
-  };
   // Format minutes until appointment
   const formatMinutesUntil = (minutes: number): string => {
     if (minutes < 0) {
@@ -181,50 +177,15 @@ export const ComingAppointments = memo(function ComingAppointments({
     }
     return `in ${hours}h ${remainingMinutes}m`;
   };
-  // Get status color based on appointment status
-  const getStatusColor = (status: string): string => {
-    switch (status?.toLowerCase()) {
-      case 'booked':
-        return colorTokens.statusColors.booked;
-      case 'checked-in':
-        return colorTokens.statusColors.checkedIn;
-      case 'in-service':
-        return colorTokens.statusColors.inService;
-      case 'completed':
-        return colorTokens.statusColors.completed;
-      case 'cancelled':
-        return colorTokens.statusColors.cancelled;
-      case 'no-show':
-        return colorTokens.statusColors.noShow;
-      default:
-        return colorTokens.statusColors.booked;
-    }
-  };
-  // Get bucket label
-  const getBucketLabel = (bucketId: string): string => {
-    switch (bucketId) {
-      case 'late':
-        return 'Late';
-      case 'within1Hour':
-        return 'Within 1 Hour';
-      case 'within3Hours':
-        return 'Within 3 Hours';
-      case 'moreThan3Hours':
-        return 'More than 3 Hours';
-      default:
-        return '';
-    }
-  };
   // Get count of VIP appointments in a bucket
   const getVipCount = (bucketAppointments: any[]): number => {
     return bucketAppointments.filter(appt => appt.isVip).length;
   };
   const appointmentBuckets = groupAppointmentsByTimeBuckets();
 
-  // Calculate metrics for pill badges
+  // Calculate metrics for header badges
   const lateCount = appointmentBuckets.late.length;
-  const nextCount = appointmentBuckets.within1Hour.length;
-  const laterCount = appointmentBuckets.within3Hours.length + appointmentBuckets.moreThan3Hours.length;
+  const nextHourCount = appointmentBuckets.within1Hour.length;
 
   // BUG-003 FIX: Early return if component should be hidden
   // This check comes after all hooks to comply with React rules
@@ -242,27 +203,22 @@ export const ComingAppointments = memo(function ComingAppointments({
                 <Clock size={14} strokeWidth={2.5} className="text-sky-600" />
               </div>
               <h2 className="text-[13px] font-medium text-slate-600">Coming</h2>
-              <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
+              {/* Total count badge */}
+              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold">
                 {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
               </span>
-              {lateCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold flex items-center gap-1">
-                  <span>Late</span>
-                  <span>{lateCount}</span>
-                </span>
-              )}
-              {nextCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-semibold flex items-center gap-1">
-                  <span>Next</span>
-                  <span>{nextCount}</span>
-                </span>
-              )}
-              {laterCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-600 text-[10px] font-semibold flex items-center gap-1">
-                  <span>Later</span>
-                  <span>{laterCount}</span>
-                </span>
-              )}
+              {/* Compact metrics: late (if any) • next 1hr count */}
+              <div className="flex items-center gap-1.5 text-xs font-medium">
+                {lateCount > 0 && (
+                  <span className="text-red-600">{lateCount} late</span>
+                )}
+                {lateCount > 0 && nextHourCount > 0 && (
+                  <span className="text-slate-300">•</span>
+                )}
+                {nextHourCount > 0 && (
+                  <span className="text-sky-600">{nextHourCount} next hr</span>
+                )}
+              </div>
             </div>
 
             <button

@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { MoreVertical, Clock, DollarSign, Ticket, Star, Award, Sparkles, Coffee, UserCheck, ChevronRight, GripVertical, RefreshCw, Check, Circle, CircleDot } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { MoreVertical, Clock, DollarSign, Ticket, GripVertical, Check, Circle, CircleDot } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 
 // Helper function to format time with seconds and a/p
-const formatClockedInTime = (timeString: string): string => {
+const formatClockedInTime = (_timeString: string): string => {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
@@ -611,7 +611,7 @@ export function StaffCard({
     };
     return colorMap[baseColor] || colorMap['white'];
   };
-  const colors = getStaffGradient();
+  const _colors = getStaffGradient();
   // Format time to h:mm:ssa/p with seconds and a/p (e.g., 9:45:30a, 1:05:15p)
   const formatTime = (timeString?: string): string => {
     if (!timeString) return '-';
@@ -634,10 +634,10 @@ export function StaffCard({
     return `$${amount % 1 === 0 ? amount : amount.toFixed(2)}`;
   };
   // Determine header and data background colors based on status
-  const getHeaderColor = () => {
+  const _getHeaderColor = () => {
     return status.desaturateHeader ? specialtyColor.busyHeaderBg : specialtyColor.headerBg;
   };
-  const getDataColor = () => {
+  const _getDataColor = () => {
     return status.desaturateHeader ? specialtyColor.busyDataBg : specialtyColor.dataBg;
   };
   // Get transition class based on state
@@ -683,13 +683,15 @@ export function StaffCard({
   // Define currentTicketInfo as a variable to prevent reference errors
   const currentTicketInfo = getCurrentTicketTimeInfo();
   // Check if we have the various time elements
-  const hasLastService = config.showLastService && staff.lastServiceTime;
-  const hasNextAppointment = config.showNextAppointment && staff.nextAppointmentTime;
+  const _hasLastService = config.showLastService && staff.lastServiceTime;
+  const _hasNextAppointment = config.showNextAppointment && staff.nextAppointmentTime;
   const hasCurrentTicket = currentTicketInfo !== null && staff.status === 'busy';
   // Skip rendering current ticket info if it's shown in the notch
   const showingTicketInNotch = hasCurrentTicket;
+  // Suppress unused variable warnings
+  void [_colors, _getHeaderColor, _getDataColor, _hasLastService, _hasNextAppointment, _wouldFit];
   // Calculate if a timestamp element would fit in available space - IMPROVED CALCULATION
-  const wouldFit = (content: string, mode: string, type: 'last' | 'current' | 'next') => {
+  function _wouldFit(content: string, mode: string, type: 'last' | 'current' | 'next') {
     let textContent = content;
     let fontSize = 10; // Default font size in pixels
     let extraSpace = 0; // Extra space for icon and padding
@@ -708,7 +710,7 @@ export function StaffCard({
     const estimatedWidth = estimateTextWidth(textContent, fontSize, type === 'current') + extraSpace;
     // Add buffer space to ensure it fits completely
     return estimatedWidth + 4 <= availableWidth / (type === 'next' ? 1 : 2);
-  };
+  }
   // Helper function to estimate text width more accurately
   const estimateTextWidth = (text: string, fontSize: number, isBold: boolean = false) => {
     // More accurate character widths based on font characteristics
@@ -738,8 +740,6 @@ export function StaffCard({
       '(': 0.4,
       ')': 0.4
     };
-    // Base width calculation
-    const baseWidth = fontSize * (isBold ? 0.65 : 0.55);
     // Calculate width based on individual characters
     let totalWidth = 0;
     for (let i = 0; i < text.length; i++) {
@@ -1296,7 +1296,7 @@ export function StaffCard({
     const nameLength = displayName.length;
     const baseFontSize = 0.9625; // Base font size in rem
     // Calculate font size reduction (up to 10%) based on name length
-    const calculateNameFontSize = () => {
+    const _calculateNameFontSize = () => {
       if (nameLength <= 8 || availableNameWidth > nameLength * 10) {
         return baseFontSize; // Default size for short names or plenty of space
       } else if (nameLength <= 12) {
@@ -1306,13 +1306,15 @@ export function StaffCard({
       }
     };
     // Calculate right padding adjustment based on name length
-    const calculateRightPadding = () => {
+    const _calculateRightPadding = () => {
       if (nameLength <= 8) return '1.5rem'; // Default padding
       if (nameLength <= 12) return '1rem'; // Slightly reduced
       return '0.75rem'; // Minimum padding for very long names
     };
     // Determine if notch should be minimized
     const useMinimalNotch = cardWidth < 160;
+    // Suppress unused function warnings
+    void [_calculateNameFontSize, _calculateRightPadding];
     return <>
       {/* CSS for blinking animation */}
       <style>{`

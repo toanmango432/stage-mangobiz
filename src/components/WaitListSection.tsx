@@ -3,7 +3,7 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Plus, Hourglass } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Hourglass } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
@@ -69,9 +69,6 @@ export const WaitListSection = memo(function WaitListSection({
     deleteTicket
   } = useTickets();
 
-  // Calculate metrics for header
-  const vipCount = waitlist.filter(ticket => ticket.clientType === 'VIP').length;
-
   // Calculate average wait time from ticket.time (check-in time)
   const calculateWaitTime = (time: string | undefined): number => {
     if (!time || typeof time !== 'string' || !time.includes(':')) {
@@ -125,7 +122,6 @@ export const WaitListSection = memo(function WaitListSection({
     const saved = localStorage.getItem('waitListCardScale');
     return saved ? parseFloat(saved) : 1.0;
   });
-  const [showCardSizeSlider, setShowCardSizeSlider] = useState(false);
   // State for dropdown menu
   const [showDropdown, setShowDropdown] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);

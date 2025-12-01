@@ -38,8 +38,27 @@ const applyDependencies = (settings: FrontDeskSettingsData): FrontDeskSettingsDa
   return result;
 };
 
+// View state that persists to localStorage (UI preferences, not settings)
+interface ViewState {
+  activeMobileSection: string;
+  activeCombinedTab: string;
+  combinedViewMode: 'grid' | 'list';
+  combinedMinimizedLineView: boolean;
+  serviceColumnWidth: number;
+}
+
+// Load view state from localStorage on init
+const loadViewState = (): ViewState => ({
+  activeMobileSection: localStorage.getItem('activeMobileSection') || 'waitList',
+  activeCombinedTab: localStorage.getItem('activeCombinedTab') || 'waitList',
+  combinedViewMode: (localStorage.getItem('combinedViewMode') as 'grid' | 'list') || 'list',
+  combinedMinimizedLineView: localStorage.getItem('combinedMinimizedLineView') === 'true',
+  serviceColumnWidth: parseInt(localStorage.getItem('serviceColumnWidth') || '50', 10),
+});
+
 interface FrontDeskSettingsState {
   settings: FrontDeskSettingsData;
+  viewState: ViewState;
   hasUnsavedChanges: boolean;
   lastSaved: number | null;
   isLoading: boolean;
@@ -49,6 +68,7 @@ interface FrontDeskSettingsState {
 
 const initialState: FrontDeskSettingsState = {
   settings: defaultFrontDeskSettings,
+  viewState: loadViewState(),
   hasUnsavedChanges: false,
   lastSaved: null,
   isLoading: false,
@@ -165,6 +185,28 @@ const frontDeskSettingsSlice = createSlice({
     clearError: (state: FrontDeskSettingsState) => {
       state.error = null;
     },
+
+    // View state actions - auto-persist to localStorage
+    setActiveMobileSection: (state: FrontDeskSettingsState, action: PayloadAction<string>) => {
+      state.viewState.activeMobileSection = action.payload;
+      localStorage.setItem('activeMobileSection', action.payload);
+    },
+    setActiveCombinedTab: (state: FrontDeskSettingsState, action: PayloadAction<string>) => {
+      state.viewState.activeCombinedTab = action.payload;
+      localStorage.setItem('activeCombinedTab', action.payload);
+    },
+    setCombinedViewMode: (state: FrontDeskSettingsState, action: PayloadAction<'grid' | 'list'>) => {
+      state.viewState.combinedViewMode = action.payload;
+      localStorage.setItem('combinedViewMode', action.payload);
+    },
+    setCombinedMinimizedLineView: (state: FrontDeskSettingsState, action: PayloadAction<boolean>) => {
+      state.viewState.combinedMinimizedLineView = action.payload;
+      localStorage.setItem('combinedMinimizedLineView', String(action.payload));
+    },
+    setServiceColumnWidth: (state: FrontDeskSettingsState, action: PayloadAction<number>) => {
+      state.viewState.serviceColumnWidth = action.payload;
+      localStorage.setItem('serviceColumnWidth', String(action.payload));
+    },
   },
   extraReducers: (builder) => {
     // Load settings
@@ -212,6 +254,12 @@ export const {
   discardChanges,
   setSettings,
   clearError,
+  // View state actions
+  setActiveMobileSection,
+  setActiveCombinedTab,
+  setCombinedViewMode,
+  setCombinedMinimizedLineView,
+  setServiceColumnWidth,
 } = frontDeskSettingsSlice.actions;
 
 // Legacy export for backwards compatibility
@@ -265,6 +313,14 @@ export const selectCardViewMode = createSelector(
   [selectViewStyle],
   (viewStyle): 'normal' | 'compact' => viewStyle === 'compact' ? 'compact' : 'normal'
 );
+
+// View state selectors - centralized for FrontDesk component
+export const selectViewState = (state: RootState) => state.frontDeskSettings.viewState;
+export const selectActiveMobileSection = (state: RootState) => state.frontDeskSettings.viewState.activeMobileSection;
+export const selectActiveCombinedTab = (state: RootState) => state.frontDeskSettings.viewState.activeCombinedTab;
+export const selectCombinedViewMode = (state: RootState) => state.frontDeskSettings.viewState.combinedViewMode;
+export const selectCombinedMinimizedLineView = (state: RootState) => state.frontDeskSettings.viewState.combinedMinimizedLineView;
+export const selectServiceColumnWidth = (state: RootState) => state.frontDeskSettings.viewState.serviceColumnWidth;
 
 // Export the subscription function for cross-tab sync setup
 export { subscribeToSettingsChanges };

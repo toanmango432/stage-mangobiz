@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { MoreVertical, Search, Filter, Maximize2, ChevronRight, Check, Users, LayoutGrid, Layers, Sparkles, UserCircle, Clock, ChevronUp, ChevronDown, RefreshCw, RotateCcw, ClipboardList, ListChecks, Settings } from 'lucide-react';
+import { Search, Filter, Users, ChevronUp, ChevronDown, Settings } from 'lucide-react';
 import { StaffCard as HorizontalCard } from './StaffCard';
 import { StaffCardVertical } from './StaffCard/StaffCardVertical';
-import { TurnTrackerButton } from './TurnTrackerButton';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
 import { TurnTracker } from './TurnTracker/TurnTracker';
 import { useTickets } from '../hooks/useTicketsCompat';
@@ -13,8 +12,8 @@ import { FrontDeskSettingsData } from './frontdesk-settings/types';
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;
 }
-// Function to get salon staff images based on specialty and ID
-const getSalonStaffImage = (id: number, specialty?: string) => {
+// Function to get salon staff images based on ID
+const getSalonStaffImage = (id: number, _specialty?: string) => {
   // Map staff IDs to specific profile images from the provided screenshot
   const staffImages = {
     1: 'https://images.unsplash.com/photo-1557862921-37829c790f19?q=80&w=400&auto=format&fit=crop',
@@ -54,10 +53,9 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
   // ⚙️ FEATURE FLAG - Set to false to revert to original styling
   const USE_NEW_TEAM_STYLING = true;
 
-  // Get context data including resetStaffStatus function and inService tickets
+  // Get context data including resetStaffStatus function
   const {
     resetStaffStatus,
-    inService,
     staff
   } = useTickets();
 
@@ -124,7 +122,6 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
   });
   // Add states for custom width popup and temporary width preview
   const [showCustomWidthPopup, setShowCustomWidthPopup] = useState(false);
-  const [customWidthInput, setCustomWidthInput] = useState('');
   // Add states to store the original width values before preview
   const [originalWidth, setOriginalWidth] = useState(0);
   const [originalWidthType, setOriginalWidthType] = useState('');
@@ -284,11 +281,9 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       document.head.removeChild(style);
     };
   }, []);
-  // Determine if sidebar is in expanded view (40%, 50% or 100% width)
-  const isExpandedView = widthType === 'percentage' && (widthPercentage === 40 || widthPercentage === 50 || widthPercentage === 100);
   const customWidthPopupRef = useRef<HTMLDivElement>(null);
   // Save the original width before previewing
-  const saveOriginalWidth = () => {
+  const _saveOriginalWidth = () => {
     setOriginalWidth(sidebarWidth);
     setOriginalWidthType(widthType);
     setOriginalWidthPercentage(widthPercentage);
@@ -309,7 +304,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
     }
   };
   // Handle reset staff status
-  const handleResetClick = () => {
+  const _handleResetClick = () => {
     setShowResetConfirmation(true);
   };
   const handleConfirmReset = () => {
@@ -413,7 +408,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
     return viewMode;
   };
   // Calculate display priority tiers based on available width
-  const getDisplayPriorityTiers = () => {
+  const _getDisplayPriorityTiers = () => {
     // Base tier settings - now using team settings
     const tier1 = true; // Always show: Staff Name, Queue Order, Avatar
     let tier2 = teamSettings.showTurnCount; // Turn Count
@@ -751,8 +746,10 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       </div>;
     }
   };
-  // Get the priority tiers based on current width and view mode
-  const priorityTiers = getDisplayPriorityTiers();
+  // Suppress unused variable warnings
+  void _saveOriginalWidth;
+  void _handleResetClick;
+  void _getDisplayPriorityTiers;
   // 🎨 TEAM STYLING - Strong distinction from ticket sections
   const teamSidebarClasses = USE_NEW_TEAM_STYLING
     ? "relative h-full border-r-[3px] border-teal-300/60 bg-gradient-to-b from-teal-50/95 via-teal-50/95 to-teal-100/90 flex flex-col overflow-hidden transition-all duration-300"

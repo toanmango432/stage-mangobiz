@@ -6,8 +6,7 @@ import { serviceHeaderTheme } from './frontdesk/headerTokens';
 import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Tag, User, Clock, Calendar, Trash2, Edit2, Info, CheckCircle, CreditCard, Star, MessageSquare, AlertCircle, Scissors, Percent, Users, PlusCircle, SplitSquareVertical, Banknote, Activity } from 'lucide-react';
-import { AssignTicketModal } from './AssignTicketModal';
+import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity } from 'lucide-react';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import { ServiceTicketCard, ServiceTicketCardRefactored } from './tickets';
@@ -49,7 +48,7 @@ export const ServiceSection = memo(function ServiceSection({
   setMinimizedLineView: externalSetMinimizedLineView,
   isCombinedView = false,
   hideHeader = false,
-  headerStyles,
+  headerStyles: _headerStyles,
   settings
 }: ServiceSectionProps) {
   // Check if section should be hidden based on settings
@@ -86,12 +85,9 @@ export const ServiceSection = memo(function ServiceSection({
   const {
     viewMode,
     setViewMode,
-    toggleViewMode,
     cardViewMode,
-    setCardViewMode,
     toggleCardViewMode,
     minimizedLineView,
-    setMinimizedLineView,
     toggleMinimizedLineView
   } = useTicketSection({
     sectionKey: 'service',
@@ -107,10 +103,6 @@ export const ServiceSection = memo(function ServiceSection({
     externalSetMinimizedLineView,
   });
 
-  // Calculate metrics from service tickets
-  const activeCount = serviceTickets.filter(t => t.status !== 'paused').length;
-  const pausedCount = serviceTickets.filter(t => t.status === 'paused').length;
-
   // Calculate average duration in minutes
   const avgDuration = serviceTickets.length > 0
     ? Math.round(serviceTickets.reduce((sum, ticket) => {
@@ -125,7 +117,6 @@ export const ServiceSection = memo(function ServiceSection({
     const saved = localStorage.getItem('serviceCardScale');
     return saved ? parseFloat(saved) : 1.0;
   });
-  const [showCardSizeSlider, setShowCardSizeSlider] = useState(false);
   // State for dropdown menu
   const [showDropdown, setShowDropdown] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
@@ -215,8 +206,8 @@ export const ServiceSection = memo(function ServiceSection({
       <rect x="6" y="4" width="4" height="16" />
       <rect x="14" y="4" width="4" height="16" />
     </svg>;
-  // Render service list item for list view
-  const ServiceListItem = ({
+  // Unused legacy components (kept for reference but not rendered)
+  const _ServiceListItem = ({
     ticket
   }: {
     ticket: any;
@@ -472,7 +463,7 @@ export const ServiceSection = memo(function ServiceSection({
       </div>;
   };
   // Render minimized list view item
-  const MinimizedServiceListItem = ({
+  const _MinimizedServiceListItem = ({
     ticket
   }: {
     ticket: any;
@@ -539,7 +530,7 @@ export const ServiceSection = memo(function ServiceSection({
       </div>;
   };
   // Render grid view item (ticket card)
-  const ServiceCard = ({
+  const _ServiceCard = ({
     ticket
   }: {
     ticket: any;
@@ -752,7 +743,7 @@ export const ServiceSection = memo(function ServiceSection({
       </div>;
   };
   // Compact card view for grid layout
-  const CompactServiceCard = ({
+  const _CompactServiceCard = ({
     ticket
   }: {
     ticket: any;
@@ -834,6 +825,8 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
       </div>;
   };
+  // Suppress unused warnings for legacy components
+  void [_ServiceListItem, _MinimizedServiceListItem, _ServiceCard, _CompactServiceCard];
   // Render minimized sidebar with vertical text, count badge, and status icon
   if (isMinimized) {
     return <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out cursor-pointer hover:shadow-md" onClick={onToggleMinimize}>
@@ -1016,7 +1009,7 @@ export const ServiceSection = memo(function ServiceSection({
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onComplete={(id) => completeTicket?.(id, {})}
                   onPause={(id) => pauseTicket?.(id)}
-                  onClick={(id) => {
+                  onClick={(_id) => {
                     // Handle click to show details
                   }}
                 />
@@ -1050,7 +1043,7 @@ export const ServiceSection = memo(function ServiceSection({
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
                   onComplete={(id) => completeTicket?.(id, {})}
                   onPause={(id) => pauseTicket?.(id)}
-                  onClick={(id) => {
+                  onClick={(_id) => {
                     // Handle click to show details
                   }}
                 />

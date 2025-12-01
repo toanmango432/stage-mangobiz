@@ -1,41 +1,54 @@
 # TypeScript Error Fix Plan
 
 **Created:** 2025-12-01
-**Total Errors:** 1,106
+**Last Updated:** 2025-12-01 (Re-scanned)
+**Total Errors:** 1,201
 **Estimated Phases:** 6
 
 ---
 
 ## Executive Summary
 
-This plan breaks down the fix of 1,106 TypeScript errors into 6 manageable phases, prioritized by impact and complexity.
+This plan breaks down the fix of 1,201 TypeScript errors into 6 manageable phases, prioritized by impact and complexity.
 
-### Error Distribution by Type
+### Error Distribution by Type (Current Scan)
 
 | Error Code | Count | Description | Priority |
 |------------|-------|-------------|----------|
-| TS6133 | 525 | Unused variables/imports | Low (auto-fixable) |
-| TS1149 | 175 | File casing conflicts | High (cascading) |
-| TS2322 | 88 | Type assignment errors | High |
-| TS2339 | 69 | Property doesn't exist | High |
+| TS6133 | 534 | Unused variables/imports | Low (auto-fixable) |
+| TS1149 | 174 | File casing conflicts | High (cascading) |
+| TS2339 | 122 | Property doesn't exist | High |
+| TS2322 | 112 | Type assignment errors | High |
 | TS2367 | 43 | Unintentional comparison | Medium |
 | TS2345 | 42 | Argument type mismatch | High |
-| TS2741/2739 | 48 | Missing properties | High |
+| TS2739 | 24 | Missing properties | High |
+| TS2741 | 21 | Missing properties | High |
 | TS7006 | 20 | Implicit any | Medium |
+| TS2353 | 18 | Unknown properties | Medium |
+| TS2365 | 15 | Type comparison | Medium |
+| TS2551 | 12 | Property typos | Medium |
 | TS6192 | 11 | Unused imports (all) | Low |
-| Other | 85 | Various | Medium |
+| TS2307 | 9 | Module not found | High |
+| TS6196 | 8 | Type unused | Low |
+| Other | 36 | Various | Medium |
 
 ### Error Distribution by Area
 
 | Directory | Errors | % of Total |
 |-----------|--------|------------|
-| components | 961 | 87% |
+| components | 935 | 78% |
 | utils | 48 | 4% |
-| store | 41 | 4% |
+| store | 41 | 3% |
+| testing | 39 | 3% |
 | services | 37 | 3% |
-| Other | 19 | 2% |
+| db | 30 | 2% |
+| pages | 20 | 2% |
+| admin | 19 | 2% |
+| hooks | 17 | 1% |
+| types | 9 | 1% |
+| Other | 6 | 1% |
 
-### Component Breakdown (Top 10)
+### Component Breakdown (Top 15)
 
 | Component Module | Errors |
 |------------------|--------|
@@ -43,12 +56,17 @@ This plan breaks down the fix of 1,106 TypeScript errors into 6 manageable phase
 | Book | 136 |
 | schedule | 117 |
 | modules | 79 |
-| client-settings | 62 |
+| client-settings | 36 |
 | tickets | 32 |
 | ui | 25 |
 | TimeOff | 17 |
 | team-settings | 14 |
 | StaffManagement | 11 |
+| layout | 6 |
+| pending | 5 |
+| frontdesk | 4 |
+| TurnTracker | 3 |
+| frontdesk-settings | 3 |
 
 ---
 
@@ -88,7 +106,7 @@ npx tsc --noEmit 2>&1 | grep "TS1149" | wc -l
 
 ## Phase 2: Unused Imports/Variables Cleanup
 
-**Target:** TS6133, TS6192, TS6196 errors (541 errors)
+**Target:** TS6133, TS6192, TS6196 errors (553 errors)
 **Impact:** Low risk - safe to remove
 
 ### Strategy
@@ -118,7 +136,7 @@ npx tsc --noEmit 2>&1 | grep "TS6133\|TS6192\|TS6196" | wc -l
 
 ## Phase 3: Type Interface Fixes
 
-**Target:** TS2322, TS2339, TS2345, TS2741, TS2739 (311 errors)
+**Target:** TS2322, TS2339, TS2345, TS2741, TS2739, TS2353 (339 errors)
 **Impact:** High - affects runtime behavior
 
 ### Categories
@@ -191,7 +209,7 @@ npx tsc --noEmit 2>&1 | grep "TS2322\|TS2339\|TS2345\|TS2741\|TS2739" | wc -l
 
 ## Phase 4: Type Comparison Fixes
 
-**Target:** TS2367, TS2365 errors (58 errors)
+**Target:** TS2367, TS2365, TS2551 errors (70 errors)
 **Impact:** Medium - may cause runtime bugs
 
 ### Problem
@@ -228,7 +246,7 @@ npx tsc --noEmit 2>&1 | grep "TS2367\|TS2365" | wc -l
 
 ## Phase 5: Implicit Any & Missing Declarations
 
-**Target:** TS7006, TS2304, TS7031, TS7053 (32 errors)
+**Target:** TS7006, TS2304, TS7031, TS7053, TS2307 (41 errors)
 **Impact:** Medium - type safety gaps
 
 ### Tasks
@@ -261,7 +279,7 @@ npx tsc --noEmit 2>&1 | grep "TS7006\|TS2304\|TS7031\|TS7053" | wc -l
 
 ## Phase 6: Miscellaneous & Edge Cases
 
-**Target:** Remaining ~60 errors
+**Target:** Remaining ~24 errors
 **Impact:** Various
 
 ### Categories
@@ -290,16 +308,17 @@ npx tsc --noEmit 2>&1 | grep "error TS" | wc -l
 
 ---
 
-## Implementation Order
+## Implementation Order & Summary
 
-| Phase | Focus | Est. Files | Dependencies |
-|-------|-------|------------|--------------|
-| **1** | File Casing | ~50 | None |
-| **2** | Unused Imports | ~100 | Phase 1 |
-| **3** | Type Interfaces | ~30 | Phase 1, 2 |
-| **4** | Type Comparisons | ~10 | Phase 3 |
-| **5** | Implicit Any | ~15 | Phase 3 |
-| **6** | Misc | ~20 | Phase 1-5 |
+| Phase | Focus | Errors | Est. Files | Dependencies |
+|-------|-------|--------|------------|--------------|
+| **1** | File Casing (TS1149) | 174 | ~50 | None |
+| **2** | Unused Imports (TS6133+) | 553 | ~100 | Phase 1 |
+| **3** | Type Interfaces | 339 | ~30 | Phase 1, 2 |
+| **4** | Type Comparisons | 70 | ~10 | Phase 3 |
+| **5** | Implicit Any + Modules | 41 | ~15 | Phase 3 |
+| **6** | Misc | 24 | ~20 | Phase 1-5 |
+| **Total** | | **1,201** | | |
 
 ---
 

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Scissors, Palette, Sparkles, Users as UsersIcon, Star, Search, ArrowLeft } from "lucide-react";
 
 export interface Service {

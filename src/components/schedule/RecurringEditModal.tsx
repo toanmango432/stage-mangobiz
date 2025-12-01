@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Calendar, CalendarRange, Trash2, X } from 'lucide-react';
 
 export type RecurringEditAction = 'this' | 'thisAndFuture' | 'all';

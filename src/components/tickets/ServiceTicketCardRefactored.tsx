@@ -3,12 +3,7 @@ import { MoreVertical, Check, Pause, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import {
-  BasePaperTicket,
-  StateIndicator,
-  PriorityBadge,
-  WaitTimeIndicator,
   ProgressIndicator,
-  paperColors
 } from './paper';
 
 interface ServiceTicketCardProps {
@@ -57,15 +52,6 @@ function ServiceTicketCardComponent({
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [progress, setProgress] = useState(0);
-
-  // Map view mode to our base component format
-  const mapViewMode = (mode: string): 'compact' | 'normal' | 'gridNormal' | 'gridCompact' => {
-    switch (mode) {
-      case 'grid-normal': return 'gridNormal';
-      case 'grid-compact': return 'gridCompact';
-      default: return mode as 'compact' | 'normal';
-    }
-  };
 
   // Calculate elapsed time and progress
   useEffect(() => {

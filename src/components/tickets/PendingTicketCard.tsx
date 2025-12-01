@@ -1,11 +1,6 @@
-import { useRef } from 'react';
 import { DollarSign } from 'lucide-react';
 import {
   UnpaidWatermark,
-  TicketHeader,
-  ClientInfo,
-  PriceBreakdown,
-  PaymentFooter,
 } from './pending';
 import { PremiumTypography } from '../../constants/premiumDesignTokens';
 
@@ -42,10 +37,6 @@ interface PendingTicketCardProps {
   ticket: PendingTicket;
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onMarkPaid: (id: string) => void;
-  onCancel?: (id: string) => void;
-  isMenuOpen: boolean;
-  onOpenMenu: (id: string, e: React.MouseEvent) => void;
-  onCloseMenu: () => void;
   onClick?: (ticketId: string) => void;
 }
 
@@ -62,13 +53,8 @@ export function PendingTicketCard({
   ticket,
   viewMode = 'grid-normal',
   onMarkPaid,
-  onCancel,
-  isMenuOpen,
-  onOpenMenu,
-  onCloseMenu,
   onClick,
 }: PendingTicketCardProps) {
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Helper flags
   const isFirstVisit = !ticket.lastVisitDate || ticket.clientType?.toLowerCase().includes('first');

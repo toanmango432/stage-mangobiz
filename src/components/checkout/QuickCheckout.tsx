@@ -2,10 +2,18 @@ import { useState, useEffect } from 'react';
 import { X, CreditCard, DollarSign, Percent, Receipt, Printer, Check } from 'lucide-react';
 import { Ticket, Payment } from '../../types/Ticket';
 import { TAX_RATE } from '../../constants/checkoutConfig';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createTransaction } from '../../store/slices/transactionsSlice';
 import { updateTicket } from '../../store/slices/ticketsSlice';
+import { selectCurrentUser } from '../../store/slices/authSlice';
 import { toast } from 'react-hot-toast';
+import {
+  roundToCents,
+  addAmounts,
+  subtractAmount,
+  multiplyAmount,
+  calculatePercentage
+} from '../../utils/currency';
 
 interface QuickCheckoutProps {
   isOpen: boolean;
@@ -18,6 +26,7 @@ type PaymentMethod = 'cash' | 'card' | 'split';
 
 export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickCheckoutProps) {
   const dispatch = useAppDispatch();
+  const currentUser = useAppSelector(selectCurrentUser);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [tipAmount, setTipAmount] = useState(0);
   const [tipPercent, setTipPercent] = useState(0);
@@ -29,20 +38,21 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
   const [cardLast4, setCardLast4] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const servicesTotal = ticket.services.reduce((sum, s) => sum + s.price, 0);
-  const productsTotal = ticket.products.reduce((sum, p) => sum + p.total, 0);
-  const subtotal = servicesTotal + productsTotal;
-  const discountValue = discountAmount || (subtotal * discountPercent / 100);
-  const afterDiscount = subtotal - discountValue;
-  const taxAmount = afterDiscount * TAX_RATE;
-  const tipValue = tipAmount || (afterDiscount * tipPercent / 100);
-  const grandTotal = afterDiscount + taxAmount + tipValue;
+  // Calculate totals with proper rounding to avoid floating-point errors
+  const servicesTotal = roundToCents(ticket.services.reduce((sum, s) => sum + s.price, 0));
+  const productsTotal = roundToCents(ticket.products.reduce((sum, p) => sum + p.total, 0));
+  const subtotal = addAmounts(servicesTotal, productsTotal);
+  const discountValue = discountAmount ? roundToCents(discountAmount) : calculatePercentage(subtotal, discountPercent);
+  const afterDiscount = subtractAmount(subtotal, discountValue);
+  const taxAmount = multiplyAmount(afterDiscount, TAX_RATE);
+  const tipValue = tipAmount ? roundToCents(tipAmount) : calculatePercentage(afterDiscount, tipPercent);
+  const grandTotal = addAmounts(afterDiscount, taxAmount, tipValue);
 
   useEffect(() => {
     if (paymentMethod === 'split') {
-      const half = grandTotal / 2;
+      const half = roundToCents(grandTotal / 2);
       setCashAmount(half);
-      setCardAmount(half);
+      setCardAmount(subtractAmount(grandTotal, half)); // Handle odd cent
     } else {
       setCashAmount(0);
       setCardAmount(0);
@@ -77,12 +87,13 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const payments: Payment[] = [];
+      const baseAmount = addAmounts(afterDiscount, taxAmount);
 
       if (paymentMethod === 'cash') {
         payments.push({
           id: `pay_${Date.now()}`,
           method: 'cash',
-          amount: afterDiscount + taxAmount,
+          amount: baseAmount,
           tip: tipValue,
           total: grandTotal,
           processedAt: new Date()
@@ -91,7 +102,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
         payments.push({
           id: `pay_${Date.now()}`,
           method: 'card',
-          amount: afterDiscount + taxAmount,
+          amount: baseAmount,
           tip: tipValue,
           total: grandTotal,
           processedAt: new Date(),
@@ -100,28 +111,35 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
         });
       } else {
         // Split payment
-        if (cashAmount > 0) {
+        const roundedCash = roundToCents(cashAmount);
+        const roundedCard = roundToCents(cardAmount);
+        if (roundedCash > 0) {
           payments.push({
             id: `pay_${Date.now()}_cash`,
             method: 'cash',
-            amount: cashAmount,
+            amount: roundedCash,
             tip: 0,
-            total: cashAmount,
+            total: roundedCash,
             processedAt: new Date()
           });
         }
-        if (cardAmount > 0) {
+        if (roundedCard > 0) {
           payments.push({
             id: `pay_${Date.now()}_card`,
             method: 'card',
-            amount: cardAmount,
+            amount: roundedCard,
             tip: tipValue,
-            total: cardAmount + tipValue,
+            total: addAmounts(roundedCard, tipValue),
             processedAt: new Date(),
             cardLast4: cardLast4 || '****',
             transactionId: `txn_${Date.now()}`
           });
         }
+      }
+
+      // Validate user is authenticated
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated. Please log in again.');
       }
 
       // 1. First update the ticket with payment info and mark as completed
@@ -137,14 +155,14 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
           tax: taxAmount,
           total: grandTotal
         },
-        userId: 'current-user' // TODO: Get from auth context
+        userId: currentUser.id
       })).unwrap();
 
       // 2. Create transaction record for the completed ticket
       await dispatch(createTransaction({
         ticketId: ticket.id,
         salonId: ticket.salonId,
-        userId: 'current-user' // TODO: Get from auth context
+        userId: currentUser.id
       })).unwrap();
 
       // 3. Success - notify parent and close
@@ -387,9 +405,9 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
                     type="number"
                     value={cashAmount}
                     onChange={(e) => {
-                      const cash = parseFloat(e.target.value) || 0;
+                      const cash = roundToCents(parseFloat(e.target.value) || 0);
                       setCashAmount(cash);
-                      setCardAmount(grandTotal - cash);
+                      setCardAmount(subtractAmount(grandTotal, cash));
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     step="0.01"
@@ -401,9 +419,9 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
                     type="number"
                     value={cardAmount}
                     onChange={(e) => {
-                      const card = parseFloat(e.target.value) || 0;
+                      const card = roundToCents(parseFloat(e.target.value) || 0);
                       setCardAmount(card);
-                      setCashAmount(grandTotal - card);
+                      setCashAmount(subtractAmount(grandTotal, card));
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     step="0.01"

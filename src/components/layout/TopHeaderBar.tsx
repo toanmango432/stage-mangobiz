@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Search, Bell, Clock, ChevronDown, User, Command, Hash, UserCircle,
+  Search, Bell, ChevronDown, Command, Hash, UserCircle,
   FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
-  LayoutGrid, Receipt, CreditCard, MoreHorizontal
+  LayoutGrid, CreditCard, MoreHorizontal
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { storeAuthManager } from '../../services/storeAuthManager';
@@ -10,14 +10,12 @@ import { storeAuthManager } from '../../services/storeAuthManager';
 interface TopHeaderBarProps {
   activeModule?: string;
   onModuleChange?: (module: string) => void;
-  pendingCount?: number;
   hideNavigation?: boolean; // Hide nav tabs on mobile (handled by BottomNavBar)
 }
 
 export function TopHeaderBar({
   activeModule = 'frontdesk',
   onModuleChange,
-  pendingCount = 0,
   hideNavigation = false
 }: TopHeaderBarProps) {
   const [selectedOrg, setSelectedOrg] = useState('Main Salon');
@@ -152,8 +150,6 @@ export function TopHeaderBar({
     { icon: <TrendingUp size={12} />, label: 'Status', prefix: 'status:', desc: 'Filter by status' },
   ];
 
-  const recentSearches = ['#91', 'Emily Chen', 'Gel Manicure', '$125', 'date:today'];
-
   const handleSearchFocus = () => {
     setIsSearchExpanded(true);
     setShowSearchSuggestions(true);
@@ -168,13 +164,6 @@ export function TopHeaderBar({
       setShowSearchSuggestions(false);
     }, 200);
   };
-
-  // Format time for display
-  const formattedTime = currentTime.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
 
   return (
     <header className={`

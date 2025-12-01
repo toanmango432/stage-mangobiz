@@ -1,21 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   Search,
-  Filter,
   Download,
   Calendar,
-  DollarSign,
-  Receipt,
   Eye,
   Edit2,
-  X,
   User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  PlayCircle,
-  PauseCircle,
   Users,
   ChevronUp,
   ChevronDown,
@@ -25,15 +15,11 @@ import {
   GitMerge,
   Plus
 } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useAppDispatch } from '../../store/hooks';
 import {
-  selectAllAppointments,
-  selectIsLoading as selectAppointmentsLoading,
   fetchAppointments
 } from '../../store/slices/appointmentsSlice';
 import {
-  selectAllTickets,
-  selectTicketsLoading,
   fetchTickets
 } from '../../store/slices/ticketsSlice';
 import type { LocalAppointment } from '../../types/appointment';
@@ -47,13 +33,13 @@ import { FilterChip } from '../sales/FilterChip';
 import { SalesMobileCard } from '../sales/SalesMobileCard';
 import { NewSaleModal } from '../sales/NewSaleModal';
 import { mockTickets, mockAppointments } from '../../data/mockSalesData';
-import { Button, Input, Select, Badge, Tabs, Tab } from '../ui';
+import { Button, Input, Select, Tabs, Tab } from '../ui';
 
 type SalesTab = 'appointments' | 'tickets';
 type DateFilter = '7days' | '30days' | '90days' | 'custom';
 
 export function Sales() {
-  const dispatch = useAppDispatch();
+  useAppDispatch();
 
   // Data from Redux (commented out for now, using mock data)
   // const appointments = useAppSelector(selectAllAppointments);
@@ -70,7 +56,6 @@ export function Sales() {
   // UI State
   const [activeTab, setActiveTab] = useState<SalesTab>('tickets');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('30days');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -134,7 +119,7 @@ export function Sales() {
   }, [activeTab, searchQuery, statusFilter, dateFilter, customDateRange]);
 
   // Calculate stats based on active tab with trends
-  const stats = useMemo(() => {
+  useMemo(() => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);

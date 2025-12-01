@@ -15,8 +15,13 @@ export interface Staff {
   phone: string;
   avatar?: string;
   specialties: string[]; // Service IDs
+  specialty?: string; // Legacy or single specialty field
   skills?: string[]; // Skill tags for matching (e.g., "manicure", "pedicure", "nail-art")
   status: StaffStatus;
+  isActive?: boolean; // Legacy or computed field for status
+  role?: string; // Staff role (e.g., "stylist", "manager", "technician")
+  hireDate?: string; // Hire date in ISO format
+  commissionRate?: number; // Commission rate as decimal (e.g., 0.30 for 30%)
   clockedInAt?: Date;
   currentTicketId?: string;
   schedule: StaffSchedule[];

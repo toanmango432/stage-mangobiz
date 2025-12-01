@@ -13,7 +13,8 @@ import {
   type MemberLoginResponse,
   type AuthError,
 } from '../api/storeAuthApi';
-import type { DeviceMode } from '@/types/device';
+import { devicesDB } from './devicesDB';
+import type { DeviceMode, Device } from '@/types/device';
 
 const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -35,6 +36,7 @@ export interface StoreSession {
   tier: string;
   token?: string;
   deviceMode?: DeviceMode;
+  deviceId?: string;
 }
 
 export interface LoginOptions {
@@ -304,6 +306,7 @@ class StoreAuthManager {
     await this.clearStoredStoreName();
     await this.clearStoredStoreLoginId();
     await this.clearStoredDeviceMode();
+    await this.clearStoredDeviceId();
 
     this.updateState({
       status: 'not_logged_in',
@@ -430,6 +433,19 @@ class StoreAuthManager {
     localStorage.removeItem('mango_store_login_id');
   }
 
+  // Device ID storage methods
+  private async getStoredDeviceId(): Promise<string | null> {
+    return localStorage.getItem('mango_device_id');
+  }
+
+  private async setStoredDeviceId(id: string): Promise<void> {
+    localStorage.setItem('mango_device_id', id);
+  }
+
+  private async clearStoredDeviceId(): Promise<void> {
+    localStorage.removeItem('mango_device_id');
+  }
+
   // Device mode storage methods
   private async getStoredDeviceMode(): Promise<DeviceMode> {
     const mode = localStorage.getItem('mango_device_mode');
@@ -452,10 +468,47 @@ class StoreAuthManager {
   }
 
   /**
-   * Update device mode (requires re-login for full effect)
+   * Update device mode - syncs to both localStorage and Supabase
    */
   async updateDeviceMode(mode: DeviceMode): Promise<void> {
+    const deviceId = this.currentState.store?.deviceId;
+    const storeId = this.currentState.store?.storeId;
+
+    // 1. Update localStorage (for immediate local persistence)
     await this.setStoredDeviceMode(mode);
+
+    // 2. Update Supabase (for cross-device sync) if online and we have a device ID
+    if (deviceId && navigator.onLine) {
+      try {
+        await devicesDB.update(deviceId, {
+          offlineModeEnabled: mode === 'offline-enabled'
+        });
+        console.log('✅ Device mode synced to Supabase:', mode);
+      } catch (error) {
+        console.warn('⚠️ Failed to sync device mode to Supabase:', error);
+        // Don't fail - local update is sufficient for now
+      }
+    } else if (!deviceId && storeId && navigator.onLine) {
+      // Try to find device by fingerprint and update
+      try {
+        const fingerprint = this.getCurrentDeviceFingerprint();
+        if (fingerprint) {
+          const device = await devicesDB.getByFingerprint(storeId, fingerprint);
+          if (device) {
+            await devicesDB.update(device.id, {
+              offlineModeEnabled: mode === 'offline-enabled'
+            });
+            // Store the device ID for future updates
+            await this.setStoredDeviceId(device.id);
+            console.log('✅ Device mode synced to Supabase (found by fingerprint):', mode);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to find/update device in Supabase:', error);
+      }
+    }
+
+    // 3. Update Redux state
     if (this.currentState.store) {
       this.updateState({
         ...this.currentState,
@@ -472,6 +525,164 @@ class StoreAuthManager {
    */
   isOfflineModeEnabled(): boolean {
     return this.getDeviceMode() === 'offline-enabled';
+  }
+
+  /**
+   * Get current device fingerprint
+   */
+  getCurrentDeviceFingerprint(): string {
+    return localStorage.getItem('mango_device_fingerprint') || '';
+  }
+
+  /**
+   * Get all devices for the current store from Supabase
+   */
+  async getStoreDevices(): Promise<Array<{
+    id: string;
+    name?: string;
+    deviceFingerprint: string;
+    deviceMode: DeviceMode;
+    status: 'active' | 'inactive' | 'blocked';
+    lastSeenAt: Date;
+    platform?: string;
+  }>> {
+    const storeId = this.currentState.store?.storeId;
+    const currentFingerprint = this.getCurrentDeviceFingerprint();
+
+    // If no store ID or offline, return current device only
+    if (!storeId || !navigator.onLine) {
+      return [{
+        id: await this.getStoredDeviceId() || 'current',
+        name: 'This Device',
+        deviceFingerprint: currentFingerprint || 'current',
+        deviceMode: this.getDeviceMode(),
+        status: 'active' as const,
+        lastSeenAt: new Date(),
+        platform: navigator.platform,
+      }];
+    }
+
+    try {
+      // Fetch devices from Supabase
+      const devices: Device[] = await devicesDB.getByStoreId(storeId);
+
+      // Map to the expected format
+      return devices.map(device => ({
+        id: device.id,
+        name: device.deviceName || undefined,
+        deviceFingerprint: device.deviceFingerprint,
+        deviceMode: device.offlineModeEnabled ? 'offline-enabled' as DeviceMode : 'online-only' as DeviceMode,
+        status: device.status as 'active' | 'inactive' | 'blocked',
+        lastSeenAt: device.lastSeenAt ? new Date(device.lastSeenAt) : new Date(device.registeredAt),
+        platform: device.os || device.browser || undefined,
+      }));
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch devices from Supabase:', error);
+
+      // Fallback to current device only
+      return [{
+        id: await this.getStoredDeviceId() || 'current',
+        name: 'This Device',
+        deviceFingerprint: currentFingerprint || 'current',
+        deviceMode: this.getDeviceMode(),
+        status: 'active' as const,
+        lastSeenAt: new Date(),
+        platform: navigator.platform,
+      }];
+    }
+  }
+
+  /**
+   * Update device mode for a remote device via Supabase
+   */
+  async updateRemoteDeviceMode(deviceId: string, mode: DeviceMode): Promise<void> {
+    console.log(`Updating device ${deviceId} to mode: ${mode}`);
+
+    if (!navigator.onLine) {
+      throw new Error('Cannot update device while offline');
+    }
+
+    try {
+      await devicesDB.update(deviceId, {
+        offlineModeEnabled: mode === 'offline-enabled'
+      });
+      console.log('✅ Remote device mode updated:', deviceId, mode);
+    } catch (error) {
+      console.error('❌ Failed to update remote device mode:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Block/revoke a device via Supabase
+   */
+  async blockDevice(deviceId: string): Promise<void> {
+    console.log(`Blocking device: ${deviceId}`);
+
+    if (!navigator.onLine) {
+      throw new Error('Cannot block device while offline');
+    }
+
+    const memberId = this.currentState.member?.memberId || 'system';
+
+    try {
+      await devicesDB.revoke(deviceId, memberId, 'Blocked by administrator');
+      console.log('✅ Device blocked:', deviceId);
+    } catch (error) {
+      console.error('❌ Failed to block device:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unblock a device - re-enables a blocked device
+   * Note: This requires a custom Supabase update since devicesDB doesn't have unblock
+   */
+  async unblockDevice(deviceId: string): Promise<void> {
+    console.log(`Unblocking device: ${deviceId}`);
+
+    if (!navigator.onLine) {
+      throw new Error('Cannot unblock device while offline');
+    }
+
+    try {
+      // We need to use a direct update to unrevoke
+      const { supabase } = await import('@/admin/db/supabaseClient');
+      await supabase
+        .from('devices')
+        .update({
+          is_revoked: false,
+          revoked_at: null,
+          revoked_by: null,
+          revoke_reason: null,
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', deviceId);
+      console.log('✅ Device unblocked:', deviceId);
+    } catch (error) {
+      console.error('❌ Failed to unblock device:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete/remove a device from Supabase
+   */
+  async deleteDevice(deviceId: string): Promise<void> {
+    console.log(`Deleting device: ${deviceId}`);
+
+    if (!navigator.onLine) {
+      throw new Error('Cannot delete device while offline');
+    }
+
+    try {
+      await devicesDB.delete(deviceId);
+      console.log('✅ Device deleted:', deviceId);
+    } catch (error) {
+      console.error('❌ Failed to delete device:', error);
+      throw error;
+    }
   }
 }
 

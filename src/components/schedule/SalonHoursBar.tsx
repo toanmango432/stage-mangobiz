@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Edit } from "lucide-react";
 import { SalonHoursModal, type SalonHours, type SpecialDay } from "./SalonHoursModal";
 import { toast } from "@/hooks/use-toast";

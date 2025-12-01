@@ -6,14 +6,12 @@
 
 import { memo, useState } from 'react';
 import { cn } from '../../lib/utils';
-import { CalendarView, TimeWindowMode, CALENDAR_VIEWS, TIME_WINDOW_MODES } from '../../constants/appointment';
+import { CalendarView, TimeWindowMode } from '../../constants/appointment';
 import { formatDateDisplay } from '../../utils/timeUtils';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Search, Plus, Settings, RefreshCw, PanelLeftOpen } from 'lucide-react';
-import { FilterPanel, AppointmentFilters } from './FilterPanel';
+import { ChevronLeft, ChevronRight, Search, Plus, Settings, RefreshCw, PanelLeftOpen } from 'lucide-react';
 import { DatePickerModal } from './DatePickerModal';
 import { ViewModeDropdown } from './ViewModeDropdown';
 import { StaffFilterDropdown } from './StaffFilterDropdown';
-import { PremiumButton, PremiumIconButton } from '../premium';
 
 interface Staff {
   id: string;
@@ -29,7 +27,6 @@ interface CalendarHeaderProps {
   onTimeWindowModeChange: (mode: TimeWindowMode) => void;
   onSearchClick?: () => void;
   onTodayClick: () => void;
-  onFilterChange?: (filters: AppointmentFilters) => void;
   onNewAppointment?: () => void;
   onSettingsClick?: () => void;
   onRefreshClick?: () => void;
@@ -51,7 +48,6 @@ export const CalendarHeader = memo(function CalendarHeader({
   onTimeWindowModeChange,
   onSearchClick,
   onTodayClick,
-  onFilterChange,
   onNewAppointment,
   onSettingsClick,
   onRefreshClick,

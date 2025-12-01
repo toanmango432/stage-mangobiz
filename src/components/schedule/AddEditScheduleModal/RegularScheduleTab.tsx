@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Copy, MoreHorizontal, CalendarIcon, AlertTriangle, RefreshCw, Plus, Clock, Coffee, HelpCircle, Layers, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { MoreHorizontal, CalendarIcon, RefreshCw, Plus, Clock, Coffee, HelpCircle, Layers, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { TimePicker } from "../TimePicker";
 import type { ScheduleData, TimeSlot, RepeatRule } from "../AddEditScheduleModal";
@@ -204,8 +202,8 @@ export function RegularScheduleTab({
       forever: true
     };
   }
-  function copyFromPreviousDay(day: string) {
-    const dayIndex = DAYS.findIndex(d => d.key === day);
+  function copyFromPreviousDay(_day: string) {
+    const dayIndex = DAYS.findIndex(d => d.key === _day);
     if (dayIndex <= 0) return;
     const previousDay = DAYS[dayIndex - 1].key;
     const previousSchedule = getDaySchedule(previousDay);
@@ -213,7 +211,7 @@ export function RegularScheduleTab({
       const currentSchedule = {
         ...scheduleData.schedule
       };
-      currentSchedule[day] = [...previousSchedule];
+      currentSchedule[_day] = [...previousSchedule];
       onUpdate({
         schedule: currentSchedule
       });
@@ -308,7 +306,6 @@ export function RegularScheduleTab({
     setAddShiftDay(null);
   }
 
-  const isStartDateFuture = scheduleStartDate > new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const startDate = new Date(scheduleStartDate);
@@ -441,7 +438,7 @@ export function RegularScheduleTab({
 
       {/* Days List - Mobile Optimized */}
       <div className="space-y-2">
-        {DAYS.map((day, index) => {
+        {DAYS.map((day) => {
          const daySchedule = getDaySchedule(day.key);
          const enabled = isDayEnabled(day.key);
          const repeatRule = getRepeatRule(day.key);

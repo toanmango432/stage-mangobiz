@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
+import { TAX_RATE } from '../constants/checkoutConfig';
 import type {
   Appointment,
   CreateAppointmentInput,
@@ -165,9 +166,9 @@ export const ticketsDB = {
       status: 'in-service',
       subtotal,
       discount: 0,
-      tax: subtotal * 0.08, // 8% tax rate (configurable)
+      tax: Math.round(subtotal * TAX_RATE * 100) / 100,
       tip: 0,
-      total: subtotal * 1.08,
+      total: Math.round(subtotal * (1 + TAX_RATE) * 100) / 100,
       payments: [],
       createdAt: now,
       createdBy: userId,

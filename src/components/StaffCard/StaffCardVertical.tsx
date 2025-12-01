@@ -22,7 +22,6 @@ import { StaffCardAvatar } from './components/StaffCardAvatar';
 import { StaffCardTicket } from './components/StaffCardTicket';
 import { StaffCardTimeline } from './components/StaffCardTimeline';
 import { StaffCardMetrics } from './components/StaffCardMetrics';
-import { TOUCH_TARGET_CLASSES } from './utils/touchTargets';
 import './styles/containerQueries.css';
 
 // ============================================================================

@@ -7,11 +7,8 @@ import {
   DollarSign,
   TrendingUp,
   Receipt,
-  MoreVertical,
   Eye,
-  Edit2,
   XCircle,
-  RotateCcw,
   ChevronDown,
   X,
   User,
@@ -26,12 +23,9 @@ import {
   fetchTransactions,
   selectAllTransactions,
   selectTransactionStats,
-  selectTransactionsLoading,
-  selectTransactionsError,
   voidTransaction,
   refundTransaction
 } from '../../store/slices/transactionsSlice';
-import { toast } from 'react-hot-toast';
 import type { Transaction } from '../../types';
 
 type TransactionStatus = 'all' | 'completed' | 'voided' | 'refunded' | 'partially-refunded';
@@ -41,13 +35,10 @@ export function Transactions() {
   const dispatch = useAppDispatch();
   const transactions = useAppSelector(selectAllTransactions);
   const stats = useAppSelector(selectTransactionStats);
-  const isLoading = useAppSelector(selectTransactionsLoading);
-  const error = useAppSelector(selectTransactionsError);
 
   const [activeStatus, setActiveStatus] = useState<TransactionStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [dateFilter, setDateFilter] = useState<DateFilter>('30days');
 
   // Load transactions on mount
   useEffect(() => {

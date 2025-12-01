@@ -1,17 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { appointmentService } from '../../services/appointmentService';
 import {
-  Appointment,
   LocalAppointment,
   AppointmentRequest,
   TicketDTO,
-  EditAppt,
   AppointmentFilters,
   CalendarViewState,
-  AppointmentsByDate,
-  AppointmentsByStaff,
 } from '../../types/appointment';
-import { startOfDay, endOfDay } from '../../utils/timeUtils';
+import { startOfDay } from '../../utils/timeUtils';
 
 // ============================================================================
 // STATE INTERFACE
@@ -104,7 +100,7 @@ const initialState: AppointmentState = {
 export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAppointments',
   async (params: { customerId?: number; rvcNo: number; startDate: Date; endDate: Date }) => {
-    const { customerId, rvcNo, startDate, endDate } = params;
+    const { rvcNo } = params;
     
     if (customerId) {
       // Fetch for specific customer

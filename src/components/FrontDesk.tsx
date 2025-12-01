@@ -35,8 +35,18 @@ import {
   selectShowComingAppointments,
   selectIsCombinedView,
   selectCardViewMode,
+  selectActiveMobileSection,
+  selectActiveCombinedTab,
+  selectCombinedViewMode,
+  selectCombinedMinimizedLineView,
+  selectServiceColumnWidth,
   updateSettings,
-  saveSettings
+  saveSettings,
+  setActiveMobileSection as setActiveMobileSectionAction,
+  setActiveCombinedTab as setActiveCombinedTabAction,
+  setCombinedViewMode as setCombinedViewModeAction,
+  setCombinedMinimizedLineView as setCombinedMinimizedLineViewAction,
+  setServiceColumnWidth as setServiceColumnWidthAction,
 } from '../store/slices/frontDeskSettingsSlice';
 
 interface FrontDeskComponentProps {
@@ -69,35 +79,36 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   // Use shared device detection hook (replaces 40+ lines of duplicate code)
   const deviceInfo = useDeviceDetection();
 
-  // State for resizable columns
-  const [serviceWidth, setServiceWidth] = useState(() => {
-    const saved = localStorage.getItem('serviceColumnWidth');
-    return saved ? parseInt(saved) : 50; // Default 50%
-  });
+  // ISSUE-002: serviceWidth now comes from Redux viewState
+  const serviceWidth = useSelector(selectServiceColumnWidth);
+  const setServiceWidth = useCallback((width: number) => {
+    dispatch(setServiceColumnWidthAction(width));
+  }, [dispatch]);
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
 
   // ISSUE-002: isCombinedView now comes from Redux selector (selectIsCombinedView)
-  // New state for mobile/tablet section tabs
-  const [activeMobileSection, setActiveMobileSection] = useState(() => {
-    const saved = localStorage.getItem('activeMobileSection');
-    return saved || 'waitList'; // Default to waitList for tablet
-  });
-  // New state for active tab in combined view - changed default to 'waitList' to match workflow
-  const [activeCombinedTab, setActiveCombinedTab] = useState(() => {
-    const saved = localStorage.getItem('activeCombinedTab');
-    return saved || 'waitList';
-  });
-  // New states for shared view settings when combined
-  const [combinedViewMode, setCombinedViewMode] = useState<'grid' | 'list'>(() => {
-    const saved = localStorage.getItem('combinedViewMode');
-    return saved === 'grid' || saved === 'list' ? saved as 'grid' | 'list' : 'list';
-  });
+  // ISSUE-002: activeMobileSection now comes from Redux viewState
+  const activeMobileSection = useSelector(selectActiveMobileSection);
+  const setActiveMobileSection = useCallback((section: string) => {
+    dispatch(setActiveMobileSectionAction(section));
+  }, [dispatch]);
+  // ISSUE-002: activeCombinedTab now comes from Redux viewState
+  const activeCombinedTab = useSelector(selectActiveCombinedTab);
+  const setActiveCombinedTab = useCallback((tab: string) => {
+    dispatch(setActiveCombinedTabAction(tab));
+  }, [dispatch]);
+  // ISSUE-002: combinedViewMode now comes from Redux viewState
+  const combinedViewMode = useSelector(selectCombinedViewMode);
+  const setCombinedViewMode = useCallback((mode: 'grid' | 'list') => {
+    dispatch(setCombinedViewModeAction(mode));
+  }, [dispatch]);
   // ISSUE-002: combinedCardViewMode now comes from Redux selector (selectCardViewMode)
-  const [combinedMinimizedLineView, setCombinedMinimizedLineView] = useState<boolean>(() => {
-    const saved = localStorage.getItem('combinedMinimizedLineView');
-    return saved === 'true' ? true : false;
-  });
+  // ISSUE-002: combinedMinimizedLineView now comes from Redux viewState
+  const combinedMinimizedLineView = useSelector(selectCombinedMinimizedLineView);
+  const setCombinedMinimizedLineView = useCallback((value: boolean) => {
+    dispatch(setCombinedMinimizedLineViewAction(value));
+  }, [dispatch]);
   // Add state for create ticket modal
   const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
   // Add state for the salon center settings (use external state if provided)
@@ -277,6 +288,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   }, [isCombinedView, activeCombinedTab, activeMobileSection, showUpcomingAppointments]);
 
   // Use swipe gestures hook - only on mobile/tablet
+  // Edge swipe only prevents accidental tab switches while scrolling
   const { handlers: swipeHandlers, isSwiping } = useSwipeGestures(
     {
       onSwipeLeft: handleSwipeLeft,
@@ -284,24 +296,21 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     },
     {
       threshold: 50,
-      velocity: 0.3,
+      velocity: 0.5, // Increased for better scroll detection
       preventScroll: false,
+      edgeSwipeOnly: true, // Only trigger from screen edges
+      edgeThreshold: 30, // 30px from edge
     }
   );
 
-  // Save active mobile section to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('activeMobileSection', activeMobileSection);
-  }, [activeMobileSection]);
+  // ISSUE-002: Removed redundant localStorage sync effects - Redux viewState handles persistence
+  // activeMobileSection, activeCombinedTab, combinedViewMode, combinedMinimizedLineView,
+  // and serviceColumnWidth are now synced to localStorage via Redux reducers
 
   // Save minimized sections to localStorage when they change
   useEffect(() => {
     localStorage.setItem('minimizedSections', JSON.stringify(minimizedSections));
   }, [minimizedSections]);
-  // Save active combined tab to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('activeCombinedTab', activeCombinedTab);
-  }, [activeCombinedTab]);
 
   // NOTE: ticketSortOrder and showUpcomingAppointments are now saved via Redux
   // (removed redundant localStorage saves - Redux saveSettings handles this)
@@ -328,40 +337,16 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [waitListTabDropdownOpen, showServiceDropdown, showWaitListDropdown, showTicketSettings]);
-  // Toggle card view mode with persistence
+  // ISSUE-002: Toggle functions simplified - Redux handles localStorage sync
   const toggleCombinedCardViewMode = () => {
     const newMode = combinedCardViewMode === 'normal' ? 'compact' : 'normal';
     setCombinedCardViewMode(newMode);
-    localStorage.setItem('combinedCardViewMode', newMode);
-    // Also update section-specific settings for consistency
-    if (activeCombinedTab === 'service') {
-      localStorage.setItem('serviceCardViewMode', newMode);
-    } else if (['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)) {
-      localStorage.setItem('waitListCardViewMode', newMode);
-    }
   };
-  // Toggle minimized line view with persistence
+
   const toggleCombinedMinimizedLineView = () => {
-    const newValue = !combinedMinimizedLineView;
-    setCombinedMinimizedLineView(newValue);
-    localStorage.setItem('combinedMinimizedLineView', newValue.toString());
-    // Also update section-specific settings for consistency
-    if (activeCombinedTab === 'service') {
-      localStorage.setItem('serviceMinimizedLineView', newValue.toString());
-    } else if (['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)) {
-      localStorage.setItem('waitListMinimizedLineView', newValue.toString());
-    }
+    setCombinedMinimizedLineView(!combinedMinimizedLineView);
   };
-  // Save combined view settings to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('combinedViewMode', combinedViewMode);
-    // Also update section-specific settings for consistency
-    if (activeCombinedTab === 'service') {
-      localStorage.setItem('serviceViewMode', combinedViewMode);
-    } else if (['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)) {
-      localStorage.setItem('waitListViewMode', combinedViewMode);
-    }
-  }, [combinedViewMode, activeCombinedTab]);
+  // ISSUE-002: Removed redundant combinedViewMode localStorage sync - Redux handles this
   // Sync view mode settings when active combined tab changes
   useEffect(() => {
     if (isCombinedView) {
@@ -612,102 +597,71 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
             />
           )}
           {/* Combined view tabs - Desktop only (mobile uses MobileTabBar above) */}
-          {/* Two-row tab design aligned with column headers */}
+          {/* Clean, balanced tab design: Icon/Metric | Title | Count */}
           {isCombinedView && !deviceInfo.isMobile && !deviceInfo.isTablet && <div className={`flex items-center justify-between ${subordinateTabTheme.container} sticky top-0 z-10`}>
             <div className={subordinateTabTheme.tabWrapper} role="tablist">
               {/* In Service Tab */}
               <button
                 onClick={() => setActiveCombinedTab('service')}
-                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'service' ? `${subordinateTabTheme.tab.active} ${subordinateTabTheme.tabActive.service}` : subordinateTabTheme.tab.inactive}`}
+                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
                 role="tab"
                 aria-selected={activeCombinedTab === 'service'}
               >
-                {/* Icon */}
-                <div className={`${subordinateTabTheme.iconWrapper.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.iconWrapper.service.active : subordinateTabTheme.iconWrapper.service.inactive}`}>
-                  <Activity size={18} strokeWidth={2} />
-                </div>
-                {/* Content */}
-                <div className={subordinateTabTheme.content}>
-                  {/* Row 1: Title + Count */}
-                  <div className={subordinateTabTheme.titleRow}>
-                    <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.title.active : subordinateTabTheme.title.inactive}`}>In Service</span>
-                    <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.count.service.active : subordinateTabTheme.count.service.inactive}`}>
-                      {serviceTickets.length}
-                    </span>
-                  </div>
-                  {/* Row 2: Metric */}
+                {/* Left: Icon (vertically centered) */}
+                <Activity size={18} strokeWidth={2} className={`${subordinateTabTheme.icon.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.icon.service.active : subordinateTabTheme.icon.service.inactive}`} />
+                {/* Center: Title + Metric stacked */}
+                <div className={subordinateTabTheme.centerColumn}>
+                  <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.title.service.active : subordinateTabTheme.title.service.inactive}`}>In Service</span>
                   <span className={`${subordinateTabTheme.metric.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.metric.service.active : subordinateTabTheme.metric.service.inactive}`}>
-                    {(() => {
-                      const avgDuration = serviceTickets.length > 0
-                        ? Math.round(serviceTickets.reduce((sum, t) => {
-                            const startTime = t.createdAt ? new Date(t.createdAt).getTime() : Date.now();
-                            return sum + (Date.now() - startTime) / 60000;
-                          }, 0) / serviceTickets.length)
-                        : 0;
-                      return avgDuration > 0 ? `Avg ${avgDuration}m` : 'No data';
-                    })()}
+                    {serviceTickets.length > 0 ? `${Math.round(serviceTickets.reduce((sum, t) => sum + (Date.now() - new Date(t.createdAt).getTime()) / 60000, 0) / serviceTickets.length)}m avg` : '—'}
                   </span>
                 </div>
+                {/* Right: Count */}
+                <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'service' ? subordinateTabTheme.count.service.active : subordinateTabTheme.count.service.inactive}`}>{serviceTickets.length}</span>
+                {activeCombinedTab === 'service' && <div className={`${subordinateTabTheme.indicator.base} ${subordinateTabTheme.indicator.service}`} />}
               </button>
 
               {/* Waiting Tab */}
               <button
                 onClick={() => setActiveCombinedTab('waitList')}
-                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'waitList' ? `${subordinateTabTheme.tab.active} ${subordinateTabTheme.tabActive.waitList}` : subordinateTabTheme.tab.inactive}`}
+                className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
                 role="tab"
                 aria-selected={activeCombinedTab === 'waitList'}
               >
-                {/* Icon */}
-                <div className={`${subordinateTabTheme.iconWrapper.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.iconWrapper.waitList.active : subordinateTabTheme.iconWrapper.waitList.inactive}`}>
-                  <Hourglass size={18} strokeWidth={2} />
-                </div>
-                {/* Content */}
-                <div className={subordinateTabTheme.content}>
-                  {/* Row 1: Title + Count */}
-                  <div className={subordinateTabTheme.titleRow}>
-                    <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.title.active : subordinateTabTheme.title.inactive}`}>Waiting</span>
-                    <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.count.waitList.active : subordinateTabTheme.count.waitList.inactive}`}>
-                      {waitlist.length}
-                    </span>
-                  </div>
-                  {/* Row 2: Metric */}
+                {/* Left: Icon (vertically centered) */}
+                <Hourglass size={18} strokeWidth={2} className={`${subordinateTabTheme.icon.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.icon.waitList.active : subordinateTabTheme.icon.waitList.inactive}`} />
+                {/* Center: Title + Metric stacked */}
+                <div className={subordinateTabTheme.centerColumn}>
+                  <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.title.waitList.active : subordinateTabTheme.title.waitList.inactive}`}>Waiting</span>
                   <span className={`${subordinateTabTheme.metric.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.metric.waitList.active : subordinateTabTheme.metric.waitList.inactive}`}>
-                    {(() => {
-                      const avgWait = waitlist.length > 0
-                        ? Math.round(waitlist.reduce((sum, t) => sum + (Date.now() - new Date(t.createdAt).getTime()) / 60000, 0) / waitlist.length)
-                        : 0;
-                      return avgWait > 0 ? `Avg ${avgWait}m` : 'No data';
-                    })()}
+                    {waitlist.length > 0 ? `${Math.round(waitlist.reduce((sum, t) => sum + (Date.now() - new Date(t.createdAt).getTime()) / 60000, 0) / waitlist.length)}m avg` : '—'}
                   </span>
                 </div>
+                {/* Right: Count */}
+                <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'waitList' ? subordinateTabTheme.count.waitList.active : subordinateTabTheme.count.waitList.inactive}`}>{waitlist.length}</span>
+                {activeCombinedTab === 'waitList' && <div className={`${subordinateTabTheme.indicator.base} ${subordinateTabTheme.indicator.waitList}`} />}
               </button>
 
               {/* Coming Tab */}
               {showUpcomingAppointments && (
                 <button
                   onClick={() => setActiveCombinedTab('comingAppointments')}
-                  className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'comingAppointments' ? `${subordinateTabTheme.tab.active} ${subordinateTabTheme.tabActive.comingAppointments}` : subordinateTabTheme.tab.inactive}`}
+                  className={`${subordinateTabTheme.tab.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.tab.active : subordinateTabTheme.tab.inactive}`}
                   role="tab"
                   aria-selected={activeCombinedTab === 'comingAppointments'}
                 >
-                  {/* Icon */}
-                  <div className={`${subordinateTabTheme.iconWrapper.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.iconWrapper.comingAppointments.active : subordinateTabTheme.iconWrapper.comingAppointments.inactive}`}>
-                    <Clock size={18} strokeWidth={2} />
-                  </div>
-                  {/* Content */}
-                  <div className={subordinateTabTheme.content}>
-                    {/* Row 1: Title + Count */}
-                    <div className={subordinateTabTheme.titleRow}>
-                      <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.title.active : subordinateTabTheme.title.inactive}`}>Coming</span>
-                      <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.count.comingAppointments.active : subordinateTabTheme.count.comingAppointments.inactive}`}>
-                        0
-                      </span>
-                    </div>
-                    {/* Row 2: Metric */}
+                  {/* Left: Icon (vertically centered) */}
+                  <Clock size={18} strokeWidth={2} className={`${subordinateTabTheme.icon.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.icon.comingAppointments.active : subordinateTabTheme.icon.comingAppointments.inactive}`} />
+                  {/* Center: Title + Metric stacked */}
+                  <div className={subordinateTabTheme.centerColumn}>
+                    <span className={`${subordinateTabTheme.title.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.title.comingAppointments.active : subordinateTabTheme.title.comingAppointments.inactive}`}>Coming</span>
                     <span className={`${subordinateTabTheme.metric.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.metric.comingAppointments.active : subordinateTabTheme.metric.comingAppointments.inactive}`}>
-                      Next 1hr
+                      next 1hr
                     </span>
                   </div>
+                  {/* Right: Count */}
+                  <span className={`${subordinateTabTheme.count.base} ${activeCombinedTab === 'comingAppointments' ? subordinateTabTheme.count.comingAppointments.active : subordinateTabTheme.count.comingAppointments.inactive}`}>0</span>
+                  {activeCombinedTab === 'comingAppointments' && <div className={`${subordinateTabTheme.indicator.base} ${subordinateTabTheme.indicator.comingAppointments}`} />}
                 </button>
               )}
             </div>
@@ -942,8 +896,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
                                   const deltaX = e.clientX - startX;
                                   const deltaPercent = (deltaX / containerWidth) * 100;
                                   const newWidth = Math.min(Math.max(startWidth + deltaPercent, 20), 80); // Min 20%, Max 80%
-                                  setServiceWidth(newWidth);
-                                  localStorage.setItem('serviceColumnWidth', newWidth.toString());
+                                  setServiceWidth(newWidth); // Redux handles localStorage sync
                                 };
 
                                 const handleMouseUp = () => {

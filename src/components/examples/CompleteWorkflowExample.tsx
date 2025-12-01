@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { StaffManagementPage } from '../StaffManagement/StaffManagementPage';
 import { MultiStaffAssignment } from '../TicketManagement/MultiStaffAssignment';
-import { QuickCheckout } from '../Checkout/QuickCheckout';
+import { QuickCheckout } from '../checkout/QuickCheckout';
 import { Staff } from '../../types/staff';
 import { Ticket, TicketService, Payment } from '../../types/Ticket';
 

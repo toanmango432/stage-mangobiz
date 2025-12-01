@@ -8,12 +8,10 @@ import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useBookSidebar } from '../hooks/useBookSidebar';
-import { store } from '../store';
 import { selectAllStaff } from '../store/slices/staffSlice';
 import {
   CalendarHeader,
   CommandPalette,
-  StaffSidebar,
   BookSidebar,
   CustomerSearchModal,
   NewAppointmentModalV2,
@@ -51,9 +49,7 @@ export function BookPage() {
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
   const [isEditAppointmentOpen, setIsEditAppointmentOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
     staffId: string;
     time: Date;
@@ -82,10 +78,7 @@ export function BookPage() {
   });
   const [selectedAppointment, setSelectedAppointment] = useState<LocalAppointment | null>(null);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
-  const [isSavingAppointment, setIsSavingAppointment] = useState(false);
-  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isStaffDrawerOpen, setIsStaffDrawerOpen] = useState(false);
 
   const {
     selectedDate,
@@ -93,7 +86,6 @@ export function BookPage() {
     calendarView,
     timeWindowMode,
     filteredAppointments,
-    visibleTimeSlots, // eslint-disable-line @typescript-eslint/no-unused-vars
     handleDateChange,
     handleStaffSelection,
     handleViewChange,
@@ -156,35 +148,13 @@ export function BookPage() {
     setIsCustomerSearchOpen(true);
   };
 
-  const handleSettingsClick = () => {
-    setIsSettingsOpen(true);
-  };
-
   const handleRefreshClick = async () => {
-    setIsLoadingAppointments(true);
     try {
-      const appointments = await appointmentsDB.getByDate(salonId, selectedDate);
-
-      // Convert to LocalAppointment format and dispatch to Redux
-      const localAppointments: LocalAppointment[] = appointments.map((apt: any) => ({
-        id: apt.id,
-        clientId: apt.clientId,
-        staffId: apt.staffId,
-        serviceIds: apt.serviceIds,
-        startTime: new Date(apt.startTime),
-        endTime: new Date(apt.endTime),
-        status: apt.status,
-        notes: apt.notes,
-        createdAt: apt.createdAt,
-        updatedAt: apt.updatedAt,
-      }));
-
+      await appointmentsDB.getByDate(salonId, selectedDate);
       setToast({ message: 'Calendar refreshed', type: 'success' });
     } catch (error) {
       console.error('Failed to refresh appointments:', error);
       setToast({ message: 'Failed to refresh calendar', type: 'error' });
-    } finally {
-      setIsLoadingAppointments(false);
     }
   };
 
@@ -333,14 +303,6 @@ export function BookPage() {
     }
   };
 
-  const handleCheckIn = async (appointmentId: string) => {
-    await handleStatusChange(appointmentId, 'checked-in');
-  };
-
-  const handleStartService = async (appointmentId: string) => {
-    await handleStatusChange(appointmentId, 'in-service');
-  };
-
   const handleDeleteAppointment = async (appointmentId: string) => {
     // Confirmation dialog
     const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
@@ -452,11 +414,6 @@ export function BookPage() {
     },
   ];
 
-  const handleSelectCustomer = (customer: any) => {
-    setSelectedCustomer(customer);
-    // TODO: Open new appointment modal with customer
-  };
-
   const handleCreateCustomer = async (name: string, phone: string) => {
     try {
       const { clientsDB } = await import('../db/database');
@@ -478,7 +435,6 @@ export function BookPage() {
   };
 
   const handleSaveAppointment = async (appointmentData: any) => {
-    setIsSavingAppointment(true);
     try {
       // Get existing appointments for auto-assign if needed
       const existingAppointments = filteredAppointments || [];
@@ -574,8 +530,6 @@ export function BookPage() {
       }
 
       setToast({ message: errorMessage, type: 'error' });
-    } finally {
-      setIsSavingAppointment(false);
     }
   };
 
@@ -644,7 +598,6 @@ export function BookPage() {
           onViewChange={handleViewChangeWithTransition}
           onTimeWindowModeChange={handleTimeWindowModeChange}
           onSearchClick={handleSearchClick}
-          onSettingsClick={handleSettingsClick}
           onRefreshClick={handleRefreshClick}
           onTodayClick={goToToday}
           onFilterChange={setFilters}
@@ -747,7 +700,7 @@ export function BookPage() {
           <div className="hidden lg:block">
             <WalkInSidebar
               walkIns={mockWalkIns}
-              onDragStart={(walkIn) => {/* TODO: Handle walk-in drag */}}
+              onDragStart={() => {/* TODO: Handle walk-in drag */}}
             />
           </div>
         </div>
@@ -764,7 +717,7 @@ export function BookPage() {
         <CustomerSearchModal
           isOpen={isCustomerSearchOpen}
           onClose={() => setIsCustomerSearchOpen(false)}
-          onSelectCustomer={handleSelectCustomer}
+          onSelectCustomer={() => {/* TODO: Handle customer selection */}}
           onCreateCustomer={handleCreateCustomer}
         />
       </ErrorBoundary>

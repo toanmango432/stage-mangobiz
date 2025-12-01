@@ -1,16 +1,13 @@
 import axios, { AxiosInstance } from 'axios';
-import { appointmentsDB, syncQueueDB } from '../db/database';
+import { syncQueueDB } from '../db/database';
 import {
-  Appointment,
   AppointmentRequest,
   TicketDTO,
-  EditAppt,
   ResultJs,
   AptPayment,
   AppointmentTicketType,
   LocalAppointment,
 } from '../types/appointment';
-import { SyncStatus } from '../types/common';
 
 /**
  * Appointment Service
@@ -379,7 +376,7 @@ export class AppointmentService {
   /**
    * Update appointment in IndexedDB
    */
-  private async updateAppointmentLocally(data: any): Promise<string> {
+  private async updateAppointmentLocally(_data: any): Promise<string> {
     // TODO: Update using appointmentsDB helper
     // const appointment = await appointmentsDB.getById(data.appointmentID);
     // if (appointment) {
@@ -426,11 +423,11 @@ export class AppointmentService {
    */
   private async updateLocalWithServerIds(
     localAppointments: LocalAppointment[],
-    serverData: any
+    _serverData: any
   ): Promise<void> {
     // Implementation depends on server response structure
     // Update local records with serverId and mark as synced
-    for (const local of localAppointments) {
+    for (const _local of localAppointments) {
       // TODO: Update sync status using appointmentsDB
       // await appointmentsDB.update(local.id, { syncStatus: 'synced' }, 'system');
     }
@@ -440,7 +437,7 @@ export class AppointmentService {
    * Get local appointments by customer (offline fallback)
    */
   private async getLocalAppointmentsByCustomer(
-    customerId: number,
+    _customerId: number,
     ticketType?: AppointmentTicketType
   ): Promise<TicketDTO[]> {
     // TODO: Implement using appointmentsDB helper

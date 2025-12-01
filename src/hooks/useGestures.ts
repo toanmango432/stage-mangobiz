@@ -9,8 +9,10 @@ interface SwipeHandlers {
 
 interface GestureOptions {
   threshold?: number; // Minimum distance to trigger swipe (default: 50)
-  velocity?: number; // Minimum velocity to trigger swipe (default: 0.3)
+  velocity?: number; // Minimum velocity to trigger swipe (default: 0.5)
   preventScroll?: boolean; // Prevent default scroll behavior during swipe
+  edgeSwipeOnly?: boolean; // Only trigger swipe from screen edges (default: false)
+  edgeThreshold?: number; // Pixels from edge to trigger (default: 30)
 }
 
 interface SwipeState {
@@ -19,6 +21,7 @@ interface SwipeState {
   startTime: number;
   isSwiping: boolean;
   direction: 'left' | 'right' | 'up' | 'down' | null;
+  isFromEdge: boolean; // Track if swipe started from screen edge
 }
 
 /**
@@ -41,7 +44,13 @@ export function useSwipeGestures(
   swipeHandlers: SwipeHandlers,
   options: GestureOptions = {}
 ) {
-  const { threshold = 50, velocity = 0.3, preventScroll = false } = options;
+  const {
+    threshold = 50,
+    velocity = 0.5, // Increased from 0.3 for better scroll detection
+    preventScroll = false,
+    edgeSwipeOnly = false,
+    edgeThreshold = 30
+  } = options;
 
   const swipeState = useRef<SwipeState>({
     startX: 0,
@@ -49,6 +58,7 @@ export function useSwipeGestures(
     startTime: 0,
     isSwiping: false,
     direction: null,
+    isFromEdge: false,
   });
 
   const [isSwiping, setIsSwiping] = useState(false);
@@ -56,14 +66,22 @@ export function useSwipeGestures(
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
+    const screenWidth = window.innerWidth;
+
+    // Check if touch started from screen edge
+    const isFromLeftEdge = touch.clientX <= edgeThreshold;
+    const isFromRightEdge = touch.clientX >= screenWidth - edgeThreshold;
+    const isFromEdge = isFromLeftEdge || isFromRightEdge;
+
     swipeState.current = {
       startX: touch.clientX,
       startY: touch.clientY,
       startTime: Date.now(),
       isSwiping: false,
       direction: null,
+      isFromEdge,
     };
-  }, []);
+  }, [edgeThreshold]);
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
@@ -114,7 +132,7 @@ export function useSwipeGestures(
       }
 
       const touch = e.changedTouches[0];
-      const { startX, startY, startTime, direction } = swipeState.current;
+      const { startX, startY, startTime, direction, isFromEdge } = swipeState.current;
 
       const deltaX = touch.clientX - startX;
       const deltaY = touch.clientY - startY;
@@ -131,7 +149,10 @@ export function useSwipeGestures(
       const meetsThreshold = distance >= threshold;
       const meetsVelocity = swipeVelocity >= velocity;
 
-      if (meetsThreshold || meetsVelocity) {
+      // If edgeSwipeOnly is enabled, only trigger if swipe started from edge
+      const edgeCheck = !edgeSwipeOnly || isFromEdge;
+
+      if ((meetsThreshold || meetsVelocity) && edgeCheck) {
         switch (direction) {
           case 'left':
             swipeHandlers.onSwipeLeft?.();
@@ -155,11 +176,12 @@ export function useSwipeGestures(
         startTime: 0,
         isSwiping: false,
         direction: null,
+        isFromEdge: false,
       };
       setIsSwiping(false);
       setSwipeProgress(0);
     },
-    [swipeHandlers, threshold, velocity]
+    [swipeHandlers, threshold, velocity, edgeSwipeOnly]
   );
 
   return {

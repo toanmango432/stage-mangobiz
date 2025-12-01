@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
+import { MoreVertical, UserPlus, Edit2, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import {
@@ -43,15 +43,6 @@ function WaitListTicketCardComponent({
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [waitTime, setWaitTime] = useState(0);
   const [waitProgress, setWaitProgress] = useState(0);
-
-  // Map view mode to our base component format
-  const mapViewMode = (mode: string): 'compact' | 'normal' | 'gridNormal' | 'gridCompact' => {
-    switch (mode) {
-      case 'grid-normal': return 'gridNormal';
-      case 'grid-compact': return 'gridCompact';
-      default: return mode as 'compact' | 'normal';
-    }
-  };
 
   // Calculate wait time based on createdAt timestamp
   useEffect(() => {
