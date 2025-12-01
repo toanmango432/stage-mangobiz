@@ -57,6 +57,8 @@ export {
 // Components
 export { ClientList } from './components/ClientList';
 export { AddClient } from './components/AddClient';
+export { BlockClientModal } from './components/BlockClientModal';
+export { StaffAlertBanner } from './components/StaffAlertBanner';
 
 // Sections
 export { ProfileSection } from './sections/ProfileSection';
