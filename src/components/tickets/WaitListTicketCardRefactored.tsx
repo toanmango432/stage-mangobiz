@@ -42,7 +42,6 @@ function WaitListTicketCardComponent({
   const [showMenu, setShowMenu] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [waitTime, setWaitTime] = useState(0);
-  const [waitProgress, setWaitProgress] = useState(0);
 
   // Calculate wait time based on createdAt timestamp
   useEffect(() => {
@@ -50,11 +49,7 @@ function WaitListTicketCardComponent({
       const now = new Date();
       const startTime = ticket.createdAt || new Date(); // Use createdAt if available
       const elapsed = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)); // minutes
-      const expectedWait = 30; // Assume 30 min average wait
-      const progress = Math.min((elapsed / expectedWait) * 100, 100);
-
       setWaitTime(elapsed);
-      setWaitProgress(progress);
     };
 
     updateWaitTime();

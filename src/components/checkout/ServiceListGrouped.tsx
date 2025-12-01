@@ -44,10 +44,8 @@ interface ServiceListGroupedProps {
   onUpdateService: (serviceId: string, updates: Partial<TicketService>) => void;
   onRemoveService: (serviceId: string) => void;
   onRemoveStaff?: (staffId: string) => void;
-  onReassignStaff?: (serviceIdOrIds: string | string[]) => void;
   onAddServiceToStaff?: (staffId: string, staffName: string) => void;
   onAddStaff?: (staffId: string, staffName: string) => void;
-  onDuplicateServices?: (serviceIds: string[]) => void;
   activeStaffId?: string | null;
   onSetActiveStaff?: (staffId: string | null) => void;
   assignedStaffIds?: Set<string>;
@@ -82,10 +80,8 @@ export default function ServiceListGrouped({
   onUpdateService,
   onRemoveService,
   onRemoveStaff,
-  onReassignStaff,
   onAddServiceToStaff,
   onAddStaff,
-  onDuplicateServices,
   activeStaffId,
   onSetActiveStaff,
   assignedStaffIds = new Set(),
@@ -93,7 +89,6 @@ export default function ServiceListGrouped({
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
   const [editingDuration, setEditingDuration] = useState<string | null>(null);
   const [expandedStaff, setExpandedStaff] = useState<Set<string>>(new Set());
-  const [showStaffSelector, setShowStaffSelector] = useState(false);
 
   const getStaffInitials = (name: string) => {
     return name
@@ -138,13 +133,6 @@ export default function ServiceListGrouped({
   const emptyStaffGroups = Array.from(assignedStaffIds)
     .filter(staffId => !groupedServices[staffId])
     .map(staffId => [staffId, []] as [string, TicketService[]]);
-
-  const handleAddStaffClick = (staffId: string, staffName: string) => {
-    if (onAddStaff) {
-      onAddStaff(staffId, staffName);
-      setShowStaffSelector(false);
-    }
-  };
 
   const handleStaffCardClick = (staffId: string) => {
     if (onSetActiveStaff) {
@@ -426,8 +414,7 @@ export default function ServiceListGrouped({
                   </div>
                 )}
                 {staffServices.map((service, index) => {
-                  const statusConfig = STATUS_CONFIG[service.status];
-                  const StatusIcon = statusConfig.icon;
+                  STATUS_CONFIG[service.status];
 
                   return (
                     <div

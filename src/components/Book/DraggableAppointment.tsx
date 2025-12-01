@@ -28,8 +28,6 @@ interface DragState {
 
 interface DraggableAppointmentProps {
   appointment: LocalAppointment;
-  onDrop: (appointmentId: string, newDate: Date, newTime: string) => Promise<void>;
-  onCheckConflicts: (appointmentId: string, date: Date, time: string) => Promise<ConflictInfo>;
   children: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -37,8 +35,6 @@ interface DraggableAppointmentProps {
 
 export function DraggableAppointment({
   appointment,
-  onDrop,
-  onCheckConflicts,
   children,
   className,
   disabled = false,
@@ -264,30 +260,15 @@ interface BatchSelectionProps {
   appointments: LocalAppointment[];
   selectedIds: string[];
   onSelectionChange: (selectedIds: string[]) => void;
-  onBatchMove: (appointmentIds: string[], date: Date, time: string) => Promise<void>;
   children: React.ReactNode;
 }
 
 export function BatchSelection({
-  appointments,
   selectedIds,
   onSelectionChange,
-  onBatchMove,
   children,
 }: BatchSelectionProps) {
   const isSelected = (id: string) => selectedIds.includes(id);
-
-  const toggleSelection = useCallback((id: string) => {
-    if (isSelected(id)) {
-      onSelectionChange(selectedIds.filter(sid => sid !== id));
-    } else {
-      onSelectionChange([...selectedIds, id]);
-    }
-  }, [selectedIds, onSelectionChange]);
-
-  const selectAll = useCallback(() => {
-    onSelectionChange(appointments.map(a => a.id));
-  }, [appointments, onSelectionChange]);
 
   const clearSelection = useCallback(() => {
     onSelectionChange([]);

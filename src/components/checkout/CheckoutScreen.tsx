@@ -3,8 +3,8 @@
  * This file is kept for reference only and should not be used in new code
  */
 import { useState } from 'react';
-import { X, Plus, Minus, Tag, Gift, CreditCard, DollarSign, Smartphone, Wallet } from 'lucide-react';
-import { Ticket, TicketService, TicketProduct } from '../../types/Ticket';
+import { X, Tag, Gift, CreditCard, DollarSign, Smartphone, Wallet } from 'lucide-react';
+import { Ticket } from '../../types/Ticket';
 
 interface CheckoutScreenProps {
   ticket: Ticket;
@@ -19,7 +19,6 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
   const [tipAmount, setTipAmount] = useState(0);
   const [tipPercentage, setTipPercentage] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
-  const [showDiscountModal, setShowDiscountModal] = useState(false);
 
   const totalWithTip = ticket.total + tipAmount;
 
