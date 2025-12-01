@@ -534,8 +534,10 @@ export type ClientSettingsSection =
   | 'safety'
   | 'history'
   | 'wallet'
+  | 'membership'
+  | 'notes'
   | 'loyalty'
-  | 'notes';
+  | 'documents';
 
 export interface ClientFilters {
   searchQuery: string;
