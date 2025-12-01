@@ -14,7 +14,8 @@ import { HistorySection } from './sections/HistorySection';
 import { NotesSection } from './sections/NotesSection';
 import { LoyaltySection } from './sections/LoyaltySection';
 import { WalletSection } from './sections/WalletSection';
-import { ClientExportModal, ClientImportModal } from './components/ClientDataExportImport';
+import { ClientExportModal, ClientImportModal, exportClients } from './components/ClientDataExportImport';
+import { BulkActionsToolbar } from './components/BulkActionsToolbar';
 import type { AppDispatch, RootState } from '../../store';
 import {
   fetchClients,
@@ -165,6 +166,7 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const [pendingUpdates, setPendingUpdates] = useState<Partial<EnhancedClient>>({});
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
 
   // Convert clients to EnhancedClient format for UI
   const enhancedClients = useMemo(() => clients.map(clientToEnhanced), [clients]);
@@ -305,6 +307,76 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     }));
     dispatch(fetchClientStats(salonId));
   }, [dispatch, salonId, filters.searchQuery, filterStatus, filterTier]);
+
+  // Bulk action handlers
+  const handleSelectAll = useCallback(() => {
+    setSelectedClientIds(clients.map(c => c.id));
+  }, [clients]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedClientIds([]);
+  }, []);
+
+  const handleBulkTag = useCallback((tagId: string) => {
+    // In production, would update all selected clients with the tag
+    console.log('Bulk tag:', tagId, 'to clients:', selectedClientIds);
+  }, [selectedClientIds]);
+
+  const handleBulkTier = useCallback((tier: LoyaltyTier) => {
+    // In production, would update all selected clients' tier
+    selectedClientIds.forEach(async (clientId) => {
+      await dispatch(updateClient({
+        id: clientId,
+        updates: { loyaltyInfo: { tier } as any },
+      }));
+    });
+  }, [dispatch, selectedClientIds]);
+
+  const handleBulkBlock = useCallback(() => {
+    selectedClientIds.forEach(async (clientId) => {
+      await dispatch(updateClient({
+        id: clientId,
+        updates: { isBlocked: true },
+      }));
+    });
+    setSelectedClientIds([]);
+  }, [dispatch, selectedClientIds]);
+
+  const handleBulkUnblock = useCallback(() => {
+    selectedClientIds.forEach(async (clientId) => {
+      await dispatch(updateClient({
+        id: clientId,
+        updates: { isBlocked: false },
+      }));
+    });
+    setSelectedClientIds([]);
+  }, [dispatch, selectedClientIds]);
+
+  const handleBulkExport = useCallback((format: 'csv' | 'excel') => {
+    const selectedClients = clients.filter(c => selectedClientIds.includes(c.id));
+    exportClients(selectedClients, {
+      format,
+      includeFields: ['firstName', 'lastName', 'phone', 'email', 'loyaltyInfo.tier', 'visitSummary.totalVisits'],
+    });
+  }, [clients, selectedClientIds]);
+
+  const handleBulkEmail = useCallback(() => {
+    console.log('Send email to:', selectedClientIds);
+    alert('Email feature coming soon!');
+  }, [selectedClientIds]);
+
+  const handleBulkSms = useCallback(() => {
+    console.log('Send SMS to:', selectedClientIds);
+    alert('SMS feature coming soon!');
+  }, [selectedClientIds]);
+
+  // Default tags available for bulk actions
+  const availableTags = [
+    { id: 'vip', name: 'VIP', color: '#8B5CF6' },
+    { id: 'new-client', name: 'New Client', color: '#3B82F6' },
+    { id: 'regular', name: 'Regular', color: '#10B981' },
+    { id: 'needs-attention', name: 'Needs Attention', color: '#F59E0B' },
+  ];
 
   const getTierBadgeStyle = (tier: LoyaltyTier) => {
     const colors = clientSettingsTokens.tierColors[tier];
@@ -578,6 +650,23 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
           onClose={() => setShowImportModal(false)}
         />
       )}
+
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedClientIds.length}
+        onSelectAll={handleSelectAll}
+        onClearSelection={handleClearSelection}
+        onBulkTag={handleBulkTag}
+        onBulkTier={handleBulkTier}
+        onBulkBlock={handleBulkBlock}
+        onBulkUnblock={handleBulkUnblock}
+        onBulkExport={handleBulkExport}
+        onBulkEmail={handleBulkEmail}
+        onBulkSms={handleBulkSms}
+        availableTags={availableTags}
+        isAllSelected={selectedClientIds.length === clients.length}
+        totalClients={clients.length}
+      />
     </div>
   );
 };

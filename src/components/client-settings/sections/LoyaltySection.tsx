@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { EnhancedClient, LoyaltyTier } from '../types';
+import type { LoyaltyReward } from '../../../types';
 import { tierLabels, clientSettingsTokens } from '../constants';
 import { Card, Select, Toggle, Input, Button } from '../components/SharedComponents';
+import { ReferralTrackingCard } from '../components/ReferralTrackingCard';
+import { ClientReviewsCard } from '../components/ClientReviewsCard';
+import { PointsAdjustmentModal } from '../components/PointsAdjustmentModal';
+import { AvailableRewardsCard } from '../components/AvailableRewardsCard';
 
 interface LoyaltySectionProps {
   client: EnhancedClient;
@@ -9,6 +14,8 @@ interface LoyaltySectionProps {
 }
 
 export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange }) => {
+  const [showPointsModal, setShowPointsModal] = useState<'add' | 'redeem' | null>(null);
+
   const updateLoyaltyInfo = (field: string, value: any) => {
     onChange({
       loyaltyInfo: { ...client.loyaltyInfo, [field]: value },
@@ -76,7 +83,49 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
     return { nextTier, progress, pointsNeeded };
   };
 
+  const handlePointsAdjustment = (amount: number, reason: string, notes?: string) => {
+    const newBalance = showPointsModal === 'add'
+      ? client.loyaltyInfo.pointsBalance + amount
+      : client.loyaltyInfo.pointsBalance - amount;
+
+    const newLifetimePoints = showPointsModal === 'add'
+      ? client.loyaltyInfo.lifetimePoints + amount
+      : client.loyaltyInfo.lifetimePoints;
+
+    onChange({
+      loyaltyInfo: {
+        ...client.loyaltyInfo,
+        pointsBalance: Math.max(0, newBalance),
+        lifetimePoints: newLifetimePoints,
+        rewardsRedeemed: showPointsModal === 'redeem'
+          ? client.loyaltyInfo.rewardsRedeemed + 1
+          : client.loyaltyInfo.rewardsRedeemed,
+      },
+    });
+    setShowPointsModal(null);
+  };
+
+  const handleRedeemReward = (reward: LoyaltyReward) => {
+    if (client.loyaltyInfo.pointsBalance >= reward.pointsCost) {
+      onChange({
+        loyaltyInfo: {
+          ...client.loyaltyInfo,
+          pointsBalance: client.loyaltyInfo.pointsBalance - reward.pointsCost,
+          rewardsRedeemed: client.loyaltyInfo.rewardsRedeemed + 1,
+        },
+      });
+    }
+  };
+
+  const handleGenerateReferralCode = () => {
+    const code = `REF${client.id.slice(0, 4).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    updateLoyaltyInfo('referralCode', code);
+  };
+
   const tierProgress = getTierProgress();
+
+  // Mock client rewards - in production would come from DB
+  const clientRewards: LoyaltyReward[] = [];
 
   return (
     <div className="space-y-6">
@@ -148,6 +197,44 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
         </div>
       </Card>
 
+      {/* Points Management */}
+      <Card title="Points Management" description="Add or redeem loyalty points">
+        <div className="flex items-center gap-4">
+          <Button variant="primary" onClick={() => setShowPointsModal('add')}>
+            <GiftIcon className="w-4 h-4" />
+            Add Points
+          </Button>
+          <Button variant="outline" onClick={() => setShowPointsModal('redeem')}>
+            <MinusIcon className="w-4 h-4" />
+            Redeem Points
+          </Button>
+        </div>
+      </Card>
+
+      {/* Available Rewards */}
+      <AvailableRewardsCard
+        rewards={clientRewards}
+        pointsBalance={client.loyaltyInfo.pointsBalance}
+        onRedeemReward={handleRedeemReward}
+      />
+
+      {/* Referral Tracking */}
+      <ReferralTrackingCard
+        clientId={client.id}
+        referralCode={client.loyaltyInfo.referralCode}
+        referralCount={client.loyaltyInfo.referralCount}
+        onGenerateCode={handleGenerateReferralCode}
+        onCopyCode={(code) => navigator.clipboard.writeText(code)}
+      />
+
+      {/* Client Reviews */}
+      <ClientReviewsCard
+        clientId={client.id}
+        averageRating={4.5}
+        totalReviews={client.visitSummary.totalVisits > 0 ? Math.floor(client.visitSummary.totalVisits * 0.3) : 0}
+        onRequestReview={() => alert('Review request sent!')}
+      />
+
       {/* Loyalty Settings */}
       <Card title="Loyalty Settings">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -178,20 +265,6 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
             onChange={(v) => updateLoyaltyInfo('referredBy', v)}
             placeholder="Referrer's code"
           />
-        </div>
-
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
-          <Button variant="outline" size="sm">
-            <GiftIcon className="w-4 h-4" />
-            Add Points
-          </Button>
-          <Button variant="outline" size="sm">
-            <MinusIcon className="w-4 h-4" />
-            Redeem Points
-          </Button>
-          <Button variant="ghost" size="sm">
-            View History
-          </Button>
         </div>
       </Card>
 
@@ -269,39 +342,16 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
         )}
       </Card>
 
-      {/* Referral Program */}
-      <Card title="Referral Program">
-        <div className="p-4 bg-cyan-50 border border-cyan-200 rounded-lg mb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-cyan-900">Client's Referral Code</p>
-              <p className="text-2xl font-bold text-cyan-700 mt-1">
-                {client.loyaltyInfo.referralCode || 'Not generated'}
-              </p>
-            </div>
-            <Button variant="outline" size="sm">
-              <CopyIcon className="w-4 h-4" />
-              Copy
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-gray-50 rounded-lg text-center">
-            <p className="text-3xl font-bold text-gray-900">
-              {client.loyaltyInfo.referralCount}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">Successful Referrals</p>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg text-center">
-            <p className="text-3xl font-bold text-green-600">
-              ${(client.loyaltyInfo.referralCount * 25).toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">Referral Rewards Earned</p>
-          </div>
-        </div>
-      </Card>
+      {/* Points Adjustment Modal */}
+      {showPointsModal && (
+        <PointsAdjustmentModal
+          clientName={`${client.firstName} ${client.lastName}`}
+          currentBalance={client.loyaltyInfo.pointsBalance}
+          type={showPointsModal}
+          onAdjust={handlePointsAdjustment}
+          onClose={() => setShowPointsModal(null)}
+        />
+      )}
     </div>
   );
 };
@@ -316,12 +366,6 @@ const GiftIcon: React.FC<{ className?: string }> = ({ className }) => (
 const MinusIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-  </svg>
-);
-
-const CopyIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
   </svg>
 );
 

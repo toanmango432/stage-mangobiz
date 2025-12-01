@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { EnhancedClient, LoyaltyTier } from '../types';
+import type { ClientSegment } from '../../../types';
 import { tierLabels, clientSettingsTokens } from '../constants';
 import {
   SearchInput,
@@ -9,6 +10,7 @@ import {
   PhoneIcon,
   StarIcon,
 } from './SharedComponents';
+import { ClientSegmentBadge } from './ClientSegmentBadge';
 
 interface ClientListProps {
   clients: EnhancedClient[];
@@ -94,6 +96,31 @@ export const ClientList: React.FC<ClientListProps> = ({
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
     if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
     return `${Math.floor(diffDays / 365)} years ago`;
+  };
+
+  // Determine client segment based on their data
+  const getClientSegment = (client: EnhancedClient): ClientSegment | null => {
+    if (client.isBlocked) return 'blocked';
+    if (client.isVip) return 'vip';
+    if (client.membership?.hasMembership) return 'member';
+
+    const lastVisitDate = client.visitSummary.lastVisitDate;
+    if (!lastVisitDate) {
+      // Check if recently created (new client)
+      const createdDate = new Date(client.createdAt);
+      const daysSinceCreated = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceCreated <= 30 && client.visitSummary.totalVisits <= 1) {
+        return 'new';
+      }
+      return null;
+    }
+
+    const visitDate = new Date(lastVisitDate);
+    const daysSinceVisit = Math.floor((Date.now() - visitDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceVisit <= 60) return 'active';
+    if (daysSinceVisit <= 90) return 'at_risk';
+    return 'lapsed';
   };
 
   return (
@@ -200,13 +227,17 @@ export const ClientList: React.FC<ClientListProps> = ({
                       <span className="truncate">{client.contact.phone}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
                         className="text-xs font-medium px-2 py-0.5 rounded-full border"
                         style={getTierBadgeStyle(client.loyaltyInfo.tier)}
                       >
                         {tierLabels[client.loyaltyInfo.tier]}
                       </span>
+                      {(() => {
+                        const segment = getClientSegment(client);
+                        return segment ? <ClientSegmentBadge segment={segment} size="sm" /> : null;
+                      })()}
                       <span className="text-xs text-gray-400">
                         {client.visitSummary.totalVisits} visits
                       </span>
