@@ -14,6 +14,7 @@ import { HistorySection } from './sections/HistorySection';
 import { NotesSection } from './sections/NotesSection';
 import { LoyaltySection } from './sections/LoyaltySection';
 import { WalletSection } from './sections/WalletSection';
+import { MembershipSection } from './sections/MembershipSection';
 import { ClientExportModal, ClientImportModal, exportClients } from './components/ClientDataExportImport';
 import { BulkActionsToolbar } from './components/BulkActionsToolbar';
 import type { AppDispatch, RootState } from '../../store';
@@ -220,6 +221,7 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     { id: 'safety', label: 'Safety', icon: <ShieldIcon className="w-5 h-5" /> },
     { id: 'history', label: 'History', icon: <ClockIcon className="w-5 h-5" /> },
     { id: 'wallet', label: 'Wallet', icon: <WalletIcon className="w-5 h-5" /> },
+    { id: 'membership', label: 'Membership', icon: <CreditCardIcon className="w-5 h-5" /> },
     { id: 'notes', label: 'Notes & Tags', icon: <NoteIcon className="w-5 h-5" /> },
     { id: 'loyalty', label: 'Loyalty', icon: <StarIcon className="w-5 h-5" /> },
   ];
@@ -594,6 +596,13 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
                 />
               )}
 
+              {activeSection === 'membership' && (
+                <MembershipSection
+                  client={selectedClient}
+                  onChange={handleUpdateClient}
+                />
+              )}
+
               {activeSection === 'notes' && (
                 <NotesSection
                   client={selectedClient}
@@ -715,6 +724,12 @@ const ShieldIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const WalletIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+  </svg>
+);
+
+const CreditCardIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
   </svg>

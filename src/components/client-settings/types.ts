@@ -310,6 +310,7 @@ export type ClientSettingsSection =
   | 'wallet'
   | 'notes'
   | 'loyalty'
+  | 'membership'
   | 'documents';
 
 export interface ClientSettingsUIState {

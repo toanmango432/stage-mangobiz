@@ -80,6 +80,7 @@ export {
   ClientImportModal,
   exportClients,
 } from './components/ClientDataExportImport';
+export { MembershipStatusCard } from './components/MembershipStatusCard';
 
 // Sections
 export { ProfileSection } from './sections/ProfileSection';
@@ -90,3 +91,4 @@ export { HistorySection } from './sections/HistorySection';
 export { WalletSection } from './sections/WalletSection';
 export { NotesSection } from './sections/NotesSection';
 export { LoyaltySection } from './sections/LoyaltySection';
+export { MembershipSection } from './sections/MembershipSection';
