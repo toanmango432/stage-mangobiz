@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { format } from 'date-fns';
 import { TurnEntry } from './types';
 
@@ -6,7 +7,7 @@ interface TurnLogBlockProps {
   onClick: () => void;
 }
 
-export function TurnLogBlock({ turnLog, onClick }: TurnLogBlockProps) {
+export const TurnLogBlock = memo(function TurnLogBlock({ turnLog, onClick }: TurnLogBlockProps) {
   return (
     <div
       onClick={onClick}
@@ -55,4 +56,4 @@ export function TurnLogBlock({ turnLog, onClick }: TurnLogBlockProps) {
       </div>
     </div>
   );
-}
+});

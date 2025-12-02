@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useRef, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -142,7 +142,7 @@ export function ModalContainer({
       {/* Backdrop */}
       <div
         className={cn(
-          'fixed inset-0 bg-black/50 z-40 transition-opacity duration-200',
+          'fixed inset-0 bg-black/50 z-40 animate-fade-in motion-reduce:animate-none',
           backdropClassName
         )}
         onClick={closeOnBackdropClick ? onClose : undefined}
@@ -167,7 +167,7 @@ export function ModalContainer({
             'relative bg-white shadow-2xl',
             sizeClasses[size],
             modalPositionClasses[position],
-            'animate-fade-in-up',
+            'animate-scale-in motion-reduce:animate-none',
             'flex flex-col',
             className
           )}

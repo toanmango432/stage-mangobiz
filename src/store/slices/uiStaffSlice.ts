@@ -3,6 +3,20 @@ import { staffDB } from '../../db/database';
 import type { RootState } from '../index';
 import { mockStaff } from '../../data/mockData';
 
+// Turn entry for tracking service history
+export interface TurnEntry {
+  id: string;
+  timestamp: Date;
+  turnNumber: number;
+  amount: number;
+  serviceCount: number;
+  bonusAmount: number;
+  clientName: string;
+  services: string[];
+  type: 'service' | 'checkout' | 'void';
+  ticketId: string;
+}
+
 // UI-specific staff interface (matching existing TicketContext)
 export interface UIStaff {
   id: string;
@@ -32,6 +46,16 @@ export interface UIStaff {
     serviceName: string;
     status: 'pending' | 'in-service' | 'completed';
   }>;
+  // Turn tracking fields
+  clockInTime?: Date;
+  serviceTurn?: number;
+  bonusTurn?: number;
+  adjustTurn?: number;
+  tardyTurn?: number;
+  appointmentTurn?: number;
+  partialTurn?: number;
+  queuePosition?: number;
+  turnLogs?: TurnEntry[];
 }
 
 interface UIStaffState {
@@ -196,7 +220,51 @@ const uiStaffSlice = createSlice({
         staff.ticketsServicedCount = 0;
         staff.totalSalesAmount = 0;
         staff.activeTickets = [];
+        staff.turnLogs = [];
+        staff.serviceTurn = 0;
+        staff.bonusTurn = 0;
+        staff.adjustTurn = 0;
       });
+    },
+    // Adjust staff turn (manual adjustment)
+    adjustStaffTurn: (state, action: PayloadAction<{
+      staffId: string;
+      amount: number;
+      reason: string;
+    }>) => {
+      const staff = state.staff.find(s => s.id === action.payload.staffId);
+      if (staff) {
+        staff.adjustTurn = (staff.adjustTurn ?? 0) + action.payload.amount;
+        staff.turnCount = (staff.turnCount ?? 0) + action.payload.amount;
+
+        // Add to turn logs
+        if (!staff.turnLogs) staff.turnLogs = [];
+        staff.turnLogs.push({
+          id: `adj-${Date.now()}`,
+          timestamp: new Date(),
+          turnNumber: staff.turnLogs.length + 1,
+          amount: action.payload.amount,
+          serviceCount: 0,
+          bonusAmount: 0,
+          clientName: 'Manual Adjustment',
+          services: [action.payload.reason],
+          type: 'service',
+          ticketId: '',
+        });
+      }
+    },
+    // Add turn log entry (from ticket completion)
+    addTurnLog: (state, action: PayloadAction<{
+      staffId: string;
+      turnLog: TurnEntry;
+    }>) => {
+      const staff = state.staff.find(s => s.id === action.payload.staffId);
+      if (staff) {
+        if (!staff.turnLogs) staff.turnLogs = [];
+        staff.turnLogs.push(action.payload.turnLog);
+        staff.serviceTurn = (staff.serviceTurn ?? 0) + 1;
+        staff.turnCount = (staff.turnCount ?? 0) + 1;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -310,21 +378,55 @@ const uiStaffSlice = createSlice({
   },
 });
 
-export const { 
-  clearError, 
-  updateStaffRevenue, 
+export const {
+  clearError,
+  updateStaffRevenue,
   updateStaffTicketCount,
   removePendingTicketFromStaff,
   resetAllStaffStatus,
+  adjustStaffTurn,
+  addTurnLog,
 } = uiStaffSlice.actions;
 
 // Selectors
 export const selectAllStaff = (state: RootState) => state.uiStaff.staff;
-export const selectReadyStaff = (state: RootState) => 
+export const selectReadyStaff = (state: RootState) =>
   state.uiStaff.staff.filter(s => s.status === 'ready');
-export const selectBusyStaff = (state: RootState) => 
+export const selectBusyStaff = (state: RootState) =>
   state.uiStaff.staff.filter(s => s.status === 'busy');
 export const selectStaffLoading = (state: RootState) => state.uiStaff.loading;
 export const selectStaffError = (state: RootState) => state.uiStaff.error;
+
+// Selector for TurnTracker - returns staff with turn data in the expected format
+export const selectStaffForTurnTracker = (state: RootState) => {
+  return state.uiStaff.staff
+    .filter(s => s.status !== 'off') // Only show clocked-in staff
+    .map((staff, index) => ({
+      id: staff.id,
+      name: staff.name.toUpperCase(),
+      photo: staff.image,
+      clockInTime: staff.clockInTime || new Date(),
+      serviceTurn: staff.serviceTurn ?? staff.count ?? 0,
+      bonusTurn: staff.bonusTurn ?? 0,
+      adjustTurn: staff.adjustTurn ?? 0,
+      tardyTurn: staff.tardyTurn ?? 0,
+      appointmentTurn: staff.appointmentTurn ?? 0,
+      partialTurn: staff.partialTurn ?? 0,
+      totalTurn: staff.turnCount ?? staff.count ?? 0,
+      queuePosition: staff.queuePosition ?? (index + 1),
+      serviceTotal: staff.totalSalesAmount ?? staff.revenue?.amount ?? 0,
+      turnLogs: staff.turnLogs ?? [],
+    }));
+};
+
+// Selector for total turn statistics
+export const selectTurnStats = (state: RootState) => {
+  const staff = state.uiStaff.staff.filter(s => s.status !== 'off');
+  return {
+    totalStaff: staff.length,
+    totalTurns: staff.reduce((sum, s) => sum + (s.serviceTurn ?? s.count ?? 0), 0),
+    totalRevenue: staff.reduce((sum, s) => sum + (s.totalSalesAmount ?? s.revenue?.amount ?? 0), 0),
+  };
+};
 
 export default uiStaffSlice.reducer;

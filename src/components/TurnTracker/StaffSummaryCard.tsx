@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { format } from 'date-fns';
 import { StaffTurnData } from './types';
 
@@ -7,7 +8,7 @@ interface StaffSummaryCardProps {
   onClick: () => void;
 }
 
-export function StaffSummaryCard({ staff, viewMode, onClick }: StaffSummaryCardProps) {
+export const StaffSummaryCard = memo(function StaffSummaryCard({ staff, viewMode, onClick }: StaffSummaryCardProps) {
   const isCompact = viewMode === 'grid';
 
   return (
@@ -85,4 +86,4 @@ export function StaffSummaryCard({ staff, viewMode, onClick }: StaffSummaryCardP
       </div>
     </div>
   );
-}
+});
