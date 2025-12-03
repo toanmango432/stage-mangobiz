@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useBookSidebar } from '../hooks/useBookSidebar';
 import { selectAllStaff, loadStaff } from '../store/slices/uiStaffSlice';
+import { fetchTeamMembers } from '../store/slices/teamSlice';
 import { selectStoreId } from '../store/slices/authSlice';
 import {
   CalendarHeader,
@@ -102,11 +103,17 @@ export function BookPage() {
   const authStoreId = useAppSelector(selectStoreId);
   const allStaff = useAppSelector(selectAllStaff) || [];
 
-  // Load staff on mount (same as Team page does via useTickets hook)
+  // Load staff on mount - must fetch team members first (same pattern as useTicketsCompat)
   useEffect(() => {
     const storeId = authStoreId || 'default-store';
     console.log('[BookPage] Loading staff for storeId:', storeId);
-    dispatch(loadStaff(storeId));
+    
+    // First fetch team members from Supabase into Redux, then load staff for UI
+    // This ensures state.team.members is populated before loadStaff reads from it
+    dispatch(fetchTeamMembers(storeId)).then(() => {
+      console.log('[BookPage] Team members fetched, now loading staff...');
+      dispatch(loadStaff(storeId));
+    });
   }, [dispatch, authStoreId]);
 
   // Debug: Log staff data
