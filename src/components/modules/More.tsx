@@ -63,7 +63,7 @@ export function More({ onNavigate }: MoreProps = {}) {
   ];
 
   return (
-    <div className="h-full bg-gray-50 p-6">
+    <div className="h-full overflow-y-auto bg-gray-50 p-6 pb-24">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">More</h1>
         
