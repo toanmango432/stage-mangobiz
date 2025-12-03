@@ -53,6 +53,11 @@
   max-height: calc(100vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom) - 2rem);
 }
 
+/* Safe Area Bottom Padding - for fixed bottom bars on notched devices */
+.safe-area-bottom {
+  padding-bottom: max(0.75rem, var(--safe-area-inset-bottom));
+}
+
 /* Mobile sidebar - hidden on small screens */
 @media (max-width: 768px) {
   :root {

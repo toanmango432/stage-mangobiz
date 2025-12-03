@@ -320,7 +320,7 @@ export function useStaffServiceAssignmentsByService(salonId: string, serviceId: 
 
 export function useCatalogSettings(salonId: string) {
   return useLiveQuery(
-    () => catalogSettingsDB.getOrCreate(salonId),
+    () => catalogSettingsDB.get(salonId),
     [salonId]
   );
 }

@@ -659,6 +659,7 @@ export const catalogSettingsDB = {
   },
 
   async getOrCreate(salonId: string): Promise<CatalogSettings> {
+    // Check for existing settings first
     const existing = await this.get(salonId);
     if (existing) return existing;
 
@@ -686,8 +687,17 @@ export const catalogSettingsDB = {
       syncStatus: 'local',
     };
 
-    await db.catalogSettings.add(defaults);
-    return defaults;
+    try {
+      await db.catalogSettings.add(defaults);
+      return defaults;
+    } catch (error) {
+      // Race condition: another call might have created it
+      // Try to get the existing record
+      const created = await this.get(salonId);
+      if (created) return created;
+      // If still not found, rethrow the error
+      throw error;
+    }
   },
 
   async update(salonId: string, updates: Partial<CatalogSettings>): Promise<CatalogSettings | undefined> {

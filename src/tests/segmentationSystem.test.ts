@@ -3,8 +3,8 @@
  * PRD Reference: 2.3.10 Client Segmentation
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import type { Client, CustomSegment, SegmentFilterGroup } from '../types/client';
+import { describe, it, expect } from 'vitest';
+import type { Client, CustomSegment } from '../types/client';
 import {
   DEFAULT_SEGMENT_THRESHOLDS,
   SEGMENT_COLORS,
@@ -207,7 +207,7 @@ describe('Utility Functions', () => {
   describe('isClientVip', () => {
     it('should return true if client isVip flag is set', () => {
       const client = createMockClient({ isVip: true });
-      expect(isClientVip(client)).toBe(true);
+      expect(isClientVip(client, 1000)).toBe(true);
     });
 
     it('should return true if client spend exceeds threshold', () => {

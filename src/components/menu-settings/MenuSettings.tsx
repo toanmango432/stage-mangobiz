@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import {
   ArrowLeft,
   Search,
@@ -19,6 +20,7 @@ import toast from 'react-hot-toast';
 
 import type { CatalogTab } from '../../types/catalog';
 import { useCatalog } from '../../hooks/useCatalog';
+import { selectSalonId, selectCurrentUser } from '../../store/slices/authSlice';
 
 import { CategoriesSection } from './sections/CategoriesSection';
 import { ServicesSection } from './sections/ServicesSection';
@@ -29,10 +31,14 @@ import { MenuGeneralSettingsSection } from './sections/MenuGeneralSettingsSectio
 
 interface MenuSettingsProps {
   onBack?: () => void;
-  salonId?: string;
 }
 
-export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProps) {
+export function MenuSettings({ onBack }: MenuSettingsProps) {
+  // Get salonId and userId from Redux auth state
+  const salonId = useSelector(selectSalonId) || '';
+  const currentUser = useSelector(selectCurrentUser);
+  const userId = currentUser?.id || 'system';
+
   // Toast wrapper for useCatalog hook
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     if (type === 'success') {
@@ -43,9 +49,10 @@ export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProp
   }, []);
 
   // Use the catalog hook for all data and actions
+  // Pass a placeholder salonId if empty to avoid hook order issues
   const catalog = useCatalog({
-    salonId,
-    userId: 'current-user', // TODO: Get from auth context
+    salonId: salonId || 'placeholder',
+    userId,
     toast: showToast,
   });
 
@@ -97,6 +104,15 @@ export function MenuSettings({ onBack, salonId = 'salon-001' }: MenuSettingsProp
     { id: 'staff', label: 'Staff Permissions', icon: <Users size={18} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
   ], [categories, services, packages, addOnGroupsWithOptions]);
+
+  // Show loading state if salonId is not yet available
+  if (!salonId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading menu settings...</p>
+      </div>
+    );
+  }
 
   // Render content based on active tab
   const renderContent = () => {

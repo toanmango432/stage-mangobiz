@@ -6,7 +6,7 @@
  * This follows KISS principle - one source of truth in IndexedDB.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/schema';
 import {
@@ -158,11 +158,23 @@ export function useCatalog({ salonId, userId = 'system', toast = defaultToast }:
     [] as AddOnGroupWithOptions[]
   );
 
-  // Settings
+  // Settings - use get() for read-only live query, initialize separately if needed
   const catalogSettings = useLiveQuery(
-    () => catalogSettingsDB.getOrCreate(salonId),
+    () => catalogSettingsDB.get(salonId),
     [salonId]
   );
+  
+  // Initialize settings if they don't exist (outside of live query)
+  useEffect(() => {
+    if (catalogSettings === undefined) {
+      // Check if we need to create default settings
+      catalogSettingsDB.get(salonId).then(existing => {
+        if (!existing) {
+          catalogSettingsDB.getOrCreate(salonId);
+        }
+      });
+    }
+  }, [salonId, catalogSettings]);
 
   // Convert to MenuGeneralSettings for UI
   const settings = useMemo((): MenuGeneralSettings | null => {

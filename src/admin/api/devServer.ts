@@ -77,29 +77,29 @@ const activatedStores = new Set<string>();
 let MOCK_MODE = false;
 
 // Mock data for offline/development use
+// IMPORTANT: These IDs must match the actual UUIDs in Supabase
 const MOCK_STORES: Record<string, { id: string; name: string; storeLoginId: string; password: string; status: string; licenseId: string }> = {
   'demo@salon.com': {
-    id: 'store-demo-001',
-    name: 'Demo Salon & Spa',
+    id: 'c0000000-0000-0000-0000-000000000002',
+    name: 'Demo Salon',
     storeLoginId: 'demo@salon.com',
     password: 'demo123',
     status: 'active',
-    licenseId: 'license-demo-001',
+    licenseId: 'b0000000-0000-0000-0000-000000000001',
   },
-  'salon-001': {
-    id: 'store-salon-001',
-    name: 'Salon 001',
-    storeLoginId: 'salon-001',
-    password: '1234',
+  'mango001': {
+    id: 'c0000000-0000-0000-0000-000000000001',
+    name: 'Demo Salon Downtown',
+    storeLoginId: 'mango001',
+    password: 'password123',
     status: 'active',
-    licenseId: 'license-salon-001',
+    licenseId: 'b0000000-0000-0000-0000-000000000001',
   },
 };
 
 
 const MOCK_LICENSES: Record<string, { id: string; tier: string; status: string }> = {
-  'license-demo-001': { id: 'license-demo-001', tier: 'professional', status: 'active' },
-  'license-salon-001': { id: 'license-salon-001', tier: 'basic', status: 'active' },
+  'b0000000-0000-0000-0000-000000000001': { id: 'b0000000-0000-0000-0000-000000000001', tier: 'professional', status: 'active' },
 };
 
 // ==================== RATE LIMITING ====================

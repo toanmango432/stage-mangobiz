@@ -578,7 +578,7 @@ export class MangoPOSDatabase extends Dexie {
 // Create singleton instance
 export const db = new MangoPOSDatabase();
 
-// Initialize database
+// Initialize database with automatic recovery from version mismatch errors
 export async function initializeDatabase() {
   try {
     await db.open();
@@ -586,6 +586,36 @@ export async function initializeDatabase() {
     return true;
   } catch (error) {
     console.error('❌ Failed to initialize IndexedDB:', error);
+
+    // Check if this is a version/upgrade error that can be recovered
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isUpgradeError =
+      errorMessage.includes('VersionError') ||
+      errorMessage.includes('upgrade') ||
+      errorMessage.includes('version') ||
+      errorMessage.includes('schema') ||
+      (error as any)?.name === 'VersionError';
+
+    if (isUpgradeError) {
+      console.warn('⚠️ Database schema mismatch detected. Attempting recovery...');
+      try {
+        // Close any existing connection
+        db.close();
+
+        // Delete the database
+        await Dexie.delete('mango_biz_store_app');
+        console.log('🗑️ Old database deleted');
+
+        // Reopen with fresh schema
+        await db.open();
+        console.log('✅ Database recreated successfully');
+        return true;
+      } catch (recoveryError) {
+        console.error('❌ Database recovery failed:', recoveryError);
+        return false;
+      }
+    }
+
     return false;
   }
 }

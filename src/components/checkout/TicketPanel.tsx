@@ -2025,74 +2025,109 @@ export default function TicketPanel({
           aria-label="Checkout panel content"
         >
           {mode === "full" && (
-            <div className="h-full px-3 sm:px-4 lg:px-6 pb-24 sm:pb-0">
-              <div className={`h-full grid gap-0 lg:gap-0 ${
-                fullPageTab === "services"
-                  ? "grid-cols-1 lg:grid-cols-[180px_1fr_506px]"
-                  : "grid-cols-1 lg:grid-cols-[1fr_506px]"
-              }`}>
-                <div className={`hidden lg:block ${
-                  fullPageTab === "services" ? "lg:col-span-2" : "lg:col-span-1"
-                } h-full pr-6`}>
-                  <div className="flex flex-col h-full">
-                    <div className="flex gap-1 mb-2 p-1 bg-muted rounded-lg">
-                      <Button
-                        variant={fullPageTab === "services" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-9"
-                        onClick={() => setFullPageTab("services")}
-                        data-testid="button-tab-services"
-                      >
-                        <Scissors className="h-4 w-4 mr-2" />
-                        Services
-                      </Button>
-                      <Button
-                        variant={fullPageTab === "staff" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-9"
-                        onClick={() => setFullPageTab("staff")}
-                        data-testid="button-tab-staff"
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Staff
-                      </Button>
-                    </div>
+            <div className="h-full flex flex-col">
+              {/* Desktop Layout */}
+              <div className="hidden lg:flex flex-1 min-h-0 px-6">
+                <div className={`flex-1 grid gap-0 ${
+                  fullPageTab === "services"
+                    ? "grid-cols-[180px_1fr_506px]"
+                    : "grid-cols-[1fr_506px]"
+                }`}>
+                  <div className={`${
+                    fullPageTab === "services" ? "col-span-2" : "col-span-1"
+                  } h-full pr-6`}>
+                    <div className="flex flex-col h-full">
+                      <div className="flex gap-1 mb-2 p-1 bg-muted rounded-lg">
+                        <Button
+                          variant={fullPageTab === "services" ? "default" : "ghost"}
+                          size="sm"
+                          className="flex-1 h-9"
+                          onClick={() => setFullPageTab("services")}
+                          data-testid="button-tab-services"
+                        >
+                          <Scissors className="h-4 w-4 mr-2" />
+                          Services
+                        </Button>
+                        <Button
+                          variant={fullPageTab === "staff" ? "default" : "ghost"}
+                          size="sm"
+                          className="flex-1 h-9"
+                          onClick={() => setFullPageTab("staff")}
+                          data-testid="button-tab-staff"
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          Staff
+                        </Button>
+                      </div>
 
-                    <div className={`flex-1 min-h-0 grid gap-6 ${
-                      fullPageTab === "services" ? "grid-cols-[180px_1fr]" : "grid-cols-1"
-                    }`}>
-                      {fullPageTab === "services" && (
-                        <div className="h-full overflow-hidden">
-                          <CategoryList
-                            selectedCategory={selectedCategory}
-                            onSelectCategory={setSelectedCategory}
-                          />
-                        </div>
-                      )}
-
-                      <div className="h-full overflow-hidden">
-                        {fullPageTab === "services" ? (
-                          <FullPageServiceSelector
-                            selectedCategory={selectedCategory}
-                            onSelectCategory={setSelectedCategory}
-                            onAddServices={handleAddServices}
-                            staffMembers={staffMembers}
-                            activeStaffId={activeStaffId}
-                          />
-                        ) : (
-                          <StaffGridView
-                            staffMembers={staffMembers}
-                            services={services}
-                            onAddServiceToStaff={handleAddServiceToStaff}
-                            reassigningServiceIds={reassigningServiceIds}
-                          />
+                      <div className={`flex-1 min-h-0 grid gap-6 ${
+                        fullPageTab === "services" ? "grid-cols-[180px_1fr]" : "grid-cols-1"
+                      }`}>
+                        {fullPageTab === "services" && (
+                          <div className="h-full overflow-hidden">
+                            <CategoryList
+                              selectedCategory={selectedCategory}
+                              onSelectCategory={setSelectedCategory}
+                            />
+                          </div>
                         )}
+
+                        <div className="h-full overflow-hidden">
+                          {fullPageTab === "services" ? (
+                            <FullPageServiceSelector
+                              selectedCategory={selectedCategory}
+                              onSelectCategory={setSelectedCategory}
+                              onAddServices={handleAddServices}
+                              staffMembers={staffMembers}
+                              activeStaffId={activeStaffId}
+                            />
+                          ) : (
+                            <StaffGridView
+                              staffMembers={staffMembers}
+                              services={services}
+                              onAddServiceToStaff={handleAddServiceToStaff}
+                              reassigningServiceIds={reassigningServiceIds}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="h-full border-l pl-6 overflow-hidden">
+                  <div className="h-full border-l pl-6 overflow-hidden">
+                    <InteractiveSummary
+                      selectedClient={selectedClient}
+                      services={services}
+                      staffMembers={staffMembers}
+                      subtotal={subtotal}
+                      tax={tax}
+                      total={total}
+                      onCheckout={handleCheckout}
+                      onCheckIn={handleCheckIn}
+                      onStartService={handleStartService}
+                      onSelectClient={handleRemoveClient}
+                      onCreateClient={handleCreateClient}
+                      onUpdateService={handleUpdateService}
+                      onRemoveService={handleRemoveService}
+                      onRemoveStaff={handleRemoveStaff}
+                      onReassignStaff={handleReassignStaff}
+                      onAddServiceToStaff={handleAddServiceToStaff}
+                      onAddStaff={handleAddStaff}
+                      onDuplicateServices={handleDuplicateServices}
+                      onRequestAddStaff={() => setFullPageTab("staff")}
+                      activeStaffId={activeStaffId}
+                      onSetActiveStaff={setActiveStaffId}
+                      assignedStaffIds={assignedStaffIdsSet}
+                      currentTab={fullPageTab}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Layout - Full screen ticket view */}
+              <div className="flex-1 flex flex-col min-h-0 lg:hidden">
+                {/* Mobile Ticket Summary - scrollable */}
+                <div className="flex-1 overflow-y-auto px-3 pb-4">
                   <InteractiveSummary
                     selectedClient={selectedClient}
                     services={services}
@@ -2112,12 +2147,36 @@ export default function TicketPanel({
                     onAddServiceToStaff={handleAddServiceToStaff}
                     onAddStaff={handleAddStaff}
                     onDuplicateServices={handleDuplicateServices}
-                    onRequestAddStaff={() => setFullPageTab("staff")}
+                    onRequestAddStaff={() => setShowStaffOnMobile(true)}
                     activeStaffId={activeStaffId}
                     onSetActiveStaff={setActiveStaffId}
                     assignedStaffIds={assignedStaffIdsSet}
                     currentTab={fullPageTab}
                   />
+                </div>
+
+                {/* Mobile Fixed Bottom Action Bar */}
+                <div className="flex-shrink-0 border-t bg-background px-3 py-3 safe-area-bottom">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 justify-center gap-2 text-sm font-medium"
+                      onClick={() => setShowServicesOnMobile(true)}
+                      data-testid="button-add-item-full"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Item</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 justify-center gap-2 text-sm font-medium"
+                      onClick={() => setShowStaffOnMobile(true)}
+                      data-testid="button-add-staff-full"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>Add Staff</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2125,78 +2184,113 @@ export default function TicketPanel({
 
           {/* Dock Mode - Unified layout matching full mode */}
           {mode === "dock" && (
-            <div className="h-full px-3 sm:px-4 lg:px-6 pb-24 sm:pb-0">
-              <div className={`h-full grid gap-0 lg:gap-0 ${
-                fullPageTab === "services"
-                  ? "grid-cols-1 lg:grid-cols-[140px_1fr_380px]"
-                  : "grid-cols-1 lg:grid-cols-[1fr_380px]"
-              }`}>
-                {/* Left Side - Services/Staff Tabs (compact width for dock) */}
-                <div className={`hidden lg:block ${
-                  fullPageTab === "services" ? "lg:col-span-2" : "lg:col-span-1"
-                } h-full pr-4`}>
-                  <div className="flex flex-col h-full">
-                    {/* Services/Staff Tab Buttons */}
-                    <div className="flex gap-1 mb-2 p-1 bg-muted rounded-lg">
-                      <Button
-                        variant={fullPageTab === "services" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8 text-xs"
-                        onClick={() => setFullPageTab("services")}
-                        data-testid="button-dock-tab-services"
-                      >
-                        <Scissors className="h-3.5 w-3.5 mr-1.5" />
-                        Services
-                      </Button>
-                      <Button
-                        variant={fullPageTab === "staff" ? "default" : "ghost"}
-                        size="sm"
-                        className="flex-1 h-8 text-xs"
-                        onClick={() => setFullPageTab("staff")}
-                        data-testid="button-dock-tab-staff"
-                      >
-                        <User className="h-3.5 w-3.5 mr-1.5" />
-                        Staff
-                      </Button>
-                    </div>
+            <div className="h-full flex flex-col">
+              {/* Desktop Layout */}
+              <div className="hidden lg:flex flex-1 min-h-0 px-6">
+                <div className={`flex-1 grid gap-0 ${
+                  fullPageTab === "services"
+                    ? "grid-cols-[140px_1fr_380px]"
+                    : "grid-cols-[1fr_380px]"
+                }`}>
+                  {/* Left Side - Services/Staff Tabs (compact width for dock) */}
+                  <div className={`${
+                    fullPageTab === "services" ? "col-span-2" : "col-span-1"
+                  } h-full pr-4`}>
+                    <div className="flex flex-col h-full">
+                      {/* Services/Staff Tab Buttons */}
+                      <div className="flex gap-1 mb-2 p-1 bg-muted rounded-lg">
+                        <Button
+                          variant={fullPageTab === "services" ? "default" : "ghost"}
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          onClick={() => setFullPageTab("services")}
+                          data-testid="button-dock-tab-services"
+                        >
+                          <Scissors className="h-3.5 w-3.5 mr-1.5" />
+                          Services
+                        </Button>
+                        <Button
+                          variant={fullPageTab === "staff" ? "default" : "ghost"}
+                          size="sm"
+                          className="flex-1 h-8 text-xs"
+                          onClick={() => setFullPageTab("staff")}
+                          data-testid="button-dock-tab-staff"
+                        >
+                          <User className="h-3.5 w-3.5 mr-1.5" />
+                          Staff
+                        </Button>
+                      </div>
 
-                    {/* Category List + Service/Staff Grid */}
-                    <div className={`flex-1 min-h-0 grid gap-4 ${
-                      fullPageTab === "services" ? "grid-cols-[140px_1fr]" : "grid-cols-1"
-                    }`}>
-                      {fullPageTab === "services" && (
-                        <div className="h-full overflow-hidden">
-                          <CategoryList
-                            selectedCategory={selectedCategory}
-                            onSelectCategory={setSelectedCategory}
-                          />
-                        </div>
-                      )}
-
-                      <div className="h-full overflow-hidden">
-                        {fullPageTab === "services" ? (
-                          <FullPageServiceSelector
-                            selectedCategory={selectedCategory}
-                            onSelectCategory={setSelectedCategory}
-                            onAddServices={handleAddServices}
-                            staffMembers={staffMembers}
-                            activeStaffId={activeStaffId}
-                          />
-                        ) : (
-                          <StaffGridView
-                            staffMembers={staffMembers}
-                            services={services}
-                            onAddServiceToStaff={handleAddServiceToStaff}
-                            reassigningServiceIds={reassigningServiceIds}
-                          />
+                      {/* Category List + Service/Staff Grid */}
+                      <div className={`flex-1 min-h-0 grid gap-4 ${
+                        fullPageTab === "services" ? "grid-cols-[140px_1fr]" : "grid-cols-1"
+                      }`}>
+                        {fullPageTab === "services" && (
+                          <div className="h-full overflow-hidden">
+                            <CategoryList
+                              selectedCategory={selectedCategory}
+                              onSelectCategory={setSelectedCategory}
+                            />
+                          </div>
                         )}
+
+                        <div className="h-full overflow-hidden">
+                          {fullPageTab === "services" ? (
+                            <FullPageServiceSelector
+                              selectedCategory={selectedCategory}
+                              onSelectCategory={setSelectedCategory}
+                              onAddServices={handleAddServices}
+                              staffMembers={staffMembers}
+                              activeStaffId={activeStaffId}
+                            />
+                          ) : (
+                            <StaffGridView
+                              staffMembers={staffMembers}
+                              services={services}
+                              onAddServiceToStaff={handleAddServiceToStaff}
+                              reassigningServiceIds={reassigningServiceIds}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right Side - Interactive Summary (identical to full mode) */}
-                <div className="h-full border-l pl-4 overflow-hidden">
+                  {/* Right Side - Interactive Summary */}
+                  <div className="h-full border-l pl-4 overflow-hidden">
+                    <InteractiveSummary
+                      selectedClient={selectedClient}
+                      services={services}
+                      staffMembers={staffMembers}
+                      subtotal={subtotal}
+                      tax={tax}
+                      total={total}
+                      onCheckout={handleCheckout}
+                      onCheckIn={handleCheckIn}
+                      onStartService={handleStartService}
+                      onSelectClient={handleRemoveClient}
+                      onCreateClient={handleCreateClient}
+                      onUpdateService={handleUpdateService}
+                      onRemoveService={handleRemoveService}
+                      onRemoveStaff={handleRemoveStaff}
+                      onReassignStaff={handleReassignStaff}
+                      onAddServiceToStaff={handleAddServiceToStaff}
+                      onAddStaff={handleAddStaff}
+                      onDuplicateServices={handleDuplicateServices}
+                      onRequestAddStaff={() => setFullPageTab("staff")}
+                      activeStaffId={activeStaffId}
+                      onSetActiveStaff={setActiveStaffId}
+                      assignedStaffIds={assignedStaffIdsSet}
+                      currentTab={fullPageTab}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Layout - Full screen ticket view */}
+              <div className="flex-1 flex flex-col min-h-0 lg:hidden">
+                {/* Mobile Ticket Summary - scrollable */}
+                <div className="flex-1 overflow-y-auto px-3 pb-4">
                   <InteractiveSummary
                     selectedClient={selectedClient}
                     services={services}
@@ -2216,36 +2310,37 @@ export default function TicketPanel({
                     onAddServiceToStaff={handleAddServiceToStaff}
                     onAddStaff={handleAddStaff}
                     onDuplicateServices={handleDuplicateServices}
-                    onRequestAddStaff={() => setFullPageTab("staff")}
+                    onRequestAddStaff={() => setShowStaffOnMobile(true)}
                     activeStaffId={activeStaffId}
                     onSetActiveStaff={setActiveStaffId}
                     assignedStaffIds={assignedStaffIdsSet}
                     currentTab={fullPageTab}
                   />
                 </div>
-              </div>
 
-              {/* Mobile-only: Add Item/Staff Buttons (hidden on desktop) */}
-              <div className="flex items-center gap-2 mt-3 lg:hidden">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 justify-center gap-2"
-                  onClick={() => setShowServicesOnMobile(true)}
-                  data-testid="button-add-item"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Item</span>
-                </Button>
-                <span className="text-sm text-muted-foreground">or</span>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 justify-center gap-2"
-                  onClick={() => setShowStaffOnMobile(true)}
-                  data-testid="button-add-staff"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Staff</span>
-                </Button>
+                {/* Mobile Fixed Bottom Action Bar */}
+                <div className="flex-shrink-0 border-t bg-background px-3 py-3 safe-area-bottom">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 justify-center gap-2 text-sm font-medium"
+                      onClick={() => setShowServicesOnMobile(true)}
+                      data-testid="button-add-item"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Item</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12 justify-center gap-2 text-sm font-medium"
+                      onClick={() => setShowStaffOnMobile(true)}
+                      data-testid="button-add-staff"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>Add Staff</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

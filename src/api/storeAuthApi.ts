@@ -97,16 +97,17 @@ export interface AuthError {
 const OFFLINE_MODE_ENABLED = false;
 
 // Demo credentials that work without a backend server
+// IMPORTANT: These IDs must match the actual UUIDs in Supabase
 const DEMO_CREDENTIALS: Record<string, { password: string; store: { id: string; name: string; storeLoginId: string }; license: { tier: string; status: string } }> = {
   'demo@salon.com': {
     password: 'demo123',
-    store: { id: 'store-demo-001', name: 'Demo Salon & Spa', storeLoginId: 'demo@salon.com' },
+    store: { id: 'c0000000-0000-0000-0000-000000000002', name: 'Demo Salon', storeLoginId: 'demo@salon.com' },
     license: { tier: 'professional', status: 'active' },
   },
-  'admin@mangobiz.com': {
-    password: 'admin123',
-    store: { id: 'store-mango-001', name: 'Mango Business', storeLoginId: 'admin@mangobiz.com' },
-    license: { tier: 'enterprise', status: 'active' },
+  'mango001': {
+    password: 'password123',
+    store: { id: 'c0000000-0000-0000-0000-000000000001', name: 'Demo Salon Downtown', storeLoginId: 'mango001' },
+    license: { tier: 'professional', status: 'active' },
   },
 };
 
