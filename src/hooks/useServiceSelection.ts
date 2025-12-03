@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Service } from '../types/service';
-import { servicesDB, db } from '../db/database';
+import { db } from '../db/database';
 
 interface ServiceWithAnimation extends Service {
   justAdded?: boolean;

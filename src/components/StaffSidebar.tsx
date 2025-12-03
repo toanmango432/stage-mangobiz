@@ -12,37 +12,23 @@ import { FrontDeskSettingsData } from './frontdesk-settings/types';
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;
 }
-// Function to get salon staff images based on ID
-const getSalonStaffImage = (id: number, _specialty?: string) => {
-  // Map staff IDs to specific profile images from the provided screenshot
-  const staffImages = {
-    1: 'https://images.unsplash.com/photo-1557862921-37829c790f19?q=80&w=400&auto=format&fit=crop',
-    2: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=400&auto=format&fit=crop',
-    3: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=400&auto=format&fit=crop',
-    4: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop',
-    5: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
-    6: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
-    7: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400&auto=format&fit=crop',
-    8: 'https://images.unsplash.com/photo-1499952127939-9bbf5af6c51c?q=80&w=400&auto=format&fit=crop',
-    9: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=400&auto=format&fit=crop',
-    10: 'https://images.unsplash.com/photo-1463453091185-61582044d556?q=80&w=400&auto=format&fit=crop',
-    11: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=400&auto=format&fit=crop',
-    12: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?q=80&w=400&auto=format&fit=crop',
-    13: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=400&auto=format&fit=crop' // Mike - young man with earring
-  };
-  // Convert ID to number if it's a string
-  const idNum = typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) || 1 : id;
-  // Use modulo to cycle through images if ID is larger than available images
-  const imageIndex = idNum <= 13 ? idNum : (idNum % 13) + 1;
-  // Return the image for the specific staff ID or a default image if ID not found
-  return staffImages[imageIndex as keyof typeof staffImages] || 'https://images.unsplash.com/photo-1629140727571-9b5c6f6267b4?q=80&w=400&auto=format&fit=crop';
+// Function to get staff image - uses actual staff image from backend data,
+// or generates an avatar using ui-avatars.com based on staff name
+const getStaffImage = (staffMember: { image?: string; name?: string }): string => {
+  // If staff has an image from backend, use it
+  if (staffMember.image) {
+    return staffMember.image;
+  }
+  // Otherwise generate an initials-based avatar
+  const name = staffMember.name || 'Staff';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=200`;
 };
 // Utility function to determine staff status based on active tickets
-export const determineStaffStatus = (staff, inServiceTickets) => {
+export const determineStaffStatus = (staff: any, inServiceTickets: any[]) => {
   // Keep 'off' status unchanged
   if (staff.status === 'off') return staff;
   // Check if this staff member has any tickets in service
-  const hasActiveTickets = inServiceTickets.some(ticket => ticket.assignedTo?.id === staff.id);
+  const hasActiveTickets = inServiceTickets.some((ticket: any) => ticket.assignedTo?.id === staff.id);
   // Update status based on active tickets
   return {
     ...staff,
@@ -320,7 +306,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
 
     // Use CSS Grid auto-fit for true responsive behavior
     // This eliminates the need for dynamic class generation
-    if (viewMode === 'ultra-compact') {
+    if ((viewMode as any) === 'ultra-compact') {
       // Ultra-compact cards: Maximum density (6-8 columns for wide screens)
       if (sidebarWidth < 200) {
         return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]'; // 90px min
@@ -493,7 +479,9 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
     const matchesSearch = staffMember.name.toLowerCase().includes(searchQuery.toLowerCase());
     // Handle filtering based on organization structure
     if (effectiveOrganizeBy === 'busyStatus') {
-      // When using Busy/Ready organization
+      // When using Busy/Ready organization - ONLY show clocked-in staff (exclude 'off')
+      const isClockedIn = staffMember.status === 'ready' || staffMember.status === 'busy';
+      if (!isClockedIn) return false; // Always exclude off staff in busyStatus mode
       return matchesSearch && (statusFilter === null || staffMember.status === statusFilter);
     } else {
       // When using Clocked In/Out organization
@@ -565,7 +553,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
         ready: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
         busy: 'bg-white text-gray-700 hover:bg-red-50 border border-gray-200'
       };
-      const bgColor = isActive ? activeColors[status.id] : inactiveColors[status.id];
+      const bgColor = isActive ? activeColors[status.id as keyof typeof activeColors] : inactiveColors[status.id as keyof typeof inactiveColors];
       const badgeBg = isActive ?
         (status.id === 'ready' ? 'bg-white text-green-700 shadow-sm font-bold' : 'bg-white text-red-700 shadow-sm font-bold') :
         'bg-gray-100 text-gray-600';
@@ -594,7 +582,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
           clockedIn: 'bg-white text-gray-700 hover:bg-green-50 border border-gray-200',
           clockedOut: 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
         };
-        const bgColor = isActive ? activeColors[status.id] : inactiveColors[status.id];
+        const bgColor = isActive ? activeColors[status.id as keyof typeof activeColors] : inactiveColors[status.id as keyof typeof inactiveColors];
         const badgeBg = isActive ? status.id === 'clockedIn' ? 'bg-white text-green-700 shadow-sm' : 'bg-white text-gray-700 shadow-sm' : isUltraCompact || isCompact ? 'bg-gray-200/70 text-gray-500' : 'bg-gray-100 text-gray-600';
         // Use ultra-compact labels for ultra-compact mode
         const label = isUltraCompact ? status.id === 'clockedIn' ? 'I' : 'O' : useShortLabels ? status.id === 'clockedIn' ? 'In' : 'Out' : status.label;
@@ -630,7 +618,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
         <div className="flex flex-col p-1.5 space-y-1.5">
           <div className="flex items-center justify-between">
             <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1 rounded-lg flex items-center justify-center" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] text-white p-1 rounded-lg flex items-center justify-center shadow-md"}>
-              <Users size={12} className="stroke-[2.5px]" />
+              <Users size={12} strokeWidth={2.5} />
             </div>
             <Tippy content="Team Settings">
               <button className={USE_NEW_TEAM_STYLING ? "p-1 rounded-lg bg-teal-100/50 hover:bg-teal-100 text-teal-700 transition-all duration-200" : "p-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-[#3BB09A] border border-gray-200/50 shadow-sm transition-all duration-200"} onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
@@ -689,7 +677,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
         {showSearch && <div className="px-3 pb-2.5">
           <div className="relative">
             <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-            <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
           </div>
         </div>}
       </div>;
@@ -740,7 +728,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
         {showSearch && <div className="px-3 pb-2.5">
           <div className="relative">
             <input type="text" placeholder="Search technicians..." className="w-full py-2 pl-9 pr-3 rounded-lg text-gray-800 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#3BB09A]/50 focus:border-[#3BB09A] shadow-sm bg-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-            <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
           </div>
         </div>}
       </div>;
@@ -778,8 +766,10 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
           const modifiedStaffMember = {
             ...staffMember,
             id: staffIdNumber,
-            image: getSalonStaffImage(staffIdNumber, staffMember.specialty),
-            time: staffMember.clockedInTime || '10:30a', // Add time field for metrics display
+            image: getStaffImage(staffMember), // Use real staff image or generate avatar
+            time: (typeof staffMember.clockInTime === 'string' ? staffMember.clockInTime : staffMember.clockInTime instanceof Date ? staffMember.clockInTime.toLocaleTimeString() : '10:30a'), // Add time field for metrics display
+            revenue: staffMember.revenue ?? null, // Ensure revenue is explicitly set
+            count: staffMember.turnCount ?? 0, // Add count property for StaffCard
           };
 
           // Choose card component based on team settings
@@ -787,18 +777,20 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
 
           // For testing, add dummy ticket info for busy staff
           if (staffMember.status === 'busy') {
-            modifiedStaffMember.activeTickets = [{
+            // Note: Cast to any as the underlying StaffMember type has string[] activeTickets
+            // but StaffCardProps expects activeTickets?: Array<{id: number; ...}>
+            (modifiedStaffMember as any).activeTickets = [{
               id: 1000 + staffIdNumber,
-              ticketNumber: 100 + staffIdNumber,
               clientName: 'Test Client',
               serviceName: 'Test Service',
-              status: 'in-service',
+              status: 'in-service' as const,
             }];
             modifiedStaffMember.currentTicketInfo = {
-              timeLeft: 10,
-              totalTime: 45,
-              progress: 0.67,
+              ticketId: String(1000 + staffIdNumber),
+              clientName: 'Test Client',
+              serviceName: 'Test Service',
               startTime: '10:15AM',
+              progress: 0.67,
             };
           }
 
@@ -815,15 +807,15 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
                 {modifiedStaffMember.turnCount !== undefined && (
                   <p><span className="font-medium">Turns:</span> {modifiedStaffMember.turnCount}</p>
                 )}
-                {modifiedStaffMember.clockedInTime && (
-                  <p><span className="font-medium">Clocked in:</span> {modifiedStaffMember.clockedInTime}</p>
+                {modifiedStaffMember.clockInTime && (
+                  <p><span className="font-medium">Clocked in:</span> {typeof modifiedStaffMember.clockInTime === 'string' ? modifiedStaffMember.clockInTime : modifiedStaffMember.clockInTime instanceof Date ? modifiedStaffMember.clockInTime.toLocaleTimeString() : String(modifiedStaffMember.clockInTime)}</p>
                 )}
                 {modifiedStaffMember.status === 'busy' && modifiedStaffMember.currentTicketInfo && (
                   <>
                     <p><span className="font-medium">Current service:</span> {modifiedStaffMember.currentTicketInfo.serviceName || 'Test Service'}</p>
                     <p><span className="font-medium">Client:</span> {modifiedStaffMember.currentTicketInfo.clientName || 'Test Client'}</p>
                     <p><span className="font-medium">Started:</span> {modifiedStaffMember.currentTicketInfo.startTime}</p>
-                    <p><span className="font-medium">Progress:</span> {Math.round(modifiedStaffMember.currentTicketInfo.progress * 100)}%</p>
+                    <p><span className="font-medium">Progress:</span> {Math.round((modifiedStaffMember.currentTicketInfo.progress ?? 0) * 100)}%</p>
                   </>
                 )}
               </div>
@@ -843,7 +835,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
               >
                 <div>
                   <CardComponent
-                    staff={modifiedStaffMember}
+                    staff={modifiedStaffMember as any}
                     viewMode={getCardViewMode()}
                     displayConfig={{
                       showName: true,

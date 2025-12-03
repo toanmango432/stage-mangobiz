@@ -94,7 +94,7 @@ export function FutureTimeOffChip({
       <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
         <TooltipTrigger asChild>
           <Badge
-            variant="chip"
+            variant="secondary"
             className="mt-1"
             onClick={handleClick}
             onKeyDown={handleKeyDown}

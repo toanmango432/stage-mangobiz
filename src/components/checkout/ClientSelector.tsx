@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -19,6 +19,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Search, User, Plus, AlertTriangle, ChevronDown, UserCircle, Trash2, RefreshCw, X, Edit2, Save } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
+import { selectClients } from "@/store/slices/clientsSlice";
+import type { Client as ReduxClient } from "@/types";
 
 export interface Client {
   id: string;
@@ -32,6 +35,18 @@ export interface Client {
   rewardPoints?: number;
   totalVisits?: number;
   lifetimeSpend?: number;
+  lastVisitDate?: string;
+  // Alert-related fields
+  staffAlert?: {
+    message: string;
+    createdAt?: string;
+    createdBy?: string;
+    createdByName?: string;
+  };
+  outstandingBalance?: number;
+  isBlocked?: boolean;
+  blockReason?: string;
+  blockReasonNote?: string;
 }
 
 interface ClientSelectorProps {
@@ -41,31 +56,26 @@ interface ClientSelectorProps {
   inDialog?: boolean;
 }
 
-// Mock client data for demonstration
-const MOCK_CLIENTS: Client[] = [
-  {
-    id: "1",
-    firstName: "Jane",
-    lastName: "Doe",
-    phone: "+1 270-994-0616",
-    email: "seanncl@gmail.com",
-    loyaltyStatus: "gold",
-    rewardPoints: 1250,
-    totalVisits: 24,
-    lifetimeSpend: 2450,
-  },
-  {
-    id: "2",
-    firstName: "John",
-    lastName: "Doe",
-    phone: "+1 555-123-4567",
-    email: "john@example.com",
-    loyaltyStatus: "silver",
-    rewardPoints: 580,
-    totalVisits: 12,
-    lifetimeSpend: 890,
-  },
-];
+// Helper function to convert Redux client to local Client format
+const convertReduxClient = (reduxClient: ReduxClient): Client => ({
+  id: reduxClient.id,
+  firstName: reduxClient.firstName,
+  lastName: reduxClient.lastName,
+  phone: reduxClient.phone || '',
+  email: reduxClient.email,
+  allergies: reduxClient.medicalInfo?.allergies,
+  notes: typeof reduxClient.notes === 'string' ? reduxClient.notes : undefined,
+  loyaltyStatus: reduxClient.loyaltyInfo?.tier as 'bronze' | 'silver' | 'gold' | undefined,
+  rewardPoints: reduxClient.loyaltyInfo?.pointsBalance,
+  totalVisits: reduxClient.visitSummary?.totalVisits,
+  lifetimeSpend: reduxClient.visitSummary?.totalSpent,
+  lastVisitDate: reduxClient.visitSummary?.lastVisitDate,
+  staffAlert: reduxClient.staffAlert,
+  outstandingBalance: reduxClient.outstandingBalance,
+  isBlocked: reduxClient.isBlocked,
+  blockReason: reduxClient.blockReason,
+  blockReasonNote: reduxClient.blockReasonNote,
+});
 
 // LocalStorage utilities for recent clients
 const RECENT_CLIENTS_KEY = "mango_pos_recent_clients";
@@ -99,6 +109,14 @@ export default function ClientSelector({
   onCreateClient,
   inDialog = false,
 }: ClientSelectorProps) {
+  // Get clients from Redux store
+  const reduxClients = useAppSelector(selectClients);
+
+  // Convert Redux clients to local Client format
+  const allClients = useMemo(() => {
+    return reduxClients.map(convertReduxClient);
+  }, [reduxClients]);
+
   const [searchValue, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showNewClientForm, setShowNewClientForm] = useState(false);
@@ -169,7 +187,7 @@ export default function ClientSelector({
     setEditedClient({});
   };
 
-  const filteredClients = MOCK_CLIENTS.filter((client) => {
+  const filteredClients = allClients.filter((client) => {
     const searchLower = debouncedSearch.toLowerCase();
     const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
     const phone = client.phone.toLowerCase();
@@ -178,14 +196,14 @@ export default function ClientSelector({
   });
 
   // Combine filtered clients with recent clients for display
-  const getDisplayClients = () => {
+  const getDisplayClients = (): Client[] | { recent: Client[]; other: Client[] } => {
     if (debouncedSearch) {
       return filteredClients;
     }
-    
+
     // Show recent clients when not searching
     const recentIds = recentClients.map(c => c.id);
-    const otherClients = MOCK_CLIENTS.filter(c => !recentIds.includes(c.id));
+    const otherClients = allClients.filter(c => !recentIds.includes(c.id));
     return { recent: recentClients.slice(0, 5), other: otherClients };
   };
 
@@ -194,7 +212,10 @@ export default function ClientSelector({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!showClientSelector || showNewClientForm) return;
 
-      const allClients = debouncedSearch ? filteredClients : [...(getDisplayClients().recent || []), ...(getDisplayClients().other || [])];
+      const displayClients = getDisplayClients();
+      const allClients = Array.isArray(displayClients)
+        ? displayClients
+        : [...displayClients.recent, ...displayClients.other];
       
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -693,7 +714,7 @@ export default function ClientSelector({
     }
 
     const displayClients = getDisplayClients();
-    const hasRecentClients = !debouncedSearch && Array.isArray(displayClients.recent) && displayClients.recent.length > 0;
+    const hasRecentClients = !debouncedSearch && !Array.isArray(displayClients) && displayClients.recent.length > 0;
 
     return (
       <div className="space-y-4">
@@ -731,12 +752,12 @@ export default function ClientSelector({
         </div>
 
         {/* Recent Clients Section */}
-        {hasRecentClients && (
+        {hasRecentClients && !Array.isArray(displayClients) && (
           <>
             <div>
               <h3 className="text-sm font-medium mb-2" data-testid="heading-recent-clients">Recent Clients</h3>
               <div className="space-y-1" ref={clientListRef}>
-                {displayClients.recent.map((client, index) => (
+                {displayClients.recent.map((client: Client, index: number) => (
                   <Card
                     key={client.id}
                     className={`p-4 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === index ? 'ring-2 ring-primary' : ''}`}
@@ -804,7 +825,7 @@ export default function ClientSelector({
         )}
 
         {/* All Clients List (when searching or if no recent) */}
-        {(debouncedSearch ? filteredClients.length > 0 : displayClients.other && displayClients.other.length > 0) && (
+        {(debouncedSearch ? filteredClients.length > 0 : !Array.isArray(displayClients) && displayClients.other && displayClients.other.length > 0) && (
           <>
             <Separator />
             <div>
@@ -813,14 +834,14 @@ export default function ClientSelector({
                   Search Results
                 </h3>
               )}
-              {!debouncedSearch && displayClients.other && displayClients.other.length > 0 && (
+              {!debouncedSearch && !Array.isArray(displayClients) && displayClients.other && displayClients.other.length > 0 && (
                 <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
                   All Clients
                 </h3>
               )}
               <div className="space-y-1">
-                {(debouncedSearch ? filteredClients : displayClients.other || []).map((client, index) => {
-                  const adjustedIndex = hasRecentClients ? index + displayClients.recent!.length : index;
+                {(debouncedSearch ? filteredClients : !Array.isArray(displayClients) ? displayClients.other || [] : []).map((client: Client, index: number) => {
+                  const adjustedIndex = hasRecentClients && !Array.isArray(displayClients) ? index + displayClients.recent.length : index;
                   return (
                     <Card
                       key={client.id}
@@ -859,7 +880,7 @@ export default function ClientSelector({
   }
 
   const displayClientsForDialog = getDisplayClients();
-  const hasRecentClientsInDialog = !debouncedSearch && Array.isArray(displayClientsForDialog.recent) && displayClientsForDialog.recent.length > 0;
+  const hasRecentClientsInDialog = !debouncedSearch && !Array.isArray(displayClientsForDialog) && displayClientsForDialog.recent.length > 0;
 
   return (
     <>
@@ -1023,7 +1044,7 @@ export default function ClientSelector({
                     <div>
                       <h3 className="text-sm font-medium mb-2" data-testid="heading-recent-clients">Recent Clients</h3>
                       <div className="space-y-1">
-                        {displayClientsForDialog.recent.map((client, index) => (
+                        {!Array.isArray(displayClientsForDialog) && displayClientsForDialog.recent.map((client: Client, index: number) => (
                           <Card
                             key={client.id}
                             className={`p-4 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === index ? 'ring-2 ring-primary' : ''}`}
@@ -1075,7 +1096,7 @@ export default function ClientSelector({
                 </Card>
 
                 {/* All Clients List (when searching or if no recent) */}
-                {(debouncedSearch ? filteredClients.length > 0 : displayClientsForDialog.other && displayClientsForDialog.other.length > 0) && (
+                {(debouncedSearch ? filteredClients.length > 0 : !Array.isArray(displayClientsForDialog) && displayClientsForDialog.other && displayClientsForDialog.other.length > 0) && (
                   <>
                     <Separator />
                     <div>
@@ -1084,14 +1105,14 @@ export default function ClientSelector({
                           Search Results
                         </h3>
                       )}
-                      {!debouncedSearch && displayClientsForDialog.other && displayClientsForDialog.other.length > 0 && (
+                      {!debouncedSearch && !Array.isArray(displayClientsForDialog) && displayClientsForDialog.other && displayClientsForDialog.other.length > 0 && (
                         <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
                           All Clients
                         </h3>
                       )}
                       <div className="space-y-1">
-                        {(debouncedSearch ? filteredClients : displayClientsForDialog.other || []).map((client, index) => {
-                          const adjustedIndex = hasRecentClientsInDialog ? index + displayClientsForDialog.recent!.length : index;
+                        {(debouncedSearch ? filteredClients : !Array.isArray(displayClientsForDialog) ? displayClientsForDialog.other || [] : []).map((client: Client, index: number) => {
+                          const adjustedIndex = hasRecentClientsInDialog && !Array.isArray(displayClientsForDialog) ? index + displayClientsForDialog.recent.length : index;
                           return (
                             <Card
                               key={client.id}

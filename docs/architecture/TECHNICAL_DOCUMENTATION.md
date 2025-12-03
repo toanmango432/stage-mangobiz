@@ -1,6 +1,6 @@
 # Mango POS Offline V2 - Technical Documentation
 
-**Version:** 2.0.0 | **Last Updated:** November 30, 2025
+**Version:** 2.1.0 | **Last Updated:** December 2, 2025
 
 ---
 
@@ -58,19 +58,21 @@ flowchart TB
         Redux[Redux Store]
         Hooks[Custom Hooks]
         Services[Services Layer]
+        SupabaseService[Supabase Service Layer]
         DB[(IndexedDB/Dexie)]
         SecureStore[(Secure Storage)]
     end
 
-    subgraph Backend["Backend Services"]
-        API[REST API]
-        WS[WebSocket Server]
-        Auth[Auth Service]
-        CC[Control Center]
+    subgraph Supabase["Supabase Cloud"]
+        SupabaseAPI[Supabase REST API]
+        RealtimeSub[Realtime Subscriptions]
+        BusinessDB[(Business Data Tables)]
+        EdgeFn[Edge Functions]
     end
 
-    subgraph External["External"]
-        Supabase[(Supabase/PostgreSQL)]
+    subgraph Backend["Backend Services (Future)"]
+        Auth[Auth Service]
+        CC[Control Center]
     end
 
     UI --> Redux
@@ -80,13 +82,118 @@ flowchart TB
     Redux --> Services
     Services --> DB
     Services --> SecureStore
-    Services --> API
-    Services --> WS
-    API --> Auth
-    API --> Supabase
+    Services --> SupabaseService
+    SupabaseService --> SupabaseAPI
+    SupabaseService --> RealtimeSub
+    SupabaseAPI --> BusinessDB
+    RealtimeSub --> BusinessDB
+    EdgeFn --> BusinessDB
     CC --> Auth
-    WS --> Supabase
 ```
+
+### Supabase Direct Sync Architecture
+
+**Status:** Implemented (Phase 1-5 Complete)
+
+Business data (clients, staff, services, appointments, tickets, transactions) now syncs directly to Supabase without requiring a backend API. This simplifies the architecture and enables:
+
+- **Direct database access** via Supabase JavaScript client
+- **Real-time subscriptions** for multi-device sync
+- **Row-Level Security (RLS)** for data isolation per store
+- **Edge Functions** for complex operations (payments, SMS, reports)
+
+```
+src/services/supabase/
+├── client.ts              # Supabase client configuration
+├── types.ts               # Database type definitions
+├── index.ts               # Main export
+├── sync.ts                # Sync service with real-time subscriptions
+├── adapters/              # Type conversion layer
+│   ├── index.ts           # Export all adapters
+│   ├── appointmentAdapter.ts  # AppointmentRow ↔ Appointment ✅
+│   ├── clientAdapter.ts       # ClientRow ↔ Client ✅
+│   ├── staffAdapter.ts        # StaffRow ↔ Staff ✅
+│   ├── serviceAdapter.ts      # ServiceRow ↔ Service ✅
+│   ├── ticketAdapter.ts       # TicketRow ↔ Ticket ✅
+│   └── transactionAdapter.ts  # TransactionRow ↔ Transaction ✅
+└── tables/
+    ├── clientsTable.ts    # Clients CRUD operations
+    ├── staffTable.ts      # Staff CRUD operations
+    ├── servicesTable.ts   # Services CRUD operations
+    ├── appointmentsTable.ts # Appointments CRUD operations
+    ├── ticketsTable.ts    # Tickets CRUD operations
+    └── transactionsTable.ts # Transactions CRUD operations
+```
+
+### dataService Pattern (Phase 6 - In Progress)
+
+The `dataService` (`src/services/dataService.ts`) provides a unified API that routes data operations based on device mode:
+
+```typescript
+// Data flow based on device mode:
+// Online-Only:  Redux Thunk → dataService → Supabase → Redux State
+// Offline-Enabled: Redux Thunk → dataService → IndexedDB → Sync Queue → Supabase
+
+import { dataService } from '@/services/dataService';
+
+// Example usage in Redux thunks:
+const appointments = await dataService.appointments.getByDate(date);
+const newClient = await dataService.clients.create(clientData);
+```
+
+**Key Methods:**
+| Entity | Read Methods | Write Methods |
+|--------|--------------|---------------|
+| `appointments` | `getByDate()`, `getUpcoming()`, `getById()` | `create()`, `update()`, `delete()` |
+| `clients` | `getAll()`, `search()`, `getById()` | `create()`, `update()`, `delete()` |
+| `staff` | `getActive()`, `getById()` | `create()`, `update()`, `delete()` |
+| `tickets` | `getOpen()`, `getByDate()` | `create()`, `update()`, `complete()` |
+| `transactions` | `getByTicket()`, `getByDate()` | `create()`, `void()`, `refund()` |
+| `services` | `getActive()`, `getByCategory()` | `create()`, `update()`, `delete()` |
+
+### Type Adapter Pattern
+
+Type adapters convert between Supabase row types (snake_case) and application types (camelCase):
+
+```typescript
+// src/services/supabase/adapters/appointmentAdapter.ts
+
+// Convert Supabase row to app type
+export function toAppointment(row: AppointmentRow): Appointment {
+  return {
+    id: row.id,
+    salonId: row.store_id,           // snake_case → camelCase
+    clientName: row.client_name,
+    scheduledStartTime: new Date(row.scheduled_start_time),
+    // ... more field mappings
+  };
+}
+
+// Convert app type to Supabase insert
+export function toAppointmentInsert(appointment: Appointment): AppointmentInsert {
+  return {
+    store_id: appointment.salonId,   // camelCase → snake_case
+    client_name: appointment.clientName,
+    scheduled_start_time: appointment.scheduledStartTime.toISOString(),
+    // ... more field mappings
+  };
+}
+
+// Batch conversion
+export function toAppointments(rows: AppointmentRow[]): Appointment[] {
+  return rows.map(toAppointment);
+}
+```
+
+**Adapter Functions per Entity:**
+| Adapter | To App Type | To Insert | To Update |
+|---------|-------------|-----------|-----------|
+| `appointmentAdapter` | `toAppointment()` | `toAppointmentInsert()` | `toAppointmentUpdate()` |
+| `clientAdapter` | `toClient()` | `toClientInsert()` | `toClientUpdate()` |
+| `staffAdapter` | `toStaff()` | `toStaffInsert()` | `toStaffUpdate()` |
+| `ticketAdapter` | `toTicket()` | `toTicketInsert()` | `toTicketUpdate()` |
+| `transactionAdapter` | `toTransaction()` | `toTransactionInsert()` | `toTransactionUpdate()` |
+| `serviceAdapter` | `toService()` | `toServiceInsert()` | `toServiceUpdate()` |
 
 ### Architecture Layers
 
@@ -95,26 +202,110 @@ flowchart TB
 | **Presentation** | React components, UI rendering, user interactions | `src/components/`, `src/pages/` |
 | **State** | Redux store, slices, selectors, async thunks | `src/store/` |
 | **Business Logic** | Services, utilities, hooks for business rules | `src/services/`, `src/hooks/`, `src/utils/` |
-| **Data** | IndexedDB operations, sync queue, API calls | `src/db/`, `src/api/` |
+| **Supabase** | Cloud database operations, real-time sync | `src/services/supabase/` |
+| **Data** | IndexedDB operations, sync queue | `src/db/` |
 | **Security** | Encrypted storage, auth tokens, data isolation | `src/services/secureStorage.ts` |
 
 ---
 
 ## Technology Stack
 
+### Core Framework & Language
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | 18.3.1 | UI Framework with Hooks |
+| **TypeScript** | 5.5.4 | Type-safe JavaScript |
+| **Vite** | 5.2.0 | Build Tool & Dev Server |
+
+### State Management & Data
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Redux Toolkit** | 2.9.1 | Global state management |
+| **React Redux** | 9.2.0 | React bindings for Redux |
+| **TanStack React Query** | 5.90.11 | Server state & caching |
+| **Dexie.js** | 4.2.1 | IndexedDB wrapper (offline storage) |
+| **@supabase/supabase-js** | 2.84.0 | Supabase JavaScript client |
+
+### Cloud Services
+
 | Technology | Purpose |
 |------------|---------|
-| **React 18** | UI Framework with Hooks |
-| **TypeScript** | Type-safe JavaScript |
-| **Vite** | Build Tool & Dev Server |
-| **Redux Toolkit** | State Management |
-| **Dexie.js** | IndexedDB Wrapper with migrations |
-| **Tailwind CSS** | Utility-first Styling |
-| **React Router** | Client-side Routing |
-| **Axios** | HTTP Client |
-| **Socket.io** | Real-time Communication |
-| **Supabase** | Cloud Backend (PostgreSQL) |
-| **Web Crypto API** | AES-256-GCM encryption |
+| **Supabase** | PostgreSQL database, Auth, Real-time subscriptions, RLS |
+| **Supabase Edge Functions** | Serverless functions (Deno) |
+
+### UI Components & Styling
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Tailwind CSS** | 3.4.17 | Utility-first CSS |
+| **Radix UI** | Various | Accessible headless components |
+| **Lucide React** | 0.522.0 | Icon library |
+| **Framer Motion** | 12.23.24 | Animations |
+| **Recharts** | 3.4.1 | Data visualization/charts |
+| **Sonner** | 2.0.7 | Toast notifications |
+| **cmdk** | 1.1.1 | Command palette |
+| **Vaul** | 1.1.2 | Drawer component |
+
+### Forms & Validation
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React Hook Form** | 7.65.0 | Form state management |
+| **Zod** | 3.25.76 | Schema validation |
+| **@hookform/resolvers** | 3.10.0 | Zod + RHF integration |
+
+### Date & Time
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **date-fns** | 4.1.0 | Date manipulation |
+| **Day.js** | 1.11.18 | Lightweight date library |
+| **React Day Picker** | 9.11.3 | Calendar date picker |
+
+### Routing & Navigation
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React Router DOM** | 7.9.6 | Client-side routing |
+
+### Real-time Communication
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Socket.io Client** | 4.8.1 | WebSocket client |
+| **Supabase Realtime** | (via supabase-js) | Postgres change subscriptions |
+
+### Testing
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Vitest** | 1.6.1 | Unit test runner |
+| **Playwright** | 1.56.1 | E2E testing |
+| **Testing Library** | 14.3.1 | React component testing |
+| **fake-indexeddb** | 6.2.4 | IndexedDB mocking |
+
+### Utilities
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **uuid** | 9.0.1 | UUID generation |
+| **clsx** | 2.1.1 | Conditional classnames |
+| **tailwind-merge** | 3.4.0 | Tailwind class merging |
+| **class-variance-authority** | 0.7.1 | Component variants |
+| **Axios** | 1.12.2 | HTTP client |
+| **Web Crypto API** | Native | AES-256-GCM encryption |
+
+### Supabase Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Project URL** | `https://cpaldkcvdcdyzytosntc.supabase.co` |
+| **Client Location** | `src/services/supabase/client.ts` |
+| **Auto Refresh Token** | Enabled |
+| **Persist Session** | Enabled |
+| **Realtime Rate** | 10 events/second |
 
 ---
 
@@ -124,7 +315,26 @@ flowchart TB
 
 ### Overview
 
-Data is categorized into four storage types based on sync requirements, security, and access patterns:
+Data is categorized into four storage types based on sync requirements, security, and access patterns.
+
+### Supabase Business Tables (Implemented)
+
+The following tables exist in Supabase for direct cloud sync:
+
+| Table | Purpose | Key Fields | RLS |
+|-------|---------|------------|-----|
+| `clients` | Customer records | first_name, last_name, email, phone, is_vip | Enabled |
+| `staff` | Team members | first_name, last_name, role, status, service_ids | Enabled |
+| `services` | Service catalog | name, category_id, duration, price | Enabled |
+| `appointments` | Scheduled bookings | client_id, staff_id, scheduled_start, status | Enabled |
+| `tickets` | Service tickets | client_id, appointment_id, services, total | Enabled |
+| `transactions` | Payment records | ticket_id, payment_method, amount, status | Enabled |
+
+All tables include sync metadata fields:
+- `sync_status`: 'local' | 'synced' | 'pending' | 'conflict' | 'error'
+- `sync_version`: Monotonic counter for conflict detection
+- `store_id`: Multi-tenant isolation
+- `created_at`, `updated_at`: Timestamps
 
 ```mermaid
 flowchart LR
@@ -288,6 +498,42 @@ interface EntityState<T> {
 | `ticketsSlice` | fetchTickets, createTicket, updateTicket | selectOpenTickets, selectByClient |
 | `syncSlice` | pushChanges, pullChanges, resolveConflict | selectPendingCount, selectSyncStatus |
 | `authSlice` | loginStore, logout, validateSession | selectIsAuthenticated, selectCurrentStore |
+
+### Redux → dataService Integration Pattern (Phase 6)
+
+Redux slices should use `dataService` instead of calling IndexedDB or Supabase directly:
+
+```typescript
+// src/store/slices/appointmentsSlice.ts
+
+import { dataService } from '@/services/dataService';
+import { toAppointments, toAppointmentInsert } from '@/services/supabase/adapters';
+
+// Fetch appointments via dataService
+export const fetchAppointmentsFromSupabase = createAsyncThunk(
+  'appointments/fetchFromSupabase',
+  async (date: Date) => {
+    const rows = await dataService.appointments.getByDate(date);
+    return toAppointments(rows);  // Convert Supabase rows to app types
+  }
+);
+
+// Create appointment via dataService
+export const createAppointmentInSupabase = createAsyncThunk(
+  'appointments/createInSupabase',
+  async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const insertData = toAppointmentInsert(appointment);
+    const row = await dataService.appointments.create(insertData);
+    return toAppointment(row);
+  }
+);
+```
+
+**Migration Path:**
+1. Add new Supabase-based thunks (e.g., `fetchAppointmentsFromSupabase`)
+2. Keep existing IndexedDB thunks during transition
+3. Update components to use new thunks
+4. Deprecate old thunks once migration complete
 
 ---
 
@@ -456,23 +702,35 @@ sequenceDiagram
 
 ## Authentication Flow
 
+Mango POS uses a **two-tier authentication system** aligned with industry standards (Fresha, Booksy):
+
+1. **Store Login**: Business-level authentication using store credentials
+2. **Member PIN**: Quick staff identification after store is authenticated
+
+### Authentication Architecture
+
 ```mermaid
 stateDiagram-v2
     [*] --> CheckingAuth: App Loads
-    CheckingAuth --> NotLoggedIn: No Store ID
+    CheckingAuth --> NotLoggedIn: No Store Session
+    CheckingAuth --> StoreLoggedIn: Store Session Valid
     CheckingAuth --> OfflineGrace: Within 7 days
     CheckingAuth --> OfflineExpired: Past 7 days
-    CheckingAuth --> Active: Valid Session
 
-    NotLoggedIn --> LoginScreen: Show Login
-    LoginScreen --> Checking: Submit Credentials
-    Checking --> Active: Success
-    Checking --> NotLoggedIn: Invalid
-    Checking --> Suspended: Account Issue
+    NotLoggedIn --> StoreLoginScreen: Show Store Login
+    StoreLoginScreen --> CheckingStore: Submit Credentials
+    CheckingStore --> StoreLoggedIn: Success
+    CheckingStore --> NotLoggedIn: Invalid
+    CheckingStore --> Suspended: Account Issue
+
+    StoreLoggedIn --> MemberPINScreen: Show PIN Pad
+    MemberPINScreen --> Active: Valid PIN
+    MemberPINScreen --> StoreLoggedIn: Invalid PIN
 
     OfflineGrace --> Active: Continue Offline
-    OfflineExpired --> LoginScreen: Force Login
+    OfflineExpired --> StoreLoginScreen: Force Login
 
+    Active --> MemberPINScreen: Switch Member
     Active --> [*]: Use App
     Suspended --> [*]: Show Message
 ```
@@ -481,81 +739,246 @@ stateDiagram-v2
 
 | State | Description | User Experience |
 |-------|-------------|-----------------|
-| `not_logged_in` | No store session exists | Show login screen |
-| `active` | Logged in and validated | Full app access |
+| `not_logged_in` | No store session exists | Show store login screen |
+| `store_logged_in` | Store authenticated, no member selected | Show member PIN screen |
+| `active` | Store + member authenticated | Full app access |
 | `offline_grace` | Offline but within 7-day grace | Full access, warning shown |
 | `offline_expired` | Grace period expired | Must reconnect to login |
 | `suspended` | Account suspended | Show suspended message |
 | `checking` | Validating credentials | Show loading spinner |
 
-### Login Sequence
+### Database Tables (Supabase)
+
+```sql
+-- Store-level authentication
+stores (
+  id UUID PRIMARY KEY,
+  store_login_id VARCHAR UNIQUE,  -- e.g., 'demo@salon.com'
+  password_hash VARCHAR,
+  name VARCHAR,
+  tenant_id UUID REFERENCES tenants(id)
+)
+
+-- Member-level authentication (multi-store support)
+members (
+  id UUID PRIMARY KEY,
+  email VARCHAR UNIQUE,
+  password_hash VARCHAR,
+  pin VARCHAR(6),                  -- Quick PIN for staff switching
+  role VARCHAR,                    -- owner, manager, staff, receptionist
+  store_ids UUID[],                -- Array of store IDs (multi-location)
+  first_name VARCHAR,
+  last_name VARCHAR
+)
+
+-- Franchise/business grouping
+tenants (
+  id UUID PRIMARY KEY,
+  name VARCHAR,
+  email VARCHAR,
+  company VARCHAR
+)
+
+-- License management
+licenses (
+  id UUID PRIMARY KEY,
+  tenant_id UUID REFERENCES tenants(id),
+  tier VARCHAR,                    -- starter, growth, pro, enterprise
+  max_stores INTEGER,
+  max_devices_per_store INTEGER
+)
+```
+
+### Two-Tier Login Sequence
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant LoginScreen
-    participant AuthManager
-    participant API
-    participant SecureStorage
+    participant StoreLoginScreen
+    participant MemberPINScreen
+    participant AuthService
+    participant Supabase
     participant Redux
 
-    User->>LoginScreen: Enter Store ID + Password
-    LoginScreen->>AuthManager: loginStore(id, password)
-    AuthManager->>API: POST /auth/stores/login
+    Note over User,Redux: Phase 1: Store Authentication
+    User->>StoreLoginScreen: Enter Store Login ID + Password
+    StoreLoginScreen->>AuthService: loginStore(loginId, password)
+    AuthService->>Supabase: SELECT * FROM stores WHERE store_login_id = ?
 
-    alt Success
-        API-->>AuthManager: {store, license, token, defaults}
-        AuthManager->>SecureStorage: Encrypt & save credentials
-        AuthManager->>Redux: Update auth state
-        Redux-->>LoginScreen: isAuthenticated = true
-        LoginScreen-->>User: Redirect to POS
-    else Network Error
-        API-->>AuthManager: Network Error
-        AuthManager->>SecureStorage: Check grace period
-        AuthManager-->>LoginScreen: offline_grace or offline_expired
-    else Invalid Credentials
-        API-->>AuthManager: {error: 'Invalid'}
-        AuthManager-->>LoginScreen: Show error message
+    alt Store Found
+        Supabase-->>AuthService: {store data}
+        AuthService->>AuthService: Verify password_hash (bcrypt)
+        alt Password Valid
+            AuthService->>Redux: setStoreSession({storeId, storeName})
+            Redux-->>StoreLoginScreen: storeLoggedIn = true
+            StoreLoginScreen-->>MemberPINScreen: Show PIN Screen
+        else Password Invalid
+            AuthService-->>StoreLoginScreen: Show error message
+        end
+    else Store Not Found
+        Supabase-->>AuthService: null
+        AuthService-->>StoreLoginScreen: Show "Store not found" error
     end
+
+    Note over User,Redux: Phase 2: Member Authentication
+    User->>MemberPINScreen: Enter 4-6 digit PIN
+    MemberPINScreen->>AuthService: loginMemberWithPin(storeId, pin)
+    AuthService->>Supabase: SELECT * FROM members WHERE pin = ? AND ? = ANY(store_ids)
+
+    alt Member Found & PIN Valid
+        Supabase-->>AuthService: {member data}
+        AuthService->>Redux: setMemberSession({memberId, memberName, role})
+        Redux-->>MemberPINScreen: isAuthenticated = true
+        MemberPINScreen-->>User: Redirect to Front Desk
+    else PIN Invalid
+        AuthService-->>MemberPINScreen: Show error message
+    end
+```
+
+### Member Quick-Switch Flow
+
+Once the store is logged in, members can quickly switch using their PIN without re-entering store credentials:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant FrontDesk
+    participant AuthService
+    participant Supabase
+    participant Redux
+
+    User->>FrontDesk: Click "Switch User" / Tap Member Avatar
+    FrontDesk->>FrontDesk: Show PIN Pad Modal
+    User->>FrontDesk: Enter PIN
+    FrontDesk->>AuthService: loginMemberWithPin(currentStoreId, pin)
+    AuthService->>Supabase: SELECT * FROM members WHERE pin = ? AND ? = ANY(store_ids)
+    Supabase-->>AuthService: {new member data}
+    AuthService->>Redux: setMemberSession({memberId, memberName, role})
+    Redux-->>FrontDesk: Update UI with new member context
+```
+
+### Permission Levels
+
+| Role | Permissions |
+|------|------------|
+| `owner` | Full access, business settings, financials, team management |
+| `manager` | Staff scheduling, reporting, limited settings |
+| `staff` | Own appointments, check-in clients, process sales |
+| `receptionist` | Book appointments, check-in, basic sales |
+| `junior` | View-only, limited actions |
+
+### Auth Service Functions
+
+```typescript
+// src/services/supabase/authService.ts
+
+// Store-level authentication
+loginStoreWithCredentials(loginId: string, password: string): Promise<StoreSession>
+validateStoreSession(storeId: string): Promise<boolean>
+logoutStore(): void
+
+// Member-level authentication
+loginMemberWithPin(storeId: string, pin: string): Promise<MemberSession>
+loginMemberWithPassword(email: string, password: string): Promise<MemberSession>
+getStoreMembers(storeId: string): Promise<Member[]>
+getCurrentMember(): MemberSession | null
+switchMember(pin: string): Promise<MemberSession>
+logoutMember(): void
 ```
 
 ---
 
 ## API Integration
 
-### API Client Configuration
+### Supabase Direct Connection
+
+Mango POS uses **Supabase JavaScript client** directly instead of a custom backend API. This simplifies architecture and enables real-time subscriptions.
 
 ```typescript
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
-  timeout: 30000,
-  headers: { 'Content-Type': 'application/json' }
-});
+// src/services/supabase/supabaseClient.ts
+import { createClient } from '@supabase/supabase-js';
 
-// Request interceptor for auth
-apiClient.interceptors.request.use(async (config) => {
-  const token = await secureStorage.getItem('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 ```
 
-### API Endpoints
+### Data Service Pattern
+
+All data access goes through `dataService` which routes to Supabase or IndexedDB based on device mode:
+
+```typescript
+// src/services/dataService.ts
+export const dataService = {
+  staff: {
+    getAll: () => supabaseStaffService.getAll(getStoreId()),
+    getById: (id) => supabaseStaffService.getById(id),
+    create: (data) => supabaseStaffService.create(data),
+    update: (id, data) => supabaseStaffService.update(id, data),
+  },
+  // ... similar for clients, appointments, tickets, services
+};
+```
+
+### Supabase Tables (Data Layer)
+
+| Table | Purpose | RLS Policy |
+|-------|---------|------------|
+| `stores` | Store registration & login | Public read for login, store-scoped writes |
+| `members` | Team members with PIN auth | Store-scoped via `store_ids` array |
+| `tenants` | Franchise/business grouping | Tenant-scoped access |
+| `licenses` | Subscription management | Tenant-scoped |
+| `staff` | Staff profiles (linked to members) | Store-scoped via `store_id` |
+| `clients` | Customer database | Store-scoped via `store_id` |
+| `services` | Service catalog | Store-scoped via `store_id` |
+| `appointments` | Appointment bookings | Store-scoped via `store_id` |
+| `tickets` | Transaction tickets | Store-scoped via `store_id` |
+| `transactions` | Payment records | Store-scoped via `store_id` |
+
+### Control Center API (License Validation Only)
+
+The Control Center API is used **only** for license validation, not for authentication:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/auth/stores/login` | POST | Store authentication |
-| `/auth/members/login` | POST | Member authentication |
-| `/auth/pin/login` | POST | PIN-based login |
-| `/appointments` | GET/POST | List/Create appointments |
-| `/appointments/{id}` | GET/PUT/DELETE | Single appointment operations |
-| `/tickets` | GET/POST | List/Create tickets |
-| `/tickets/{id}/complete` | POST | Complete a ticket |
-| `/sync/push` | POST | Push local changes (batched) |
-| `/sync/pull` | GET | Pull remote changes (since checkpoint) |
-| `/sync/conflicts` | GET/POST | Conflict resolution |
+| `/api/validate-license` | POST | Validate store license status |
+
+```typescript
+// License validation (separate from auth)
+const validateLicense = async (storeId: string) => {
+  const response = await fetch(`${CONTROL_CENTER_URL}/api/validate-license`, {
+    method: 'POST',
+    body: JSON.stringify({ storeId }),
+  });
+  return response.json(); // { valid: true, tier: 'pro', expiresAt: '...' }
+};
+```
+
+### Type Adapters (Snake Case ↔ Camel Case)
+
+Supabase returns snake_case columns; the app uses camelCase:
+
+```typescript
+// src/services/supabase/typeAdapters.ts
+
+// Supabase row → App type
+export const toStaff = (row: SupabaseStaffRow): Staff => ({
+  id: row.id,
+  firstName: row.first_name,
+  lastName: row.last_name,
+  storeId: row.store_id,
+  // ...
+});
+
+// App type → Supabase insert
+export const toStaffInsert = (staff: Staff): SupabaseStaffInsert => ({
+  first_name: staff.firstName,
+  last_name: staff.lastName,
+  store_id: staff.storeId,
+  // ...
+});
+```
 
 ---
 
@@ -604,7 +1027,18 @@ src/
 │   ├── syncService.ts
 │   ├── storeAuthManager.ts
 │   ├── secureStorage.ts   # AES-256 encrypted storage
-│   └── dataPurgeService.ts # Retention policy enforcement
+│   ├── dataPurgeService.ts # Retention policy enforcement
+│   └── supabase/          # Supabase Direct Sync
+│       ├── client.ts      # Supabase client configuration
+│       ├── types.ts       # Database type definitions
+│       ├── index.ts       # Main export
+│       └── tables/        # Table-specific CRUD operations
+│           ├── clientsTable.ts
+│           ├── staffTable.ts
+│           ├── servicesTable.ts
+│           ├── appointmentsTable.ts
+│           ├── ticketsTable.ts
+│           └── transactionsTable.ts
 ├── components/            # React components
 │   ├── frontdesk/         # Front desk module
 │   │   ├── FrontDesk.tsx  # Main component
@@ -649,6 +1083,10 @@ src/
 | `src/services/secureStorage.ts` | ~200 lines | AES-256-GCM encryption |
 | `src/services/syncManager.ts` | ~300+ lines | Offline sync orchestration |
 | `src/store/slices/appointmentsSlice.ts` | ~300+ lines | Appointment state management |
+| `src/services/supabase/client.ts` | ~50 lines | Supabase client configuration |
+| `src/services/supabase/types.ts` | ~200+ lines | Database type definitions |
+| `src/services/supabase/index.ts` | ~50 lines | Main Supabase export |
+| `src/services/supabase/tables/*.ts` | ~150-250 lines each | Table CRUD operations |
 
 ---
 
@@ -760,8 +1198,10 @@ class SecureStorage {
 | Document | Description |
 |----------|-------------|
 | [DATA_STORAGE_STRATEGY.md](./DATA_STORAGE_STRATEGY.md) | Complete data storage architecture with entity schemas, sync, conflicts, security |
-| [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md) | **Planned** - Online-only by default, opt-in offline mode |
+| [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md) | **In Progress** - Online-only by default, opt-in offline mode |
 | [Mango POS PRD v1.md](../product/Mango%20POS%20PRD%20v1.md) | Product requirements document |
+| `tasks/supabase-schema.sql` | SQL schema for Supabase business tables |
+| `tasks/todo.md` | Implementation progress for Supabase Direct Sync |
 
 ---
 
@@ -769,9 +1209,12 @@ class SecureStorage {
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 2.3.0 | Dec 2, 2025 | Engineering | Expanded Technology Stack section with full dependencies, versions, and categories |
+| 2.2.0 | Dec 2, 2025 | Engineering | Added dataService pattern, type adapter pattern, Redux integration pattern (Phase 6), updated status to Phase 1-5 Complete |
+| 2.1.0 | Dec 2, 2025 | Engineering | Added Supabase Direct Sync architecture (Phase 1-2), updated architecture diagrams, added Supabase service layer documentation |
 | 2.0.0 | Nov 30, 2025 | Engineering | Updated to reference DATA_STORAGE_STRATEGY.md, removed duplication, updated security section with AES-256 |
 | 1.0.0 | Nov 2025 | Engineering | Initial documentation |
 
 ---
 
-*Generated: November 30, 2025*
+*Generated: December 2, 2025*

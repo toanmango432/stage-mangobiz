@@ -118,7 +118,6 @@ export function DeviceSettings({ onBack }: DeviceSettingsProps) {
 
   const isOffline = currentMode === 'offline-enabled';
   const otherDevices = devices.filter(d => !d.isCurrentDevice);
-  const currentDevice = devices.find(d => d.isCurrentDevice);
 
   return (
     <div className="h-full bg-gray-50 overflow-y-auto">

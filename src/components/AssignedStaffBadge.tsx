@@ -1,6 +1,4 @@
-import React from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import { UserCheck } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 interface AssignedStaffBadgeProps {
@@ -14,7 +12,7 @@ export function AssignedStaffBadge({
   const {
     staff
   } = useTickets();
-  const staffMember = staff.find(s => s.id === staffId);
+  const staffMember = staff.find(s => s.id === String(staffId));
   if (!staffMember) return null;
   return <Tippy content={`Assigned to ${staffMember.name}`}>
       <div className={`flex items-center ${compact ? 'gap-1' : 'gap-2'} bg-blue-50 rounded-full px-2 py-0.5 border border-blue-100`}>

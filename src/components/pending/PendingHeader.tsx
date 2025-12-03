@@ -2,7 +2,6 @@ import { Search, Grid, List, ArrowUpDown, ChevronDown, ChevronUp, CreditCard } f
 import { useState, useRef, useEffect } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Input, Button } from '../ui';
 
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 

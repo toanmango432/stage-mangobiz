@@ -12,6 +12,14 @@ export type LoyaltyTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'vip';
 export type CommunicationChannel = 'email' | 'sms' | 'phone' | 'app_notification';
 export type ContactTimePreference = 'morning' | 'afternoon' | 'evening' | 'anytime';
 
+// Staff Alert
+export interface StaffAlert {
+  message: string;
+  createdAt?: string;
+  createdBy?: string;
+  createdByName?: string;
+}
+
 // Client source/referral
 export type ClientSource =
   | 'walk_in'
@@ -260,6 +268,9 @@ export interface EnhancedClient {
   contact: ClientContact;
   address?: ClientAddress;
   emergencyContact?: EmergencyContact;
+
+  // Staff Alert
+  staffAlert?: StaffAlert;
 
   // Source/referral tracking
   source?: ClientSource;

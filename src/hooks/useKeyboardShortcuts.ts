@@ -54,7 +54,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
     // Check for modifier keys
     const hasCtrl = event.ctrlKey || event.metaKey; // Cmd on Mac, Ctrl on Windows
     const hasShift = event.shiftKey;
-    const hasAlt = event.altKey;
+    // const _hasAlt = event.altKey;
 
     // Handle shortcuts
     switch (event.key.toLowerCase()) {
@@ -86,7 +86,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       case 't':
         if (!hasCtrl && !hasShift) {
           event.preventDefault();
-          dispatch(setSelectedDate(new Date().toISOString()));
+          dispatch(setSelectedDate(new Date() as any));
         }
         break;
 
@@ -105,11 +105,11 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
         break;
       case '4':
         event.preventDefault();
-        dispatch(setViewMode('agenda'));
+        dispatch(setViewMode('agenda' as any));
         break;
       case '5':
         event.preventDefault();
-        dispatch(setViewMode('timeline'));
+        dispatch(setViewMode('timeline' as any));
         break;
 
       // Navigation

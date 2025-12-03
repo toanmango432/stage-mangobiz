@@ -1,20 +1,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CalendarIcon, Clock, User, MessageSquare } from "lucide-react";
+import { CalendarIcon, Clock, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { TimeOffRequest } from "./types";
 
 interface HistoryProps {
   requests: TimeOffRequest[];
-  currentUser?: {
-    id: string;
-    name: string;
-    role: "manager" | "staff";
-  };
 }
 
-export function History({ requests, currentUser }: HistoryProps) {
+export function History({ requests }: HistoryProps) {
   const sortedRequests = [...requests].sort((a, b) => 
     new Date(b.reviewedAt || b.submittedAt).getTime() - new Date(a.reviewedAt || a.submittedAt).getTime()
   );

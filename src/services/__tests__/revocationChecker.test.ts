@@ -4,7 +4,7 @@
  * Tests for device revocation checking and data clearing.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { clearLocalData, hasPendingData } from '../revocationChecker';
 
 // Mock localStorage

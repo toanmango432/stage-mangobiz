@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { X, CheckCircle, Tag, Clock, Calendar, DollarSign, FileText, User } from 'lucide-react';
 interface CompleteTicketModalProps {
@@ -19,7 +19,7 @@ export function CompleteTicketModal({
     inService
   } = useTickets();
   // Find the selected ticket
-  const selectedTicket = inService.find(ticket => ticket.id === ticketId);
+  const selectedTicket = inService.find(ticket => ticket.id === String(ticketId));
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {

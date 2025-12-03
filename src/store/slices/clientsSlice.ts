@@ -1,17 +1,48 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { clientsDB, patchTestsDB, formResponsesDB, referralsDB, clientReviewsDB, loyaltyRewardsDB } from '../../db/database';
+import { clientsDB, patchTestsDB, formResponsesDB, referralsDB, clientReviewsDB, loyaltyRewardsDB, reviewRequestsDB, customSegmentsDB } from '../../db/database';
+import { dataService } from '../../services/dataService';
+import { toClient, toClients, toClientInsert, toClientUpdate } from '../../services/supabase';
 import type {
   Client,
   ClientFilters,
   ClientSortOptions,
-  BulkOperationResult,
   BlockReason,
   PatchTest,
   ClientFormResponse,
   Referral,
   ClientReview,
   LoyaltyReward,
+  ReviewRequest,
+  CustomSegment,
+  ClientSegment,
+  SegmentAnalytics,
+  SegmentFilterGroup,
 } from '../../types';
+import type { EarnPointsInput, LoyaltyCalculationResult } from '../../types/loyalty';
+import {
+  calculateLoyaltyEarnings,
+  buildUpdatedLoyaltyInfo,
+  buildLoyaltyInfoAfterRedemption,
+} from '../../utils/loyaltyCalculations';
+import {
+  generateReferralCode,
+  calculateReferrerReward,
+  calculateReferredDiscount,
+  isReferralExpired,
+  DEFAULT_REFERRAL_SETTINGS,
+} from '../../constants/referralConfig';
+import {
+  DEFAULT_REVIEW_SETTINGS,
+  canRequestReview,
+  calculateExpirationDate,
+} from '../../constants/reviewConfig';
+import {
+  DEFAULT_SEGMENT_THRESHOLDS,
+  getSegmentAnalytics,
+  filterClientsBySegment,
+  filterClientsByCustomSegment,
+  generateSegmentExportCsv,
+} from '../../constants/segmentationConfig';
 import type { RootState } from '../index';
 
 // ==================== STATE INTERFACE ====================
@@ -90,7 +121,83 @@ const initialState: ClientsState = {
   error: null,
 };
 
-// ==================== ASYNC THUNKS ====================
+// ==================== SUPABASE THUNKS (Phase 6) ====================
+
+/**
+ * Fetch all clients from Supabase via dataService
+ * Uses type adapters to convert Supabase rows to app types
+ * Note: storeId is obtained internally from Redux auth state
+ */
+export const fetchClientsFromSupabase = createAsyncThunk(
+  'clients/fetchFromSupabase',
+  async () => {
+    const rows = await dataService.clients.getAll();
+    return toClients(rows);
+  }
+);
+
+/**
+ * Search clients from Supabase
+ * Note: storeId is obtained internally from Redux auth state
+ */
+export const searchClientsFromSupabase = createAsyncThunk(
+  'clients/searchFromSupabase',
+  async (query: string) => {
+    const rows = await dataService.clients.search(query);
+    return toClients(rows);
+  }
+);
+
+/**
+ * Fetch single client by ID from Supabase
+ */
+export const fetchClientByIdFromSupabase = createAsyncThunk(
+  'clients/fetchByIdFromSupabase',
+  async (clientId: string) => {
+    const row = await dataService.clients.getById(clientId);
+    if (!row) throw new Error('Client not found');
+    return toClient(row);
+  }
+);
+
+/**
+ * Create client in Supabase via dataService
+ * Note: storeId is obtained internally from Redux auth state
+ */
+export const createClientInSupabase = createAsyncThunk(
+  'clients/createInSupabase',
+  async (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const insertData = toClientInsert(client);
+    const row = await dataService.clients.create(insertData);
+    return toClient(row);
+  }
+);
+
+/**
+ * Update client in Supabase via dataService
+ */
+export const updateClientInSupabase = createAsyncThunk(
+  'clients/updateInSupabase',
+  async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
+    const updateData = toClientUpdate(updates);
+    const row = await dataService.clients.update(id, updateData);
+    if (!row) throw new Error('Failed to update client');
+    return toClient(row);
+  }
+);
+
+/**
+ * Delete client in Supabase via dataService
+ */
+export const deleteClientInSupabase = createAsyncThunk(
+  'clients/deleteInSupabase',
+  async (id: string) => {
+    await dataService.clients.delete(id);
+    return id;
+  }
+);
+
+// ==================== LEGACY ASYNC THUNKS (IndexedDB) ====================
 
 // Fetch clients with filters
 export const fetchClients = createAsyncThunk(
@@ -290,6 +397,746 @@ export const updatePatchTest = createAsyncThunk(
     const updated = await patchTestsDB.update(id, updates);
     if (!updated) throw new Error('Failed to update patch test');
     return updated;
+  }
+);
+
+// ==================== LOYALTY THUNKS ====================
+
+/**
+ * Earn loyalty points after a completed transaction
+ * Calculates points based on tier multiplier and updates client
+ */
+export const earnLoyaltyPoints = createAsyncThunk<
+  { client: Client; result: LoyaltyCalculationResult },
+  EarnPointsInput
+>(
+  'clients/earnLoyaltyPoints',
+  async (input: EarnPointsInput) => {
+    // Fetch the client
+    const client = await clientsDB.getById(input.clientId);
+    if (!client) {
+      throw new Error('Client not found');
+    }
+
+    // Calculate points earned and tier changes
+    const result = calculateLoyaltyEarnings(client, input);
+
+    // If no points earned (excluded or disabled), return early
+    if (result.pointsEarned === 0) {
+      return { client, result };
+    }
+
+    // Build updated loyalty info
+    const updatedLoyaltyInfo = buildUpdatedLoyaltyInfo(client.loyaltyInfo, result);
+
+    // Update client with new loyalty info and visit summary
+    const currentTotalSpent = client.visitSummary?.totalSpent || 0;
+    const currentVisits = client.visitSummary?.totalVisits || 0;
+
+    const updates: Partial<Client> = {
+      loyaltyInfo: updatedLoyaltyInfo,
+      visitSummary: {
+        ...client.visitSummary,
+        totalSpent: currentTotalSpent + input.subtotal,
+        totalVisits: currentVisits + 1,
+        lastVisitDate: new Date().toISOString(),
+        averageTicket: (currentTotalSpent + input.subtotal) / (currentVisits + 1),
+        noShowCount: client.visitSummary?.noShowCount || 0,
+        lateCancelCount: client.visitSummary?.lateCancelCount || 0,
+      },
+    };
+
+    const updatedClient = await clientsDB.update(input.clientId, updates);
+    if (!updatedClient) {
+      throw new Error('Failed to update client loyalty');
+    }
+
+    return { client: updatedClient, result };
+  }
+);
+
+/**
+ * Redeem loyalty points during checkout
+ * Deducts points from client balance
+ */
+export const redeemLoyaltyPoints = createAsyncThunk<
+  Client,
+  { clientId: string; pointsToRedeem: number; transactionId?: string }
+>(
+  'clients/redeemLoyaltyPoints',
+  async ({ clientId, pointsToRedeem }) => {
+    // Fetch the client
+    const client = await clientsDB.getById(clientId);
+    if (!client) {
+      throw new Error('Client not found');
+    }
+
+    // Check if client has enough points
+    const availablePoints = client.loyaltyInfo?.pointsBalance || 0;
+    if (pointsToRedeem > availablePoints) {
+      throw new Error(`Insufficient points. Available: ${availablePoints}, Requested: ${pointsToRedeem}`);
+    }
+
+    // Build updated loyalty info
+    const updatedLoyaltyInfo = buildLoyaltyInfoAfterRedemption(client.loyaltyInfo, pointsToRedeem);
+
+    // Update client
+    const updatedClient = await clientsDB.update(clientId, {
+      loyaltyInfo: updatedLoyaltyInfo,
+    });
+
+    if (!updatedClient) {
+      throw new Error('Failed to update client after points redemption');
+    }
+
+    return updatedClient;
+  }
+);
+
+// ==================== REFERRAL THUNKS ====================
+
+/**
+ * Generate a referral code for a client
+ */
+export const generateClientReferralCode = createAsyncThunk<
+  Client,
+  { clientId: string }
+>(
+  'clients/generateReferralCode',
+  async ({ clientId }) => {
+    const client = await clientsDB.getById(clientId);
+    if (!client) {
+      throw new Error('Client not found');
+    }
+
+    // Check if client already has a code
+    if (client.loyaltyInfo?.referralCode) {
+      return client; // Already has a code
+    }
+
+    // Generate unique code
+    const code = generateReferralCode(
+      DEFAULT_REFERRAL_SETTINGS.codeFormat,
+      DEFAULT_REFERRAL_SETTINGS.codeLength,
+      DEFAULT_REFERRAL_SETTINGS.codePrefix,
+      client.name
+    );
+
+    // Update client with referral code
+    const updatedClient = await clientsDB.update(clientId, {
+      loyaltyInfo: {
+        tier: client.loyaltyInfo?.tier || 'bronze',
+        pointsBalance: client.loyaltyInfo?.pointsBalance || 0,
+        lifetimePoints: client.loyaltyInfo?.lifetimePoints || 0,
+        referralCount: client.loyaltyInfo?.referralCount || 0,
+        rewardsRedeemed: client.loyaltyInfo?.rewardsRedeemed || 0,
+        ...client.loyaltyInfo,
+        referralCode: code,
+      },
+    });
+
+    if (!updatedClient) {
+      throw new Error('Failed to update client with referral code');
+    }
+
+    return updatedClient;
+  }
+);
+
+/**
+ * Apply a referral code when a new client signs up
+ */
+export const applyReferralCode = createAsyncThunk<
+  { referral: Referral; referrer: Client; newClient: Client },
+  { newClientId: string; referralCode: string }
+>(
+  'clients/applyReferralCode',
+  async ({ newClientId, referralCode }) => {
+    // Find the referrer by their referral code
+    const allClients = await clientsDB.getAll(''); // Get all clients to search
+    const referrer = allClients.find(c => c.loyaltyInfo?.referralCode === referralCode);
+
+    if (!referrer) {
+      throw new Error('Invalid referral code');
+    }
+
+    // Get the new client
+    const newClient = await clientsDB.getById(newClientId);
+    if (!newClient) {
+      throw new Error('New client not found');
+    }
+
+    // Check if new client was already referred
+    if (newClient.loyaltyInfo?.referredBy) {
+      throw new Error('Client has already been referred');
+    }
+
+    // Create the referral record
+    const referral = await referralsDB.create({
+      referrerClientId: referrer.id,
+      referredClientId: newClientId,
+      referredClientName: newClient.name,
+      referralLinkCode: referralCode,
+      referrerRewardIssued: false,
+      referredRewardIssued: false,
+    });
+
+    // Update new client with referredBy info
+    const updatedNewClient = await clientsDB.update(newClientId, {
+      loyaltyInfo: {
+        tier: newClient.loyaltyInfo?.tier || 'bronze',
+        pointsBalance: newClient.loyaltyInfo?.pointsBalance || 0,
+        lifetimePoints: newClient.loyaltyInfo?.lifetimePoints || 0,
+        referralCount: newClient.loyaltyInfo?.referralCount || 0,
+        rewardsRedeemed: newClient.loyaltyInfo?.rewardsRedeemed || 0,
+        ...newClient.loyaltyInfo,
+        referredBy: referrer.id,
+      },
+      source: 'referral',
+      sourceDetails: `Referred by ${referrer.name}`,
+    });
+
+    if (!updatedNewClient) {
+      throw new Error('Failed to update new client');
+    }
+
+    return { referral, referrer, newClient: updatedNewClient };
+  }
+);
+
+/**
+ * Complete a referral after the referred client's first appointment
+ * Issues rewards to both referrer and referred client
+ */
+export const completeReferral = createAsyncThunk<
+  { referral: Referral; referrer: Client; referredClient: Client },
+  { referralId: string; appointmentId: string; transactionAmount: number }
+>(
+  'clients/completeReferral',
+  async ({ referralId, appointmentId, transactionAmount }) => {
+    // Get the referral
+    const referral = await referralsDB.getById(referralId);
+    if (!referral) {
+      throw new Error('Referral not found');
+    }
+
+    // Check if already completed
+    if (referral.completedAt) {
+      throw new Error('Referral already completed');
+    }
+
+    // Check if expired
+    if (isReferralExpired(referral.createdAt, DEFAULT_REFERRAL_SETTINGS.expirationDays)) {
+      throw new Error('Referral has expired');
+    }
+
+    // Check minimum spend requirement
+    if (DEFAULT_REFERRAL_SETTINGS.minimumSpend && transactionAmount < DEFAULT_REFERRAL_SETTINGS.minimumSpend) {
+      throw new Error(`Minimum spend of $${DEFAULT_REFERRAL_SETTINGS.minimumSpend} required`);
+    }
+
+    // Get both clients
+    const referrer = await clientsDB.getById(referral.referrerClientId);
+    const referredClient = await clientsDB.getById(referral.referredClientId);
+
+    if (!referrer || !referredClient) {
+      throw new Error('Referrer or referred client not found');
+    }
+
+    // Complete the referral
+    const completedReferral = await referralsDB.completeReferral(referralId, appointmentId);
+    if (!completedReferral) {
+      throw new Error('Failed to complete referral');
+    }
+
+    // Calculate and issue rewards
+    const reward = calculateReferrerReward(DEFAULT_REFERRAL_SETTINGS);
+
+    // Update referrer - add reward (as credit or points)
+    let updatedReferrer = referrer;
+    if (DEFAULT_REFERRAL_SETTINGS.autoIssueRewards) {
+      const referrerLoyaltyInfo = referrer.loyaltyInfo || {
+        tier: 'bronze' as const,
+        pointsBalance: 0,
+        lifetimePoints: 0,
+        referralCount: 0,
+        rewardsRedeemed: 0,
+      };
+
+      if (reward.type === 'points' && reward.points) {
+        // Add points
+        updatedReferrer = await clientsDB.update(referrer.id, {
+          loyaltyInfo: {
+            ...referrerLoyaltyInfo,
+            tier: referrerLoyaltyInfo.tier || 'bronze',
+            pointsBalance: (referrerLoyaltyInfo.pointsBalance || 0) + reward.points,
+            lifetimePoints: (referrerLoyaltyInfo.lifetimePoints || 0) + reward.points,
+            referralCount: (referrerLoyaltyInfo.referralCount || 0) + 1,
+          },
+        }) || referrer;
+      } else {
+        // Add credit (store as a reward to be redeemed)
+        await loyaltyRewardsDB.create({
+          clientId: referrer.id,
+          salonId: referrer.salonId,
+          type: 'amount_discount',
+          description: `$${reward.amount} credit for referring ${referredClient.name}`,
+          value: reward.amount,
+          earnedFrom: 'referral',
+        });
+
+        updatedReferrer = await clientsDB.update(referrer.id, {
+          loyaltyInfo: {
+            ...referrerLoyaltyInfo,
+            tier: referrerLoyaltyInfo.tier || 'bronze',
+            referralCount: (referrerLoyaltyInfo.referralCount || 0) + 1,
+          },
+        }) || referrer;
+      }
+
+      // Mark referrer reward as issued
+      await referralsDB.update(referralId, { referrerRewardIssued: true });
+    }
+
+    return {
+      referral: { ...completedReferral, referrerRewardIssued: true },
+      referrer: updatedReferrer,
+      referredClient,
+    };
+  }
+);
+
+/**
+ * Get referral discount for a new client
+ */
+export const getReferralDiscount = createAsyncThunk<
+  { discountPercent: number; discountAmount: number; finalAmount: number } | null,
+  { clientId: string; originalAmount: number }
+>(
+  'clients/getReferralDiscount',
+  async ({ clientId, originalAmount }) => {
+    // Check if client was referred
+    const referral = await referralsDB.getByReferredId(clientId);
+    if (!referral) {
+      return null; // No referral, no discount
+    }
+
+    // Check if this is their first appointment (discount only applies to first)
+    if (referral.completedAt) {
+      return null; // Already used their first-time discount
+    }
+
+    // Check if expired
+    if (isReferralExpired(referral.createdAt, DEFAULT_REFERRAL_SETTINGS.expirationDays)) {
+      return null; // Referral expired
+    }
+
+    // Calculate discount
+    return calculateReferredDiscount(originalAmount, DEFAULT_REFERRAL_SETTINGS);
+  }
+);
+
+// ==================== REVIEW REQUEST THUNKS (PRD 2.3.9) ====================
+
+/**
+ * Create a review request for a client after checkout
+ */
+export const createReviewRequest = createAsyncThunk<
+  ReviewRequest,
+  {
+    salonId: string;
+    clientId: string;
+    clientName: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    appointmentId?: string;
+    staffId?: string;
+    staffName?: string;
+  }
+>(
+  'clients/createReviewRequest',
+  async (params) => {
+    // Check if client can receive a review request
+    const recentRequests = await reviewRequestsDB.getByClientId(params.clientId);
+    if (!canRequestReview(recentRequests, DEFAULT_REVIEW_SETTINGS)) {
+      throw new Error('Client has received maximum review requests this month');
+    }
+
+    // Check if a request already exists for this appointment
+    if (params.appointmentId) {
+      const existing = await reviewRequestsDB.getByAppointmentId(params.appointmentId);
+      if (existing) {
+        throw new Error('Review request already exists for this appointment');
+      }
+    }
+
+    // Create review request
+    const expiresAt = calculateExpirationDate(new Date()).toISOString();
+    const request = await reviewRequestsDB.create({
+      salonId: params.salonId,
+      clientId: params.clientId,
+      clientName: params.clientName,
+      clientEmail: params.clientEmail,
+      clientPhone: params.clientPhone,
+      appointmentId: params.appointmentId,
+      staffId: params.staffId,
+      staffName: params.staffName,
+      status: 'pending',
+      sentVia: 'email',
+      reminderCount: 0,
+      expiresAt,
+    });
+
+    return request;
+  }
+);
+
+/**
+ * Send a review request (mark as sent)
+ */
+export const sendReviewRequest = createAsyncThunk<
+  ReviewRequest,
+  { requestId: string; sentVia: 'email' | 'sms' | 'both' }
+>(
+  'clients/sendReviewRequest',
+  async ({ requestId, sentVia }) => {
+    const request = await reviewRequestsDB.markSent(requestId, sentVia);
+    if (!request) {
+      throw new Error('Review request not found');
+    }
+    return request;
+  }
+);
+
+/**
+ * Mark review request as opened
+ */
+export const markReviewRequestOpened = createAsyncThunk<
+  ReviewRequest,
+  { requestId: string }
+>(
+  'clients/markReviewRequestOpened',
+  async ({ requestId }) => {
+    const request = await reviewRequestsDB.markOpened(requestId);
+    if (!request) {
+      throw new Error('Review request not found');
+    }
+    return request;
+  }
+);
+
+/**
+ * Complete a review request (when client submits review)
+ */
+export const completeReviewRequest = createAsyncThunk<
+  { request: ReviewRequest; review: ClientReview },
+  {
+    requestId: string;
+    rating: number;
+    comment?: string;
+  }
+>(
+  'clients/completeReviewRequest',
+  async ({ requestId, rating, comment }) => {
+    // Get the request
+    const request = await reviewRequestsDB.getById(requestId);
+    if (!request) {
+      throw new Error('Review request not found');
+    }
+
+    // Create the review
+    const review = await clientReviewsDB.create({
+      clientId: request.clientId,
+      appointmentId: request.appointmentId,
+      staffId: request.staffId,
+      rating,
+      comment,
+      platform: 'internal',
+    });
+
+    // Mark request as completed
+    const completedRequest = await reviewRequestsDB.markCompleted(requestId, review.id);
+    if (!completedRequest) {
+      throw new Error('Failed to complete review request');
+    }
+
+    // Update client's review stats
+    const client = await clientsDB.getById(request.clientId);
+    if (client) {
+      const allReviews = await clientReviewsDB.getByClientId(request.clientId);
+      const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+
+      await clientsDB.update(request.clientId, {
+        averageRating: Math.round(avgRating * 10) / 10,
+        totalReviews: allReviews.length,
+      });
+    }
+
+    return { request: completedRequest, review };
+  }
+);
+
+/**
+ * Send a reminder for an outstanding review request
+ */
+export const sendReviewReminder = createAsyncThunk<
+  ReviewRequest,
+  { requestId: string }
+>(
+  'clients/sendReviewReminder',
+  async ({ requestId }) => {
+    const request = await reviewRequestsDB.getById(requestId);
+    if (!request) {
+      throw new Error('Review request not found');
+    }
+
+    // Check if max reminders reached
+    if (request.reminderCount >= DEFAULT_REVIEW_SETTINGS.maxReminders) {
+      throw new Error('Maximum reminders already sent');
+    }
+
+    // Check if request is still active
+    if (request.status === 'completed' || request.status === 'expired') {
+      throw new Error('Review request is no longer active');
+    }
+
+    const updatedRequest = await reviewRequestsDB.addReminder(requestId);
+    if (!updatedRequest) {
+      throw new Error('Failed to add reminder');
+    }
+
+    return updatedRequest;
+  }
+);
+
+/**
+ * Fetch review requests for a salon
+ */
+export const fetchReviewRequests = createAsyncThunk<
+  ReviewRequest[],
+  { salonId: string; status?: 'pending' | 'sent' | 'opened' | 'completed' | 'expired' }
+>(
+  'clients/fetchReviewRequests',
+  async ({ salonId, status }) => {
+    if (status) {
+      return await reviewRequestsDB.getByStatus(salonId, status);
+    }
+    return await reviewRequestsDB.getBySalonId(salonId);
+  }
+);
+
+/**
+ * Process expired review requests
+ */
+export const processExpiredReviewRequests = createAsyncThunk<
+  number,
+  { salonId: string }
+>(
+  'clients/processExpiredReviewRequests',
+  async ({ salonId }) => {
+    const expired = await reviewRequestsDB.getExpired(salonId);
+    let count = 0;
+
+    for (const request of expired) {
+      await reviewRequestsDB.markExpired(request.id);
+      count++;
+    }
+
+    return count;
+  }
+);
+
+// ==================== SEGMENTATION THUNKS (PRD 2.3.10) ====================
+
+/**
+ * Get segment analytics for all clients
+ */
+export const fetchSegmentAnalytics = createAsyncThunk<
+  SegmentAnalytics,
+  { salonId: string }
+>(
+  'clients/fetchSegmentAnalytics',
+  async ({ salonId }) => {
+    const clients = await clientsDB.getAll(salonId);
+    const customSegments = await customSegmentsDB.getActive(salonId);
+
+    // Get analytics for default segments
+    const analytics = getSegmentAnalytics(clients, DEFAULT_SEGMENT_THRESHOLDS);
+
+    // Add custom segment counts
+    for (const segment of customSegments) {
+      const matchingClients = filterClientsByCustomSegment(clients, segment);
+      analytics.customSegmentCounts.push({
+        segment: segment.id,
+        name: segment.name,
+        count: matchingClients.length,
+        percentage: clients.length > 0 ? (matchingClients.length / clients.length) * 100 : 0,
+        color: segment.color,
+      });
+    }
+
+    return analytics;
+  }
+);
+
+/**
+ * Filter clients by a default segment
+ */
+export const fetchClientsBySegment = createAsyncThunk<
+  Client[],
+  { salonId: string; segment: ClientSegment }
+>(
+  'clients/fetchClientsBySegment',
+  async ({ salonId, segment }) => {
+    const clients = await clientsDB.getAll(salonId);
+    return filterClientsBySegment(clients, segment, DEFAULT_SEGMENT_THRESHOLDS);
+  }
+);
+
+/**
+ * Filter clients by a custom segment
+ */
+export const fetchClientsByCustomSegment = createAsyncThunk<
+  Client[],
+  { salonId: string; segmentId: string }
+>(
+  'clients/fetchClientsByCustomSegment',
+  async ({ salonId, segmentId }) => {
+    const segment = await customSegmentsDB.getById(segmentId);
+    if (!segment) {
+      throw new Error('Custom segment not found');
+    }
+
+    const clients = await clientsDB.getAll(salonId);
+    return filterClientsByCustomSegment(clients, segment);
+  }
+);
+
+/**
+ * Create a new custom segment
+ */
+export const createCustomSegment = createAsyncThunk<
+  CustomSegment,
+  {
+    salonId: string;
+    name: string;
+    description?: string;
+    color: string;
+    icon?: string;
+    filters: SegmentFilterGroup;
+    createdBy: string;
+  }
+>(
+  'clients/createCustomSegment',
+  async (params) => {
+    // Check if segment name already exists
+    const existing = await customSegmentsDB.getByName(params.salonId, params.name);
+    if (existing) {
+      throw new Error('A segment with this name already exists');
+    }
+
+    return await customSegmentsDB.create({
+      salonId: params.salonId,
+      name: params.name,
+      description: params.description,
+      color: params.color,
+      icon: params.icon,
+      filters: params.filters,
+      isActive: true,
+      createdBy: params.createdBy,
+    });
+  }
+);
+
+/**
+ * Update a custom segment
+ */
+export const updateCustomSegment = createAsyncThunk<
+  CustomSegment,
+  { segmentId: string; updates: Partial<CustomSegment> }
+>(
+  'clients/updateCustomSegment',
+  async ({ segmentId, updates }) => {
+    const segment = await customSegmentsDB.update(segmentId, updates);
+    if (!segment) {
+      throw new Error('Custom segment not found');
+    }
+    return segment;
+  }
+);
+
+/**
+ * Delete a custom segment
+ */
+export const deleteCustomSegment = createAsyncThunk<
+  string,
+  { segmentId: string }
+>(
+  'clients/deleteCustomSegment',
+  async ({ segmentId }) => {
+    const success = await customSegmentsDB.delete(segmentId);
+    if (!success) {
+      throw new Error('Failed to delete custom segment');
+    }
+    return segmentId;
+  }
+);
+
+/**
+ * Fetch all custom segments for a salon
+ */
+export const fetchCustomSegments = createAsyncThunk<
+  CustomSegment[],
+  { salonId: string; activeOnly?: boolean }
+>(
+  'clients/fetchCustomSegments',
+  async ({ salonId, activeOnly = true }) => {
+    return await customSegmentsDB.getBySalonId(salonId, activeOnly);
+  }
+);
+
+/**
+ * Duplicate an existing custom segment
+ */
+export const duplicateCustomSegment = createAsyncThunk<
+  CustomSegment,
+  { segmentId: string; newName: string; createdBy: string }
+>(
+  'clients/duplicateCustomSegment',
+  async ({ segmentId, newName, createdBy }) => {
+    const segment = await customSegmentsDB.duplicate(segmentId, newName, createdBy);
+    if (!segment) {
+      throw new Error('Failed to duplicate segment');
+    }
+    return segment;
+  }
+);
+
+/**
+ * Export clients from a segment as CSV
+ */
+export const exportSegmentClients = createAsyncThunk<
+  string,
+  { salonId: string; segment?: ClientSegment; customSegmentId?: string }
+>(
+  'clients/exportSegmentClients',
+  async ({ salonId, segment, customSegmentId }) => {
+    const allClients = await clientsDB.getAll(salonId);
+    let clientsToExport: Client[];
+
+    if (customSegmentId) {
+      const customSegment = await customSegmentsDB.getById(customSegmentId);
+      if (!customSegment) {
+        throw new Error('Custom segment not found');
+      }
+      clientsToExport = filterClientsByCustomSegment(allClients, customSegment);
+    } else if (segment) {
+      clientsToExport = filterClientsBySegment(allClients, segment, DEFAULT_SEGMENT_THRESHOLDS);
+    } else {
+      throw new Error('Either segment or customSegmentId must be provided');
+    }
+
+    return generateSegmentExportCsv(clientsToExport);
   }
 );
 
@@ -592,6 +1439,207 @@ const clientsSlice = createSlice({
         if (index !== -1) {
           state.selectedClientPatchTests[index] = action.payload;
         }
+      });
+
+    // ==================== SUPABASE THUNKS REDUCERS (Phase 6) ====================
+
+    // Fetch clients from Supabase
+    builder
+      .addCase(fetchClientsFromSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchClientsFromSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+        state.total = action.payload.length;
+      })
+      .addCase(fetchClientsFromSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch clients from Supabase';
+      });
+
+    // Search clients from Supabase
+    builder
+      .addCase(searchClientsFromSupabase.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(searchClientsFromSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.searchResults = action.payload;
+      })
+      .addCase(searchClientsFromSupabase.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Fetch client by ID from Supabase
+    builder
+      .addCase(fetchClientByIdFromSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchClientByIdFromSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedClient = action.payload;
+      })
+      .addCase(fetchClientByIdFromSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch client from Supabase';
+      });
+
+    // Create client in Supabase
+    builder
+      .addCase(createClientInSupabase.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(createClientInSupabase.fulfilled, (state, action) => {
+        state.saving = false;
+        state.items.unshift(action.payload);
+        state.total += 1;
+        state.stats.total += 1;
+        state.stats.newThisMonth += 1;
+      })
+      .addCase(createClientInSupabase.rejected, (state, action) => {
+        state.saving = false;
+        state.error = action.error.message || 'Failed to create client in Supabase';
+      });
+
+    // Update client in Supabase
+    builder
+      .addCase(updateClientInSupabase.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(updateClientInSupabase.fulfilled, (state, action) => {
+        state.saving = false;
+        const index = state.items.findIndex(c => c.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        if (state.selectedClient?.id === action.payload.id) {
+          state.selectedClient = action.payload;
+        }
+      })
+      .addCase(updateClientInSupabase.rejected, (state, action) => {
+        state.saving = false;
+        state.error = action.error.message || 'Failed to update client in Supabase';
+      });
+
+    // Delete client in Supabase
+    builder
+      .addCase(deleteClientInSupabase.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(deleteClientInSupabase.fulfilled, (state, action) => {
+        state.saving = false;
+        state.items = state.items.filter(c => c.id !== action.payload);
+        state.total -= 1;
+        if (state.selectedClient?.id === action.payload) {
+          state.selectedClient = null;
+        }
+      })
+      .addCase(deleteClientInSupabase.rejected, (state, action) => {
+        state.saving = false;
+        state.error = action.error.message || 'Failed to delete client in Supabase';
+      });
+
+    // ==================== LOYALTY THUNKS REDUCERS ====================
+
+    // Earn loyalty points
+    builder
+      .addCase(earnLoyaltyPoints.fulfilled, (state, action) => {
+        const { client } = action.payload;
+        const index = state.items.findIndex(c => c.id === client.id);
+        if (index !== -1) {
+          state.items[index] = client;
+        }
+        if (state.selectedClient?.id === client.id) {
+          state.selectedClient = client;
+        }
+      })
+      .addCase(earnLoyaltyPoints.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to earn loyalty points';
+      });
+
+    // Redeem loyalty points
+    builder
+      .addCase(redeemLoyaltyPoints.fulfilled, (state, action) => {
+        const client = action.payload;
+        const index = state.items.findIndex(c => c.id === client.id);
+        if (index !== -1) {
+          state.items[index] = client;
+        }
+        if (state.selectedClient?.id === client.id) {
+          state.selectedClient = client;
+        }
+      })
+      .addCase(redeemLoyaltyPoints.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to redeem loyalty points';
+      });
+
+    // Generate referral code
+    builder
+      .addCase(generateClientReferralCode.fulfilled, (state, action) => {
+        const client = action.payload;
+        const index = state.items.findIndex(c => c.id === client.id);
+        if (index !== -1) {
+          state.items[index] = client;
+        }
+        if (state.selectedClient?.id === client.id) {
+          state.selectedClient = client;
+        }
+      })
+      .addCase(generateClientReferralCode.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to generate referral code';
+      });
+
+    // Apply referral code
+    builder
+      .addCase(applyReferralCode.fulfilled, (state, action) => {
+        const { newClient } = action.payload;
+        const index = state.items.findIndex(c => c.id === newClient.id);
+        if (index !== -1) {
+          state.items[index] = newClient;
+        }
+        if (state.selectedClient?.id === newClient.id) {
+          state.selectedClient = newClient;
+        }
+      })
+      .addCase(applyReferralCode.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to apply referral code';
+      });
+
+    // Complete referral
+    builder
+      .addCase(completeReferral.fulfilled, (state, action) => {
+        const { referrer, referredClient, referral } = action.payload;
+
+        // Update referrer in state
+        const referrerIndex = state.items.findIndex(c => c.id === referrer.id);
+        if (referrerIndex !== -1) {
+          state.items[referrerIndex] = referrer;
+        }
+
+        // Update referred client in state
+        const referredIndex = state.items.findIndex(c => c.id === referredClient.id);
+        if (referredIndex !== -1) {
+          state.items[referredIndex] = referredClient;
+        }
+
+        // Update selected client referrals if viewing either client
+        if (state.selectedClient?.id === referrer.id || state.selectedClient?.id === referredClient.id) {
+          const existingIndex = state.selectedClientReferrals.findIndex(r => r.id === referral.id);
+          if (existingIndex !== -1) {
+            state.selectedClientReferrals[existingIndex] = referral;
+          } else {
+            state.selectedClientReferrals.push(referral);
+          }
+        }
+      })
+      .addCase(completeReferral.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to complete referral';
       });
   },
 });

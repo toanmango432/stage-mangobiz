@@ -3,12 +3,6 @@ import { useState, useCallback } from 'react';
 export type ViewMode = 'grid' | 'list';
 export type CardViewMode = 'normal' | 'compact';
 
-interface ViewModePreferences {
-  viewMode: ViewMode;
-  cardViewMode: CardViewMode;
-  minimizedLineView: boolean;
-}
-
 interface ViewModePreferenceOptions {
   storageKey: string;
   defaultViewMode?: ViewMode;

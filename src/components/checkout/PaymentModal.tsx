@@ -18,7 +18,6 @@ import {
   Check,
   DollarSign,
   Printer,
-  CircleDot,
 } from "lucide-react";
 
 export interface PaymentMethod {

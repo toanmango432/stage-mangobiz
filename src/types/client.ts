@@ -353,14 +353,46 @@ export interface ClientReview {
   syncStatus: SyncStatus;
 }
 
+// ==================== REVIEW REQUESTS (PRD 2.3.9) ====================
+
+/** Review request status */
+export type ReviewRequestStatus = 'pending' | 'sent' | 'opened' | 'completed' | 'expired';
+
+/** Review request record - tracks sent review invitations */
+export interface ReviewRequest {
+  id: string;
+  salonId: string;
+  clientId: string;
+  clientName: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  appointmentId?: string;
+  staffId?: string;
+  staffName?: string;
+  status: ReviewRequestStatus;
+  sentVia: 'email' | 'sms' | 'both';
+  sentAt?: string;
+  openedAt?: string;
+  completedAt?: string;
+  reviewId?: string;  // ID of the review if completed
+  reminderCount: number;
+  lastReminderAt?: string;
+  expiresAt: string;
+  createdAt: string;
+  syncStatus: SyncStatus;
+}
+
 // ==================== LOYALTY REWARDS (PRD 2.3.7) ====================
 
 /** Loyalty Reward */
 export interface LoyaltyReward {
   id: string;
+  salonId: string;
   clientId: string;
   type: 'amount_discount' | 'percentage_discount' | 'free_service' | 'free_product';
   value: number;
+  description?: string;
+  pointsCost?: number;          // Number of points required to redeem
   productId?: string;
   serviceId?: string;
   minSpend?: number;
@@ -438,6 +470,7 @@ export interface Client {
   visitSummary?: VisitSummary;
   lastVisit?: string; // Legacy or computed field for visitSummary.lastVisitDate
   totalVisits?: number; // Legacy or computed field for visitSummary.totalVisits
+  totalSpent?: number; // Legacy or computed field for visitSummary.totalSpent
   outstandingBalance?: number;
   storeCredit?: number;
 
@@ -576,6 +609,89 @@ export interface SegmentDefinition {
   name: string;
   description: string;
   filter: (client: Client) => boolean;
+}
+
+// Comparison operators for custom segment filters
+export type SegmentComparisonOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'greater_than'
+  | 'less_than'
+  | 'greater_or_equal'
+  | 'less_or_equal'
+  | 'contains'
+  | 'not_contains'
+  | 'starts_with'
+  | 'ends_with'
+  | 'is_empty'
+  | 'is_not_empty'
+  | 'in_list'
+  | 'not_in_list';
+
+// Fields available for custom segment filtering
+export type SegmentFilterField =
+  | 'visitSummary.totalVisits'
+  | 'visitSummary.totalSpent'
+  | 'visitSummary.averageTicket'
+  | 'visitSummary.lastVisitDate'
+  | 'visitSummary.noShowCount'
+  | 'visitSummary.lateCancelCount'
+  | 'loyaltyInfo.tier'
+  | 'loyaltyInfo.pointsBalance'
+  | 'loyaltyInfo.lifetimePoints'
+  | 'membership.hasMembership'
+  | 'source'
+  | 'gender'
+  | 'birthday'
+  | 'tags'
+  | 'isVip'
+  | 'isBlocked'
+  | 'createdAt';
+
+// Individual filter condition for custom segments
+export interface SegmentFilterCondition {
+  field: SegmentFilterField;
+  operator: SegmentComparisonOperator;
+  value: string | number | boolean | string[];
+}
+
+// Filter group with AND/OR logic
+export interface SegmentFilterGroup {
+  logic: 'and' | 'or';
+  conditions: (SegmentFilterCondition | SegmentFilterGroup)[];
+}
+
+// Custom segment definition (user-created)
+export interface CustomSegment {
+  id: string;
+  salonId: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon?: string;
+  filters: SegmentFilterGroup;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  syncStatus: SyncStatus;
+}
+
+// Segment with client count for analytics
+export interface SegmentWithCount {
+  segment: ClientSegment | string;  // string for custom segment IDs
+  name: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+// Segment analytics summary
+export interface SegmentAnalytics {
+  totalClients: number;
+  segmentCounts: SegmentWithCount[];
+  customSegmentCounts: SegmentWithCount[];
+  lastUpdated: string;
 }
 
 // ==================== BULK OPERATIONS ====================

@@ -2,22 +2,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format, startOfDay } from "date-fns";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+import { Switch } from "@/components/ui/switch";
+import { format, startOfDay, isBefore } from "date-fns";
 import {
   CalendarIcon,
   Clock,
   DollarSign,
   CheckCircle,
   XCircle,
-  AlertCircle,
   Plus,
   User
 } from "lucide-react";
@@ -53,10 +50,9 @@ export function TimeOffTab({ staffMember, timeOffRequests, onUpdate }: TimeOffTa
   );
   
   const pendingRequests = staffTimeOffRequests.filter(request => request.status === "pending");
-  const completedRequests = staffTimeOffRequests.filter(request => 
+  const completedRequests = staffTimeOffRequests.filter(request =>
     request.status === "approved" && new Date(request.date) < startOfDay(new Date())
   );
-  const deniedRequests = staffTimeOffRequests.filter(request => request.status === "denied");
 
   function handleSubmit() {
     if (!formData.startDate) return;
@@ -67,7 +63,7 @@ export function TimeOffTab({ staffMember, timeOffRequests, onUpdate }: TimeOffTa
       employeeName: staffMember.name,
       date: formData.startDate.toISOString().split('T')[0],
       endDate: formData.isDateRange && formData.endDate ? formData.endDate.toISOString().split('T')[0] : undefined,
-      reason: formData.reason.trim() || undefined,
+      reason: formData.reason?.trim() || '',
       isPaid: formData.payrollImpact,
       status: "pending",
       submittedAt: new Date().toISOString()
@@ -80,13 +76,6 @@ export function TimeOffTab({ staffMember, timeOffRequests, onUpdate }: TimeOffTa
       title: "Time Off Added",
       description: `Added time off for ${staffMember.name}`
     });
-  }
-
-  function handleStatusChange(requestId: string, newStatus: "pending" | "approved" | "denied") {
-    const updatedRequests = timeOffRequests.map(request => 
-      request.id === requestId ? { ...request, status: newStatus } : request
-    );
-    onUpdate(updatedRequests);
   }
 
   function resetForm() {
@@ -449,173 +438,3 @@ function TimeOffCard({ request }: TimeOffCardProps) {
   );
 }
 
-interface ReviewRequestsProps {
-  requests: TimeOffRequest[];
-  onUpdateRequest: (id: string, status: "pending" | "approved" | "denied") => void;
-}
-
-function ReviewRequests({ requests, onUpdateRequest }: ReviewRequestsProps) {
-  if (requests.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-50" />
-        <p className="font-medium">No Pending Requests</p>
-        <p className="text-sm">All time off requests have been reviewed.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {requests.map((request) => (
-        <Card key={request.id}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="text-xs">
-                    {request.employeeName.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{request.employeeName}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {format(new Date(request.submittedAt), "MMM d")}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      {request.endDate 
-                        ? `${format(new Date(request.date), "MMM d")} - ${format(new Date(request.endDate), "MMM d, yyyy")}`
-                        : format(new Date(request.date), "MMM d, yyyy")
-                      }
-                    </span>
-                  </div>
-                  
-                  {request.reason && (
-                    <p className="text-sm text-muted-foreground">{request.reason}</p>
-                  )}
-                  
-                  <div className="flex items-center gap-2">
-                    <Badge variant={request.isPaid ? "default" : "secondary"} className="text-xs">
-                      <DollarSign className="w-3 h-3 mr-1" />
-                      {request.isPaid ? "Paid" : "Unpaid"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => onUpdateRequest(request.id, "approved")}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => onUpdateRequest(request.id, "denied")}
-                >
-                  <XCircle className="w-3 h-3 mr-1" />
-                  Decline
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-interface HistoryViewProps {
-  requests: TimeOffRequest[];
-}
-
-function HistoryView({ requests }: HistoryViewProps) {
-  if (requests.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <Clock className="w-8 h-8 mx-auto mb-3 opacity-50" />
-        <p className="font-medium">No History</p>
-        <p className="text-sm">No completed time off requests yet.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {requests.map((request) => (
-        <Card key={request.id}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="text-xs">
-                    {request.employeeName.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{request.employeeName}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {format(new Date(request.submittedAt), "MMM d")}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      {request.endDate 
-                        ? `${format(new Date(request.date), "MMM d")} - ${format(new Date(request.endDate), "MMM d, yyyy")}`
-                        : format(new Date(request.date), "MMM d, yyyy")
-                      }
-                    </span>
-                  </div>
-                  
-                  {request.reason && (
-                    <p className="text-sm text-muted-foreground">{request.reason}</p>
-                  )}
-                  
-                  <div className="flex items-center gap-2">
-                    <Badge variant={request.isPaid ? "default" : "secondary"} className="text-xs">
-                      <DollarSign className="w-3 h-3 mr-1" />
-                      {request.isPaid ? "Paid" : "Unpaid"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "text-xs",
-                    request.status === "approved" 
-                      ? "bg-green-50 text-green-700 border-green-300" 
-                      : "bg-red-50 text-red-700 border-red-300"
-                  )}
-                >
-                  {request.status === "approved" ? (
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                  ) : (
-                    <XCircle className="w-3 h-3 mr-1" />
-                  )}
-                  {request.status === "approved" ? "Approved" : "Declined"}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}

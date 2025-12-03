@@ -9,7 +9,7 @@ import {
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShoppingBag, Search, Plus, Minus, Check, PackageX, AlertCircle } from "lucide-react";
+import { ShoppingBag, Search, Plus, Minus, Check, PackageX } from "lucide-react";
 
 interface Product {
   id: string;
@@ -114,22 +114,6 @@ function EmptyProductsState() {
   );
 }
 
-interface ErrorStateProps {
-  onRetry: () => void;
-}
-
-function ErrorState({ onRetry }: ErrorStateProps) {
-  return (
-    <div className="py-12 text-center" data-testid="error-products">
-      <AlertCircle className="h-12 w-12 mx-auto mb-3 text-destructive opacity-70" />
-      <p className="text-foreground mb-1">Failed to load products</p>
-      <p className="text-sm text-muted-foreground mb-4">Something went wrong. Please try again.</p>
-      <Button variant="outline" onClick={onRetry} data-testid="button-retry-products">
-        Try Again
-      </Button>
-    </div>
-  );
-}
 
 export default function ProductSales({
   onAddProducts,

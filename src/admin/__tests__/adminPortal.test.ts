@@ -335,7 +335,7 @@ describe('Admin Portal Database Operations', () => {
     });
 
     it('should verify member PIN', async () => {
-      const member = await membersDB.create({
+      await membersDB.create({
         tenantId,
         storeIds: [storeId],
         name: 'PIN Member',

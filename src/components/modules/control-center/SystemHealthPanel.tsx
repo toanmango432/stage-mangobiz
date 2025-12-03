@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   Database,
-  Server,
   Wifi,
   WifiOff,
   HardDrive,
-  Cpu,
-  Activity,
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Clock,
   RefreshCw,
   Zap
 } from 'lucide-react';

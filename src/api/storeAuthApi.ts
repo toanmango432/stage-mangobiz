@@ -93,7 +93,8 @@ export interface AuthError {
 
 // Enable offline mode - bypasses cloud server entirely
 // Set to true to allow any credentials to work without server
-const OFFLINE_MODE_ENABLED = true;
+// WARNING: Set to false for production to require actual server authentication
+const OFFLINE_MODE_ENABLED = false;
 
 // Demo credentials that work without a backend server
 const DEMO_CREDENTIALS: Record<string, { password: string; store: { id: string; name: string; storeLoginId: string }; license: { tier: string; status: string } }> = {

@@ -29,7 +29,7 @@ export function EditTicketModal({
   // Find the ticket to edit across all ticket lists
   useEffect(() => {
     if (isOpen && ticketId) {
-      const ticket = [...waitlist, ...inService, ...completed].find(t => t.id === ticketId);
+      const ticket = [...waitlist, ...inService, ...completed].find(t => t.id === String(ticketId));
       if (ticket) {
         setFormData({
           clientName: ticket.clientName || '',

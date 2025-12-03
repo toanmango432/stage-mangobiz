@@ -47,7 +47,7 @@ export class DataCleanupService {
     const toDelete = await db.tickets
       .where('salonId')
       .equals(salonId)
-      .and(ticket => ticket.createdAt < cutoffDate && ticket.status === 'completed')
+      .and(ticket => new Date(ticket.createdAt) < cutoffDate && ticket.status === 'completed')
       .toArray();
 
     if (toDelete.length > 0) {

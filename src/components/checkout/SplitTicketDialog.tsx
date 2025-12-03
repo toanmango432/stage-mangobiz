@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Scissors, DollarSign, Clock, User, AlertCircle, ArrowRight } from "lucide-react";
+import { Scissors, DollarSign, Clock, User, AlertCircle } from "lucide-react";
 import { TicketService } from "./ServiceList";
 import { Client } from "./ClientSelector";
 

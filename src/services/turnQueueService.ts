@@ -4,7 +4,7 @@
  */
 
 import { staffDB, ticketsDB } from '../db/database';
-import type { Staff, Ticket, Service } from '../types';
+import type { Staff } from '../types';
 
 interface AssignmentCriteria {
   serviceIds: string[];

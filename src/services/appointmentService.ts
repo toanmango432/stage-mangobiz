@@ -7,6 +7,7 @@ import {
   AptPayment,
   AppointmentTicketType,
   LocalAppointment,
+  EditAppt,
 } from '../types/appointment';
 
 /**
@@ -482,7 +483,7 @@ export class AppointmentService {
       status: local.status,
       note: local.notes,
       isOnlineBooking: local.source === 'online',
-      isConfirmed: local.status === 'confirmed' || local.status === ('scheduled' as any),
+      isConfirmed: (local.status as any) === 'confirmed' || local.status === ('scheduled' as any),
       createdAt: local.createdAt,
     };
   }

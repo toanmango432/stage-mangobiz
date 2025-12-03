@@ -208,7 +208,7 @@ export const licensesDB = {
     const license = {
       id: uuidv4(),
       tenant_id: input.tenantId,
-      license_key: generateLicenseKey(input.tier),
+      license_key: generateLicenseKey(),
       tier: input.tier,
       status: 'active',
       max_stores: limits.maxStores,

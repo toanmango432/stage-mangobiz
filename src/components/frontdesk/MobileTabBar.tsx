@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef, KeyboardEvent } from 'react';
-import { FileText, Users, Calendar, Clock, UserCircle } from 'lucide-react';
+import { FileText, Users, Calendar, UserCircle } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 
 export interface TabMetrics {

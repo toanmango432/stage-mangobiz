@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ClientReview } from '../../../types';
 import { clientReviewsDB } from '../../../db/database';
-import { Card, Badge, Button, Textarea } from './SharedComponents';
+import { Card, Button, Textarea } from './SharedComponents';
 
 interface ClientReviewsCardProps {
   clientId: string;
@@ -32,7 +32,7 @@ export const ClientReviewsCard: React.FC<ClientReviewsCardProps> = ({
     const loadReviews = async () => {
       try {
         setLoading(true);
-        const clientReviews = await clientReviewsDB.getByClient(clientId);
+        const clientReviews = await clientReviewsDB.getByClientId(clientId);
         setReviews(clientReviews);
       } catch (error) {
         console.error('Failed to load reviews:', error);

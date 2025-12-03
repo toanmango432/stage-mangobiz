@@ -24,7 +24,6 @@ interface CalendarHeaderProps {
   timeWindowMode: TimeWindowMode;
   onDateChange: (date: Date) => void;
   onViewChange: (view: CalendarView) => void;
-  onTimeWindowModeChange: (mode: TimeWindowMode) => void;
   onSearchClick?: () => void;
   onTodayClick: () => void;
   onNewAppointment?: () => void;
@@ -42,11 +41,8 @@ interface CalendarHeaderProps {
 export const CalendarHeader = memo(function CalendarHeader({
   selectedDate,
   calendarView,
-  timeWindowMode,
   onDateChange,
   onViewChange,
-  onTimeWindowModeChange,
-  onSearchClick,
   onTodayClick,
   onNewAppointment,
   onSettingsClick,
@@ -209,15 +205,12 @@ export const CalendarHeader = memo(function CalendarHeader({
               )}
 
               {/* Search Button */}
-              {onSearchClick && (
-                <button
-                  onClick={onSearchClick}
-                  className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                  aria-label="Search appointments"
-                >
-                  <Search className="w-5 h-5 text-gray-400" />
-                </button>
-              )}
+              <button
+                className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                aria-label="Search appointments"
+              >
+                <Search className="w-5 h-5 text-gray-400" />
+              </button>
 
               {/* Refresh Button */}
               {onRefreshClick && (

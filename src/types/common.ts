@@ -55,7 +55,8 @@ export type TransactionStatus =
   | 'pending'
   | 'failed'
   | 'voided'
-  | 'refunded';
+  | 'refunded'
+  | 'partially-refunded';
 
 export type StaffStatus =
   | 'available'
@@ -63,6 +64,30 @@ export type StaffStatus =
   | 'on-break'
   | 'clocked-out'
   | 'off-today';
+
+// ============================================
+// SERVICE STATUS TRACKING
+// Per DATA_STORAGE_STRATEGY.md Section 2.2
+// ============================================
+
+/**
+ * Status of an individual service within a ticket or appointment.
+ * Used for tracking service progress and timer functionality.
+ */
+export type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
+
+/**
+ * Audit trail for service status changes.
+ * Records who changed the status, when, and from which device.
+ */
+export interface ServiceStatusChange {
+  from: ServiceStatus;
+  to: ServiceStatus;
+  changedAt: string;            // ISO 8601 string
+  changedBy: string;            // User ID
+  changedByDevice: string;      // Device ID
+  reason?: string;              // Optional reason for status change
+}
 
 export type SyncOperationType =
   | 'create'
@@ -85,7 +110,11 @@ export type EntityType =
   | 'businessClosedPeriod'
   | 'resource'
   | 'resourceBooking'
-  | 'staffSchedule';
+  | 'staffSchedule'
+  // Timesheet Module entities (Phase 2)
+  | 'timesheet'
+  // Payroll Module entities (Phase 3)
+  | 'payrun';
 
 // ============================================
 // BASE SYNCABLE ENTITY (Production-Ready)

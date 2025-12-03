@@ -1,4 +1,3 @@
-import React from 'react';
 import { Ticket } from '../../types/Ticket';
 import { TAX_RATE } from '../../constants/checkoutConfig';
 

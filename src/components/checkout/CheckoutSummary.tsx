@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { Tag, Percent, ChevronUp } from "lucide-react";
+import { Tag, ChevronUp } from "lucide-react";
 
 export interface CheckoutSummaryProps {
   subtotal: number;

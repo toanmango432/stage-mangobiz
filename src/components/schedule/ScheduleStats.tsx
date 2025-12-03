@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Clock, Users, UserX, BarChart3 } from "lucide-react";
 import type { FullTimeSettings } from "./SettingsModal";
 
@@ -9,7 +8,7 @@ interface ScheduleStatsProps {
   fullTimeSettings?: FullTimeSettings;
 }
 
-export function ScheduleStats({ employees, schedule, fullTimeSettings }: ScheduleStatsProps) {
+export function ScheduleStats({ employees, schedule }: ScheduleStatsProps) {
   const calculateStats = () => {
     let totalHours = 0;
     let offToday = 0;
@@ -28,7 +27,7 @@ export function ScheduleStats({ employees, schedule, fullTimeSettings }: Schedul
         if (daySlots.length > 0 && daySlots[0]?.type !== "off") {
           hasShifts = true;
           
-          daySlots.forEach(slot => {
+          daySlots.forEach((slot: any) => {
             if (slot.start && slot.end && slot.type !== "off") {
               // Simple hour calculation
               const parseTime = (timeStr: string) => {

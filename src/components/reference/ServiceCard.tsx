@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar, Clock, MoreVertical, Tag, User, PlusCircle, CheckCircle } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
@@ -38,7 +37,6 @@ export function ServiceCard({
 
   // Use teal colors for waiting list items, amber for service items
   const borderColor = isWaitingItem ? 'border-[#00D0E0]/30' : 'border-amber-100';
-  const accentColor = isWaitingItem ? 'bg-[#00D0E0]' : 'bg-amber-400';
   const lightAccentColor = isWaitingItem ? 'bg-[#00D0E0]/20 text-[#00A0B0]' : 'bg-amber-100 text-amber-800';
   const accentBorderColor = isWaitingItem ? 'border-[#00D0E0]/30' : 'border-amber-300';
   const iconColor = isWaitingItem ? 'text-[#00A0B0]' : 'text-amber-700';

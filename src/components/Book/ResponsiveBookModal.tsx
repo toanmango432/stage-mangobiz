@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useBreakpoint } from '../../hooks/useMobileModal';

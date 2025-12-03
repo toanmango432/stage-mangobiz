@@ -1,4 +1,4 @@
-# Mango POS Data Storage Strategy v2.0
+# Mango POS Data Storage Strategy v2.1
 
 ## Overview
 
@@ -11,6 +11,30 @@ This document defines how data should be stored across local (IndexedDB/Dexie.js
 3. **Eventual Consistency**: Most data syncs eventually; financial data requires confirmation
 4. **Conflict Awareness**: Detect and resolve conflicts intelligently, not arbitrarily
 5. **Audit Everything**: All mutations are traceable to user, device, and time
+
+### Supabase Direct Sync (Implemented)
+
+**Status:** Phase 1-5 Complete, Phase 6 In Progress | **Location:** `src/services/supabase/`
+
+Business data now syncs directly to Supabase without requiring a backend API:
+
+```
+Client App → Redux Thunk → dataService → Supabase JavaScript Client → PostgreSQL
+```
+
+**Benefits:**
+- Simplified architecture (no backend API required for CRUD)
+- Real-time subscriptions for multi-device sync
+- Row-Level Security (RLS) for data isolation
+- Edge Functions for complex operations
+
+**Implemented Tables:**
+- `clients` - Customer records
+- `staff` - Team members
+- `services` - Service catalog
+- `appointments` - Scheduled bookings
+- `tickets` - Service tickets
+- `transactions` - Payment records
 
 ---
 
@@ -2370,21 +2394,55 @@ function logSync(message: string, data?: object): void {
 
 ---
 
-## ⚠️ Planned Change: Opt-In Offline Mode
+## ⚠️ In Progress: Opt-In Offline Mode
 
-> **Status:** Planned | **PRD:** [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md)
+> **Status:** Phase 1-5 Complete, Phase 6 In Progress | **PRD:** [PRD-Opt-In-Offline-Mode.md](../product/PRD-Opt-In-Offline-Mode.md)
 
-A future update will change the default behavior:
+The architecture is being updated to support opt-in offline mode:
 
-| Current | Planned |
-|---------|---------|
+| Current State | Target State |
+|---------------|--------------|
 | All devices → Offline-first (data stored locally) | All devices → Online-only by default |
 | Data persists on every device | Only designated devices store data locally |
+| Sync via planned backend API | **Direct Supabase sync (Implemented)** |
 
-**Impact on this document:**
-- Section 1.2 (Local + Cloud) will become conditional based on device mode
-- New "Online-Only Mode" section will be added
-- Device registration will determine storage behavior
+**Implementation Progress:**
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ Complete | Supabase database tables created |
+| Phase 2 | ✅ Complete | TypeScript client & table operations |
+| Phase 3 | ✅ Complete | Sync service implementation |
+| Phase 4 | ✅ Complete | SupabaseSyncProvider context |
+| Phase 5 | ✅ Complete | SyncStatusIndicator UI component |
+| Phase 6 | 🔄 In Progress | Wire Redux slices to dataService |
+
+**Phase 6 Details (Current):**
+- ✅ Task 6.1: Device mode in authSlice
+- ✅ Task 6.2: All type adapters complete (appointment, client, staff, service, ticket, transaction)
+- ✅ Task 6.3: appointmentsSlice POC with Supabase thunks
+- 🔲 Task 6.4: Remaining Redux slices (clients, staff, tickets, transactions)
+- 🔲 Task 6.5: Validation & testing
+
+**Supabase Tables Created:**
+```sql
+-- All tables include: id, store_id, sync_status, sync_version, created_at, updated_at
+clients, staff, services, appointments, tickets, transactions
+```
+
+**TypeScript Service Layer:**
+```
+src/services/supabase/
+├── client.ts              # Supabase client configuration
+├── types.ts               # Database type definitions
+├── index.ts               # Main export
+├── sync.ts                # Sync service with real-time
+├── adapters/              # Type conversion (Phase 6)
+│   ├── appointmentAdapter.ts
+│   ├── clientAdapter.ts
+│   └── index.ts
+└── tables/                # CRUD operations per table
+```
 
 See the PRD for full technical specifications.
 
@@ -2394,11 +2452,13 @@ See the PRD for full technical specifications.
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 2.2 | Dec 2, 2025 | Engineering | Updated to Phase 1-5 Complete, Phase 6 In Progress; added type adapter and dataService documentation |
+| 2.1 | Dec 2, 2025 | Engineering | Added Supabase Direct Sync implementation details (Phase 1-2), updated Opt-In Offline Mode status |
 | 2.0 | Nov 30, 2025 | Engineering | Complete rewrite with production best practices |
 | 1.0 | Oct 2025 | Engineering | Initial version |
 
 ---
 
 **Document Status:** Active
-**Last Updated:** November 30, 2025
-**Next Review:** January 30, 2026
+**Last Updated:** December 2, 2025
+**Next Review:** January 2, 2026

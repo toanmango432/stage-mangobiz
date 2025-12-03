@@ -1,196 +1,227 @@
-# Direct Supabase Sync Architecture - Implementation Plan
+# Book Page Calendar Scrolling Fix - COMPREHENSIVE ANALYSIS
 
-> **Goal**: Sync all business data (clients, staff, services, appointments, tickets) directly with Supabase
-> **Scale Target**: 10,000 accounts
-> **Estimated Phases**: 5 phases
+## Problem Statement
 
----
+The calendar on the Book page is **NOT scrollable** vertically or horizontally despite having:
+- 24 hours of content (1440px height = 24 hours × 60px per hour)
+- Multiple staff columns that should scroll horizontally
+- `overflow-auto` classes on components
 
-## Phase 1: Database Schema Setup in Supabase
-
-### Tasks
-- [ ] 1.1 Create `clients` table with RLS policies
-- [ ] 1.2 Create `staff` table with RLS policies
-- [ ] 1.3 Create `services` table with RLS policies
-- [ ] 1.4 Create `categories` table with RLS policies
-- [ ] 1.5 Create `appointments` table with RLS policies
-- [ ] 1.6 Create `tickets` table with RLS policies
-- [ ] 1.7 Create `transactions` table with RLS policies
-- [ ] 1.8 Add indexes on `store_id` for all tables
-- [ ] 1.9 Set up database triggers for `updated_at` timestamps
-
-### Schema Design
-```sql
--- All tables will have these common columns:
--- id (UUID, primary key)
--- store_id (UUID, foreign key to stores)
--- created_at (timestamp)
--- updated_at (timestamp)
--- sync_version (integer for conflict resolution)
-```
-
-### Validation
-- Run SQL in Supabase dashboard
-- Verify tables appear in Table Editor
-- Test RLS policies with different store_ids
+Previous fix attempts failed because they didn't identify ALL the blocking points.
 
 ---
 
-## Phase 2: Supabase Client & Type Definitions
+## Complete Container Hierarchy (Root to Leaf)
 
-### Tasks
-- [ ] 2.1 Create `src/services/supabase/client.ts` - Main Supabase client
-- [ ] 2.2 Create `src/services/supabase/types.ts` - Database type definitions
-- [ ] 2.3 Create `src/services/supabase/tables/clientsTable.ts` - Clients CRUD
-- [ ] 2.4 Create `src/services/supabase/tables/staffTable.ts` - Staff CRUD
-- [ ] 2.5 Create `src/services/supabase/tables/servicesTable.ts` - Services CRUD
-- [ ] 2.6 Create `src/services/supabase/tables/appointmentsTable.ts` - Appointments CRUD
-- [ ] 2.7 Create `src/services/supabase/tables/ticketsTable.ts` - Tickets CRUD
-- [ ] 2.8 Create `src/services/supabase/index.ts` - Export all
+I traced the ENTIRE container chain from AppShell to DaySchedule:
 
-### File Structure
 ```
-src/services/supabase/
-├── client.ts           # Supabase client instance
-├── types.ts            # Database types (generated from Supabase)
-├── index.ts            # Re-export all
-└── tables/
-    ├── clientsTable.ts
-    ├── staffTable.ts
-    ├── servicesTable.ts
-    ├── categoriesTable.ts
-    ├── appointmentsTable.ts
-    ├── ticketsTable.ts
-    └── transactionsTable.ts
+AppShell.tsx
+├─ div.h-screen.flex.flex-col.overflow-hidden (line 339)
+│
+└─ main.flex-1.flex.flex-col.min-h-0.overflow-hidden (line 354) ❌ BLOCKS SCROLLING
+   │  ⚠️ Problem: overflow-hidden prevents content from scrolling
+   │
+   └─ BookPage.tsx
+      ├─ div.flex.h-full.bg-gray-50 (line 670) ✅ OK
+      │
+      ├─ div.flex-1.flex.flex-col.overflow-hidden (line 685) ✅ OK
+      │
+      └─ div.flex-1.flex...min-h-0.overflow-hidden (line 708) ❌ BLOCKS SCROLLING
+         │  ⚠️ Problem: overflow-hidden clips scroll container
+         │
+         └─ div.flex-1...min-h-0.overflow-auto (line 710) ⚠️ TRIES TO SCROLL
+            │  (Can't scroll because parent blocks it)
+            │
+            └─ DaySchedule.v2.tsx
+               └─ div.flex.h-full.min-h-0.overflow-auto (line 307) ⚠️ TRIES TO SCROLL
+                  │  (Can't scroll because grandparent blocks it)
+                  │
+                  └─ Staff columns with grid (height: 1440px) 📏 CONTENT
 ```
-
-### Validation
-- Import and test each table module
-- Verify TypeScript types match database schema
-- Test basic CRUD operations via console
 
 ---
 
-## Phase 3: Sync Service Implementation
+## Root Causes (ALL Must Be Fixed)
 
-### Tasks
-- [ ] 3.1 Create `src/services/sync/syncService.ts` - Main sync orchestrator
-- [ ] 3.2 Create `src/services/sync/conflictResolver.ts` - Handle sync conflicts
-- [ ] 3.3 Create `src/services/sync/syncQueue.ts` - Queue pending operations
-- [ ] 3.4 Update `src/services/dataService.ts` - Route to Supabase or IndexedDB
-- [ ] 3.5 Create `src/services/sync/realtimeSubscriptions.ts` - Real-time updates
-- [ ] 3.6 Add sync status indicators to Redux
-
-### Sync Logic
-```typescript
-// Online-Only Device:
-User Action → Supabase (direct) → Redux (update UI)
-
-// Offline-Enabled Device:
-User Action → IndexedDB (immediate) → Redux → Sync Queue → Supabase (when online)
-
-// Real-time (all devices):
-Supabase Change → Real-time Subscription → Redux → UI Update
+### 1. AppShell.tsx Line 354 - Main container blocks scroll
+```tsx
+<main className="flex-1 flex flex-col min-h-0 overflow-hidden pt-12">
+                                              ^^^^^^^^^^^^^^^^
 ```
+**Problem:** `overflow-hidden` prevents any child from scrolling
+**Impact:** Even if BookPage/DaySchedule have `overflow-auto`, they can't scroll
 
-### Validation
-- Test sync with network throttling
-- Verify offline queue works
-- Test conflict resolution scenarios
+### 2. BookPage.tsx Line 708 - Calendar wrapper blocks scroll
+```tsx
+<div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-hidden">
+                                                                                       ^^^^^^^^^^^^^^^^
+```
+**Problem:** `overflow-hidden` clips the inner scrollable container
+**Impact:** The `overflow-auto` container at line 710 is clipped and can't show scroll
+
+### 3. Height propagation issue
+```tsx
+// BookPage line 670
+<div className="flex h-full bg-gray-50">  // h-full needs parent height
+
+// But AppShell main has overflow-hidden, breaking height calculation
+```
+**Problem:** `h-full` requires parent to have explicit height, but flex parent has `overflow-hidden`
+**Impact:** Height doesn't flow properly through flex containers
 
 ---
 
-## Phase 4: Integration with Existing Code
+## Solution - THREE Changes Required
 
-### Tasks
-- [ ] 4.1 Update `src/store/slices/clientsSlice.ts` - Use new sync service
-- [ ] 4.2 Update `src/store/slices/staffSlice.ts` - Use new sync service
-- [ ] 4.3 Update `src/store/slices/appointmentsSlice.ts` - Use new sync service
-- [ ] 4.4 Update `src/store/slices/ticketsSlice.ts` - Use new sync service
-- [ ] 4.5 Update `src/db/database.ts` - Add sync metadata
-- [ ] 4.6 Remove old mock API calls from services
-- [ ] 4.7 Update `src/services/syncManager.ts` - Use new sync service
+### ✅ Change 1: AppShell.tsx Line 354
+**File:** `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/layout/AppShell.tsx`
 
-### Migration Strategy
-- Add Supabase alongside existing code (don't remove yet)
-- Feature flag to switch between old/new
-- Gradual rollout per data type
+**Old (line 354):**
+```tsx
+<main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
+```
 
-### Validation
-- Test each slice independently
-- Verify data consistency between IndexedDB and Supabase
-- Test full user workflows (book appointment, checkout, etc.)
+**New:**
+```tsx
+<main className={`relative flex-1 flex flex-col min-h-0 overflow-auto pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
+```
+
+**Change:** `overflow-hidden` → `overflow-auto`
+
+**Reason:** Allow main content to scroll when modules (like BookPage) have content exceeding viewport height.
 
 ---
 
-## Phase 5: Real-time & Multi-device Sync
+### ✅ Change 2: BookPage.tsx Line 708
+**File:** `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/pages/BookPage.tsx`
 
-### Tasks
-- [ ] 5.1 Set up Supabase real-time subscriptions per store
-- [ ] 5.2 Handle incoming changes in Redux
-- [ ] 5.3 Add optimistic updates with rollback
-- [ ] 5.4 Implement presence (show which devices are active)
-- [ ] 5.5 Add sync status UI component
-- [ ] 5.6 Test multi-device scenarios
-
-### Real-time Events
-```typescript
-// Subscribe to changes for this store
-supabase
-  .channel('store-changes')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    filter: `store_id=eq.${storeId}`
-  }, handleChange)
-  .subscribe()
+**Old (line 708):**
+```tsx
+<div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-hidden">
 ```
 
-### Validation
-- Open app on 2 devices
-- Create appointment on device A
-- Verify it appears on device B within 1-2 seconds
-- Test with network interruptions
+**New:**
+```tsx
+<div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-auto">
+```
+
+**Change:** `overflow-hidden` → `overflow-auto`
+
+**Reason:** Allow calendar wrapper to scroll when DaySchedule content exceeds container bounds.
+
+---
+
+### ✅ Change 3: DaySchedule.v2.tsx Line 307 (Verify)
+**File:** `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/Book/DaySchedule.v2.tsx`
+
+**Current (line 307):**
+```tsx
+<div className="flex h-full min-h-0 overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm relative">
+```
+
+**Action:** ✅ ALREADY CORRECT - Has `overflow-auto`
+
+**Additional:** Ensure grid container has explicit height:
+```tsx
+// Staff column grid at line ~525
+<div className="relative bg-white" style={{ height: `${gridHeight}px` }}>
+```
+This is already correct (line 526).
+
+---
+
+## Why This Will Fix Scrolling
+
+### Flow of Height and Overflow:
+1. **AppShell** (`overflow-auto`): Allows main to scroll if content exceeds viewport
+2. **BookPage** calendar wrapper (`overflow-auto`): Can scroll independently
+3. **DaySchedule** (`overflow-auto`): Grid with 1440px height forces parent to scroll
+
+### Vertical Scrolling:
+- DaySchedule grid: `height: 1440px` (24 hours × 60px)
+- Parent containers allow overflow, enabling scroll
+- User can scroll from 12:00 AM to 11:00 PM
+
+### Horizontal Scrolling:
+- Multiple staff columns exceed viewport width
+- Parent `overflow-auto` enables horizontal scroll
+- Time column stays fixed (has `sticky left-0`)
+
+---
+
+## Implementation Checklist
+
+- [ ] **Phase 1:** Fix AppShell.tsx line 354 (`overflow-hidden` → `overflow-auto`)
+- [ ] **Phase 2:** Fix BookPage.tsx line 708 (`overflow-hidden` → `overflow-auto`)
+- [ ] **Phase 3:** Verify DaySchedule.v2.tsx line 307 has `overflow-auto` (already correct)
+- [ ] **Phase 4:** Test vertical scrolling (12am - 11pm visible via scroll)
+- [ ] **Phase 5:** Test horizontal scrolling (multiple staff columns scroll)
+- [ ] **Phase 6:** Test on mobile/tablet/desktop viewports
+- [ ] **Phase 7:** Test keyboard navigation (Tab, Arrow keys, Page Up/Down)
+- [ ] **Phase 8:** Verify current time indicator visible while scrolling
+
+---
+
+## Expected Behavior After Fix
+
+### ✅ Vertical Scrolling
+- Calendar shows all 24 hours (0:00 - 23:00)
+- Smooth scroll from top to bottom
+- Current time indicator moves with scroll
+- Time column labels stay visible (sticky)
+
+### ✅ Horizontal Scrolling
+- With 3+ staff, horizontal scrollbar appears
+- Time column stays fixed on left (sticky)
+- Staff columns scroll horizontally
+- Touch/trackpad gestures work
+
+### ✅ Mobile Behavior
+- Single staff view (no horizontal scroll)
+- Vertical scroll for 24 hours
+- Touch-friendly scroll
+- 60-minute time slots for better touch targets
+
+---
+
+## Testing Instructions
+
+### Manual Testing:
+1. Open Book page
+2. Select multiple staff (3+)
+3. Try scrolling vertically - should see all 24 hours
+4. Try scrolling horizontally - should see all staff columns
+5. Test on Chrome, Safari, Firefox
+6. Test on mobile viewport (< 768px)
+7. Test keyboard: Arrow keys, Page Up/Down, Home/End
+
+### Validation:
+```bash
+# Start dev server
+npm run dev
+
+# Navigate to Book page
+# Select 3+ staff members
+# Scroll vertically - expect to see 12am to 11pm
+# Scroll horizontally - expect to see all staff columns
+```
 
 ---
 
 ## Review Section
 
-> To be filled after implementation
+### Changes Made:
+- TBD (will be filled after implementation)
 
-### Changes Made
-- [ ] Database tables created
-- [ ] Supabase client configured
-- [ ] Sync service implemented
-- [ ] Redux slices updated
-- [ ] Real-time working
+### Files Modified:
+1. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/layout/AppShell.tsx` (line 354)
+2. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/pages/BookPage.tsx` (line 708)
 
-### Performance Notes
--
+### Testing Results:
+- TBD (will be filled after testing)
 
-### Known Issues
--
-
-### Future Improvements
--
-
----
-
-## Quick Reference
-
-### Supabase Dashboard
-- URL: https://supabase.com/dashboard/project/cpaldkcvdcdyzytosntc
-- Tables: Table Editor → Public schema
-
-### Environment Variables
-```env
-VITE_SUPABASE_URL=https://cpaldkcvdcdyzytosntc.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-### Commands
-```bash
-npm run dev          # Start dev server
-npm run build        # Build for production
-npx supabase gen types typescript --project-id cpaldkcvdcdyzytosntc > src/services/supabase/types.ts
-```
+### Notes:
+- Previous fix attempts only changed BookPage line 670 (`h-screen` → `h-full`)
+- This comprehensive fix addresses ALL blocking points in the hierarchy
+- The key insight: Multiple `overflow-hidden` containers can cascade and block scrolling

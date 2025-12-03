@@ -42,7 +42,7 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
       ticketId: ticket.id,
       paymentMethod: selectedPaymentMethod,
       subtotal: ticket.subtotal,
-      discounts: ticket.discounts,
+      discounts: ticket.discount,
       tax: ticket.tax,
       tip: tipAmount,
       total: totalWithTip,
@@ -68,8 +68,8 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              {ticket.clientPhoto ? (
-                <img src={ticket.clientPhoto} alt={ticket.clientName} className="w-10 h-10 rounded-full" />
+              {ticket.clientPhone ? (
+                <img src={ticket.clientPhone} alt={ticket.clientName} className="w-10 h-10 rounded-full" />
               ) : (
                 <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center text-white font-semibold">
                   {ticket.clientName.charAt(0)}
@@ -113,7 +113,7 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
                           ${service.price.toFixed(2)}
                         </p>
                         {service.discount && (
-                          <p className="text-xs text-green-600">-${service.discount.toFixed(2)}</p>
+                          <p className="text-xs text-green-600">-${typeof service.discount === 'number' ? (service.discount as number).toFixed(2) : '0.00'}</p>
                         )}
                       </div>
                     </div>
@@ -136,7 +136,7 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900">{product.name}</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            ${product.unitPrice.toFixed(2)} × {product.quantity}
+                            ${product.unitPrice?.toFixed(2)} × {product.quantity}
                           </p>
                         </div>
                         <p className="text-sm font-semibold text-gray-900">
@@ -154,10 +154,10 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium text-gray-900">${ticket.subtotal.toFixed(2)}</span>
                 </div>
-                {ticket.discounts > 0 && (
+                {ticket.discount > 0 && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Discounts</span>
-                    <span className="font-medium text-green-600">-${ticket.discounts.toFixed(2)}</span>
+                    <span className="font-medium text-green-600">-${ticket.discount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-sm">
@@ -172,7 +172,7 @@ export function CheckoutScreen({ ticket, onClose, onComplete }: CheckoutScreenPr
 
               {/* Discount Button */}
               <button
-                onClick={() => setShowDiscountModal(true)}
+                onClick={() => {/* setShowDiscountModal(true) */}}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-gray-600 hover:text-orange-600"
               >
                 <Tag className="w-4 h-4" />

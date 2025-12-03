@@ -224,7 +224,6 @@ interface ClosurePeriodRowProps {
 const ClosurePeriodRow: React.FC<ClosurePeriodRowProps> = ({
   period,
   isActive,
-  isPast,
   onEdit,
   onDelete,
   isDeleting,

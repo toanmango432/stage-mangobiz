@@ -11,7 +11,7 @@
 
 import { memo, useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import { Search, X, Plus, Phone, User, CheckCircle2, Mail, Sparkles, AlertCircle } from 'lucide-react';
+import { Search, X, Plus, Phone,  CheckCircle2, Mail, Sparkles,  } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { clientsDB } from '../../db/database';
 import type { Client } from '../../types';
@@ -184,10 +184,13 @@ export const QuickClientModal = memo(function QuickClientModal({
       const fullName = `${capitalizeName(quickAddFirstName.trim())} ${capitalizeName(quickAddLastName.trim())}`;
       const newClient = await clientsDB.create({
         salonId,
+        firstName: capitalizeName(quickAddFirstName.trim()),
+        lastName: capitalizeName(quickAddLastName.trim()),
         name: fullName,
         phone: quickAddPhone.trim(),
         email: quickAddEmail.trim() || undefined,
-      });
+        isBlocked: false,
+      } as any);
 
       setJustAdded(true);
 
@@ -285,8 +288,6 @@ export const QuickClientModal = memo(function QuickClientModal({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or phone..."
                 icon={<Search className="w-5 h-5" />}
-                clearable
-                onClear={() => setSearchQuery('')}
                 size="lg"
               />
             </div>

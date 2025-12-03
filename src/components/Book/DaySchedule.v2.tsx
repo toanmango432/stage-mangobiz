@@ -45,6 +45,10 @@ interface DayScheduleProps {
   /** Called when user clicks on the closure banner */
   onClosureClick?: (closure: BusinessClosedPeriod) => void;
   isLoading?: boolean;
+  // Phase 9: Copy/Paste/Duplicate/Rebook handlers
+  onCopyAppointment?: (appointment: LocalAppointment) => void;
+  onDuplicateAppointment?: (appointment: LocalAppointment) => void;
+  onRebookAppointment?: (appointment: LocalAppointment) => void;
 }
 
 /**
@@ -173,6 +177,9 @@ export const DaySchedule = memo(function DaySchedule({
   onBlockedTimeClick,
   onClosureClick,
   isLoading = false,
+  onCopyAppointment,
+  onDuplicateAppointment,
+  onRebookAppointment,
 }: DayScheduleProps) {
   const [currentTimePos, setCurrentTimePos] = useState(getCurrentTimePosition());
   const [draggedAppointment, setDraggedAppointment] = useState<LocalAppointment | null>(null);
@@ -297,7 +304,7 @@ export const DaySchedule = memo(function DaySchedule({
   const closedTimeRange = getClosedTimeRange();
 
   return (
-    <div className="flex h-full overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm relative">
+    <div className="flex h-full min-h-0 overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm relative">
       {/* Business Closure Banner - Sticky at top */}
       {isBusinessClosed && (
         <button
@@ -1000,6 +1007,9 @@ export const DaySchedule = memo(function DaySchedule({
         onReschedule={(apt) => onAppointmentClick(apt)}
         onCancel={(apt) => onStatusChange?.(apt.id, 'cancelled')}
         onNoShow={(apt) => onStatusChange?.(apt.id, 'no-show')}
+        onCopy={onCopyAppointment}
+        onDuplicate={onDuplicateAppointment}
+        onRebook={onRebookAppointment}
       />
     </div>
   );

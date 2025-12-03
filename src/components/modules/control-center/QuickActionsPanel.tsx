@@ -1,14 +1,10 @@
 import {
   Download,
   Upload,
-  Trash2,
-  Database,
   Settings,
   Users,
   Calendar,
-  DollarSign,
   FileText,
-  RotateCcw,
   Archive,
   Shield
 } from 'lucide-react';

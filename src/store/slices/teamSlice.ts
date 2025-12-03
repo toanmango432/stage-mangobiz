@@ -16,7 +16,7 @@ import type {
   TeamSettingsSection,
   StaffRole,
 } from '../../components/team-settings/types';
-import type { SyncStatus } from '../../types/common';
+// import type { SyncStatus } from '../../types/common';
 
 // ============================================
 // SYNC CONTEXT - Required for all mutations
@@ -137,14 +137,53 @@ const initialState: TeamState = {
 // ============================================
 
 // Fetch all team members
+// Priority: Supabase (source of truth) -> IndexedDB (offline fallback)
 export const fetchTeamMembers = createAsyncThunk(
   'team/fetchAll',
   async (storeId: string | undefined, { rejectWithValue }) => {
+    const effectiveStoreId = storeId || 'default-store';
+
     try {
+      // Try Supabase first (source of truth for online operations)
+      const { fetchSupabaseMembers } = await import('../../services/supabase/memberService');
+      const supabaseMembers = await fetchSupabaseMembers(effectiveStoreId);
+
+      if (supabaseMembers && supabaseMembers.length > 0) {
+        console.log('[teamSlice] Fetched', supabaseMembers.length, 'members from Supabase');
+
+        // Sync to IndexedDB for offline access
+        try {
+          const { teamDB } = await import('../../db/teamOperations');
+          for (const member of supabaseMembers) {
+            await teamDB.upsertMember(member, 'system', 'system');
+          }
+          console.log('[teamSlice] Synced members to IndexedDB');
+        } catch (syncError) {
+          console.warn('[teamSlice] Failed to sync to IndexedDB:', syncError);
+          // Continue - Supabase data is still valid
+        }
+
+        return supabaseMembers;
+      }
+
+      // Fallback to IndexedDB if Supabase returns empty (might be offline)
+      console.log('[teamSlice] No Supabase data, falling back to IndexedDB');
       const { teamDB } = await import('../../db/teamOperations');
-      const members = await teamDB.getAllMembers(storeId);
+      const members = await teamDB.getAllMembers(effectiveStoreId);
       return members;
     } catch (error) {
+      // If Supabase fails, try IndexedDB as offline fallback
+      console.warn('[teamSlice] Supabase failed, trying IndexedDB:', error);
+      try {
+        const { teamDB } = await import('../../db/teamOperations');
+        const members = await teamDB.getAllMembers(effectiveStoreId);
+        if (members && members.length > 0) {
+          console.log('[teamSlice] Using IndexedDB fallback:', members.length, 'members');
+          return members;
+        }
+      } catch (indexedDBError) {
+        console.error('[teamSlice] IndexedDB also failed:', indexedDBError);
+      }
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch team members');
     }
   }

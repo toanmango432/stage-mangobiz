@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -85,9 +84,6 @@ export default function ReceiptPreview({
   });
 
   const receiptNumber = transactionId || `TXN-${Date.now().toString().slice(-8)}`;
-
-  const giftCardTotal = giftCardPayments?.reduce((sum, gc) => sum + gc.amount, 0) || 0;
-  const finalPaymentDue = Math.max(0, total - giftCardTotal + (tipAmount || 0));
 
   const handlePrint = () => {
     window.print();

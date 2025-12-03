@@ -6,11 +6,36 @@ import { serviceHeaderTheme } from './frontdesk/headerTokens';
 import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity } from 'lucide-react';
+import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity, Trash2 } from 'lucide-react';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import { ServiceTicketCard, ServiceTicketCardRefactored } from './tickets';
 import { FrontDeskSettingsData } from './frontdesk-settings/types';
+
+// Helper functions for time calculations
+const formatTime = (date: Date): string => {
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const parseDuration = (duration: string): number => {
+  // Parse duration strings like "45m", "1h", "1h 30m"
+  const hourMatch = duration.match(/(\d+)\s*h/);
+  const minMatch = duration.match(/(\d+)\s*m/);
+  let minutes = 0;
+  if (hourMatch) minutes += parseInt(hourMatch[1]) * 60;
+  if (minMatch) minutes += parseInt(minMatch[1]);
+  return minutes || 60; // default to 60 minutes
+};
+
+const getEstimatedEndTime = (createdAt: string | Date, duration: string): Date => {
+  const startTime = new Date(createdAt);
+  const durationMinutes = parseDuration(duration);
+  return new Date(startTime.getTime() + durationMinutes * 60000);
+};
 
 interface ServiceSectionProps {
   isMinimized?: boolean;
@@ -66,7 +91,8 @@ export const ServiceSection = memo(function ServiceSection({
     serviceTickets = [],
     completeTicket,
     pauseTicket,
-    resumeTicket
+    resumeTicket,
+    deleteTicket
   } = useTickets();
   // Updated color tokens for section styling - teal theme
   const colorTokens = {
@@ -127,6 +153,10 @@ export const ServiceSection = memo(function ServiceSection({
   const [ticketToEdit, setTicketToEdit] = useState<number | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [ticketToView, setTicketToView] = useState<number | null>(null);
+  // State for delete modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
   // Track expanded tickets
   const [expandedTickets, setExpandedTickets] = useState<Record<number, boolean>>({});
   // Toggle ticket expansion
@@ -185,6 +215,20 @@ export const ServiceSection = memo(function ServiceSection({
       resumeTicket(id);
     } else if (!isPaused && pauseTicket) {
       pauseTicket(id);
+    }
+  };
+  // Handle open delete confirmation modal
+  const openDeleteConfirmation = (id: string) => {
+    setTicketToDelete(id);
+    setShowDeleteModal(true);
+  };
+  // Handle ticket deletion
+  const handleDeleteTicket = () => {
+    if (ticketToDelete && deleteReason.trim() !== '' && deleteTicket) {
+      deleteTicket(ticketToDelete, deleteReason);
+      setShowDeleteModal(false);
+      setTicketToDelete(null);
+      setDeleteReason('');
     }
   };
   // Paper textures for tickets - more subtle as requested
@@ -352,7 +396,7 @@ export const ServiceSection = memo(function ServiceSection({
                   <p className="text-gray-700">{ticket.service}</p>
                   <div className="flex justify-between mt-2 text-xs text-gray-500">
                     <span>Est. Duration: {ticket.duration}</span>
-                    <span>Price: ${ticket.price || '85.00'}</span>
+                    <span>Price: {(ticket as any).price ? `$${(ticket as any).price.toFixed(2)}` : 'See menu'}</span>
                   </div>
                 </div>
                 <h4 className="text-sm font-semibold text-gray-700 mt-4 mb-2 flex items-center">
@@ -386,7 +430,7 @@ export const ServiceSection = memo(function ServiceSection({
                       <p className="font-medium text-gray-800">
                         {ticket.techName}
                       </p>
-                      <p className="text-xs text-gray-500">Senior Technician</p>
+                      <p className="text-xs text-gray-500">Technician</p>
                     </div>
                   </div>
                 </div>
@@ -412,7 +456,7 @@ export const ServiceSection = memo(function ServiceSection({
                   <div className="border-t border-dashed border-gray-200 my-1"></div>
                   <div className="flex items-center justify-between font-semibold">
                     <span className="text-gray-700">Est. End Time:</span>
-                    <span className="text-gray-900">11:45 AM</span>
+                    <span className="text-gray-900">{formatTime(getEstimatedEndTime(ticket.createdAt, ticket.duration))}</span>
                   </div>
                 </div>
               </div>
@@ -701,7 +745,7 @@ export const ServiceSection = memo(function ServiceSection({
               <div className="border-t border-dashed border-gray-200 my-1"></div>
               <div className="flex items-center justify-between font-semibold">
                 <span className="text-gray-700">Est. End Time:</span>
-                <span className="text-gray-900">11:45 AM</span>
+                <span className="text-gray-900">{formatTime(getEstimatedEndTime(ticket.createdAt, ticket.duration))}</span>
               </div>
             </div>
           </div>}
@@ -998,6 +1042,7 @@ export const ServiceSection = memo(function ServiceSection({
                     service: ticket.service,
                     duration: ticket.duration || '30min',
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                    status: (ticket.status as 'waiting' | 'in-service' | 'completed') || 'waiting',
                     notes: ticket.notes,
                     technician: ticket.technician,
                     techColor: ticket.techColor,
@@ -1005,11 +1050,14 @@ export const ServiceSection = memo(function ServiceSection({
                     assignedStaff: ticket.assignedStaff, // Pass multi-staff array
                     createdAt: ticket.createdAt,
                     lastVisitDate: ticket.lastVisitDate,
+                    serviceStatus: ticket.serviceStatus, // Pass service status for pause/resume
                   }}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
-                  onComplete={(id) => completeTicket?.(id, {})}
-                  onPause={(id) => pauseTicket?.(id)}
-                  onClick={(_id) => {
+                  onComplete={(id: string) => completeTicket?.(id, {})}
+                  onPause={(id: string) => pauseTicket?.(id)}
+                  onResume={(id: string) => resumeTicket?.(id)}
+                  onDelete={(id: string) => openDeleteConfirmation(id)}
+                  onClick={(_id: string) => {
                     // Handle click to show details
                   }}
                 />
@@ -1033,17 +1081,21 @@ export const ServiceSection = memo(function ServiceSection({
                     service: ticket.service,
                     duration: ticket.duration || '30min',
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                    status: (ticket.status as 'waiting' | 'in-service' | 'completed') || 'in-service',
                     notes: ticket.notes,
                     technician: ticket.technician,
                     techColor: ticket.techColor,
                     assignedTo: ticket.assignedTo,
                     assignedStaff: ticket.assignedStaff, // Pass multi-staff array
                     createdAt: ticket.createdAt,
+                    serviceStatus: ticket.serviceStatus, // Pass service status for pause/resume
                   }}
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
-                  onComplete={(id) => completeTicket?.(id, {})}
-                  onPause={(id) => pauseTicket?.(id)}
-                  onClick={(_id) => {
+                  onComplete={(id: string) => completeTicket?.(id, {})}
+                  onPause={(id: string) => pauseTicket?.(id)}
+                  onResume={(id: string) => resumeTicket?.(id)}
+                  onDelete={(id: string) => openDeleteConfirmation(id)}
+                  onClick={(_id: string) => {
                     // Handle click to show details
                   }}
                 />
@@ -1056,7 +1108,76 @@ export const ServiceSection = memo(function ServiceSection({
       setShowDetailsModal(false);
       setTicketToEdit(id);
       setShowEditModal(true);
-    }} onDelete={() => {}} // Not needed for service tickets
+    }} onDelete={(id) => {
+      setShowDetailsModal(false);
+      openDeleteConfirmation(id.toString());
+    }}
     />
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-11/12 max-w-md overflow-hidden border border-gray-200">
+            <div className="bg-red-50 p-4 border-b border-red-100">
+              <div className="flex items-center">
+                <div className="bg-red-500 p-2 rounded-full text-white mr-3">
+                  <Trash2 size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800">Delete In-Service Ticket</h3>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="mb-4">
+                <p className="text-gray-700 mb-2">
+                  Are you sure you want to delete this in-service ticket? This action cannot be undone.
+                </p>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="deleteReason" className="block text-sm font-medium text-gray-700 mb-1">
+                  Reason for deletion <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="deleteReason"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  value={deleteReason}
+                  onChange={e => setDeleteReason(e.target.value)}
+                  required
+                >
+                  <option value="">Select a reason</option>
+                  <option value="client_left">Client Left</option>
+                  <option value="client_cancelled">Client Cancelled</option>
+                  <option value="service_issue">Service Issue</option>
+                  <option value="tech_unavailable">Technician Unavailable</option>
+                  <option value="duplicate_entry">Duplicate Entry</option>
+                  <option value="scheduling_error">Scheduling Error</option>
+                  <option value="other">Other</option>
+                </select>
+                {deleteReason === '' && (
+                  <p className="text-sm text-red-500 mt-1">Please select a reason for deletion</p>
+                )}
+              </div>
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTicketToDelete(null);
+                    setDeleteReason('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={`px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors ${deleteReason === '' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={handleDeleteTicket}
+                  disabled={deleteReason === ''}
+                >
+                  Delete Ticket
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>;
 });

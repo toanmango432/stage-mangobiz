@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  Search,
   Download,
   Calendar,
   Eye,
@@ -16,12 +15,6 @@ import {
   Plus
 } from 'lucide-react';
 import { useAppDispatch } from '../../store/hooks';
-import {
-  fetchAppointments
-} from '../../store/slices/appointmentsSlice';
-import {
-  fetchTickets
-} from '../../store/slices/ticketsSlice';
 import type { LocalAppointment } from '../../types/appointment';
 import type { Ticket } from '../../types';
 import { SalesDetailsPanel } from '../sales/SalesDetailsPanel';
@@ -33,7 +26,7 @@ import { FilterChip } from '../sales/FilterChip';
 import { SalesMobileCard } from '../sales/SalesMobileCard';
 import { NewSaleModal } from '../sales/NewSaleModal';
 import { mockTickets, mockAppointments } from '../../data/mockSalesData';
-import { Button, Input, Select, Tabs, Tab } from '../ui';
+import { Button, Input, Tabs, Tab } from '../ui';
 
 type SalesTab = 'appointments' | 'tickets';
 type DateFilter = '7days' | '30days' | '90days' | 'custom';
@@ -203,7 +196,7 @@ export function Sales() {
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => {
+      filtered = filtered.filter((item: any) => {
         if ('clientName' in item) {
           return item.clientName?.toLowerCase().includes(query) ||
             item.clientPhone?.includes(query);
@@ -577,18 +570,18 @@ export function Sales() {
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant="primary"
+                variant="default"
                 size="sm"
-                icon={<Plus className="w-3.5 h-3.5" />}
                 onClick={() => setShowNewSaleModal(true)}
               >
+                <Plus className="w-3.5 h-3.5" />
                 New Sale
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                icon={<Download className="w-3.5 h-3.5" />}
               >
+                <Download className="w-3.5 h-3.5" />
                 Export
               </Button>
             </div>
@@ -672,9 +665,9 @@ export function Sales() {
             <Button
               variant="ghost"
               size="sm"
-              icon={<History className="w-3 h-3" />}
               onClick={() => handleClearFilters()}
             >
+              <History className="w-3 h-3" />
               Clear
             </Button>
           </div>
@@ -688,22 +681,21 @@ export function Sales() {
                   placeholder="Search by client name, receipt #, or phone number..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  icon={<Search className="w-4 h-4" />}
-                  fullWidth
+                  className="w-full"
                 />
               </div>
 
-              <Select
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="min-w-[140px]"
+                className="min-w-[140px] flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 {statusOptions.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
-              </Select>
+              </select>
 
               <button
                 onClick={() => setShowDatePicker(true)}

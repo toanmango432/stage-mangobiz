@@ -48,7 +48,6 @@ import { generateSmartBookingSuggestions, createSmartBookingDefaults, SmartBooki
 import { SmartBookingPanel } from './SmartBookingPanel';
 import { Client as ClientType } from '../../types/client';
 import { Service as ServiceType } from '../../types/service';
-import { Staff as StaffType } from '../../types/staff';
 
 interface Client {
   id: string;
@@ -57,6 +56,9 @@ interface Client {
   email?: string;
   membershipLevel?: string;
   totalVisits?: number;
+  lastVisit?: string;
+  loyaltyTier?: string;
+  totalSpent?: number;
   notes?: string;
 }
 
@@ -219,7 +221,7 @@ export function NewAppointmentModal({
           notes: c.notes
         }));
 
-        setRecentClients(recentList);
+        setRecentClients(recentList as any);
       } catch (error) {
         console.error('Failed to load recent clients:', error);
       }
@@ -264,7 +266,7 @@ export function NewAppointmentModal({
           membershipLevel: c.loyaltyTier,
           totalVisits: c.totalVisits,
           notes: c.notes
-        })));
+        })) as any);
       } catch (error) {
         console.error('Failed to search clients:', error);
       } finally {
@@ -294,17 +296,6 @@ export function NewAppointmentModal({
   }, [isOpen, selectedDate, selectedTime]);
 
   // Services are now loaded from IndexedDB (see useEffect above)
-  const mockServices: Service[] = [
-    { id: 's1', name: 'Gel Manicure', category: 'Nails', duration: 60, price: 45 },
-    { id: 's2', name: 'Acrylic Full Set', category: 'Nails', duration: 90, price: 65 },
-    { id: 's3', name: 'Pedicure', category: 'Foot Care', duration: 75, price: 55 },
-    { id: 's4', name: 'Manicure', category: 'Nails', duration: 45, price: 35 },
-    { id: 's5', name: 'Nail Art', category: 'Nails', duration: 30, price: 25 },
-    { id: 's6', name: 'Brows', category: 'Waxing', duration: 15, price: 10 },
-    { id: 's7', name: 'Haircut', category: 'Hair', duration: 30, price: 25 },
-    { id: 's8', name: 'Blow Dry', category: 'Hair', duration: 30, price: 25 },
-    { id: 's9', name: 'Combo 1', category: 'Hair', duration: 180, price: 40 },
-  ];
 
   const mockStaff: Staff[] = [
     { id: '1', name: 'Sophia' },
@@ -359,17 +350,22 @@ export function NewAppointmentModal({
       setLoadingSuggestions(true);
       try {
         // Convert Client to full Client type if needed
+        const nameParts = client.name.split(' ');
         const fullClient: ClientType = {
           id: client.id,
           salonId,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
           name: client.name,
           phone: client.phone,
           email: client.email,
           lastVisit: client.lastVisit,
           totalVisits: client.totalVisits || 0,
           totalSpent: (client as any).totalSpent || 0,
-          createdAt: (client as any).createdAt || new Date(),
-          updatedAt: (client as any).updatedAt || new Date(),
+          isBlocked: false,
+          isVip: false,
+          createdAt: (client as any).createdAt || new Date().toISOString(),
+          updatedAt: (client as any).updatedAt || new Date().toISOString(),
           syncStatus: (client as any).syncStatus || 'synced',
         };
 
@@ -389,23 +385,7 @@ export function NewAppointmentModal({
             createdAt: new Date(),
             updatedAt: new Date(),
             syncStatus: 'synced' as const,
-          })),
-          allStaffFromRedux.map((s): StaffType => ({
-            id: s.id,
-            salonId,
-            name: s.name,
-            email: s.email || '',
-            phone: s.phone || '',
-            specialty: s.specialties?.[0],
-            isActive: s.status === 'available' || s.status === 'on-break',
-            role: s.role || 'technician',
-            hireDate: s.hireDate || new Date(),
-            commissionRate: s.commissionRate || 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            syncStatus: 'synced' as const,
-          })),
-          salonId
+          }))
         );
 
         setSmartSuggestions(suggestions);
@@ -481,9 +461,10 @@ export function NewAppointmentModal({
       const tempAppointment: Partial<LocalAppointment> = {
         clientId: selectedClient?.id || '',
         services: [{
-          id: service.id,
+          serviceId: service.id,
           serviceName: service.name,
-          category: service.category,
+          staffId: '',
+          staffName: '',
           duration: service.duration,
           price: service.price,
         }],
@@ -892,11 +873,16 @@ export function NewAppointmentModal({
                                 } else {
                                   // Create directly using clientsDB
                                   const { clientsDB } = await import('../../db/database');
-                                  createdClient = await clientsDB.create({
+                                  const nameParts = newClientName.trim().split(' ');
+                                  const newClient = await clientsDB.create({
                                     salonId,
+                                    firstName: nameParts[0] || newClientName.trim(),
+                                    lastName: nameParts.slice(1).join(' ') || '',
                                     name: newClientName.trim(),
                                     phone: newClientPhone.trim(),
-                                  });
+                                    isBlocked: false,
+                                  } as any);
+                                  createdClient = newClient as any;
                                 }
 
                                 // Select the newly created client

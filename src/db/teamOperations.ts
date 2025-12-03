@@ -31,28 +31,30 @@ const SYNC_CONFIG = {
 /**
  * Generate idempotency key for sync operations
  */
-function generateIdempotencyKey(
-  type: string,
-  entityId: string,
-  version: number
-): string {
-  return `${type}:teamMember:${entityId}:${version}:${Date.now()}`;
-}
+// function __generateIdempotencyKey(
+//   type: string,
+//   entityId: string,
+//   version: number
+// ): string {
+//   return `${type}:teamMember:${entityId}:${version}:${Date.now()}`;
+// }
 
 /**
  * Add operation to sync queue
  */
 async function queueForSync(
-  type: 'create' | 'update' | 'delete',
+  operationType: 'create' | 'update' | 'delete',
   entity: TeamMemberSettings,
   storeId: string
 ): Promise<void> {
   await syncQueueDB.add({
+    type: operationType,
     entity: SYNC_CONFIG.entity,
     entityId: entity.id,
-    operation: type,
-    data: entity,
+    action: operationType === 'create' ? 'CREATE' : operationType === 'update' ? 'UPDATE' : 'DELETE',
+    payload: entity,
     priority: SYNC_CONFIG.priority,
+    maxAttempts: 10,
     salonId: storeId, // Using salonId for backwards compatibility with existing sync queue
   });
 }
@@ -668,12 +670,12 @@ export const teamDB = {
   async purgeExpiredTombstones(): Promise<number> {
     const now = new Date().toISOString();
     const expired = await db.teamMembers
-      .filter((m) =>
-        m.isDeleted &&
-        m.tombstoneExpiresAt &&
-        m.tombstoneExpiresAt < now &&
-        m.syncStatus === 'synced'
-      )
+      .filter((m) => {
+        return !!m.isDeleted &&
+          !!m.tombstoneExpiresAt &&
+          m.tombstoneExpiresAt < now &&
+          m.syncStatus === 'synced';
+      })
       .toArray();
 
     for (const member of expired) {
@@ -715,6 +717,43 @@ export const teamDB = {
       pendingSync: pendingSync.length,
       byRole,
     };
+  },
+
+  // ---- Upsert Operation ----
+
+  /**
+   * Upsert a team member (insert or update)
+   * Used for syncing from Supabase to IndexedDB
+   */
+  async upsertMember(
+    member: TeamMemberSettings,
+    _userId: string,
+    _deviceId: string
+  ): Promise<void> {
+    const existing = await db.teamMembers.get(member.id);
+
+    if (existing) {
+      // Only update if the incoming data is newer or from server (synced status)
+      // Preserve local changes that haven't been synced yet
+      if (existing.syncStatus === 'pending' || existing.syncStatus === 'local') {
+        // Local has pending changes, don't overwrite
+        return;
+      }
+
+      // Update with server data
+      await db.teamMembers.put({
+        ...member,
+        syncStatus: 'synced' as SyncStatus,
+        lastSyncedVersion: member.version,
+      });
+    } else {
+      // Insert new member
+      await db.teamMembers.add({
+        ...member,
+        syncStatus: 'synced' as SyncStatus,
+        lastSyncedVersion: member.version,
+      });
+    }
   },
 
   // ---- Data Migration / Seeding ----

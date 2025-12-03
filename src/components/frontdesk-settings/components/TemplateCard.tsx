@@ -4,7 +4,6 @@ import { TemplateCardProps } from '../types';
 
 // Template Card Component
 export const TemplateCard: React.FC<TemplateCardProps> = ({
-  id,
   title,
   description,
   isSelected,

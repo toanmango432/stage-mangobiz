@@ -3,7 +3,7 @@
  * QuickCheckout provides better type safety and more features
  */
 import { useState, useEffect } from 'react';
-import { X, Plus, Minus, Percent, DollarSign, CreditCard, Smartphone, Banknote, Check } from 'lucide-react';
+import { X, Plus, Percent, DollarSign, CreditCard, Smartphone, Banknote, Check } from 'lucide-react';
 import { Ticket, Payment } from '../../types/Ticket';
 import { TAX_RATE } from '../../constants/checkoutConfig';
 

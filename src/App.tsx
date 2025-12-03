@@ -9,6 +9,8 @@ import { storeAuthManager, type StoreAuthState } from './services/storeAuthManag
 import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
 import { initializeDatabase } from './db/schema';
 import { TooltipProvider } from './components/ui/tooltip';
+import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
+import { ConflictNotificationProvider } from './contexts/ConflictNotificationContext';
 
 // NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
 // If you need to clear the database, do it manually via browser DevTools
@@ -181,25 +183,31 @@ export function App() {
   // POS MODE: Show login screen if not authenticated
   if (storeAuthManager.isLoginRequired()) {
     return (
-      <StoreLoginScreen
-        initialState={authState}
-        onLoggedIn={() => {
-          // Login successful - auth state will be updated by subscription
-          // Just force a re-render by updating the state
-          const currentState = storeAuthManager.getState();
-          setAuthState(currentState);
-        }}
-      />
+      <Provider store={store}>
+        <StoreLoginScreen
+          initialState={authState || undefined}
+          onLoggedIn={() => {
+            // Login successful - auth state will be updated by subscription
+            // Just force a re-render by updating the state
+            const currentState = storeAuthManager.getState();
+            setAuthState(currentState);
+          }}
+        />
+      </Provider>
     );
   }
 
   // POS MODE: Normal app flow
   return (
     <Provider store={store}>
-      <TooltipProvider>
-        <AppShell />
-        <Toaster {...toasterConfig} />
-      </TooltipProvider>
+      <SupabaseSyncProvider autoSyncInterval={30000} enableRealtime={true}>
+        <ConflictNotificationProvider>
+          <TooltipProvider>
+            <AppShell />
+            <Toaster {...toasterConfig} />
+          </TooltipProvider>
+        </ConflictNotificationProvider>
+      </SupabaseSyncProvider>
     </Provider>
   );
 }

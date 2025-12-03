@@ -4,7 +4,7 @@
  * Uses actual grid-normal designs from ticket card components
  */
 
-import { Clock, CheckCircle, Timer, Activity, CreditCard, User, UserPlus, Check } from 'lucide-react';
+import { CheckCircle, Timer, Activity, CreditCard, UserPlus, Check } from 'lucide-react';
 
 export function TicketColorPreview() {
   return (

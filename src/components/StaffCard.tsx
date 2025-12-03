@@ -206,7 +206,7 @@ export function StaffCard({
   // In a real implementation, this would be passed as a prop from the parent component
   const hasDuplicateFirstName = () => {
     // Convert ID to number if it's a string
-    const staffIdNum = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 0 : staff.id;
+    const staffIdNum = typeof staff.id === 'string' ? parseInt((staff.id as string).replace(/\D/g, ''), 10) || 0 : staff.id;
     // For demonstration, let's assume staff with IDs 2, 5 have duplicate first names
     return [2, 5].includes(staffIdNum);
   };
@@ -257,8 +257,9 @@ export function StaffCard({
       lightText: 'text-emerald-50',
       chipBg: 'bg-emerald-100',
       chipBorder: 'border-emerald-200',
-      icon: <Check size={viewMode === 'ultra-compact' ? 10 : 12} strokeWidth={2.5} className="mr-1" style={{
-        shapeRendering: 'geometricPrecision'
+      icon: <Check size={viewMode === 'ultra-compact' ? 10 : 12} strokeWidth={2.5} style={{
+        shapeRendering: 'geometricPrecision',
+        marginRight: '0.25rem'
       }} />,
       label: 'Ready',
       desaturateHeader: false,
@@ -274,8 +275,9 @@ export function StaffCard({
       lightText: 'text-rose-50',
       chipBg: 'bg-rose-100',
       chipBorder: 'border-rose-200',
-      icon: <CircleDot size={viewMode === 'ultra-compact' ? 10 : 12} strokeWidth={2.5} className="mr-1" style={{
-        shapeRendering: 'geometricPrecision'
+      icon: <CircleDot size={viewMode === 'ultra-compact' ? 10 : 12} strokeWidth={2.5} style={{
+        shapeRendering: 'geometricPrecision',
+        marginRight: '0.25rem'
       }} />,
       label: 'Busy',
       desaturateHeader: true,
@@ -292,8 +294,9 @@ export function StaffCard({
       lightText: 'text-gray-50',
       chipBg: 'bg-gray-100',
       chipBorder: 'border-gray-200',
-      icon: <Circle size={viewMode === 'ultra-compact' ? 10 : 12} strokeWidth={2.5} className="mr-1" style={{
-        shapeRendering: 'geometricPrecision'
+      icon: <Circle size={viewMode === 'ultra-compact' ? 10 : 12} strokeWidth={2.5} style={{
+        shapeRendering: 'geometricPrecision',
+        marginRight: '0.25rem'
       }} />,
       label: 'Clocked Out',
       desaturateHeader: true,
@@ -302,7 +305,7 @@ export function StaffCard({
     }
   };
   // Use the staff's actual status instead of always using 'ready'
-  const status = statusColors[staff.status] || statusColors['ready'];
+  const status = statusColors[staff.status as keyof typeof statusColors] || statusColors['ready'];
   // Specialty color mapping
   const specialtyColors: Record<string, {
     base: string;
@@ -691,7 +694,7 @@ export function StaffCard({
   // Suppress unused variable warnings
   void [_colors, _getHeaderColor, _getDataColor, _hasLastService, _hasNextAppointment, _wouldFit];
   // Calculate if a timestamp element would fit in available space - IMPROVED CALCULATION
-  function _wouldFit(content: string, mode: string, type: 'last' | 'current' | 'next') {
+  function _wouldFit(content: string, mode: string, type: 'last' | 'current' | 'next', availableWidth: number) {
     let textContent = content;
     let fontSize = 10; // Default font size in pixels
     let extraSpace = 0; // Extra space for icon and padding
@@ -758,7 +761,7 @@ export function StaffCard({
     // Get available width for calculations (account for padding)
     const availableWidth = cardWidth - (viewMode === 'ultra-compact' ? 4 : viewMode === 'compact' ? 8 : 16);
     // Calculate if a timestamp element would fit in available space
-    const wouldFit = (content: string, mode: string, type: 'last' | 'current' | 'next') => {
+    const wouldFit = (content: string, mode: string, type: 'last' | 'current' | 'next'): number => {
       let textContent = content;
       let fontSize = 10; // Default font size in pixels
       let extraSpace = 0; // Extra space for icon and padding
@@ -776,7 +779,7 @@ export function StaffCard({
       // More accurate estimation based on content
       const estimatedWidth = estimateTextWidth(textContent, fontSize, type === 'current') + extraSpace;
       // Add buffer space to ensure it fits completely
-      return estimatedWidth + 4 <= availableWidth / (type === 'next' ? 1 : 2);
+      return estimatedWidth + 4;
     };
     // Check if we have the various time elements
     const hasLastService = config.showLastService && staff.lastServiceTime;
@@ -803,7 +806,7 @@ export function StaffCard({
             {/* Last Service - Past */}
             {showLast ? <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.ClockAnalog size={6} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-0.5 opacity-80" />
+                  <ClassicIcons.ClockAnalog size={6} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                   <span className="truncate">
                     {formatTime(staff.lastServiceTime)}
                   </span>
@@ -814,7 +817,7 @@ export function StaffCard({
             {/* Next Appointment - Future */}
             {showNext ? <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.NextAppointment size={6} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-0.5 opacity-80" />
+                  <ClassicIcons.NextAppointment size={6} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                   <span className="truncate">
                     {formatTime(staff.nextAppointmentTime)}
                   </span>
@@ -837,7 +840,7 @@ export function StaffCard({
           return <div className="flex justify-center items-center w-full mt-0.5 px-0.5">
               <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.NextAppointment size={6} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-0.5 opacity-80" />
+                  <ClassicIcons.NextAppointment size={6} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                   <span className="truncate">
                     {formatTime(staff.nextAppointmentTime)}
                   </span>
@@ -850,7 +853,7 @@ export function StaffCard({
           return <div className="flex justify-center items-center w-full mt-0.5 px-0.5">
               <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.ClockAnalog size={6} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-0.5 opacity-80" />
+                  <ClassicIcons.ClockAnalog size={6} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                   <span className="truncate">
                     {formatTime(staff.lastServiceTime)}
                   </span>
@@ -863,7 +866,7 @@ export function StaffCard({
             {/* Last Service - Past */}
             <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
               <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                <ClassicIcons.ClockAnalog size={6} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-0.5 opacity-80" />
+                <ClassicIcons.ClockAnalog size={6} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                 <span className="truncate">
                   {formatTime(staff.lastServiceTime)}
                 </span>
@@ -872,7 +875,7 @@ export function StaffCard({
             {/* Next Appointment - Future */}
             <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
               <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-[7.5px] font-medium px-1.5 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                <ClassicIcons.NextAppointment size={6} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-0.5 opacity-80" />
+                <ClassicIcons.NextAppointment size={6} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                 <span className="truncate">
                   {formatTime(staff.nextAppointmentTime)}
                 </span>
@@ -900,7 +903,7 @@ export function StaffCard({
               {/* Last Service - Past */}
               {showLast ? <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
                   <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-[9px] font-medium px-2 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                    <ClassicIcons.ClockAnalog size={8} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-0.5 opacity-80" />
+                    <ClassicIcons.ClockAnalog size={8} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                     <span className="truncate">
                       {formatTime(staff.lastServiceTime)}
                     </span>
@@ -909,7 +912,7 @@ export function StaffCard({
               {/* Next Appointment - Future */}
               {showNext ? <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                   <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-[9px] font-medium px-2 py-0.5 rounded-full shadow-sm transition-colors duration-200`}>
-                    <ClassicIcons.NextAppointment size={8} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-0.5 opacity-80" />
+                    <ClassicIcons.NextAppointment size={8} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                     <span className="truncate">
                       {formatTime(staff.nextAppointmentTime)}
                     </span>
@@ -932,7 +935,7 @@ export function StaffCard({
           return <div className="flex justify-center items-center mt-1">
               <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+                  <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                   <span className="truncate">
                     {formatTime(staff.nextAppointmentTime)}
                   </span>
@@ -945,7 +948,7 @@ export function StaffCard({
           return <div className="flex justify-center items-center mt-1">
               <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-1 opacity-80" />
+                  <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                   <span className="truncate">
                     {formatTime(staff.lastServiceTime)}
                   </span>
@@ -958,7 +961,7 @@ export function StaffCard({
             {/* Last Service - Past */}
             <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
               <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-1 opacity-80" />
+                <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                 <span className="truncate">
                   {formatTime(staff.lastServiceTime)}
                 </span>
@@ -967,7 +970,7 @@ export function StaffCard({
             {/* Next Appointment - Future */}
             <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
               <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+                <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                 <span className="truncate">
                   {formatTime(staff.nextAppointmentTime)}
                 </span>
@@ -993,7 +996,7 @@ export function StaffCard({
               {/* Last Service - Past */}
               <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-1 opacity-80" />
+                  <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                   <span className="truncate">
                     Last: {formatTime(staff.lastServiceTime)}
                     {staff.lastServiceAgo && !hasNextAppointment && <span className={`ml-1 ${status.grayOutOverlay ? 'text-amber-200' : 'text-amber-800'} font-medium`}>
@@ -1005,7 +1008,7 @@ export function StaffCard({
               {/* Next Appointment - Future */}
               <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+                  <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                   <span className="truncate">
                     Next: {formatTime(staff.nextAppointmentTime)}
                     {staff.nextAppointmentEta && !hasLastService && <span className={`ml-1 ${status.grayOutOverlay ? 'text-blue-200' : 'text-blue-800'} font-medium`}>
@@ -1020,7 +1023,7 @@ export function StaffCard({
         return <div className="flex justify-center mt-2">
             {showLast ? <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-1 opacity-80" />
+                  <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                   <span className="truncate">
                     Last: {formatTime(staff.lastServiceTime)}
                     {staff.lastServiceAgo && <span className={`ml-1 ${status.grayOutOverlay ? 'text-amber-200' : 'text-amber-800'} font-medium`}>
@@ -1030,7 +1033,7 @@ export function StaffCard({
                 </button>
               </Tippy> : showNext ? <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                 <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                  <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+                  <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                   <span className="truncate">
                     Next: {formatTime(staff.nextAppointmentTime)}
                     {staff.nextAppointmentEta && <span className={`ml-1 ${status.grayOutOverlay ? 'text-blue-200' : 'text-blue-800'} font-medium`}>
@@ -1042,13 +1045,9 @@ export function StaffCard({
           </div>;
       }
     } else {
-      // No current ticket - prioritize Next over Last
+      // No current ticket - prioritize Next over Last (normal viewMode)
       const lastWidth = hasLastService ? wouldFit(`Last: ${formatTime(staff.lastServiceTime)}`, 'normal', 'last') : 0;
       const nextWidth = hasNextAppointment ? wouldFit(`Next: ${formatTime(staff.nextAppointmentTime)}`, 'normal', 'next') : 0;
-      // For minimized views (compact and ultra-compact), return null
-      if (viewMode === 'compact' || viewMode === 'ultra-compact') {
-        return null;
-      }
       // Show Next if it fits completely
       const showNext = hasNextAppointment && nextWidth <= availableWidth / 2;
       // Show Last only if Next doesn't exist or if both fit
@@ -1060,7 +1059,7 @@ export function StaffCard({
         return <div className="flex justify-center mt-2">
             <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
               <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+                <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                 <span className="truncate">
                   Next: {formatTime(staff.nextAppointmentTime)}
                   {staff.nextAppointmentEta && <span className={`ml-1 ${status.grayOutOverlay ? 'text-blue-200' : 'text-blue-800'} font-medium`}>
@@ -1076,7 +1075,7 @@ export function StaffCard({
         return <div className="flex justify-center mt-2">
             <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
               <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-1 opacity-80" />
+                <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
                 <span className="truncate">
                   Last: {formatTime(staff.lastServiceTime)}
                   {staff.lastServiceAgo && <span className={`ml-1 ${status.grayOutOverlay ? 'text-amber-200' : 'text-amber-800'} font-medium`}>
@@ -1092,7 +1091,7 @@ export function StaffCard({
           {/* Last Service - Past */}
           <Tippy content={`Last Service: ${staff.lastServiceTime}${staff.lastServiceAgo ? ` (${staff.lastServiceAgo})` : ''}`}>
             <button className={`flex items-center ${status.grayOutOverlay ? 'bg-amber-900/40 text-amber-100/80' : 'bg-amber-50 text-amber-700/80'} hover:bg-amber-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-              <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} className="mr-1 opacity-80" />
+              <ClassicIcons.ClockAnalog size={10} color={status.grayOutOverlay ? '#FCD34D' : '#B45309'} />
               <span className="truncate">
                 Last: {formatTime(staff.lastServiceTime)}
                 {staff.lastServiceAgo && !hasNextAppointment && <span className={`ml-1 ${status.grayOutOverlay ? 'text-amber-200' : 'text-amber-800'} font-medium`}>
@@ -1104,7 +1103,7 @@ export function StaffCard({
           {/* Next Appointment - Future */}
           <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
             <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-              <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+              <ClassicIcons.NextAppointment size={10} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
               <span className="truncate">
                 Next: {formatTime(staff.nextAppointmentTime)}
                 {staff.nextAppointmentEta && !hasLastService && <span className={`ml-1 ${status.grayOutOverlay ? 'text-blue-200' : 'text-blue-800'} font-medium`}>
@@ -1265,7 +1264,7 @@ export function StaffCard({
             backgroundColor: ticketColor,
             zIndex: status.grayOutOverlay ? 30 : 20
           }}>
-            <Ticket size={12} className="text-white" strokeWidth={2.5} />
+            <Ticket size={12} strokeWidth={2.5} style={{ color: 'white' }} />
             {/* Blinking indicator dot */}
             <div 
               className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white" 
@@ -1423,7 +1422,7 @@ export function StaffCard({
           <MoreVertical size={14} strokeWidth={2} />
         </button>
         {isDraggable && <div className="absolute top-\\1/2 left-\\1 -transform -\\translate-y-\\1/2 opacity-0 group-hover:opacity-70 cursor-grab active:cursor-grabbing z-10 transition-opacity">
-            <GripVertical size={16} className="text-gray-600" strokeWidth={2} />
+            <GripVertical size={16} strokeWidth={2} style={{ color: '#4B5563' }} />
           </div>}
         {/* Staff avatar with accent border - INCREASED SIZE BY 12% */}
         {config.showAvatar && <div className={`relative flex-shrink-0 z-10 ml-1 ${config.notchOverlapsAvatar ? 'mt-[-20px]' : ''}`}>
@@ -1434,7 +1433,7 @@ export function StaffCard({
             lineHeight: '18px',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
           }}>
-                    <Clock size={cardWidth < 300 ? 11 : 12} className="mr-1 opacity-80" strokeWidth={2.5} />
+                    <Clock size={cardWidth < 300 ? 11 : 12} strokeWidth={2.5} style={{ marginRight: '0.25rem', opacity: 0.8 }} />
                     <span>
                       {currentTicketInfo.timeLeft}m
                       {cardWidth >= 300 ? `/${currentTicketInfo.totalTime}m` : ''}{' '}
@@ -1512,7 +1511,7 @@ export function StaffCard({
             textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.3)' // Enhanced shadow for busy
             : '0px 1px 0px rgba(255, 255, 255, 0.5)' // Text shadow for etched effect
           }}>
-                <Clock size={8} className={`mr-0.5 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-700'}`} strokeWidth={2} />
+                <Clock size={8} strokeWidth={2} style={{ marginRight: '0.125rem', color: status.grayOutOverlay ? '#D1D5DB' : '#374151' }} />
                 <span className="font-medium whitespace-nowrap">{formatClockedInTime(staff.time)}</span>
               </div>
             </Tippy>}
@@ -1522,7 +1521,7 @@ export function StaffCard({
             textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.3)' // Enhanced shadow for busy
             : '0px 1px 0px rgba(255, 255, 255, 0.5)' // Text shadow for etched effect
           }}>
-                <ClassicIcons.RepeatArrows size={12} color={status.grayOutOverlay ? '#F3F4F6' : '#374151'} className="mr-1 flex-shrink-0" strokeWidth={2.5} />
+                <ClassicIcons.RepeatArrows size={12} color={status.grayOutOverlay ? '#F3F4F6' : '#374151'} strokeWidth={2.5} />
                 <span className="font-semibold" style={{
               fontSize: '13px'
             }}>
@@ -1533,12 +1532,12 @@ export function StaffCard({
           {/* Conditionally render either Active Ticket row or Tickets/Sales row */}
           {hasActiveTickets() ? renderCompactActiveTicketRow() : <>
               {/* Combined Tickets and Sales - ONLY VISIBLE IN NORMAL VIEW, HIDDEN IN COMPACT/ULTRA-COMPACT */}
-              {(config.showTickets || config.showSalesAmount) && viewMode === 'normal' && <div className="flex items-center mt-2 mb-2">
+              {(config.showTickets || config.showSalesAmount) && String(viewMode) === 'normal' && <div className="flex items-center mt-2 mb-2">
                     {config.showTickets && <div className="flex items-center" aria-label={`Tickets: ${staff.ticketsServicedCount ?? staff.count ?? 0}`} style={{
               textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.3)' // Enhanced shadow for busy
               : '0px 1px 0px rgba(255, 255, 255, 0.5)' // Text shadow for etched effect
             }}>
-                        <Ticket size={cardWidth < 360 ? 12 : 14} className={`mr-1 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-600'} opacity-80`} strokeWidth={2} />
+                        <Ticket size={cardWidth < 360 ? 12 : 14} strokeWidth={2} style={{ marginRight: '0.25rem', color: status.grayOutOverlay ? '#D1D5DB' : '#4B5563', opacity: 0.8 }} />
                         <span className={`${cardWidth < 360 ? 'text-xs' : 'text-sm'} font-normal ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-600'}`}>
                           {staff.ticketsServicedCount ?? staff.count ?? 0}
                         </span>
@@ -1548,7 +1547,7 @@ export function StaffCard({
               textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.3)' // Enhanced shadow for busy
               : '0px 1px 0px rgba(255, 255, 255, 0.5)' // Text shadow for etched effect
             }}>
-                        <DollarSign size={cardWidth < 360 ? 12 : 14} className={`mr-1 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-600'} opacity-80`} strokeWidth={2} />
+                        <DollarSign size={cardWidth < 360 ? 12 : 14} strokeWidth={2} style={{ marginRight: '0.25rem', color: status.grayOutOverlay ? '#D1D5DB' : '#4B5563', opacity: 0.8 }} />
                         <span className={`${cardWidth < 360 ? 'text-xs' : 'text-sm'} font-normal ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-600'}`}>
                           {formatCurrency(staff.totalSalesAmount ?? staff.revenue?.amount ?? 0).replace('$', '')}
                         </span>
@@ -1568,7 +1567,7 @@ export function StaffCard({
               if (chipWidth <= cardWidth * 0.85) {
                 return <Tippy content={`Next Appointment: ${staff.nextAppointmentTime}${staff.nextAppointmentEta ? ` (${staff.nextAppointmentEta})` : ''}`}>
                             <button className={`flex items-center ${status.grayOutOverlay ? 'bg-blue-900/40 text-blue-100/80' : 'bg-blue-50 text-blue-700/80'} hover:bg-blue-100 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm transition-colors duration-200`}>
-                              <ClassicIcons.NextAppointment size={12} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} className="mr-1 opacity-80" />
+                              <ClassicIcons.NextAppointment size={12} color={status.grayOutOverlay ? '#93C5FD' : '#1E40AF'} />
                               <span className="whitespace-nowrap">
                                 {timeText}
                                 {cardWidth >= 200 && staff.nextAppointmentEta && <span className={`ml-1 ${status.grayOutOverlay ? 'text-blue-200' : 'text-blue-800'} font-medium text-xs`}>
@@ -1763,7 +1762,7 @@ export function StaffCard({
                   {(config.showTickets || config.showSalesAmount) && cardWidth >= 60 && <div className="flex items-center justify-center mt-1">
                         {config.showTickets && <Tippy content={`Tickets: ${staff.ticketsServicedCount ?? staff.count}`}>
                             <div className="flex items-center" aria-label={`Tickets: ${staff.ticketsServicedCount ?? staff.count}`}>
-                              <Ticket size={8} className={`mr-0.5 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-500'} opacity-80`} strokeWidth={2} />
+                              <Ticket size={8} strokeWidth={2} style={{ marginRight: '0.125rem', color: status.grayOutOverlay ? '#D1D5DB' : '#6B7280', opacity: 0.8 }} />
                               <span className="text-[8px] font-normal ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-500'}">
                                 {staff.ticketsServicedCount ?? staff.count}
                               </span>
@@ -1774,7 +1773,7 @@ export function StaffCard({
                           </span>}
                         {config.showSalesAmount && <Tippy content={`Total Serviced: ${formatCurrency(staff.totalSalesAmount ?? staff.revenue?.amount ?? 0)}`}>
                             <div className="flex items-center" aria-label={`Total serviced: ${formatCurrency(staff.totalSalesAmount ?? staff.revenue?.amount ?? 0)}`}>
-                              <DollarSign size={8} className={`mr-0.5 ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-500'} opacity-80`} strokeWidth={2} />
+                              <DollarSign size={8} strokeWidth={2} style={{ marginRight: '0.125rem', color: status.grayOutOverlay ? '#D1D5DB' : '#6B7280', opacity: 0.8 }} />
                               <span className="text-[8px] font-normal ${status.grayOutOverlay ? 'text-gray-300' : 'text-gray-500'}">
                                 {formatCurrency(staff.totalSalesAmount ?? staff.revenue?.amount ?? 0).replace('$', '')}
                               </span>
@@ -1838,17 +1837,17 @@ export function StaffCard({
     }} tabIndex={0} role="button" aria-label={`${staff.name}, ${status.label}, Queue position: ${staff.count}`}>
         {/* Functional notch for busy staff with current ticket info */}
         {currentTicketInfo !== null && staff.status === 'busy' ? <div className="absolute top-0 left-1/2 z-30" style={{
-        width: viewMode === 'compact' || viewMode === 'ultra-compact' ? '50%' // Further reduced from 57% for leaner appearance
+        width: String(viewMode) === 'compact' || String(viewMode) === 'ultra-compact' ? '50%' // Further reduced from 57% for leaner appearance
         : '42%',
-        minWidth: viewMode === 'compact' ? '155px' // Further reduced from 170px
-        : viewMode === 'ultra-compact' ? '120px' // Further reduced from 135px
+        minWidth: String(viewMode) === 'compact' ? '155px' // Further reduced from 170px
+        : String(viewMode) === 'ultra-compact' ? '120px' // Further reduced from 135px
         : '165px',
-        maxWidth: viewMode === 'compact' || viewMode === 'ultra-compact' ? '225px' // Further reduced from 250px
+        maxWidth: String(viewMode) === 'compact' || String(viewMode) === 'ultra-compact' ? '225px' // Further reduced from 250px
         : '220px',
         height: 'auto',
-        minHeight: viewMode === 'compact' || viewMode === 'ultra-compact' ? '32px' // Reduced from 36px for shorter appearance
+        minHeight: String(viewMode) === 'compact' || String(viewMode) === 'ultra-compact' ? '32px' // Reduced from 36px for shorter appearance
         : '28px',
-        maxHeight: viewMode === 'compact' || viewMode === 'ultra-compact' ? '36px' // Reduced from 40px for shorter appearance
+        maxHeight: String(viewMode) === 'compact' || String(viewMode) === 'ultra-compact' ? '36px' // Reduced from 40px for shorter appearance
         : '32px',
         borderTop: 'none',
         borderLeft: `1px solid rgba(0,0,0,0.15)`,
@@ -1858,7 +1857,7 @@ export function StaffCard({
         borderBottomRightRadius: '16px',
         background: 'linear-gradient(180deg, #fff 0%, #f8f8f8 100%)',
         boxShadow: '0 2px 5px rgba(0, 0, 0, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.03)',
-        transform: viewMode === 'compact' || viewMode === 'ultra-compact' ? 'translate(-50%, -3px)' // Adjusted from -4px for better positioning with shorter height
+        transform: String(viewMode) === 'compact' || String(viewMode) === 'ultra-compact' ? 'translate(-50%, -3px)' // Adjusted from -4px for better positioning with shorter height
         : 'translate(-50%, -4px)',
         position: 'relative',
         zIndex: 30,
@@ -1980,7 +1979,7 @@ export function StaffCard({
         {/* More Options Button - positioned at middle right */}
         <button className={`absolute top-1/2 right-2 transform -translate-y-1/2 ${status.grayOutOverlay ? 'text-gray-300 hover:text-white hover:bg-gray-700/30' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/80'} transition-all duration-300 p-1 rounded-full flex-shrink-0 z-30`} // Reduced padding from p-1.5 to p-1
       aria-label="More options for staff member">
-          <MoreVertical size={viewMode === 'ultra-compact' ? 12 : 14} strokeWidth={2} />
+          <MoreVertical size={String(viewMode) === 'ultra-compact' ? 12 : 14} strokeWidth={2} />
         </button>
         {/* Top section with staff info - 60% height */}
         <div className="relative z-10 p-3 pt-0.75 h-[60%]">
@@ -2107,10 +2106,9 @@ export function StaffCard({
               }}>
                     <Tippy content={`Clocked In: ${formatClockedInTime(staff.time)}`}>
                       <div className="flex items-center">
-                        <ClassicIcons.ClockAnalog size={16} color={status.grayOutOverlay ? '#E5E7EB' : '#4B5563'} strokeWidth={2} className="mr-1.5 flex-shrink-0" style={{
-                      marginRight: '6px'
-                    }} // Consistent 6px icon-text gap
-                    />
+                        <div style={{ marginRight: '6px' }}>
+                          <ClassicIcons.ClockAnalog size={16} color={status.grayOutOverlay ? '#E5E7EB' : '#4B5563'} strokeWidth={2} />
+                        </div>
                         {cardWidth >= 180 ? (
                           <span className="font-medium whitespace-nowrap">{formatClockedInTime(staff.time)}</span>
                         ) : cardWidth >= 140 ? (
@@ -2124,10 +2122,9 @@ export function StaffCard({
                     <div className={`text-sm ${status.grayOutOverlay ? 'text-gray-200' : 'text-gray-800'} flex items-center ${getTransitionClass()}`} style={{
                   textShadow: status.grayOutOverlay ? '0px 1px 1px rgba(0, 0, 0, 0.4)' : '0px 1px 0px rgba(255, 255, 255, 0.5)'
                 }}>
-                      <ClassicIcons.RepeatArrows size={16} color={status.grayOutOverlay ? '#F3F4F6' : '#374151'} className="mr-1.5 flex-shrink-0" style={{
-                    marginRight: '6px'
-                  }} // Consistent 6px icon-text gap
-                  />
+                      <div style={{ marginRight: '6px' }}>
+                        <ClassicIcons.RepeatArrows size={16} color={status.grayOutOverlay ? '#F3F4F6' : '#374151'} />
+                      </div>
                       <span className="font-medium whitespace-nowrap">
                           {cardWidth >= 200 ? 'Turns:' : 'T:'}{' '}
                           <span className="font-semibold">

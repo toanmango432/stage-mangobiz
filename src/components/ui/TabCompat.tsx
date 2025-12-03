@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
  * These match the old API: Tabs with onChange and Tab with value/label/badge
  */
 
-export interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface TabsProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   value: string;
   onChange?: (value: string) => void;
   children: React.ReactNode;
@@ -43,7 +43,6 @@ export function LegacyTabs({ value, onChange, children, className, ...props }: T
 
 // Legacy Tab button
 export function Tab({
-  value,
   label,
   badge,
   isActive,

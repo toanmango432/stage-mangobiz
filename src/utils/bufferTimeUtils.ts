@@ -42,7 +42,7 @@ export function calculateBufferBlocks(
   );
   
   sortedAppointments.forEach((apt, index) => {
-    const aptStart = new Date(apt.scheduledStartTime);
+    // const _aptStart = new Date(apt.scheduledStartTime);
     const aptEnd = new Date(apt.scheduledEndTime);
     
     // Get buffer time for this service
@@ -92,20 +92,20 @@ export function isInBufferTime(
   return appointments.some(apt => {
     const aptStart = new Date(apt.scheduledStartTime);
     const aptEnd = new Date(apt.scheduledEndTime);
-    
+
     // Get buffer time for this service
-    const serviceBuffer = apt.services[0] 
+    const serviceBuffer = apt.services[0]
       ? getBufferTimeForService(apt.services[0].serviceName)
       : bufferMinutes;
-    
+
     // Check if time is within buffer after appointment
     const bufferAfterEnd = new Date(aptEnd);
     bufferAfterEnd.setMinutes(bufferAfterEnd.getMinutes() + serviceBuffer);
-    
+
     // Check if time is within buffer before next appointment
     const bufferBeforeStart = new Date(aptStart);
     bufferBeforeStart.setMinutes(bufferBeforeStart.getMinutes() - serviceBuffer);
-    
+
     return (time >= aptEnd && time <= bufferAfterEnd) ||
            (time >= bufferBeforeStart && time <= aptStart);
   });

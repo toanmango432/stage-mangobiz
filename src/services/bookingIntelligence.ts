@@ -6,17 +6,14 @@
 import { LocalAppointment } from '../types/appointment';
 import { Client } from '../types/client';
 import { Service } from '../types/service';
-import { Staff } from '../types/staff';
+// import { Staff } from '../types/staff';
 import {
   analyzeClientHistory,
   getSuggestedServices,
   getSuggestedStaff,
   getSuggestedTime,
   formatLastVisit,
-  ClientBookingPattern,
 } from '../utils/clientHistoryAnalysis';
-import { findAvailableStaff, isStaffAvailable } from '../utils/conflictDetection';
-import { autoAssignStaff } from '../utils/smartAutoAssign';
 
 export interface SmartBookingSuggestion {
   // Service suggestions
@@ -71,9 +68,7 @@ export async function generateSmartBookingSuggestions(
   client: Client,
   selectedDate: Date,
   allAppointments: LocalAppointment[],
-  allServices: Service[],
-  allStaff: Staff[],
-  salonId: string
+  allServices: Service[]
 ): Promise<SmartBookingSuggestion> {
   // Analyze client history
   const pattern = analyzeClientHistory(client, allAppointments);

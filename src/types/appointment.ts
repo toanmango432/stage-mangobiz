@@ -43,6 +43,7 @@ export interface CreateAppointmentInput {
   clientName: string;
   clientPhone: string;
   staffId: string;
+  staffName: string;
   services: Omit<AppointmentService, 'staffName' | 'serviceName'>[];
   scheduledStartTime: Date;
   notes?: string;

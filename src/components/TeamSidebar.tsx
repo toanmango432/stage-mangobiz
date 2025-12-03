@@ -1,4 +1,5 @@
-import React from 'react';
+import { useTickets } from '../hooks/useTicketsCompat';
+
 // ... existing code ...
 export function TeamSidebar() {
   const {
@@ -15,7 +16,7 @@ export function TeamSidebar() {
             <div className="...">
               {member.name}
               <span className="...">
-                {member.status === 'busy' ? `Busy (${member.activeTickets} active ticket${member.activeTickets !== 1 ? 's' : ''})` : 'Ready'}
+                {member.status === 'busy' ? `Busy (${member.activeTickets?.length || 0} active ticket${(member.activeTickets?.length || 0) !== 1 ? 's' : ''})` : 'Ready'}
               </span>
             </div>
           </div>

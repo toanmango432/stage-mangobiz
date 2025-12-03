@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, memo } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil } from 'lucide-react';
+import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil, AlertCircle } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from './frontdesk-settings/types';
@@ -32,7 +32,8 @@ export const ComingAppointments = memo(function ComingAppointments({
 }: ComingAppointmentsProps) {
   // All hooks must be called unconditionally (React rules of hooks)
   const {
-    comingAppointments = []
+    comingAppointments = [],
+    checkInAppointment
   } = useTickets();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTimeframe, setActiveTimeframe] = useState<'next1Hour' | 'next3Hours' | 'later'>('next1Hour');
@@ -535,7 +536,15 @@ export const ComingAppointments = memo(function ComingAppointments({
             {/* Action buttons with icons */}
             <div className="py-2">
               {/* Check-In (Green, Primary) */}
-              <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#34C759] hover:bg-[#F2FFF5] transition-colors flex items-center">
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#34C759] hover:bg-[#F2FFF5] transition-colors flex items-center"
+                onClick={() => {
+                  if (activeAppointment?.id) {
+                    checkInAppointment(activeAppointment.id);
+                    setShowActionMenu(false);
+                  }
+                }}
+              >
                 <div className="w-10 h-10 rounded-full bg-[#34C759]/10 flex items-center justify-center mr-3">
                   <User size={18} className="text-[#34C759]" />
                 </div>

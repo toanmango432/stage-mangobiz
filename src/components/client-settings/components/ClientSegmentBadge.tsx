@@ -1,6 +1,5 @@
 import React from 'react';
-import type { Client, ClientSegment, SegmentDefinition } from '../../../types';
-import { Badge } from './SharedComponents';
+import type { Client, ClientSegment } from '../../../types';
 
 // Icons - must be defined before SEGMENT_CONFIG
 const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (

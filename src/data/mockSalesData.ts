@@ -19,8 +19,11 @@ export const mockTickets: Ticket[] = [
         price: 35.00,
         duration: 45,
         commission: 17.50,
-        startTime: new Date('2025-11-19T10:00:00'),
-        endTime: new Date('2025-11-19T10:45:00')
+        startTime: new Date('2025-11-19T10:00:00').toISOString(),
+        endTime: new Date('2025-11-19T10:45:00').toISOString(),
+        status: 'completed' as const,
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-002',
@@ -30,8 +33,11 @@ export const mockTickets: Ticket[] = [
         price: 45.00,
         duration: 60,
         commission: 22.50,
-        startTime: new Date('2025-11-19T10:45:00'),
-        endTime: new Date('2025-11-19T11:45:00')
+        startTime: new Date('2025-11-19T10:45:00').toISOString(),
+        endTime: new Date('2025-11-19T11:45:00').toISOString(),
+        status: 'completed' as const,
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -52,12 +58,12 @@ export const mockTickets: Ticket[] = [
         tip: 15.00,
         total: 102.20,
         transactionId: 'txn_abc123xyz789',
-        processedAt: new Date('2025-11-19T11:50:00'),
+        processedAt: new Date('2025-11-19T11:50:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-19T10:00:00'),
-    completedAt: new Date('2025-11-19T11:50:00'),
+    createdAt: new Date('2025-11-19T10:00:00').toISOString(),
+    completedAt: new Date('2025-11-19T11:50:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -77,8 +83,11 @@ export const mockTickets: Ticket[] = [
         price: 50.00,
         duration: 30,
         commission: 25.00,
-        startTime: new Date('2025-11-19T09:30:00'),
-        endTime: new Date('2025-11-19T10:00:00')
+        startTime: new Date('2025-11-19T09:30:00').toISOString(),
+        endTime: new Date('2025-11-19T10:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -90,7 +99,7 @@ export const mockTickets: Ticket[] = [
     tip: 0,
     total: 54.50,
     payments: [],
-    createdAt: new Date('2025-11-19T09:30:00'),
+    createdAt: new Date('2025-11-19T09:30:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -110,8 +119,11 @@ export const mockTickets: Ticket[] = [
         price: 60.00,
         duration: 75,
         commission: 30.00,
-        startTime: new Date('2025-11-18T14:00:00'),
-        endTime: new Date('2025-11-18T15:15:00')
+        startTime: new Date('2025-11-18T14:00:00').toISOString(),
+        endTime: new Date('2025-11-18T15:15:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-005',
@@ -121,8 +133,11 @@ export const mockTickets: Ticket[] = [
         price: 20.00,
         duration: 15,
         commission: 10.00,
-        startTime: new Date('2025-11-18T15:15:00'),
-        endTime: new Date('2025-11-18T15:30:00')
+        startTime: new Date('2025-11-18T15:15:00').toISOString(),
+        endTime: new Date('2025-11-18T15:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -142,12 +157,12 @@ export const mockTickets: Ticket[] = [
         amount: 78.48,
         tip: 18.00,
         total: 96.48,
-        processedAt: new Date('2025-11-18T15:35:00'),
+        processedAt: new Date('2025-11-18T15:35:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-18T14:00:00'),
-    completedAt: new Date('2025-11-18T15:35:00'),
+    createdAt: new Date('2025-11-18T14:00:00').toISOString(),
+    completedAt: new Date('2025-11-18T15:35:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -167,8 +182,11 @@ export const mockTickets: Ticket[] = [
         price: 85.00,
         duration: 60,
         commission: 42.50,
-        startTime: new Date('2025-11-18T11:00:00'),
-        endTime: new Date('2025-11-18T12:00:00')
+        startTime: new Date('2025-11-18T11:00:00').toISOString(),
+        endTime: new Date('2025-11-18T12:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -189,12 +207,12 @@ export const mockTickets: Ticket[] = [
         tip: 20.00,
         total: 112.65,
         transactionId: 'txn_def456uvw123',
-        processedAt: new Date('2025-11-18T12:05:00'),
+        processedAt: new Date('2025-11-18T12:05:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-18T11:00:00'),
-    completedAt: new Date('2025-11-18T12:05:00'),
+    createdAt: new Date('2025-11-18T11:00:00').toISOString(),
+    completedAt: new Date('2025-11-18T12:05:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -214,8 +232,11 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 75,
         commission: 32.50,
-        startTime: new Date('2025-11-17T13:00:00'),
-        endTime: new Date('2025-11-17T14:15:00')
+        startTime: new Date('2025-11-17T13:00:00').toISOString(),
+        endTime: new Date('2025-11-17T14:15:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -233,11 +254,11 @@ export const mockTickets: Ticket[] = [
         amount: 40.00,
         tip: 10.00,
         total: 50.00,
-        processedAt: new Date('2025-11-17T14:20:00'),
+        processedAt: new Date('2025-11-17T14:20:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-17T13:00:00'),
+    createdAt: new Date('2025-11-17T13:00:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -273,8 +294,11 @@ export const mockTickets: Ticket[] = [
         price: 45.00,
         duration: 60,
         commission: 22.50,
-        startTime: new Date('2025-11-18T14:00:00'),
-        endTime: new Date('2025-11-18T15:00:00')
+        startTime: new Date('2025-11-18T14:00:00').toISOString(),
+        endTime: new Date('2025-11-18T15:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-101',
@@ -284,8 +308,11 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 75,
         commission: 32.50,
-        startTime: new Date('2025-11-18T14:00:00'),
-        endTime: new Date('2025-11-18T15:15:00')
+        startTime: new Date('2025-11-18T14:00:00').toISOString(),
+        endTime: new Date('2025-11-18T15:15:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-102',
@@ -295,8 +322,11 @@ export const mockTickets: Ticket[] = [
         price: 25.00,
         duration: 30,
         commission: 12.50,
-        startTime: new Date('2025-11-18T14:00:00'),
-        endTime: new Date('2025-11-18T14:30:00')
+        startTime: new Date('2025-11-18T14:00:00').toISOString(),
+        endTime: new Date('2025-11-18T14:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -319,12 +349,12 @@ export const mockTickets: Ticket[] = [
         tip: 25.00,
         total: 157.44,
         transactionId: 'txn_group_001',
-        processedAt: new Date('2025-11-18T15:20:00'),
+        processedAt: new Date('2025-11-18T15:20:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-18T14:00:00'),
-    completedAt: new Date('2025-11-18T15:20:00'),
+    createdAt: new Date('2025-11-18T14:00:00').toISOString(),
+    completedAt: new Date('2025-11-18T15:20:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -338,7 +368,7 @@ export const mockTickets: Ticket[] = [
     clientPhone: '(555) 987-6543',
     isMergedTicket: true,
     mergedFromTickets: ['ticket-201', 'ticket-202'],
-    mergedAt: new Date('2025-11-17T16:30:00'),
+    mergedAt: new Date('2025-11-17T16:30:00').toISOString(),
     mergedBy: 'user-001',
     services: [
       {
@@ -349,8 +379,11 @@ export const mockTickets: Ticket[] = [
         price: 50.00,
         duration: 30,
         commission: 25.00,
-        startTime: new Date('2025-11-17T15:00:00'),
-        endTime: new Date('2025-11-17T15:30:00')
+        startTime: new Date('2025-11-17T15:00:00').toISOString(),
+        endTime: new Date('2025-11-17T15:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-201',
@@ -360,8 +393,11 @@ export const mockTickets: Ticket[] = [
         price: 30.00,
         duration: 20,
         commission: 15.00,
-        startTime: new Date('2025-11-17T15:30:00'),
-        endTime: new Date('2025-11-17T15:50:00')
+        startTime: new Date('2025-11-17T15:30:00').toISOString(),
+        endTime: new Date('2025-11-17T15:50:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-202',
@@ -371,8 +407,11 @@ export const mockTickets: Ticket[] = [
         price: 25.00,
         duration: 15,
         commission: 12.50,
-        startTime: new Date('2025-11-17T16:15:00'),
-        endTime: new Date('2025-11-17T16:30:00')
+        startTime: new Date('2025-11-17T16:15:00').toISOString(),
+        endTime: new Date('2025-11-17T16:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -393,12 +432,12 @@ export const mockTickets: Ticket[] = [
         tip: 20.00,
         total: 134.45,
         transactionId: 'txn_merged_001',
-        processedAt: new Date('2025-11-17T16:35:00'),
+        processedAt: new Date('2025-11-17T16:35:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-17T15:00:00'),
-    completedAt: new Date('2025-11-17T16:35:00'),
+    createdAt: new Date('2025-11-17T15:00:00').toISOString(),
+    completedAt: new Date('2025-11-17T16:35:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -434,8 +473,11 @@ export const mockTickets: Ticket[] = [
         price: 95.00,
         duration: 90,
         commission: 47.50,
-        startTime: new Date('2025-11-19T10:00:00'),
-        endTime: new Date('2025-11-19T11:30:00')
+        startTime: new Date('2025-11-19T10:00:00').toISOString(),
+        endTime: new Date('2025-11-19T11:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-111',
@@ -445,8 +487,11 @@ export const mockTickets: Ticket[] = [
         price: 85.00,
         duration: 60,
         commission: 42.50,
-        startTime: new Date('2025-11-19T11:45:00'),
-        endTime: new Date('2025-11-19T12:45:00')
+        startTime: new Date('2025-11-19T11:45:00').toISOString(),
+        endTime: new Date('2025-11-19T12:45:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-112',
@@ -456,8 +501,11 @@ export const mockTickets: Ticket[] = [
         price: 105.00,
         duration: 90,
         commission: 52.50,
-        startTime: new Date('2025-11-19T10:00:00'),
-        endTime: new Date('2025-11-19T11:30:00')
+        startTime: new Date('2025-11-19T10:00:00').toISOString(),
+        endTime: new Date('2025-11-19T11:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-113',
@@ -467,8 +515,11 @@ export const mockTickets: Ticket[] = [
         price: 95.00,
         duration: 60,
         commission: 47.50,
-        startTime: new Date('2025-11-19T11:45:00'),
-        endTime: new Date('2025-11-19T12:45:00')
+        startTime: new Date('2025-11-19T11:45:00').toISOString(),
+        endTime: new Date('2025-11-19T12:45:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -491,12 +542,12 @@ export const mockTickets: Ticket[] = [
         tip: 75.00,
         total: 447.78,
         transactionId: 'txn_group_002',
-        processedAt: new Date('2025-11-19T12:50:00'),
+        processedAt: new Date('2025-11-19T12:50:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-19T10:00:00'),
-    completedAt: new Date('2025-11-19T12:50:00'),
+    createdAt: new Date('2025-11-19T10:00:00').toISOString(),
+    completedAt: new Date('2025-11-19T12:50:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -538,8 +589,11 @@ export const mockTickets: Ticket[] = [
         price: 45.00,
         duration: 60,
         commission: 22.50,
-        startTime: new Date('2025-11-16T13:00:00'),
-        endTime: new Date('2025-11-16T14:00:00')
+        startTime: new Date('2025-11-16T13:00:00').toISOString(),
+        endTime: new Date('2025-11-16T14:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-121',
@@ -549,8 +603,11 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 75,
         commission: 32.50,
-        startTime: new Date('2025-11-16T14:00:00'),
-        endTime: new Date('2025-11-16T15:15:00')
+        startTime: new Date('2025-11-16T14:00:00').toISOString(),
+        endTime: new Date('2025-11-16T15:15:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-122',
@@ -560,8 +617,11 @@ export const mockTickets: Ticket[] = [
         price: 45.00,
         duration: 60,
         commission: 22.50,
-        startTime: new Date('2025-11-16T13:00:00'),
-        endTime: new Date('2025-11-16T14:00:00')
+        startTime: new Date('2025-11-16T13:00:00').toISOString(),
+        endTime: new Date('2025-11-16T14:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-123',
@@ -571,8 +631,11 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 75,
         commission: 32.50,
-        startTime: new Date('2025-11-16T14:00:00'),
-        endTime: new Date('2025-11-16T15:15:00')
+        startTime: new Date('2025-11-16T14:00:00').toISOString(),
+        endTime: new Date('2025-11-16T15:15:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-124',
@@ -582,8 +645,11 @@ export const mockTickets: Ticket[] = [
         price: 45.00,
         duration: 60,
         commission: 22.50,
-        startTime: new Date('2025-11-16T13:00:00'),
-        endTime: new Date('2025-11-16T14:00:00')
+        startTime: new Date('2025-11-16T13:00:00').toISOString(),
+        endTime: new Date('2025-11-16T14:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-125',
@@ -593,8 +659,11 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 75,
         commission: 32.50,
-        startTime: new Date('2025-11-16T14:00:00'),
-        endTime: new Date('2025-11-16T15:15:00')
+        startTime: new Date('2025-11-16T14:00:00').toISOString(),
+        endTime: new Date('2025-11-16T15:15:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -617,12 +686,12 @@ export const mockTickets: Ticket[] = [
         tip: 60.00,
         total: 365.75,
         transactionId: 'txn_group_003',
-        processedAt: new Date('2025-11-16T15:30:00'),
+        processedAt: new Date('2025-11-16T15:30:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-16T13:00:00'),
-    completedAt: new Date('2025-11-16T15:30:00'),
+    createdAt: new Date('2025-11-16T13:00:00').toISOString(),
+    completedAt: new Date('2025-11-16T15:30:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -636,7 +705,7 @@ export const mockTickets: Ticket[] = [
     clientPhone: '(555) 222-3333',
     isMergedTicket: true,
     mergedFromTickets: ['ticket-211', 'ticket-212', 'ticket-213'],
-    mergedAt: new Date('2025-11-18T17:45:00'),
+    mergedAt: new Date('2025-11-18T17:45:00').toISOString(),
     mergedBy: 'user-001',
     services: [
       {
@@ -647,8 +716,11 @@ export const mockTickets: Ticket[] = [
         price: 75.00,
         duration: 90,
         commission: 37.50,
-        startTime: new Date('2025-11-18T14:00:00'),
-        endTime: new Date('2025-11-18T15:30:00')
+        startTime: new Date('2025-11-18T14:00:00').toISOString(),
+        endTime: new Date('2025-11-18T15:30:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-211',
@@ -658,8 +730,11 @@ export const mockTickets: Ticket[] = [
         price: 35.00,
         duration: 30,
         commission: 17.50,
-        startTime: new Date('2025-11-18T15:30:00'),
-        endTime: new Date('2025-11-18T16:00:00')
+        startTime: new Date('2025-11-18T15:30:00').toISOString(),
+        endTime: new Date('2025-11-18T16:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-212',
@@ -669,8 +744,11 @@ export const mockTickets: Ticket[] = [
         price: 30.00,
         duration: 20,
         commission: 15.00,
-        startTime: new Date('2025-11-18T17:30:00'),
-        endTime: new Date('2025-11-18T17:50:00')
+        startTime: new Date('2025-11-18T17:30:00').toISOString(),
+        endTime: new Date('2025-11-18T17:50:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -691,12 +769,12 @@ export const mockTickets: Ticket[] = [
         tip: 28.00,
         total: 180.60,
         transactionId: 'txn_merged_002',
-        processedAt: new Date('2025-11-18T17:55:00'),
+        processedAt: new Date('2025-11-18T17:55:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-18T14:00:00'),
-    completedAt: new Date('2025-11-18T17:55:00'),
+    createdAt: new Date('2025-11-18T14:00:00').toISOString(),
+    completedAt: new Date('2025-11-18T17:55:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -732,8 +810,11 @@ export const mockTickets: Ticket[] = [
         price: 150.00,
         duration: 120,
         commission: 75.00,
-        startTime: new Date('2025-11-15T09:00:00'),
-        endTime: new Date('2025-11-15T11:00:00')
+        startTime: new Date('2025-11-15T09:00:00').toISOString(),
+        endTime: new Date('2025-11-15T11:00:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'svc-131',
@@ -743,8 +824,11 @@ export const mockTickets: Ticket[] = [
         price: 65.00,
         duration: 45,
         commission: 32.50,
-        startTime: new Date('2025-11-15T09:00:00'),
-        endTime: new Date('2025-11-15T09:45:00')
+        startTime: new Date('2025-11-15T09:00:00').toISOString(),
+        endTime: new Date('2025-11-15T09:45:00').toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -762,7 +846,7 @@ export const mockTickets: Ticket[] = [
         amount: 100.00,
         tip: 0,
         total: 100.00,
-        processedAt: new Date('2025-11-15T11:15:00'),
+        processedAt: new Date('2025-11-15T11:15:00').toISOString(),
         status: 'approved'
       },
       {
@@ -774,12 +858,12 @@ export const mockTickets: Ticket[] = [
         tip: 40.00,
         total: 174.35,
         transactionId: 'txn_partial_001',
-        processedAt: new Date('2025-11-15T11:20:00'),
+        processedAt: new Date('2025-11-15T11:20:00').toISOString(),
         status: 'approved'
       }
     ],
-    createdAt: new Date('2025-11-15T09:00:00'),
-    completedAt: new Date('2025-11-15T11:20:00'),
+    createdAt: new Date('2025-11-15T09:00:00').toISOString(),
+    completedAt: new Date('2025-11-15T11:20:00').toISOString(),
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'
@@ -1002,8 +1086,11 @@ for (let i = 7; i <= 30; i++) {
         price: Math.floor(Math.random() * 60) + 30,
         duration: [30, 45, 60, 75, 90][Math.floor(Math.random() * 5)],
         commission: 0,
-        startTime: date,
-        endTime: date
+        startTime: date.toISOString(),
+        endTime: date.toISOString(),
+        status: 'completed',
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [],
@@ -1014,8 +1101,8 @@ for (let i = 7; i <= 30; i++) {
     tip: Math.floor(Math.random() * 20),
     total: Math.floor(Math.random() * 120) + 60,
     payments: [],
-    createdAt: date,
-    completedAt: Math.random() > 0.3 ? date : undefined,
+    createdAt: date.toISOString(),
+    completedAt: Math.random() > 0.3 ? date.toISOString() : undefined,
     createdBy: 'user-001',
     lastModifiedBy: 'user-001',
     syncStatus: 'synced'

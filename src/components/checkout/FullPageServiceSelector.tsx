@@ -112,7 +112,6 @@ export function CategoryList({ selectedCategory, onSelectCategory }: CategoryLis
 
 export default function FullPageServiceSelector({
   selectedCategory,
-  onSelectCategory,
   onAddServices,
   staffMembers,
   activeStaffId,

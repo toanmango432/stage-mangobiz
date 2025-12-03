@@ -66,7 +66,10 @@ export function CompleteWorkflowExample() {
         price: 65,
         duration: 45,
         commission: 0.4,
-        startTime: new Date()
+        startTime: new Date().toISOString(),
+        status: 'not_started' as const,
+        statusHistory: [],
+        totalPausedDuration: 0,
       },
       {
         serviceId: 'service_2',
@@ -76,7 +79,10 @@ export function CompleteWorkflowExample() {
         price: 120,
         duration: 90,
         commission: 0.35,
-        startTime: new Date()
+        startTime: new Date().toISOString(),
+        status: 'not_started' as const,
+        statusHistory: [],
+        totalPausedDuration: 0,
       }
     ],
     products: [
@@ -88,14 +94,14 @@ export function CompleteWorkflowExample() {
         total: 25
       }
     ],
-    status: 'in-service',
+    status: 'pending',
     subtotal: 210,
     discount: 0,
     tax: 0,
     tip: 0,
     total: 210,
     payments: [],
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
     createdBy: 'user_1',
     lastModifiedBy: 'user_1',
     syncStatus: 'synced'
@@ -128,7 +134,7 @@ export function CompleteWorkflowExample() {
   };
 
   const handleEditStaff = (updatedStaff: Partial<Staff>) => {
-    setStaff(staff.map(s => 
+    setStaff(staff.map(s =>
       s.id === updatedStaff.id ? { ...s, ...updatedStaff, updatedAt: new Date() } : s
     ));
     console.log('✅ Staff updated:', updatedStaff);
@@ -176,8 +182,11 @@ export function CompleteWorkflowExample() {
       staffName: '',
       price: 0,
       duration: 30,
+      status: 'not_started' as const,
+      statusHistory: [],
+      totalPausedDuration: 0,
       commission: 0.4,
-      startTime: new Date()
+      startTime: new Date().toISOString()
     };
     setCurrentTicket({
       ...currentTicket,
@@ -196,7 +205,7 @@ export function CompleteWorkflowExample() {
       status: 'completed' as const,
       completedAt: new Date()
     };
-    setCurrentTicket(completedTicket);
+    setCurrentTicket(completedTicket as any);
     setShowCheckout(false);
     console.log('✅ Checkout completed:', {
       ticketId: completedTicket.id,

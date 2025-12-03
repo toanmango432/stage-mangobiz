@@ -2,10 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Search, Bell, ChevronDown, Command, Hash, UserCircle,
   FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
-  LayoutGrid, CreditCard, MoreHorizontal
+  LayoutGrid, CreditCard, MoreHorizontal, LogOut, Settings,
+  Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { storeAuthManager } from '../../services/storeAuthManager';
+import { selectStore, selectStoreName, selectMember } from '../../store/slices/authSlice';
+import { SwitchUserModal } from '../auth/SwitchUserModal';
+import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
 
 interface TopHeaderBarProps {
   activeModule?: string;
@@ -18,8 +22,7 @@ export function TopHeaderBar({
   onModuleChange,
   hideNavigation = false
 }: TopHeaderBarProps) {
-  const [selectedOrg, setSelectedOrg] = useState('Main Salon');
-  const [showOrgDropdown, setShowOrgDropdown] = useState(false);
+  // Store info now comes from Redux (see selectStore/selectStoreName below)
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notificationCount] = useState(3);
   // Header always visible since sections handle their own scrolling
@@ -30,12 +33,23 @@ export function TopHeaderBar({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showStatusTooltip, setShowStatusTooltip] = useState(false);
+  const [showSwitchUserModal, setShowSwitchUserModal] = useState(false);
+  const [showPinVerificationModal, setShowPinVerificationModal] = useState(false);
+  const [pendingPinAction, setPendingPinAction] = useState<'settings' | 'reports' | null>(null);
 
   // Get online status and device mode from Redux/auth
   const isOnline = useAppSelector((state) => state.sync?.isOnline ?? true);
   const isSyncing = useAppSelector((state) => state.sync?.isSyncing ?? false);
   const deviceMode = storeAuthManager.getDeviceMode();
   const isOfflineEnabled = deviceMode === 'offline-enabled';
+
+  // Get store info from Redux
+  const store = useAppSelector(selectStore);
+  const storeName = useAppSelector(selectStoreName) || 'Your Store';
+  const storeEmail = store?.storeLoginId || '';
+
+  // Get current member for display
+  const currentMember = useAppSelector(selectMember);
 
   // Live clock update
   useEffect(() => {
@@ -67,8 +81,6 @@ export function TopHeaderBar({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchExpanded]);
-
-  const organizations = ['Main Salon', 'Downtown Branch', 'Westside Location'];
 
   // Navigation Modules - 4 core modules for busy salon staff
   // Large, obvious buttons following "remote control" principle
@@ -165,6 +177,24 @@ export function TopHeaderBar({
     }, 200);
   };
 
+  // Handle sign out
+  const handleSignOut = async () => {
+    setShowUserMenu(false);
+    await storeAuthManager.logoutStore();
+    // Reload page to show login screen
+    window.location.reload();
+  };
+
+  // Get initials for avatar
+  const getStoreInitials = () => {
+    if (!storeName) return 'S';
+    const words = storeName.split(' ');
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return storeName.substring(0, 2).toUpperCase();
+  };
+
   return (
     <header className={`
       bg-gradient-to-b from-white/40 to-white/20
@@ -177,7 +207,8 @@ export function TopHeaderBar({
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
       {/* Left Section - Logo, Clock & Organization (subtle, secondary to nav) */}
-      <div className={`flex items-center gap-2 md:gap-2.5 ${hideNavigation ? 'flex-1' : 'min-w-[160px]'}`}>
+      {/* Responsive: shrinks at narrow widths to give nav more space */}
+      <div className={`flex items-center gap-1.5 lg:gap-2 xl:gap-2.5 flex-shrink-0 ${hideNavigation ? 'flex-1' : 'min-w-[120px] lg:min-w-[140px] xl:min-w-[160px]'}`}>
         {/* Mango Logo - Status-Aware Interactive Indicator */}
         {/* Online: Vibrant colors with subtle glow | Offline: Grayscale with pulse | Syncing: Shimmer effect */}
         <div
@@ -399,42 +430,15 @@ export function TopHeaderBar({
           </span>
         </div>
 
-        {/* Organization Selector - subtle */}
-        <div className="relative hidden lg:block">
-          <button
-            onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/40 transition-colors"
-          >
-            <span className="text-xs text-gray-500">{selectedOrg}</span>
-            <ChevronDown className="w-3 h-3 text-gray-400" />
-          </button>
-
-          {showOrgDropdown && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-              {organizations.map((org) => (
-                <button
-                  key={org}
-                  onClick={() => {
-                    setSelectedOrg(org);
-                    setShowOrgDropdown(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                    selectedOrg === org ? 'text-orange-600 bg-orange-50' : 'text-gray-700'
-                  }`}
-                >
-                  {org}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Store name moved to profile dropdown for cleaner header */}
       </div>
 
       {/* Center Section - Navigation (hidden on mobile/tablet when BottomNavBar is shown) */}
-      {/* Large, obvious buttons for busy salon staff - "Remote Control" principle */}
+      {/* DOMINANT, LARGE buttons for busy salon staff & older/non-tech users - "Remote Control" principle */}
+      {/* Full size at xl+, slightly compact at lg, icon-only below lg */}
       {!hideNavigation && (
-      <div className="flex-1 flex justify-center items-center h-full">
-        <nav className="flex items-center gap-2 h-full">
+      <div className="flex-1 flex justify-center items-center h-full min-w-0 overflow-hidden px-2">
+        <nav className="flex items-center gap-1.5 lg:gap-2 xl:gap-3 h-full">
           {modules.map((module) => {
             const Icon = module.icon;
             const isActive = activeModule === module.id;
@@ -443,9 +447,12 @@ export function TopHeaderBar({
               <button
                 key={module.id}
                 onClick={() => onModuleChange?.(module.id)}
+                title={module.label}
                 className={`
-                  relative flex items-center gap-2 lg:gap-3 px-3 lg:px-5 xl:px-6 py-2 lg:py-3 rounded-xl transition-all duration-150 group
-                  min-h-[44px] lg:min-h-[52px] transform
+                  relative flex items-center justify-center gap-2 xl:gap-3
+                  px-3 lg:px-4 xl:px-6 py-2 xl:py-3
+                  rounded-xl transition-all duration-150 group
+                  min-h-[44px] xl:min-h-[52px] transform
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
                   ${isActive
                     ? 'bg-orange-50 text-orange-600 shadow-sm border-b-2 border-orange-500'
@@ -454,11 +461,11 @@ export function TopHeaderBar({
                 `}
               >
                 <Icon
-                  size={20}
-                  className="lg:w-6 lg:h-6 transition-transform duration-200 group-hover:scale-110"
+                  size={22}
+                  className="w-5 h-5 xl:w-6 xl:h-6 flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                <span className={`text-base lg:text-lg ${isActive ? 'font-bold' : 'font-semibold'}`}>
+                <span className={`hidden lg:inline text-base xl:text-lg whitespace-nowrap ${isActive ? 'font-bold' : 'font-semibold'}`}>
                   {module.label}
                 </span>
               </button>
@@ -468,9 +475,12 @@ export function TopHeaderBar({
           {/* More Button - glass style, secondary importance */}
           <button
             onClick={() => onModuleChange?.('more')}
+            title="More"
             className={`
-              relative flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 xl:px-5 py-2 lg:py-2.5 rounded-xl transition-all duration-150 group
-              min-h-[44px] lg:min-h-[48px] transform
+              relative flex items-center justify-center gap-2 xl:gap-2.5
+              px-3 lg:px-4 xl:px-5 py-2 xl:py-2.5
+              rounded-xl transition-all duration-150 group
+              min-h-[44px] xl:min-h-[48px] transform
               focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
               ${activeModule === 'more'
                 ? 'bg-gray-100 text-gray-700 shadow-sm border-b-2 border-gray-500'
@@ -478,8 +488,8 @@ export function TopHeaderBar({
               }
             `}
           >
-            <MoreHorizontal size={18} className="lg:w-5 lg:h-5 transition-transform duration-200 group-hover:scale-110" />
-            <span className={`text-sm lg:text-base ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
+            <MoreHorizontal size={20} className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+            <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
               More
             </span>
           </button>
@@ -488,10 +498,11 @@ export function TopHeaderBar({
       )}
 
       {/* Right Section - Search, Actions & User */}
-      <div className={`flex items-center gap-2 md:gap-3 justify-end ${hideNavigation ? '' : 'min-w-[240px]'}`}>
+      {/* Responsive: shrinks search bar at narrow widths, maintains core actions */}
+      <div className={`flex items-center gap-1.5 lg:gap-2 xl:gap-3 justify-end flex-shrink-0 ${hideNavigation ? '' : 'min-w-[180px] lg:min-w-[200px] xl:min-w-[240px]'}`}>
         {/* Compact Search - glass style */}
         <div className={`relative transition-all duration-300 ease-out ${
-          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-32 sm:w-44 md:w-52' : 'w-40 lg:w-48'
+          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-32 sm:w-44 md:w-52' : 'w-28 lg:w-36 xl:w-44'
         }`}>
           <Search className="absolute left-3 md:left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-600" strokeWidth={2.5} />
           <input
@@ -505,7 +516,7 @@ export function TopHeaderBar({
             className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
           />
           {!isSearchExpanded && !hideNavigation && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium">
+            <div className="hidden xl:flex absolute right-3 top-1/2 transform -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium">
               <Command size={10} />
               <span>K</span>
             </div>
@@ -576,34 +587,211 @@ export function TopHeaderBar({
           )}
         </button>
 
-        {/* User Profile - glass style */}
-        <div className="relative ml-1">
+        {/* Store Profile - glass style */}
+        <div className="relative ml-0.5 lg:ml-1">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg pl-1 pr-2 py-1 transition-all"
+            className="flex items-center gap-1 lg:gap-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg pl-1 pr-1.5 lg:pr-2 py-1 transition-all"
           >
-            <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-pink-500 rounded-md flex items-center justify-center">
-              <span className="text-white font-bold text-xs">A</span>
+            <div className="w-6 h-6 lg:w-7 lg:h-7 bg-gradient-to-br from-orange-500 to-pink-500 rounded-md flex items-center justify-center">
+              <span className="text-white font-bold text-[10px] lg:text-xs">{getStoreInitials()}</span>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+            <ChevronDown className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-gray-500" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-900">Admin User</p>
-                <p className="text-xs text-gray-500">admin@mangobiz.com</p>
+            <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50">
+              {/* Store Header - Shows which store is logged in */}
+              <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-pink-50 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Store className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{storeName}</p>
+                    <p className="text-xs text-gray-500 truncate">{storeEmail}</p>
+                  </div>
+                </div>
+                {/* Connection Status */}
+                <div className="mt-2 flex items-center gap-1.5">
+                  {isOnline ? (
+                    <>
+                      <Wifi className="w-3 h-3 text-green-500" />
+                      <span className="text-[10px] text-green-600 font-medium">Connected</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3 text-amber-500" />
+                      <span className="text-[10px] text-amber-600 font-medium">Offline Mode</span>
+                    </>
+                  )}
+                </div>
               </div>
-              <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                Profile Settings
-              </button>
-              <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100">
-                Sign Out
-              </button>
+
+              {/* Quick Actions for Shared Terminal */}
+              <div className="py-1">
+                {/* Switch Store - Only shown for multi-store accounts */}
+                {/* TODO: Add availableStores state to authSlice and show when availableStores.length > 1 */}
+                {/* Currently hidden since single-store accounts don't need this option */}
+                {false && (
+                  <button
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 transition-colors flex items-center gap-3 border-b border-gray-100"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      // TODO: Open store switcher modal with list of available stores
+                      console.log('Switch Store clicked - implement store list modal');
+                    }}
+                  >
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="font-semibold text-purple-700">Switch Store</span>
+                      <p className="text-[10px] text-gray-500">
+                        {storeName}
+                      </p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </button>
+                )}
+
+                {/* Switch User - Primary action for shift handover */}
+                <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors flex items-center gap-3 border-b border-gray-100"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setShowSwitchUserModal(true);
+                  }}
+                >
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <UserPlus className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-semibold text-blue-700">Switch User</span>
+                    <p className="text-[10px] text-gray-500">
+                      {currentMember
+                        ? `Currently: ${currentMember.firstName} ${currentMember.lastName}`
+                        : 'Hand off to another staff member'
+                      }
+                    </p>
+                  </div>
+                </button>
+
+                {/* Staff Clock In/Out - Essential for shared POS */}
+                <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    // TODO: Open clock in/out modal
+                  }}
+                >
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  <div>
+                    <span className="font-medium">Clock In / Out</span>
+                    <p className="text-[10px] text-gray-400">Track staff hours</p>
+                  </div>
+                </button>
+
+                {/* Staff PIN Entry - For restricted actions */}
+                <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setShowPinVerificationModal(true);
+                  }}
+                >
+                  <KeyRound className="w-4 h-4 text-purple-500" />
+                  <div>
+                    <span className="font-medium">Enter Staff PIN</span>
+                    <p className="text-[10px] text-gray-400">For manager actions</p>
+                  </div>
+                </button>
+              </div>
+
+              <div className="border-t border-gray-100 py-1">
+                {/* Store Settings - Requires PIN in store-only mode */}
+                <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    // If no member logged in (store-only mode), require PIN
+                    if (!currentMember) {
+                      setPendingPinAction('settings');
+                      setShowPinVerificationModal(true);
+                    } else {
+                      // Member already logged in - direct access
+                      onModuleChange?.('more');
+                    }
+                  }}
+                >
+                  <Settings className="w-4 h-4 text-gray-400" />
+                  <span>Store Settings</span>
+                </button>
+
+                {/* Help & Support */}
+                <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    // TODO: Open help modal or link
+                  }}
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-400" />
+                  <span>Help & Support</span>
+                </button>
+              </div>
+
+              {/* Sign Out - Destructive action at bottom */}
+              <div className="border-t border-gray-100 py-1 bg-gray-50">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <div>
+                    <span className="font-medium">Sign Out Store</span>
+                    <p className="text-[10px] text-red-400">End this device session</p>
+                  </div>
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Switch User Modal */}
+      <SwitchUserModal
+        isOpen={showSwitchUserModal}
+        onClose={() => setShowSwitchUserModal(false)}
+        onSuccess={() => {
+          console.log('User switched successfully');
+        }}
+      />
+
+      {/* PIN Verification Modal */}
+      <PinVerificationModal
+        isOpen={showPinVerificationModal}
+        onClose={() => {
+          setShowPinVerificationModal(false);
+          setPendingPinAction(null);
+        }}
+        onSuccess={(verifiedMember?: VerifiedMember) => {
+          console.log('PIN verified for:', verifiedMember?.memberName);
+          // Execute the pending action
+          if (pendingPinAction === 'settings') {
+            onModuleChange?.('more');
+          } else if (pendingPinAction === 'reports') {
+            onModuleChange?.('sales');
+          }
+          setPendingPinAction(null);
+        }}
+        title={pendingPinAction === 'settings' ? 'Access Store Settings' : 'Enter Staff PIN'}
+        description={
+          pendingPinAction === 'settings'
+            ? 'Enter your staff PIN to access store settings'
+            : 'Enter your staff PIN to continue'
+        }
+      />
     </header>
   );
 }

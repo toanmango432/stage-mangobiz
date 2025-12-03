@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
 import type { Staff, Client, Service } from '../types';
 
-const SALON_ID = 'salon-001'; // Default salon ID for testing
+const SALON_ID = 'default-salon'; // Default salon ID matching auth fallback
 
 export async function seedDatabase() {
   console.log('🌱 Seeding database...');
@@ -69,45 +69,50 @@ export async function seedDatabase() {
   await db.staff.bulkAdd(staff);
   console.log(`✅ Seeded ${staff.length} staff members`);
 
-  // Seed Clients
-  const clients: Client[] = [
-    {
-      id: uuidv4(),
-      salonId: SALON_ID,
-      name: 'Jane Doe',
-      phone: '555-1001',
-      email: 'jane@example.com',
-      totalVisits: 5,
-      totalSpent: 450,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      syncStatus: 'synced',
-    },
-    {
-      id: uuidv4(),
-      salonId: SALON_ID,
-      name: 'John Smith',
-      phone: '555-1002',
-      email: 'john@example.com',
-      totalVisits: 3,
-      totalSpent: 280,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      syncStatus: 'synced',
-    },
-    {
-      id: uuidv4(),
-      salonId: SALON_ID,
-      name: 'Sarah Johnson',
-      phone: '555-1003',
-      email: 'sarah@example.com',
-      totalVisits: 8,
-      totalSpent: 720,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      syncStatus: 'synced',
-    },
+  // Seed Clients - includes all clients from FrontDesk mock tickets
+  const clientData = [
+    { firstName: 'Jane', lastName: 'Doe', phone: '555-1001', email: 'jane@example.com', visits: 5, spent: 450 },
+    { firstName: 'John', lastName: 'Smith', phone: '555-1002', email: 'john@example.com', visits: 3, spent: 280 },
+    { firstName: 'Sarah', lastName: 'Johnson', phone: '555-1003', email: 'sarah@example.com', visits: 8, spent: 720 },
+    // Clients from FrontDesk waitlist/service tickets
+    { firstName: 'Emily', lastName: 'Chen', phone: '555-1004', email: 'emily.chen@example.com', visits: 12, spent: 1200 },
+    { firstName: 'Jessica', lastName: 'Lee', phone: '555-1005', email: 'jessica.lee@example.com', visits: 6, spent: 580 },
+    { firstName: 'Amanda', lastName: 'White', phone: '555-1006', email: 'amanda.white@example.com', visits: 4, spent: 320 },
+    { firstName: 'Rachel', lastName: 'Green', phone: '555-1007', email: 'rachel.green@example.com', visits: 10, spent: 950 },
+    { firstName: 'Lisa', lastName: 'Anderson', phone: '555-1008', email: 'lisa.anderson@example.com', visits: 7, spent: 680 },
+    { firstName: 'Michelle', lastName: 'Davis', phone: '555-1009', email: 'michelle.davis@example.com', visits: 15, spent: 1450 },
+    { firstName: 'Nicole', lastName: 'Brown', phone: '555-1010', email: 'nicole.brown@example.com', visits: 3, spent: 240 },
+    { firstName: 'Jennifer', lastName: 'Wilson', phone: '555-1011', email: 'jennifer.wilson@example.com', visits: 9, spent: 870 },
+    // Pending ticket clients
+    { firstName: 'Jennifer', lastName: 'Smith', phone: '555-1012', email: 'jennifer.smith@example.com', visits: 5, spent: 420 },
+    { firstName: 'Michael', lastName: 'Johnson', phone: '555-1013', email: 'michael.johnson@example.com', visits: 2, spent: 180 },
+    { firstName: 'Ashley', lastName: 'Williams', phone: '555-1014', email: 'ashley.williams@example.com', visits: 11, spent: 1050 },
+    { firstName: 'David', lastName: 'Brown', phone: '555-1015', email: 'david.brown@example.com', visits: 4, spent: 360 },
+    { firstName: 'Sarah', lastName: 'Miller', phone: '555-1016', email: 'sarah.miller@example.com', visits: 8, spent: 780 },
   ];
+
+  const clients: Client[] = clientData.map((c) => ({
+    id: uuidv4(),
+    salonId: SALON_ID,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    name: `${c.firstName} ${c.lastName}`,
+    phone: c.phone,
+    email: c.email,
+    isBlocked: false,
+    visitSummary: {
+      totalVisits: c.visits,
+      totalSpent: c.spent,
+      averageTicket: c.spent / c.visits,
+      noShowCount: 0,
+      lateCancelCount: 0,
+    },
+    notes: [],
+    isVip: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    syncStatus: 'synced' as const,
+  }));
 
   await db.clients.bulkAdd(clients);
   console.log(`✅ Seeded ${clients.length} clients`);
@@ -695,6 +700,166 @@ export async function seedDatabase() {
       description: '15-minute relaxing foot and leg massage',
       duration: 15,
       price: 15,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+
+    // ====================
+    // HAIR SERVICES (from mock tickets)
+    // ====================
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Haircut',
+      category: 'Hair',
+      description: 'Professional haircut and styling',
+      duration: 45,
+      price: 45,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Color & Highlights',
+      category: 'Hair',
+      description: 'Hair coloring with highlights',
+      duration: 120,
+      price: 150,
+      commissionRate: 45,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Balayage & Cut',
+      category: 'Hair',
+      description: 'Hand-painted balayage highlights with haircut',
+      duration: 180,
+      price: 220,
+      commissionRate: 45,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+
+    // ====================
+    // SKIN SERVICES (from mock tickets)
+    // ====================
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Facial',
+      category: 'Skincare',
+      description: 'Deep cleansing facial treatment',
+      duration: 60,
+      price: 85,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Hydrating Facial',
+      category: 'Skincare',
+      description: 'Intense hydration facial for dry skin',
+      duration: 75,
+      price: 95,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+
+    // ====================
+    // MASSAGE SERVICES (from mock tickets)
+    // ====================
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Deep Tissue Massage',
+      category: 'Massage',
+      description: 'Therapeutic deep tissue massage',
+      duration: 60,
+      price: 90,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+
+    // ====================
+    // WAXING SERVICES (from mock tickets)
+    // ====================
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Brazilian Wax',
+      category: 'Waxing',
+      description: 'Full Brazilian waxing service',
+      duration: 30,
+      price: 55,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Full Body Waxing',
+      category: 'Waxing',
+      description: 'Complete body waxing service',
+      duration: 90,
+      price: 150,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+
+    // ====================
+    // COMBO SERVICES (from mock tickets)
+    // ====================
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Mani-Pedi Combo',
+      category: 'Combo',
+      description: 'Manicure and pedicure combination service',
+      duration: 75,
+      price: 55,
+      commissionRate: 50,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      syncStatus: 'synced',
+    },
+    {
+      id: uuidv4(),
+      salonId: SALON_ID,
+      name: 'Super Deluxe Pedicure',
+      category: 'Pedicure',
+      description: 'Ultimate pedicure with all premium services included',
+      duration: 90,
+      price: 85,
       commissionRate: 50,
       isActive: true,
       createdAt: new Date(),

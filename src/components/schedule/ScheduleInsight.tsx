@@ -1,25 +1,19 @@
 import { useState } from "react";
-import { Sidebar } from "@/components/Layout/Sidebar";
-import { Header } from "@/components/Layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { 
+import {
   Calendar,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
   AlertTriangle,
-  Users,
   Clock,
-  DollarSign,
   Target,
   Lightbulb,
   Plus,
-  Minus,
   ArrowUpRight,
   ArrowDownRight,
   Zap,
@@ -422,7 +416,9 @@ const Insight = () => {
       {/* Mobile Layout */}
       <div className="lg:hidden">
         {/* Mobile Header */}
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <div className="p-4">
+          <h1 className="text-2xl font-bold">Schedule Insights</h1>
+        </div>
         
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
@@ -432,7 +428,7 @@ const Insight = () => {
               onClick={() => setSidebarOpen(false)}
             />
             <div className="fixed left-0 top-0 h-full w-80 max-w-[85vw]">
-              <Sidebar onClose={() => setSidebarOpen(false)} />
+              {/* Sidebar component removed */}
             </div>
           </div>
         )}
@@ -445,10 +441,12 @@ const Insight = () => {
 
       {/* Desktop Layout */}
       <div className="hidden lg:flex min-h-screen">
-        <Sidebar />
+        {/* Sidebar component removed */}
         
         <div className="flex-1 flex flex-col">
-          <Header />
+          <div className="p-4">
+            <h1 className="text-2xl font-bold">Schedule Insights</h1>
+          </div>
           <InsightContent />
         </div>
       </div>

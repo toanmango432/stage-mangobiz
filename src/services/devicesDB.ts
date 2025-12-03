@@ -33,20 +33,20 @@ function toCamelCase(obj: unknown): unknown {
 
 // Convert camelCase to snake_case (reserved for future use)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _toSnakeCase(obj: unknown): unknown {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(_toSnakeCase);
-  if (obj instanceof Date) return obj.toISOString();
-
-  return Object.keys(obj as Record<string, unknown>).reduce(
-    (acc, key) => {
-      const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      acc[snakeKey] = _toSnakeCase((obj as Record<string, unknown>)[key]);
-      return acc;
-    },
-    {} as Record<string, unknown>
-  );
-}
+// function __toSnakeCase(obj: unknown): unknown {
+//   if (obj === null || typeof obj !== 'object') return obj;
+//   if (Array.isArray(obj)) return obj.map(_toSnakeCase);
+//   if (obj instanceof Date) return obj.toISOString();
+//
+//   return Object.keys(obj as Record<string, unknown>).reduce(
+//     (acc, key) => {
+//       const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+//       acc[snakeKey] = _toSnakeCase((obj as Record<string, unknown>)[key]);
+//       return acc;
+//     },
+//     {} as Record<string, unknown>
+//   );
+// }
 
 // ==================== DEVICES ====================
 

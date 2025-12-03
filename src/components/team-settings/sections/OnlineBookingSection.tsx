@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { OnlineBookingSettings, BookingBufferType } from '../types';
-import { Card, SectionHeader, Toggle, Button, Badge, Input, Textarea } from '../components/SharedComponents';
+import type { OnlineBookingSettings } from '../types';
+import { Card, SectionHeader, Toggle, Button } from '../components/SharedComponents';
 
 interface OnlineBookingSectionProps {
   settings: OnlineBookingSettings;
@@ -171,7 +171,7 @@ export const OnlineBookingSection: React.FC<OnlineBookingSectionProps> = ({
             </label>
             <select
               value={settings.bufferType}
-              onChange={(e) => onChange({ ...settings, bufferType: e.target.value as BookingBufferType })}
+              onChange={(e) => onChange({ ...settings, bufferType: e.target.value as any })}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               {bufferTypeOptions.map((option) => (

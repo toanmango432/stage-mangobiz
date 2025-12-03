@@ -16,14 +16,11 @@ import { useAppSelector } from '../../store/hooks';
 import { selectAllStaff } from '../../store/slices/staffSlice';
 import { LocalAppointment } from '../../types/appointment';
 import { Client as ClientType } from '../../types/client';
-import { Service as ServiceType } from '../../types/service';
 import {
   isValidEmail,
   getEmailError,
   isValidPhoneNumber,
   getPhoneError,
-  isValidFullName,
-  getFullNameError,
   getNameError,
   formatNameInput,
   capitalizeName,
@@ -58,12 +55,6 @@ interface StaffWithServices {
   isRequested?: boolean; // Client specifically requested this staff
 }
 
-interface Staff {
-  id: string;
-  name: string;
-  photo?: string;
-}
-
 // New: For group bookings - track each guest and their services
 interface BookingGuest {
   id: string; // temp ID for this guest
@@ -71,6 +62,7 @@ interface BookingGuest {
   isNamed: boolean; // true if user provided name/linked to client
   clientId?: string; // if linked to actual client record
   phone?: string;
+  startTime?: string; // ISO string - guest's earliest service start time
   services: Array<{
     serviceId: string;
     serviceName: string;
@@ -148,7 +140,6 @@ export function NewAppointmentModalV2({
   );
   const [postedStaff, setPostedStaff] = useState<StaffWithServices[]>([]);
   const [activeStaffId, setActiveStaffId] = useState<string | null>(selectedStaffId || null);
-  const [stagingServices, setStagingServices] = useState<Service[]>([]);
   const [timeMode, setTimeMode] = useState<'sequential' | 'parallel'>('sequential');
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -177,7 +168,7 @@ export function NewAppointmentModalV2({
           name: c.name,
           phone: c.phone || '',
           email: c.email
-        })));
+        })) as any);
       });
     }
   }, [isOpen, selectedClients.length, salonId]);
@@ -220,7 +211,7 @@ export function NewAppointmentModalV2({
           name: c.name,
           phone: c.phone || '',
           email: c.email
-        })));
+        })) as any);
       } catch (error) {
         console.error('Failed to search clients:', error);
       } finally {
@@ -256,7 +247,6 @@ export function NewAppointmentModalV2({
       setServiceSearch('');
       setPostedStaff([]);
       setActiveStaffId(null);
-      setStagingServices([]);
       setActiveTab('service');
       setIsMinimized(false);
       setShowViewMenu(false);
@@ -341,9 +331,9 @@ export function NewAppointmentModalV2({
   const handleSelectClient = (client: ClientType | Client) => {
     const clientData = {
       id: client.id,
-      name: client.name,
+      name: client.name || '',
       phone: client.phone || '',
-      email: client.email
+      email: client.email || ''
     };
 
     if (bookingMode === 'individual') {
@@ -372,10 +362,6 @@ export function NewAppointmentModalV2({
     if (!activeStaffId && selectedClients.length === 0) {
       setActiveTab('staff');
     }
-  };
-
-  const handleRemoveClient = (clientId: string) => {
-    setSelectedClients(selectedClients.filter(c => c.id !== clientId));
   };
 
   // Validate all fields before submission
@@ -425,10 +411,13 @@ export function NewAppointmentModalV2({
       const fullName = `${capitalizeName(newClientFirstName.trim())} ${capitalizeName(newClientLastName.trim())}`;
       const newClient = await clientsDB.create({
         salonId,
+        firstName: capitalizeName(newClientFirstName.trim()),
+        lastName: capitalizeName(newClientLastName.trim()),
         name: fullName,
         phone: newClientPhone.trim(),
         email: newClientEmail.trim() || undefined,
-      });
+        isBlocked: false,
+      } as any);
 
       // Auto-select the new client
       handleSelectClient(newClient);
@@ -453,10 +442,9 @@ export function NewAppointmentModalV2({
     // Check if already added
     if (bookingGuests.some(g => g.clientId === client.id)) return;
 
-    const mainGuest = bookingGuests.find(g => g.isNamed);
     const newGuest: BookingGuest = {
       id: `guest-${Date.now()}-${Math.random()}`,
-      name: client.name,
+      name: client.name || '',
       isNamed: true,
       clientId: client.id,
       phone: client.phone || '',
@@ -730,7 +718,7 @@ export function NewAppointmentModalV2({
     try {
       for (const appointment of appointments) {
         console.log('➡️ Calling onSave for appointment:', appointment);
-        await onSave?.(appointment);
+        await onSave?.(appointment as any);
       }
       console.log('✅ All appointments saved successfully');
       onClose();
@@ -959,7 +947,6 @@ export function NewAppointmentModalV2({
                       setSelectedClients([]);
                       setPostedStaff([]);
                       setActiveStaffId(null);
-                      setActiveStaffName(null);
                     }}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                       bookingMode === 'group'
@@ -1302,7 +1289,7 @@ export function NewAppointmentModalV2({
 
                                   // Save each appointment
                                   for (const appointment of appointments) {
-                                    await onSave?.(appointment);
+                                    await onSave?.(appointment as any);
                                   }
 
                                   console.log('Group booking created successfully:', appointments.length, 'appointments');
@@ -1568,7 +1555,7 @@ export function NewAppointmentModalV2({
                         !newClientFirstName.trim() ||
                         !newClientLastName.trim() ||
                         !newClientPhone.trim() ||
-                        Object.keys(validationErrors).length > 0 ||
+                        Object.values(validationErrors).some(v => v !== undefined) ||
                         isAddingClient
                       }
                       className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"

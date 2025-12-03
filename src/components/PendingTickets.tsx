@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
-import { Receipt, ChevronUp, Maximize2, MoreVertical, List, Grid, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Receipt, ChevronUp, Maximize2, MoreVertical, List, Grid, Check, ChevronDown } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { PendingTicketCard } from './tickets/PendingTicketCard';
@@ -42,12 +42,9 @@ export function PendingTickets({
   const {
     viewMode,
     setViewMode,
-    toggleViewMode,
     cardViewMode,
-    setCardViewMode,
     toggleCardViewMode,
     minimizedLineView,
-    setMinimizedLineView,
     toggleMinimizedLineView
   } = useTicketSection({
     sectionKey: 'pending',
@@ -63,8 +60,8 @@ export function PendingTickets({
   });
 
   const [activeTab, setActiveTab] = useState('all');
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [_openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Payment modal state
@@ -102,16 +99,6 @@ export function PendingTickets({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  // Toggle dropdown for a ticket
-  const handleOpenMenu = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenDropdownId(openDropdownId === id ? null : id);
-  };
-
-  const handleCloseMenu = () => {
-    setOpenDropdownId(null);
-  };
-
   // Payment modal handlers
   const handleOpenPaymentModal = (ticketId: string) => {
     const ticket = pendingTickets.find(t => t.id === ticketId);
@@ -336,9 +323,6 @@ export function PendingTickets({
                   ticket={ticket}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onMarkPaid={handleOpenPaymentModal}
-                  isMenuOpen={openDropdownId === ticket.id}
-                  onOpenMenu={handleOpenMenu}
-                  onCloseMenu={handleCloseMenu}
                 />
               ))}
             </div>
@@ -350,9 +334,6 @@ export function PendingTickets({
                   ticket={ticket}
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
                   onMarkPaid={handleOpenPaymentModal}
-                  isMenuOpen={openDropdownId === ticket.id}
-                  onOpenMenu={handleOpenMenu}
-                  onCloseMenu={handleCloseMenu}
                 />
               ))}
             </div>
@@ -378,7 +359,7 @@ export function PendingTickets({
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={handleClosePaymentModal}
-          ticket={selectedTicket}
+          ticket={selectedTicket as any}
           onConfirm={handlePaymentConfirm}
         />
       )}

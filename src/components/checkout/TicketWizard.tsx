@@ -251,7 +251,7 @@ export default function TicketWizard({
 
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-3">Add More Services</h4>
-                  <ServiceGrid onAddService={handleAddService} />
+                  <ServiceGrid onAddServices={(services) => services.forEach(s => handleAddService(s))} />
                 </div>
               </div>
             )}

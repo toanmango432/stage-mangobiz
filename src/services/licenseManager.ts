@@ -3,7 +3,7 @@ import {
   validateLicense,
   isLicenseDeactivated,
   checkVersionRequirement,
-  type ValidateLicenseResponse,
+//   type ValidateLicenseResponse,
   type LicenseError,
 } from '../api/licenseApi';
 

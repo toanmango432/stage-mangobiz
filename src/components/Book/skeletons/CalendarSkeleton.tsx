@@ -4,7 +4,6 @@
  */
 
 import { ShimmerSkeleton, Skeleton } from './Skeleton';
-import { cn } from '../../../lib/utils';
 
 /**
  * Day View Skeleton - Staff columns with time slots
@@ -116,7 +115,7 @@ export function MonthViewSkeleton() {
     <div className="h-full flex flex-col">
       {/* Month header */}
       <div className="grid grid-cols-7 border-b border-gray-200">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((_day, i) => (
           <div
             key={i}
             className="p-3 text-center border-r border-gray-200 last:border-r-0"
@@ -128,7 +127,7 @@ export function MonthViewSkeleton() {
 
       {/* Month grid */}
       <div className="flex-1 grid grid-cols-7 grid-rows-5">
-        {Array.from({ length: 35 }).map((_, cellIndex) => {
+        {Array.from({ length: 35 }).map((_cellIndex, cellIndex) => {
           const row = Math.floor(cellIndex / 7);
           const col = cellIndex % 7;
 

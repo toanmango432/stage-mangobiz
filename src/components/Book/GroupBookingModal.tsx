@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Plus, ChevronDown, ChevronUp, User, Clock, DollarSign, Trash2, Search } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import type { Client, Service, Staff } from '../../types';
+import type { LocalAppointment } from '../../types/appointment';
 import { clientsDB, servicesDB } from '../../db/database';
-import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
 import { ModalContainer, ModalHeader } from '../common/ModalContainer';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -157,9 +157,9 @@ export function GroupBookingModal({
     const newMember: GroupMember = {
       id: `member-${Date.now()}-${Math.random()}`,
       clientId: client.id,
-      name: client.name,
+      name: client.name || '',
       phone: client.phone || '',
-      email: client.email,
+      email: client.email || '',
       isExpanded: true,
       services: []
     };
@@ -307,11 +307,9 @@ export function GroupBookingModal({
         };
       });
 
-      // Save each appointment
+      // Save all appointments
       if (onSave) {
-        for (const appointment of appointments) {
-          await onSave(appointment);
-        }
+        await onSave(appointments as any);
       }
 
       // Success
@@ -726,7 +724,7 @@ export function GroupBookingModal({
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs font-medium text-gray-600 mb-1">Select Staff:</p>
-                          {allStaff.map(staff => (
+                          {allStaff?.map((staff: Staff) => (
                             <button
                               key={staff.id}
                               onClick={() => handleAddServiceToMember(showServicePicker, service, staff)}

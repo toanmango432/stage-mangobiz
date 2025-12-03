@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, CreditCard, DollarSign, Percent, Receipt, Printer, Check } from 'lucide-react';
+import { X, CreditCard, DollarSign, Percent, Receipt, Check } from 'lucide-react';
 import { Ticket, Payment } from '../../types/Ticket';
+import type { Client } from '../../types/client';
 import { TAX_RATE } from '../../constants/checkoutConfig';
+// import { POINTS_PER_DOLLAR_REDEMPTION } from '../../constants/loyaltyConfig';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createTransaction } from '../../store/slices/transactionsSlice';
 import { updateTicket } from '../../store/slices/ticketsSlice';
+import { earnLoyaltyPoints, redeemLoyaltyPoints } from '../../store/slices/clientsSlice';
 import { selectCurrentUser } from '../../store/slices/authSlice';
 import { toast } from 'react-hot-toast';
 import {
@@ -14,17 +17,19 @@ import {
   multiplyAmount,
   calculatePercentage
 } from '../../utils/currency';
+import RewardPointsRedemption from './RewardPointsRedemption';
 
 interface QuickCheckoutProps {
   isOpen: boolean;
   onClose: () => void;
   ticket: Ticket;
-  onComplete: (payments: Payment[], tip: number, discount: number) => void;
+  client?: Client | null;  // Optional client for loyalty integration
+  onComplete: (payments: Payment[], tip: number, discount: number, pointsEarned?: number) => void;
 }
 
 type PaymentMethod = 'cash' | 'card' | 'split';
 
-export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickCheckoutProps) {
+export function QuickCheckout({ isOpen, onClose, ticket, client, onComplete }: QuickCheckoutProps) {
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector(selectCurrentUser);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
@@ -38,15 +43,51 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
   const [cardLast4, setCardLast4] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Loyalty points state
+  const [redeemedPoints, setRedeemedPoints] = useState(0);
+  const [pointsDiscount, setPointsDiscount] = useState(0);
+
   // Calculate totals with proper rounding to avoid floating-point errors
   const servicesTotal = roundToCents(ticket.services.reduce((sum, s) => sum + s.price, 0));
   const productsTotal = roundToCents(ticket.products.reduce((sum, p) => sum + p.total, 0));
   const subtotal = addAmounts(servicesTotal, productsTotal);
-  const discountValue = discountAmount ? roundToCents(discountAmount) : calculatePercentage(subtotal, discountPercent);
+  const manualDiscount = discountAmount ? roundToCents(discountAmount) : calculatePercentage(subtotal, discountPercent);
+  const discountValue = addAmounts(manualDiscount, pointsDiscount); // Include points redemption discount
   const afterDiscount = subtractAmount(subtotal, discountValue);
   const taxAmount = multiplyAmount(afterDiscount, TAX_RATE);
   const tipValue = tipAmount ? roundToCents(tipAmount) : calculatePercentage(afterDiscount, tipPercent);
   const grandTotal = addAmounts(afterDiscount, taxAmount, tipValue);
+
+  // Handlers for loyalty points redemption
+  const handleApplyPoints = (points: number, discount: number) => {
+    setRedeemedPoints(points);
+    setPointsDiscount(roundToCents(discount));
+  };
+
+  const handleRemovePointsRedemption = () => {
+    setRedeemedPoints(0);
+    setPointsDiscount(0);
+  };
+
+  // Create a client object for RewardPointsRedemption component if we have ticket client info
+  // The RewardPointsRedemption uses a simpler Client type from ClientSelector
+  const clientForLoyalty = client ? {
+    id: client.id,
+    firstName: client.firstName,
+    lastName: client.lastName,
+    phone: client.phone,
+    rewardPoints: client.loyaltyInfo?.pointsBalance || 0,
+    loyaltyStatus: (client.loyaltyInfo?.tier === 'platinum' || client.loyaltyInfo?.tier === 'vip'
+      ? 'gold'
+      : client.loyaltyInfo?.tier || 'bronze') as 'bronze' | 'silver' | 'gold',
+  } : ticket.clientId ? {
+    id: ticket.clientId,
+    firstName: ticket.clientName?.split(' ')[0] || '',
+    lastName: ticket.clientName?.split(' ').slice(1).join(' ') || '',
+    phone: ticket.clientPhone || '',
+    rewardPoints: 0,
+    loyaltyStatus: 'bronze' as const,
+  } : null;
 
   useEffect(() => {
     if (paymentMethod === 'split') {
@@ -96,7 +137,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
           amount: baseAmount,
           tip: tipValue,
           total: grandTotal,
-          processedAt: new Date()
+          processedAt: new Date().toISOString()
         });
       } else if (paymentMethod === 'card') {
         payments.push({
@@ -105,7 +146,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
           amount: baseAmount,
           tip: tipValue,
           total: grandTotal,
-          processedAt: new Date(),
+          processedAt: new Date().toISOString(),
           cardLast4: cardLast4 || '****',
           transactionId: `txn_${Date.now()}`
         });
@@ -120,7 +161,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
             amount: roundedCash,
             tip: 0,
             total: roundedCash,
-            processedAt: new Date()
+            processedAt: new Date().toISOString()
           });
         }
         if (roundedCard > 0) {
@@ -130,7 +171,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
             amount: roundedCard,
             tip: tipValue,
             total: addAmounts(roundedCard, tipValue),
-            processedAt: new Date(),
+            processedAt: new Date().toISOString(),
             cardLast4: cardLast4 || '****',
             transactionId: `txn_${Date.now()}`
           });
@@ -150,7 +191,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
           tip: tipValue,
           discount: discountValue,
           status: 'completed',
-          completedAt: new Date(),
+          completedAt: new Date().toISOString(),
           subtotal: afterDiscount,
           tax: taxAmount,
           total: grandTotal
@@ -159,15 +200,58 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
       })).unwrap();
 
       // 2. Create transaction record for the completed ticket
-      await dispatch(createTransaction({
+      const transaction = await dispatch(createTransaction({
         ticketId: ticket.id,
-        salonId: ticket.salonId,
-        userId: currentUser.id
+        _salonId: ticket.salonId,
+        _userId: currentUser.id
       })).unwrap();
 
-      // 3. Success - notify parent and close
+      // 3. Handle loyalty points (if client has loyalty)
+      let pointsEarned = 0;
+
+      if (client?.id) {
+        try {
+          // If points were redeemed, deduct them first
+          if (redeemedPoints > 0) {
+            await dispatch(redeemLoyaltyPoints({
+              clientId: client.id,
+              pointsToRedeem: redeemedPoints,
+              transactionId: transaction.id,
+            })).unwrap();
+          }
+
+          // Earn points on the transaction (based on subtotal before tax)
+          const result = await dispatch(earnLoyaltyPoints({
+            clientId: client.id,
+            transactionId: transaction.id,
+            ticketId: ticket.id,
+            subtotal: afterDiscount, // Amount after discounts
+            servicesTotal,
+            productsTotal,
+            taxAmount,
+          })).unwrap();
+
+          pointsEarned = result.result.pointsEarned;
+
+          // Show loyalty notification
+          if (pointsEarned > 0) {
+            const tierMessage = result.result.tierChanged
+              ? ` Tier upgraded to ${result.result.newTier}!`
+              : '';
+            toast.success(`+${pointsEarned} loyalty points earned!${tierMessage}`, {
+              icon: '🎉',
+              duration: 4000,
+            });
+          }
+        } catch (loyaltyError) {
+          // Loyalty errors should not block the transaction
+          console.error('Loyalty update error:', loyaltyError);
+        }
+      }
+
+      // 4. Success - notify parent and close
       toast.success('Payment processed and transaction created successfully');
-      onComplete(payments, tipValue, discountValue);
+      onComplete(payments, tipValue, discountValue, pointsEarned);
       setIsProcessing(false);
 
     } catch (error) {
@@ -229,10 +313,16 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium">${subtotal.toFixed(2)}</span>
               </div>
-              {discountValue > 0 && (
+              {manualDiscount > 0 && (
                 <div className="flex justify-between text-sm text-red-600">
                   <span>Discount</span>
-                  <span>-${discountValue.toFixed(2)}</span>
+                  <span>-${manualDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              {pointsDiscount > 0 && (
+                <div className="flex justify-between text-sm text-purple-600">
+                  <span>Points Redemption ({redeemedPoints} pts)</span>
+                  <span>-${pointsDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
@@ -251,6 +341,18 @@ export function QuickCheckout({ isOpen, onClose, ticket, onComplete }: QuickChec
               </div>
             </div>
           </div>
+
+          {/* Loyalty Points Redemption */}
+          {clientForLoyalty && clientForLoyalty.rewardPoints > 0 && (
+            <RewardPointsRedemption
+              client={clientForLoyalty}
+              subtotal={subtotal}
+              currentDiscount={manualDiscount}
+              onApplyPoints={handleApplyPoints}
+              onRemovePointsRedemption={handleRemovePointsRedemption}
+              appliedPointsDiscount={pointsDiscount}
+            />
+          )}
 
           {/* Discount */}
           <div className="space-y-3">

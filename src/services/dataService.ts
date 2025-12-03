@@ -13,6 +13,35 @@ import { store } from '@/store';
 import { selectIsOfflineEnabled, selectDeviceMode } from '@/store/slices/authSlice';
 import type { DeviceMode } from '@/types/device';
 
+// Supabase table operations
+import {
+  clientsTable,
+  staffTable,
+  servicesTable,
+  appointmentsTable,
+  ticketsTable,
+  transactionsTable,
+  type ClientRow,
+  type ClientInsert,
+  type ClientUpdate,
+  type StaffRow,
+  type StaffInsert,
+  type StaffUpdate,
+  type ServiceRow,
+  type AppointmentRow,
+  type AppointmentInsert,
+  type AppointmentUpdate,
+  type TicketRow,
+  type TicketInsert,
+  type TicketUpdate,
+  type TransactionRow,
+  type TransactionInsert,
+  type TransactionUpdate,
+} from './supabase';
+
+// Note: IndexedDB operations (clientsDB, staffDB, appointmentsDB, ticketsDB)
+// from '../db/database' will be imported in Phase 5 for offline-enabled mode
+
 // ==================== TYPES ====================
 
 export type DataSourceType = 'local' | 'server';
@@ -41,6 +70,14 @@ export interface DataResult<T> {
 function getMode(): DeviceMode | null {
   const state = store.getState();
   return selectDeviceMode(state);
+}
+
+/**
+ * Get current store ID from Redux store
+ */
+function getStoreId(): string {
+  const state = store.getState();
+  return state.auth.salonId || '';
 }
 
 /**
@@ -229,6 +266,274 @@ export function getModeInfo(): {
   };
 }
 
+// ==================== SUPABASE ENTITY SERVICES ====================
+// These services provide direct access to Supabase tables.
+// For Phase 4, we use Supabase directly. IndexedDB integration can be added later.
+
+/**
+ * Clients data operations via Supabase
+ */
+export const clientsService = {
+  async getAll(): Promise<ClientRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return clientsTable.getByStoreId(storeId);
+  },
+
+  async getById(id: string): Promise<ClientRow | null> {
+    return clientsTable.getById(id);
+  },
+
+  async search(query: string): Promise<ClientRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return clientsTable.search(storeId, query);
+  },
+
+  async create(client: Omit<ClientInsert, 'store_id'>): Promise<ClientRow> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return clientsTable.create({ ...client, store_id: storeId });
+  },
+
+  async update(id: string, updates: ClientUpdate): Promise<ClientRow> {
+    return clientsTable.update(id, updates);
+  },
+
+  async delete(id: string): Promise<void> {
+    return clientsTable.delete(id);
+  },
+
+  async getVipClients(): Promise<ClientRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return clientsTable.getVipClients(storeId);
+  },
+};
+
+/**
+ * Staff data operations via Supabase
+ */
+export const staffService = {
+  async getAll(): Promise<StaffRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return staffTable.getByStoreId(storeId);
+  },
+
+  async getById(id: string): Promise<StaffRow | null> {
+    return staffTable.getById(id);
+  },
+
+  async getActive(): Promise<StaffRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return staffTable.getActiveByStoreId(storeId);
+  },
+
+  async create(staff: Omit<StaffInsert, 'store_id'>): Promise<StaffRow> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return staffTable.create({ ...staff, store_id: storeId });
+  },
+
+  async update(id: string, updates: StaffUpdate): Promise<StaffRow> {
+    return staffTable.update(id, updates);
+  },
+};
+
+/**
+ * Services data operations via Supabase
+ */
+export const servicesService = {
+  async getAll(): Promise<ServiceRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return servicesTable.getByStoreId(storeId);
+  },
+
+  async getById(id: string): Promise<ServiceRow | null> {
+    return servicesTable.getById(id);
+  },
+
+  async getActive(): Promise<ServiceRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    // Use getByStoreId and filter active
+    const services = await servicesTable.getByStoreId(storeId);
+    return services.filter(s => s.is_active);
+  },
+};
+
+/**
+ * Appointments data operations via Supabase
+ */
+export const appointmentsService = {
+  async getByDate(date: Date): Promise<AppointmentRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return appointmentsTable.getByDate(storeId, date);
+  },
+
+  async getById(id: string): Promise<AppointmentRow | null> {
+    return appointmentsTable.getById(id);
+  },
+
+  async create(appointment: Omit<AppointmentInsert, 'store_id'>): Promise<AppointmentRow> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return appointmentsTable.create({ ...appointment, store_id: storeId });
+  },
+
+  async update(id: string, updates: AppointmentUpdate): Promise<AppointmentRow> {
+    return appointmentsTable.update(id, updates);
+  },
+
+  async getUpcoming(limit = 50): Promise<AppointmentRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return appointmentsTable.getUpcoming(storeId, limit);
+  },
+
+  async updateStatus(id: string, status: string): Promise<AppointmentRow> {
+    return appointmentsTable.updateStatus(id, status);
+  },
+};
+
+/**
+ * Tickets data operations via Supabase
+ */
+export const ticketsService = {
+  async getByDate(date: Date): Promise<TicketRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.getByDate(storeId, date);
+  },
+
+  async getById(id: string): Promise<TicketRow | null> {
+    return ticketsTable.getById(id);
+  },
+
+  async getOpenTickets(): Promise<TicketRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.getOpenTickets(storeId);
+  },
+
+  async getByStatus(status: string): Promise<TicketRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.getByStatus(storeId, status);
+  },
+
+  async getByClientId(clientId: string): Promise<TicketRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.getByClientId(storeId, clientId);
+  },
+
+  async getByAppointmentId(appointmentId: string): Promise<TicketRow | null> {
+    return ticketsTable.getByAppointmentId(appointmentId);
+  },
+
+  async create(ticket: Omit<TicketInsert, 'store_id'>): Promise<TicketRow> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.create({ ...ticket, store_id: storeId });
+  },
+
+  async update(id: string, updates: TicketUpdate): Promise<TicketRow> {
+    return ticketsTable.update(id, updates);
+  },
+
+  async updateStatus(id: string, status: string): Promise<TicketRow> {
+    return ticketsTable.updateStatus(id, status);
+  },
+
+  async complete(id: string, payments: unknown[]): Promise<TicketRow> {
+    return ticketsTable.complete(id, payments);
+  },
+
+  async delete(id: string): Promise<void> {
+    return ticketsTable.delete(id);
+  },
+
+  async getDailySummary(date: Date) {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.getDailySummary(storeId, date);
+  },
+
+  async getUpdatedSince(since: Date): Promise<TicketRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return ticketsTable.getUpdatedSince(storeId, since);
+  },
+};
+
+/**
+ * Transactions data operations via Supabase
+ */
+export const transactionsService = {
+  async getByDate(date: Date): Promise<TransactionRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.getByDate(storeId, date);
+  },
+
+  async getById(id: string): Promise<TransactionRow | null> {
+    return transactionsTable.getById(id);
+  },
+
+  async getByTicketId(ticketId: string): Promise<TransactionRow[]> {
+    return transactionsTable.getByTicketId(ticketId);
+  },
+
+  async getByClientId(clientId: string): Promise<TransactionRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.getByClientId(storeId, clientId);
+  },
+
+  async getByType(type: string, date?: Date): Promise<TransactionRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.getByType(storeId, type, date);
+  },
+
+  async create(transaction: Omit<TransactionInsert, 'store_id'>): Promise<TransactionRow> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.create({ ...transaction, store_id: storeId });
+  },
+
+  async update(id: string, updates: TransactionUpdate): Promise<TransactionRow> {
+    return transactionsTable.update(id, updates);
+  },
+
+  async delete(id: string): Promise<void> {
+    return transactionsTable.delete(id);
+  },
+
+  async getDailySummary(date: Date) {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.getDailySummary(storeId, date);
+  },
+
+  async getPaymentBreakdown(date: Date) {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.getPaymentBreakdown(storeId, date);
+  },
+
+  async getUpdatedSince(since: Date): Promise<TransactionRow[]> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return transactionsTable.getUpdatedSince(storeId, since);
+  },
+};
+
 // ==================== EXPORTS ====================
 
 export const dataService = {
@@ -239,6 +544,15 @@ export const dataService = {
   shouldSync,
   getModeInfo,
   getDataSource,
+  getStoreId,
+
+  // Entity-specific services
+  clients: clientsService,
+  staff: staffService,
+  services: servicesService,
+  appointments: appointmentsService,
+  tickets: ticketsService,
+  transactions: transactionsService,
 };
 
 export default dataService;

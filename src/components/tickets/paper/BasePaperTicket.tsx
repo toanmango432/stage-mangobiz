@@ -59,7 +59,7 @@ export const BasePaperTicket: React.FC<BasePaperTicketProps> = ({
     borderRadius: viewStyles.borderRadius,
     padding: viewStyles.padding,
     animation: borderStyles.animation,
-    opacity: borderStyles.opacity || 1,
+    // opacity: borderStyles.opacity || 1,
     ...style,
   }), [viewStyles, borderStyles, style]);
 

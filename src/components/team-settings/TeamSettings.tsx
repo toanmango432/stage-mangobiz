@@ -8,10 +8,17 @@ import { Button, Badge } from './components/SharedComponents';
 import { ProfileSection } from './sections/ProfileSection';
 import { ServicesSection } from './sections/ServicesSection';
 import { ScheduleSection } from './sections/ScheduleSection';
+import { TimesheetSection } from './sections/TimesheetSection';
 import { PermissionsSection } from './sections/PermissionsSection';
 import { CommissionSection } from './sections/CommissionSection';
+import { PayrollSection } from './sections/PayrollSection';
 import { OnlineBookingSection } from './sections/OnlineBookingSection';
 import { NotificationsSection } from './sections/NotificationsSection';
+import { PerformanceSection } from './sections/PerformanceSection';
+import { LoginCredentialsSection } from './sections/LoginCredentialsSection';
+import { supabase } from '../../services/supabase/client';
+import { fetchSupabaseMembers } from '../../services/supabase/memberService';
+import { selectStoreId } from '../../store/slices/authSlice';
 
 // Redux imports
 import type { AppDispatch } from '../../store';
@@ -60,6 +67,9 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
   const loading = useSelector(selectTeamLoading);
   const error = useSelector(selectTeamError);
 
+  // Get store ID from auth state
+  const storeId = useSelector(selectStoreId);
+
   // Get all existing emails for uniqueness validation
   const existingEmails = allMembers.map(m => m.profile.email);
 
@@ -92,23 +102,37 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Load team data on mount
+  // Load team data on mount - from Supabase if store ID available
   useEffect(() => {
     const loadData = async () => {
       try {
-        // First try to fetch from IndexedDB (pass undefined to get all stores)
+        // If we have a store ID from auth, fetch from Supabase
+        if (storeId) {
+          console.log('📡 Fetching team members from Supabase for store:', storeId);
+          const supabaseMembers = await fetchSupabaseMembers(storeId);
+
+          if (supabaseMembers.length > 0) {
+            dispatch(setMembers(supabaseMembers));
+            if (!selectedMemberId) {
+              dispatch(setSelectedMember(supabaseMembers[0].id));
+            }
+            console.log(`✅ Loaded ${supabaseMembers.length} members from Supabase`);
+            return;
+          }
+        }
+
+        // Fallback: fetch from IndexedDB
+        console.log('📦 Fetching team members from IndexedDB');
         const result = await dispatch(fetchTeamMembers(undefined)).unwrap();
 
         // If no data, seed with mock data
         if (result.length === 0) {
           await teamDB.seedInitialData(mockTeamMembers, 'system', 'seed');
           dispatch(setMembers(mockTeamMembers));
-          // Select first member
           if (mockTeamMembers.length > 0) {
             dispatch(setSelectedMember(mockTeamMembers[0].id));
           }
         } else if (result.length > 0 && !selectedMemberId) {
-          // Select first member if none selected
           dispatch(setSelectedMember(result[0].id));
         }
       } catch (err) {
@@ -122,7 +146,7 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
     };
 
     loadData();
-  }, [dispatch]);
+  }, [dispatch, storeId]);
 
   // Update member handler - marks changes as unsaved (manual save pattern)
   const handleUpdateMember = useCallback((updates: Partial<TeamMemberSettings>) => {
@@ -134,10 +158,14 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
   // Section navigation items
   const sectionNav: { id: TeamSettingsSection; label: string; icon: React.ReactNode }[] = [
     { id: 'profile', label: 'Profile', icon: <UserIcon className="w-5 h-5" /> },
+    { id: 'login', label: 'Login', icon: <KeyIcon className="w-5 h-5" /> },
     { id: 'services', label: 'Services', icon: <ScissorsIcon className="w-5 h-5" /> },
     { id: 'schedule', label: 'Schedule', icon: <CalendarIcon className="w-5 h-5" /> },
+    { id: 'timesheet', label: 'Timesheet', icon: <ClockIcon className="w-5 h-5" /> },
     { id: 'permissions', label: 'Permissions', icon: <ShieldIcon className="w-5 h-5" /> },
     { id: 'commission', label: 'Commission', icon: <DollarIcon className="w-5 h-5" /> },
+    { id: 'payroll', label: 'Payroll', icon: <WalletIcon className="w-5 h-5" /> },
+    { id: 'performance', label: 'Performance', icon: <ChartIcon className="w-5 h-5" /> },
     { id: 'online-booking', label: 'Online Booking', icon: <GlobeIcon className="w-5 h-5" /> },
     { id: 'notifications', label: 'Notifications', icon: <BellIcon className="w-5 h-5" /> },
   ];
@@ -454,6 +482,28 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                 />
               )}
 
+              {activeSection === 'login' && (
+                <LoginCredentialsSection
+                  email={selectedMember.profile.email}
+                  onPasswordChange={async (newPassword) => {
+                    // Update password in Supabase members table
+                    const { error } = await supabase
+                      .from('members')
+                      .update({ password_hash: newPassword })
+                      .eq('email', selectedMember.profile.email);
+                    if (error) throw new Error(error.message);
+                  }}
+                  onPinChange={async (newPin) => {
+                    // Update PIN in Supabase members table
+                    const { error } = await supabase
+                      .from('members')
+                      .update({ pin: newPin })
+                      .eq('email', selectedMember.profile.email);
+                    if (error) throw new Error(error.message);
+                  }}
+                />
+              )}
+
               {activeSection === 'services' && (
                 <ServicesSection
                   services={selectedMember.services}
@@ -467,6 +517,14 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                   memberId={selectedMember.id}
                   memberName={selectedMember.profile.displayName}
                   onChange={(workingHours) => handleUpdateMember({ workingHours })}
+                />
+              )}
+
+              {activeSection === 'timesheet' && (
+                <TimesheetSection
+                  memberId={selectedMember.id}
+                  memberName={selectedMember.profile.displayName}
+                  storeId={selectedMember.storeId}
                 />
               )}
 
@@ -486,6 +544,14 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                 />
               )}
 
+              {activeSection === 'payroll' && (
+                <PayrollSection
+                  memberId={selectedMember.id}
+                  memberName={selectedMember.profile.displayName}
+                  storeId={selectedMember.storeId}
+                />
+              )}
+
               {activeSection === 'online-booking' && (
                 <OnlineBookingSection
                   settings={selectedMember.onlineBooking}
@@ -498,6 +564,16 @@ export const TeamSettings: React.FC<TeamSettingsProps> = ({ onBack }) => {
                 <NotificationsSection
                   notifications={selectedMember.notifications}
                   onChange={(notifications) => handleUpdateMember({ notifications })}
+                />
+              )}
+
+              {activeSection === 'performance' && (
+                <PerformanceSection
+                  memberId={selectedMember.id}
+                  memberName={selectedMember.profile.displayName}
+                  storeId={selectedMember.storeId}
+                  goals={selectedMember.performanceGoals}
+                  onGoalsChange={(performanceGoals) => handleUpdateMember({ performanceGoals })}
                 />
               )}
             </div>
@@ -631,6 +707,12 @@ const CalendarIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const ClockIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 const ShieldIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -655,6 +737,18 @@ const BellIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const WalletIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+  </svg>
+);
+
+const ChartIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
 const UsersIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -670,6 +764,12 @@ const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
 const ExclamationCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const KeyIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
   </svg>
 );
 

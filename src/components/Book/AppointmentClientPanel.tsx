@@ -1,5 +1,5 @@
-import React, { RefObject } from 'react';
-import { Search, User, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefObject } from 'react';
+import { Search, User, Plus, X, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { formatNameInput } from '../../utils/validation';
 import { formatPhoneNumber } from '../../utils/phoneUtils';
@@ -54,7 +54,6 @@ interface AppointmentClientPanelProps {
   bookingGuests: BookingGuest[];
   activeGuestId: string | null;
   groupStep: 'guests' | 'services';
-  onSetGroupStep: (step: 'guests' | 'services') => void;
   onSetActiveGuestId: (id: string | null) => void;
   onAddNamedGuest: (client: Client) => void;
   onAddUnnamedGuest: () => void;
@@ -62,7 +61,6 @@ interface AppointmentClientPanelProps {
   onProceedToServices: () => void;
   onBackToGuests: () => void;
   onSelectClient: (client: Client) => void;
-  onRemoveClient: (clientId: string) => void;
   onSelectWalkIn: () => void;
   newClientFirstName: string;
   newClientLastName: string;
@@ -97,7 +95,6 @@ export function AppointmentClientPanel({
   bookingGuests,
   activeGuestId,
   groupStep,
-  onSetGroupStep,
   onSetActiveGuestId,
   onAddNamedGuest,
   onAddUnnamedGuest,
@@ -105,7 +102,6 @@ export function AppointmentClientPanel({
   onProceedToServices,
   onBackToGuests,
   onSelectClient,
-  onRemoveClient,
   onSelectWalkIn,
   newClientFirstName,
   newClientLastName,

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar, Clock, Plus, Trash2, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

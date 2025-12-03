@@ -221,19 +221,14 @@ describe('phoneUtils', () => {
 
   describe('Edge Cases', () => {
     it('should handle null or undefined gracefully', () => {
-      // @ts-expect-error - Testing edge case
-      expect(() => formatPhoneNumber(null)).not.toThrow();
-      // @ts-expect-error - Testing edge case
-      expect(() => formatPhoneNumber(undefined)).not.toThrow();
-      // @ts-expect-error - Testing edge case
-      expect(formatPhoneNumber(null)).toBe('');
-      // @ts-expect-error - Testing edge case
-      expect(formatPhoneNumber(undefined)).toBe('');
+      expect(() => formatPhoneNumber(null as any)).not.toThrow();
+      expect(() => formatPhoneNumber(undefined as any)).not.toThrow();
+      expect(formatPhoneNumber(null as any)).toBe('');
+      expect(formatPhoneNumber(undefined as any)).toBe('');
     });
 
     it('should handle numbers as input', () => {
-      // @ts-expect-error - Testing edge case
-      expect(formatPhoneNumber(5551234567)).toBe('(555) 123-4567');
+      expect(formatPhoneNumber(5551234567 as any)).toBe('(555) 123-4567');
     });
 
     it('should handle very long strings', () => {

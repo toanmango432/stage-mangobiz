@@ -18,7 +18,6 @@ export function OfflineIndicator() {
     deviceMode,
     pendingOperations: reduxPendingOps,
     lastSyncAt: reduxLastSyncAt,
-    statusMessage,
     canWorkOffline,
     syncNow,
   } = useModeAwareSync();

@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   Users,
   Shield,
   Store,
   RefreshCcw,
-  Calendar,
   Activity,
   PieChart,
   ArrowUpRight,
@@ -450,9 +448,9 @@ export function AnalyticsDashboard() {
                 <div key={log.id} className="p-4 hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${
-                      log.action === 'create' ? 'bg-green-500' :
-                      log.action === 'update' ? 'bg-blue-500' :
-                      log.action === 'delete' ? 'bg-red-500' :
+                      log.action.includes('created') ? 'bg-green-500' :
+                      log.action.includes('updated') ? 'bg-blue-500' :
+                      log.action.includes('deleted') ? 'bg-red-500' :
                       'bg-gray-500'
                     }`} />
                     <div className="flex-1 min-w-0">

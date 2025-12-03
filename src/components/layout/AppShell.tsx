@@ -19,19 +19,25 @@ import { RoleSettings } from '../role-settings';
 import { DeviceSettings } from '../device';
 import { ClientSettings } from '../client-settings';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
+import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
+import { loadStaff as loadUIStaff } from '../../store/slices/uiStaffSlice';
+import { fetchClientsFromSupabase } from '../../store/slices/clientsSlice';
 import { addLocalAppointment } from '../../store/slices/appointmentsSlice';
 import { setOnlineStatus } from '../../store/slices/syncSlice';
+import { setStoreSession, setAuthStatus, AuthStatus } from '../../store/slices/authSlice';
 import {
   loadFrontDeskSettings,
   setSettings,
   subscribeToSettingsChanges,
 } from '../../store/slices/frontDeskSettingsSlice';
+import { storeAuthManager } from '../../services/storeAuthManager';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
 import { initializeCatalog } from '../../db/catalogSeed';
 import { syncManager } from '../../services/syncManager';
+import { teamDB } from '../../db/teamOperations';
+import { mockTeamMembers } from '../team-settings/constants';
 import { NetworkStatus } from '../NetworkStatus';
 import { LicenseBanner } from '../licensing/LicenseBanner';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
@@ -64,6 +70,20 @@ export function AppShell() {
     }
   }, [showBottomNav, isDesktop, activeModule]);
 
+  // Listen for navigation events from child components (e.g., FrontDesk -> Checkout)
+  useEffect(() => {
+    const handleNavigate = (event: CustomEvent) => {
+      const targetModule = event.detail;
+      if (targetModule) {
+        setActiveModule(targetModule);
+      }
+    };
+    window.addEventListener('navigate-to-module', handleNavigate as EventListener);
+    return () => {
+      window.removeEventListener('navigate-to-module', handleNavigate as EventListener);
+    };
+  }, []);
+
   // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
   const pendingTickets = useAppSelector(selectPendingTickets);
   const pendingCount = pendingTickets.length;
@@ -92,14 +112,25 @@ export function AppShell() {
           console.error('⚠️ Failed to apply defaults:', error);
         }
 
-        // 3. Check if we need to seed data (first run)
+        // 3. Check if we need to seed data (first run or force reseed)
         const staffCount = await db.staff.count();
-        if (staffCount === 0) {
-          console.log('🌱 First run detected - seeding database...');
+        const clientCount = await db.clients.count();
+        const forceReseed = localStorage.getItem('force-reseed-db');
+        if (staffCount === 0 || clientCount === 0 || forceReseed === 'true') {
+          console.log('🌱 Seeding database...', { staffCount, clientCount, forceReseed });
+          // Clear existing data before reseeding
+          if (forceReseed === 'true' || staffCount > 0) {
+            console.log('🗑️ Clearing existing data for reseed...');
+            await db.staff.clear();
+            await db.clients.clear();
+            await db.services.clear();
+            await db.appointments.clear();
+            localStorage.removeItem('force-reseed-db');
+          }
           await seedDatabase();
           console.log('✅ Database seeded');
         } else {
-          console.log(`✅ Database already seeded (${staffCount} staff members)`);
+          console.log(`✅ Database already seeded (${staffCount} staff, ${clientCount} clients)`);
         }
 
         // 3b. Initialize catalog (migrate legacy services or seed if empty)
@@ -110,9 +141,68 @@ export function AppShell() {
           console.error('⚠️ Failed to initialize catalog:', error);
         }
 
-        // 4. Load staff into Redux
+        // 4. Sync store auth state to Redux FIRST (required for dataService storeId)
+        const authState = storeAuthManager.getState();
+        if (authState.store) {
+          dispatch(setStoreSession({
+            storeId: authState.store.storeId,
+            storeName: authState.store.storeName,
+            storeLoginId: authState.store.storeLoginId,
+            tenantId: authState.store.tenantId,
+            tier: authState.store.tier,
+          }));
+          dispatch(setAuthStatus(authState.status as AuthStatus));
+          console.log('✅ Store auth synced to Redux:', authState.store.storeName);
+        }
+
+        // 4a. Load staff into Redux (legacy staffSlice for backwards compatibility)
         await dispatch(fetchAllStaff(salonId));
-        console.log('✅ Staff loaded into Redux');
+        console.log('✅ Staff loaded into Redux (staffSlice)');
+
+        // 4a2. Seed team members if needed (required for uiStaffSlice)
+        const storeId = authState.store?.storeId || 'default-store';
+        console.log('[AppShell] Checking team data for storeId:', storeId);
+
+        // Check current team member count
+        const currentMembers = await teamDB.getAllMembers(storeId);
+        console.log('[AppShell] Current team members in IndexedDB:', currentMembers.length);
+
+        // Force reseed if no data exists
+        if (currentMembers.length === 0) {
+          console.log('🌱 Seeding team members (force)...');
+          console.log('[AppShell] mockTeamMembers count:', mockTeamMembers.length);
+          console.log('[AppShell] mockTeamMembers storeId:', mockTeamMembers[0]?.storeId);
+
+          // Clear any partial data first
+          await teamDB.clearAll();
+
+          // Directly add members using bulkCreateMembers to bypass hasData check
+          const ids = await teamDB.bulkCreateMembers(mockTeamMembers, 'system', 'seed');
+          console.log('✅ Team members seeded:', ids.length, 'members');
+
+          // Verify seeding worked
+          const afterSeed = await teamDB.getAllMembers(storeId);
+          console.log('[AppShell] After seed team members:', afterSeed.length);
+        } else {
+          console.log('✅ Team data already exists:', currentMembers.length, 'members');
+        }
+
+        // 4a3. Load UI staff from teamMembers (uiStaffSlice - used by Book, Team, FrontDesk)
+        await dispatch(loadUIStaff(storeId));
+        console.log('✅ UI Staff loaded into Redux (uiStaffSlice)');
+
+        // 4b. Load clients into Redux from Supabase (via dataService)
+        // Note: Only fetches if store is logged in (storeId available)
+        if (authState.store) {
+          await dispatch(fetchClientsFromSupabase());
+          console.log('✅ Clients loaded into Redux from Supabase');
+        } else {
+          console.log('⚠️ No store logged in - skipping Supabase client fetch');
+        }
+
+        // 4c. Load tickets into Redux from IndexedDB
+        await dispatch(loadTickets(salonId));
+        console.log('✅ Tickets loaded into Redux');
 
         // 5. Load appointments into Redux
         const appointments = await db.appointments.toArray();
@@ -257,12 +347,11 @@ export function AppShell() {
       <TopHeaderBar
         activeModule={activeModule}
         onModuleChange={setActiveModule}
-        pendingCount={pendingCount}
         hideNavigation={showBottomNav}
       />
 
       {/* Main Content Area - responsive padding for header height (h-12 mobile, h-16 desktop) */}
-      <main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
+      <main className={`relative flex-1 flex flex-col min-h-0 pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
         {renderModule()}
       </main>
 

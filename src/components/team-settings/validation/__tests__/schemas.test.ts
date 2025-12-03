@@ -13,12 +13,9 @@ import {
   WorkingDaySchema,
   RolePermissionsSchema,
   OnlineBookingSettingsSchema,
-  TeamMemberSettingsSchema,
 } from '../schemas';
 import {
   validateProfile,
-  validateCommission,
-  validatePermissions,
   ValidationError,
   isValidEmail,
   isValidPin,

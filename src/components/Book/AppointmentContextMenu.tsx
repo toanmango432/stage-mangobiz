@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { Edit2, CheckCircle, PlayCircle, XCircle, UserX, Calendar } from 'lucide-react';
+import { Edit2, CheckCircle, PlayCircle, XCircle, UserX, Calendar, Copy, CopyPlus, RefreshCw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 
@@ -19,6 +19,9 @@ interface AppointmentContextMenuProps {
   onReschedule: (appointment: LocalAppointment) => void;
   onCancel: (appointment: LocalAppointment) => void;
   onNoShow: (appointment: LocalAppointment) => void;
+  onCopy?: (appointment: LocalAppointment) => void;
+  onDuplicate?: (appointment: LocalAppointment) => void;
+  onRebook?: (appointment: LocalAppointment) => void;
 }
 
 export function AppointmentContextMenu({
@@ -32,6 +35,9 @@ export function AppointmentContextMenu({
   onReschedule,
   onCancel,
   onNoShow,
+  onCopy,
+  onDuplicate,
+  onRebook,
 }: AppointmentContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +119,56 @@ export function AppointmentContextMenu({
       color: 'text-purple-600',
       show: appointment.status !== 'completed' && appointment.status !== 'cancelled',
     },
+    // Divider placeholder - Copy/Duplicate/Rebook section
+    {
+      label: 'divider',
+      icon: null as any,
+      onClick: () => {},
+      color: '',
+      show: true,
+      isDivider: true,
+    },
+    {
+      label: 'Copy',
+      icon: Copy,
+      onClick: () => {
+        onCopy?.(appointment);
+        onClose();
+      },
+      color: 'text-gray-600',
+      show: !!onCopy,
+      shortcut: '⌘C',
+    },
+    {
+      label: 'Duplicate',
+      icon: CopyPlus,
+      onClick: () => {
+        onDuplicate?.(appointment);
+        onClose();
+      },
+      color: 'text-indigo-600',
+      show: !!onDuplicate,
+    },
+    {
+      label: 'Rebook',
+      icon: RefreshCw,
+      onClick: () => {
+        onRebook?.(appointment);
+        onClose();
+      },
+      color: 'text-violet-600',
+      show: !!onRebook && appointment.status === 'completed',
+      description: 'Book again with same details',
+    },
+    // Divider before danger actions
+    {
+      label: 'divider2',
+      icon: null as any,
+      onClick: () => {},
+      color: '',
+      show: appointment.status !== 'completed' && appointment.status !== 'cancelled',
+      isDivider: true,
+    },
     {
       label: 'No Show',
       icon: UserX,
@@ -160,19 +216,30 @@ export function AppointmentContextMenu({
       {/* Menu Items */}
       <div className="py-1">
         {visibleItems.map((item, index) => {
+          // Handle dividers
+          if ((item as any).isDivider) {
+            return <div key={index} className="my-1 border-t border-gray-200" />;
+          }
+
           const Icon = item.icon;
           return (
             <button
               key={index}
               onClick={item.onClick}
               className={cn(
-                'w-full px-4 py-2 text-left text-sm flex items-center space-x-3',
+                'w-full px-4 py-2 text-left text-sm flex items-center justify-between',
                 'hover:bg-gray-100 transition-colors',
                 item.color
               )}
             >
-              <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
+              <div className="flex items-center space-x-3">
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </div>
+              {/* Keyboard shortcut hint */}
+              {(item as any).shortcut && (
+                <span className="text-xs text-gray-400 ml-4">{(item as any).shortcut}</span>
+              )}
             </button>
           );
         })}

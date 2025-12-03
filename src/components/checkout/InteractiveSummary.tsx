@@ -2,6 +2,8 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +20,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { UserPlus, MoreVertical, Percent, DollarSign, Plus, Scissors, ShoppingBag, Users, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { UserPlus, MoreVertical, Percent, DollarSign, Plus, ShoppingBag, Users, AlertCircle, ChevronDown, ChevronUp, X, Tag, Clock, Play } from "lucide-react";
 import { TicketService, ServiceStatus } from "./ServiceList";
 import { AnimatePresence, motion } from "framer-motion";
 import ClientSelector, { Client } from "./ClientSelector";
+import ClientAlerts, { ClientAlertData } from "./ClientAlerts";
 import { StaffMember } from "./ServiceGrid";
 import StaffGroup from "./StaffGroup";
 import { BulkActionsPopup } from "./BulkActionsPopup";
@@ -34,7 +45,10 @@ interface InteractiveSummaryProps {
   subtotal: number;
   tax: number;
   total: number;
+  discount?: number;
   onCheckout: () => void;
+  onCheckIn?: () => void;
+  onStartService?: () => void;
   onSelectClient: (client: Client | null) => void;
   onCreateClient: (client: Partial<Client>) => void;
   onUpdateService: (serviceId: string, updates: Partial<TicketService>) => void;
@@ -49,6 +63,8 @@ interface InteractiveSummaryProps {
   onSetActiveStaff?: (staffId: string | null) => void;
   assignedStaffIds?: Set<string>;
   currentTab?: "services" | "staff";
+  onApplyDiscount?: (data: { type: "percentage" | "fixed"; amount: number; reason: string }) => void;
+  onRemoveDiscount?: () => void;
 }
 
 export default function InteractiveSummary({
@@ -58,7 +74,10 @@ export default function InteractiveSummary({
   subtotal,
   tax,
   total,
+  discount = 0,
   onCheckout,
+  onCheckIn,
+  onStartService,
   onSelectClient,
   onCreateClient,
   onUpdateService,
@@ -66,13 +85,15 @@ export default function InteractiveSummary({
   onRemoveStaff,
   onReassignStaff,
   onAddServiceToStaff,
-  onAddStaff,
+  onAddStaff: _onAddStaff,
   onDuplicateServices,
   onRequestAddStaff,
   activeStaffId,
   onSetActiveStaff,
   assignedStaffIds = new Set(),
   currentTab = "services",
+  onApplyDiscount,
+  onRemoveDiscount,
 }: InteractiveSummaryProps) {
   const { toast } = useToast();
   const [showClientSelector, setShowClientSelector] = useState(false);
@@ -85,7 +106,21 @@ export default function InteractiveSummary({
   // Confirmation dialogs
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [pendingBulkDeleteIds, setPendingBulkDeleteIds] = useState<string[]>([]);
-  
+
+  // Bulk edit dialogs (for service-level discounts)
+  const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
+  const [showServiceDiscountDialog, setShowServiceDiscountDialog] = useState(false);
+  const [pendingEditServiceIds, setPendingEditServiceIds] = useState<string[]>([]);
+  const [newPriceValue, setNewPriceValue] = useState("");
+  const [serviceDiscountValue, setServiceDiscountValue] = useState("");
+  const [serviceDiscountType, setServiceDiscountType] = useState<"percentage" | "fixed">("percentage");
+
+  // Ticket-level discount dialog
+  const [showTicketDiscountDialog, setShowTicketDiscountDialog] = useState(false);
+  const [ticketDiscountValue, setTicketDiscountValue] = useState("");
+  const [ticketDiscountType, setTicketDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [ticketDiscountReason, setTicketDiscountReason] = useState("");
+
   // Mobile totals collapse state
   const [isTotalsCollapsed, setIsTotalsCollapsed] = useState(true);
 
@@ -269,18 +304,93 @@ export default function InteractiveSummary({
 
   // Extract bulk action handlers for reuse
   const handleEditServicePrice = (serviceIds: string[]) => {
-    console.log(`Editing price for ${serviceIds.length} service(s):`, serviceIds);
-    // TODO: Open price input modal and apply to all serviceIds
+    setPendingEditServiceIds(serviceIds);
+    // Pre-fill with current price if single service
+    if (serviceIds.length === 1) {
+      const service = services.find(s => s.id === serviceIds[0]);
+      setNewPriceValue(service?.price?.toString() || "");
+    } else {
+      setNewPriceValue("");
+    }
+    setShowPriceEditDialog(true);
+  };
+
+  const handleConfirmPriceEdit = () => {
+    const price = parseFloat(newPriceValue);
+    if (!isNaN(price) && price >= 0) {
+      pendingEditServiceIds.forEach(id => {
+        onUpdateService(id, { price });
+      });
+      toast({
+        title: "Price Updated",
+        description: `Updated price for ${pendingEditServiceIds.length} service(s) to $${price.toFixed(2)}`,
+      });
+    }
+    setShowPriceEditDialog(false);
+    setPendingEditServiceIds([]);
+    setNewPriceValue("");
   };
 
   const handleChangeServiceType = (serviceIds: string[]) => {
-    console.log(`Changing ${serviceIds.length} service(s):`, serviceIds);
-    // TODO: Open service selector and replace all serviceIds with chosen service
+    // For now, show a toast indicating this feature requires the service selector
+    toast({
+      title: "Change Service",
+      description: `To change ${serviceIds.length} service(s), please remove and add new services from the Services tab.`,
+    });
   };
 
   const handleDiscountService = (serviceIds: string[]) => {
-    console.log(`Adding discount to ${serviceIds.length} service(s):`, serviceIds);
-    // TODO: Open discount modal and apply to all serviceIds
+    setPendingEditServiceIds(serviceIds);
+    setServiceDiscountValue("");
+    setServiceDiscountType("percentage");
+    setShowServiceDiscountDialog(true);
+  };
+
+  const handleConfirmServiceDiscount = () => {
+    const value = parseFloat(serviceDiscountValue);
+    if (!isNaN(value) && value > 0) {
+      pendingEditServiceIds.forEach(id => {
+        const service = services.find(s => s.id === id);
+        if (service) {
+          let newPrice = service.price;
+          if (serviceDiscountType === "percentage") {
+            newPrice = service.price * (1 - value / 100);
+          } else {
+            newPrice = Math.max(0, service.price - value);
+          }
+          onUpdateService(id, { price: Math.round(newPrice * 100) / 100 });
+        }
+      });
+      toast({
+        title: "Discount Applied",
+        description: `Applied ${serviceDiscountType === "percentage" ? value + "%" : "$" + value.toFixed(2)} discount to ${pendingEditServiceIds.length} service(s)`,
+      });
+    }
+    setShowServiceDiscountDialog(false);
+    setPendingEditServiceIds([]);
+    setServiceDiscountValue("");
+  };
+
+  // Ticket-level discount handlers
+  const handleOpenTicketDiscount = () => {
+    setTicketDiscountValue("");
+    setTicketDiscountType("percentage");
+    setTicketDiscountReason("");
+    setShowTicketDiscountDialog(true);
+  };
+
+  const handleConfirmTicketDiscount = () => {
+    const value = parseFloat(ticketDiscountValue);
+    if (!isNaN(value) && value > 0 && onApplyDiscount) {
+      onApplyDiscount({
+        type: ticketDiscountType,
+        amount: value,
+        reason: ticketDiscountReason,
+      });
+    }
+    setShowTicketDiscountDialog(false);
+    setTicketDiscountValue("");
+    setTicketDiscountReason("");
   };
 
   const handleDuplicateServices = (serviceIds: string[]) => {
@@ -408,6 +518,34 @@ export default function InteractiveSummary({
               setShowClientSelector(false);
             }}
             inDialog={true}
+          />
+        )}
+
+        {/* Client Quick Stats */}
+        {selectedClient && (selectedClient.totalVisits || selectedClient.lifetimeSpend || selectedClient.lastVisitDate) && (
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            {selectedClient.totalVisits !== undefined && (
+              <span>{selectedClient.totalVisits} visits</span>
+            )}
+            {selectedClient.lifetimeSpend !== undefined && (
+              <span>${selectedClient.lifetimeSpend.toFixed(0)} spent</span>
+            )}
+            {selectedClient.lastVisitDate && (
+              <span>Last: {new Date(selectedClient.lastVisitDate).toLocaleDateString()}</span>
+            )}
+          </div>
+        )}
+
+        {/* Client Alerts - Shows allergy, notes, balance warnings */}
+        {selectedClient && (
+          <ClientAlerts
+            client={selectedClient as ClientAlertData}
+            onBlockedOverride={() => {
+              toast({
+                title: "Proceeding with blocked client",
+                description: "Manager override recorded.",
+              });
+            }}
           />
         )}
       </div>
@@ -558,17 +696,47 @@ export default function InteractiveSummary({
           isTotalsCollapsed ? 'hidden md:block' : 'block'
         }`}>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Service Charge</span>
-            <span className="text-muted-foreground" data-testid="text-service-charge">
-              ${(subtotal * 0.03).toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Subtotal</span>
             <span className="text-muted-foreground" data-testid="text-subtotal">
               ${subtotal.toFixed(2)}
             </span>
           </div>
+
+          {/* Discount Section */}
+          {discount > 0 ? (
+            <div className="flex justify-between items-center text-xs">
+              <div className="flex items-center gap-1">
+                <Tag className="h-3 w-3 text-green-600" />
+                <span className="text-green-600 font-medium">Discount</span>
+                {onRemoveDiscount && (
+                  <button
+                    onClick={onRemoveDiscount}
+                    className="ml-1 p-0.5 hover:bg-muted rounded transition-colors"
+                    data-testid="button-remove-discount"
+                    aria-label="Remove discount"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
+              </div>
+              <span className="text-green-600 font-medium" data-testid="text-discount">
+                -${discount.toFixed(2)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center text-xs">
+              <button
+                onClick={handleOpenTicketDiscount}
+                className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+                data-testid="button-add-ticket-discount"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Add Discount</span>
+              </button>
+              <span className="text-muted-foreground">$0.00</span>
+            </div>
+          )}
+
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Tax</span>
             <span className="text-muted-foreground" data-testid="text-tax">
@@ -622,6 +790,36 @@ export default function InteractiveSummary({
               Continue to Payment
             </Button>
           </div>
+
+          {/* Check-in Action Buttons - visible when handlers are provided */}
+          {(onCheckIn || onStartService) && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+              {onCheckIn && (
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 gap-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
+                  onClick={onCheckIn}
+                  disabled={services.length === 0}
+                  data-testid="button-checkin"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Check In</span>
+                </Button>
+              )}
+              {onStartService && (
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 gap-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors"
+                  onClick={onStartService}
+                  disabled={services.length === 0}
+                  data-testid="button-start-service"
+                >
+                  <Play className="h-4 w-4" />
+                  <span>Start Service</span>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -638,7 +836,7 @@ export default function InteractiveSummary({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setShowBulkDeleteConfirm(false);
                 setPendingBulkDeleteIds([]);
@@ -657,6 +855,225 @@ export default function InteractiveSummary({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Price Edit Dialog */}
+      <Dialog open={showPriceEditDialog} onOpenChange={setShowPriceEditDialog}>
+        <DialogContent className="sm:max-w-[400px]" data-testid="dialog-price-edit">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Edit Price
+            </DialogTitle>
+            <DialogDescription>
+              Set a new price for {pendingEditServiceIds.length} service(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="new-price">New Price ($)</Label>
+            <Input
+              id="new-price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={newPriceValue}
+              onChange={(e) => setNewPriceValue(e.target.value)}
+              className="mt-2"
+              autoFocus
+              data-testid="input-new-price"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPriceEditDialog(false);
+                setPendingEditServiceIds([]);
+                setNewPriceValue("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmPriceEdit}
+              disabled={!newPriceValue || isNaN(parseFloat(newPriceValue))}
+              data-testid="button-confirm-price"
+            >
+              Update Price
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Service-Level Discount Dialog (for bulk service discounts) */}
+      <Dialog open={showServiceDiscountDialog} onOpenChange={setShowServiceDiscountDialog}>
+        <DialogContent className="sm:max-w-[400px]" data-testid="dialog-service-discount">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Percent className="h-5 w-5" />
+              Apply Service Discount
+            </DialogTitle>
+            <DialogDescription>
+              Add a discount to {pendingEditServiceIds.length} service(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <Label>Discount Type</Label>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant={serviceDiscountType === "percentage" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setServiceDiscountType("percentage")}
+                  className="flex-1"
+                  data-testid="button-service-discount-percent"
+                >
+                  <Percent className="h-4 w-4 mr-1" />
+                  Percentage
+                </Button>
+                <Button
+                  variant={serviceDiscountType === "fixed" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setServiceDiscountType("fixed")}
+                  className="flex-1"
+                  data-testid="button-service-discount-fixed"
+                >
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Fixed Amount
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="service-discount-value">
+                {serviceDiscountType === "percentage" ? "Discount (%)" : "Discount Amount ($)"}
+              </Label>
+              <Input
+                id="service-discount-value"
+                type="number"
+                min="0"
+                step={serviceDiscountType === "percentage" ? "1" : "0.01"}
+                max={serviceDiscountType === "percentage" ? "100" : undefined}
+                placeholder={serviceDiscountType === "percentage" ? "10" : "5.00"}
+                value={serviceDiscountValue}
+                onChange={(e) => setServiceDiscountValue(e.target.value)}
+                className="mt-2"
+                autoFocus
+                data-testid="input-service-discount-value"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowServiceDiscountDialog(false);
+                setPendingEditServiceIds([]);
+                setServiceDiscountValue("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmServiceDiscount}
+              disabled={!serviceDiscountValue || isNaN(parseFloat(serviceDiscountValue)) || parseFloat(serviceDiscountValue) <= 0}
+              data-testid="button-confirm-service-discount"
+            >
+              Apply Discount
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ticket-Level Discount Dialog */}
+      <Dialog open={showTicketDiscountDialog} onOpenChange={setShowTicketDiscountDialog}>
+        <DialogContent className="sm:max-w-[400px]" data-testid="dialog-ticket-discount">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Add Ticket Discount
+            </DialogTitle>
+            <DialogDescription>
+              Apply a discount to the entire ticket
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <Label>Discount Type</Label>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant={ticketDiscountType === "percentage" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTicketDiscountType("percentage")}
+                  className="flex-1"
+                  data-testid="button-ticket-discount-percent"
+                >
+                  <Percent className="h-4 w-4 mr-1" />
+                  Percentage
+                </Button>
+                <Button
+                  variant={ticketDiscountType === "fixed" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTicketDiscountType("fixed")}
+                  className="flex-1"
+                  data-testid="button-ticket-discount-fixed"
+                >
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Fixed Amount
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="ticket-discount-value">
+                {ticketDiscountType === "percentage" ? "Discount (%)" : "Discount Amount ($)"}
+              </Label>
+              <Input
+                id="ticket-discount-value"
+                type="number"
+                min="0"
+                step={ticketDiscountType === "percentage" ? "1" : "0.01"}
+                max={ticketDiscountType === "percentage" ? "100" : undefined}
+                placeholder={ticketDiscountType === "percentage" ? "10" : "5.00"}
+                value={ticketDiscountValue}
+                onChange={(e) => setTicketDiscountValue(e.target.value)}
+                className="mt-2"
+                autoFocus
+                data-testid="input-ticket-discount-value"
+              />
+            </div>
+            <div>
+              <Label htmlFor="ticket-discount-reason">Reason (optional)</Label>
+              <Input
+                id="ticket-discount-reason"
+                type="text"
+                placeholder="e.g., Loyalty, First visit, Promotion"
+                value={ticketDiscountReason}
+                onChange={(e) => setTicketDiscountReason(e.target.value)}
+                className="mt-2"
+                data-testid="input-ticket-discount-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTicketDiscountDialog(false);
+                setTicketDiscountValue("");
+                setTicketDiscountReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmTicketDiscount}
+              disabled={!ticketDiscountValue || isNaN(parseFloat(ticketDiscountValue)) || parseFloat(ticketDiscountValue) <= 0}
+              data-testid="button-confirm-ticket-discount"
+            >
+              Apply Discount
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

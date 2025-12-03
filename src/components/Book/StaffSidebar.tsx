@@ -6,7 +6,7 @@
 
 import { memo, useState, useMemo } from 'react';
 import { cn } from '../../lib/utils';
-import { Search, X, Users } from 'lucide-react';
+import { Search,  Users } from 'lucide-react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { StaffChip } from './StaffChip';
 import { PremiumInput } from '../premium';
@@ -84,8 +84,6 @@ export const StaffSidebar = memo(function StaffSidebar({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           icon={<Search className="w-4 h-4" />}
-          clearable
-          onClear={() => setSearchQuery('')}
           size="md"
         />
 

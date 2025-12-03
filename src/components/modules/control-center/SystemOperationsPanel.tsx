@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import {
-  Settings,
   Clock,
   DollarSign,
   Receipt,
   Users,
-  AlertCircle,
   Bell,
-  Shield,
   Database,
   Zap
 } from 'lucide-react';

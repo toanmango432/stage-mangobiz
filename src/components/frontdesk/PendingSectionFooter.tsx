@@ -1,26 +1,33 @@
 import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { Receipt, ChevronUp, ChevronDown, Maximize2, X, Grid, List, DollarSign, CreditCard } from 'lucide-react';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { useAppSelector } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
-import { markTicketAsPaid } from '../../store/slices/uiTicketsSlice';
+import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
 import { Pending } from '../modules/Pending';
-import { PaymentModal } from '../checkout/LegacyPaymentModal';
-import type { PaymentMethod, PaymentDetails } from '../../types';
+import TicketPanel from '../checkout/TicketPanel';
+import type { StaffMember } from '../checkout/ServiceList';
 
 type ViewMode = 'collapsed' | 'expanded' | 'fullView';
 type DisplayMode = 'grid' | 'list';
 
 export const PendingSectionFooter = memo(function PendingSectionFooter() {
-  const dispatch = useAppDispatch();
-
   // PERFORMANCE: Use direct Redux selector instead of useTickets() to avoid
   // unnecessary re-renders when staff data changes
   const pendingTickets = useAppSelector(selectPendingTickets);
 
-  // Payment modal state
-  const [selectedTicket, setSelectedTicket] = useState<typeof pendingTickets[0] | null>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  // Get staff from Redux for TicketPanel
+  const staffFromRedux = useAppSelector(selectAllStaff);
+
+  // Convert Redux staff to StaffMember format
+  const staffMembers: StaffMember[] = staffFromRedux.map(s => ({
+    id: s.id,
+    name: s.name,
+    available: s.status === 'ready',
+  }));
+
+  // Checkout panel state (replaces payment modal)
+  const [isCheckoutPanelOpen, setIsCheckoutPanelOpen] = useState(false);
 
   // Update CSS custom property when sidebar width changes
   useEffect(() => {
@@ -153,37 +160,18 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
     setViewMode('expanded');
   };
 
-  // Open payment modal for a ticket
+  // Open checkout panel for a ticket
   const handleTicketClick = (ticket: typeof pendingTickets[0], e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering parent click handlers
-    setSelectedTicket(ticket);
-    setIsPaymentModalOpen(true);
+    // Store ticket in localStorage for TicketPanel to load
+    localStorage.setItem('checkout-pending-ticket', JSON.stringify(ticket));
+    setIsCheckoutPanelOpen(true);
   };
 
-  // Handle payment confirmation
-  const handlePaymentConfirm = async (
-    paymentMethod: PaymentMethod,
-    paymentDetails: PaymentDetails,
-    tip: number
-  ) => {
-    if (!selectedTicket) return;
-
-    try {
-      await dispatch(
-        markTicketAsPaid({
-          ticketId: selectedTicket.id,
-          paymentMethod,
-          paymentDetails,
-          tip,
-        })
-      ).unwrap();
-
-      setIsPaymentModalOpen(false);
-      setSelectedTicket(null);
-    } catch (error) {
-      console.error('Payment failed:', error);
-      throw error; // Let the modal handle the error display
-    }
+  // Close checkout panel
+  const handleCloseCheckoutPanel = () => {
+    setIsCheckoutPanelOpen(false);
+    localStorage.removeItem('checkout-pending-ticket');
   };
 
   // ====================
@@ -299,18 +287,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
           </div>
         </div>
 
-        {/* Payment Modal */}
-        {selectedTicket && (
-          <PaymentModal
-            isOpen={isPaymentModalOpen}
-            onClose={() => {
-              setIsPaymentModalOpen(false);
-              setSelectedTicket(null);
-            }}
-            ticket={selectedTicket}
-            onConfirm={handlePaymentConfirm}
-          />
-        )}
+        {/* Checkout Panel - Full checkout experience */}
+        <TicketPanel
+          isOpen={isCheckoutPanelOpen}
+          onClose={handleCloseCheckoutPanel}
+          staffMembers={staffMembers.length > 0 ? staffMembers : [
+            { id: 'staff-1', name: 'Staff Member', available: true },
+          ]}
+        />
       </>
     );
   }
@@ -402,10 +386,20 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                   key={ticket.id}
                   ticket={ticket}
                   viewMode="grid-normal"
-                  onMarkPaid={() => {}}
-                  isMenuOpen={false}
-                  onOpenMenu={() => {}}
-                  onCloseMenu={() => {}}
+                  onMarkPaid={(id) => {
+                    const t = pendingTickets.find(pt => pt.id === id);
+                    if (t) {
+                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      setIsCheckoutPanelOpen(true);
+                    }
+                  }}
+                  onClick={(id) => {
+                    const t = pendingTickets.find(pt => pt.id === id);
+                    if (t) {
+                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      setIsCheckoutPanelOpen(true);
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -416,15 +410,34 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                   key={ticket.id}
                   ticket={ticket}
                   viewMode="normal"
-                  onMarkPaid={() => {}}
-                  isMenuOpen={false}
-                  onOpenMenu={() => {}}
-                  onCloseMenu={() => {}}
+                  onMarkPaid={(id) => {
+                    const t = pendingTickets.find(pt => pt.id === id);
+                    if (t) {
+                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      setIsCheckoutPanelOpen(true);
+                    }
+                  }}
+                  onClick={(id) => {
+                    const t = pendingTickets.find(pt => pt.id === id);
+                    if (t) {
+                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      setIsCheckoutPanelOpen(true);
+                    }
+                  }}
                 />
               ))}
             </div>
           )}
         </div>
+
+        {/* Checkout Panel - Full checkout experience */}
+        <TicketPanel
+          isOpen={isCheckoutPanelOpen}
+          onClose={handleCloseCheckoutPanel}
+          staffMembers={staffMembers.length > 0 ? staffMembers : [
+            { id: 'staff-1', name: 'Staff Member', available: true },
+          ]}
+        />
       </div>
     );
   }

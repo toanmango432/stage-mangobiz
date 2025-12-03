@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Receipt, Search, Calendar, Filter, Download, X, User, Tag, DollarSign, Percent, CreditCard, Clock, ChevronRight, Star, AlertTriangle, Printer, RefreshCcw, FileText } from 'lucide-react';
+import { Receipt, Search, Calendar, Filter, Download, X, Tag, DollarSign, CreditCard, ChevronRight, Star, AlertTriangle, Printer, RefreshCcw, FileText } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 interface ClosedTicketsProps {

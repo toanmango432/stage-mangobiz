@@ -4,7 +4,7 @@
  * Tests for device identification, fingerprinting, and registration.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { deviceManager } from '../deviceManager';
 
 // Mock localStorage

@@ -96,28 +96,6 @@ const MOCK_STORES: Record<string, { id: string; name: string; storeLoginId: stri
   },
 };
 
-const MOCK_MEMBERS: Record<string, { id: string; name: string; email: string; password: string; pin: string; role: 'admin' | 'manager' | 'staff'; status: string; storeIds: string[] }> = {
-  'owner@demosalon.com': {
-    id: 'member-owner-001',
-    name: 'John Owner',
-    email: 'owner@demosalon.com',
-    password: 'owner123',
-    pin: '1234',
-    role: 'admin',
-    status: 'active',
-    storeIds: ['store-demo-001'],
-  },
-  'jane@demosalon.com': {
-    id: 'member-jane-001',
-    name: 'Jane Technician',
-    email: 'jane@demosalon.com',
-    password: 'jane123',
-    pin: '5678',
-    role: 'staff',
-    status: 'active',
-    storeIds: ['store-demo-001'],
-  },
-};
 
 const MOCK_LICENSES: Record<string, { id: string; tier: string; status: string }> = {
   'license-demo-001': { id: 'license-demo-001', tier: 'professional', status: 'active' },
@@ -170,20 +148,6 @@ function checkRateLimit(key: string): { allowed: boolean; retryAfter?: number } 
   return { allowed: true };
 }
 
-function recordFailedAttempt(key: string): void {
-  const entry = rateLimitStore.get(key);
-  if (entry) {
-    entry.attempts++;
-    if (entry.attempts >= MAX_ATTEMPTS) {
-      entry.blockedUntil = Date.now() + BLOCK_DURATION;
-      console.log(`  ⚠️ Rate limit triggered for: ${key}`);
-    }
-  }
-}
-
-function clearRateLimit(key: string): void {
-  rateLimitStore.delete(key);
-}
 
 // Clean up old entries periodically
 setInterval(() => {

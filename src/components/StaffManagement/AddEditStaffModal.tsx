@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, User, Mail, Phone, Clock, DollarSign, Briefcase } from 'lucide-react';
+import { X, User, Mail, Phone, Clock, Briefcase } from 'lucide-react';
 import { Staff, StaffSchedule } from '../../types/staff';
 import { StaffStatus } from '../../types/common';
 

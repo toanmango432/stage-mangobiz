@@ -1,18 +1,18 @@
 /**
  * Store Authentication Manager
  * Manages store login session and member authentication
- * Updated for opt-in offline mode with device mode selection
+ * Updated for Supabase-based two-tier authentication (Option C)
+ *
+ * Authentication Flow:
+ * 1. Store Login: Verify credentials against Supabase `stores` table
+ * 2. Member PIN: Verify PIN against Supabase `members` table
  */
 
 import { secureStorage } from './secureStorage';
 import {
-  loginStore,
-  loginMember,
-  loginWithPin,
-  type StoreLoginResponse,
-  type MemberLoginResponse,
-  type AuthError,
-} from '../api/storeAuthApi';
+  authService,
+  AuthError as SupabaseAuthError,
+} from './supabase';
 import { devicesDB } from './devicesDB';
 import type { DeviceMode, Device } from '@/types/device';
 
@@ -22,7 +22,8 @@ const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 export type StoreAuthStatus =
   | 'not_logged_in'      // No store session
-  | 'active'             // Store logged in and validated
+  | 'store_logged_in'    // Store authenticated, awaiting member PIN
+  | 'active'             // Store + member logged in and validated
   | 'offline_grace'      // Offline but within grace period
   | 'offline_expired'    // Offline grace period expired
   | 'suspended'          // Store suspended
@@ -33,6 +34,7 @@ export interface StoreSession {
   storeId: string;
   storeName: string;
   storeLoginId: string;
+  tenantId: string;
   tier: string;
   token?: string;
   deviceMode?: DeviceMode;
@@ -41,14 +43,18 @@ export interface StoreSession {
 
 export interface LoginOptions {
   deviceMode?: DeviceMode;
+  skipMemberLogin?: boolean; // Allow store-only login for some flows
 }
 
 export interface MemberSession {
   memberId: string;
   memberName: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  role: 'admin' | 'manager' | 'staff';
-  token?: string;
+  role: 'owner' | 'manager' | 'staff' | 'receptionist' | 'junior' | 'admin';
+  avatarUrl?: string;
+  permissions?: Record<string, boolean>;
 }
 
 export interface StoreAuthState {
@@ -61,6 +67,13 @@ export interface StoreAuthState {
 
 type AuthStateListener = (state: StoreAuthState) => void;
 
+// Legacy type alias for backward compatibility
+export interface AuthError {
+  code: 'NETWORK_ERROR' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'INACTIVE' | 'NO_ACCESS' | 'UNKNOWN';
+  message: string;
+  details?: any;
+}
+
 // ==================== MANAGER CLASS ====================
 
 class StoreAuthManager {
@@ -70,14 +83,70 @@ class StoreAuthManager {
   };
 
   /**
-   * Initialize auth manager - check for existing session
+   * Initialize auth manager - check for existing session from Supabase authService
    */
   async initialize(): Promise<StoreAuthState> {
-    console.log('🔐 Initializing Store Auth Manager...');
+    console.log('🔐 Initializing Store Auth Manager (Supabase)...');
 
+    // Check for existing session in authService (localStorage)
+    const existingSession = authService.getCurrentSession();
+
+    // If we have a store session in authService, restore it
+    if (existingSession.isStoreLoggedIn && existingSession.store) {
+      const storeSession = existingSession.store;
+      const tier = await secureStorage.getTier();
+      const deviceMode = await this.getStoredDeviceMode();
+
+      // Check if we also have a member session
+      if (existingSession.isMemberLoggedIn && existingSession.member) {
+        const memberSession = existingSession.member;
+        console.log('✅ Full session restored (store + member)');
+
+        this.updateState({
+          status: 'active',
+          store: {
+            storeId: storeSession.storeId,
+            storeName: storeSession.storeName,
+            storeLoginId: storeSession.storeLoginId,
+            tenantId: storeSession.tenantId,
+            tier: tier || 'basic',
+            deviceMode,
+          },
+          member: {
+            memberId: memberSession.memberId,
+            memberName: `${memberSession.firstName} ${memberSession.lastName}`,
+            firstName: memberSession.firstName,
+            lastName: memberSession.lastName,
+            email: memberSession.email,
+            role: memberSession.role,
+            avatarUrl: memberSession.avatarUrl || undefined,
+            permissions: memberSession.permissions || undefined,
+          },
+          message: 'Session restored.',
+        });
+        return this.currentState;
+      }
+
+      // Store logged in - grant access (PIN is used inside app for locked features)
+      console.log('✅ Store session restored - granting access');
+      this.updateState({
+        status: 'active',
+        store: {
+          storeId: storeSession.storeId,
+          storeName: storeSession.storeName,
+          storeLoginId: storeSession.storeLoginId,
+          tenantId: storeSession.tenantId,
+          tier: tier || 'basic',
+          deviceMode,
+        },
+        message: 'Store session restored.',
+      });
+      return this.currentState;
+    }
+
+    // Fallback: Check legacy secureStorage for backward compatibility
     const storeId = await secureStorage.getStoreId();
 
-    // No stored session
     if (!storeId) {
       console.log('⚠️ No store session found - login required');
       this.updateState({
@@ -87,11 +156,10 @@ class StoreAuthManager {
       return this.currentState;
     }
 
-    // Check if we can validate online
+    // We have a legacy stored session - check grace period
     const lastValidation = await secureStorage.getLastValidation();
     const tier = await secureStorage.getTier();
 
-    // We have a stored session - check grace period
     if (lastValidation) {
       const timeSinceValidation = Date.now() - lastValidation;
       const deviceMode = await this.getStoredDeviceMode();
@@ -101,7 +169,7 @@ class StoreAuthManager {
         const daysRemaining = Math.ceil(
           (OFFLINE_GRACE_PERIOD - timeSinceValidation) / (24 * 60 * 60 * 1000)
         );
-        console.log(`✅ Store session restored (offline: ${daysRemaining} days remaining, mode: ${deviceMode})`);
+        console.log(`✅ Legacy session restored (offline: ${daysRemaining} days remaining)`);
 
         this.updateState({
           status: 'offline_grace',
@@ -109,6 +177,7 @@ class StoreAuthManager {
             storeId,
             storeName: await this.getStoredStoreName() || 'Your Store',
             storeLoginId: await this.getStoredStoreLoginId() || storeId,
+            tenantId: '', // Legacy sessions don't have tenantId
             tier: tier || 'basic',
             deviceMode,
           },
@@ -135,120 +204,137 @@ class StoreAuthManager {
   }
 
   /**
-   * Log in to a store
-   * @param storeId - Store ID or email
+   * Log in to a store using Supabase
+   * @param loginId - Store login ID (email)
    * @param password - Store password
    * @param options - Login options including device mode
+   *
+   * Note: Store login grants immediate access to the POS.
+   * PIN is used INSIDE the app for restricted features, not for initial login.
    */
-  async loginStore(storeId: string, password: string, options?: LoginOptions): Promise<StoreAuthState> {
+  async loginStore(loginId: string, password: string, options?: LoginOptions): Promise<StoreAuthState> {
     const deviceMode = options?.deviceMode || 'online-only';
-    console.log('🔐 Logging in to store:', storeId, 'with device mode:', deviceMode);
+    // Default: skip member login - store login is sufficient for POS access
+    // PIN is used later inside the app for locked features
+    const skipMemberLogin = options?.skipMemberLogin !== false;
+    console.log('🔐 Logging in to store (Supabase):', loginId, 'device mode:', deviceMode);
     this.updateState({ status: 'checking' });
 
     try {
-      const response = await loginStore(storeId, password);
+      // Use Supabase authService for store login
+      const storeSession = await authService.loginStoreWithCredentials(loginId, password);
 
-      if (!response.success) {
-        throw {
-          code: 'INVALID_CREDENTIALS',
-          message: response.error || 'Login failed',
-        } as AuthError;
-      }
-
-      // Save session data
-      if (response.store) {
-        await secureStorage.setStoreId(response.store.id);
-        await this.setStoredStoreName(response.store.name);
-        await this.setStoredStoreLoginId(response.store.storeLoginId);
-      }
-      if (response.license?.tier) {
-        await secureStorage.setTier(response.license.tier);
-      }
-      if (response.defaults) {
-        await secureStorage.setDefaults(response.defaults);
-      }
+      // Save session data for offline support
+      await secureStorage.setStoreId(storeSession.storeId);
+      await this.setStoredStoreName(storeSession.storeName);
+      await this.setStoredStoreLoginId(storeSession.storeLoginId);
+      await this.setStoredTenantId(storeSession.tenantId);
       await secureStorage.setLastValidation(Date.now());
+
+      // Get license info
+      const licenseInfo = await authService.getLicenseInfo(storeSession.tenantId);
+      if (licenseInfo?.tier) {
+        await secureStorage.setTier(licenseInfo.tier);
+      }
 
       // Store device mode
       await this.setStoredDeviceMode(deviceMode);
 
-      console.log('✅ Store login successful with device mode:', deviceMode);
+      console.log('✅ Store login successful (Supabase) with device mode:', deviceMode);
+
+      // Determine next status based on skipMemberLogin option
+      const nextStatus = skipMemberLogin ? 'active' : 'store_logged_in';
+
       this.updateState({
-        status: 'active',
+        status: nextStatus,
         store: {
-          storeId: response.store!.id,
-          storeName: response.store!.name,
-          storeLoginId: response.store!.storeLoginId,
-          tier: response.license?.tier || 'basic',
-          token: response.token,
+          storeId: storeSession.storeId,
+          storeName: storeSession.storeName,
+          storeLoginId: storeSession.storeLoginId,
+          tenantId: storeSession.tenantId,
+          tier: licenseInfo?.tier || 'basic',
           deviceMode,
         },
-        defaults: response.defaults,
-        message: 'Logged in successfully.',
+        message: skipMemberLogin ? 'Logged in successfully.' : 'Please enter your PIN.',
       });
 
       return this.currentState;
     } catch (error) {
-      const authError = error as AuthError;
-      console.error('❌ Store login failed:', authError);
+      console.error('❌ Store login failed:', error);
 
-      if (authError.code === 'NETWORK_ERROR') {
-        // Try to use cached session
-        return await this.handleNetworkError();
+      // Handle Supabase auth errors
+      if (error instanceof SupabaseAuthError) {
+        if (error.code === 'NETWORK_ERROR') {
+          return await this.handleNetworkError();
+        }
+
+        if (error.code === 'STORE_SUSPENDED') {
+          this.updateState({
+            status: 'suspended',
+            message: error.message,
+          });
+          return this.currentState;
+        }
+
+        if (error.code === 'STORE_NOT_FOUND' || error.code === 'INVALID_PASSWORD') {
+          this.updateState({
+            status: 'not_logged_in',
+            message: error.message,
+          });
+          return this.currentState;
+        }
       }
 
-      if (authError.code === 'SUSPENDED') {
-        this.updateState({
-          status: 'suspended',
-          message: authError.message,
-        });
-        return this.currentState;
-      }
-
-      if (authError.code === 'INACTIVE') {
-        this.updateState({
-          status: 'inactive',
-          message: authError.message,
-        });
-        return this.currentState;
-      }
-
+      // Generic error
       this.updateState({
         status: 'not_logged_in',
-        message: authError.message,
+        message: error instanceof Error ? error.message : 'Login failed',
       });
       return this.currentState;
     }
   }
 
   /**
-   * Log in as a member
+   * Log in as a member with email and password (Supabase)
    */
-  async loginMember(email: string, password: string): Promise<MemberLoginResponse> {
-    console.log('👤 Logging in member:', email);
+  async loginMember(email: string, password: string): Promise<{ success: boolean; member?: MemberSession; error?: string }> {
+    console.log('👤 Logging in member (Supabase):', email);
 
     const storeId = this.currentState.store?.storeId;
 
-    const response = await loginMember(email, password, storeId);
+    try {
+      const memberSession = await authService.loginMemberWithPassword(email, password, storeId);
 
-    if (response.success && response.member) {
+      const member: MemberSession = {
+        memberId: memberSession.memberId,
+        memberName: `${memberSession.firstName} ${memberSession.lastName}`,
+        firstName: memberSession.firstName,
+        lastName: memberSession.lastName,
+        email: memberSession.email,
+        role: memberSession.role,
+        avatarUrl: memberSession.avatarUrl || undefined,
+        permissions: memberSession.permissions || undefined,
+      };
+
       this.updateState({
         ...this.currentState,
-        member: {
-          memberId: response.member.id,
-          memberName: response.member.name,
-          email: response.member.email,
-          role: response.member.role,
-          token: response.token,
-        },
+        status: 'active',
+        member,
+        message: 'Logged in successfully.',
       });
-    }
 
-    return response;
+      return { success: true, member };
+    } catch (error) {
+      console.error('❌ Member login failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      };
+    }
   }
 
   /**
-   * Quick login with PIN
+   * Quick login with PIN (Supabase)
    */
   async loginWithPin(pin: string): Promise<MemberSession | null> {
     const storeId = this.currentState.store?.storeId;
@@ -256,32 +342,60 @@ class StoreAuthManager {
       throw new Error('No store session - cannot use PIN login');
     }
 
-    console.log('🔢 PIN login attempt');
+    console.log('🔢 PIN login attempt (Supabase)');
 
     try {
-      const response = await loginWithPin(pin, storeId);
+      const memberSession = await authService.loginMemberWithPin(storeId, pin);
 
-      if (response.success && response.member) {
-        const memberSession: MemberSession = {
-          memberId: response.member.id,
-          memberName: response.member.name,
-          email: response.member.email,
-          role: response.member.role,
-          token: response.token,
-        };
+      const member: MemberSession = {
+        memberId: memberSession.memberId,
+        memberName: `${memberSession.firstName} ${memberSession.lastName}`,
+        firstName: memberSession.firstName,
+        lastName: memberSession.lastName,
+        email: memberSession.email,
+        role: memberSession.role,
+        avatarUrl: memberSession.avatarUrl || undefined,
+        permissions: memberSession.permissions || undefined,
+      };
 
-        this.updateState({
-          ...this.currentState,
-          member: memberSession,
-        });
+      this.updateState({
+        ...this.currentState,
+        status: 'active',
+        member,
+        message: 'Logged in successfully.',
+      });
 
-        return memberSession;
-      }
-
-      return null;
+      return member;
     } catch (error) {
       console.error('❌ PIN login failed:', error);
       return null;
+    }
+  }
+
+  /**
+   * Get all members for the current store (for PIN selection UI)
+   */
+  async getStoreMembers(): Promise<MemberSession[]> {
+    const storeId = this.currentState.store?.storeId;
+    if (!storeId) {
+      return [];
+    }
+
+    try {
+      const members = await authService.getStoreMembers(storeId);
+      return members.map((m) => ({
+        memberId: m.memberId,
+        memberName: `${m.firstName} ${m.lastName}`,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        email: m.email,
+        role: m.role,
+        avatarUrl: m.avatarUrl || undefined,
+        permissions: m.permissions || undefined,
+      }));
+    } catch (error) {
+      console.error('❌ Failed to fetch store members:', error);
+      return [];
     }
   }
 
@@ -290,9 +404,12 @@ class StoreAuthManager {
    */
   logoutMember(): void {
     console.log('👤 Member logged out');
+    authService.logoutMember();
     this.updateState({
       ...this.currentState,
+      status: 'store_logged_in',
       member: undefined,
+      message: 'Please enter your PIN.',
     });
   }
 
@@ -302,9 +419,14 @@ class StoreAuthManager {
   async logoutStore(): Promise<void> {
     console.log('🔓 Logging out from store...');
 
+    // Clear Supabase auth sessions
+    authService.logoutStore();
+
+    // Clear legacy storage
     await secureStorage.clearLicenseData();
     await this.clearStoredStoreName();
     await this.clearStoredStoreLoginId();
+    await this.clearStoredTenantId();
     await this.clearStoredDeviceMode();
     await this.clearStoredDeviceId();
 
@@ -333,6 +455,8 @@ class StoreAuthManager {
 
         const storeId = await secureStorage.getStoreId();
         const tier = await secureStorage.getTier();
+        const tenantId = await this.getStoredTenantId();
+        const deviceMode = await this.getStoredDeviceMode();
 
         this.updateState({
           status: 'offline_grace',
@@ -340,7 +464,9 @@ class StoreAuthManager {
             storeId: storeId || '',
             storeName: await this.getStoredStoreName() || 'Your Store',
             storeLoginId: await this.getStoredStoreLoginId() || storeId || '',
+            tenantId: tenantId || '',
             tier: tier || 'basic',
+            deviceMode,
           },
           message: `Offline mode: ${daysRemaining} day${daysRemaining > 1 ? 's' : ''} remaining. Please reconnect soon.`,
         });
@@ -363,14 +489,14 @@ class StoreAuthManager {
   }
 
   /**
-   * Check if store is operational (logged in or within grace period)
+   * Check if store is operational (fully logged in or within grace period)
    */
   isOperational(): boolean {
     return this.currentState.status === 'active' || this.currentState.status === 'offline_grace';
   }
 
   /**
-   * Check if login is required
+   * Check if store login is required (no store session at all)
    */
   isLoginRequired(): boolean {
     return (
@@ -378,6 +504,24 @@ class StoreAuthManager {
       this.currentState.status === 'offline_expired' ||
       this.currentState.status === 'suspended' ||
       this.currentState.status === 'inactive'
+    );
+  }
+
+  /**
+   * Check if member PIN is required (store logged in but no member)
+   */
+  isMemberLoginRequired(): boolean {
+    return this.currentState.status === 'store_logged_in';
+  }
+
+  /**
+   * Check if store has a valid session (logged in, awaiting PIN, or offline grace)
+   */
+  hasStoreSession(): boolean {
+    return (
+      this.currentState.status === 'active' ||
+      this.currentState.status === 'store_logged_in' ||
+      this.currentState.status === 'offline_grace'
     );
   }
 
@@ -431,6 +575,19 @@ class StoreAuthManager {
 
   private async clearStoredStoreLoginId(): Promise<void> {
     localStorage.removeItem('mango_store_login_id');
+  }
+
+  // Tenant ID storage methods
+  private async getStoredTenantId(): Promise<string | null> {
+    return localStorage.getItem('mango_tenant_id');
+  }
+
+  private async setStoredTenantId(id: string): Promise<void> {
+    localStorage.setItem('mango_tenant_id', id);
+  }
+
+  private async clearStoredTenantId(): Promise<void> {
+    localStorage.removeItem('mango_tenant_id');
   }
 
   // Device ID storage methods

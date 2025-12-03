@@ -101,7 +101,7 @@ class DeviceManager {
     // Hardware info
     components.push(navigator.hardwareConcurrency?.toString() || 'unknown');
     components.push(navigator.maxTouchPoints?.toString() || '0');
-    components.push(navigator.deviceMemory?.toString() || 'unknown');
+    components.push((navigator as any).deviceMemory?.toString() || 'unknown');
 
     // Platform info
     components.push(navigator.platform || 'unknown');

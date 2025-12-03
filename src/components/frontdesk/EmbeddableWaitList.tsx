@@ -84,11 +84,8 @@ export interface EmbeddableWaitListProps {
 export const EmbeddableWaitList: React.FC<EmbeddableWaitListProps> = ({
   displayMode = 'full',
   showHeader = true,
-  showActions = true,
-  maxTickets,
   className = '',
   style,
-  onTicketSelect,
   showViewToggle = true,
   initialViewMode = 'list',
   headerStyles,

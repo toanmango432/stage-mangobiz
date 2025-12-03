@@ -19,23 +19,23 @@ const BLOCK_REASONS: { value: BlockReason; label: string; description: string }[
     description: 'Client has multiple no-show appointments',
   },
   {
-    value: 'late_cancel',
+    value: 'late_cancellation',
     label: 'Late Cancellations',
     description: 'Client frequently cancels at the last minute',
   },
   {
-    value: 'payment_issue',
+    value: 'non_payment',
     label: 'Payment Issues',
     description: 'Outstanding balance or payment disputes',
   },
   {
-    value: 'behavior',
+    value: 'inappropriate_behavior',
     label: 'Inappropriate Behavior',
     description: 'Disruptive, rude, or inappropriate conduct',
   },
   {
-    value: 'safety_concern',
-    label: 'Safety Concern',
+    value: 'other',
+    label: 'Other Concern',
     description: 'Safety risk to staff or other clients',
   },
   {

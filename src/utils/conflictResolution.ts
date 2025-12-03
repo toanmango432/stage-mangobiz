@@ -368,7 +368,7 @@ export function mergeBaseSyncableEntity<T extends BaseSyncableEntity>(
 
   // Last-write-wins
   const winner = remoteTime >= localTime ? remote : local;
-  const loser = remoteTime >= localTime ? local : remote;
+  // const _loser = remoteTime >= localTime ? local : remote;
 
   // Find conflicted fields
   const conflictedFields: string[] = [];

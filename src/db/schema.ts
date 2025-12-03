@@ -22,7 +22,13 @@ import type {
   ClientFormResponse,
   Referral,
   ClientReview,
-  LoyaltyReward
+  LoyaltyReward,
+  ReviewRequest,
+  CustomSegment,
+  // Timesheet types (Phase 2: Time & Attendance)
+  TimesheetEntry,
+  // Payroll types (Phase 3: Payroll & Pay Runs)
+  PayRun,
 } from '../types';
 import type { TeamMemberSettings } from '../components/team-settings/types';
 import type {
@@ -90,6 +96,18 @@ export class MangoPOSDatabase extends Dexie {
   referrals!: Table<Referral, string>;
   clientReviews!: Table<ClientReview, string>;
   loyaltyRewards!: Table<LoyaltyReward, string>;
+
+  // Timesheet tables (Phase 2: Time & Attendance)
+  timesheets!: Table<TimesheetEntry, string>;
+
+  // Payroll tables (Phase 3: Payroll & Pay Runs)
+  payRuns!: Table<PayRun, string>;
+
+  // Review requests table (Client Module PRD 2.3.9)
+  reviewRequests!: Table<ReviewRequest, string>;
+
+  // Custom segments table (Client Module PRD 2.3.10)
+  customSegments!: Table<CustomSegment, string>;
 
   constructor() {
     super('mango_biz_store_app');
@@ -229,7 +247,7 @@ export class MangoPOSDatabase extends Dexie {
 
       // Catalog Settings - per-salon catalog configuration
       catalogSettings: 'id, salonId, syncStatus'
-    }).upgrade(tx => {
+    }).upgrade(() => {
       console.log('✅ Database upgraded to version 5: Added Catalog Module tables');
     });
 
@@ -280,7 +298,7 @@ export class MangoPOSDatabase extends Dexie {
 
       // Staff Schedules - staff working patterns (1-4 week rotating)
       staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]'
-    }).upgrade(tx => {
+    }).upgrade(() => {
       console.log('✅ Database upgraded to version 6: Added Schedule Module tables');
     });
 
@@ -361,6 +379,199 @@ export class MangoPOSDatabase extends Dexie {
     }).upgrade(() => {
       console.log('✅ Database upgraded to version 8: Added Client Module tables');
     });
+
+    // Version 9: Add Timesheet tables (Phase 2: Time & Attendance)
+    // See: docs/product/PRD-Team-Module.md Section 6.4
+    // See: tasks/PHASE2-TIME-ATTENDANCE-BREAKDOWN.md
+    this.version(9).stores({
+      // All existing tables unchanged
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, salonId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
+
+      // Timesheet tables (Phase 2: Time & Attendance)
+      // Indexes optimized for:
+      // - Fetching timesheets by staff and date range
+      // - Filtering by status for approval workflow
+      // - Sync queue processing
+      timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 9: Added Timesheet tables (Phase 2: Time & Attendance)');
+    });
+
+    // Version 10: Add Payroll tables (Phase 3: Payroll & Pay Runs)
+    // See: docs/product/PRD-Team-Module.md Section 6.6
+    this.version(10).stores({
+      // All existing tables unchanged
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, salonId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
+      timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]',
+
+      // Payroll tables (Phase 3: Payroll & Pay Runs)
+      // Indexes optimized for:
+      // - Fetching pay runs by date range
+      // - Filtering by status for approval workflow
+      // - Sync queue processing
+      payRuns: 'id, storeId, periodStart, periodEnd, status, syncStatus, isDeleted, [storeId+periodStart], [storeId+status], [storeId+syncStatus]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 10: Added Payroll tables (Phase 3: Payroll & Pay Runs)');
+    });
+
+    // Version 11: Add Review Requests table (Client Module PRD 2.3.9)
+    this.version(11).stores({
+      // All existing tables unchanged
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, salonId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
+      timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]',
+      payRuns: 'id, storeId, periodStart, periodEnd, status, syncStatus, isDeleted, [storeId+periodStart], [storeId+status], [storeId+syncStatus]',
+
+      // Review Requests table (Client Module PRD 2.3.9)
+      // Indexes optimized for:
+      // - Fetching requests by client
+      // - Filtering by status for follow-up
+      // - Date-based queries for scheduling
+      reviewRequests: 'id, salonId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [salonId+status], [clientId+status], [salonId+createdAt], [staffId+createdAt]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 11: Added Review Requests table (Client Module PRD 2.3.9)');
+    });
+
+    // Version 12: Add Custom Segments table (Client Module PRD 2.3.10)
+    this.version(12).stores({
+      // All existing tables unchanged
+      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
+      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
+      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
+      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, salonId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
+      timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]',
+      payRuns: 'id, storeId, periodStart, periodEnd, status, syncStatus, isDeleted, [storeId+periodStart], [storeId+status], [storeId+syncStatus]',
+      reviewRequests: 'id, salonId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [salonId+status], [clientId+status], [salonId+createdAt], [staffId+createdAt]',
+
+      // Custom Segments table (Client Module PRD 2.3.10)
+      // Indexes optimized for:
+      // - Fetching segments by salon
+      // - Filtering by active status
+      // - Sync queue processing
+      customSegments: 'id, salonId, name, isActive, createdAt, syncStatus, [salonId+isActive], [salonId+createdAt]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 12: Added Custom Segments table (Client Module PRD 2.3.10)');
+    });
   }
 }
 
@@ -415,6 +626,14 @@ export async function clearDatabase() {
   await db.referrals.clear();
   await db.clientReviews.clear();
   await db.loyaltyRewards.clear();
+  // Timesheet tables
+  await db.timesheets.clear();
+  // Payroll tables
+  await db.payRuns.clear();
+  // Review requests table
+  await db.reviewRequests.clear();
+  // Custom segments table
+  await db.customSegments.clear();
   // Note: deviceSettings is intentionally NOT cleared here
   // It should persist across data clears to maintain device identity
   console.log('🗑️  Database cleared');

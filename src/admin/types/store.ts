@@ -40,6 +40,7 @@ export interface CreateStoreInput {
   address?: string;
   phone?: string;
   timezone?: string;
+  settings?: Record<string, any>;  // Store settings
 }
 
 export interface UpdateStoreInput {

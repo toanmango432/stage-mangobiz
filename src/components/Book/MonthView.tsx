@@ -58,19 +58,6 @@ function getMonthDays(date: Date): Date[][] {
   return weeks;
 }
 
-/**
- * Get appointments for a specific day
- */
-function getAppointmentsForDay(
-  day: Date,
-  appointments: LocalAppointment[]
-): LocalAppointment[] {
-  const dayKey = day.toDateString();
-  return appointments.filter(apt => {
-    const aptDate = new Date(apt.scheduledStartTime);
-    return aptDate.toDateString() === dayKey;
-  });
-}
 
 /**
  * Format day number for display
@@ -238,7 +225,7 @@ export function MonthView({
                   {dayAppointments.length > 0 && (
                     <div className="space-y-1 mt-1">
                       {/* Show up to 3 appointments, then count */}
-                      {dayAppointments.slice(0, 3).map((apt, aptIndex) => (
+                      {dayAppointments.slice(0, 3).map((apt) => (
                         <button
                           key={apt.id}
                           onClick={(e) => {

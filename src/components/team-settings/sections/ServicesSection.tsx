@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { ServicePricing } from '../types';
 import { serviceCategories } from '../constants';
-import { Card, SectionHeader, Toggle, Button, Badge, Input, Checkbox } from '../components/SharedComponents';
+import { Card, Toggle, Button, Badge } from '../components/SharedComponents';
 
 interface ServicesSectionProps {
   services: ServicePricing[];

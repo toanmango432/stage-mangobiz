@@ -1,7 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { appointmentService } from '../../services/appointmentService';
+import { dataService } from '../../services/dataService';
+import { toAppointment, toAppointments, toAppointmentInsert, toAppointmentUpdate } from '../../services/supabase';
 import {
   LocalAppointment,
+  Appointment,
   AppointmentRequest,
   TicketDTO,
   AppointmentFilters,
@@ -17,15 +20,16 @@ interface AppointmentState {
   // Data - Single source of truth
   appointments: LocalAppointment[];
   // Removed appointmentsByDate and appointmentsByStaff to avoid duplication
+  appointmentsByStaff?: Record<string, LocalAppointment[]>;  // Optional for backward compatibility
 
   // Calendar View State
   calendarView: CalendarViewState;
-  
+
   // UI State
   selectedAppointmentId: string | null;
   isCreatingAppointment: boolean;
   isEditingAppointment: boolean;
-  
+
   // Loading States
   loading: {
     fetchAppointments: boolean;
@@ -33,7 +37,7 @@ interface AppointmentState {
     updateAppointment: boolean;
     deleteAppointment: boolean;
   };
-  
+
   // Error States
   error: {
     fetchAppointments: string | null;
@@ -41,7 +45,7 @@ interface AppointmentState {
     updateAppointment: string | null;
     deleteAppointment: string | null;
   };
-  
+
   // Sync State
   syncStatus: {
     lastSync: Date | null;
@@ -100,8 +104,8 @@ const initialState: AppointmentState = {
 export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAppointments',
   async (params: { customerId?: number; rvcNo: number; startDate: Date; endDate: Date }) => {
-    const { rvcNo } = params;
-    
+    const { customerId, rvcNo } = params;
+
     if (customerId) {
       // Fetch for specific customer
       const appointments = await appointmentService.getAppointmentList(customerId, rvcNo);
@@ -159,6 +163,57 @@ export const fetchAppointmentDetail = createAsyncThunk(
     const { id, partyId, rvcNo } = params;
     const detail = await appointmentService.getAppointmentDetail(id, partyId, rvcNo);
     return detail;
+  }
+);
+
+// ============================================================================
+// SUPABASE-BASED THUNKS (New - for direct Supabase sync)
+// ============================================================================
+
+/**
+ * Fetch appointments from Supabase for a specific date
+ * Uses dataService which routes to Supabase based on device mode
+ */
+export const fetchAppointmentsFromSupabase = createAsyncThunk(
+  'appointments/fetchFromSupabase',
+  async (date: Date) => {
+    const rows = await dataService.appointments.getByDate(date);
+    return toAppointments(rows);
+  }
+);
+
+/**
+ * Fetch upcoming appointments from Supabase
+ */
+export const fetchUpcomingAppointments = createAsyncThunk(
+  'appointments/fetchUpcoming',
+  async (limit: number = 50) => {
+    const rows = await dataService.appointments.getUpcoming(limit);
+    return toAppointments(rows);
+  }
+);
+
+/**
+ * Create appointment in Supabase
+ */
+export const createAppointmentInSupabase = createAsyncThunk(
+  'appointments/createInSupabase',
+  async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const insertData = toAppointmentInsert(appointment);
+    const row = await dataService.appointments.create(insertData);
+    return toAppointment(row);
+  }
+);
+
+/**
+ * Update appointment in Supabase
+ */
+export const updateAppointmentInSupabase = createAsyncThunk(
+  'appointments/updateInSupabase',
+  async ({ id, updates }: { id: string; updates: Partial<Appointment> }) => {
+    const updateData = toAppointmentUpdate(updates);
+    const row = await dataService.appointments.update(id, updateData);
+    return toAppointment(row);
   }
 );
 
@@ -357,6 +412,81 @@ const appointmentSlice = createSlice({
         state.loading.deleteAppointment = false;
         state.error.deleteAppointment = action.error.message || 'Failed to cancel appointment';
       });
+
+    // ========== SUPABASE THUNKS ==========
+
+    // Fetch from Supabase
+    builder
+      .addCase(fetchAppointmentsFromSupabase.pending, (state) => {
+        state.loading.fetchAppointments = true;
+        state.error.fetchAppointments = null;
+      })
+      .addCase(fetchAppointmentsFromSupabase.fulfilled, (state, action) => {
+        state.loading.fetchAppointments = false;
+        // Convert Appointment to LocalAppointment format
+        state.appointments = action.payload.map(apt => appointmentToLocalAppointment(apt));
+        state.syncStatus.lastSync = new Date();
+      })
+      .addCase(fetchAppointmentsFromSupabase.rejected, (state, action) => {
+        state.loading.fetchAppointments = false;
+        state.error.fetchAppointments = action.error.message || 'Failed to fetch from Supabase';
+      });
+
+    // Fetch upcoming from Supabase
+    builder
+      .addCase(fetchUpcomingAppointments.pending, (state) => {
+        state.loading.fetchAppointments = true;
+        state.error.fetchAppointments = null;
+      })
+      .addCase(fetchUpcomingAppointments.fulfilled, (state, action) => {
+        state.loading.fetchAppointments = false;
+        state.appointments = action.payload.map(apt => appointmentToLocalAppointment(apt));
+        state.syncStatus.lastSync = new Date();
+      })
+      .addCase(fetchUpcomingAppointments.rejected, (state, action) => {
+        state.loading.fetchAppointments = false;
+        state.error.fetchAppointments = action.error.message || 'Failed to fetch upcoming';
+      });
+
+    // Create in Supabase
+    builder
+      .addCase(createAppointmentInSupabase.pending, (state) => {
+        state.loading.createAppointment = true;
+        state.error.createAppointment = null;
+      })
+      .addCase(createAppointmentInSupabase.fulfilled, (state, action) => {
+        state.loading.createAppointment = false;
+        state.isCreatingAppointment = false;
+        // Add the new appointment to state
+        state.appointments.push(appointmentToLocalAppointment(action.payload));
+        state.syncStatus.lastSync = new Date();
+      })
+      .addCase(createAppointmentInSupabase.rejected, (state, action) => {
+        state.loading.createAppointment = false;
+        state.error.createAppointment = action.error.message || 'Failed to create in Supabase';
+      });
+
+    // Update in Supabase
+    builder
+      .addCase(updateAppointmentInSupabase.pending, (state) => {
+        state.loading.updateAppointment = true;
+        state.error.updateAppointment = null;
+      })
+      .addCase(updateAppointmentInSupabase.fulfilled, (state, action) => {
+        state.loading.updateAppointment = false;
+        state.isEditingAppointment = false;
+        state.selectedAppointmentId = null;
+        // Update the appointment in state
+        const index = state.appointments.findIndex(apt => apt.id === action.payload.id);
+        if (index !== -1) {
+          state.appointments[index] = appointmentToLocalAppointment(action.payload);
+        }
+        state.syncStatus.lastSync = new Date();
+      })
+      .addCase(updateAppointmentInSupabase.rejected, (state, action) => {
+        state.loading.updateAppointment = false;
+        state.error.updateAppointment = action.error.message || 'Failed to update in Supabase';
+      });
   },
 });
 
@@ -365,6 +495,28 @@ const appointmentSlice = createSlice({
 // ============================================================================
 
 // Removed indexAppointments function - no longer needed as we don't duplicate data
+
+/**
+ * Convert Appointment (from Supabase) to LocalAppointment
+ */
+function appointmentToLocalAppointment(apt: Appointment): LocalAppointment {
+  return {
+    ...apt,
+    scheduledStartTime: apt.scheduledStartTime instanceof Date
+      ? apt.scheduledStartTime
+      : new Date(apt.scheduledStartTime),
+    scheduledEndTime: apt.scheduledEndTime instanceof Date
+      ? apt.scheduledEndTime
+      : new Date(apt.scheduledEndTime),
+    createdAt: apt.createdAt instanceof Date
+      ? apt.createdAt
+      : new Date(apt.createdAt),
+    updatedAt: apt.updatedAt instanceof Date
+      ? apt.updatedAt
+      : new Date(apt.updatedAt),
+    syncStatus: apt.syncStatus || 'synced',
+  };
+}
 
 /**
  * Convert TicketDTO to LocalAppointment
@@ -409,11 +561,16 @@ export const selectAllAppointments = (state: { appointments: AppointmentState })
 
 export const selectAppointmentsByDate = (state: { appointments: AppointmentState }, date: Date) => {
   const dateKey = startOfDay(date).toISOString();
-  return state.appointments.appointmentsByDate[dateKey] || [];
+  return state.appointments.appointments.filter(apt => {
+    const aptDate = typeof apt.scheduledStartTime === 'string'
+      ? new Date(apt.scheduledStartTime)
+      : apt.scheduledStartTime;
+    return startOfDay(aptDate).toISOString() === dateKey;
+  });
 };
 
-export const selectAppointmentsByStaff = (state: { appointments: AppointmentState }, staffId: string) => 
-  state.appointments.appointmentsByStaff[staffId] || [];
+export const selectAppointmentsByStaff = (state: { appointments: AppointmentState }, staffId: string) =>
+  state.appointments.appointmentsByStaff?.[staffId] || [];
 
 export const selectFilteredAppointments = (state: { appointments: AppointmentState }) => {
   const { appointments, calendarView } = state.appointments;

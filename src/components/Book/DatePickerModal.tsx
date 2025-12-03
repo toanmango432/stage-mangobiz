@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DatePickerModalProps {
   isOpen: boolean;
@@ -100,14 +100,12 @@ export function DatePickerModal({
   onDateSelect,
 }: DatePickerModalProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [viewDate, setViewDate] = useState(new Date(selectedDate));
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
   const [currentYear, setCurrentYear] = useState(selectedDate.getFullYear());
 
   // Update view when selected date changes
   useEffect(() => {
     if (isOpen) {
-      setViewDate(new Date(selectedDate));
       setCurrentMonth(selectedDate.getMonth());
       setCurrentYear(selectedDate.getFullYear());
     }
@@ -136,14 +134,6 @@ export function DatePickerModal({
     } else {
       setCurrentMonth(currentMonth + 1);
     }
-  };
-
-  const handlePrevYear = () => {
-    setCurrentYear(currentYear - 1);
-  };
-
-  const handleNextYear = () => {
-    setCurrentYear(currentYear + 1);
   };
 
   // Quick jump handlers

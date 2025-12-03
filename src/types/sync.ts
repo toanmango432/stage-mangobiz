@@ -12,6 +12,7 @@ export interface SyncOperation {
   attempts: number;
   maxAttempts: number;
   status: 'pending' | 'syncing' | 'success' | 'failed';
+  salonId?: string; // Optional salon context for filtering
   error?: string;
   lastAttemptAt?: Date;
 }

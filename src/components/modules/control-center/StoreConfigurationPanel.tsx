@@ -70,8 +70,6 @@ export function StoreConfigurationPanel() {
     }
   ]);
 
-  const [selectedStore, setSelectedStore] = useState<string>('1');
-
   const handleSetDefault = (storeId: string) => {
     setStores(stores.map(store => ({
       ...store,

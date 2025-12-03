@@ -6,18 +6,15 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer, { setDevice, clearDevice } from '@/store/slices/authSlice';
+import authReducer, { setDevice } from '@/store/slices/authSlice';
 
 // We need to mock the store import before importing dataService
-vi.mock('@/store', () => {
-  let mockStore: ReturnType<typeof configureStore>;
+let mockStore: ReturnType<typeof configureStore>;
 
+vi.mock('@/store', () => {
   return {
     store: {
       getState: () => mockStore?.getState() ?? { auth: { device: null } },
-    },
-    setMockStore: (s: ReturnType<typeof configureStore>) => {
-      mockStore = s;
     },
   };
 });
@@ -32,7 +29,6 @@ import {
   shouldSync,
   getModeInfo,
 } from '../dataService';
-import { setMockStore } from '@/store';
 
 // Create test store
 function createTestStore() {
@@ -44,11 +40,8 @@ function createTestStore() {
 }
 
 describe('dataService', () => {
-  let store: ReturnType<typeof createTestStore>;
-
   beforeEach(() => {
-    store = createTestStore();
-    (setMockStore as any)(store);
+    mockStore = createTestStore();
     vi.clearAllMocks();
 
     // Mock navigator.onLine
@@ -65,7 +58,7 @@ describe('dataService', () => {
     });
 
     it('should return false for online-only mode', () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'online-only',
@@ -78,7 +71,7 @@ describe('dataService', () => {
     });
 
     it('should return true for offline-enabled mode', () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -97,7 +90,7 @@ describe('dataService', () => {
     });
 
     it('should return true for online-only mode', () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'online-only',
@@ -110,7 +103,7 @@ describe('dataService', () => {
     });
 
     it('should return false for offline-enabled mode', () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -129,7 +122,7 @@ describe('dataService', () => {
     });
 
     it('should return true for offline-enabled mode when online', () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -147,7 +140,7 @@ describe('dataService', () => {
         configurable: true,
       });
 
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -162,7 +155,7 @@ describe('dataService', () => {
 
   describe('getModeInfo', () => {
     it('should return correct mode info', () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -194,7 +187,7 @@ describe('dataService', () => {
     });
 
     it('should execute local function in offline-enabled mode', async () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -215,7 +208,7 @@ describe('dataService', () => {
     });
 
     it('should fallback to local on server error when offline-enabled', async () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -265,7 +258,7 @@ describe('dataService', () => {
     });
 
     it('should write to local and sync in offline-enabled mode', async () => {
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',
@@ -308,7 +301,7 @@ describe('dataService', () => {
         configurable: true,
       });
 
-      store.dispatch(
+      mockStore.dispatch(
         setDevice({
           id: 'device-123',
           mode: 'offline-enabled',

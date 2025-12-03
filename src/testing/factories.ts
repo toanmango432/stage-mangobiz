@@ -3,7 +3,7 @@
  * Dynamic test data generation for flexible testing
  */
 
-import { Client, Service, Staff, LocalAppointment } from '../types';
+import { Client, Service, Staff, LocalAppointment, AppointmentService } from '../types';
 import { TEST_SALON_ID } from './setup-db';
 
 let idCounter = 0;
@@ -22,15 +22,24 @@ export function createMockClient(overrides: Partial<Client> = {}): Client {
   return {
     id: generateId('client'),
     salonId: TEST_SALON_ID,
+    firstName: 'Test',
+    lastName: 'Client',
     name: 'Test Client',
     phone: '(555) 000-0000',
     email: 'test@example.com',
-    notes: '',
-    lastVisit: undefined,
-    totalVisits: 0,
-    totalSpent: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    notes: [],
+    isBlocked: false,
+    visitSummary: {
+      totalVisits: 0,
+      totalSpent: 0,
+      averageTicket: 0,
+      noShowCount: 0,
+      lateCancelCount: 0,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    syncStatus: 'synced',
+    isVip: false,
     ...overrides,
   };
 }
@@ -47,9 +56,26 @@ export function createMockService(overrides: Partial<Service> = {}): Service {
     duration: 30,
     price: 50,
     description: 'Test service description',
+    commissionRate: 0.3,
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
+    syncStatus: 'synced',
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock appointment service with optional overrides
+ */
+export function createMockAppointmentService(overrides: Partial<AppointmentService> = {}): AppointmentService {
+  return {
+    serviceId: generateId('service'),
+    serviceName: 'Test Service',
+    staffId: 'staff-1',
+    staffName: 'Test Staff',
+    duration: 30,
+    price: 50,
     ...overrides,
   };
 }
@@ -66,9 +92,15 @@ export function createMockStaff(overrides: Partial<Staff> = {}): Staff {
     phone: '(555) 000-1111',
     role: 'Stylist',
     specialties: ['General'],
+    status: 'available',
     isActive: true,
+    schedule: [],
+    servicesCountToday: 0,
+    revenueToday: 0,
+    tipsToday: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
+    syncStatus: 'synced',
     ...overrides,
   };
 }
@@ -93,9 +125,11 @@ export function createMockAppointment(overrides: Partial<LocalAppointment> = {})
     services: [],
     status: 'scheduled',
     source: 'admin-portal',
-    notes: '',
     createdAt: new Date(),
     updatedAt: new Date(),
+    createdBy: 'user-1',
+    lastModifiedBy: 'user-1',
+    syncStatus: 'synced',
     ...overrides,
   };
 }
@@ -107,15 +141,11 @@ export function createMockGroupBooking(
   memberCount: number = 3,
   groupOverrides: Partial<LocalAppointment> = {}
 ): LocalAppointment[] {
-  const groupId = generateId('group');
   const appointments: LocalAppointment[] = [];
   const startTime = new Date();
 
-  const namedClients: string[] = [];
-
   for (let i = 0; i < memberCount; i++) {
     const clientName = `Guest ${i + 1}`;
-    namedClients.push(clientName);
 
     appointments.push(
       createMockAppointment({
@@ -125,11 +155,8 @@ export function createMockGroupBooking(
         clientPhone: `(555) 000-${String(i).padStart(4, '0')}`,
         scheduledStartTime: startTime,
         scheduledEndTime: new Date(startTime.getTime() + 30 * 60000),
-        groupId,
-        partySize: memberCount,
-        namedClients,
         ...groupOverrides,
-      })
+      } as any)
     );
   }
 
@@ -222,7 +249,7 @@ export function createBoundaryAppointments(): LocalAppointment[] {
       scheduledStartTime: new Date('2024-02-10T09:00:00'),
       scheduledEndTime: new Date('2024-02-10T17:00:00'), // 8 hours
       services: [
-        createMockService({ name: 'Full Day Package', duration: 480 }),
+        createMockAppointmentService({ serviceName: 'Full Day Package', duration: 480 }),
       ],
     }),
     // Very short appointment
@@ -231,7 +258,7 @@ export function createBoundaryAppointments(): LocalAppointment[] {
       scheduledStartTime: new Date('2024-02-10T10:00:00'),
       scheduledEndTime: new Date('2024-02-10T10:05:00'), // 5 minutes
       services: [
-        createMockService({ name: 'Quick Touch-up', duration: 5 }),
+        createMockAppointmentService({ serviceName: 'Quick Touch-up', duration: 5 }),
       ],
     }),
   ];

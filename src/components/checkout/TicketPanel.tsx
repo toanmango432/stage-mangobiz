@@ -5,6 +5,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
+import { useAppDispatch } from "@/store/hooks";
+import {
+  createCheckoutTicket,
+  type ServiceStatus,
+  type CheckoutTicketService,
+} from "@/store/slices/uiTicketsSlice";
 import {
   Dialog,
   DialogContent,
@@ -27,51 +33,40 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import ClientSelector, { Client } from "./ClientSelector";
+import { Client } from "./ClientSelector";
 import ServiceGrid, { Service } from "./ServiceGrid";
-import ServiceList, { TicketService, StaffMember } from "./ServiceList";
-import ServiceListGrouped from "./ServiceListGrouped";
-import CheckoutSummary from "./CheckoutSummary";
-import SimplifiedSummary from "./SimplifiedSummary";
+import { TicketService, StaffMember } from "./ServiceList";
 import InteractiveSummary from "./InteractiveSummary";
 import PaymentModal from "./PaymentModal";
-import QuickActions from "./QuickActions";
 import FullPageServiceSelector, { CategoryList } from "./FullPageServiceSelector";
 import StaffGridView from "./StaffGridView";
 import SplitTicketDialog from "./SplitTicketDialog";
 import MergeTicketsDialog, { OpenTicket } from "./MergeTicketsDialog";
-import RewardPointsRedemption from "./RewardPointsRedemption";
-import CouponEntry from "./CouponEntry";
-import GiftCardEntry from "./GiftCardEntry";
 import ServicePackages from "./ServicePackages";
 import ProductSales from "./ProductSales";
 import PurchaseHistory from "./PurchaseHistory";
 import ReceiptPreview from "./ReceiptPreview";
 import RefundVoidDialog from "./RefundVoidDialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+// Collapsible imports available if needed
+// import {
+//   Collapsible,
+//   CollapsibleContent,
+//   CollapsibleTrigger,
+// } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import {
   X,
   Maximize2,
   Minimize2,
-  ChevronDown,
-  ChevronUp,
   User,
   Scissors,
   AlertCircle,
   Plus,
   Keyboard,
-  Merge,
-  ShoppingBag,
-  Package,
-  Tag,
-  Award,
-  Gift,
-  DollarSign,
+  Clock,
+  Play,
+  CreditCard,
+  Trash2,
 } from "lucide-react";
 
 // ============================================================================
@@ -1019,27 +1014,6 @@ const MOCK_OPEN_TICKETS: OpenTicket[] = [
 // CHECKOUT FOOTER COMPONENT
 // ============================================================================
 
-interface CheckoutFooterProps {
-  services: TicketService[];
-  selectedClient: Client | null;
-  subtotal: number;
-  total: number;
-  discount: number;
-  appliedPointsDiscount: number;
-  appliedCoupon: CouponData | null;
-  couponDiscount: number;
-  appliedGiftCards: GiftCardData[];
-  giftCardTotal: number;
-  canCheckout: boolean;
-  onApplyPointsRedemption: (points: number, discountValue: number) => void;
-  onRemovePointsRedemption: () => void;
-  onApplyCoupon: (coupon: CouponData) => void;
-  onRemoveCoupon: () => void;
-  onApplyGiftCard: (giftCard: GiftCardData) => void;
-  onRemoveGiftCard: (code: string) => void;
-  onCheckout: () => void;
-}
-
 const KEYBOARD_HINTS_DISMISSED_KEY = "mango-pos-keyboard-hints-dismissed";
 
 function KeyboardShortcutsHint({
@@ -1082,211 +1056,6 @@ function KeyboardShortcutsHint({
   );
 }
 
-function CheckoutFooter({
-  services,
-  selectedClient,
-  subtotal,
-  total,
-  discount,
-  appliedPointsDiscount,
-  appliedCoupon,
-  couponDiscount,
-  appliedGiftCards,
-  giftCardTotal,
-  canCheckout,
-  onApplyPointsRedemption,
-  onRemovePointsRedemption,
-  onApplyCoupon,
-  onRemoveCoupon,
-  onApplyGiftCard,
-  onRemoveGiftCard,
-  onCheckout,
-}: CheckoutFooterProps) {
-  const [discountsExpanded, setDiscountsExpanded] = useState(false);
-  
-  const hasPointsDiscount = appliedPointsDiscount > 0;
-  const hasCoupon = appliedCoupon !== null;
-  const hasGiftCards = appliedGiftCards.length > 0;
-  
-  const discountCount = (hasPointsDiscount ? 1 : 0) + (hasCoupon ? 1 : 0) + appliedGiftCards.length;
-  const totalDiscountAmount = appliedPointsDiscount + couponDiscount + giftCardTotal;
-  
-  // Note: Discount collapsed/expanded state is controlled by user interaction only
-  // Discount chips will naturally show when collapsed and discounts exist
-  
-  const showRewardsSection = selectedClient && (selectedClient.rewardPoints || 0) >= 100;
-  const hasAnyDiscountOptions = services.length > 0;
-
-  return (
-    <div className="border-t bg-card flex flex-col">
-      {hasAnyDiscountOptions && (
-        <div className="px-4 pt-3">
-          <Collapsible open={discountsExpanded} onOpenChange={setDiscountsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-between h-9 px-2 text-muted-foreground hover:text-foreground"
-                data-testid="button-toggle-discounts"
-              >
-                <span className="flex items-center gap-2 text-sm">
-                  <Tag className="h-4 w-4" />
-                  {discountCount > 0 ? (
-                    <span>
-                      {discountCount} discount{discountCount !== 1 ? "s" : ""} applied
-                      <span className="ml-1 text-green-600 dark:text-green-400">
-                        (-${totalDiscountAmount.toFixed(2)})
-                      </span>
-                    </span>
-                  ) : (
-                    "Add discounts"
-                  )}
-                </span>
-                {discountsExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-3 space-y-3">
-              {showRewardsSection && (
-                <RewardPointsRedemption
-                  client={selectedClient}
-                  subtotal={subtotal}
-                  currentDiscount={discount}
-                  onApplyPoints={onApplyPointsRedemption}
-                  onRemovePointsRedemption={onRemovePointsRedemption}
-                  appliedPointsDiscount={appliedPointsDiscount}
-                />
-              )}
-              
-              <CouponEntry
-                subtotal={subtotal}
-                onApplyCoupon={onApplyCoupon}
-                onRemoveCoupon={onRemoveCoupon}
-                appliedCoupon={appliedCoupon}
-                disabled={services.length === 0}
-              />
-              
-              <GiftCardEntry
-                remainingTotal={total}
-                onApplyGiftCard={onApplyGiftCard}
-                onRemoveGiftCard={onRemoveGiftCard}
-                appliedGiftCards={appliedGiftCards}
-                disabled={services.length === 0}
-              />
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-      )}
-      
-      <div className="sticky bottom-0 z-50 bg-card border-t shadow-[0_-2px_10px_rgba(0,0,0,0.05)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.2)]">
-        <div className="p-4 space-y-3">
-          {discountCount > 0 && !discountsExpanded && (
-            <div className="flex flex-wrap gap-2" data-testid="container-discount-chips">
-              {hasPointsDiscount && (
-                <Badge 
-                  variant="outline" 
-                  className="gap-1 pr-1 text-green-600 dark:text-green-400 border-green-500/20"
-                  data-testid="chip-points-discount"
-                >
-                  <Award className="h-4 w-4" />
-                  Points: -${appliedPointsDiscount.toFixed(2)}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 ml-1 hover:bg-transparent"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemovePointsRedemption();
-                    }}
-                    data-testid="button-remove-points-chip"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </Badge>
-              )}
-              
-              {hasCoupon && (
-                <Badge 
-                  variant="outline" 
-                  className="gap-1 pr-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                  data-testid="chip-coupon-discount"
-                >
-                  <Tag className="h-4 w-4" />
-                  {appliedCoupon.code}: {appliedCoupon.discountType === "percentage" 
-                    ? `-${appliedCoupon.discount}%` 
-                    : `-$${appliedCoupon.discount}`}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 ml-1 hover:bg-transparent"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveCoupon();
-                    }}
-                    data-testid="button-remove-coupon-chip"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </Badge>
-              )}
-              
-              {appliedGiftCards.map((gc) => (
-                <Badge 
-                  key={gc.code}
-                  variant="outline" 
-                  className="gap-1 pr-1 text-purple-600 dark:text-purple-400 border-purple-500/20"
-                  data-testid={`chip-gift-card-${gc.code}`}
-                >
-                  <Gift className="h-4 w-4" />
-                  Gift: ${gc.amountUsed.toFixed(2)}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 ml-1 hover:bg-transparent"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveGiftCard(gc.code);
-                    }}
-                    data-testid={`button-remove-gift-card-chip-${gc.code}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </Badge>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <div className="text-right">
-              {giftCardTotal > 0 && (
-                <div className="text-xs text-muted-foreground line-through">
-                  ${total.toFixed(2)}
-                </div>
-              )}
-              <span className="font-bold text-2xl" data-testid="text-footer-total">
-                ${Math.max(0, total - giftCardTotal).toFixed(2)}
-              </span>
-            </div>
-          </div>
-          <Button
-            className="w-full h-12 text-base font-medium"
-            disabled={!canCheckout}
-            onClick={onCheckout}
-            data-testid="button-checkout-footer"
-          >
-            {canCheckout
-              ? "Continue To Payment"
-              : "Get started above"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -1306,8 +1075,11 @@ export default function TicketPanel({
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Redux dispatch for creating tickets
+  const reduxDispatch = useAppDispatch();
+
   const [state, dispatch] = useReducer(ticketReducer, undefined, createInitialState);
-  
+
   const [keyboardHintsDismissed, setKeyboardHintsDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem(KEYBOARD_HINTS_DISMISSED_KEY) === "true";
@@ -1318,6 +1090,67 @@ export default function TicketPanel({
     localStorage.setItem(KEYBOARD_HINTS_DISMISSED_KEY, "true");
   };
 
+  // Load pending ticket from localStorage when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      const storedTicket = localStorage.getItem('checkout-pending-ticket');
+      if (storedTicket) {
+        try {
+          const pendingTicket = JSON.parse(storedTicket);
+          console.log('📋 Loading pending ticket:', pendingTicket);
+
+          // Set client from pending ticket
+          if (pendingTicket.clientName && pendingTicket.clientName !== 'Walk-in') {
+            const client: Client = {
+              id: pendingTicket.clientId || `client-${Date.now()}`,
+              firstName: pendingTicket.clientName.split(' ')[0] || '',
+              lastName: pendingTicket.clientName.split(' ').slice(1).join(' ') || '',
+              phone: '',
+            };
+            dispatch(ticketActions.setClient(client));
+          }
+
+          // Load services from checkoutServices if available
+          if (pendingTicket.checkoutServices && pendingTicket.checkoutServices.length > 0) {
+            const ticketServices: TicketService[] = pendingTicket.checkoutServices.map((s: any) => ({
+              id: s.id || `service-${Date.now()}-${Math.random()}`,
+              serviceId: s.serviceId || s.id,
+              serviceName: s.serviceName || s.name,
+              price: s.price || 0,
+              duration: s.duration || 30,
+              status: s.status || 'not_started',
+              staffId: s.staffId,
+              staffName: s.staffName,
+            }));
+            dispatch(ticketActions.addService(ticketServices));
+          } else if (pendingTicket.service) {
+            // Fallback: create service from basic pending ticket data
+            const ticketService: TicketService = {
+              id: `service-${Date.now()}`,
+              serviceId: `service-${Date.now()}`,
+              serviceName: pendingTicket.service,
+              price: pendingTicket.subtotal || 0,
+              duration: parseInt(pendingTicket.duration) || 30,
+              status: 'completed',
+              staffId: pendingTicket.techId,
+              staffName: pendingTicket.technician,
+            };
+            dispatch(ticketActions.addService([ticketService]));
+          }
+
+          // Set discount if any
+          if (pendingTicket.discount && pendingTicket.discount > 0) {
+            dispatch(ticketActions.applyDiscount(pendingTicket.discount));
+          }
+
+          console.log('✅ Pending ticket loaded into checkout');
+        } catch (error) {
+          console.error('❌ Failed to load pending ticket:', error);
+        }
+      }
+    }
+  }, [isOpen]);
+
   const {
     services,
     selectedClient,
@@ -1325,12 +1158,10 @@ export default function TicketPanel({
     staff,
     dialogs,
     ui,
-    undoStack,
   } = state;
 
   const {
     discount,
-    hasDiscount,
     appliedPointsDiscount,
     redeemedPoints,
     appliedCoupon,
@@ -1372,8 +1203,118 @@ export default function TicketPanel({
   const discountedSubtotal = subtotal - discount - appliedPointsDiscount - couponDiscount;
   const tax = Math.max(0, discountedSubtotal) * 0.085;
   const total = Math.max(0, discountedSubtotal) + tax;
-  const giftCardTotal = appliedGiftCards.reduce((sum, gc) => sum + gc.amountUsed, 0);
   const canCheckout = services.length > 0 && total > 0;
+
+  // ============================================================================
+  // TICKET CREATION - Only create ticket when user explicitly chooses an action
+  // ============================================================================
+
+  // Convert local TicketService to CheckoutTicketService for Redux
+  const convertToCheckoutServices = (localServices: TicketService[]): CheckoutTicketService[] => {
+    return localServices.map(s => ({
+      id: s.id,
+      serviceId: s.serviceId,
+      serviceName: s.serviceName,
+      price: s.price,
+      duration: s.duration,
+      status: s.status as ServiceStatus,
+      staffId: s.staffId,
+      staffName: s.staffName,
+      startTime: s.startTime,
+    }));
+  };
+
+  // Create ticket with specified status (waiting, in-service, or completed/pending)
+  type TicketStatus = 'waiting' | 'in-service' | 'completed';
+
+  const createTicketWithStatus = async (status: TicketStatus): Promise<boolean> => {
+    if (services.length === 0) {
+      toast({
+        title: "No Services",
+        description: "Add at least one service before saving the ticket.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const checkoutServices = convertToCheckoutServices(services);
+    const clientName = selectedClient
+      ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
+      : 'Walk-in';
+
+    try {
+      const result = await reduxDispatch(createCheckoutTicket({
+        clientId: selectedClient?.id,
+        clientName,
+        services: checkoutServices,
+        notes: undefined,
+        discount,
+        subtotal,
+        tax,
+        total,
+        status, // Pass the desired status
+      })).unwrap();
+
+      const statusLabels: Record<TicketStatus, string> = {
+        'waiting': 'Waitlist',
+        'in-service': 'In Service',
+        'completed': 'Pending',
+      };
+
+      toast({
+        title: "Ticket Created",
+        description: `Ticket #${result.number} added to ${statusLabels[status]}`,
+      });
+
+      console.log(`✅ Created ticket in ${statusLabels[status]}:`, result.id, result.number);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to create ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create ticket. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  // Handler for "Check In" - creates ticket in Waitlist
+  const handleCheckIn = async () => {
+    const success = await createTicketWithStatus('waiting');
+    if (success) {
+      dispatch(ticketActions.resetTicket());
+      setShowDiscardTicketConfirm(false);
+      onClose();
+    }
+  };
+
+  // Handler for "Start Service" - creates ticket in In Service
+  const handleStartService = async () => {
+    const success = await createTicketWithStatus('in-service');
+    if (success) {
+      dispatch(ticketActions.resetTicket());
+      setShowDiscardTicketConfirm(false);
+      onClose();
+    }
+  };
+
+  // Handler for "Save to Pending" - creates ticket in Pending (awaiting payment)
+  const handleSaveToPending = async () => {
+    const success = await createTicketWithStatus('completed');
+    if (success) {
+      dispatch(ticketActions.resetTicket());
+      setShowDiscardTicketConfirm(false);
+      onClose();
+    }
+  };
+
+  // Handler for "Disregard" - just close without saving
+  const handleDisregard = () => {
+    dispatch(ticketActions.resetTicket());
+    setShowDiscardTicketConfirm(false);
+    onClose();
+  };
 
   const handleCreateClient = (newClient: Partial<Client>) => {
     const client: Client = {
@@ -1558,61 +1499,6 @@ export default function TicketPanel({
     }, 5000);
   };
 
-  const handleApplyCoupon = (coupon: CouponData) => {
-    const discountValue =
-      coupon.discountType === "percentage"
-        ? (subtotal * coupon.discount) / 100
-        : coupon.discount;
-    
-    dispatch(ticketActions.applyCoupon(coupon, discountValue, true));
-    
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
-    
-    toast({
-      title: "Coupon Applied",
-      description: `${coupon.code}: ${coupon.description} (-$${discountValue.toFixed(2)})`,
-      action: (
-        <ToastAction altText="Undo" onClick={() => {
-          if (undoTimeoutRef.current) {
-            clearTimeout(undoTimeoutRef.current);
-          }
-          dispatch(ticketActions.undoLastAction());
-        }}>
-          Undo
-        </ToastAction>
-      ),
-    });
-    
-    undoTimeoutRef.current = setTimeout(() => {
-      undoTimeoutRef.current = null;
-    }, 5000);
-  };
-
-  const handleRemoveCoupon = () => {
-    dispatch(ticketActions.removeCoupon());
-    toast({
-      title: "Coupon Removed",
-      description: "Coupon discount has been removed",
-    });
-  };
-
-  const handleApplyGiftCard = (giftCard: GiftCardData) => {
-    dispatch(ticketActions.applyGiftCard(giftCard));
-    toast({
-      title: "Gift Card Applied",
-      description: `${giftCard.code}: $${giftCard.amountUsed.toFixed(2)} applied`,
-    });
-  };
-
-  const handleRemoveGiftCard = (code: string) => {
-    dispatch(ticketActions.removeGiftCard(code));
-    toast({
-      title: "Gift Card Removed",
-      description: `Gift card ${code} has been removed`,
-    });
-  };
 
   const handleAddPackage = (
     packageData: {
@@ -1762,40 +1648,6 @@ export default function TicketPanel({
     dispatch(ticketActions.toggleDialog("showRefundVoid", false));
   };
 
-  const handleApplyPointsRedemption = (pointsToRedeem: number, discountValue: number) => {
-    dispatch(ticketActions.applyPoints(pointsToRedeem, discountValue));
-    toast({
-      title: "Reward Points Applied",
-      description: `${pointsToRedeem.toLocaleString()} points redeemed for $${discountValue.toFixed(2)} discount`,
-    });
-  };
-
-  const handleRemovePointsRedemption = () => {
-    dispatch(ticketActions.removePoints());
-    toast({
-      title: "Points Redemption Removed",
-      description: "Reward points discount has been removed",
-    });
-  };
-
-  const handleApplyDiscount = (data: {
-    type: "percentage" | "fixed";
-    amount: number;
-    reason: string;
-  }) => {
-    const discountValue =
-      data.type === "percentage" ? (subtotal * data.amount) / 100 : data.amount;
-    dispatch(ticketActions.applyDiscount(discountValue));
-    
-    toast({
-      title: "Discount Applied",
-      description: `${data.type === "percentage" ? `${data.amount}%` : `$${data.amount.toFixed(2)}`} discount applied${data.reason ? ` - ${data.reason}` : ''}`,
-    });
-  };
-
-  const handleRemoveDiscount = () => {
-    dispatch(ticketActions.removeDiscount());
-  };
 
   const handleDuplicateServices = (serviceIds: string[]) => {
     dispatch(ticketActions.duplicateServices(serviceIds));
@@ -1907,47 +1759,21 @@ export default function TicketPanel({
       performReset();
     }
   };
-  
+
   const performReset = () => {
     dispatch(ticketActions.resetTicket());
   };
 
-  const handleBulkUpdate = (updates: Partial<TicketService>) => {
-    dispatch(ticketActions.bulkUpdateServices(updates));
-  };
-
-  const handleAssignAllToStaff = (staffId: string) => {
-    const staffMember = staffMembers.find((s) => s.id === staffId);
-    if (!staffMember) return;
-    dispatch(ticketActions.assignAllToStaff(staffId, staffMember.name));
-  };
-
-  const getClientStatus = () => {
-    if (selectedClient) {
-      return {
-        complete: true,
-        label: `${selectedClient.firstName} ${selectedClient.lastName}`,
-      };
+  // Handle close attempt - show exit confirmation if there are unsaved services
+  const handleCloseAttempt = () => {
+    if (services.length > 0) {
+      // Show exit confirmation dialog with 4 options
+      dispatch(ticketActions.toggleDialog("showDiscardTicketConfirm", true));
+    } else {
+      // No services, just close
+      onClose();
     }
-    return { complete: false, label: "Select client" };
   };
-
-  const getServicesStatus = () => {
-    if (services.length === 0) {
-      return { complete: false, label: "Add services" };
-    }
-    const unassigned = services.filter((s) => !s.staffId).length;
-    if (unassigned > 0) {
-      return {
-        complete: false,
-        label: `${unassigned} service${unassigned > 1 ? "s" : ""} need staff`,
-      };
-    }
-    return { complete: true, label: `${services.length} service${services.length > 1 ? "s" : ""}` };
-  };
-
-  const clientStatus = getClientStatus();
-  const servicesStatus = getServicesStatus();
 
   useEffect(() => {
     localStorage.setItem("checkout-default-mode", mode);
@@ -2095,7 +1921,7 @@ export default function TicketPanel({
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-        onClick={onClose}
+        onClick={handleCloseAttempt}
       />
 
       <div
@@ -2103,7 +1929,7 @@ export default function TicketPanel({
           mode === "dock" ? "w-full md:w-[900px]" : "w-full"
         }`}
       >
-        <div 
+        <div
           className={`flex items-center justify-between px-2 py-1.5 border-b bg-card transition-transform duration-200 ${
             headerVisible ? 'translate-y-0' : '-translate-y-full'
           }`}
@@ -2112,7 +1938,7 @@ export default function TicketPanel({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={handleCloseAttempt}
               data-testid="button-close-panel"
               className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive shrink-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               aria-label="Close checkout panel"
@@ -2275,6 +2101,8 @@ export default function TicketPanel({
                     tax={tax}
                     total={total}
                     onCheckout={handleCheckout}
+                    onCheckIn={handleCheckIn}
+                    onStartService={handleStartService}
                     onSelectClient={handleRemoveClient}
                     onCreateClient={handleCreateClient}
                     onUpdateService={handleUpdateService}
@@ -2377,6 +2205,8 @@ export default function TicketPanel({
                     tax={tax}
                     total={total}
                     onCheckout={handleCheckout}
+                    onCheckIn={handleCheckIn}
+                    onStartService={handleStartService}
                     onSelectClient={handleRemoveClient}
                     onCreateClient={handleCreateClient}
                     onUpdateService={handleUpdateService}
@@ -2640,31 +2470,82 @@ export default function TicketPanel({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDiscardTicketConfirm} onOpenChange={setShowDiscardTicketConfirm}>
-        <AlertDialogContent data-testid="dialog-discard-ticket">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
+      {/* Exit Confirmation Dialog - 4 Options */}
+      <Dialog open={showDiscardTicketConfirm} onOpenChange={setShowDiscardTicketConfirm}>
+        <DialogContent className="max-w-md" data-testid="dialog-exit-confirmation">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              Discard Ticket?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to discard this ticket? {selectedClient && `Client: ${selectedClient.firstName} ${selectedClient.lastName}.`} {services.length > 0 && `${services.length} service(s) will be lost.`} This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-discard">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={performReset}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-discard"
+              Save Ticket?
+            </DialogTitle>
+            <DialogDescription>
+              {selectedClient && `Client: ${selectedClient.firstName} ${selectedClient.lastName}. `}
+              {services.length > 0 && `${services.length} service(s) added. `}
+              What would you like to do with this ticket?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-3 py-4">
+            {/* Check In - Add to Waitlist */}
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+              onClick={handleCheckIn}
+              data-testid="button-checkin"
             >
-              Discard
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <Clock className="h-6 w-6 text-blue-600" />
+              <span className="font-medium">Check In</span>
+              <span className="text-xs text-muted-foreground">Add to Waitlist</span>
+            </Button>
+
+            {/* Start Service - Add to In Service */}
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-300"
+              onClick={handleStartService}
+              data-testid="button-start-service"
+            >
+              <Play className="h-6 w-6 text-green-600" />
+              <span className="font-medium">Start Service</span>
+              <span className="text-xs text-muted-foreground">Begin immediately</span>
+            </Button>
+
+            {/* Save to Pending - Add to Pending (awaiting payment) */}
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-orange-50 hover:border-orange-300"
+              onClick={handleSaveToPending}
+              data-testid="button-save-pending"
+            >
+              <CreditCard className="h-6 w-6 text-orange-600" />
+              <span className="font-medium">Save to Pending</span>
+              <span className="text-xs text-muted-foreground">Ready for payment</span>
+            </Button>
+
+            {/* Disregard - Close without saving */}
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:bg-red-50 hover:border-red-300"
+              onClick={handleDisregard}
+              data-testid="button-disregard"
+            >
+              <Trash2 className="h-6 w-6 text-red-600" />
+              <span className="font-medium">Disregard</span>
+              <span className="text-xs text-muted-foreground">Don't save</span>
+            </Button>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => setShowDiscardTicketConfirm(false)}
+              data-testid="button-cancel-exit"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
         <DialogContent className="max-w-2xl" data-testid="dialog-keyboard-shortcuts">

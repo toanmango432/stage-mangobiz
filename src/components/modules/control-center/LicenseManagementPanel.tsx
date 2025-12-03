@@ -6,7 +6,6 @@ import {
   Users,
   MapPin,
   CheckCircle,
-  AlertTriangle,
   CreditCard,
   RefreshCw,
   ExternalLink,
@@ -30,9 +29,8 @@ interface LicenseManagementPanelProps {
   onUpdateLicense: (info: LicenseInfo) => void;
 }
 
-export function LicenseManagementPanel({ licenseInfo, onUpdateLicense }: LicenseManagementPanelProps) {
-  const [licenseKey, setLicenseKey] = useState('MANGO-POS-XXXX-XXXX-XXXX-XXXX');
-  const [showActivationModal, setShowActivationModal] = useState(false);
+export function LicenseManagementPanel({ licenseInfo }: LicenseManagementPanelProps) {
+  const [licenseKey] = useState('MPOS-XXXX-XXXX-XXXX-XXXX');
 
   const daysUntilExpiry = Math.floor(
     (licenseInfo.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
@@ -223,7 +221,7 @@ export function LicenseManagementPanel({ licenseInfo, onUpdateLicense }: License
             Copy
           </button>
           <button
-            onClick={() => setShowActivationModal(true)}
+            onClick={() => alert('Activation modal coming soon')}
             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
           >
             Activate New Key

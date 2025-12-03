@@ -5,12 +5,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { CalendarIcon, Clock, RefreshCw, X, Users, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { TimePicker } from "./TimePicker";
 
@@ -162,21 +160,6 @@ export function SalonHoursModal({
     } else {
       onOpenChange(false);
     }
-  };
-
-  const getSalonHoursDisplay = () => {
-    const openDays = DAYS.filter(day => !localSalonHours[day.key]?.closed);
-    if (openDays.length === 7) {
-      const firstDay = localSalonHours[openDays[0].key];
-      const allSameHours = openDays.every(day => 
-        localSalonHours[day.key]?.start === firstDay?.start && 
-        localSalonHours[day.key]?.end === firstDay?.end
-      );
-      if (allSameHours) {
-        return `Mon–Sun: ${firstDay?.start}–${firstDay?.end}`;
-      }
-    }
-    return `${openDays.length} days open`;
   };
 
   return (

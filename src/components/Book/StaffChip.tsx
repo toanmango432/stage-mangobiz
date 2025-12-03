@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { getStaffColor } from '../../constants/bookDesignTokens';
 import { PremiumAvatar } from '../premium';
 
 interface Staff {
@@ -19,7 +18,6 @@ interface StaffChipProps {
 }
 
 export const StaffChip = memo(function StaffChip({ staff, isSelected, onClick, index = 0 }: StaffChipProps) {
-  const avatarColor = getStaffColor(index);
   const hasAppointments = (staff.appointments || 0) > 0;
 
   return (
@@ -71,16 +69,6 @@ export const StaffChip = memo(function StaffChip({ staff, isSelected, onClick, i
     </button>
   );
 });
-
-// Helper to darken color for gradient
-function adjustColor(color: string, amount: number): string {
-  const hex = color.replace('#', '');
-  const num = parseInt(hex, 16);
-  const r = Math.max(0, Math.min(255, ((num >> 16) & 0xff) + amount));
-  const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + amount));
-  const b = Math.max(0, Math.min(255, (num & 0xff) + amount));
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
-}
 
 // Collapsible Staff List wrapper
 interface StaffListProps {

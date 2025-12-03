@@ -1,6 +1,6 @@
-import { useMemo, useCallback } from 'react';
+import { useCallback } from 'react';
 import { clientsDB, patchTestsDB } from '../db/database';
-import type { Client, PatchTest } from '../types';
+import type { Client } from '../types';
 
 export interface BookingValidationResult {
   isValid: boolean;

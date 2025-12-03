@@ -150,7 +150,7 @@ class SyncManager {
   /**
    * Push local changes to server
    */
-  private async pushLocalChanges(salonId: string) {
+  private async pushLocalChanges(_salonId: string) {
     try {
       // Get pending operations from sync queue (sorted by priority)
       const pendingOps = await syncQueueDB.getPending();
@@ -276,7 +276,7 @@ class SyncManager {
         case 'ticket':
           if (action === 'CREATE' || action === 'UPDATE') {
             const existing = await ticketsDB.getById(data.id);
-            if (existing && existing.updatedAt > data.updatedAt) {
+            if (existing && existing.updatedAt && existing.updatedAt > data.updatedAt) {
               console.warn('⚠️ Conflict detected for ticket:', data.id);
               await this.handleConflict('ticket', data.id, existing, data);
             } else {

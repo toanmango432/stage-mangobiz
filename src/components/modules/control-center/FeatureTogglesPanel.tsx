@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import {
-  ToggleLeft,
   Zap,
   Lock,
   CheckCircle,
-  XCircle,
   AlertCircle,
   Package,
   Users,
-  Calendar,
   BarChart3,
   CreditCard,
   Globe,
@@ -36,7 +33,7 @@ interface FeatureTogglesPanelProps {
   licenseTier: string;
 }
 
-export function FeatureTogglesPanel({ availableFeatures, licenseTier }: FeatureTogglesPanelProps) {
+export function FeatureTogglesPanel({ licenseTier }: FeatureTogglesPanelProps) {
   const [features, setFeatures] = useState<Feature[]>([
     {
       id: 'multi-device',

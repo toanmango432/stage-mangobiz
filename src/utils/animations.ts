@@ -264,6 +264,160 @@ export function highlightElement(element: HTMLElement, duration: number = 300) {
 }
 
 // ============================================================================
+// GPU-ACCELERATED ANIMATION HELPERS (Phase 8)
+// ============================================================================
+
+/**
+ * GPU-accelerated CSS properties
+ * These properties are composited on the GPU for 60fps performance
+ * ONLY use transform and opacity for animations - avoid layout-triggering properties
+ */
+export const gpuAnimations = {
+  /**
+   * Fade in animation (GPU accelerated)
+   */
+  fadeIn: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    style: { willChange: 'opacity' } as React.CSSProperties,
+  },
+
+  /**
+   * Fade out animation (GPU accelerated)
+   */
+  fadeOut: {
+    initial: { opacity: 1 },
+    animate: { opacity: 0 },
+    style: { willChange: 'opacity' } as React.CSSProperties,
+  },
+
+  /**
+   * Slide up animation (GPU accelerated)
+   */
+  slideUp: {
+    initial: { transform: 'translate3d(0, 20px, 0)', opacity: 0 },
+    animate: { transform: 'translate3d(0, 0, 0)', opacity: 1 },
+    style: { willChange: 'transform, opacity' } as React.CSSProperties,
+  },
+
+  /**
+   * Slide down animation (GPU accelerated)
+   */
+  slideDown: {
+    initial: { transform: 'translate3d(0, -20px, 0)', opacity: 0 },
+    animate: { transform: 'translate3d(0, 0, 0)', opacity: 1 },
+    style: { willChange: 'transform, opacity' } as React.CSSProperties,
+  },
+
+  /**
+   * Scale animation (GPU accelerated)
+   */
+  scaleIn: {
+    initial: { transform: 'scale3d(0.95, 0.95, 1)', opacity: 0 },
+    animate: { transform: 'scale3d(1, 1, 1)', opacity: 1 },
+    style: { willChange: 'transform, opacity' } as React.CSSProperties,
+  },
+
+  /**
+   * Modal entrance animation (GPU accelerated)
+   */
+  modalEnter: {
+    initial: { transform: 'translate3d(0, 10px, 0) scale3d(0.98, 0.98, 1)', opacity: 0 },
+    animate: { transform: 'translate3d(0, 0, 0) scale3d(1, 1, 1)', opacity: 1 },
+    style: { willChange: 'transform, opacity' } as React.CSSProperties,
+  },
+
+  /**
+   * Card hover lift (GPU accelerated)
+   */
+  cardHover: {
+    initial: { transform: 'translate3d(0, 0, 0)' },
+    hover: { transform: 'translate3d(0, -2px, 0)' },
+    style: { willChange: 'transform' } as React.CSSProperties,
+  },
+
+  /**
+   * Button press animation (GPU accelerated)
+   */
+  buttonPress: {
+    initial: { transform: 'scale3d(1, 1, 1)' },
+    pressed: { transform: 'scale3d(0.98, 0.98, 1)' },
+    style: { willChange: 'transform' } as React.CSSProperties,
+  },
+};
+
+/**
+ * CSS transition strings optimized for GPU
+ * These use transform and opacity only for smooth 60fps animations
+ */
+export const gpuTransitions = {
+  fast: 'transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+  normal: 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+  slow: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+  spring: 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+};
+
+/**
+ * Tailwind classes for GPU-accelerated animations
+ * These use only transform and opacity properties
+ */
+export const gpuAnimationClasses = {
+  // Transitions (GPU optimized)
+  transitionGpu: 'transition-[transform,opacity] duration-200 ease-out',
+  transitionGpuFast: 'transition-[transform,opacity] duration-150 ease-out',
+  transitionGpuSlow: 'transition-[transform,opacity] duration-300 ease-out',
+
+  // Hover effects (GPU optimized)
+  hoverLiftGpu: 'hover:-translate-y-0.5 transition-transform duration-200',
+  hoverScaleGpu: 'hover:scale-105 transition-transform duration-200',
+
+  // Press effects (GPU optimized)
+  pressGpu: 'active:scale-[0.98] transition-transform duration-100',
+
+  // Will-change hints (use sparingly)
+  willChangeTransform: 'will-change-transform',
+  willChangeOpacity: 'will-change-[opacity]',
+  willChangeAuto: 'will-change-auto',
+};
+
+/**
+ * Apply will-change temporarily during animation
+ * IMPORTANT: Remove will-change after animation to free GPU memory
+ */
+export function withWillChange(
+  element: HTMLElement | null,
+  properties: string,
+  callback: () => void,
+  duration: number = 300
+): void {
+  if (!element) return;
+
+  element.style.willChange = properties;
+  callback();
+
+  setTimeout(() => {
+    element.style.willChange = 'auto';
+  }, duration + 50); // Add small buffer
+}
+
+/**
+ * Check if animations should be reduced for performance
+ */
+export function shouldReduceAnimations(): boolean {
+  // Check user preference
+  if (prefersReducedMotion()) return true;
+
+  // Check for low-end device (simple heuristic)
+  if (typeof navigator !== 'undefined' && 'hardwareConcurrency' in navigator) {
+    if ((navigator as Navigator & { hardwareConcurrency: number }).hardwareConcurrency <= 2) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ============================================================================
 // PERFORMANCE HELPERS
 // ============================================================================
 
@@ -346,4 +500,10 @@ export default {
   prefersReducedMotion,
   getAnimationDuration,
   animateIf,
+  // Phase 8: GPU-accelerated animations
+  gpuAnimations,
+  gpuTransitions,
+  gpuAnimationClasses,
+  withWillChange,
+  shouldReduceAnimations,
 };

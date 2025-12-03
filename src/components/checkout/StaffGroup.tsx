@@ -28,6 +28,7 @@ import {
   ArrowLeft,
   Copy,
   Clock,
+  Plus,
 } from "lucide-react";
 import { TicketService, ServiceStatus } from "./ServiceList";
 import { Reorder, motion, PanInfo } from "framer-motion";

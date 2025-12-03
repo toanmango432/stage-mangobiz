@@ -4,7 +4,6 @@
  */
 
 import { useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LocalAppointment } from '../../types/appointment';
 import { cn } from '../../lib/utils';
 import { WeekViewSkeleton } from './skeletons';

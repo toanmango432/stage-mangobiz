@@ -15,7 +15,7 @@ import type {
   CatalogSettings,
 } from '../types';
 
-const SALON_ID = 'salon-001'; // Default salon ID for testing
+const SALON_ID = 'default-salon'; // Default salon ID matching seed.ts and auth fallback
 
 // Category Color Palette (Fresha-inspired)
 const CATEGORY_COLORS = [
@@ -690,6 +690,7 @@ export async function seedCatalog() {
     enableAddOns: true,
     enableVariants: true,
     allowCustomPricing: true,
+    bookingSequenceEnabled: false,
     createdAt: now,
     updatedAt: now,
     syncStatus: 'synced',
@@ -835,7 +836,7 @@ export async function migrateServicesToCatalog(salonId: string): Promise<{
       salonId,
       defaultDuration: 60,
       defaultExtraTime: 0,
-      defaultExtraTimeType: 'processing',
+      defaultExtraTimeType: 'processing' as const,
       defaultTaxRate: 0,
       currency: 'USD',
       currencySymbol: '$',
@@ -846,10 +847,11 @@ export async function migrateServicesToCatalog(salonId: string): Promise<{
       enableAddOns: true,
       enableVariants: true,
       allowCustomPricing: true,
+      bookingSequenceEnabled: false,
       createdAt: now,
       updatedAt: now,
       syncStatus: 'local',
-    });
+    } as any);
     console.log('✅ Created default catalog settings');
   }
 

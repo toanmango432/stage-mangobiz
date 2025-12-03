@@ -29,7 +29,7 @@ function createTestStore() {
 // Create wrapper with provider
 function createWrapper(store: ReturnType<typeof createTestStore>) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return React.createElement(Provider, { store }, children);
+    return React.createElement(Provider, { store, children });
   };
 }
 

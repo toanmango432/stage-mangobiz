@@ -65,7 +65,7 @@ export function AppointmentDetailsModal({
           const clientData = await clientsDB.getById(appointment.clientId);
           if (clientData) {
             setClient(clientData);
-            setClientNotes(clientData.notes || '');
+            setClientNotes(Array.isArray(clientData.notes) ? clientData.notes.map(n => n.content).join('\n') : (clientData.notes as any || ''));
           }
         } catch (error) {
           console.error('Error loading client data:', error);
@@ -109,8 +109,8 @@ export function AppointmentDetailsModal({
 
     setIsSavingClientNotes(true);
     try {
-      await clientsDB.update(client.id, { notes: clientNotes });
-      setClient({ ...client, notes: clientNotes });
+      await clientsDB.update(client.id, { notes: typeof clientNotes === 'string' ? [] : clientNotes });
+      setClient({ ...client, notes: typeof clientNotes === 'string' ? [] : clientNotes });
       setIsEditingClientNotes(false);
     } catch (error) {
       console.error('Error saving client notes:', error);
@@ -138,9 +138,6 @@ export function AppointmentDetailsModal({
   };
 
   if (!isOpen || !appointment) return null;
-
-  const statusInfo = statusConfig[appointment.status as keyof typeof statusConfig] || statusConfig.scheduled;
-  const StatusIcon = statusInfo.icon;
 
   const formatTime = (date: Date) => {
     return new Date(date).toLocaleTimeString('en-US', { 
@@ -185,12 +182,12 @@ export function AppointmentDetailsModal({
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mb-2">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight mb-2 sm:mb-0">{appointment.clientName}</h2>
                 <div className="relative">
-                  <StatusBadge
-                    status={appointment.status as any}
-                    size="md"
-                    interactive
-                    onClick={() => setShowStatusMenu(!showStatusMenu)}
-                  />
+                  <div onClick={() => setShowStatusMenu(!showStatusMenu)} className="cursor-pointer">
+                    <StatusBadge
+                      status={appointment.status as any}
+                      size="md"
+                    />
+                  </div>
 
                   {/* Status Dropdown - Premium */}
                   {showStatusMenu && (
@@ -288,7 +285,7 @@ export function AppointmentDetailsModal({
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setClientNotes(client.notes || '');
+                          setClientNotes(Array.isArray(client.notes) ? client.notes.map(n => n.content).join('\n') : (client.notes as any || ''));
                           setIsEditingClientNotes(false);
                         }}
                       >
@@ -305,9 +302,9 @@ export function AppointmentDetailsModal({
                       </PremiumButton>
                     </div>
                   </div>
-                ) : client.notes ? (
+                ) : client.notes && Array.isArray(client.notes) && client.notes.length > 0 ? (
                   <div className="p-3 bg-surface-secondary border-l-4 border-brand-400 rounded-lg">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{client.notes}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{client.notes.map(n => n.content).join('\n')}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500 italic">No notes added yet. Click "Add" to add notes about this client.</p>

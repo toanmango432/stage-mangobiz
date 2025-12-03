@@ -13,6 +13,10 @@ import frontDeskSettingsReducer from './slices/frontDeskSettingsSlice';
 import teamReducer from './slices/teamSlice';
 import scheduleReducer from './slices/scheduleSlice';
 import staffScheduleReducer from './slices/staffScheduleSlice';
+import checkoutReducer from './slices/checkoutSlice';
+import timesheetReducer from './slices/timesheetSlice';
+import payrollReducer from './slices/payrollSlice';
+import staffPerformanceReducer from './slices/staffPerformanceSlice';
 import { teamStaffSyncMiddleware } from './middleware/teamStaffSyncMiddleware';
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
 // See src/hooks/useCatalog.ts
@@ -25,6 +29,7 @@ export const store = configureStore({
     clients: clientsReducer,
     transactions: transactionsReducer,
     auth: authReducer,
+    user: authReducer,  // Alias for auth (for backward compatibility)
     sync: syncReducer,
     ui: uiReducer,
     uiTickets: uiTicketsReducer,
@@ -33,6 +38,10 @@ export const store = configureStore({
     team: teamReducer,
     schedule: scheduleReducer,
     staffSchedule: staffScheduleReducer,
+    checkout: checkoutReducer,
+    timesheet: timesheetReducer,
+    payroll: payrollReducer,
+    staffPerformance: staffPerformanceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -84,6 +93,19 @@ export const store = configureStore({
           'staffSchedule.items',
           'staffSchedule.byStaffId',
           'staffSchedule.currentByStaffId',
+          // Checkout module
+          'checkout.activeCheckout.partialPayments',
+          'checkout.lastAutoSave',
+          'checkout.drafts',
+          // Timesheet module
+          'timesheet.timesheets',
+          'timesheet.shiftStatuses',
+          'timesheet.alerts',
+          'timesheet.sync.lastSyncAt',
+          // Payroll module
+          'payroll.payRuns',
+          // Staff Performance module
+          'staffPerformance.byStaffId',
         ],
       },
     }).concat(teamStaffSyncMiddleware),

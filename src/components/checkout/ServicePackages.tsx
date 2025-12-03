@@ -9,7 +9,7 @@ import {
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Search, Tag, Clock, Check, Sparkles, PackageX, AlertCircle } from "lucide-react";
+import { Package, Search, Tag, Clock, Check, Sparkles, PackageX } from "lucide-react";
 
 interface StaffMember {
   id: string;
@@ -181,22 +181,6 @@ function EmptyPackagesState() {
   );
 }
 
-interface ErrorStateProps {
-  onRetry: () => void;
-}
-
-function ErrorState({ onRetry }: ErrorStateProps) {
-  return (
-    <div className="py-12 text-center" data-testid="error-packages">
-      <AlertCircle className="h-12 w-12 mx-auto mb-3 text-destructive opacity-70" />
-      <p className="text-foreground mb-1">Failed to load packages</p>
-      <p className="text-sm text-muted-foreground mb-4">Something went wrong. Please try again.</p>
-      <Button variant="outline" onClick={onRetry} data-testid="button-retry-packages">
-        Try Again
-      </Button>
-    </div>
-  );
-}
 
 export default function ServicePackages({
   onSelectPackage,

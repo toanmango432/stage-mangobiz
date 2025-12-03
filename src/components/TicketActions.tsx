@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { UserCheck, CheckCircle, X } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
@@ -21,15 +21,21 @@ export function TicketActions({
     inService,
     waitlist
   } = useTickets();
-  const ticket = section === 'waitlist' ? waitlist.find(t => t.id === ticketId) : inService.find(t => t.id === ticketId);
+  const ticket = section === 'waitlist' ? waitlist.find(t => t.id === String(ticketId)) : inService.find(t => t.id === String(ticketId));
   if (!ticket) return null;
   // Handle complete ticket
   const handleComplete = () => {
-    completeTicket(ticketId);
+    completeTicket(String(ticketId), {});
   };
   // Handle cancel ticket
   const handleCancel = () => {
-    cancelTicket(ticketId);
+    cancelTicket(String(ticketId));
+  };
+  // Handle assign ticket
+  const handleAssign = (techId: string, techName: string, _techColor: string) => {
+    // Assignment logic would go here in production
+    console.log('Assigned ticket', ticketId, 'to', techName, 'tech ID:', techId);
+    setShowAssignModal(false);
   };
   return <>
       <div className={`flex ${compact ? 'gap-1' : 'gap-2'}`}>
@@ -50,6 +56,6 @@ export function TicketActions({
           </Tippy>}
       </div>
       {/* Assign Ticket Modal */}
-      <AssignTicketModal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} ticketId={ticketId} />
+      <AssignTicketModal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} ticketId={ticketId} onAssign={handleAssign} />
     </>;
 }

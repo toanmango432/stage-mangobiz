@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/schema';
 import { settingsDB } from '../db/database';
 import { secureStorage } from './secureStorage';
-import type { Service, Staff } from '../types';
+import type { Service } from '../types';
 
 /**
  * Populates database with defaults from license validation response

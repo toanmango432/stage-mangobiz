@@ -3,7 +3,7 @@ import { useTickets } from '../hooks/useTicketsCompat';
 import { useTicketSection } from '../hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Hourglass } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Hourglass, Maximize2 } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { EditTicketModal } from './EditTicketModal';
 import { TicketDetailsModal } from './TicketDetailsModal';
@@ -12,6 +12,31 @@ import { headerContentSpacer, waitingHeaderTheme } from './frontdesk/headerToken
 import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
 import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
 import { FrontDeskSettingsData } from './frontdesk-settings/types';
+
+// Helper functions for time calculations
+const formatTime = (date: Date): string => {
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const getWaitTimeMinutes = (createdAt: string | Date): number => {
+  const checkInTime = new Date(createdAt);
+  return Math.floor((Date.now() - checkInTime.getTime()) / 60000);
+};
+
+const formatWaitTime = (minutes: number): string => {
+  if (minutes < 1) return 'Just arrived';
+  if (minutes === 1) return '1 minute';
+  return `${minutes} minutes`;
+};
+
+const getEstimatedStartTime = (createdAt: string | Date, avgWaitMinutes: number = 15): Date => {
+  const checkInTime = new Date(createdAt);
+  return new Date(checkInTime.getTime() + avgWaitMinutes * 60000);
+};
 
 interface WaitListSectionProps {
   isMinimized?: boolean;
@@ -70,18 +95,46 @@ export const WaitListSection = memo(function WaitListSection({
   } = useTickets();
 
   // Calculate average wait time from ticket.time (check-in time)
-  const calculateWaitTime = (time: string | undefined): number => {
-    if (!time || typeof time !== 'string' || !time.includes(':')) {
-      return 0;
-    }
+  // Handles various time formats: ISO date, "HH:MM", "H:MM AM/PM"
+  const calculateWaitTime = (time: string | Date | undefined): number => {
+    if (!time) return 0;
+
     try {
-      const startTime = new Date();
-      const [hours, minutes] = time.split(':').map(Number);
-      if (isNaN(hours) || isNaN(minutes)) {
+      const now = new Date();
+      let startTime: Date;
+
+      // If it's already a Date object
+      if (time instanceof Date) {
+        startTime = time;
+      }
+      // If it's a string
+      else if (typeof time === 'string') {
+        // Try ISO date format first
+        const isoDate = new Date(time);
+        if (!isNaN(isoDate.getTime())) {
+          startTime = isoDate;
+        }
+        // Try "H:MM AM/PM" or "HH:MM AM/PM" format
+        else {
+          const ampmMatch = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+          if (ampmMatch) {
+            let hours = parseInt(ampmMatch[1], 10);
+            const minutes = parseInt(ampmMatch[2], 10);
+            const period = ampmMatch[3]?.toUpperCase();
+
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12) hours = 0;
+
+            startTime = new Date(now);
+            startTime.setHours(hours, minutes, 0, 0);
+          } else {
+            return 0;
+          }
+        }
+      } else {
         return 0;
       }
-      startTime.setHours(hours, minutes, 0, 0);
-      const now = new Date();
+
       const waitTime = Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60);
       return isNaN(waitTime) ? 0 : Math.max(0, waitTime);
     } catch {
@@ -129,14 +182,14 @@ export const WaitListSection = memo(function WaitListSection({
   const ticketDropdownRef = useRef<HTMLDivElement>(null);
   // State for assign ticket modal
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   // New states for edit and delete functionality
   const [showEditModal, setShowEditModal] = useState(false);
   const [ticketToEdit, setTicketToEdit] = useState<number | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [ticketToView, setTicketToView] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [ticketToDelete, setTicketToDelete] = useState<number | null>(null);
+  const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
   // Track expanded tickets
   const [expandedTickets, setExpandedTickets] = useState<Record<number, boolean>>({});
@@ -164,14 +217,14 @@ export const WaitListSection = memo(function WaitListSection({
   }, []);
 
   // Open assign ticket modal
-  const handleAssignTicket = (ticketId: number) => {
+  const handleAssignTicket = (ticketId: string) => {
     setSelectedTicketId(ticketId);
     setShowAssignModal(true);
   };
   // Handle assign ticket submission
-  const handleAssignSubmit = (techId: number, techName: string, techColor: string) => {
+  const handleAssignSubmit = (techId: string, techName: string, techColor: string) => {
     if (selectedTicketId) {
-      assignTicket(selectedTicketId.toString(), techId.toString(), techName, techColor);
+      assignTicket(selectedTicketId, techId, techName, techColor);
       setShowAssignModal(false);
       setSelectedTicketId(null);
     }
@@ -196,7 +249,7 @@ export const WaitListSection = memo(function WaitListSection({
     setOpenDropdownId(null);
   };
   // Open delete confirmation modal
-  const openDeleteConfirmation = (id: number, e: React.MouseEvent) => {
+  const openDeleteConfirmation = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setTicketToDelete(id);
     setShowDeleteModal(true);
@@ -204,8 +257,8 @@ export const WaitListSection = memo(function WaitListSection({
   };
   // Handle ticket deletion
   const handleDeleteTicket = () => {
-    if (ticketToDelete !== null && deleteReason.trim() !== '') {
-      deleteTicket(ticketToDelete.toString(), deleteReason);
+    if (ticketToDelete && deleteReason.trim() !== '') {
+      deleteTicket(ticketToDelete, deleteReason);
       setShowDeleteModal(false);
       setTicketToDelete(null);
       setDeleteReason('');
@@ -218,10 +271,14 @@ export const WaitListSection = memo(function WaitListSection({
     setShowEditModal(true);
   };
   // Handle delete from details modal
-  const handleDeleteFromDetails = (id: number) => {
+  const handleDeleteFromDetails = (ticketNumber: number) => {
     setShowDetailsModal(false);
-    setTicketToDelete(id);
-    setShowDeleteModal(true);
+    // Find the ticket id by its number
+    const ticket = waitlist.find(t => t.number === ticketNumber);
+    if (ticket) {
+      setTicketToDelete(ticket.id);
+      setShowDeleteModal(true);
+    }
   };
   // Paper textures for tickets
   const paperTextures = ["url('https://www.transparenttextures.com/patterns/paper.png')", "url('https://www.transparenttextures.com/patterns/paper-fibers.png')", "url('https://www.transparenttextures.com/patterns/rice-paper.png')", "url('https://www.transparenttextures.com/patterns/soft-paper.png')", "url('https://www.transparenttextures.com/patterns/handmade-paper.png')"];
@@ -230,7 +287,7 @@ export const WaitListSection = memo(function WaitListSection({
   // Delete confirmation modal component
   const DeleteConfirmationModal = () => {
     if (!showDeleteModal) return null;
-    const ticket = ticketToDelete !== null ? waitlist.find(t => t.number === ticketToDelete) : null;
+    const ticket = ticketToDelete ? waitlist.find(t => t.id === ticketToDelete) : null;
     if (!ticket) return null;
     return <>
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}></div>
@@ -384,7 +441,7 @@ export const WaitListSection = memo(function WaitListSection({
             <Tippy content="Assign to technician">
               <button className="py-1.5 px-3 rounded-full border border-amber-500 text-amber-600 text-xs font-medium hover:bg-amber-50 transition-colors" onClick={e => {
               e.stopPropagation();
-              handleAssignTicket(ticket.number);
+              handleAssignTicket(ticket.id);
             }}>
                 Assign
               </button>
@@ -415,7 +472,7 @@ export const WaitListSection = memo(function WaitListSection({
                     <Info size={14} className="mr-2 text-amber-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
                     <Trash2 size={14} className="mr-2 text-red-500" />
                     Delete Ticket
                   </button>
@@ -445,7 +502,7 @@ export const WaitListSection = memo(function WaitListSection({
                   <p className="text-gray-700">{ticket.service}</p>
                   <div className="flex justify-between mt-2 text-xs text-gray-500">
                     <span>Est. Duration: {ticket.duration}</span>
-                    <span>Price: $85.00</span>
+                    <span>Price: {(ticket as any).price ? `$${(ticket as any).price.toFixed(2)}` : 'See menu'}</span>
                   </div>
                 </div>
                 <h4 className="text-sm font-semibold text-gray-700 mt-4 mb-2 flex items-center">
@@ -489,18 +546,18 @@ export const WaitListSection = memo(function WaitListSection({
             }}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-gray-600">Check-in Time:</span>
-                    <span className="text-gray-700 font-medium">10:15 AM</span>
+                    <span className="text-gray-700 font-medium">{formatTime(new Date(ticket.createdAt))}</span>
                   </div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-gray-600">Current Wait:</span>
                     <span className="text-amber-600 font-medium">
-                      25 minutes
+                      {formatWaitTime(getWaitTimeMinutes(ticket.createdAt))}
                     </span>
                   </div>
                   <div className="border-t border-dashed border-gray-200 my-1"></div>
                   <div className="flex items-center justify-between font-semibold">
                     <span className="text-gray-700">Est. Start Time:</span>
-                    <span className="text-gray-900">10:40 AM</span>
+                    <span className="text-gray-900">{formatTime(getEstimatedStartTime(ticket.createdAt, 15))}</span>
                   </div>
                 </div>
               </div>
@@ -509,7 +566,7 @@ export const WaitListSection = memo(function WaitListSection({
             <div className="flex flex-wrap gap-2 mt-3">
               <button className="flex items-center py-1.5 px-3 rounded-md bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 transition-colors" onClick={e => {
             e.stopPropagation();
-            handleAssignTicket(ticket.number);
+            handleAssignTicket(ticket.id);
           }}>
                 <Users size={14} className="mr-1.5" />
                 Assign to Technician
@@ -594,7 +651,7 @@ export const WaitListSection = memo(function WaitListSection({
             <Tippy content="Assign to technician">
               <button className="py-1 px-2 rounded-full border border-amber-500 text-amber-600 text-[10px] font-medium hover:bg-amber-50 transition-colors" onClick={e => {
               e.stopPropagation();
-              handleAssignTicket(ticket.number);
+              handleAssignTicket(ticket.id);
             }}>
                 Assign
               </button>
@@ -615,7 +672,7 @@ export const WaitListSection = memo(function WaitListSection({
                     <Info size={14} className="mr-2 text-amber-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
+                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
                     <Trash2 size={14} className="mr-2 text-red-500" />
                     Delete Ticket
                   </button>
@@ -703,7 +760,7 @@ export const WaitListSection = memo(function WaitListSection({
                     <Info size={14} className="mr-2 text-amber-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
                     <Trash2 size={14} className="mr-2 text-red-500" />
                     Delete Ticket
                   </button>
@@ -790,16 +847,16 @@ export const WaitListSection = memo(function WaitListSection({
           }}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-gray-600">Check-in Time:</span>
-                  <span className="text-gray-700 font-medium">10:15 AM</span>
+                  <span className="text-gray-700 font-medium">{formatTime(new Date(ticket.createdAt))}</span>
                 </div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-gray-600">Current Wait:</span>
-                  <span className="text-amber-600 font-medium">25 minutes</span>
+                  <span className="text-amber-600 font-medium">{formatWaitTime(getWaitTimeMinutes(ticket.createdAt))}</span>
                 </div>
                 <div className="border-t border-dashed border-gray-200 my-1"></div>
                 <div className="flex items-center justify-between font-semibold">
                   <span className="text-gray-700">Est. Start Time:</span>
-                  <span className="text-gray-900">10:40 AM</span>
+                  <span className="text-gray-900">{formatTime(getEstimatedStartTime(ticket.createdAt, 15))}</span>
                 </div>
               </div>
             </div>
@@ -815,7 +872,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
           <button className="py-2 px-4 border border-amber-500 text-amber-600 font-medium rounded-full hover:bg-amber-50 transition-colors transform hover:scale-[1.02] active:scale-[0.98]" onClick={e => {
           e.stopPropagation();
-          handleAssignTicket(ticket.number);
+          handleAssignTicket(ticket.id);
         }}>
             Assign
           </button>
@@ -893,7 +950,7 @@ export const WaitListSection = memo(function WaitListSection({
                   <Info size={14} className="mr-2 text-amber-500" />
                   View Details
                 </button>
-                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.number, e)}>
+                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-red-50 flex items-center" onClick={e => openDeleteConfirmation(ticket.id, e)}>
                   <Trash2 size={14} className="mr-2 text-red-500" />
                   Delete Ticket
                 </button>
@@ -909,7 +966,7 @@ export const WaitListSection = memo(function WaitListSection({
           </div>
           <button className="w-full py-1 px-2 border border-amber-500 text-amber-600 text-xs font-medium rounded-full hover:bg-amber-50 transition-colors" onClick={e => {
           e.stopPropagation();
-          handleAssignTicket(ticket.number);
+          handleAssignTicket(ticket.id);
         }}>
             Assign
           </button>
@@ -1104,13 +1161,14 @@ export const WaitListSection = memo(function WaitListSection({
                     service: ticket.service,
                     duration: ticket.duration || '30min',
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                    status: 'waiting' as const,
                     notes: ticket.notes,
                     createdAt: ticket.createdAt,
-                    lastVisitDate: ticket.lastVisitDate,
+                    lastVisitDate: ticket.lastVisitDate ?? undefined,
                   }}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onAssign={(id) => {
-                    setSelectedTicketId(Number(id));
+                    setSelectedTicketId(id);
                     setShowAssignModal(true);
                   }}
                   onEdit={(id) => {
@@ -1118,7 +1176,7 @@ export const WaitListSection = memo(function WaitListSection({
                     setShowEditModal(true);
                   }}
                   onDelete={(id) => {
-                    setTicketToDelete(Number(id));
+                    setTicketToDelete(id);
                     setShowDeleteModal(true);
                   }}
                   onClick={(id) => {
@@ -1146,11 +1204,12 @@ export const WaitListSection = memo(function WaitListSection({
                     service: ticket.service,
                     duration: ticket.duration || '30min',
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                    status: 'waiting',
                     notes: ticket.notes,
                   }}
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
                   onAssign={(id) => {
-                    setSelectedTicketId(Number(id));
+                    setSelectedTicketId(id);
                     setShowAssignModal(true);
                   }}
                   onEdit={(id) => {
@@ -1158,7 +1217,7 @@ export const WaitListSection = memo(function WaitListSection({
                     setShowEditModal(true);
                   }}
                   onDelete={(id) => {
-                    setTicketToDelete(Number(id));
+                    setTicketToDelete(id);
                     setShowDeleteModal(true);
                   }}
                   onClick={(id) => {

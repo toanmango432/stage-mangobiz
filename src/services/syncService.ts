@@ -3,7 +3,7 @@
  * Handles offline/online synchronization with backend
  */
 
-import { db, syncQueueDB } from '../db/database';
+import { syncQueueDB } from '../db/database';
 import { SyncOperation } from '../types';
 
 class SyncService {
@@ -72,11 +72,13 @@ class SyncService {
 
   async queueCreate(entity: 'appointment' | 'client' | 'service', data: any, priority: number = 3) {
     const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
-      action: 'create',
+      type: 'create',
+      action: 'CREATE',
       entity,
       entityId: data.id,
-      data,
+      payload: data,
       priority,
+      maxAttempts: 5,
     };
 
     await syncQueueDB.add(entry);
@@ -89,11 +91,13 @@ class SyncService {
 
   async queueUpdate(entity: 'appointment' | 'client' | 'service', data: any, priority: number = 3) {
     const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
-      action: 'update',
+      type: 'update',
+      action: 'UPDATE',
       entity,
       entityId: data.id,
-      data,
+      payload: data,
       priority,
+      maxAttempts: 5,
     };
 
     await syncQueueDB.add(entry);
@@ -105,11 +109,13 @@ class SyncService {
 
   async queueDelete(entity: 'appointment' | 'client' | 'service', entityId: string, priority: number = 3) {
     const entry: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'> = {
-      action: 'delete',
+      type: 'delete',
+      action: 'DELETE',
       entity,
       entityId,
-      data: { id: entityId },
+      payload: { id: entityId },
       priority,
+      maxAttempts: 5,
     };
 
     await syncQueueDB.add(entry);
@@ -157,7 +163,6 @@ class SyncService {
           // Update retry count
           await syncQueueDB.update(item.id!, {
             attempts: item.attempts + 1,
-            lastError: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -185,9 +190,6 @@ class SyncService {
     // TODO: Replace with actual API calls
     console.log('Syncing item:', item);
 
-    const endpoint = this.getEndpoint(item.entity, item.action);
-    const method = this.getMethod(item.action);
-
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -203,33 +205,33 @@ class SyncService {
     // }
   }
 
-  private getEndpoint(entity: string, action: string): string {
-    const baseUrl = '/api/v1';
-    
-    switch (entity) {
-      case 'appointment':
-        return `${baseUrl}/appointments`;
-      case 'client':
-        return `${baseUrl}/clients`;
-      case 'service':
-        return `${baseUrl}/services`;
-      default:
-        return baseUrl;
-    }
-  }
+//   private getEndpoint(entity: string): string {
+//     const baseUrl = '/api/v1';
+//
+//     switch (entity) {
+//       case 'appointment':
+//         return `${baseUrl}/appointments`;
+//       case 'client':
+//         return `${baseUrl}/clients`;
+//       case 'service':
+//         return `${baseUrl}/services`;
+//       default:
+//         return baseUrl;
+//     }
+//   }
 
-  private getMethod(action: string): string {
-    switch (action) {
-      case 'create':
-        return 'POST';
-      case 'update':
-        return 'PUT';
-      case 'delete':
-        return 'DELETE';
-      default:
-        return 'GET';
-    }
-  }
+//   private getMethod(action: string): string {
+//     switch (action) {
+//       case 'create':
+//         return 'POST';
+//       case 'update':
+//         return 'PUT';
+//       case 'delete':
+//         return 'DELETE';
+//       default:
+//         return 'GET';
+//     }
+//   }
 }
 
 // ===== TYPES =====

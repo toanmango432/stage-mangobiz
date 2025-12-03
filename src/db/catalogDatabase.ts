@@ -680,6 +680,7 @@ export const catalogSettingsDB = {
       enableAddOns: true,
       enableVariants: true,
       allowCustomPricing: true,
+      bookingSequenceEnabled: false,
       createdAt: now,
       updatedAt: now,
       syncStatus: 'local',

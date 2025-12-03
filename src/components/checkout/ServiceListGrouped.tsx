@@ -81,7 +81,6 @@ export default function ServiceListGrouped({
   onRemoveService,
   onRemoveStaff,
   onAddServiceToStaff,
-  onAddStaff,
   activeStaffId,
   onSetActiveStaff,
   assignedStaffIds = new Set(),

@@ -109,10 +109,6 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ client, on
     setCancelReason('');
   };
 
-  const handleEditMembership = () => {
-    setModalType(null);
-  };
-
   // Mock membership history - in production would come from DB
   const membershipHistory = [
     { date: '2024-01-15', action: 'Activated', plan: 'Standard', amount: 99 },

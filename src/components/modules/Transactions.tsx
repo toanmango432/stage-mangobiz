@@ -29,7 +29,6 @@ import {
 import type { Transaction } from '../../types';
 
 type TransactionStatus = 'all' | 'completed' | 'voided' | 'refunded' | 'partially-refunded';
-type DateFilter = '7days' | '30days' | '90days' | 'custom';
 
 export function Transactions() {
   const dispatch = useAppDispatch();
@@ -39,6 +38,7 @@ export function Transactions() {
   const [activeStatus, setActiveStatus] = useState<TransactionStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [dateFilter] = useState<'7days' | '30days' | '90days' | 'custom'>('30days');
 
   // Load transactions on mount
   useEffect(() => {
@@ -147,7 +147,7 @@ export function Transactions() {
         id: transactionId,
         refundAmount: amount,
         refundReason: reason,
-        userId: 'user_123'
+        _userId: 'user_123'
       })).unwrap();
 
       // Show success message
@@ -413,10 +413,10 @@ export function Transactions() {
                           transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
                           transaction.status === 'voided' ? 'bg-red-100 text-red-800' :
                           transaction.status === 'refunded' ? 'bg-orange-100 text-orange-800' :
-                          transaction.status === 'partially-refunded' ? 'bg-yellow-100 text-yellow-800' :
+                          (transaction.status as any) === 'partially-refunded' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {transaction.status === 'partially-refunded' ? 'Partial Refund' : transaction.status}
+                          {(transaction.status as any) === 'partially-refunded' ? 'Partial Refund' : transaction.status}
                           {transaction.refundedAmount && transaction.refundedAmount > 0 && (
                             <span className="ml-1">
                               (${transaction.refundedAmount.toFixed(2)})

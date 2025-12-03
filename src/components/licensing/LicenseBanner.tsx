@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, AlertTriangle, Wifi, WifiOff, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, X, WifiOff } from 'lucide-react';
 import { licenseManager, type LicenseState } from '../../services/licenseManager';
 
 export function LicenseBanner() {

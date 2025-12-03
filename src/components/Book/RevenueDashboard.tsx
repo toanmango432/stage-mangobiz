@@ -211,7 +211,7 @@ export function RevenueDashboard({
           </div>
 
           <div className="divide-y divide-gray-100">
-            {opportunities.map((opp, index) => {
+            {opportunities.map((opp) => {
               const Icon = getOpportunityIcon(opp.type);
               return (
                 <div

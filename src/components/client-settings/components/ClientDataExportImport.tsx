@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import type { Client } from '../../../types';
-import { Button, Badge } from './SharedComponents';
+import { Button } from './SharedComponents';
 
 // Export formats
 export type ExportFormat = 'csv' | 'json' | 'excel';
@@ -353,7 +353,6 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({
   onClose,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<Partial<Client>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
@@ -364,7 +363,6 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    setFile(selectedFile);
     setErrors([]);
 
     try {
@@ -607,7 +605,7 @@ export const ClientImportModal: React.FC<ClientImportModalProps> = ({
           )}
           {step === 'preview' && (
             <>
-              <Button variant="ghost" onClick={() => { setStep('upload'); setFile(null); setParsedData([]); }}>
+              <Button variant="ghost" onClick={() => { setStep('upload'); setParsedData([]); }}>
                 Back
               </Button>
               <Button variant="primary" onClick={handleImport} disabled={importing}>

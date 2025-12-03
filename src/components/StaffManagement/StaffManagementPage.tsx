@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Staff } from '../../types/staff';
 import { AddEditStaffModal } from './AddEditStaffModal';
-import { Button, Input, Select, Badge, Card } from '../ui';
+import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Badge } from '../ui';
 
 interface StaffManagementPageProps {
   staff: Staff[];
@@ -45,11 +45,11 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'info' | 'default' => {
+  const getStatusVariant = (status: string): 'default' | 'secondary' | 'outline' | 'destructive' => {
     switch (status) {
-      case 'available': return 'success';
-      case 'busy': return 'warning';
-      case 'break': return 'info';
+      case 'available': return 'secondary';
+      case 'busy': return 'destructive';
+      case 'break': return 'outline';
       case 'off': return 'default';
       default: return 'default';
     }
@@ -71,17 +71,17 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
           </div>
           <Button
             onClick={handleAddClick}
-            variant="primary"
-            icon={<Plus className="w-5 h-5" />}
+            variant="default"
             className="shadow-lg shadow-brand-500/30"
           >
+            <Plus className="w-5 h-5 mr-2" />
             Add Staff
           </Button>
         </div>
 
         <div className="flex items-center space-x-3">
           <div className="flex-1">
-            <Input
+            <Input {...({} as any)}
               icon={<Search className="w-5 h-5" />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -90,15 +90,17 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
             />
           </div>
           <div className="w-48">
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="available">Available</option>
-              <option value="busy">Busy</option>
-              <option value="break">On Break</option>
-              <option value="off">Off Duty</option>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="busy">Busy</SelectItem>
+                <SelectItem value="break">On Break</SelectItem>
+                <SelectItem value="off">Off Duty</SelectItem>
+              </SelectContent>
             </Select>
           </div>
         </div>
@@ -108,11 +110,9 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredStaff.map((staffMember) => (
-            <Card
+            <div
               key={staffMember.id}
-              variant="outlined"
-              padding="lg"
-              className="hover:border-brand-300 hover:shadow-lg transition-all space-y-4"
+              className="bg-white rounded-lg border border-gray-200 p-4 hover:border-brand-300 hover:shadow-lg transition-all space-y-4"
             >
               {/* Avatar and Status */}
               <div className="flex items-start justify-between">
@@ -164,8 +164,8 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
                   variant="secondary"
                   size="sm"
                   className="flex-1 bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 hover:border-blue-200"
-                  icon={<Edit className="w-4 h-4" />}
                 >
+                  <Edit className="w-4 h-4 mr-2" />
                   Edit
                 </Button>
                 <Button
@@ -174,13 +174,14 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
                       onDeleteStaff(staffMember.id);
                     }
                   }}
-                  variant="danger"
+                  variant="destructive"
                   size="sm"
                   className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 hover:border-red-200 shadow-none"
-                  icon={<Trash2 className="w-4 h-4" />}
-                />
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
 
@@ -196,10 +197,10 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
             {!searchQuery && statusFilter === 'all' && (
               <Button
                 onClick={handleAddClick}
-                variant="primary"
-                icon={<Plus className="w-5 h-5" />}
+                variant="default"
                 className="shadow-lg shadow-brand-500/30"
               >
+                <Plus className="w-5 h-5 mr-2" />
                 Add First Staff Member
               </Button>
             )}

@@ -170,11 +170,11 @@ export function RegularScheduleTab({
     };
     const currentRule = getRepeatRule(day);
     currentRules[day] = {
-      type: "weekly",
-      startDate: new Date().toISOString().split('T')[0],
-      forever: true,
       ...currentRules[day],
-      ...rule
+      ...rule,
+      type: rule.type || "weekly",
+      startDate: rule.startDate || new Date().toISOString().split('T')[0],
+      forever: rule.forever !== undefined ? rule.forever : true
     };
     
     // If changing from "none" to a repeating type, convert extra shifts to normal
@@ -201,21 +201,6 @@ export function RegularScheduleTab({
       startDate: new Date().toISOString().split('T')[0],
       forever: true
     };
-  }
-  function copyFromPreviousDay(_day: string) {
-    const dayIndex = DAYS.findIndex(d => d.key === _day);
-    if (dayIndex <= 0) return;
-    const previousDay = DAYS[dayIndex - 1].key;
-    const previousSchedule = getDaySchedule(previousDay);
-    if (previousSchedule.length > 0) {
-      const currentSchedule = {
-        ...scheduleData.schedule
-      };
-      currentSchedule[_day] = [...previousSchedule];
-      onUpdate({
-        schedule: currentSchedule
-      });
-    }
   }
   function applyToAllDays(sourceDay: string) {
     const sourceSchedule = getDaySchedule(sourceDay);

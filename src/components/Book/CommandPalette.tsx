@@ -16,17 +16,14 @@ import {
   Filter,
   ChevronRight,
 } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useAppDispatch } from '../../store/hooks';
 import {
   openCreateModal,
   setSelectedDate,
   setViewMode,
-  selectAppointment,
-  setFilters,
   clearFilters,
 } from '../../store/slices/appointmentsSlice';
 import { cn } from '../../lib/utils';
-import { formatDate } from '../../utils/timeFormatting';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -49,10 +46,6 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   const [search, setSearch] = useState('');
   const [recentActions, setRecentActions] = useState<string[]>([]);
-
-  // Get current state for contextual actions
-  const selectedDate = useAppSelector((state) => state.appointments.calendarView.selectedDate);
-  const viewMode = useAppSelector((state) => state.appointments.calendarView.viewMode);
 
   // Define all available commands
   const commands = useMemo<CommandAction[]>(() => [

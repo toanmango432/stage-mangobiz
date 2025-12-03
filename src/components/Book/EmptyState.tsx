@@ -1,4 +1,3 @@
-import React from 'react';
 import { LucideIcon, Calendar, Users, Clock } from 'lucide-react';
 import { Button } from '../shared/Button';
 

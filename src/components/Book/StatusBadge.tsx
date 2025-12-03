@@ -1,6 +1,5 @@
-import React from 'react';
 import { cn } from '../../lib/utils';
-import { Check, Clock, XCircle, CheckCircle2, Users, User, AlertCircle, X } from 'lucide-react';
+import { Check, Clock, CheckCircle2, Users, User, AlertCircle, X } from 'lucide-react';
 
 type AppointmentStatus =
   | 'confirmed'

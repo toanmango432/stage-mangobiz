@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Lock, AlertCircle } from 'lucide-react';
+import { FileText, Lock } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from '../types';

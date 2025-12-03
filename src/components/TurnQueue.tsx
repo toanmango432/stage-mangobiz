@@ -52,7 +52,7 @@ export function TurnQueue({
 
   const handleDrop = (targetStaffId: string) => {
     if (draggedStaff && draggedStaff !== targetStaffId && mode === 'manual') {
-      const draggedIndex = sortedStaff.findIndex(s => s.id === draggedStaff);
+      sortedStaff.findIndex(s => s.id === draggedStaff);
       const targetIndex = sortedStaff.findIndex(s => s.id === targetStaffId);
       onReorder(draggedStaff, targetIndex);
     }

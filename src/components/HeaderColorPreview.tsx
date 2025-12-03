@@ -3,7 +3,7 @@
  * Side-by-side comparison of current vs proposed header designs
  */
 
-import { Clock, Users, Activity, CreditCard, Star, TrendingUp, Timer } from 'lucide-react';
+import { Clock, Activity, CreditCard, Timer } from 'lucide-react';
 
 export function HeaderColorPreview() {
   return (

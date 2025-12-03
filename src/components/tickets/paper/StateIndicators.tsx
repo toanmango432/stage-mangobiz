@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Activity, Pause, Check, X, AlertCircle, Star } from 'lucide-react';
+import { Clock, Activity, Pause, Check, X, AlertCircle } from 'lucide-react';
 import { TicketState } from './BasePaperTicket';
 
 interface StateIndicatorProps {

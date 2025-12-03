@@ -43,7 +43,7 @@ describe('syncSlice', () => {
 
   describe('initial state', () => {
     it('should have correct initial state', () => {
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
 
       expect(state.isOnline).toBe(true); // navigator.onLine default
       expect(state.isSyncing).toBe(false);
@@ -58,33 +58,33 @@ describe('syncSlice', () => {
   describe('basic sync actions', () => {
     it('setOnlineStatus should update online status', () => {
       store.dispatch(setOnlineStatus(false));
-      expect(store.getState().sync.isOnline).toBe(false);
+      expect((store.getState() as any).sync.isOnline).toBe(false);
 
       store.dispatch(setOnlineStatus(true));
-      expect(store.getState().sync.isOnline).toBe(true);
+      expect((store.getState() as any).sync.isOnline).toBe(true);
     });
 
     it('setSyncing should update syncing status', () => {
       store.dispatch(setSyncing(true));
-      expect(store.getState().sync.isSyncing).toBe(true);
+      expect((store.getState() as any).sync.isSyncing).toBe(true);
 
       store.dispatch(setSyncing(false));
-      expect(store.getState().sync.isSyncing).toBe(false);
+      expect((store.getState() as any).sync.isSyncing).toBe(false);
     });
 
     it('setPendingOperations should update pending count', () => {
       store.dispatch(setPendingOperations(5));
-      expect(store.getState().sync.pendingOperations).toBe(5);
+      expect((store.getState() as any).sync.pendingOperations).toBe(5);
 
       store.dispatch(setPendingOperations(0));
-      expect(store.getState().sync.pendingOperations).toBe(0);
+      expect((store.getState() as any).sync.pendingOperations).toBe(0);
     });
 
     it('setSyncComplete should update state correctly', () => {
       store.dispatch(setSyncing(true));
       store.dispatch(setSyncComplete());
 
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
       expect(state.isSyncing).toBe(false);
       expect(state.lastSyncAt).not.toBeNull();
       expect(state.error).toBeNull();
@@ -94,7 +94,7 @@ describe('syncSlice', () => {
       store.dispatch(setSyncing(true));
       store.dispatch(setSyncError('Network error'));
 
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
       expect(state.isSyncing).toBe(false);
       expect(state.error).toBe('Network error');
     });
@@ -102,11 +102,11 @@ describe('syncSlice', () => {
 
   describe('mode-aware sync actions', () => {
     it('enableSync should enable sync and clear reason', () => {
-      expect(store.getState().sync.syncEnabled).toBe(false);
+      expect((store.getState() as any).sync.syncEnabled).toBe(false);
 
       store.dispatch(enableSync());
 
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
       expect(state.syncEnabled).toBe(true);
       expect(state.syncDisabledReason).toBeNull();
     });
@@ -115,7 +115,7 @@ describe('syncSlice', () => {
       store.dispatch(enableSync());
       store.dispatch(disableSync('Device revoked'));
 
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
       expect(state.syncEnabled).toBe(false);
       expect(state.syncDisabledReason).toBe('Device revoked');
       expect(state.isSyncing).toBe(false);
@@ -125,7 +125,7 @@ describe('syncSlice', () => {
       store.dispatch(enableSync());
       store.dispatch(disableSync(undefined));
 
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
       expect(state.syncDisabledReason).toBe('Sync disabled');
     });
 
@@ -139,7 +139,7 @@ describe('syncSlice', () => {
       // Reset
       store.dispatch(resetSyncState());
 
-      const state = store.getState().sync;
+      const state = (store.getState() as any).sync;
       expect(state.isSyncing).toBe(false);
       expect(state.pendingOperations).toBe(0);
       expect(state.lastSyncAt).toBeNull();
@@ -157,34 +157,34 @@ describe('syncSlice', () => {
     });
 
     it('selectIsOnline should return online status', () => {
-      expect(selectIsOnline(store.getState())).toBe(true);
+      expect(selectIsOnline(store.getState() as any)).toBe(true);
     });
 
     it('selectIsSyncing should return syncing status', () => {
-      expect(selectIsSyncing(store.getState())).toBe(false);
+      expect(selectIsSyncing(store.getState() as any)).toBe(false);
     });
 
     it('selectPendingOperations should return pending count', () => {
-      expect(selectPendingOperations(store.getState())).toBe(3);
+      expect(selectPendingOperations(store.getState() as any)).toBe(3);
     });
 
     it('selectLastSyncAt should return last sync time', () => {
       store.dispatch(setSyncComplete());
-      expect(selectLastSyncAt(store.getState())).not.toBeNull();
+      expect(selectLastSyncAt(store.getState() as any)).not.toBeNull();
     });
 
     it('selectSyncError should return error', () => {
       store.dispatch(setSyncError('Test error'));
-      expect(selectSyncError(store.getState())).toBe('Test error');
+      expect(selectSyncError(store.getState() as any)).toBe('Test error');
     });
 
     it('selectSyncEnabled should return enabled status', () => {
-      expect(selectSyncEnabled(store.getState())).toBe(true);
+      expect(selectSyncEnabled(store.getState() as any)).toBe(true);
     });
 
     it('selectSyncDisabledReason should return reason', () => {
       store.dispatch(disableSync('Test reason'));
-      expect(selectSyncDisabledReason(store.getState())).toBe('Test reason');
+      expect(selectSyncDisabledReason(store.getState() as any)).toBe('Test reason');
     });
 
     describe('selectShouldSync', () => {
@@ -193,25 +193,25 @@ describe('syncSlice', () => {
         store.dispatch(setOnlineStatus(true));
         store.dispatch(setSyncing(false));
 
-        expect(selectShouldSync(store.getState())).toBe(true);
+        expect(selectShouldSync(store.getState() as any)).toBe(true);
       });
 
       it('should return false when sync is disabled', () => {
         store.dispatch(disableSync('Disabled'));
-        expect(selectShouldSync(store.getState())).toBe(false);
+        expect(selectShouldSync(store.getState() as any)).toBe(false);
       });
 
       it('should return false when offline', () => {
         store.dispatch(enableSync());
         store.dispatch(setOnlineStatus(false));
-        expect(selectShouldSync(store.getState())).toBe(false);
+        expect(selectShouldSync(store.getState() as any)).toBe(false);
       });
 
       it('should return false when already syncing', () => {
         store.dispatch(enableSync());
         store.dispatch(setOnlineStatus(true));
         store.dispatch(setSyncing(true));
-        expect(selectShouldSync(store.getState())).toBe(false);
+        expect(selectShouldSync(store.getState() as any)).toBe(false);
       });
     });
   });

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
-import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
 interface WaitListTicketCardProps {
@@ -35,18 +34,47 @@ export function WaitListTicketCard({
   const [waitTime, setWaitTime] = useState(0);
   const [waitProgress, setWaitProgress] = useState(0);
 
+  // Parse time string in various formats (HH:MM, H:MM AM/PM, ISO date, etc.)
+  const parseTimeString = (timeStr: string): Date | null => {
+    if (!timeStr) return null;
+
+    const now = new Date();
+
+    // Try ISO date format first
+    const isoDate = new Date(timeStr);
+    if (!isNaN(isoDate.getTime())) {
+      return isoDate;
+    }
+
+    // Try "H:MM AM/PM" or "HH:MM AM/PM" format
+    const ampmMatch = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (ampmMatch) {
+      let hours = parseInt(ampmMatch[1], 10);
+      const minutes = parseInt(ampmMatch[2], 10);
+      const period = ampmMatch[3]?.toUpperCase();
+
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+
+      const result = new Date(now);
+      result.setHours(hours, minutes, 0, 0);
+      return result;
+    }
+
+    // Fallback: treat as current time
+    return now;
+  };
+
   // Calculate wait time progress (assume tickets are created now, show wait time)
   useEffect(() => {
-    const startTime = new Date();
-    startTime.setHours(parseInt(ticket.time.split(':')[0]));
-    startTime.setMinutes(parseInt(ticket.time.split(':')[1]));
-    
+    const startTime = parseTimeString(ticket.time) || new Date();
+
     const updateWaitTime = () => {
       const now = new Date();
       const elapsed = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)); // minutes
       const expectedWait = 30; // Assume 30 min average wait
       const progress = Math.min((elapsed / expectedWait) * 100, 100);
-      
+
       setWaitTime(elapsed);
       setWaitProgress(progress);
     };
@@ -82,7 +110,7 @@ export function WaitListTicketCard({
     Regular: { bg: '#F9FAFB', text: '#4B5563', border: '#E5E7EB', icon: '👤', accent: '#6B7280' }
   };
 
-  const badge = clientTypeBadge[ticket.clientType as keyof typeof clientTypeBadge] || clientTypeBadge.Regular;
+  clientTypeBadge[ticket.clientType as keyof typeof clientTypeBadge] || clientTypeBadge.Regular;
 
   // TACTILE PAPER AESTHETIC - WAITING (warm ivory with soft depth)
   const paperStyle = {
@@ -93,14 +121,6 @@ export function WaitListTicketCard({
     boxShadow: `
       0 1px 3px rgba(0,0,0,0.08),
       0 1px 2px rgba(0,0,0,0.04)
-    `,
-  };
-
-  // Hover state - tactile lift with rotation
-  const paperHoverStyle = {
-    boxShadow: `
-      0 2px 4px rgba(0,0,0,0.1),
-      0 4px 8px rgba(0,0,0,0.08)
     `,
   };
 

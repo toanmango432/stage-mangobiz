@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { X, Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Search, Check } from 'lucide-react';
 import { useTickets } from '../hooks/useTicketsCompat';
-import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 interface AssignTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAssign: (techId: number, techName: string, techColor: string) => void;
-  ticketId: number | null;
+  onAssign: (techId: string, techName: string, techColor: string) => void;
+  ticketId: string | number | null;
 }
 interface FeedbackMessage {
   type: 'success' | 'error';
@@ -24,7 +23,7 @@ export function AssignTicketModal({
     waitlist,
     inService
   } = useTickets();
-  const [selectedTech, setSelectedTech] = useState<number | null>(null);
+  const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessage | null>(null);
@@ -56,7 +55,7 @@ export function AssignTicketModal({
     return a.name.localeCompare(b.name);
   });
   // Handle assign button click
-  const handleAssign = (techId: number, techName: string, techColor: string) => {
+  const handleAssign = (techId: string, techName: string, techColor: string) => {
     if (ticketId !== null) {
       try {
         console.log('MODAL: Assignment details:', {
@@ -72,7 +71,7 @@ export function AssignTicketModal({
         onAssign(techId, techName, techColor);
         // Verify the ticket has been moved to inService
         setTimeout(() => {
-          const ticketInService = inService.find(t => t.id === ticketId);
+          const ticketInService = inService.find(t => t.id === String(ticketId));
           console.log('MODAL: After assignment - checking if ticket moved to inService:', ticketInService);
           if (ticketInService) {
             setFeedbackMessage({
@@ -105,7 +104,7 @@ export function AssignTicketModal({
     }
   };
   // Find the ticket details
-  const ticket = ticketId !== null ? waitlist.find(t => t.id === ticketId) : null;
+  const ticket = ticketId !== null ? waitlist.find(t => t.id === String(ticketId)) : null;
   if (!isOpen) return null;
   return <>
       {/* Modal backdrop */}
@@ -185,7 +184,12 @@ export function AssignTicketModal({
               <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleAssign} disabled={selectedTech === null} className={`px-4 py-2 rounded-md text-white transition-colors ${selectedTech === null ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00D0E0] hover:bg-[#00B0C0]'}`}>
+              <button onClick={() => {
+                if (selectedTech !== null) {
+                  const tech = staff.find(s => s.id === selectedTech);
+                  if (tech) handleAssign(tech.id, tech.name, tech.color);
+                }
+              }} disabled={selectedTech === null} className={`px-4 py-2 rounded-md text-white transition-colors ${selectedTech === null ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00D0E0] hover:bg-[#00B0C0]'}`}>
                 Assign
               </button>
             </div>

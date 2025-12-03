@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Referral } from '../../../types';
 import { referralsDB } from '../../../db/database';
-import { Card, Badge, Button, Input } from './SharedComponents';
+import { Card, Badge, Button } from './SharedComponents';
 
 interface ReferralTrackingCardProps {
   clientId: string;
@@ -27,7 +27,7 @@ export const ReferralTrackingCard: React.FC<ReferralTrackingCardProps> = ({
     const loadReferrals = async () => {
       try {
         setLoading(true);
-        const clientReferrals = await referralsDB.getByReferrer(clientId);
+        const clientReferrals = await referralsDB.getByReferrerId(clientId);
         setReferrals(clientReferrals);
       } catch (error) {
         console.error('Failed to load referrals:', error);

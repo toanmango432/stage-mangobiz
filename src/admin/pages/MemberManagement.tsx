@@ -66,12 +66,6 @@ export function MemberManagement() {
     return tenant?.name || 'Unknown';
   };
 
-  const getStoreNames = (storeIds: string[]) => {
-    return storeIds.map(id => {
-      const store = stores.find(s => s.id === id);
-      return store?.name || 'Unknown';
-    }).join(', ');
-  };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this member?')) {

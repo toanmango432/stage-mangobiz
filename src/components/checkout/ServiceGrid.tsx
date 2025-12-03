@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Search, Check, Plus, Clock, X } from "lucide-react";
+import { Search, Check, Plus, X } from "lucide-react";
 
 export interface Service {
   id: string;

@@ -1,14 +1,9 @@
 import { useState, useEffect, memo } from 'react';
 import { MoreVertical, UserPlus, Edit2, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 import { TicketDetailsModal } from './TicketDetailsModal';
-import {
-  BasePaperTicket,
-  StateIndicator,
-  PriorityBadge,
-  WaitTimeIndicator,
-  paperColors
-} from './paper';
+import './paper';
 
 interface WaitListTicketCardProps {
   ticket: {
@@ -19,6 +14,7 @@ interface WaitListTicketCardProps {
     service: string;
     duration: string;
     time: string;
+    status: 'waiting' | 'in-service' | 'completed';
     notes?: string;
     priority?: 'normal' | 'high';
     createdAt?: Date;
@@ -47,7 +43,18 @@ function WaitListTicketCardComponent({
   useEffect(() => {
     const updateWaitTime = () => {
       const now = new Date();
-      const startTime = ticket.createdAt || new Date(); // Use createdAt if available
+      // Safely convert createdAt to Date (could be string from DB or Date object)
+      let startTime: Date;
+      if (ticket.createdAt instanceof Date) {
+        startTime = ticket.createdAt;
+      } else if (ticket.createdAt) {
+        startTime = new Date(ticket.createdAt);
+        if (isNaN(startTime.getTime())) {
+          startTime = now; // Fallback to now if invalid
+        }
+      } else {
+        startTime = now;
+      }
       const elapsed = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000 / 60)); // minutes
       setWaitTime(elapsed);
     };

@@ -4,17 +4,14 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
+import {
   Activity,
   Clock,
   Calendar,
   Users,
   Edit3,
   Plus,
-  Trash2,
-  CheckCircle,
-  AlertTriangle,
-  X
+  Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 

@@ -425,14 +425,7 @@ export function AddEditScheduleModal({
     }
     onOpenChange(false);
   }
-  // Note: updateScheduleData kept for potential future use with single-week mode
-  function _updateScheduleData(updates: Partial<ScheduleData>) {
-    setScheduleData(prev => ({
-      ...prev,
-      ...updates
-    }));
-    setHasUnsavedChanges(true);
-  }
+  // Note: updateScheduleData removed - was kept for potential future use with single-week mode but never used
   function updateTimeOffData(updates: TimeOffRequest[]) {
     setTimeOffData(updates);
     setHasUnsavedChanges(true);

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -106,7 +105,6 @@ export default function ServiceList({
       {services.map((service) => {
         const statusConfig = STATUS_CONFIG[service.status];
         const StatusIcon = statusConfig.icon;
-        const assignedStaff = staffMembers.find((s) => s.id === service.staffId);
 
         return (
           <Card key={service.id} className="p-4" data-testid={`card-service-${service.id}`}>

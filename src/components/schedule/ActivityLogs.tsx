@@ -5,18 +5,14 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Calendar,
+import {
+  Search,
+  Download,
   Clock,
-  Users,
   Settings,
   AlertTriangle,
   CheckCircle,
   Info,
-  Trash2,
   Edit,
   Plus
 } from "lucide-react";

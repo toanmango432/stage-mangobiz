@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   BookOpen,
   CheckCircle,
-  Circle,
   Settings,
   Users,
   Package,

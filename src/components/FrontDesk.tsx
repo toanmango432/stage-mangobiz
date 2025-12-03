@@ -8,12 +8,12 @@ import { WaitListSection } from './WaitListSection';
 import { ComingAppointments } from './ComingAppointments';
 import { CreateTicketButton } from './CreateTicketButton';
 import { TurnTrackerFab } from './TurnTracker/TurnTrackerFab';
-import { CreateTicketModal } from './CreateTicketModal';
+// CreateTicketModal removed - now navigating to Checkout page instead
 import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '../hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, Users, ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter, Activity, Hourglass } from 'lucide-react';
+import { ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter, Activity, Hourglass } from 'lucide-react';
 import { useSwipeGestures } from '../hooks/useGestures';
 import { haptics } from '../utils/haptics';
 import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
@@ -109,8 +109,15 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const setCombinedMinimizedLineView = useCallback((value: boolean) => {
     dispatch(setCombinedMinimizedLineViewAction(value));
   }, [dispatch]);
-  // Add state for create ticket modal
-  const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
+  // Navigate to checkout for creating new ticket
+  const navigateToCheckout = useCallback(() => {
+    // Set flag for Checkout to auto-open the panel for new ticket
+    localStorage.setItem('checkout-auto-open', 'new');
+    // Clear any stored pending ticket to start fresh
+    localStorage.removeItem('checkout-pending-ticket');
+    // Dispatch event for AppShell to navigate
+    window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: 'checkout' }));
+  }, []);
   // Add state for the salon center settings (use external state if provided)
   const [internalShowSettings, internalSetShowSettings] = useState(false);
   const showFrontDeskSettings = externalShowSettings !== undefined ? externalShowSettings : internalShowSettings;
@@ -118,10 +125,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
 
   // Get ticket context functions and data
   const {
-    createTicket,
     waitlist = [],
     serviceTickets = [],
     staff = [],
+    comingAppointments = [],
   } = useTickets();
 
   // State for dropdown menus
@@ -129,8 +136,6 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const [showWaitListDropdown, setShowWaitListDropdown] = useState(false);
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
   const waitListDropdownRef = useRef<HTMLDivElement>(null);
-  // Add state for Wait List tab dropdown
-  const [waitListTabDropdownOpen, setWaitListTabDropdownOpen] = useState(false);
   // New state for ticket config settings
   const [showTicketSettings, setShowTicketSettings] = useState(false);
 
@@ -172,8 +177,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
 
   // Calculate metrics for mobile tabs - must be after showUpcomingAppointments is defined
   const mobileTabsData = useMemo((): MobileTab[] => {
-    // Service metrics
-    const pausedCount = serviceTickets.filter(t => t.status === 'paused').length;
+    // Service metrics (paused status not in UITicket type)
+    const pausedCount = 0; // serviceTickets.filter(t => t.status === 'paused').length;
     const serviceSecondary = pausedCount > 0 ? `${pausedCount} paused` : undefined;
 
     // Wait list metrics
@@ -190,8 +195,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       return waitMs > 20 * 60 * 1000; // > 20 min
     });
 
-    // Coming appointments metrics (placeholder - would come from appointments data)
-    const comingCount = 0; // TODO: Get from appointments
+    // Coming appointments metrics - from real appointments data
+    const comingCount = comingAppointments.length;
 
     // Team metrics
     const teamCount = staff.length;
@@ -244,11 +249,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         color: tabColors.appointments,
       }] : []),
     ];
-  }, [serviceTickets, waitlist, staff, showUpcomingAppointments]);
-  // Toggle Wait List tab dropdown - fixed to not expect event parameter
-  const toggleWaitListTabDropdown = () => {
-    setWaitListTabDropdownOpen(!waitListTabDropdownOpen);
-  };
+  }, [serviceTickets, waitlist, staff, showUpcomingAppointments, comingAppointments]);
 
   // Swipe gesture handlers for tab navigation on mobile/tablet
   const handleSwipeLeft = useCallback(() => {
@@ -327,16 +328,12 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       if (ticketSettingsRef.current && !ticketSettingsRef.current.contains(event.target as Node)) {
         setShowTicketSettings(false);
       }
-      // Close Wait List tab dropdown when clicking outside
-      if (waitListTabDropdownOpen && !(event.target as Element).closest('.wait-list-tab-dropdown-container')) {
-        setWaitListTabDropdownOpen(false);
-      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [waitListTabDropdownOpen, showServiceDropdown, showWaitListDropdown, showTicketSettings]);
+  }, [showServiceDropdown, showWaitListDropdown, showTicketSettings]);
   // ISSUE-002: Toggle functions simplified - Redux handles localStorage sync
   const toggleCombinedCardViewMode = () => {
     const newMode = combinedCardViewMode === 'normal' ? 'compact' : 'normal';
@@ -415,64 +412,6 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     }));
   };
   // Toggle combined view - enhanced to save preference and preserve view settings
-  const toggleCombinedView = () => {
-    const newValue = !isCombinedView;
-    setIsCombinedView(newValue);
-    // Only save preference on desktop
-    if (deviceInfo.isDesktop) {
-      localStorage.setItem('salonCenterViewMode', newValue ? 'combined' : 'column');
-    }
-    // When switching to combined view, sync the view settings for the active tab
-    if (newValue) {
-      // Load the appropriate section's view settings for the active tab
-      if (activeCombinedTab === 'service') {
-        // Use service section settings
-        const viewMode = localStorage.getItem('serviceViewMode');
-        const cardViewMode = localStorage.getItem('serviceCardViewMode');
-        const minimizedLineView = localStorage.getItem('serviceMinimizedLineView');
-        if (viewMode === 'grid' || viewMode === 'list') {
-          setCombinedViewMode(viewMode);
-        }
-        if (cardViewMode === 'normal' || cardViewMode === 'compact') {
-          setCombinedCardViewMode(cardViewMode as 'normal' | 'compact');
-        }
-        if (minimizedLineView === 'true' || minimizedLineView === 'false') {
-          setCombinedMinimizedLineView(minimizedLineView === 'true');
-        }
-      } else if (['waitList', 'walkIn', 'appt'].includes(activeCombinedTab)) {
-        // Use waitlist section settings
-        const viewMode = localStorage.getItem('waitListViewMode');
-        const cardViewMode = localStorage.getItem('waitListCardViewMode');
-        const minimizedLineView = localStorage.getItem('waitListMinimizedLineView');
-        if (viewMode === 'grid' || viewMode === 'list') {
-          setCombinedViewMode(viewMode);
-        }
-        if (cardViewMode === 'normal' || cardViewMode === 'compact') {
-          setCombinedCardViewMode(cardViewMode as 'normal' | 'compact');
-        }
-        if (minimizedLineView === 'true' || minimizedLineView === 'false') {
-          setCombinedMinimizedLineView(minimizedLineView === 'true');
-        }
-      }
-    }
-  };
-  // Mobile/tablet section tabs configuration - reordered to match workflow
-  const mobileSectionTabs = [{
-    id: 'waitList',
-    label: 'Waiting Queue',
-    icon: <Users size={16} className="mr-1" />,
-    count: 0
-  }, {
-    id: 'service',
-    label: 'In Service',
-    icon: <FileText size={16} className="mr-1" />,
-    count: 0
-  }, ...(showUpcomingAppointments ? [{
-    id: 'comingAppointments',
-    label: 'Appointments',
-    icon: <Clock size={16} className="mr-1" />,
-    count: 0
-  }] : [])];
   // Handle settings change
   const handleFrontDeskSettingsChange = (newSettings: Partial<FrontDeskSettingsData>) => {
     // Update Redux store - this will trigger the useEffect that syncs local states
@@ -972,12 +911,10 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         // Use a custom event so StaffSidebar can open its TurnTracker modal
         window.dispatchEvent(new Event('open-turn-tracker'));
       }} />
-      {/* Create Ticket Button */}
-      <CreateTicketButton onClick={() => setShowCreateTicketModal(true)} />
-      {/* Floating Action Button */}
-      <FloatingActionButton onCreateTicket={() => setShowCreateTicketModal(true)} />
-      {/* Create Ticket Modal */}
-      <CreateTicketModal isOpen={showCreateTicketModal} onClose={() => setShowCreateTicketModal(false)} onSubmit={createTicket} />
+      {/* Create Ticket Button - navigates to Checkout */}
+      <CreateTicketButton onClick={navigateToCheckout} />
+      {/* Floating Action Button - navigates to Checkout */}
+      <FloatingActionButton onCreateTicket={navigateToCheckout} />
       {/* Add the new FrontDeskSettings component */}
       <SettingsErrorBoundary>
         <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />

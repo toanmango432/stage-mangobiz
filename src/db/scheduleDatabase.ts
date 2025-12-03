@@ -662,16 +662,17 @@ export const blockedTimeTypesDB = {
       id,
       ...createBaseSyncableDefaults(userId, deviceId, tenantId, storeId),
       name: input.name,
-      code: input.code,
+      code: input.code ?? '',
       emoji: input.emoji,
       color: input.color,
-      defaultDurationMinutes: input.defaultDurationMinutes,
+      defaultDurationMinutes: input.defaultDurationMinutes ?? 0,
       isPaid: input.isPaid,
       blocksOnlineBooking: input.blocksOnlineBooking ?? true,
       blocksInStoreBooking: input.blocksInStoreBooking ?? true,
       displayOrder,
       isActive: input.isActive ?? true,
       isSystemDefault: false,
+      requiresApproval: false,
     };
 
     await db.blockedTimeTypes.put(type);

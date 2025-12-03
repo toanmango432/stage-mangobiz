@@ -92,7 +92,7 @@ export async function requestBackgroundSync() {
   if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
     try {
       const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-data');
+      await registration// .sync.register('sync-data');
       console.log('✅ Background sync registered');
     } catch (error) {
       console.error('❌ Background sync registration failed:', error);

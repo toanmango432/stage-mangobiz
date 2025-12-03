@@ -264,7 +264,7 @@ export function getClientTypeColor(type: string) {
 /**
  * Helper function to get value-based color
  */
-export function getValueColor(amount: number): typeof BOOK_COLORS.value.low {
+export function getValueColor(amount: number): { readonly main: string; readonly label: string } {
   if (amount >= 300) return BOOK_COLORS.value.veryHigh;
   if (amount >= 200) return BOOK_COLORS.value.high;
   if (amount >= 100) return BOOK_COLORS.value.medium;

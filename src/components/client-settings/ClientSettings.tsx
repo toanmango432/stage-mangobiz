@@ -17,12 +17,11 @@ import { WalletSection } from './sections/WalletSection';
 import { MembershipSection } from './sections/MembershipSection';
 import { ClientExportModal, ClientImportModal, exportClients } from './components/ClientDataExportImport';
 import { BulkActionsToolbar } from './components/BulkActionsToolbar';
-import type { AppDispatch, RootState } from '../../store';
+import type { AppDispatch } from '../../store';
 import {
-  fetchClients,
-  fetchClientStats,
-  createClient,
-  updateClient,
+  fetchClientsFromSupabase,
+  createClientInSupabase,
+  updateClientInSupabase,
   selectClient,
   setFilters,
   selectClients,
@@ -32,6 +31,7 @@ import {
   selectClientsSaving,
   selectClientStats,
 } from '../../store/slices/clientsSlice';
+// Note: Supabase thunks handle type conversion internally via adapters
 
 interface ClientSettingsProps {
   onBack?: () => void;
@@ -154,9 +154,6 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const saving = useSelector(selectClientsSaving);
   const stats = useSelector(selectClientStats);
 
-  // Get salonId from auth state or use a default
-  const salonId = useSelector((state: RootState) => state.auth?.user?.salonId || 'default-salon');
-
   // Local UI state
   const [activeSection, setActiveSection] = useState<ClientSettingsSection>('profile');
   const [filterTier, setFilterTier] = useState<LoyaltyTier | 'all'>('all');
@@ -180,18 +177,11 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     return { ...enhanced, ...pendingUpdates };
   }, [selectedClientFromStore, pendingUpdates]);
 
-  // Fetch clients on mount
+  // Fetch clients on mount - uses dataService which gets storeId from auth state
   useEffect(() => {
-    dispatch(fetchClients({
-      salonId,
-      filters: {
-        searchQuery: filters.searchQuery,
-        status: filterStatus,
-        loyaltyTier: filterTier,
-      },
-    }));
-    dispatch(fetchClientStats(salonId));
-  }, [dispatch, salonId, filterStatus, filterTier, filters.searchQuery]);
+    dispatch(fetchClientsFromSupabase());
+    // Note: Stats are computed from the fetched clients, no separate fetch needed
+  }, [dispatch]);
 
   // Search handler
   const handleSearchChange = useCallback((query: string) => {
@@ -243,31 +233,33 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
 
   const handleSaveNewClient = useCallback(async (newClient: EnhancedClient) => {
     try {
-      const clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'> = {
-        salonId,
+      // Create client data - thunk converts to Supabase format internally
+      // Note: salonId/storeId and syncStatus are set automatically by dataService
+      const clientData = {
         firstName: newClient.firstName,
         lastName: newClient.lastName,
         phone: newClient.contact.phone,
         email: newClient.contact.email,
         isBlocked: false,
         isVip: false,
-      };
+      } as Omit<Client, 'id' | 'createdAt' | 'updatedAt'>;
 
-      const result = await dispatch(createClient(clientData)).unwrap();
+      const result = await dispatch(createClientInSupabase(clientData)).unwrap();
       dispatch(selectClient(result));
       setIsAddingClient(false);
       setIsMobileListVisible(false);
     } catch (error) {
       console.error('Failed to create client:', error);
     }
-  }, [dispatch, salonId]);
+  }, [dispatch]);
 
   const handleSave = useCallback(async () => {
     if (!selectedClientFromStore || Object.keys(pendingUpdates).length === 0) return;
 
     try {
+      // Convert to app type - thunk handles Supabase conversion internally
       const clientUpdates = enhancedUpdatesToClient(pendingUpdates);
-      await dispatch(updateClient({
+      await dispatch(updateClientInSupabase({
         id: selectedClientFromStore.id,
         updates: clientUpdates,
       })).unwrap();
@@ -282,8 +274,9 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const handleImportClients = useCallback(async (importedClients: Partial<Client>[]) => {
     for (const clientData of importedClients) {
       try {
-        const newClient: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'> = {
-          salonId,
+        // Create client data - thunk converts to Supabase format internally
+        // Note: salonId/storeId and syncStatus are set automatically by dataService
+        const newClient = {
           firstName: clientData.firstName || '',
           lastName: clientData.lastName || '',
           phone: clientData.phone || '',
@@ -292,23 +285,15 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
           gender: clientData.gender,
           isBlocked: false,
           isVip: false,
-        };
-        await dispatch(createClient(newClient)).unwrap();
+        } as Omit<Client, 'id' | 'createdAt' | 'updatedAt'>;
+        await dispatch(createClientInSupabase(newClient)).unwrap();
       } catch (error) {
         console.error('Failed to import client:', error);
       }
     }
-    // Refresh client list
-    dispatch(fetchClients({
-      salonId,
-      filters: {
-        searchQuery: filters.searchQuery,
-        status: filterStatus,
-        loyaltyTier: filterTier,
-      },
-    }));
-    dispatch(fetchClientStats(salonId));
-  }, [dispatch, salonId, filters.searchQuery, filterStatus, filterTier]);
+    // Refresh client list from Supabase
+    dispatch(fetchClientsFromSupabase());
+  }, [dispatch]);
 
   // Bulk action handlers
   const handleSelectAll = useCallback(() => {
@@ -326,17 +311,26 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
 
   const handleBulkTier = useCallback((tier: LoyaltyTier) => {
     // In production, would update all selected clients' tier
+    // Find each client and update their loyaltyInfo with the new tier
     selectedClientIds.forEach(async (clientId) => {
-      await dispatch(updateClient({
-        id: clientId,
-        updates: { loyaltyInfo: { tier } as any },
-      }));
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        await dispatch(updateClientInSupabase({
+          id: clientId,
+          updates: {
+            loyaltyInfo: {
+              ...(client.loyaltyInfo || { pointsBalance: 0, lifetimePoints: 0, referralCount: 0, rewardsRedeemed: 0 }),
+              tier,
+            },
+          },
+        }));
+      }
     });
-  }, [dispatch, selectedClientIds]);
+  }, [dispatch, selectedClientIds, clients]);
 
   const handleBulkBlock = useCallback(() => {
     selectedClientIds.forEach(async (clientId) => {
-      await dispatch(updateClient({
+      await dispatch(updateClientInSupabase({
         id: clientId,
         updates: { isBlocked: true },
       }));
@@ -346,7 +340,7 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
 
   const handleBulkUnblock = useCallback(() => {
     selectedClientIds.forEach(async (clientId) => {
-      await dispatch(updateClient({
+      await dispatch(updateClientInSupabase({
         id: clientId,
         updates: { isBlocked: false },
       }));

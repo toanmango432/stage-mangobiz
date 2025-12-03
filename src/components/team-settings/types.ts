@@ -378,10 +378,13 @@ export function createTeamMemberDefaults(
 // UI State Types
 export type TeamSettingsSection =
   | 'profile'
+  | 'login'
   | 'services'
   | 'schedule'
+  | 'timesheet'
   | 'permissions'
   | 'commission'
+  | 'payroll'
   | 'online-booking'
   | 'notifications'
   | 'performance';

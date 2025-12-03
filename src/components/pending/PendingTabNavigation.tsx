@@ -71,7 +71,6 @@ export function PendingTabNavigation({
           <Tabs
             value={activeTab}
             onChange={(val: string) => onTabChange(val as PaymentType)}
-            variant="pills"
             className="border-none"
           >
             {tabs.map((tab) => (
@@ -80,7 +79,6 @@ export function PendingTabNavigation({
                 value={tab.id}
                 label={tab.label}
                 badge={tab.count}
-                variant="pills"
               />
             ))}
           </Tabs>
@@ -95,8 +93,9 @@ export function PendingTabNavigation({
                 variant="ghost"
                 size="sm"
                 onClick={onCardViewModeToggle}
-                icon={cardViewMode === 'compact' ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-              />
+              >
+                {cardViewMode === 'compact' ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+              </Button>
             </Tippy>
           )}
 
@@ -107,8 +106,8 @@ export function PendingTabNavigation({
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
-                icon={<ArrowUpDown size={16} />}
               >
+                <ArrowUpDown size={16} />
                 <span className="hidden sm:inline">{currentSortLabel}</span>
               </Button>
             </Tippy>

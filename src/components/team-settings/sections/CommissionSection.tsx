@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { CommissionSettings, PayrollSettings, CommissionType, PayPeriod } from '../types';
-import { Card, SectionHeader, Toggle, Button, Badge, Input, Select } from '../components/SharedComponents';
+import type { CommissionSettings, PayrollSettings } from '../types';
+import { Card, SectionHeader, Button } from '../components/SharedComponents';
 
 interface CommissionSectionProps {
   commission: CommissionSettings;
@@ -150,7 +150,7 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
               {commissionTypeOptions.map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => onCommissionChange({ ...commission, type: option.value as CommissionType })}
+                  onClick={() => onCommissionChange({ ...commission, type: option.value as any })}
                   className={`
                     p-4 rounded-xl border-2 text-center transition-all duration-200
                     ${commission.type === option.value
@@ -451,7 +451,7 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
               {payPeriodOptions.map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => onPayrollChange({ ...payroll, payPeriod: option.value as PayPeriod })}
+                  onClick={() => onPayrollChange({ ...payroll, payPeriod: option.value as any })}
                   className={`
                     p-4 rounded-xl border-2 text-center transition-all duration-200
                     ${payroll.payPeriod === option.value

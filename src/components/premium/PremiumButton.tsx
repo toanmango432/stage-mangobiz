@@ -5,7 +5,6 @@
 
 import { forwardRef, ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
-import { premiumDesignSystem } from '../../constants/premiumDesignSystem';
 
 export type ButtonVariant =
   | 'primary'       // Gradient teal (main CTA)

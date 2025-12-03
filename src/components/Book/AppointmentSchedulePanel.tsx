@@ -1,4 +1,3 @@
-import React from 'react';
 import { Zap, Layers } from 'lucide-react';
 
 interface AppointmentSchedulePanelProps {

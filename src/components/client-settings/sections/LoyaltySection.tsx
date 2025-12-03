@@ -83,7 +83,7 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
     return { nextTier, progress, pointsNeeded };
   };
 
-  const handlePointsAdjustment = (amount: number, reason: string, notes?: string) => {
+  const handlePointsAdjustment = (amount: number) => {
     const newBalance = showPointsModal === 'add'
       ? client.loyaltyInfo.pointsBalance + amount
       : client.loyaltyInfo.pointsBalance - amount;
@@ -106,11 +106,11 @@ export const LoyaltySection: React.FC<LoyaltySectionProps> = ({ client, onChange
   };
 
   const handleRedeemReward = (reward: LoyaltyReward) => {
-    if (client.loyaltyInfo.pointsBalance >= reward.pointsCost) {
+    if (client.loyaltyInfo.pointsBalance >= (reward.pointsCost ?? 0)) {
       onChange({
         loyaltyInfo: {
           ...client.loyaltyInfo,
-          pointsBalance: client.loyaltyInfo.pointsBalance - reward.pointsCost,
+          pointsBalance: client.loyaltyInfo.pointsBalance - (reward.pointsCost ?? 0),
           rewardsRedeemed: client.loyaltyInfo.rewardsRedeemed + 1,
         },
       });

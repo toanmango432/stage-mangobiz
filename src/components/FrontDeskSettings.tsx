@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, cloneElement } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings, Users, ArrowRight, CheckCircle2, Circle, ChevronDown, Info, Workflow, Check, Layers, PlusCircle, StickyNote, Edit, CreditCard, Percent, Gift, PlayCircle, DollarSign, Trash2, Lock, AlertCircle, LayoutGrid } from 'lucide-react';
+import { X, Settings, Users, ArrowRight, CheckCircle2, Circle, ChevronDown, Info, Workflow, Check, Layers, PlusCircle, StickyNote, Edit, CreditCard, Percent, Gift, PlayCircle, DollarSign, Trash2, Lock, AlertCircle, LayoutGrid, FileText } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import FocusTrap from 'focus-trap-react';

@@ -268,7 +268,6 @@ export function BatchSelection({
   onSelectionChange,
   children,
 }: BatchSelectionProps) {
-  const isSelected = (id: string) => selectedIds.includes(id);
 
   const clearSelection = useCallback(() => {
     onSelectionChange([]);

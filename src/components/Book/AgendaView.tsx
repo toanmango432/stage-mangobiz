@@ -1,18 +1,20 @@
 /**
  * Agenda/List View Component
  * List format of all appointments - ideal for phone bookings
+ * Phase 8: Performance optimized with memoization
  */
 
-import { useMemo } from 'react';
-import { Clock, User, Phone, MapPin } from 'lucide-react';
+import { memo, useMemo, useCallback } from 'react';
+import { Clock, User, Phone } from 'lucide-react';
 import { LocalAppointment } from '../../types/appointment';
 import { cn } from '../../lib/utils';
 
 interface AgendaViewProps {
   appointments: LocalAppointment[];
   onAppointmentClick: (appointment: LocalAppointment) => void;
-  onStatusChange?: (appointmentId: string, newStatus: string) => void;
 }
+
+// Row height for virtual list (reserved for future virtualization)
 
 /**
  * Format time for display
@@ -32,50 +34,20 @@ function formatDate(date: Date): string {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
+
   if (date.toDateString() === today.toDateString()) {
     return 'Today';
   }
   if (date.toDateString() === tomorrow.toDateString()) {
     return 'Tomorrow';
   }
-  
-  return date.toLocaleDateString('en-US', { 
+
+  return date.toLocaleDateString('en-US', {
     weekday: 'long',
-    month: 'long', 
+    month: 'long',
     day: 'numeric',
     year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
   });
-}
-
-/**
- * Group appointments by date
- */
-function groupAppointmentsByDate(
-  appointments: LocalAppointment[]
-): Map<string, LocalAppointment[]> {
-  const grouped = new Map<string, LocalAppointment[]>();
-  
-  appointments.forEach(apt => {
-    const aptDate = new Date(apt.scheduledStartTime);
-    const dateKey = aptDate.toDateString();
-    const dateLabel = formatDate(aptDate);
-    
-    if (!grouped.has(dateLabel)) {
-      grouped.set(dateLabel, []);
-    }
-    
-    grouped.get(dateLabel)!.push(apt);
-  });
-  
-  // Sort appointments within each date group by time
-  grouped.forEach((apts, dateLabel) => {
-    apts.sort((a, b) => 
-      new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime()
-    );
-  });
-  
-  return grouped;
 }
 
 /**
@@ -108,24 +80,161 @@ function getStatusBadge(status: string): string {
   return statusLabels[status as keyof typeof statusLabels] || status;
 }
 
-export function AgendaView({
+/**
+ * Memoized Appointment Row Component
+ * Uses custom comparison to only re-render when appointment data changes
+ */
+const AppointmentRow = memo(function AppointmentRow({
+  appointment,
+  onClick,
+}: {
+  appointment: LocalAppointment;
+  onClick: () => void;
+}) {
+  const startTime = new Date(appointment.scheduledStartTime);
+  const endTime = new Date(appointment.scheduledEndTime);
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left px-4 py-4 hover:bg-gray-50 transition-colors',
+        'focus:outline-none focus:bg-teal-50 border-b border-gray-100'
+      )}
+    >
+      <div className="flex items-start gap-4">
+        {/* Time Column */}
+        <div className="flex-shrink-0 w-20 text-center">
+          <div className="text-lg font-bold text-gray-900">
+            {formatTime(startTime)}
+          </div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            {formatTime(endTime)}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-base font-bold text-gray-900 truncate">
+                {appointment.clientName}
+              </h4>
+              {appointment.clientPhone && (
+                <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{appointment.clientPhone}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Status Badge */}
+            <div className={cn(
+              'px-3 py-1 rounded-full text-xs font-medium border',
+              'flex-shrink-0',
+              getStatusColor(appointment.status)
+            )}>
+              {getStatusBadge(appointment.status)}
+            </div>
+          </div>
+
+          {/* Services */}
+          {appointment.services.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {appointment.services.slice(0, 3).map((service, index) => (
+                <div
+                  key={index}
+                  className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-700"
+                >
+                  {service.serviceName}
+                  {service.duration && (
+                    <span className="ml-1 text-gray-500">
+                      ({service.duration} min)
+                    </span>
+                  )}
+                </div>
+              ))}
+              {appointment.services.length > 3 && (
+                <span className="px-2 py-1 text-xs text-gray-500">
+                  +{appointment.services.length - 3} more
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Staff */}
+          {appointment.staffName && (
+            <div className="flex items-center gap-1 text-sm text-gray-600">
+              <User className="w-3.5 h-3.5" />
+              <span>{appointment.staffName}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for better memoization
+  return (
+    prevProps.appointment.id === nextProps.appointment.id &&
+    prevProps.appointment.status === nextProps.appointment.status &&
+    prevProps.appointment.syncStatus === nextProps.appointment.syncStatus
+  );
+});
+
+/**
+ * Date Header Component (memoized)
+ */
+const DateHeader = memo(function DateHeader({
+  dateLabel,
+  count,
+}: {
+  dateLabel: string;
+  count: number;
+}) {
+  return (
+    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
+      <h3 className="text-lg font-bold text-gray-900">{dateLabel}</h3>
+      <p className="text-sm text-gray-500 mt-0.5">
+        {count} appointment{count !== 1 ? 's' : ''}
+      </p>
+    </div>
+  );
+});
+
+/**
+ * AgendaView - Main component with optimized rendering
+ */
+export const AgendaView = memo(function AgendaView({
   appointments,
   onAppointmentClick,
-  onStatusChange,
 }: AgendaViewProps) {
-  // Group appointments by date and sort
+  // Group appointments by date with memoization
   const groupedAppointments = useMemo(() => {
-    const grouped = groupAppointmentsByDate(appointments);
-    
-    // Sort date groups chronologically
-    const sortedGroups = Array.from(grouped.entries()).sort((a, b) => {
-      const dateA = new Date(a[1][0].scheduledStartTime);
-      const dateB = new Date(b[1][0].scheduledStartTime);
-      return dateA.getTime() - dateB.getTime();
+    const groups = new Map<string, LocalAppointment[]>();
+
+    // Sort appointments by date
+    const sorted = [...appointments].sort(
+      (a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime()
+    );
+
+    sorted.forEach((apt) => {
+      const aptDate = new Date(apt.scheduledStartTime);
+      const dateLabel = formatDate(aptDate);
+
+      if (!groups.has(dateLabel)) {
+        groups.set(dateLabel, []);
+      }
+      groups.get(dateLabel)!.push(apt);
     });
-    
-    return new Map(sortedGroups);
+
+    return groups;
   }, [appointments]);
+
+  // Memoized click handler creator
+  const createClickHandler = useCallback((apt: LocalAppointment) => {
+    return () => onAppointmentClick(apt);
+  }, [onAppointmentClick]);
 
   if (appointments.length === 0) {
     return (
@@ -142,108 +251,21 @@ export function AgendaView({
   return (
     <div className="h-full overflow-y-auto bg-white">
       {Array.from(groupedAppointments.entries()).map(([dateLabel, dateAppointments]) => (
-        <div key={dateLabel} className="mb-8">
-          {/* Date Header */}
-          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-            <h3 className="text-lg font-bold text-gray-900">{dateLabel}</h3>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {dateAppointments.length} appointment{dateAppointments.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-
-          {/* Appointments List */}
-          <div className="divide-y divide-gray-100">
-            {dateAppointments.map((apt) => {
-              const startTime = new Date(apt.scheduledStartTime);
-              const endTime = new Date(apt.scheduledEndTime);
-              
-              return (
-                <button
-                  key={apt.id}
-                  onClick={() => onAppointmentClick(apt)}
-                  className={cn(
-                    'w-full text-left px-4 py-4 hover:bg-gray-50 transition-colors',
-                    'focus:outline-none focus:bg-teal-50'
-                  )}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Time Column */}
-                    <div className="flex-shrink-0 w-20 text-center">
-                      <div className="text-lg font-bold text-gray-900">
-                        {formatTime(startTime)}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {formatTime(endTime)}
-                      </div>
-                    </div>
-
-                    {/* Main Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-base font-bold text-gray-900 truncate">
-                            {apt.clientName}
-                          </h4>
-                          {apt.clientPhone && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                              <Phone className="w-3.5 h-3.5" />
-                              <span>{apt.clientPhone}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Status Badge */}
-                        <div className={cn(
-                          'px-3 py-1 rounded-full text-xs font-medium border',
-                          'flex-shrink-0',
-                          getStatusColor(apt.status)
-                        )}>
-                          {getStatusBadge(apt.status)}
-                        </div>
-                      </div>
-
-                      {/* Services */}
-                      {apt.services.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {apt.services.map((service, index) => (
-                            <div
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-700"
-                            >
-                              {service.serviceName}
-                              {service.duration && (
-                                <span className="ml-1 text-gray-500">
-                                  ({service.duration} min)
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Staff */}
-                      {apt.staffName && (
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <User className="w-3.5 h-3.5" />
-                          <span>{apt.staffName}</span>
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {apt.notes && (
-                        <div className="mt-2 text-sm text-gray-600 line-clamp-2">
-                          {apt.notes}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+        <div key={dateLabel} className="mb-4">
+          <DateHeader dateLabel={dateLabel} count={dateAppointments.length} />
+          <div>
+            {dateAppointments.map((apt) => (
+              <AppointmentRow
+                key={apt.id}
+                appointment={apt}
+                onClick={createClickHandler(apt)}
+              />
+            ))}
           </div>
         </div>
       ))}
     </div>
   );
-}
+});
 
+export { AgendaView as default };

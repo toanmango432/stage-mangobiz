@@ -25,7 +25,7 @@ export function PaymentProcessModal({
   // Find and set the ticket when opened
   useEffect(() => {
     if (isOpen && ticketId) {
-      const foundTicket = pendingTickets.find(t => t.id === ticketId);
+      const foundTicket = pendingTickets.find(t => t.id === String(ticketId));
       if (foundTicket) {
         setTicket(foundTicket);
         // Set default payment amount based on service
@@ -83,7 +83,7 @@ export function PaymentProcessModal({
         // After a successful payment, remove the ticket from pending
         setTimeout(() => {
           if (ticketId) {
-            deleteTicket(ticketId, 'payment_completed');
+            deleteTicket(String(ticketId), 'payment_completed');
             onClose();
           }
         }, 2000);

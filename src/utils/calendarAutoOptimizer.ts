@@ -88,7 +88,7 @@ export function analyzeCalendarForOptimization(
   suggestions.push(...generateCombineSuggestions(dayAppointments, finalConfig));
 
   // 4. Swap appointments for better client preferences
-  suggestions.push(...generateSwapSuggestions(dayAppointments, finalConfig));
+  suggestions.push(...generateSwapSuggestions(finalConfig));
 
   // Sort by revenue gain
   suggestions.sort((a, b) => b.revenueGain - a.revenueGain);
@@ -365,7 +365,7 @@ function generateCombineSuggestions(
  * Generate swap suggestions for client preferences
  */
 function generateSwapSuggestions(
-  appointments: LocalAppointment[],
+//   appointments: LocalAppointment[],
   config: OptimizerConfig
 ): OptimizationSuggestion[] {
   const suggestions: OptimizationSuggestion[] = [];

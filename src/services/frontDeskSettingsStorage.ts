@@ -178,8 +178,8 @@ async function migrateFromLocalStorage(newKey: string): Promise<FrontDeskSetting
  * Migrate settings between schema versions
  */
 function migrateSettings(stored: StoredFrontDeskSettings): FrontDeskSettingsData {
-  let settings = stored.data;
-  let version = stored.version || 0;
+  const settings = stored.data;
+  // const version = stored.version || 0;
 
   // Future migrations would go here
   // if (version < 2) {

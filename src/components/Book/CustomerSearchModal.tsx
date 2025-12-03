@@ -195,8 +195,6 @@ export const CustomerSearchModal = memo(function CustomerSearchModal({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name or phone..."
                     icon={<Search className="w-5 h-5" />}
-                    clearable
-                    onClear={() => setSearchQuery('')}
                     size="lg"
                     autoFocus
                   />

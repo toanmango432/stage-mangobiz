@@ -48,7 +48,6 @@ const validateImportedSettings = (data: unknown): data is { version: number; set
 export const FrontDeskSettings: React.FC<FrontDeskSettingsProps> = ({
   isOpen,
   onClose,
-  currentSettings,
   onSettingsChange
 }) => {
   // Redux state - use useAppDispatch for async thunk support

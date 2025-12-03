@@ -1,6 +1,6 @@
 import React from 'react';
 import type { MembershipInfo } from '../types';
-import { Card, Badge, Button } from './SharedComponents';
+import { Card, Button } from './SharedComponents';
 
 // Icons - must be defined before STATUS_CONFIG
 const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (

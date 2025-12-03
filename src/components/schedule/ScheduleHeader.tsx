@@ -1,10 +1,8 @@
 import { Button } from "@/components/ui/Button";
-import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronDown, X } from "lucide-react";
 import { useState } from "react";
 
 // Utility function to generate display names with nickname conflict resolution

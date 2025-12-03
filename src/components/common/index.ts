@@ -6,3 +6,14 @@ export { DropdownMenu } from './DropdownMenu';
 export type { DropdownMenuProps, DropdownMenuItem } from './DropdownMenu';
 
 export { ModalContainer, ModalHeader, ModalFooter } from './ModalContainer';
+
+export { SyncStatusIndicator } from './SyncStatusIndicator';
+
+export {
+  ConflictNotification,
+  ConflictNotificationContainer,
+} from './ConflictNotification';
+export type {
+  ConflictDetails,
+  ConflictResolution,
+} from './ConflictNotification';

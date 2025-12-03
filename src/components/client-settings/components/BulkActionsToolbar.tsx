@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { LoyaltyTier, ClientTag } from '../../../types';
-import { Button, Badge, Select } from './SharedComponents';
+import { Button } from './SharedComponents';
 
 interface BulkActionsToolbarProps {
   selectedCount: number;

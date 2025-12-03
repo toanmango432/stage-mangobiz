@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { transactionsDB, ticketsDB, syncQueueDB } from '../../db/database';
+import { dataService } from '../../services/dataService';
+import { toTransaction, toTransactions } from '../../services/supabase';
 import type { Transaction, PaymentMethod, CreateTransactionInput } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
@@ -59,11 +61,204 @@ const canVoidTransaction = (createdAt: Date | string): boolean => {
   return hoursSinceCreation <= 24;
 };
 
+// ==================== SUPABASE THUNKS (Phase 6) ====================
+
+/**
+ * Fetch transactions by date from Supabase via dataService
+ * Note: storeId is obtained internally from Redux auth state
+ */
+export const fetchTransactionsByDateFromSupabase = createAsyncThunk(
+  'transactions/fetchByDateFromSupabase',
+  async (date: Date) => {
+    const rows = await dataService.transactions.getByDate(date);
+    return toTransactions(rows);
+  }
+);
+
+/**
+ * Fetch single transaction by ID from Supabase
+ */
+export const fetchTransactionByIdFromSupabase = createAsyncThunk(
+  'transactions/fetchByIdFromSupabase',
+  async (transactionId: string) => {
+    const row = await dataService.transactions.getById(transactionId);
+    if (!row) throw new Error('Transaction not found');
+    return toTransaction(row);
+  }
+);
+
+/**
+ * Fetch daily summary from Supabase
+ */
+export const fetchDailySummaryFromSupabase = createAsyncThunk(
+  'transactions/fetchDailySummaryFromSupabase',
+  async (date: Date) => {
+    return await dataService.transactions.getDailySummary(date);
+  }
+);
+
+/**
+ * Fetch payment breakdown from Supabase
+ */
+export const fetchPaymentBreakdownFromSupabase = createAsyncThunk(
+  'transactions/fetchPaymentBreakdownFromSupabase',
+  async (date: Date) => {
+    return await dataService.transactions.getPaymentBreakdown(date);
+  }
+);
+
+/**
+ * Create a transaction in Supabase via dataService
+ * Note: storeId is obtained internally from Redux auth state
+ */
+export const createTransactionInSupabase = createAsyncThunk(
+  'transactions/createInSupabase',
+  async (input: CreateTransactionInput, { rejectWithValue }) => {
+    try {
+      const { toTransactionInsert, toTransaction: convertToTransaction } = await import('../../services/supabase');
+
+      // Calculate totals
+      const subtotal = input.subtotal || 0;
+      const tax = input.tax || 0;
+      const tip = input.tip || 0;
+      const discount = input.discount || 0;
+      const total = subtotal + tax + tip - discount;
+
+      // Validate amounts
+      if (total <= 0) {
+        return rejectWithValue('Transaction total must be greater than 0');
+      }
+
+      // Build transaction data for insert
+      const transactionData = {
+        salonId: '', // Will be filled by dataService
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        clientId: input.clientId,
+        clientName: input.clientName,
+        subtotal,
+        tax,
+        tip,
+        discount,
+        amount: subtotal + tax,
+        total,
+        paymentMethod: input.paymentMethod,
+        paymentDetails: input.paymentDetails,
+        status: 'completed' as const,
+        syncStatus: 'synced' as const,
+      };
+
+      const insertData = toTransactionInsert(transactionData as any);
+      const row = await dataService.transactions.create(insertData);
+      return convertToTransaction(row);
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create transaction');
+    }
+  }
+);
+
+/**
+ * Fetch transactions by ticket ID from Supabase
+ */
+export const fetchTransactionsByTicketIdFromSupabase = createAsyncThunk(
+  'transactions/fetchByTicketIdFromSupabase',
+  async (ticketId: string) => {
+    const rows = await dataService.transactions.getByTicketId(ticketId);
+    return toTransactions(rows);
+  }
+);
+
+/**
+ * Void a transaction in Supabase
+ */
+export const voidTransactionInSupabase = createAsyncThunk(
+  'transactions/voidInSupabase',
+  async ({ id, voidReason: _voidReason }: { id: string; voidReason: string }, { rejectWithValue }) => {
+    try {
+      const { toTransaction: convertToTransaction } = await import('../../services/supabase');
+
+      // First fetch the transaction to validate
+      const row = await dataService.transactions.getById(id);
+      if (!row) {
+        return rejectWithValue('Transaction not found');
+      }
+
+      const transaction = convertToTransaction(row);
+
+      if (transaction.status === 'voided') {
+        return rejectWithValue('Transaction already voided');
+      }
+
+      if (transaction.status === 'refunded') {
+        return rejectWithValue('Cannot void a refunded transaction');
+      }
+
+      // Check time window - can only void within 24 hours
+      if (!canVoidTransaction(transaction.createdAt)) {
+        return rejectWithValue('Cannot void transaction older than 24 hours');
+      }
+
+      // Update in Supabase
+      const updatedRow = await dataService.transactions.update(id, {
+        status: 'voided',
+      });
+
+      return convertToTransaction(updatedRow);
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to void transaction');
+    }
+  }
+);
+
+/**
+ * Refund a transaction in Supabase
+ */
+export const refundTransactionInSupabase = createAsyncThunk(
+  'transactions/refundInSupabase',
+  async ({ id, refundAmount, refundReason: _refundReason }: { id: string; refundAmount: number; refundReason: string }, { rejectWithValue }) => {
+    try {
+      const { toTransaction: convertToTransaction } = await import('../../services/supabase');
+
+      // First fetch the transaction to validate
+      const row = await dataService.transactions.getById(id);
+      if (!row) {
+        return rejectWithValue('Transaction not found');
+      }
+
+      const transaction = convertToTransaction(row);
+
+      if (transaction.status === 'voided') {
+        return rejectWithValue('Cannot refund voided transaction');
+      }
+
+      // Validate refund amount
+      const existingRefund = transaction.refundedAmount || 0;
+      if (!validateRefundAmount(refundAmount, transaction.total, existingRefund)) {
+        return rejectWithValue(`Invalid refund amount. Maximum refundable: $${(transaction.total - existingRefund).toFixed(2)}`);
+      }
+
+      // Determine new status
+      const newStatus = refundAmount === transaction.total ? 'refunded' : 'partially-refunded';
+
+      // Update in Supabase
+      const updatedRow = await dataService.transactions.update(id, {
+        status: newStatus,
+      });
+
+      return convertToTransaction(updatedRow);
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to refund transaction');
+    }
+  }
+);
+
+// ==================== LEGACY ASYNC THUNKS (IndexedDB) ====================
+
 // Fetch all transactions
 export const fetchTransactions = createAsyncThunk(
   'transactions/fetchAll',
-  async (salonId: string) => {
-    return await transactionsDB.getAll(salonId);
+  async (_salonId: string) => {
+    return await transactionsDB.getAll(_salonId);
   }
 );
 
@@ -72,12 +267,10 @@ export const createTransaction = createAsyncThunk(
   'transactions/create',
   async ({
     ticketId,
-    salonId,
-    userId
   }: {
     ticketId: string;
-    salonId: string;
-    userId: string
+    _salonId: string;
+    _userId: string
   }) => {
     // Fetch the completed ticket
     const ticket = await ticketsDB.getById(ticketId);
@@ -118,8 +311,12 @@ export const createTransaction = createAsyncThunk(
     const transactionData: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'> = {
       salonId: ticket.salonId,
       ticketId: ticket.id,
+      ticketNumber: ticket.number || 0,
       clientId: ticket.clientId,
       clientName: ticket.clientName,
+      subtotal: ticket.subtotal,
+      tax: ticket.tax || 0,
+      discount: ticket.discount || 0,
       amount: ticket.subtotal,
       tip: ticket.tip,
       total: ticket.total,
@@ -296,12 +493,11 @@ export const refundTransaction = createAsyncThunk(
     id,
     refundAmount,
     refundReason,
-    userId
   }: {
     id: string;
     refundAmount: number;
     refundReason: string;
-    userId: string;
+    _userId: string;
   }) => {
     const transaction = await transactionsDB.getById(id);
 
@@ -436,6 +632,142 @@ const transactionsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to refund transaction';
       });
+
+    // ==================== SUPABASE THUNKS REDUCERS (Phase 6) ====================
+
+    // Fetch transactions by date from Supabase
+    builder
+      .addCase(fetchTransactionsByDateFromSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTransactionsByDateFromSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchTransactionsByDateFromSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch transactions from Supabase';
+      });
+
+    // Fetch transaction by ID from Supabase
+    builder
+      .addCase(fetchTransactionByIdFromSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTransactionByIdFromSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the item in the list if it exists, otherwise add it
+        const index = state.items.findIndex(t => t.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        } else {
+          state.items.unshift(action.payload);
+        }
+      })
+      .addCase(fetchTransactionByIdFromSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch transaction from Supabase';
+      });
+
+    // Daily summary and payment breakdown don't modify state.items
+    // They return data directly through the thunk payload
+    builder
+      .addCase(fetchDailySummaryFromSupabase.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchDailySummaryFromSupabase.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(fetchDailySummaryFromSupabase.rejected, (state) => {
+        state.loading = false;
+      });
+
+    builder
+      .addCase(fetchPaymentBreakdownFromSupabase.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchPaymentBreakdownFromSupabase.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(fetchPaymentBreakdownFromSupabase.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Create transaction in Supabase
+    builder
+      .addCase(createTransactionInSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createTransactionInSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items.unshift(action.payload);
+      })
+      .addCase(createTransactionInSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || 'Failed to create transaction';
+      });
+
+    // Fetch transactions by ticket ID from Supabase
+    builder
+      .addCase(fetchTransactionsByTicketIdFromSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTransactionsByTicketIdFromSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        // Merge with existing items, avoiding duplicates
+        action.payload.forEach(newItem => {
+          const existingIndex = state.items.findIndex(t => t.id === newItem.id);
+          if (existingIndex !== -1) {
+            state.items[existingIndex] = newItem;
+          } else {
+            state.items.push(newItem);
+          }
+        });
+      })
+      .addCase(fetchTransactionsByTicketIdFromSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch transactions by ticket';
+      });
+
+    // Void transaction in Supabase
+    builder
+      .addCase(voidTransactionInSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(voidTransactionInSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.items.findIndex(t => t.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+      })
+      .addCase(voidTransactionInSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || 'Failed to void transaction';
+      });
+
+    // Refund transaction in Supabase
+    builder
+      .addCase(refundTransactionInSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(refundTransactionInSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.items.findIndex(t => t.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+      })
+      .addCase(refundTransactionInSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || 'Failed to refund transaction';
+      });
   },
 });
 
@@ -476,7 +808,7 @@ export const selectTransactionStats = createSelector(
       totalTransactions: validTransactions.length,
       completedCount: validTransactions.filter(t => t?.status === 'completed').length,
       voidedCount: validTransactions.filter(t => t?.status === 'voided').length,
-      refundedCount: validTransactions.filter(t => t?.status === 'refunded' || t?.status === 'partially-refunded').length,
+      refundedCount: validTransactions.filter(t => t?.status === 'refunded' || (t?.status as any) === 'partially-refunded').length,
     };
   }
 );

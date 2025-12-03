@@ -8,7 +8,8 @@ import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useBookSidebar } from '../hooks/useBookSidebar';
-import { selectAllStaff } from '../store/slices/staffSlice';
+import { selectAllStaff, loadStaff } from '../store/slices/uiStaffSlice';
+import { selectStoreId } from '../store/slices/authSlice';
 import {
   CalendarHeader,
   CommandPalette,
@@ -70,7 +71,7 @@ export function BookPage() {
   });
   
   // Filter state
-  const [filters, setFilters] = useState<AppointmentFilters>({
+  const [filters]  = useState<AppointmentFilters>({
     search: '',
     status: [],
     serviceTypes: [],
@@ -80,29 +81,43 @@ export function BookPage() {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Clipboard state for copy/paste functionality
+  const [_copiedAppointment, setCopiedAppointment] = useState<LocalAppointment | null>(null);
+
   const {
     selectedDate,
     selectedStaffIds,
     calendarView,
-    timeWindowMode,
+    // timeWindowMode,
     filteredAppointments,
     handleDateChange,
     handleStaffSelection,
     handleViewChange,
-    handleTimeWindowModeChange,
+//     handleTimeWindowModeChange,
     goToToday,
   } = useAppointmentCalendar({ filters });
 
   // Get salon ID and staff from Redux
   const salonId = getTestSalonId();
+  const authStoreId = useAppSelector(selectStoreId);
   const allStaff = useAppSelector(selectAllStaff) || [];
 
-  // Transform staff data for components
+  // Load staff on mount (same as Team page does via useTickets hook)
+  useEffect(() => {
+    const storeId = authStoreId || 'default-store';
+    console.log('[BookPage] Loading staff for storeId:', storeId);
+    dispatch(loadStaff(storeId));
+  }, [dispatch, authStoreId]);
+
+  // Debug: Log staff data
+  console.log('[BookPage] allStaff from uiStaffSlice:', allStaff.length, allStaff.map(s => s.name));
+
+  // Transform staff data for components (UIStaff from uiStaffSlice uses 'image' not 'avatar')
   const staffWithCounts = allStaff.map(staff => ({
     id: staff.id,
     name: staff.name,
-    photo: staff.avatar,
-    isAvailable: staff.status === 'available',
+    photo: staff.image, // UIStaff uses 'image' property
+    isAvailable: staff.status === 'ready', // UIStaff uses 'ready' status instead of 'available'
     appointmentCount: filteredAppointments?.filter(
       (apt: LocalAppointment) => apt.staffId === staff.id
     ).length || 0,
@@ -139,7 +154,7 @@ export function BookPage() {
       staffId,
       time,
       staffName: staff?.name || 'Unknown Staff',
-      staffPhoto: staff?.avatar
+      staffPhoto: staff?.image
     });
     setIsNewAppointmentOpen(true);
   };
@@ -392,6 +407,79 @@ export function BookPage() {
     }
   };
 
+  // Copy appointment to clipboard
+  const handleCopyAppointment = (appointment: LocalAppointment) => {
+    setCopiedAppointment(appointment);
+    setToast({ message: 'Appointment copied! Click a time slot to paste.', type: 'success' });
+  };
+
+  // Duplicate appointment - opens new appointment modal with pre-filled data
+  const handleDuplicateAppointment = (appointment: LocalAppointment) => {
+    // Set up the time slot with the same staff but allow user to pick new time
+    const staff = allStaff.find(s => s.id === appointment.staffId);
+    setSelectedTimeSlot({
+      staffId: appointment.staffId,
+      time: new Date(), // Default to now, user will pick new time
+      staffName: staff?.name || appointment.staffName,
+      staffPhoto: staff?.image,
+    });
+    // Store the appointment to duplicate (will be used to pre-fill modal)
+    setCopiedAppointment(appointment);
+    setIsNewAppointmentOpen(true);
+    setToast({ message: 'Creating duplicate appointment...', type: 'info' });
+  };
+
+  // Rebook appointment - for completed appointments, book again with same details
+  const handleRebookAppointment = async (appointment: LocalAppointment) => {
+    try {
+      // Import predictive rebooking utility
+      const { predictNextVisit } = await import('../utils/predictiveRebooking');
+
+      // Get prediction for next visit
+      const allAppointments = filteredAppointments || [];
+      const prediction = predictNextVisit(appointment.clientId, allAppointments);
+
+      // Calculate suggested next date
+      const suggestedDate = prediction?.predictedNextDate || new Date();
+      suggestedDate.setHours(
+        new Date(appointment.scheduledStartTime).getHours(),
+        new Date(appointment.scheduledStartTime).getMinutes()
+      );
+
+      // Set up time slot with suggested date
+      const staff = allStaff.find(s => s.id === appointment.staffId);
+      setSelectedTimeSlot({
+        staffId: appointment.staffId,
+        time: suggestedDate,
+        staffName: staff?.name || appointment.staffName,
+        staffPhoto: staff?.image,
+      });
+
+      // Store appointment for rebooking (pre-fill modal)
+      setCopiedAppointment(appointment);
+      setIsNewAppointmentOpen(true);
+
+      if (prediction) {
+        setToast({
+          message: `Rebooking ${appointment.clientName}. Suggested date based on ${prediction.averageCycle}-day cycle.`,
+          type: 'info'
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up rebook:', error);
+      // Fallback: just open modal with appointment data
+      const staff = allStaff.find(s => s.id === appointment.staffId);
+      setSelectedTimeSlot({
+        staffId: appointment.staffId,
+        time: new Date(),
+        staffName: staff?.name || appointment.staffName,
+        staffPhoto: staff?.image,
+      });
+      setCopiedAppointment(appointment);
+      setIsNewAppointmentOpen(true);
+    }
+  };
+
   // Mock walk-in data
   const mockWalkIns = [
     {
@@ -417,13 +505,19 @@ export function BookPage() {
   const handleCreateCustomer = async (name: string, phone: string) => {
     try {
       const { clientsDB } = await import('../db/database');
+      const nameParts = name.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
       const newClient = await clientsDB.create({
         salonId,
+        firstName,
+        lastName,
         name: name.trim(),
         phone: phone.trim(),
         totalVisits: 0,
         totalSpent: 0,
-      });
+        isBlocked: false,
+      } as any);
       
       setToast({ message: `Client "${newClient.name}" created successfully!`, type: 'success' });
       return newClient;
@@ -462,7 +556,7 @@ export function BookPage() {
             id: s.id,
             name: s.name,
             specialty: s.specialty,
-            isActive: s.isActive,
+            isActive: (s as any).status !== 'off', // UIStaff uses status: 'ready'|'busy'|'off'
           })),
           finalStaffId || NEXT_AVAILABLE_STAFF_ID
         );
@@ -573,7 +667,7 @@ export function BookPage() {
   }, [allStaff.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-full bg-gray-50">
       {/* Book Sidebar - Calendar + Staff Filter (Desktop) */}
       <div className="hidden lg:block">
         <BookSidebar
@@ -593,19 +687,17 @@ export function BookPage() {
         <CalendarHeader
           selectedDate={selectedDate}
           calendarView={calendarView}
-          timeWindowMode={timeWindowMode}
+          timeWindowMode="fullday"
           onDateChange={handleDateChange}
           onViewChange={handleViewChangeWithTransition}
-          onTimeWindowModeChange={handleTimeWindowModeChange}
           onSearchClick={handleSearchClick}
           onRefreshClick={handleRefreshClick}
           onTodayClick={goToToday}
-          onFilterChange={setFilters}
           onNewAppointment={() => {
             setSelectedTimeSlot(null); // Clear any previous time slot selection
             setIsNewAppointmentOpen(true);
           }}
-          staff={allStaff.map(s => ({ id: s.id, name: s.name }))}
+          staff={allStaff}
           selectedStaffIds={selectedStaffIds}
           onStaffFilterChange={handleStaffSelection}
           sidebarOpen={isSidebarOpen}
@@ -613,17 +705,17 @@ export function BookPage() {
         />
 
         {/* Calendar + Sidebars */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden gap-2 p-2 sm:gap-4 sm:p-4">
-          {/* Calendar Area */}
-          <div className="flex-1 overflow-hidden w-full lg:w-auto relative min-h-0">
+        <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-auto">
+          {/* Calendar Area - Allow scrolling */}
+          <div className="flex-1 w-full lg:w-auto relative min-h-0 overflow-auto">
           {calendarView === 'day' && (
-            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+            <div className="h-full min-h-0 animate-fade-in" style={{ animationDuration: '300ms' }}>
               <DaySchedule
                 date={selectedDate}
                 staff={selectedStaff.map(s => ({
                   id: s.id,
                   name: s.name,
-                  photo: s.avatar,
+                  photo: s.image,
                 }))}
                 appointments={filteredAppointments || []}
                 businessClosure={businessClosure}
@@ -631,12 +723,15 @@ export function BookPage() {
                 onTimeSlotClick={handleTimeSlotClick}
                 onAppointmentDrop={handleAppointmentDrop}
                 onStatusChange={handleStatusChange}
+                onCopyAppointment={handleCopyAppointment}
+                onDuplicateAppointment={handleDuplicateAppointment}
+                onRebookAppointment={handleRebookAppointment}
               />
             </div>
           )}
 
           {calendarView === 'week' && (
-            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+            <div className="h-full min-h-0 animate-fade-in" style={{ animationDuration: '300ms' }}>
               <WeekView
                 startDate={selectedDate}
                 appointments={filteredAppointments || []}
@@ -650,7 +745,7 @@ export function BookPage() {
           )}
 
           {calendarView === 'month' && (
-            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+            <div className="h-full min-h-0 animate-fade-in" style={{ animationDuration: '300ms' }}>
               <MonthView
                 date={selectedDate}
                 appointments={filteredAppointments || []}
@@ -664,25 +759,24 @@ export function BookPage() {
             </div>
           )}
 
-          {calendarView === 'agenda' && (
-            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+          {(calendarView as any) === 'agenda' && (
+            <div className="h-full min-h-0 animate-fade-in" style={{ animationDuration: '300ms' }}>
               <AgendaView
                 appointments={filteredAppointments || []}
                 onAppointmentClick={handleAppointmentClick}
-                onStatusChange={handleStatusChange}
               />
             </div>
           )}
 
-          {calendarView === 'timeline' && (
-            <div className="h-full animate-fade-in" style={{ animationDuration: '300ms' }}>
+          {(calendarView as any) === 'timeline' && (
+            <div className="h-full min-h-0 animate-fade-in" style={{ animationDuration: '300ms' }}>
               <TimelineView
                 appointments={filteredAppointments || []}
                 date={selectedDate}
                 staff={selectedStaff.map(s => ({
                   id: s.id,
                   name: s.name,
-                  photo: s.avatar,
+                  photo: s.image,
                 }))}
                 onAppointmentClick={handleAppointmentClick}
                 onTimeSlotClick={handleTimeSlotClick}

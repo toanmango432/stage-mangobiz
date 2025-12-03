@@ -109,7 +109,7 @@ import {
   makeSelectStaffBlockedTimeForDate,
   makeSelectStaffBlockedTimeForDateRange,
   // Closed Period Selectors
-  selectClosedPeriods,
+//   selectClosedPeriods,
   selectClosedPeriodsLoading,
   selectClosedPeriodsError,
   selectClosedPeriodsNeedsRefresh,

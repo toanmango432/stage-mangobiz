@@ -13,7 +13,7 @@ import {
   setViewMode,
   setTimeWindowMode,
 } from '../store/slices/appointmentsSlice';
-import { RootState } from '../store';
+// import { RootState } from '../store';
 import {
   generateTimeSlots,
   calculate2HourWindow,
@@ -104,7 +104,7 @@ export function useAppointmentCalendar(options: UseAppointmentCalendarOptions = 
 
   const handleViewChange = useCallback(
     (view: CalendarView) => {
-      dispatch(setViewMode(view));
+      dispatch(setViewMode(view as 'day' | 'week' | 'month'));
     },
     [dispatch]
   );

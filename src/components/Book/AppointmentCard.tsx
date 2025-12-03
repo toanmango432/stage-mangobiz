@@ -4,7 +4,7 @@
  */
 
 import { memo, useState, useMemo } from 'react';
-import { User, BadgeCheck } from 'lucide-react';
+import { BadgeCheck, UserCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { formatTimeDisplay, formatDurationDisplay } from '../../utils/timeUtils';
@@ -18,18 +18,6 @@ interface AppointmentCardProps {
   className?: string;
 }
 
-const STATUS_STYLES: Record<
-  string,
-  { bg: string; fg: string; border: string; label: string }
-> = {
-  requested: { bg: '#FEF3C7', fg: '#92400E', border: '#FCD34D', label: 'Requested' },
-  scheduled: { bg: '#E0F2FE', fg: '#075985', border: '#93C5FD', label: 'Scheduled' },
-  confirmed: { bg: '#DCFCE7', fg: '#166534', border: '#86EFAC', label: 'Confirmed' },
-  'in-progress': { bg: '#F3E8FF', fg: '#6B21A8', border: '#D8B4FE', label: 'In Service' },
-  completed: { bg: '#F1F5F9', fg: '#334155', border: '#CBD5E1', label: 'Completed' },
-  cancelled: { bg: '#FEE2E2', fg: '#991B1B', border: '#FCA5A5', label: 'Cancelled' },
-  'no-show': { bg: '#FFEDD5', fg: '#9A3412', border: '#FDBA74', label: 'No Show' },
-};
 
 const SOURCE_COLORS: Record<string, string> = {
   online: '#26C6DA',
@@ -55,7 +43,6 @@ export const AppointmentCard = memo(function AppointmentCard({
   className,
 }: AppointmentCardProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const statusStyle = STATUS_STYLES[appointment.status] || STATUS_STYLES.scheduled;
   const sourceColor = SOURCE_COLORS[appointment.source] || SOURCE_COLORS.default;
 
   const durationMinutes = useMemo(
@@ -67,6 +54,12 @@ export const AppointmentCard = memo(function AppointmentCard({
         )
       ),
     [appointment.scheduledEndTime, appointment.scheduledStartTime]
+  );
+
+  // Check if any service has staffRequested flag
+  const hasRequestedStaff = useMemo(
+    () => appointment.services.some((service: any) => service.staffRequested === true),
+    [appointment.services]
   );
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -133,8 +126,18 @@ export const AppointmentCard = memo(function AppointmentCard({
                 <span className="text-sm font-semibold text-gray-900 truncate">
                   {appointment.clientName}
                 </span>
-                {appointment.status === 'confirmed' && (
+                {(appointment.status as any) === 'confirmed' && (
                   <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" aria-hidden />
+                )}
+                {/* Requested Staff Indicator */}
+                {hasRequestedStaff && (
+                  <span
+                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-bold border border-amber-200"
+                    title="Staff Requested"
+                  >
+                    <UserCheck className="w-3 h-3" />
+                    <span>REQ</span>
+                  </span>
                 )}
               </div>
               <StatusBadge

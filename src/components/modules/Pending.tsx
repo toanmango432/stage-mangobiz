@@ -3,6 +3,7 @@ import { useTickets } from '../../hooks/useTicketsCompat';
 import { PendingHeader } from '../pending';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
 import { PaymentModal } from '../checkout/LegacyPaymentModal';
+import TicketPanel from '../checkout/TicketPanel';
 import type { PaymentMethod, PaymentDetails } from '../../types';
 import type { PendingTicket } from '../../store/slices/uiTicketsSlice';
 import toast from 'react-hot-toast';
@@ -11,12 +12,25 @@ import { FrontDeskEmptyState } from '../frontdesk/FrontDeskEmptyState';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 import { usePullToRefresh } from '../../hooks/useGestures';
 import { haptics } from '../../utils/haptics';
+import { useAppSelector } from '../../store/hooks';
+import { selectAllStaff } from '../../store/slices/uiStaffSlice';
+import type { StaffMember } from '../checkout/ServiceList';
 
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 
 export function Pending() {
   const { pendingTickets, markTicketAsPaid } = useTickets();
   const { isMobile, isTablet } = useBreakpoint();
+
+  // Get staff from Redux
+  const staffFromRedux = useAppSelector(selectAllStaff);
+
+  // Convert Redux staff to StaffMember format
+  const staffMembers: StaffMember[] = staffFromRedux.map(s => ({
+    id: s.id,
+    name: s.name,
+    available: s.status === 'ready',
+  }));
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,7 +68,9 @@ export function Pending() {
   // Payment modal state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<PendingTicket | null>(null);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  // Checkout panel state - for full checkout experience
+  const [isCheckoutPanelOpen, setIsCheckoutPanelOpen] = useState(false);
 
   // Filter and sort tickets
   const filteredTickets = useMemo(() => {
@@ -143,27 +159,21 @@ export function Pending() {
     }
   };
 
-  // Cancel ticket handler
-  const handleCancelTicket = (ticketId: string) => {
-    if (confirm('Cancel this pending payment? The ticket will be removed from the queue.')) {
-      // TODO: Implement cancel functionality
-      toast.success('Ticket cancelled', {
-        duration: 2000,
-        position: 'top-center',
-      });
-      console.log('Cancel ticket:', ticketId);
+  // Checkout panel handlers - opens full checkout experience
+  const handleOpenCheckoutPanel = (ticketId: string) => {
+    // Store the pending ticket ID in localStorage so TicketPanel can load it
+    const ticket = pendingTickets.find(t => t.id === ticketId);
+    if (ticket) {
+      localStorage.setItem('checkout-pending-ticket', JSON.stringify(ticket));
+      setIsCheckoutPanelOpen(true);
     }
   };
 
-  // Dropdown handlers
-  const handleOpenMenu = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenDropdownId(openDropdownId === id ? null : id);
+  const handleCloseCheckoutPanel = () => {
+    setIsCheckoutPanelOpen(false);
+    localStorage.removeItem('checkout-pending-ticket');
   };
 
-  const handleCloseMenu = () => {
-    setOpenDropdownId(null);
-  };
 
   return (
     <div className="h-full bg-gray-50 flex flex-col">
@@ -222,10 +232,7 @@ export function Pending() {
                   ticket={ticket}
                   viewMode={isMobile ? 'normal' : (cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal')}
                   onMarkPaid={handleOpenPaymentModal}
-                  onCancel={handleCancelTicket}
-                  isMenuOpen={openDropdownId === ticket.id}
-                  onOpenMenu={handleOpenMenu}
-                  onCloseMenu={handleCloseMenu}
+                  onClick={handleOpenCheckoutPanel}
                 />
               ))}
             </div>
@@ -237,10 +244,7 @@ export function Pending() {
                   ticket={ticket}
                   viewMode={cardViewMode === 'compact' ? 'compact' : 'normal'}
                   onMarkPaid={handleOpenPaymentModal}
-                  onCancel={handleCancelTicket}
-                  isMenuOpen={openDropdownId === ticket.id}
-                  onOpenMenu={handleOpenMenu}
-                  onCloseMenu={handleCloseMenu}
+                  onClick={handleOpenCheckoutPanel}
                 />
               ))}
             </div>
@@ -250,15 +254,24 @@ export function Pending() {
         )}
       </main>
 
-      {/* Payment Modal */}
+      {/* Payment Modal - Quick payment option */}
       {selectedTicket && (
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={handleClosePaymentModal}
-          ticket={selectedTicket}
+          ticket={selectedTicket as any}
           onConfirm={handlePaymentConfirm}
         />
       )}
+
+      {/* Full Checkout Panel - Opens when clicking on a ticket */}
+      <TicketPanel
+        isOpen={isCheckoutPanelOpen}
+        onClose={handleCloseCheckoutPanel}
+        staffMembers={staffMembers.length > 0 ? staffMembers : [
+          { id: 'staff-1', name: 'Staff Member', available: true },
+        ]}
+      />
     </div>
   );
 }

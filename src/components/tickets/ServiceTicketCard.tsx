@@ -1,7 +1,10 @@
 import { useState, useEffect, memo } from 'react';
-import { MoreVertical, Check, Pause, Trash2, StickyNote } from 'lucide-react';
+import { MoreVertical, Check, Pause, Play, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
+
+// Service status for individual services within a ticket
+type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
 
 interface ServiceTicketCardProps {
   ticket: {
@@ -12,6 +15,7 @@ interface ServiceTicketCardProps {
     service: string;
     duration: string;
     time: string;
+    status: 'waiting' | 'in-service' | 'completed';
     notes?: string;
     priority?: 'normal' | 'high';
     technician?: string;
@@ -29,10 +33,13 @@ interface ServiceTicketCardProps {
     }>;
     createdAt?: Date;
     lastVisitDate?: Date | null; // null for first-time clients
+    // Service status - determines if ticket is paused
+    serviceStatus?: ServiceStatus;
   };
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onComplete?: (ticketId: string) => void;
   onPause?: (ticketId: string) => void;
+  onResume?: (ticketId: string) => void;
   onDelete?: (ticketId: string) => void;
   onClick?: (ticketId: string) => void;
 }
@@ -42,6 +49,7 @@ function ServiceTicketCardComponent({
   viewMode = 'compact',
   onComplete,
   onPause,
+  onResume,
   onDelete,
   onClick
 }: ServiceTicketCardProps) {
@@ -49,6 +57,9 @@ function ServiceTicketCardComponent({
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [progress, setProgress] = useState(0);
+
+  // Check if ticket is paused
+  const isPaused = ticket.serviceStatus === 'paused';
 
   // Calculate elapsed time and progress
   useEffect(() => {
@@ -138,15 +149,19 @@ function ServiceTicketCardComponent({
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className="relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
+          className={`relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer ${isPaused ? 'opacity-75' : ''}`}
           role="button"
           tabIndex={0}
-          aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
+          aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}${isPaused ? ' (Paused)' : ''}`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
           style={{
-            background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+            background: isPaused
+              ? 'linear-gradient(145deg, #FFF8E1 0%, #FFF3CD 50%, #FFECB3 100%)'
+              : 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
             border: '1px dashed #D8D8D8',
-            borderLeft: '3px solid rgba(16, 185, 129, 0.28)',
+            borderLeft: isPaused
+              ? '3px solid rgba(245, 158, 11, 0.6)'
+              : '3px solid rgba(16, 185, 129, 0.28)',
             borderRadius: '10px',
             boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
           }}
@@ -159,46 +174,37 @@ function ServiceTicketCardComponent({
             {[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
           </div>
 
-          {/* Compact ticket number badge */}
-          <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-2xs z-20"
-               style={{
-                 background: 'rgba(16, 185, 129, 0.06)',
-                 borderTopRightRadius: '6px',
-                 borderBottomRightRadius: '6px',
-                 borderTop: '2px solid rgba(16, 185, 129, 0.28)',
-                 borderRight: '2px solid rgba(16, 185, 129, 0.28)',
-                 borderBottom: '2px solid rgba(16, 185, 129, 0.28)',
-                 boxShadow: '2px 0 4px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                 letterSpacing: '-0.02em',
-                 transform: 'translateX(-2px)'
-               }}>
-            {ticket.number}
-          </div>
-
           {/* Compact content area */}
-          <div className="py-0.5 pr-12 pl-7 relative">
-            {/* Single compact row */}
-            <div className="flex items-center justify-between gap-1">
-              {/* Left: Client + Service */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="font-semibold text-xs text-[#1a1614] truncate leading-tight">{ticket.clientName}</span>
-                  {hasStar && <span className="text-2xs">⭐</span>}
-                  {hasNote && <span className="text-2xs">📋</span>}
-                </div>
-                <div className="text-2xs text-[#6b5d52] truncate leading-tight">{ticket.service}</div>
+          <div className="py-1 px-2.5 pr-12 relative">
+            {/* Row 1: Client name + Ticket # + Last visit + Paused badge */}
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="font-semibold text-xs text-[#1a1614] truncate leading-tight">{ticket.clientName}</span>
+              {hasStar && <span className="text-2xs">⭐</span>}
+              {hasNote && <span className="text-2xs">📋</span>}
+              {/* Paused badge */}
+              {isPaused && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-2xs font-semibold rounded bg-amber-100 text-amber-700 border border-amber-300">
+                  <Pause size={10} /> PAUSED
+                </span>
+              )}
+              {/* Inline ticket number badge */}
+              <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs"
+                   style={{
+                     background: 'rgba(16, 185, 129, 0.12)',
+                     border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                     color: '#1a1614',
+                     boxShadow: '0 1px 2px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                   }}>
+                {ticket.number}
               </div>
+              <span className="text-2xs text-[#6b5d52] whitespace-nowrap">{getLastVisitText()}</span>
+            </div>
 
-              {/* Right: Progress + Staff */}
+            {/* Row 2: Service + Progress + Staff */}
+            <div className="flex items-center justify-between gap-1">
+              <div className="text-2xs text-[#6b5d52] truncate leading-tight flex-1 min-w-0">{ticket.service}</div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                {/* Progress indicator */}
-                <div className="flex items-center gap-1">
-                  <div className="w-12 h-0.5 bg-[#f5f0e8] rounded-full overflow-hidden">
-                    <div className="h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} />
-                  </div>
-                  <span className="text-2xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
-                </div>
-
+                <span className="text-2xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
                 {/* Staff badges (max 2) */}
                 <div className="flex items-center gap-0.5">
                   {staffList.slice(0, 2).map((staff, i) => (
@@ -212,19 +218,32 @@ function ServiceTicketCardComponent({
               </div>
             </div>
 
-            {/* Compact Done button - Responsive: 44px mobile (accessibility), 28px desktop (space) */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-7 sm:h-7 min-w-[44px] sm:min-w-[28px] min-h-[44px] sm:min-h-[28px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-              onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
-              onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
-              title="Mark as Done"
-            >
-              <Check size={16} strokeWidth={2.5} />
-            </button>
+            {/* Compact action button - Done or Resume based on paused state */}
+            {isPaused ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-7 sm:h-7 min-w-[44px] sm:min-w-[28px] min-h-[44px] sm:min-h-[28px] flex items-center justify-center bg-white border-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-white hover:bg-amber-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                title="Resume Service"
+              >
+                <Play size={16} strokeWidth={2.5} />
+              </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-7 sm:h-7 min-w-[44px] sm:min-w-[28px] min-h-[44px] sm:min-h-[28px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                title="Mark as Done"
+              >
+                <Check size={16} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
-          
+
           {/* Paper texture overlay */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
         </div>
@@ -238,15 +257,19 @@ function ServiceTicketCardComponent({
     return (
       <>
       <div onClick={() => onClick?.(ticket.id)}
-           className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer"
+           className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${isPaused ? 'opacity-75' : ''}`}
            role="button"
            tabIndex={0}
-           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`}
+           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}${isPaused ? ' (Paused)' : ''}`}
            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
            style={{
-             background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
+             background: isPaused
+               ? 'linear-gradient(145deg, #FFF8E1 0%, #FFF3CD 50%, #FFECB3 100%)'
+               : 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
              border: '1px dashed #D8D8D8',
-             borderLeft: '3px solid rgba(16, 185, 129, 0.28)',
+             borderLeft: isPaused
+               ? '3px solid rgba(245, 158, 11, 0.6)'
+               : '3px solid rgba(16, 185, 129, 0.28)',
              borderRadius: '10px',
              boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
            }}>
@@ -258,54 +281,80 @@ function ServiceTicketCardComponent({
         <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
           {[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}
         </div>
-        
-        {/* Wrap-around ticket number badge at Row 1 height */}
-        <div className="absolute left-0 top-[2px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
-             style={{
-               background: 'rgba(16, 185, 129, 0.06)',
-               borderTopRightRadius: '8px',
-               borderBottomRightRadius: '8px',
-               borderTop: '2px solid rgba(16, 185, 129, 0.28)',
-               borderRight: '2px solid rgba(16, 185, 129, 0.28)',
-               borderBottom: '2px solid rgba(16, 185, 129, 0.28)',
-               boxShadow: '2px 0 4px rgba(16, 185, 129, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-               letterSpacing: '-0.02em',
-               transform: 'translateX(-3px)'
-             }}>
-          {ticket.number}
-        </div>
 
         {/* Content area */}
-        <div className="py-0.5 pr-2.5 pl-11">
-          {/* Row 1: Client name + Time/Progress */}
-          <div className="flex items-start justify-between gap-1.5 mb-0.5">
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[#1a1614] truncate text-base leading-tight">{ticket.clientName}</span>
-                  {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
-                  {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
-                </div>
-                <div className="text-2xs text-[#6b5d52] font-medium tracking-wide leading-tight">{getLastVisitText()}</div>
+        <div className="py-1.5 px-3">
+          {/* Row 1: Client name + Ticket # + Last visit + Paused badge | Time + Progress % + More menu */}
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="font-bold text-[#1a1614] truncate text-base leading-tight">{ticket.clientName}</span>
+              {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
+              {hasNote && <span className="text-sm flex-shrink-0">📋</span>}
+              {/* Paused badge */}
+              {isPaused && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded bg-amber-100 text-amber-700 border border-amber-300">
+                  <Pause size={12} /> PAUSED
+                </span>
+              )}
+              {/* Inline ticket number badge */}
+              <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-black text-base"
+                   style={{
+                     background: isPaused ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                     border: isPaused ? '2px solid rgba(245, 158, 11, 0.35)' : '2px solid rgba(16, 185, 129, 0.35)',
+                     color: '#1a1614',
+                     boxShadow: isPaused ? '0 1px 3px rgba(245, 158, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' : '0 1px 3px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                   }}>
+                {ticket.number}
               </div>
+              <span className="text-2xs text-[#6b5d52] font-medium tracking-wide whitespace-nowrap">{getLastVisitText()}</span>
+            </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <span className="text-xs text-[#6b5d52] whitespace-nowrap">{formatTime(timeRemaining)}</span>
-              <div className="w-24 h-1.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden"
-                   style={{ boxShadow: 'inset 0 1px 1px rgba(139, 92, 46, 0.08)' }}>
-                <div className="h-full transition-all duration-300 rounded-full"
-                     style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} />
-              </div>
-              <span className="text-sm font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
+              <span className="text-sm font-bold whitespace-nowrap" style={{ color: isPaused ? '#D97706' : currentStatus.text }}>{isPaused ? 'PAUSED' : `${Math.round(progress)}%`}</span>
+              {/* More menu */}
+              <Tippy
+                content={
+                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]">
+                    {isPaused ? (
+                      <button onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                        <Play size={14} /> Resume
+                      </button>
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                        <Pause size={14} /> Pause
+                      </button>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                      <StickyNote size={14} /> Details
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
+                }
+                visible={showMenu}
+                onClickOutside={() => setShowMenu(false)}
+                interactive={true}
+                placement="bottom-end"
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                  className="text-[#6b5d52] hover:text-[#2d2520] p-1.5 rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"
+                >
+                  <MoreVertical size={18} />
+                </button>
+              </Tippy>
             </div>
           </div>
 
           {/* Divider - spans full content width */}
           <div className="border-t border-[#e8dcc8]/50" />
 
-          {/* Row 2: Service + Staff badges + Done button */}
-          <div className="flex items-center justify-between gap-1.5 mt-0.5">
+          {/* Row 2: Service + Staff badges + Done/Resume button */}
+          <div className="flex items-center justify-between gap-1.5 mt-1">
             <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
 
-            {/* Staff badges + Done button */}
+            {/* Staff badges + Done/Resume button */}
             <div className="relative flex-shrink-0 flex items-center gap-2">
               <div className="flex items-center gap-1.5">
                 {staffList.map((staff, i) => (
@@ -315,16 +364,29 @@ function ServiceTicketCardComponent({
                   </div>
                 ))}
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                className="w-11 h-11 sm:w-10 sm:h-10 min-w-[44px] sm:min-w-[40px] min-h-[44px] sm:min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
-                title="Mark as Done"
-              >
-                <Check size={22} strokeWidth={2.5} />
-              </button>
+              {isPaused ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }}
+                  className="w-11 h-11 sm:w-10 sm:h-10 min-w-[44px] sm:min-w-[40px] min-h-[44px] sm:min-h-[40px] flex items-center justify-center bg-white border-2 border-amber-400 text-amber-600 hover:border-amber-500 hover:text-white hover:bg-amber-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.25)'}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                  title="Resume Service"
+                >
+                  <Play size={22} strokeWidth={2.5} />
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                  className="w-11 h-11 sm:w-10 sm:h-10 min-w-[44px] sm:min-w-[40px] min-h-[44px] sm:min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
+                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                  title="Mark as Done"
+                >
+                  <Check size={22} strokeWidth={2.5} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -412,6 +474,7 @@ export const ServiceTicketCard = memo(ServiceTicketCardComponent, (prevProps, ne
     prevProps.ticket.clientName === nextProps.ticket.clientName &&
     prevProps.ticket.service === nextProps.ticket.service &&
     prevProps.ticket.assignedStaff?.length === nextProps.ticket.assignedStaff?.length &&
+    prevProps.ticket.serviceStatus === nextProps.ticket.serviceStatus &&
     prevProps.viewMode === nextProps.viewMode
   );
 });

@@ -51,7 +51,7 @@ export const SafetySection: React.FC<SafetySectionProps> = ({
     const loadPatchTests = async () => {
       try {
         setLoadingTests(true);
-        const tests = await patchTestsDB.getByClient(client.id);
+        const tests = await patchTestsDB.getByClientId(client.id);
         setPatchTests(tests);
       } catch (error) {
         console.error('Failed to load patch tests:', error);
@@ -68,7 +68,7 @@ export const SafetySection: React.FC<SafetySectionProps> = ({
       try {
         setLoadingForms(true);
         const [responses, templates] = await Promise.all([
-          formResponsesDB.getByClient(client.id),
+          formResponsesDB.getByClientId(client.id),
           formTemplatesDB.getActiveByStore('current-store'), // Would use actual store ID
         ]);
         setFormResponses(responses);

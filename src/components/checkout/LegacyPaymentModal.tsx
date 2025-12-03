@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, DollarSign, Camera, Check, AlertCircle } from 'lucide-react';
 import { PaymentMethod } from '../../types/common';
 import { PaymentDetails } from '../../types/transaction';
-import { PendingTicket } from '../../types/Ticket';
+import { Ticket } from '../../types/Ticket';
 import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from '../layout/MobileSheet';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 import { haptics } from '../../utils/haptics';
@@ -10,7 +10,7 @@ import { haptics } from '../../utils/haptics';
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  ticket: PendingTicket;
+  ticket: Ticket;
   onConfirm: (paymentMethod: PaymentMethod, paymentDetails: PaymentDetails, tip: number) => Promise<void>;
 }
 
@@ -234,15 +234,15 @@ export function PaymentModal({ isOpen, onClose, ticket, onConfirm }: PaymentModa
         <div className="bg-gray-50 rounded-xl p-4">
           <div className="text-sm text-gray-600 mb-1">Service</div>
           <div className="font-semibold text-gray-900">
-            {ticket.service}
-            {ticket.additionalServices > 0 && (
+            {ticket.services[0]?.serviceName || 'No service'}
+            {ticket.services.length > 1 && (
               <span className="text-sm text-gray-500 ml-2">
-                +{ticket.additionalServices} more
+                +{ticket.services.length - 1} more
               </span>
             )}
           </div>
-          {ticket.technician && (
-            <div className="text-sm text-gray-600 mt-1">with {ticket.technician}</div>
+          {ticket.services[0]?.staffName && (
+            <div className="text-sm text-gray-600 mt-1">with {ticket.services[0].staffName}</div>
           )}
         </div>
 

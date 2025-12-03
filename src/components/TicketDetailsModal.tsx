@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, User, Tag, Clock, Timer, Calendar, Info, Edit2, Trash2 } from 'lucide-react';
 import { useTickets } from '../hooks/useTicketsCompat';
 interface TicketDetailsModalProps {
@@ -22,18 +21,18 @@ export function TicketDetailsModal({
   } = useTickets();
   if (!isOpen || !ticketId) return null;
   // Find the ticket across all lists
-  const ticket = [...waitlist, ...services, ...pendingTickets].find(t => t.id === ticketId);
+  const ticket = [...waitlist, ...services, ...pendingTickets].find(t => t.id === String(ticketId));
   if (!ticket) return null;
   // Determine ticket status
   let status = 'Unknown';
   let statusColor = 'bg-gray-100 text-gray-700';
-  if (waitlist.some(t => t.id === ticketId)) {
+  if (waitlist.some(t => t.id === String(ticketId))) {
     status = 'Waiting';
     statusColor = 'bg-blue-100 text-blue-700 border-blue-200';
-  } else if (services.some(t => t.id === ticketId)) {
+  } else if (services.some((t: any) => t.id === String(ticketId))) {
     status = 'In Service';
     statusColor = 'bg-green-100 text-green-700 border-green-200';
-  } else if (pendingTickets.some(t => t.id === ticketId)) {
+  } else if (pendingTickets.some((t: any) => t.id === String(ticketId))) {
     status = 'Pending';
     statusColor = 'bg-amber-100 text-amber-700 border-amber-200';
   }
@@ -41,7 +40,7 @@ export function TicketDetailsModal({
   let location = 'Unknown';
   if (ticket.technician) {
     location = `With ${ticket.technician}`;
-  } else if (waitlist.some(t => t.id === ticketId)) {
+  } else if (waitlist.some(t => t.id === String(ticketId))) {
     location = 'In waiting area';
   }
   return <>
@@ -221,7 +220,7 @@ export function TicketDetailsModal({
             {/* Modal footer with actions */}
             <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-between">
               {/* Left side - delete button */}
-              {onDelete && <button onClick={() => onDelete(ticket.id)} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md flex items-center">
+              {onDelete && <button onClick={() => onDelete(Number(ticket.id))} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md flex items-center">
                   <Trash2 size={14} className="mr-1.5" />
                   Delete
                 </button>}
@@ -230,7 +229,7 @@ export function TicketDetailsModal({
                 <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm">
                   Close
                 </button>
-                {onEdit && <button onClick={() => onEdit(ticket.id)} className="px-4 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#219653] transition-colors text-sm flex items-center">
+                {onEdit && <button onClick={() => onEdit(Number(ticket.id))} className="px-4 py-2 bg-[#27AE60] text-white rounded-md hover:bg-[#219653] transition-colors text-sm flex items-center">
                     <Edit2 size={14} className="mr-1.5" />
                     Edit
                   </button>}

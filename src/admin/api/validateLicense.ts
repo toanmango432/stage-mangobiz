@@ -357,6 +357,7 @@ async function findOrCreateStore(
     licenseId: license.id,
     tenantId: license.tenantId,
     name: `Store ${existingStores.length + 1}`,
+    password: 'changeme123', // Default password - must be changed on first login
   });
 
   await logValidation('store_created', license.id, store.id, {

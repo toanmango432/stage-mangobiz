@@ -5,6 +5,7 @@ import type {
   Appointment,
   CreateAppointmentInput,
   Ticket,
+  TicketService,
   CreateTicketInput,
   Transaction,
   Staff,
@@ -17,6 +18,10 @@ import type {
   Referral,
   ClientReview,
   LoyaltyReward,
+  ReviewRequest,
+  ReviewRequestStatus,
+  CustomSegment,
+  SegmentFilterGroup,
   ClientFilters,
   ClientSortOptions,
   BulkOperationResult,
@@ -77,7 +82,7 @@ export const appointmentsDB = {
       ...input,
       status: 'scheduled',
       scheduledEndTime: new Date(
-        input.scheduledStartTime.getTime() + 
+        input.scheduledStartTime.getTime() +
         input.services.reduce((sum, s) => sum + s.duration, 0) * 60000
       ),
       createdAt: now,
@@ -85,7 +90,7 @@ export const appointmentsDB = {
       createdBy: userId,
       lastModifiedBy: userId,
       syncStatus: 'local',
-    };
+    } as Appointment;
 
     await db.appointments.add(appointment);
     return appointment;
@@ -157,23 +162,36 @@ export const ticketsDB = {
     const now = new Date();
     const subtotal = input.services.reduce((sum, s) => sum + s.price, 0) +
                     (input.products?.reduce((sum, p) => sum + p.total, 0) || 0);
-    
+
+    // Convert CreateTicketServiceInput to TicketService with defaults
+    const services: TicketService[] = input.services.map(s => ({
+      ...s,
+      status: s.status || 'not_started',
+      statusHistory: [],
+      totalPausedDuration: 0,
+    }));
+
     const ticket: Ticket = {
       id: uuidv4(),
       salonId,
-      ...input,
+      clientId: input.clientId,
+      clientName: input.clientName,
+      clientPhone: input.clientPhone,
+      appointmentId: input.appointmentId,
+      services,
       products: input.products || [],
-      status: 'in-service',
+      status: 'pending',
       subtotal,
       discount: 0,
       tax: Math.round(subtotal * TAX_RATE * 100) / 100,
       tip: 0,
       total: Math.round(subtotal * (1 + TAX_RATE) * 100) / 100,
       payments: [],
-      createdAt: now,
+      createdAt: now.toISOString(),
       createdBy: userId,
       lastModifiedBy: userId,
       syncStatus: 'local',
+      source: input.source,
     };
 
     await db.tickets.add(ticket);
@@ -199,11 +217,100 @@ export const ticketsDB = {
     await db.tickets.delete(id);
   },
 
+  /**
+   * Add a raw ticket object directly to IndexedDB.
+   * Use this when you have a pre-built ticket object with all fields.
+   */
+  async addRaw(ticket: Partial<Ticket>): Promise<Ticket> {
+    const ticketWithDefaults = {
+      ...ticket,
+      syncStatus: 'local',
+    } as Ticket;
+    await db.tickets.put(ticketWithDefaults);
+    return ticketWithDefaults;
+  },
+
   async complete(id: string, userId: string): Promise<Ticket | undefined> {
     return await this.update(id, {
-      status: 'completed',
-      completedAt: new Date(),
+      status: 'paid',
+      completedAt: new Date().toISOString(),
+      isDraft: false,
     }, userId);
+  },
+
+  /**
+   * Create a draft ticket for auto-save and status persistence.
+   * Supports walk-in (no client) scenarios.
+   */
+  async createDraft(
+    services: TicketService[],
+    userId: string,
+    salonId: string,
+    clientInfo?: { clientId: string; clientName: string; clientPhone: string }
+  ): Promise<Ticket> {
+    const now = new Date();
+    const subtotal = services.reduce((sum, s) => sum + s.price, 0);
+    const expirationHours = 24; // Default from DRAFT_CONFIG
+
+    const ticket: Ticket = {
+      id: uuidv4(),
+      salonId,
+      clientId: clientInfo?.clientId || 'walk-in',
+      clientName: clientInfo?.clientName || 'Walk-in',
+      clientPhone: clientInfo?.clientPhone || '',
+      services,
+      products: [],
+      status: 'pending',
+      subtotal,
+      discount: 0,
+      tax: Math.round(subtotal * TAX_RATE * 100) / 100,
+      tip: 0,
+      total: Math.round(subtotal * (1 + TAX_RATE) * 100) / 100,
+      payments: [],
+      createdAt: now.toISOString(),
+      createdBy: userId,
+      lastModifiedBy: userId,
+      syncStatus: 'local',
+      isDraft: true,
+      draftExpiresAt: new Date(now.getTime() + expirationHours * 60 * 60 * 1000).toISOString(),
+      lastAutoSaveAt: now.toISOString(),
+      source: 'pos',
+    };
+
+    await db.tickets.add(ticket);
+    return ticket;
+  },
+
+  /**
+   * Get all draft tickets for a salon.
+   */
+  async getDrafts(salonId: string): Promise<Ticket[]> {
+    return await db.tickets
+      .where('salonId')
+      .equals(salonId)
+      .and(ticket => ticket.isDraft === true)
+      .toArray();
+  },
+
+  /**
+   * Delete expired drafts (older than 24 hours by default).
+   */
+  async cleanupExpiredDrafts(salonId: string): Promise<number> {
+    const now = new Date().toISOString();
+    const expiredDrafts = await db.tickets
+      .where('salonId')
+      .equals(salonId)
+      .and(ticket =>
+        ticket.isDraft === true &&
+        ticket.draftExpiresAt !== undefined &&
+        ticket.draftExpiresAt < now
+      )
+      .toArray();
+
+    for (const draft of expiredDrafts) {
+      await db.tickets.delete(draft.id);
+    }
+    return expiredDrafts.length;
   },
 };
 
@@ -829,6 +936,13 @@ export const formTemplatesDB = {
       .toArray();
   },
 
+  async getActiveByStore(storeId: string): Promise<FormTemplate[]> {
+    return await db.formTemplates
+      .where('[storeId+isActive]')
+      .equals([storeId, 1])
+      .toArray();
+  },
+
   async getById(id: string): Promise<FormTemplate | undefined> {
     return await db.formTemplates.get(id);
   },
@@ -968,9 +1082,9 @@ export const referralsDB = {
   },
 
   async getByCode(code: string): Promise<Referral | undefined> {
+    // Use filter instead of index since referralLinkCode is not indexed
     return await db.referrals
-      .where('referralLinkCode')
-      .equals(code)
+      .filter(r => r.referralLinkCode === code)
       .first();
   },
 
@@ -1060,6 +1174,20 @@ export const clientReviewsDB = {
     await db.clientReviews.put(updated);
     return updated;
   },
+
+  async update(id: string, updates: Partial<ClientReview>): Promise<ClientReview | undefined> {
+    const review = await db.clientReviews.get(id);
+    if (!review) return undefined;
+
+    const updated: ClientReview = {
+      ...review,
+      ...updates,
+      syncStatus: 'local',
+    };
+
+    await db.clientReviews.put(updated);
+    return updated;
+  },
 };
 
 // ==================== LOYALTY REWARDS (PRD 2.3.7) ====================
@@ -1113,6 +1241,285 @@ export const loyaltyRewardsDB = {
 
     await db.loyaltyRewards.put(updated);
     return updated;
+  },
+};
+
+// ==================== REVIEW REQUESTS (PRD 2.3.9) ====================
+
+export const reviewRequestsDB = {
+  async getById(id: string): Promise<ReviewRequest | undefined> {
+    return await db.reviewRequests.get(id);
+  },
+
+  async getByClientId(clientId: string, limit: number = 50): Promise<ReviewRequest[]> {
+    return await db.reviewRequests
+      .where('clientId')
+      .equals(clientId)
+      .reverse()
+      .limit(limit)
+      .toArray();
+  },
+
+  async getBySalonId(salonId: string, limit: number = 100): Promise<ReviewRequest[]> {
+    return await db.reviewRequests
+      .where('salonId')
+      .equals(salonId)
+      .reverse()
+      .limit(limit)
+      .toArray();
+  },
+
+  async getByStatus(salonId: string, status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
+    return await db.reviewRequests
+      .where('[salonId+status]')
+      .equals([salonId, status])
+      .limit(limit)
+      .toArray();
+  },
+
+  async getPendingByClient(clientId: string): Promise<ReviewRequest[]> {
+    return await db.reviewRequests
+      .where('[clientId+status]')
+      .equals([clientId, 'pending'])
+      .toArray();
+  },
+
+  async getByAppointmentId(appointmentId: string): Promise<ReviewRequest | undefined> {
+    return await db.reviewRequests
+      .where('appointmentId')
+      .equals(appointmentId)
+      .first();
+  },
+
+  async getByStaffId(staffId: string, limit: number = 100): Promise<ReviewRequest[]> {
+    return await db.reviewRequests
+      .where('staffId')
+      .equals(staffId)
+      .reverse()
+      .limit(limit)
+      .toArray();
+  },
+
+  async create(request: Omit<ReviewRequest, 'id' | 'createdAt' | 'syncStatus'>): Promise<ReviewRequest> {
+    const newRequest: ReviewRequest = {
+      id: uuidv4(),
+      ...request,
+      createdAt: new Date().toISOString(),
+      syncStatus: 'local',
+    };
+
+    await db.reviewRequests.add(newRequest);
+    return newRequest;
+  },
+
+  async update(id: string, updates: Partial<ReviewRequest>): Promise<ReviewRequest | undefined> {
+    const request = await db.reviewRequests.get(id);
+    if (!request) return undefined;
+
+    const updated: ReviewRequest = {
+      ...request,
+      ...updates,
+      syncStatus: 'local',
+    };
+
+    await db.reviewRequests.put(updated);
+    return updated;
+  },
+
+  async markSent(id: string, sentVia: 'email' | 'sms' | 'both'): Promise<ReviewRequest | undefined> {
+    return await this.update(id, {
+      status: 'sent',
+      sentVia,
+      sentAt: new Date().toISOString(),
+    });
+  },
+
+  async markOpened(id: string): Promise<ReviewRequest | undefined> {
+    return await this.update(id, {
+      status: 'opened',
+      openedAt: new Date().toISOString(),
+    });
+  },
+
+  async markCompleted(id: string, reviewId: string): Promise<ReviewRequest | undefined> {
+    return await this.update(id, {
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      reviewId,
+    });
+  },
+
+  async markExpired(id: string): Promise<ReviewRequest | undefined> {
+    return await this.update(id, {
+      status: 'expired',
+    });
+  },
+
+  async addReminder(id: string): Promise<ReviewRequest | undefined> {
+    const request = await db.reviewRequests.get(id);
+    if (!request) return undefined;
+
+    return await this.update(id, {
+      reminderCount: request.reminderCount + 1,
+      lastReminderAt: new Date().toISOString(),
+    });
+  },
+
+  async delete(id: string): Promise<boolean> {
+    await db.reviewRequests.delete(id);
+    return true;
+  },
+
+  /**
+   * Get requests that need reminders sent
+   */
+  async getNeedingReminder(salonId: string, maxReminders: number = 1): Promise<ReviewRequest[]> {
+    const requests = await db.reviewRequests
+      .where('[salonId+status]')
+      .equals([salonId, 'sent'])
+      .toArray();
+
+    return requests.filter(r => r.reminderCount < maxReminders);
+  },
+
+  /**
+   * Get expired requests that need status update
+   */
+  async getExpired(salonId: string): Promise<ReviewRequest[]> {
+    const now = new Date().toISOString();
+    const requests = await db.reviewRequests
+      .where('salonId')
+      .equals(salonId)
+      .and(r => r.status !== 'completed' && r.status !== 'expired' && r.expiresAt < now)
+      .toArray();
+
+    return requests;
+  },
+
+  /**
+   * Count requests for a client in a time period
+   */
+  async countRecentByClient(clientId: string, daysBack: number = 30): Promise<number> {
+    const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
+    const requests = await db.reviewRequests
+      .where('clientId')
+      .equals(clientId)
+      .and(r => r.createdAt > cutoff)
+      .count();
+
+    return requests;
+  },
+};
+
+// ==================== CUSTOM SEGMENTS (PRD 2.3.10) ====================
+
+export const customSegmentsDB = {
+  async getById(id: string): Promise<CustomSegment | undefined> {
+    return await db.customSegments.get(id);
+  },
+
+  async getBySalonId(salonId: string, activeOnly: boolean = true): Promise<CustomSegment[]> {
+    if (activeOnly) {
+      return await db.customSegments
+        .where('[salonId+isActive]')
+        .equals([salonId, 1])
+        .toArray();
+    }
+    return await db.customSegments
+      .where('salonId')
+      .equals(salonId)
+      .toArray();
+  },
+
+  async getActive(salonId: string): Promise<CustomSegment[]> {
+    return await db.customSegments
+      .where('[salonId+isActive]')
+      .equals([salonId, 1])
+      .toArray();
+  },
+
+  async getByName(salonId: string, name: string): Promise<CustomSegment | undefined> {
+    return await db.customSegments
+      .where('salonId')
+      .equals(salonId)
+      .and(s => s.name.toLowerCase() === name.toLowerCase())
+      .first();
+  },
+
+  async create(segment: Omit<CustomSegment, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<CustomSegment> {
+    const now = new Date().toISOString();
+    const newSegment: CustomSegment = {
+      id: uuidv4(),
+      ...segment,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'local',
+    };
+
+    await db.customSegments.add(newSegment);
+    return newSegment;
+  },
+
+  async update(id: string, updates: Partial<CustomSegment>): Promise<CustomSegment | undefined> {
+    const segment = await db.customSegments.get(id);
+    if (!segment) return undefined;
+
+    const updated: CustomSegment = {
+      ...segment,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'local',
+    };
+
+    await db.customSegments.put(updated);
+    return updated;
+  },
+
+  async updateFilters(id: string, filters: SegmentFilterGroup): Promise<CustomSegment | undefined> {
+    return await this.update(id, { filters });
+  },
+
+  async activate(id: string): Promise<CustomSegment | undefined> {
+    return await this.update(id, { isActive: true });
+  },
+
+  async deactivate(id: string): Promise<CustomSegment | undefined> {
+    return await this.update(id, { isActive: false });
+  },
+
+  async delete(id: string): Promise<boolean> {
+    await db.customSegments.delete(id);
+    return true;
+  },
+
+  async duplicate(id: string, newName: string, createdBy: string): Promise<CustomSegment | undefined> {
+    const segment = await db.customSegments.get(id);
+    if (!segment) return undefined;
+
+    const now = new Date().toISOString();
+    const newSegment: CustomSegment = {
+      ...segment,
+      id: uuidv4(),
+      name: newName,
+      createdBy,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'local',
+    };
+
+    await db.customSegments.add(newSegment);
+    return newSegment;
+  },
+
+  async getCount(salonId: string): Promise<number> {
+    return await db.customSegments.where('salonId').equals(salonId).count();
+  },
+
+  async getActiveCount(salonId: string): Promise<number> {
+    return await db.customSegments
+      .where('[salonId+isActive]')
+      .equals([salonId, 1])
+      .count();
   },
 };
 

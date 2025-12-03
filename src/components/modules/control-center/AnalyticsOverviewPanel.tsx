@@ -1,10 +1,8 @@
 import {
   TrendingUp,
-  TrendingDown,
   DollarSign,
   Users,
   Calendar,
-  Clock,
   Award,
   Star,
   Target,

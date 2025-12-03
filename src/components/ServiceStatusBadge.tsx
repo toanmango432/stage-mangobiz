@@ -1,4 +1,3 @@
-import React from 'react';
 import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 interface ServiceStatusBadgeProps {
   status: 'waiting' | 'in-service' | 'completed';

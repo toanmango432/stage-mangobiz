@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Bell,
   Activity,
   MoreVertical,
   Info,
@@ -489,11 +488,6 @@ export function ScheduleView() {
   });
   
   // Mock current user - change role to "staff" to test staff perspective
-  const currentUser = {
-    id: "manager1",
-    name: "Sarah Manager",
-    role: "manager" as const
-  };
 
   // Apply settings changes  
   // Settings are automatically applied when changed
@@ -507,12 +501,12 @@ export function ScheduleView() {
   const handleMarkAllStaffOff = (date: string, reason: string) => {
     // Mark all staff as off for the specified date
     const updatedSchedule = { ...schedule };
-    
-    Object.keys(updatedSchedule).forEach(staffId => {
+
+    Object.keys(updatedSchedule).forEach(() => {
       // This is a simplified implementation - in a real app, you'd need to handle date-specific schedules
       // For now, we'll just show a toast confirming the action
     });
-    
+
     toast({
       title: "All Staff Marked Off",
       description: `All team members have been marked as off on ${date} for ${reason}`,
@@ -566,7 +560,7 @@ export function ScheduleView() {
     setFilteredEmployees(filtered);
   };
 
-  const handleTimeOffChipClick = (employeeId: string, date: string) => {
+  const handleTimeOffChipClick = (employeeId: string) => {
     // Open add/edit schedule modal with time off tab
     setInitialStaffId(employeeId);
     setInitialTab("timeoff");
@@ -715,9 +709,9 @@ export function ScheduleView() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
+                      <Button
+                        variant="default"
+                        size="sm"
                         className="apple-transition bg-primary text-primary-foreground hover:bg-primary/90 apple-shadow-sm rounded-xl focus:ring-2 focus:ring-primary focus:ring-offset-2 px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2.5 text-xs sm:text-sm md:text-base"
                         onClick={() => {
                           setAddEditScheduleModalOpen(true);
@@ -837,14 +831,14 @@ export function ScheduleView() {
             {/* Tab Navigation - Mobile responsive */}
             <div className="overflow-x-auto">
               <div className="flex gap-1 bg-muted/50 rounded-2xl p-1 w-fit min-w-full sm:min-w-0">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="flex-1 sm:flex-initial px-4 py-2 bg-card text-foreground font-medium apple-shadow-sm rounded-xl apple-transition text-sm"
                 >
                   Regular Shifts
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="flex-1 sm:flex-initial px-4 py-2 text-muted-foreground font-medium apple-transition hover:text-foreground text-sm"
                   onClick={() => toast({ title: "Coming Soon", description: "Schedule Planning feature is coming soon!" })}
                 >
@@ -954,10 +948,9 @@ export function ScheduleView() {
         </div>
       </div>
 
-      <TimeOffModal 
-        open={timeOffModalOpen} 
-        onOpenChange={setTimeOffModalOpen}
-        currentUser={currentUser}
+      <TimeOffModal
+        isOpen={timeOffModalOpen}
+        onClose={() => setTimeOffModalOpen(false)}
       />
       
       <AddEditScheduleModal

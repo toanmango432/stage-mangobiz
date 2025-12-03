@@ -1,5 +1,4 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './schema';
 import {
   appointmentsDB,
   ticketsDB,
@@ -17,7 +16,6 @@ import {
   staffServiceAssignmentsDB,
   catalogSettingsDB,
 } from './database';
-import type { Appointment, Ticket, Staff, Client, Service, Transaction } from '../types';
 
 // ==================== APPOINTMENTS ====================
 

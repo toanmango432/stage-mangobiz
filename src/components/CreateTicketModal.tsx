@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { UserPlus, Calendar, Clock, Tag, User, Users, AlertCircle, Check } from 'lucide-react';
+import { Clock, Tag, User, AlertCircle, Check } from 'lucide-react';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from './layout/MobileSheet';
 import { useBreakpoint } from '../hooks/useMobileModal';

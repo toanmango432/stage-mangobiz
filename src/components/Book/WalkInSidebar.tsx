@@ -10,7 +10,6 @@ import { User, ChevronDown, ChevronUp, Users, ChevronLeft, ChevronRight } from '
 import { cn } from '../../lib/utils';
 import { EmptyState } from './EmptyState';
 import { WalkInCard, WalkIn as WalkInType } from './WalkInCard';
-import { PremiumBadge } from '../premium';
 
 // Legacy interface for backward compatibility
 interface LegacyWalkIn {

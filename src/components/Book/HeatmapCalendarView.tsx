@@ -33,7 +33,6 @@ interface HeatmapCalendarViewProps {
 }
 
 export function HeatmapCalendarView({
-  startDate,
   days,
   onTimeSlotClick,
   onDayClick,

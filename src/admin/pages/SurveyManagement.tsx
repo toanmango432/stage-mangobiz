@@ -17,7 +17,6 @@ import {
   Star,
   Activity,
   Calendar,
-  Users,
   BarChart3,
   ChevronDown,
   ChevronUp,
@@ -50,9 +49,7 @@ import {
   SURVEY_TYPE_CONFIG,
   QUESTION_TYPE_CONFIG,
   TRIGGER_CONFIG,
-  SURVEY_STATUS_CONFIG,
-  createDefaultAppearance,
-  createDefaultThankYou
+  SURVEY_STATUS_CONFIG
 } from '../types/survey';
 import { surveysDB, surveyResponsesDB } from '../db/database';
 
@@ -133,7 +130,7 @@ export function SurveyManagement() {
   const handleSave = async (data: CreateSurveyInput) => {
     try {
       if (editingSurvey) {
-        await surveysDB.update(editingSurvey.id, data);
+        await surveysDB.update(editingSurvey.id, data as any);
       } else {
         const session = localStorage.getItem('mango_admin_session');
         const adminId = session ? JSON.parse(session).id : 'unknown';

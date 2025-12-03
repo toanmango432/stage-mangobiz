@@ -53,7 +53,7 @@ export const StaffColumn = memo(function StaffColumn({
 
       // Calculate exact position
       const distanceTime = (startSeconds / 900) - baseSlotIndex;
-      const top = baseSlotIndex * PIXELS_PER_15_MINUTES + 
+      const top = baseSlotIndex * PIXELS_PER_15_MINUTES +
                   calculateAppointmentTop(0, distanceTime);
       const height = calculateAppointmentHeight(durationMinutes);
 
@@ -62,7 +62,7 @@ export const StaffColumn = memo(function StaffColumn({
         top,
         height,
       };
-    }).filter(Boolean);
+    }).filter((item): item is { appointment: LocalAppointment; top: number; height: number } => item !== null);
   }, [appointments, timeSlots]);
 
   const handleDragOver = (e: React.DragEvent) => {

@@ -1,14 +1,11 @@
-import { useState } from "react";
-
 interface TimeOffModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: any) => void;
-  employeeId?: string;
   employeeName?: string;
 }
 
-export function TimeOffModal({ isOpen, onClose, onSubmit, employeeId, employeeName }: TimeOffModalProps) {
+export function TimeOffModal({ isOpen, onClose, onSubmit, employeeName }: TimeOffModalProps) {
   if (!isOpen) return null;
 
   return (

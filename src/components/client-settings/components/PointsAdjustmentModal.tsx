@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Input, Select, Textarea } from './SharedComponents';
+import { Button, Select, Textarea } from './SharedComponents';
 
 interface PointsAdjustmentModalProps {
   clientName: string;

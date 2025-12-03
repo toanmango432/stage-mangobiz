@@ -1,1478 +1,610 @@
 # Team Module Implementation Plan
 
-**Document Version:** 3.0
-**Created:** December 2024
-**Updated:** December 2024
-**Status:** Ready for Implementation
+> **Version:** 1.0
+> **Created:** December 2, 2024
+> **Based on:** PRD-Team-Module.md v2.0
+> **Reference:** `docs/product/PRD-Team-Module.md`
 
 ---
 
 ## Executive Summary
 
-This plan outlines the phased implementation of the Team Module for Mango POS. The module enables comprehensive staff management including profiles, schedules, permissions, commissions, and online booking settings.
+This implementation plan covers the remaining phases of the Team Module:
+- **Phase 2**: Time & Attendance (HIGH PRIORITY)
+- **Phase 3**: Payroll & Pay Runs (HIGH PRIORITY)
+- **Phase 4**: Staff Experience (MEDIUM PRIORITY)
 
-### Current State
-- UI components exist (`TeamSettings.tsx`, 7 section components)
-- Redux slice created (`teamSlice.ts`) with `BaseSyncableEntity` pattern
-- IndexedDB operations created (`teamOperations.ts`) with sync queue integration
-- Schema v4 with proper `storeId` indexes implemented
-- Mock data available with sync fields
-- **Phase 1.5 Quality Improvements Complete:**
-  - Zod validation schemas
-  - Field-level conflict resolution
-  - Optimistic updates
-  - 70 unit tests passing
-
-### What Needs to Be Done
-- Connect all UI sections to Redux state
-- Implement validation and error handling
-- Add full CRUD operations for all sub-entities
-- Integrate with existing modules (Calendar, Checkout)
-- Implement sync and conflict resolution
-- Add comprehensive testing
+Phase 1 (Foundation) is already complete with team profiles, roles, permissions, schedules, turn tracking, and commission configuration.
 
 ---
 
-## Quality Standards
+## Architecture Principles
 
-### Performance Targets
+Following the existing codebase patterns:
 
-| Operation | Target | Measurement |
-|-----------|--------|-------------|
-| Load team member list | < 100ms | Time from mount to render |
-| Save team member | < 200ms | Time from submit to UI update |
-| Search/filter | < 50ms | Time from input to results |
-| Form validation | < 10ms | Synchronous validation |
-| IndexedDB read | < 50ms | Single entity fetch |
-| IndexedDB write | < 100ms | Single entity save |
-
-### Accessibility Requirements (WCAG 2.1 AA)
-
-| Requirement | Implementation |
-|-------------|----------------|
-| Color contrast | Minimum 4.5:1 for text, 3:1 for large text |
-| Focus indicators | Visible 2px outline on all interactive elements |
-| Keyboard navigation | Full Tab/Enter/Escape support |
-| Screen reader | ARIA labels on all form controls |
-| Touch targets | Minimum 44x44px on mobile |
-| Error announcements | `aria-live="polite"` for validation errors |
-
-### Error Handling Standards
-
-```typescript
-// Standard error response structure
-interface OperationError {
-  code: string;           // e.g., 'VALIDATION_ERROR', 'DB_ERROR', 'SYNC_ERROR'
-  message: string;        // User-friendly message
-  field?: string;         // Field that caused error (for validation)
-  details?: unknown;      // Technical details for logging
-  recoverable: boolean;   // Can user retry?
-  suggestedAction?: string; // e.g., 'Refresh and try again'
-}
-```
+1. **Offline-First Data Flow**: Redux (optimistic) → IndexedDB → Sync Queue → Server
+2. **3-Layer Redux Architecture**: Feature slice → Legacy compatibility slice → UI slice
+3. **Database Operations**: Use `src/db/` pattern with `teamDB` style CRUD operations
+4. **Sync Support**: Extend `BaseSyncableEntity` with vector clocks and tombstone pattern
+5. **Component Structure**: Follow existing `src/components/team-settings/` patterns
 
 ---
 
-## Phase Overview
+## Phase 2: Time & Attendance
 
-| Phase | Name | Focus | Status |
-|-------|------|-------|--------|
-| **1** | Infrastructure Completion | Complete Redux/DB foundation | ✅ Complete |
-| **1.5** | Quality Improvements | Validation, tests, conflict resolution | ✅ Complete |
-| **2** | Profile & Services | Core team member CRUD + services | 🔜 Ready |
-| **3** | Schedule Management | Working hours, time-off, overrides | Ready |
-| **4** | Permissions & Security | Role-based access, PIN system | Ready |
-| **5** | Commission & Payroll | Commission config, basic payroll | Ready |
-| **6** | Online Booking | Booking settings, visibility | Ready |
-| **7** | Notifications | Email/SMS/Push preferences | Ready |
-| **8** | Integration & Polish | Calendar/Checkout integration, testing | Ready |
-| **9** | Timesheet & Pay Runs | Clock in/out, pay run generation (P1) | Ready |
+### 2.1 Overview
 
----
+| Feature | Effort | Dependencies |
+|---------|--------|--------------|
+| Clock in/out system | Medium | None |
+| Break tracking | Medium | Clock in/out |
+| Timesheet dashboard | Medium | Clock in/out |
+| Overtime calculation | Small | Timesheets |
+| Attendance alerts | Small | Timesheets |
+| Manager approval workflow | Medium | Timesheets |
+| Timesheet reports | Medium | Timesheets |
 
-## Phase 1: Infrastructure Completion (✅ COMPLETE)
+### 2.2 New Files to Create
 
-### Summary
-- Created `BaseSyncableEntity` type in `common.ts`
-- Updated `TeamMemberSettings` to extend `BaseSyncableEntity`
-- Created `teamOperations.ts` with sync queue integration
-- Updated IndexedDB schema to v4 with compound indexes
-- Updated `teamSlice.ts` with SyncContext support
+\`\`\`
+src/
+├── store/slices/
+│   └── timesheetSlice.ts              # NEW - Timesheet Redux state
+├── db/
+│   └── timesheetOperations.ts         # NEW - IndexedDB CRUD for timesheets
+├── components/team-settings/sections/
+│   └── TimesheetSection.tsx           # NEW - Timesheet tab in Team Settings
+├── components/timesheet/
+│   ├── TimesheetDashboard.tsx         # NEW - Full-page dashboard
+│   ├── ClockInOutWidget.tsx           # NEW - Clock in/out component
+│   ├── BreakTracker.tsx               # NEW - Break tracking component
+│   ├── TimesheetRow.tsx               # NEW - Individual entry row
+│   ├── TimesheetApprovalModal.tsx     # NEW - Approval workflow modal
+│   └── AttendanceAlert.tsx            # NEW - Alert notification component
+├── types/
+│   └── timesheet.ts                   # NEW - Timesheet type definitions
+└── utils/
+    └── overtimeCalculation.ts         # NEW - Overtime calculation logic
+\`\`\`
 
----
+### 2.3 Type Definitions
 
-## Phase 1.5: Quality Improvements (✅ COMPLETE)
+\`\`\`typescript
+// src/types/timesheet.ts
 
-### Summary
-- Created Zod validation schemas (`src/components/team-settings/validation/`)
-- Implemented field-level conflict resolution (`src/utils/conflictResolution.ts`)
-- Added optimistic updates to Redux thunks
-- 70 unit tests passing
+import { BaseSyncableEntity } from './common';
 
----
+export type TimesheetStatus = 'pending' | 'approved' | 'disputed';
+export type BreakType = 'paid' | 'unpaid';
+export type AttendanceAlertType = 'late_arrival' | 'early_departure' | 'missed_clock_in' | 'extended_break' | 'no_show';
 
-## Phase 2: Profile & Services
-
-### Objective
-Enable full CRUD for team member profiles and service assignments.
-
-### 2.1 Profile Section Enhancement
-
-**File:** `src/components/team-settings/sections/ProfileSection.tsx`
-
-#### Tasks
-- [ ] Connect all form fields to Redux state via `updateMemberProfile` action
-- [ ] Implement photo upload (base64 storage in IndexedDB, max 500KB)
-- [ ] Add Zod form validation using `validateProfile()` from validation module
-- [ ] Implement "Unsaved Changes" detection with `setHasUnsavedChanges`
-- [ ] Add save/cancel actions with confirmation
-- [ ] Add archive functionality (sets `isActive = false`)
-- [ ] Add restore functionality for archived members
-- [ ] Add delete with confirmation modal (soft delete with tombstone)
-
-#### Validation Rules
-```typescript
-// Using Zod schemas from validation/schemas.ts
-Profile Validation:
-- firstName: required, 1-100 chars
-- lastName: required, 1-100 chars
-- email: required, valid email format, unique per store
-- phone: optional, max 20 chars
-- displayName: auto-generated from first+last if empty
-```
-
-#### Error Handling
-| Error | User Message | Recovery |
-|-------|-------------|----------|
-| Validation failed | "Please fix the highlighted fields" | Show field errors |
-| Email already exists | "A team member with this email already exists" | Focus email field |
-| Save failed (DB) | "Unable to save. Please try again." | Retry button |
-| Photo too large | "Photo must be under 500KB" | Show file picker again |
-
-#### Performance Targets
-- Form render: < 50ms
-- Validation: < 10ms (synchronous)
-- Save operation: < 200ms (optimistic update)
-- Photo compression: < 500ms
-
-### 2.2 Add Team Member Flow
-
-**File:** `src/components/team-settings/components/AddTeamMember.tsx`
-
-#### Tasks
-- [ ] Connect form to `saveTeamMember` thunk
-- [ ] Generate UUID via `crypto.randomUUID()`
-- [ ] Initialize all `BaseSyncableEntity` fields via `createTeamMemberDefaults()`
-- [ ] Validate email uniqueness via `teamDB.getMemberByEmail()`
-- [ ] Handle save success (navigate to new member, show toast)
-- [ ] Handle save failure (show error, keep form open)
-
-#### Rollback Procedure
-```typescript
-// On save failure:
-1. Optimistic update already applied to Redux
-2. Catch error in thunk
-3. Dispatch rollback action (removes member from state)
-4. Show error toast with retry option
-5. Keep form populated for retry
-```
-
-### 2.3 Services Section Enhancement
-
-**File:** `src/components/team-settings/sections/ServicesSection.tsx`
-
-#### Tasks
-- [ ] Load available services from services store (or mock data initially)
-- [ ] Connect service toggles to Redux `updateMemberServices` action
-- [ ] Implement custom price override per service (validate: >= 0)
-- [ ] Implement custom duration override per service (validate: > 0, integer minutes)
-- [ ] Implement "Assign All Services" action
-- [ ] Implement "Clear All Services" action
-- [ ] Add service category filtering/grouping
-- [ ] Save changes via `saveTeamMember` thunk with debounce (300ms)
-
-#### Data Flow
-```
-User toggles service
-  → Dispatch updateMemberServices (optimistic)
-  → Debounce 300ms
-  → Dispatch saveTeamMember thunk
-  → teamDB.updateMember()
-  → syncQueueDB.add() for later sync
-```
-
-### 2.4 Team Member List Enhancement
-
-**File:** `src/components/team-settings/components/TeamMemberList.tsx`
-
-#### Tasks
-- [ ] Connect search to Redux `searchQuery` state (debounce 200ms)
-- [ ] Connect role filter to Redux `filterRole` state
-- [ ] Connect status filter to Redux `filterStatus` state
-- [ ] Show loading skeleton during `fetchTeamMembers` (use existing skeleton pattern)
-- [ ] Show empty state when no results ("No team members found")
-- [ ] Show sync status indicator per member (`syncStatus` field)
-- [ ] Add "Archived" filter option (shows `isActive = false`)
-- [ ] Implement virtual scrolling for > 50 members (optional, performance)
-
-#### Performance Targets
-- Search debounce: 200ms
-- Filter application: < 50ms
-- Skeleton to content: < 100ms
-
-### Testing Checklist - Phase 2
-- [ ] Can create new team member with required fields
-- [ ] Validation errors display correctly for invalid input
-- [ ] Can edit existing member profile fields
-- [ ] Changes persist after page refresh (IndexedDB)
-- [ ] Can archive team member (moves to archived list)
-- [ ] Can restore archived team member
-- [ ] Can delete team member (shows confirmation, performs soft delete)
-- [ ] Can toggle services for a member
-- [ ] Can set custom price/duration per service
-- [ ] Search filters members correctly (debounced)
-- [ ] Role/status filters work correctly
-- [ ] Sync status displays correctly
-- [ ] Optimistic updates show immediately
-- [ ] Rollback works on save failure
-
----
-
-## Phase 3: Schedule Management
-
-### Objective
-Implement weekly schedule, time-off requests, and schedule overrides.
-
-### Current State Analysis
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `ScheduleSection.tsx` | 70% complete | UI exists, missing validation & debounced save |
-| `teamSlice.ts` thunks | ✅ Complete | `saveTimeOffRequest`, `deleteTimeOffRequest`, `saveScheduleOverride`, `deleteScheduleOverride` |
-| `teamOperations.ts` | ✅ Complete | All DB methods implemented |
-| `TimeOffModal.tsx` | ❌ Not created | Needs to be built |
-| `ScheduleOverrideModal.tsx` | ❌ Not created | Needs to be built |
-| Shift validation | ❌ Missing | No overlap/format validation |
-
-### 3.1 Working Hours Enhancement
-
-**File:** `src/components/team-settings/sections/ScheduleSection.tsx`
-
-#### Existing Features (Already Implemented)
-- [x] Weekly schedule grid (7 days, Sunday=0)
-- [x] Day on/off toggle connected to `isWorking`
-- [x] Shift time inputs with `type="time"`
-- [x] Add/Remove shift buttons
-- [x] "Copy to Weekdays" action
-- [x] Total weekly hours calculation
-- [x] Three-tab layout (Regular Hours, Time Off, Overrides)
-- [x] Visual weekly overview
-
-#### Tasks to Complete
-- [ ] Add shift validation with inline error display
-- [ ] Implement debounced save (500ms) via `saveTeamMember` thunk
-- [ ] Add loading indicator during save
-- [ ] Add success toast on save
-- [ ] Fix max 3 shifts per day enforcement
-- [ ] Add keyboard support for time inputs (Tab navigation)
-
-#### Shift Validation Implementation
-
-```typescript
-// Add to ScheduleSection.tsx
-import { isValidTimeFormat } from '../validation/validate';
-
-interface ShiftError {
-  dayOfWeek: number;
-  shiftIndex: number;
-  field: 'startTime' | 'endTime';
-  message: string;
+export interface BreakEntry {
+  id: string;
+  startTime: string;           // ISO timestamp
+  endTime: string | null;      // null if break ongoing
+  type: BreakType;
+  duration: number;            // minutes
+  label?: string;              // "Lunch", "Break"
 }
 
-const [shiftErrors, setShiftErrors] = useState<ShiftError[]>([]);
-
-const validateShift = (
-  dayOfWeek: number,
-  shiftIndex: number,
-  startTime: string,
-  endTime: string,
-  allShifts: Shift[]
-): ShiftError[] => {
-  const errors: ShiftError[] = [];
-
-  // 1. Format validation
-  if (!isValidTimeFormat(startTime)) {
-    errors.push({
-      dayOfWeek,
-      shiftIndex,
-      field: 'startTime',
-      message: 'Use HH:mm format (e.g., 09:00)',
-    });
-  }
-  if (!isValidTimeFormat(endTime)) {
-    errors.push({
-      dayOfWeek,
-      shiftIndex,
-      field: 'endTime',
-      message: 'Use HH:mm format (e.g., 17:00)',
-    });
-  }
-
-  // 2. End > Start validation
-  if (startTime >= endTime) {
-    errors.push({
-      dayOfWeek,
-      shiftIndex,
-      field: 'endTime',
-      message: 'End time must be after start time',
-    });
-  }
-
-  // 3. Overlap validation
-  allShifts.forEach((otherShift, otherIndex) => {
-    if (otherIndex !== shiftIndex) {
-      const overlaps =
-        (startTime >= otherShift.startTime && startTime < otherShift.endTime) ||
-        (endTime > otherShift.startTime && endTime <= otherShift.endTime) ||
-        (startTime <= otherShift.startTime && endTime >= otherShift.endTime);
-
-      if (overlaps) {
-        errors.push({
-          dayOfWeek,
-          shiftIndex,
-          field: 'startTime',
-          message: `Overlaps with shift ${otherIndex + 1}`,
-        });
-      }
-    }
-  });
-
-  return errors;
-};
-```
-
-#### Debounced Save Implementation
-
-```typescript
-// Add to ScheduleSection.tsx
-import { useCallback, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { saveTeamMember } from '../../../store/slices/teamSlice';
-
-// Debounce ref
-const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-const [isSaving, setIsSaving] = useState(false);
-
-const debouncedSave = useCallback(() => {
-  if (saveTimeoutRef.current) {
-    clearTimeout(saveTimeoutRef.current);
-  }
-
-  saveTimeoutRef.current = setTimeout(async () => {
-    setIsSaving(true);
-    try {
-      await dispatch(saveTeamMember({ member: selectedMember })).unwrap();
-      // Show success toast
-    } catch (error) {
-      // Show error toast
-    } finally {
-      setIsSaving(false);
-    }
-  }, 500);
-}, [dispatch, selectedMember]);
-
-// Call debouncedSave() after any schedule change
-```
-
-#### Error Handling
-| Error | User Message | UI Behavior |
-|-------|-------------|-------------|
-| Invalid time format | "Use HH:mm format (e.g., 09:00)" | Red border on input, error text below |
-| End before start | "End time must be after start time" | Red border on end time input |
-| Overlapping shifts | "Overlaps with shift N" | Red border on both shifts |
-| Save failed | "Unable to save schedule. Please try again." | Toast notification with retry |
-
-### 3.2 Time Off Modal
-
-**Create:** `src/components/team-settings/components/TimeOffModal.tsx`
-
-#### Component Specification
-
-```typescript
-interface TimeOffModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  memberId: string;
-  existingRequest?: TimeOffRequest; // For edit mode
-}
-
-// Form state
-interface TimeOffFormState {
-  startDate: string;      // ISO date string (YYYY-MM-DD)
-  endDate: string;        // ISO date string
-  type: TimeOffType;      // 'vacation' | 'sick' | 'personal' | 'unpaid' | 'other'
-  notes: string;          // Max 500 chars
-}
-```
-
-#### UI Layout
-
-```
-┌─────────────────────────────────────────────────┐
-│ Request Time Off                            [X] │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  Type                                           │
-│  ┌─────────────────────────────────────────┐   │
-│  │ ▼ Vacation                              │   │
-│  └─────────────────────────────────────────┘   │
-│                                                 │
-│  Start Date              End Date               │
-│  ┌──────────────┐        ┌──────────────┐      │
-│  │ 📅 12/15/2024│        │ 📅 12/20/2024│      │
-│  └──────────────┘        └──────────────┘      │
-│                                                 │
-│  Notes (optional)                               │
-│  ┌─────────────────────────────────────────┐   │
-│  │ Family vacation                         │   │
-│  │                                         │   │
-│  └─────────────────────────────────────────┘   │
-│  0/500 characters                              │
-│                                                 │
-│  ⓘ Requests are pending until approved by a    │
-│    manager.                                     │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│                    [Cancel]  [Submit Request]   │
-└─────────────────────────────────────────────────┘
-```
-
-#### Implementation Tasks
-- [ ] Create modal component with form fields
-- [ ] Use native `<input type="date">` for date pickers
-- [ ] Implement type selector with all TimeOffType options
-- [ ] Add notes textarea with character counter
-- [ ] Validate: endDate >= startDate
-- [ ] Validate: startDate >= today (no past dates)
-- [ ] Generate UUID for new request: `crypto.randomUUID()`
-- [ ] Set initial status to 'pending'
-- [ ] Set `requestedAt` to current ISO timestamp
-- [ ] Dispatch `saveTimeOffRequest` thunk on submit
-- [ ] Show loading spinner on submit button
-- [ ] Close modal on success, show toast
-- [ ] Display error inline on failure
-
-#### Validation Rules
-```typescript
-const validateTimeOffForm = (form: TimeOffFormState): Record<string, string> => {
-  const errors: Record<string, string> = {};
-
-  if (!form.startDate) {
-    errors.startDate = 'Start date is required';
-  } else if (form.startDate < new Date().toISOString().split('T')[0]) {
-    errors.startDate = 'Start date cannot be in the past';
-  }
-
-  if (!form.endDate) {
-    errors.endDate = 'End date is required';
-  } else if (form.endDate < form.startDate) {
-    errors.endDate = 'End date must be on or after start date';
-  }
-
-  if (form.notes && form.notes.length > 500) {
-    errors.notes = 'Notes must be 500 characters or less';
-  }
-
-  return errors;
-};
-```
-
-#### Date Picker Accessibility
-- Use native `<input type="date">` for best mobile support
-- Add `aria-label` for screen readers
-- Support keyboard navigation (Tab, Enter)
-
-### 3.3 Time Off List Enhancement
-
-**Update:** `src/components/team-settings/sections/ScheduleSection.tsx`
-
-#### Tasks
-- [ ] Add "Cancel Request" to pending requests (DotsIcon menu)
-- [ ] Add confirmation dialog before cancel
-- [ ] Call `deleteTimeOffRequest` thunk on confirm
-- [ ] Sort requests by date (newest first)
-- [ ] Add empty state with illustration
-- [ ] Show approval info for approved/denied requests
-
-#### Cancel Confirmation Dialog
-
-```typescript
-const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
-
-const handleCancelRequest = async (requestId: string) => {
-  try {
-    await dispatch(deleteTimeOffRequest({
-      memberId: selectedMemberId,
-      requestId,
-    })).unwrap();
-    setCancelConfirmId(null);
-    // Show success toast
-  } catch (error) {
-    // Show error toast
-  }
-};
-```
-
-### 3.4 Schedule Override Modal
-
-**Create:** `src/components/team-settings/components/ScheduleOverrideModal.tsx`
-
-#### Component Specification
-
-```typescript
-interface ScheduleOverrideModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  memberId: string;
-  existingOverride?: ScheduleOverride; // For edit mode
-  defaultDate?: string; // Pre-fill date when clicking calendar
-}
-
-interface OverrideFormState {
-  date: string;           // ISO date string (YYYY-MM-DD)
-  type: ScheduleOverrideType; // 'day_off' | 'custom_hours' | 'extra_day'
-  customShifts: Shift[];  // Only for 'custom_hours' and 'extra_day'
-  reason: string;         // Max 200 chars
-}
-```
-
-#### UI Layout
-
-```
-┌─────────────────────────────────────────────────┐
-│ Add Schedule Override                       [X] │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  Date                                           │
-│  ┌─────────────────────────────────────────┐   │
-│  │ 📅 December 25, 2024                    │   │
-│  └─────────────────────────────────────────┘   │
-│                                                 │
-│  Override Type                                  │
-│  ┌─────────────────────────────────────────┐   │
-│  │ ○ Day Off        Take the day off       │   │
-│  │ ● Custom Hours   Work different hours   │   │
-│  │ ○ Extra Day      Work on a day off      │   │
-│  └─────────────────────────────────────────┘   │
-│                                                 │
-│  Custom Hours (shown when Custom/Extra)         │
-│  ┌────────────┐  to  ┌────────────┐   [+]      │
-│  │ 10:00      │      │ 14:00      │           │
-│  └────────────┘      └────────────┘           │
-│                                                 │
-│  Reason (optional)                              │
-│  ┌─────────────────────────────────────────┐   │
-│  │ Holiday coverage                        │   │
-│  └─────────────────────────────────────────┘   │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│                      [Cancel]  [Save Override]  │
-└─────────────────────────────────────────────────┘
-```
-
-#### Implementation Tasks
-- [ ] Create modal with radio buttons for override type
-- [ ] Show/hide shift inputs based on type
-- [ ] For 'day_off': no shift inputs needed
-- [ ] For 'custom_hours' and 'extra_day': show shift builder
-- [ ] Reuse shift validation logic from 3.1
-- [ ] Generate UUID for new override
-- [ ] Dispatch `saveScheduleOverride` thunk
-- [ ] Handle loading and error states
-
-#### Override Type Behavior
-| Type | Description | customShifts |
-|------|-------------|--------------|
-| `day_off` | Take this day off (overrides regular schedule) | Empty `[]` |
-| `custom_hours` | Work different hours than usual | Required, at least 1 shift |
-| `extra_day` | Work on a normally scheduled day off | Required, at least 1 shift |
-
-### 3.5 Schedule Override List Enhancement
-
-**Update:** `src/components/team-settings/sections/ScheduleSection.tsx`
-
-#### Tasks
-- [ ] Add "Edit" action to override rows
-- [ ] Add "Delete" action with confirmation
-- [ ] Call `deleteScheduleOverride` thunk on confirm
-- [ ] Sort overrides by date (upcoming first)
-- [ ] Filter out past overrides (optional toggle)
-- [ ] Highlight overrides happening today/this week
-
-### 3.6 Integration with ScheduleSection
-
-**Update flow for ScheduleSection.tsx:**
-
-```typescript
-// Props need to be extended
-interface ScheduleSectionProps {
-  workingHours: WorkingHoursSettings;
-  memberId: string; // NEW: needed for thunk calls
-  onChange: (workingHours: WorkingHoursSettings) => void;
-}
-
-// State for modals
-const [showTimeOffModal, setShowTimeOffModal] = useState(false);
-const [showOverrideModal, setShowOverrideModal] = useState(false);
-const [editingTimeOff, setEditingTimeOff] = useState<TimeOffRequest | null>(null);
-const [editingOverride, setEditingOverride] = useState<ScheduleOverride | null>(null);
-```
-
-### Error Handling Summary
-
-| Operation | Error | User Message | Recovery |
-|-----------|-------|-------------|----------|
-| Save schedule | DB error | "Unable to save schedule" | Retry button in toast |
-| Add time-off | Validation | Show inline errors | Fix and resubmit |
-| Add time-off | DB error | "Unable to submit request" | Retry in modal |
-| Cancel time-off | DB error | "Unable to cancel request" | Retry |
-| Add override | Validation | Show inline errors | Fix and resubmit |
-| Delete override | DB error | "Unable to delete override" | Retry |
-
-### Performance Targets
-
-| Operation | Target | Notes |
-|-----------|--------|-------|
-| Schedule render | < 50ms | 7 days × up to 3 shifts each |
-| Shift validation | < 5ms | Synchronous |
-| Debounced save | 500ms delay | Then < 200ms for DB write |
-| Modal open | < 100ms | Lazy load if needed |
-| Time-off list render | < 30ms | Typically < 20 items |
-
-### Accessibility Requirements
-
-| Element | Requirement |
-|---------|-------------|
-| Time inputs | `aria-label="Start time for {dayName}"` |
-| Day toggles | `aria-pressed` attribute |
-| Modal | Focus trap, Escape to close |
-| Date pickers | Native `<input type="date">` for screen reader support |
-| Error messages | `role="alert"` and `aria-live="polite"` |
-| Tabs | `role="tablist"`, `role="tab"`, `aria-selected` |
-
-### Testing Checklist - Phase 3
-
-#### Working Hours
-- [ ] Can toggle days on/off
-- [ ] Can set shift start/end times per day
-- [ ] Can add multiple shifts per day (max 3)
-- [ ] Validation prevents overlapping shifts
-- [ ] Validation shows error for end < start
-- [ ] Weekly hours calculate correctly
-- [ ] Changes auto-save after 500ms debounce
-- [ ] Loading indicator shows during save
-- [ ] Success toast appears on save
-
-#### Time Off
-- [ ] Can open time-off modal
-- [ ] Can select all time-off types
-- [ ] Date picker prevents past dates
-- [ ] End date must be >= start date
-- [ ] Notes limited to 500 characters
-- [ ] Request submits successfully
-- [ ] Request appears in list with "Pending" status
-- [ ] Can cancel pending request
-- [ ] Cancel shows confirmation dialog
-- [ ] Approved/denied requests show responder info
-
-#### Schedule Overrides
-- [ ] Can open override modal
-- [ ] Can select all override types
-- [ ] Shift inputs appear for custom_hours/extra_day
-- [ ] Shift validation works in modal
-- [ ] Override saves successfully
-- [ ] Override appears in list with correct type
-- [ ] Can edit existing override
-- [ ] Can delete override with confirmation
-- [ ] Overrides sorted by date
-
-#### Accessibility
-- [ ] All form fields have labels
-- [ ] Tab navigation works through schedule grid
-- [ ] Modals trap focus correctly
-- [ ] Escape closes modals
-- [ ] Error messages announced by screen reader
-
----
-
-## Phase 4: Permissions & Security
-
-### Objective
-Implement role-based permissions and optional PIN security.
-
-### 4.1 Permission Level Selection
-
-**File:** `src/components/team-settings/sections/PermissionsSection.tsx`
-
-#### Permission Levels (Predefined)
-| Level | Name | Description |
-|-------|------|-------------|
-| 0 | No Access | Profile only, cannot log in to POS |
-| 1 | Basic | View-only access to appointments |
-| 2 | Standard | Book appointments, view clients, checkout |
-| 3 | Advanced | + Apply discounts, view reports |
-| 4 | Manager | + Manage team, settings, refunds |
-| 5 | Owner | Full access to everything |
-
-#### Tasks
-- [ ] Display level selector with descriptions
-- [ ] Auto-populate granular permissions based on level
-- [ ] Show "Customized" indicator when permissions differ from level defaults
-- [ ] Implement "Reset to Level Defaults" action
-
-### 4.2 PIN Security
-
-#### Tasks
-- [ ] Implement PIN enable/disable toggle
-- [ ] Create masked PIN input (4-6 digits)
-- [ ] Validate PIN format using `isValidPin()` from validation module
-- [ ] Store PIN hashed (SHA-256) - **NEVER store plain text**
-- [ ] Implement PIN change flow (requires current PIN)
-
-#### PIN Hashing
-```typescript
-async function hashPin(pin: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(pin);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-```
-
-### 4.3 Permission Utilities
-
-**Create:** `src/utils/permissions.ts`
-
-```typescript
-// Required functions
-export function canPerformAction(member: TeamMemberSettings, action: PermissionAction): boolean;
-export function getEffectivePermissions(member: TeamMemberSettings): Permission[];
-export function usePermission(action: PermissionAction): boolean; // React hook
-export type PermissionAction =
-  | 'view_calendar' | 'book_appointments'
-  | 'view_clients' | 'create_clients' | 'edit_clients'
-  | 'process_checkout' | 'apply_discounts' | 'process_refunds'
-  | 'view_reports' | 'export_reports'
-  | 'manage_team' | 'view_others_calendar'
-  | 'access_settings' | 'modify_settings';
-```
-
-### Testing Checklist - Phase 4
-- [ ] Can select permission level
-- [ ] Permissions auto-populate based on level
-- [ ] Can customize individual permissions
-- [ ] Customized permissions show indicator
-- [ ] Can reset to level defaults
-- [ ] Can enable/disable PIN requirement
-- [ ] Can set and change PIN
-- [ ] PIN is stored hashed (verify in IndexedDB)
-- [ ] Permission utilities work correctly
-
----
-
-## Phase 5: Commission & Payroll
-
-### Objective
-Implement commission configuration and basic payroll settings.
-
-### 5.1 Commission Types
-
-**File:** `src/components/team-settings/sections/CommissionSection.tsx`
-
-| Type | Description | Fields |
-|------|-------------|--------|
-| None | No commission | - |
-| Percentage | Fixed % of service revenue | basePercentage (0-100) |
-| Tiered | Different rates at thresholds | tiers[] array |
-| Flat | Fixed amount per service | flatAmount |
-
-#### Tasks
-- [ ] Display commission type selector (visual cards)
-- [ ] Show appropriate inputs based on type
-- [ ] Validate using `CommissionSettingsSchema`
-- [ ] Implement tier builder for tiered commission
-- [ ] Validate tier boundaries (no gaps using schema refinement)
-- [ ] Show earnings calculator preview
-
-### 5.2 Additional Commission Settings
-
-- [ ] Product commission percentage (0-100%)
-- [ ] Tip handling selector (keep_all, pool, percentage)
-- [ ] Tip percentage to house (when applicable)
-
-### 5.3 Payroll Settings
-
-- [ ] Pay period selector (weekly, bi-weekly, monthly, per-service)
-- [ ] Compensation type (hourly, salary, commission-only)
-- [ ] Hourly rate or salary input
-- [ ] Guaranteed minimum field
-- [ ] Overtime settings (threshold hours, rate multiplier)
-
-### 5.4 Earnings Calculator
-
-**Create:** `src/components/team-settings/components/EarningsCalculator.tsx`
-
-```typescript
-// Calculate earnings for sample scenarios
-interface EarningsPreview {
-  scenario: string;          // e.g., "$5,000 revenue"
-  baseEarnings: number;      // Salary or hourly
-  commissionEarnings: number;
-  tipsEstimate: number;
-  totalEarnings: number;
-}
-```
-
-### Testing Checklist - Phase 5
-- [ ] Can select commission type
-- [ ] Percentage input validates (0-100)
-- [ ] Can build tiered commission
-- [ ] Tier validation prevents gaps/overlaps
-- [ ] Product commission saves correctly
-- [ ] Tip handling options work
-- [ ] Pay period selector works
-- [ ] Earnings calculator shows accurate examples
-
----
-
-## Phase 6: Online Booking
-
-### Objective
-Configure team member visibility and booking rules for online scheduling.
-
-### 6.1 Booking Toggle & Visibility
-
-**File:** `src/components/team-settings/sections/OnlineBookingSection.tsx`
-
-#### Tasks
-- [ ] Main "Bookable Online" toggle (`isBookableOnline`)
-- [ ] "Show on Website" toggle
-- [ ] "Show on App" toggle
-- [ ] "Accept New Clients" toggle
-- [ ] "Auto-Accept Bookings" toggle
-- [ ] Status indicator (Accepting/Not Available)
-
-### 6.2 Booking Rules
-
-- [ ] Max advance booking days (1-365)
-- [ ] Min advance notice hours (0-168)
-- [ ] Buffer time between appointments (0-120 min)
-- [ ] Buffer position (before, after, both)
-- [ ] Double booking toggle
-- [ ] Max concurrent appointments (1-10)
-
-### 6.3 Online Profile
-
-- [ ] Display order input (sort order in widget)
-- [ ] Profile bio textarea (1000 char limit)
-- [ ] Specialties tag input
-- [ ] Portfolio images placeholder (future)
-
-### Testing Checklist - Phase 6
-- [ ] Can toggle online booking on/off
-- [ ] Visibility toggles save correctly
-- [ ] Booking rules validate and save
-- [ ] Buffer settings work correctly
-- [ ] Bio and specialties update correctly
-
----
-
-## Phase 7: Notifications
-
-### Objective
-Configure notification preferences across email, SMS, and push channels.
-
-### 7.1 Notification Channels
-
-**File:** `src/components/team-settings/sections/NotificationsSection.tsx`
-
-#### Email Notifications
-- [ ] New bookings, Appointment changes, Cancellations
-- [ ] Appointment reminders
-- [ ] Daily/Weekly summary
-- [ ] Marketing emails, System updates
-
-#### SMS Notifications
-- [ ] Appointment reminders, changes, cancellations
-- [ ] Urgent alerts only
-- [ ] Show SMS cost warning
-
-#### Push Notifications
-- [ ] Appointment reminders, New bookings
-- [ ] Messages, Team updates
-
-### 7.2 Reminder Timing
-- [ ] First reminder (1-72 hours before)
-- [ ] Second reminder (optional, 1-48 hours)
-
-### 7.3 Quick Actions
-- [ ] "Enable All" button
-- [ ] "Disable All" button
-- [ ] "Essential Only" preset
-
-### Testing Checklist - Phase 7
-- [ ] Can toggle individual notifications
-- [ ] Reminder timing validates correctly
-- [ ] Quick actions work as expected
-
----
-
-## Phase 8: Integration & Polish
-
-### Objective
-Integrate Team Module with existing Calendar and Checkout modules.
-
-### 8.1 Calendar Integration
-
-#### Files to Modify
-
-| File | Lines | Function | Change Required |
-|------|-------|----------|-----------------|
-| `src/components/Book/StaffSidebar.tsx` | 1-182 | Staff list | Use `selectActiveTeamMembers` |
-| `src/components/Book/StaffFilterDropdown.tsx` | 1-174 | Staff filter | Use team member data |
-| `src/utils/conflictDetection.ts` | 132-154 | `isStaffAvailable()` | Add time-off check |
-| `src/utils/availabilityCalculator.ts` | 22-75 | `calculateTimeSlotAvailability()` | Factor in scheduleOverrides |
-| `src/utils/smartAutoAssign.ts` | 139-199 | `findBestStaffForAssignment()` | Check services[] capability |
-| `src/store/slices/staffSlice.ts` | 22-47 | Data fetching | Optionally migrate to teamSlice |
-
-#### New Utility Functions
-
-**Create:** `src/utils/teamCalendarIntegration.ts`
-
-```typescript
-/**
- * Get team members available for a specific service at a given time.
- */
-export function getAvailableMembersForService(
-  serviceId: string,
-  dateTime: Date,
-  duration: number,
-  allMembers: TeamMemberSettings[],
-  existingAppointments: LocalAppointment[]
-): TeamMemberSettings[];
-
-/**
- * Check if a team member is working at a given time.
- * Considers: regular hours, time-off, schedule overrides
- */
-export function isMemberWorkingAt(
-  member: TeamMemberSettings,
-  dateTime: Date
-): boolean;
-
-/**
- * Get a team member's effective schedule for a date.
- * Applies schedule overrides to regular hours.
- */
-export function getMemberDaySchedule(
-  member: TeamMemberSettings,
-  date: Date
-): { shifts: Shift[]; isWorking: boolean; isOverride: boolean };
-
-/**
- * Check if team member has approved time-off on a date.
- */
-export function isMemberOnTimeOff(
-  member: TeamMemberSettings,
-  date: Date
-): boolean;
-
-/**
- * Get blocked time slots for a member (time-off, non-working hours).
- */
-export function getMemberBlockedTimes(
-  member: TeamMemberSettings,
-  date: Date
-): { start: Date; end: Date; reason: string }[];
-```
-
-#### Integration Steps
-
-1. **Update `isStaffAvailable()` in `conflictDetection.ts` (Line 132)**
-```typescript
-// Before:
-export function isStaffAvailable(staffId, startTime, endTime, appointments) {
-  // Only checks appointment overlaps
-}
-
-// After:
-export function isStaffAvailable(
-  staffId: string,
-  startTime: Date,
-  endTime: Date,
-  appointments: LocalAppointment[],
-  teamMember?: TeamMemberSettings  // NEW: Optional team member data
-): boolean {
-  // Check appointment overlaps (existing logic)
-  // NEW: If teamMember provided, also check:
-  // - isMemberWorkingAt(teamMember, startTime)
-  // - !isMemberOnTimeOff(teamMember, startTime)
-}
-```
-
-2. **Update `calculateTimeSlotAvailability()` in `availabilityCalculator.ts` (Line 22)**
-```typescript
-// Add parameter: teamMembers?: TeamMemberSettings[]
-// Factor in schedule overrides when calculating available staff
-```
-
-3. **Update `findBestStaffForAssignment()` in `smartAutoAssign.ts` (Line 139)**
-```typescript
-// Add service capability check:
-// member.services.find(s => s.serviceId === serviceId && s.canPerform)
-```
-
-### 8.2 Checkout Integration
-
-#### Files to Modify
-
-| File | Lines | Function | Change Required |
-|------|-------|----------|-----------------|
-| `src/components/checkout/TicketPanel.tsx` | 1345+ | Staff management | Permission checks |
-| `src/components/checkout/RefundVoidDialog.tsx` | 1-150 | Refund dialog | `canProcessRefunds` check |
-| `src/components/checkout/CheckoutSummary.tsx` | 44-82 | Discount | `canApplyDiscount` check |
-| `src/store/slices/transactionsSlice.ts` | 43-60 | Validation | Add role-based checks |
-
-#### New Utility Functions
-
-**Create:** `src/utils/teamCheckoutIntegration.ts`
-
-```typescript
-/**
- * Calculate commission for a team member based on services.
- */
-export function calculateCommission(
-  member: TeamMemberSettings,
-  services: { price: number; serviceId: string }[]
-): {
-  baseCommission: number;
-  productCommission: number;
-  totalCommission: number;
-  breakdown: { serviceId: string; amount: number }[];
-};
-
-/**
- * Check if team member can apply discounts.
- */
-export function canApplyDiscount(member: TeamMemberSettings): boolean {
-  return member.permissions.canModifyPrices ||
-         ['manager', 'owner'].includes(member.permissions.role);
-}
-
-/**
- * Check if team member can process refunds.
- */
-export function canProcessRefund(member: TeamMemberSettings): boolean {
-  return member.permissions.canProcessRefunds;
-}
-
-/**
- * Verify PIN for sensitive actions.
- */
-export async function verifyPin(
-  member: TeamMemberSettings,
-  enteredPin: string
-): Promise<boolean> {
-  if (!member.permissions.pinRequired) return true;
-  const hashedInput = await hashPin(enteredPin);
-  return hashedInput === member.permissions.pin;
-}
-```
-
-#### Integration Steps
-
-1. **Add permission check to RefundVoidDialog.tsx**
-```typescript
-// Before showing refund option:
-const currentUser = useSelector(selectCurrentTeamMember);
-if (!canProcessRefund(currentUser)) {
-  // Show "Insufficient permissions" message
-  // Or hide refund button entirely
-}
-```
-
-2. **Add permission check to CheckoutSummary.tsx**
-```typescript
-// Before allowing discount:
-const currentUser = useSelector(selectCurrentTeamMember);
-const discountAllowed = canApplyDiscount(currentUser);
-// Disable discount button if not allowed
-```
-
-3. **Update transactionsSlice.ts validation**
-```typescript
-// Add to validateRefund or as middleware:
-if (!canProcessRefund(currentUser)) {
-  return rejectWithValue({ code: 'PERMISSION_DENIED', message: '...' });
-}
-```
-
-### 8.3 Sync Implementation
-
-#### Sync Priority
-Team members: Priority 3 (NORMAL) per DATA_STORAGE_STRATEGY.md
-
-#### Push Sync Flow
-```
-1. User saves team member
-2. teamDB.updateMember() called
-3. syncQueueDB.add({ entityType: 'teamMember', ... })
-4. syncManager detects pending items
-5. POST /api/team-members with member data
-6. On success: teamDB.markSynced(id)
-7. On conflict: Apply field-level merge
-8. On error: Keep in queue, retry with backoff
-```
-
-#### Pull Sync Flow
-```
-1. App comes online / periodic sync
-2. GET /api/team-members?since={lastSyncTimestamp}
-3. For each changed member:
-   - teamDB.applyServerChange(member)
-   - Uses compareVectorClocks() for conflict detection
-   - Uses mergeTeamMember() for field-level resolution
-4. Update lastSyncTimestamp
-```
-
-### 8.4 Error Handling & Loading States
-
-- [ ] Add loading skeletons for TeamMemberList
-- [ ] Add loading spinners for save operations
-- [ ] Add error boundaries for each section
-- [ ] Implement toast notifications (success/error)
-- [ ] Add retry logic for failed operations
-
-### 8.5 Mobile Responsiveness
-
-- [ ] Test all sections on mobile (<768px)
-- [ ] Collapsible sections on mobile
-- [ ] Touch targets minimum 44px
-- [ ] Swipe gestures for navigation (optional)
-
-### Testing Checklist - Phase 8
-- [ ] Appointments can select team members
-- [ ] Availability respects working hours
-- [ ] Time-off blocks calendar slots
-- [ ] Schedule overrides apply correctly
-- [ ] Service capability filtering works
-- [ ] Checkout shows correct service provider
-- [ ] Commission calculates correctly
-- [ ] Permission checks work (discounts, refunds)
-- [ ] PIN verification works for sensitive actions
-- [ ] Changes sync when online
-- [ ] Conflicts detected and resolved
-- [ ] Mobile responsive on all sections
-
----
-
-## Phase 9: Timesheet & Pay Runs (P1 Features)
-
-### Objective
-Implement clock in/out, timesheet tracking, and pay run generation.
-
-### 9.1 Data Models
-
-```typescript
-interface TimesheetEntry extends BaseSyncableEntity {
-  teamMemberId: string;
-  date: string;
-  clockInTime: string;
-  clockOutTime?: string;
-  breaks: { startTime: string; endTime: string; duration: number }[];
+export interface HoursBreakdown {
   scheduledHours: number;
   actualHours: number;
-  overtimeHours: number;
-  status: 'active' | 'completed' | 'approved' | 'adjusted';
-  adjustmentReason?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-}
-
-interface PayRun extends BaseSyncableEntity {
-  periodStart: string;
-  periodEnd: string;
-  status: 'draft' | 'pending' | 'approved' | 'completed';
-  entries: PayRunEntry[];
-  totalGross: number;
-  totalDeductions: number;
-  totalNet: number;
-  approvedBy?: string;
-  approvedAt?: string;
-}
-
-interface PayRunEntry {
-  teamMemberId: string;
   regularHours: number;
   overtimeHours: number;
-  hourlyEarnings: number;
-  commissionEarnings: number;
-  tips: number;
-  bonuses: number;
-  deductions: number;
+  breakMinutes: number;
+  paidBreakMinutes: number;
+  unpaidBreakMinutes: number;
+}
+
+export interface TimesheetEntry extends BaseSyncableEntity {
+  staffId: string;
+  date: string;                // YYYY-MM-DD
+
+  // Scheduled shift
+  scheduledStart: string;
+  scheduledEnd: string;
+
+  // Actual times
+  actualClockIn: string | null;
+  actualClockOut: string | null;
+
+  // Breaks
+  breaks: BreakEntry[];
+
+  // Calculated hours
+  hours: HoursBreakdown;
+
+  // Status and approval
+  status: TimesheetStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  disputeReason?: string;
+  notes?: string;
+
+  // Location verification (optional)
+  clockInLocation?: { lat: number; lng: number };
+  clockOutLocation?: { lat: number; lng: number };
+}
+
+export interface AttendanceAlert {
+  id: string;
+  staffId: string;
+  staffName: string;
+  type: AttendanceAlertType;
+  timestamp: string;
+  message: string;
+  resolved: boolean;
+  resolvedBy?: string;
+  resolvedAt?: string;
+}
+
+export interface OvertimeSettings {
+  calculationType: 'daily' | 'weekly' | 'both';
+  dailyThreshold: number;       // hours
+  weeklyThreshold: number;      // hours
+  overtimeRate: number;         // multiplier (e.g., 1.5)
+  doubleTimeRate?: number;
+  doubleTimeThreshold?: number;
+}
+\`\`\`
+
+### 2.4 Redux Slice Structure
+
+\`\`\`typescript
+// src/store/slices/timesheetSlice.ts
+
+interface TimesheetState {
+  // Data
+  entries: Record<string, TimesheetEntry>;      // Keyed by id
+  entryIds: string[];
+
+  // Current session
+  activeClockIns: Record<string, TimesheetEntry>;  // Keyed by staffId
+  activeBreaks: Record<string, BreakEntry>;        // Keyed by staffId
+
+  // Alerts
+  alerts: AttendanceAlert[];
+
+  // UI State
+  ui: {
+    selectedDate: string;
+    selectedStaffId: string | null;
+    viewMode: 'day' | 'week' | 'pay_period';
+    filterStatus: 'all' | 'pending' | 'approved' | 'disputed';
+  };
+
+  // Sync
+  loading: boolean;
+  error: string | null;
+  sync: {
+    lastSyncAt: string | null;
+    pendingChanges: number;
+    syncStatus: 'idle' | 'syncing' | 'error';
+  };
+}
+\`\`\`
+
+### 2.5 Business Rules Implementation
+
+| Rule ID | Rule | Implementation |
+|---------|------|----------------|
+| BR-TS-001 | Cannot clock in before shift minus grace | Validate in clockIn thunk |
+| BR-TS-002 | Unpaid break deducted from hours | overtimeCalculation.ts |
+| BR-TS-003 | Overtime after threshold | overtimeCalculation.ts |
+| BR-TS-004 | Manager approval required for edits | Permission check in thunk |
+| BR-TS-005 | Cannot clock in multiple locations | Validate activeClockIns |
+
+### 2.6 Implementation Steps
+
+1. **Week 1: Foundation**
+   - [ ] Create src/types/timesheet.ts
+   - [ ] Create src/db/timesheetOperations.ts
+   - [ ] Update src/db/schema.ts with timesheets table
+   - [ ] Create src/store/slices/timesheetSlice.ts
+
+2. **Week 2: Clock In/Out**
+   - [ ] Create ClockInOutWidget.tsx
+   - [ ] Integrate with Turn Tracker (only clocked-in staff appear)
+   - [ ] Create BreakTracker.tsx
+   - [ ] Add clock in/out to Front Desk header
+
+3. **Week 3: Dashboard & Approval**
+   - [ ] Create TimesheetDashboard.tsx
+   - [ ] Create TimesheetRow.tsx
+   - [ ] Create TimesheetApprovalModal.tsx
+   - [ ] Implement approval workflow
+
+4. **Week 4: Calculation & Alerts**
+   - [ ] Create src/utils/overtimeCalculation.ts
+   - [ ] Create AttendanceAlert.tsx
+   - [ ] Add timesheet reports
+   - [ ] Integration testing
+
+### 2.7 Validation Checkpoints
+
+**Week 1 Validation:**
+- [ ] Timesheet data persists to IndexedDB
+- [ ] Can create/read/update entries via Redux
+
+**Week 2 Validation:**
+- [ ] Staff can clock in/out from Front Desk
+- [ ] Only clocked-in staff appear in Turn Tracker
+- [ ] Breaks can be started/ended
+
+**Week 3 Validation:**
+- [ ] Timesheet dashboard shows weekly view
+- [ ] Manager can approve/dispute entries
+- [ ] Status changes reflect immediately
+
+**Week 4 Validation:**
+- [ ] Overtime calculates correctly (daily/weekly)
+- [ ] Alerts show for late arrivals
+- [ ] Export to CSV works
+
+---
+
+## Phase 3: Payroll & Pay Runs
+
+### 3.1 Overview
+
+| Feature | Effort | Dependencies |
+|---------|--------|--------------|
+| Pay run creation | Large | Timesheets (Phase 2) |
+| Automatic calculations | Large | Pay runs, Checkout data |
+| Manual adjustments | Medium | Pay runs |
+| Review & approval workflow | Medium | Pay runs |
+| Payment processing integration | Large | Approval workflow |
+| 9 payroll reports | Medium | Pay runs |
+| Staff earnings portal | Medium | Pay runs |
+
+### 3.2 New Files to Create
+
+\`\`\`
+src/
+├── store/slices/
+│   └── payrollSlice.ts                # NEW - Pay run Redux state
+├── db/
+│   └── payrollOperations.ts           # NEW - IndexedDB CRUD for pay runs
+├── components/payroll/
+│   ├── PayRunDashboard.tsx            # NEW - Pay run management
+│   ├── PayRunCreate.tsx               # NEW - Create new pay run
+│   ├── PayRunDetail.tsx               # NEW - Pay run details view
+│   ├── StaffPaymentRow.tsx            # NEW - Individual staff payment
+│   ├── PayRunAdjustmentModal.tsx      # NEW - Add adjustments
+│   ├── PayRunApprovalModal.tsx        # NEW - Approval workflow
+│   └── StaffEarningsPortal.tsx        # NEW - Staff self-service
+├── components/reports/payroll/
+│   ├── PayRunSummaryReport.tsx        # NEW
+│   ├── StaffEarningsReport.tsx        # NEW
+│   ├── CommissionReport.tsx           # NEW
+│   ├── OvertimeReport.tsx             # NEW
+│   ├── TipReport.tsx                  # NEW
+│   └── LaborCostReport.tsx            # NEW
+├── types/
+│   └── payroll.ts                     # NEW - Payroll type definitions
+└── utils/
+    ├── commissionCalculation.ts       # NEW - Commission logic
+    └── payRunCalculation.ts           # NEW - Pay run totals
+\`\`\`
+
+### 3.3 Type Definitions
+
+\`\`\`typescript
+// src/types/payroll.ts
+
+export type PayRunStatus = 'draft' | 'pending_approval' | 'approved' | 'processed';
+export type PaymentMethod = 'direct_deposit' | 'check' | 'cash' | 'external';
+export type AdjustmentType =
+  | 'bonus' | 'reimbursement' | 'tip_adjustment'
+  | 'advance_deduction' | 'fee_passthrough' | 'supply_deduction'
+  | 'tax_withholding' | 'benefits_deduction' | 'other';
+
+export interface PayRunAdjustment {
+  id: string;
+  type: AdjustmentType;
+  amount: number;            // Positive = addition, Negative = deduction
+  description: string;
+  addedBy: string;
+  addedAt: string;
+}
+
+export interface EarningsBreakdown {
+  regularHours: number;
+  regularWages: number;
+  overtimeHours: number;
+  overtimeWages: number;
+  serviceRevenue: number;
+  serviceCommission: number;
+  productRevenue: number;
+  productCommission: number;
+  newClientBonus: number;
+  rebookBonus: number;
+  cashTips: number;
+  cardTips: number;
+  totalTips: number;
+  adjustments: PayRunAdjustment[];
+  totalAdjustments: number;
   grossPay: number;
+  deductions: number;
   netPay: number;
 }
-```
 
-### 9.2 Clock In/Out UI
+export interface StaffPayment {
+  staffId: string;
+  staffName: string;
+  earnings: EarningsBreakdown;
+  paymentMethod: PaymentMethod;
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  paidAt?: string;
+  transactionId?: string;
+}
 
-**Create:** `src/components/team-settings/timesheet/ClockInOut.tsx`
+export interface PayRun extends BaseSyncableEntity {
+  periodStart: string;
+  periodEnd: string;
+  status: PayRunStatus;
+  staffPayments: StaffPayment[];
+  totals: PayRunTotals;
+  createdBy: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  processedBy?: string;
+  processedAt?: string;
+  notes?: string;
+}
+\`\`\`
 
-- [ ] Large clock in/out button
-- [ ] Current status display (Clocked In / Out)
-- [ ] Current shift duration (real-time counter)
-- [ ] Break start/end button
-- [ ] Today's summary
+### 3.4 Business Rules Implementation
 
-### 9.3 Timesheet Management
+| Rule ID | Rule | Implementation |
+|---------|------|----------------|
+| BR-PR-001 | Pay run requires approval before processing | Status check in processPayRun |
+| BR-PR-002 | Only approved checkouts count | Filter in calculation queries |
+| BR-PR-003 | Guaranteed minimum per period | Apply in payRunCalculation.ts |
+| BR-PR-004 | Tiered commission on period total | commissionCalculation.ts |
+| BR-PR-005 | Previous pay runs must be processed | Validate in createPayRun |
 
-**Create:** `src/components/team-settings/timesheet/TimesheetView.tsx`
+### 3.5 Implementation Steps
 
-- [ ] Week view of entries
-- [ ] Scheduled vs actual hours comparison
-- [ ] Filter by date range, status
-- [ ] Edit entries (requires adjustment reason)
-- [ ] Manager approval workflow
+1. **Week 1: Foundation**
+   - [ ] Create src/types/payroll.ts
+   - [ ] Create src/db/payrollOperations.ts
+   - [ ] Update src/db/schema.ts with payRuns table
+   - [ ] Create src/store/slices/payrollSlice.ts
 
-### 9.4 Pay Run Generation
+2. **Week 2: Calculations**
+   - [ ] Create src/utils/commissionCalculation.ts
+   - [ ] Create src/utils/payRunCalculation.ts
+   - [ ] Integrate with timesheet data (wages)
+   - [ ] Integrate with checkout data (commissions, tips)
 
-**Create:** `src/components/team-settings/payroll/PayRunList.tsx`
-**Create:** `src/components/team-settings/payroll/PayRunDetail.tsx`
+3. **Week 3: UI**
+   - [ ] Create PayRunDashboard.tsx
+   - [ ] Create PayRunCreate.tsx
+   - [ ] Create PayRunDetail.tsx
+   - [ ] Create StaffPaymentRow.tsx
+   - [ ] Create PayRunAdjustmentModal.tsx
 
-- [ ] Create new pay run
-- [ ] Auto-calculate from timesheets
-- [ ] Auto-calculate commissions from tickets
-- [ ] Include tips
-- [ ] Add adjustments (bonus, deduction)
-- [ ] Approval workflow
-- [ ] Export to CSV
+4. **Week 4: Workflow & Reports**
+   - [ ] Create PayRunApprovalModal.tsx
+   - [ ] Implement approval workflow
+   - [ ] Create 6 payroll reports
+   - [ ] Create StaffEarningsPortal.tsx
 
-### Testing Checklist - Phase 9
-- [ ] Clock in/out works correctly
-- [ ] Break tracking accurate
-- [ ] Overtime calculates (40+ hours/week)
-- [ ] Manager can approve timesheets
-- [ ] Pay run generates correctly
-- [ ] Commission calculation accurate
-- [ ] Export produces valid CSV
+### 3.6 Validation Checkpoints
+
+**Week 1 Validation:**
+- [ ] Pay run data persists to IndexedDB
+- [ ] Can create draft pay runs
+
+**Week 2 Validation:**
+- [ ] Wages calculate correctly from timesheets
+- [ ] Commissions calculate correctly (all types)
+- [ ] Tips aggregate from checkout data
+
+**Week 3 Validation:**
+- [ ] Pay run dashboard shows all pay runs
+- [ ] Can view and edit pay run details
+- [ ] Can add/remove adjustments
+
+**Week 4 Validation:**
+- [ ] Approval workflow functions correctly
+- [ ] Reports generate accurate data
+- [ ] Staff can view their own earnings
 
 ---
 
-## API Contracts
+## Phase 4: Staff Experience
 
-### Sync Endpoints (Future Backend)
+### 4.1 Overview
 
-```typescript
-// GET /api/team-members
-// Query: ?storeId={storeId}&since={ISO8601}
-// Response:
-{
-  data: TeamMemberSettings[];
-  meta: {
-    total: number;
-    lastSync: string;
-  }
-}
+| Feature | Effort | Dependencies |
+|---------|--------|--------------|
+| Staff ratings & reviews | Medium | Online booking |
+| Portfolio gallery | Small | Profile |
+| Performance dashboard | Medium | Analytics/Checkout data |
+| Goal tracking | Medium | Performance |
+| Achievements/badges | Small | Goals |
+| Group booking | Medium | Online booking |
 
-// POST /api/team-members
-// Body: TeamMemberSettings
-// Response:
-{
-  data: TeamMemberSettings; // With server-assigned fields
-  conflict?: {
-    serverVersion: TeamMemberSettings;
-    resolution: 'merged' | 'server_wins';
-  }
-}
+### 4.2 New Files to Create
 
-// PATCH /api/team-members/:id
-// Body: Partial<TeamMemberSettings>
-// Response: Same as POST
-
-// DELETE /api/team-members/:id
-// Response: { success: true }
-// Note: Triggers tombstone on server, syncs back as isDeleted=true
-```
-
-### Error Response Format
-
-```typescript
-// All API errors follow this format:
-{
-  error: {
-    code: string;      // e.g., 'VALIDATION_ERROR', 'CONFLICT', 'NOT_FOUND'
-    message: string;   // User-friendly
-    details?: {        // For validation errors
-      field: string;
-      message: string;
-    }[];
-    serverVersion?: TeamMemberSettings; // For conflicts
-  }
-}
-```
-
----
-
-## Rollback Procedures
-
-### Per-Phase Rollback
-
-| Phase | Rollback Steps |
-|-------|---------------|
-| Phase 2 | Delete from IndexedDB, clear Redux state, reload from DB |
-| Phase 3 | Remove time-off/override entries, restore previous workingHours |
-| Phase 4 | Reset permissions to level defaults, clear PIN |
-| Phase 5 | Reset commission to 'none', clear payroll settings |
-| Phase 6 | Reset onlineBooking to defaults (isBookableOnline=true) |
-| Phase 7 | Reset notifications to defaults (all true) |
-| Phase 8 | Revert integration files to pre-integration commit |
-| Phase 9 | Drop timesheet/payrun tables, clear related Redux state |
-
-### Database Rollback
-
-```typescript
-// Emergency database reset for team module
-async function rollbackTeamModule(): Promise<void> {
-  // 1. Clear Redux state
-  store.dispatch(teamSlice.actions.setMembers([]));
-
-  // 2. Clear IndexedDB table
-  await db.teamMembers.clear();
-
-  // 3. Clear sync queue for team entities
-  await syncQueueDB.syncQueue
-    .where('entityType')
-    .equals('teamMember')
-    .delete();
-
-  // 4. Re-seed with mock data (development only)
-  if (process.env.NODE_ENV === 'development') {
-    await seedMockTeamData();
-  }
-}
-```
-
----
-
-## File Structure Summary
-
-```
+\`\`\`
 src/
-├── components/
-│   └── team-settings/
-│       ├── TeamSettings.tsx
-│       ├── types.ts
-│       ├── constants.ts
-│       ├── validation/                    # Phase 1.5 ✅
-│       │   ├── schemas.ts
-│       │   ├── validate.ts
-│       │   └── index.ts
-│       ├── components/
-│       │   ├── TeamMemberList.tsx
-│       │   ├── AddTeamMember.tsx
-│       │   ├── SharedComponents.tsx
-│       │   ├── TimeOffModal.tsx           # Phase 3
-│       │   ├── ScheduleOverrideModal.tsx  # Phase 3
-│       │   ├── OnlineProfilePreview.tsx   # Phase 6
-│       │   └── EarningsCalculator.tsx     # Phase 5
-│       ├── sections/
-│       │   ├── ProfileSection.tsx
-│       │   ├── ServicesSection.tsx
-│       │   ├── ScheduleSection.tsx
-│       │   ├── PermissionsSection.tsx
-│       │   ├── CommissionSection.tsx
-│       │   ├── OnlineBookingSection.tsx
-│       │   └── NotificationsSection.tsx
-│       ├── timesheet/                     # Phase 9
-│       │   ├── ClockInOut.tsx
-│       │   └── TimesheetView.tsx
-│       └── payroll/                       # Phase 9
-│           ├── PayRunList.tsx
-│           └── PayRunDetail.tsx
 ├── store/slices/
-│   └── teamSlice.ts
+│   └── staffPerformanceSlice.ts       # NEW - Performance tracking
 ├── db/
-│   ├── schema.ts
-│   └── teamOperations.ts
-├── types/
-│   └── common.ts
-└── utils/
-    ├── conflictResolution.ts              # Phase 1.5 ✅
-    ├── permissions.ts                     # Phase 4
-    ├── teamCalendarIntegration.ts         # Phase 8
-    └── teamCheckoutIntegration.ts         # Phase 8
-```
+│   └── ratingOperations.ts            # NEW - Ratings CRUD
+├── components/team-settings/sections/
+│   └── PerformanceSection.tsx         # NEW - Performance tab
+├── components/staff-experience/
+│   ├── PortfolioGallery.tsx           # NEW - Image gallery
+│   ├── RatingDisplay.tsx              # NEW - Star rating display
+│   ├── ReviewCard.tsx                 # NEW - Individual review
+│   ├── PerformanceDashboard.tsx       # NEW - Staff performance view
+│   ├── GoalProgressCard.tsx           # NEW - Goal tracking card
+│   └── AchievementBadge.tsx           # NEW - Badge display
+└── types/
+    ├── rating.ts                      # NEW - Rating types
+    └── performance.ts                 # NEW - Performance types
+\`\`\`
+
+### 4.3 Implementation Steps
+
+1. **Week 1: Ratings & Reviews**
+   - [ ] Create src/types/rating.ts
+   - [ ] Create src/db/ratingOperations.ts
+   - [ ] Create RatingDisplay.tsx
+   - [ ] Create ReviewCard.tsx
+   - [ ] Add rating display to staff profiles
+
+2. **Week 2: Portfolio**
+   - [ ] Create PortfolioGallery.tsx
+   - [ ] Add image upload functionality
+   - [ ] Add drag-and-drop reordering
+   - [ ] Integrate with online booking profile
+
+3. **Week 3: Performance Dashboard**
+   - [ ] Create src/types/performance.ts
+   - [ ] Create src/store/slices/staffPerformanceSlice.ts
+   - [ ] Create PerformanceDashboard.tsx
+   - [ ] Create GoalProgressCard.tsx
+   - [ ] Add PerformanceSection.tsx to Team Settings
+
+4. **Week 4: Achievements & Polish**
+   - [ ] Create AchievementBadge.tsx
+   - [ ] Implement achievement logic
+   - [ ] Add badges to staff profiles
+   - [ ] Integration testing
+
+### 4.4 Validation Checkpoints
+
+**Week 1 Validation:**
+- [ ] Staff ratings display correctly
+- [ ] Reviews can be added after appointments
+- [ ] Star rating shown on booking page
+
+**Week 2 Validation:**
+- [ ] Portfolio images upload correctly
+- [ ] Images can be reordered
+- [ ] Portfolio shows on booking profile
+
+**Week 3 Validation:**
+- [ ] Performance metrics calculate correctly
+- [ ] Goals show progress bars
+- [ ] Dashboard displays all metrics
+
+**Week 4 Validation:**
+- [ ] Achievements unlock correctly
+- [ ] Badges display on profiles
+- [ ] All features work offline
 
 ---
 
-## Dependencies Between Phases
+## Database Migration Strategy
 
-```
-Phase 1 (Infrastructure) ────── ✅ COMPLETE
-Phase 1.5 (Quality) ─────────── ✅ COMPLETE
-    │
-    ├── Phase 2 (Profile & Services) ──────┐
-    │                                      │
-    ├── Phase 3 (Schedule) ────────────────┤
-    │                                      │
-    ├── Phase 4 (Permissions) ─────────────┼── Can run in PARALLEL
-    │                                      │
-    ├── Phase 5 (Commission) ──────────────┤
-    │                                      │
-    ├── Phase 6 (Online Booking) ──────────┤
-    │                                      │
-    └── Phase 7 (Notifications) ───────────┘
-                                           │
-                                           └── Phase 8 (Integration)
-                                                     │
-                                                     └── Phase 9 (Timesheet)
-```
+### Migration Order
+
+1. **Phase 2**: Add timesheets table
+2. **Phase 3**: Add payRuns table
+3. **Phase 4**: Add staffRatings and achievements tables
+
+### Schema Updates
+
+Increment version for each phase:
+- Current: 9
+- Phase 2: 10 (timesheets)
+- Phase 3: 11 (payRuns)
+- Phase 4: 12 (staffRatings, achievements)
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+| Module | Test Focus |
+|--------|------------|
+| overtimeCalculation.ts | Daily, weekly, combined thresholds |
+| commissionCalculation.ts | Percentage, tiered, flat; all bonuses |
+| payRunCalculation.ts | Totals, adjustments, guaranteed minimum |
+| timesheetSlice.ts | State updates, async thunks |
+| payrollSlice.ts | State updates, workflow transitions |
+
+### Integration Tests
+
+| Scenario | Validation |
+|----------|------------|
+| Clock in -> Turn Tracker | Only clocked-in staff appear |
+| Timesheet -> Pay Run | Hours/wages transfer correctly |
+| Checkout -> Commission | Revenue and tips aggregate correctly |
+| Approval workflow | Status transitions correctly |
+| Offline mode | All operations work offline |
+
+---
+
+## Risk Mitigation
+
+| Risk | Mitigation |
+|------|------------|
+| Calculation errors in payroll | Extensive unit tests, audit logs |
+| Data sync conflicts | Vector clock + field-level merge |
+| Performance with large datasets | Pagination, indexed queries |
+| Offline payroll processing | Clear online-only indicators for processing |
 
 ---
 
 ## Success Criteria
 
-### Phase 1 & 1.5 Complete ✅
-- [x] Build compiles without errors
-- [x] Mock data loads on first run
-- [x] Can select team members in list
-- [x] Basic CRUD operations work
-- [x] Zod validation schemas created
-- [x] Field-level conflict resolution implemented
-- [x] Optimistic updates working
-- [x] 70 unit tests passing
+### Phase 2 Complete When:
+- [ ] Staff can clock in/out from Front Desk
+- [ ] Only clocked-in staff appear in Turn Tracker
+- [ ] Managers can approve timesheets
+- [ ] Overtime calculates correctly
+- [ ] All operations work offline
 
-### MVP Complete When (Phases 2-7)
-- [ ] All P0 features from PRD implemented
-- [ ] All section forms save correctly
-- [ ] Data persists across sessions (IndexedDB)
-- [ ] No critical bugs in core flows
-- [ ] Mobile responsive
-- [ ] Performance targets met
+### Phase 3 Complete When:
+- [ ] Pay runs can be created for any period
+- [ ] Calculations match manual verification
+- [ ] Approval workflow enforced
+- [ ] Staff can view their earnings
+- [ ] 6+ reports available
 
-### Full Release When (Phases 8-9)
-- [ ] All P0 + P1 features implemented
-- [ ] Calendar integration complete
-- [ ] Checkout integration complete
-- [ ] Permission checks enforced
-- [ ] Sync working with cloud backend
-- [ ] Timesheet and pay runs functional
-- [ ] Accessibility audit passed (WCAG 2.1 AA)
-- [ ] 80%+ test coverage
+### Phase 4 Complete When:
+- [ ] Ratings display on booking profiles
+- [ ] Portfolio gallery functional
+- [ ] Performance dashboard shows all metrics
+- [ ] Achievements unlock automatically
+- [ ] All features work offline
 
 ---
 
-*End of Implementation Plan v3.0*
+## Review Section
+
+### Summary
+
+This implementation plan provides a comprehensive roadmap for completing the Team Module across three phases:
+
+1. **Phase 2 (Time & Attendance)**: Adds clock in/out, break tracking, timesheet management, and overtime calculation. Critical for Phase 3 payroll integration.
+
+2. **Phase 3 (Payroll & Pay Runs)**: Adds automated pay calculations combining wages, commissions, tips, and bonuses. Includes approval workflow and 9 payroll reports.
+
+3. **Phase 4 (Staff Experience)**: Adds ratings/reviews, portfolio gallery, performance dashboard, and achievements. Enhances online booking and staff engagement.
+
+### Key Decisions
+
+- Follow existing offline-first architecture patterns
+- Extend BaseSyncableEntity for all new entities
+- Use established Redux slice patterns from teamSlice.ts
+- Database operations follow teamDB style
+
+### Dependencies
+
+- Phase 3 depends on Phase 2 (timesheets for wages)
+- Phase 3 depends on checkout data (for commissions, tips)
+- Phase 4 can run partially in parallel with Phase 3
+
+---
+
+*Implementation Plan v1.0 - Created for Mango POS Team Module*

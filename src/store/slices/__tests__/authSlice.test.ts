@@ -44,7 +44,7 @@ describe('authSlice', () => {
 
   describe('initial state', () => {
     it('should have correct initial state', () => {
-      const state = store.getState().auth;
+      const state = (store.getState() as any).auth;
 
       expect(state.isAuthenticated).toBe(false);
       expect(state.user).toBeNull();
@@ -74,7 +74,7 @@ describe('authSlice', () => {
         })
       );
 
-      const state = store.getState().auth;
+      const state = (store.getState() as any).auth;
 
       expect(state.isAuthenticated).toBe(true);
       expect(state.user).toEqual(user);
@@ -106,7 +106,7 @@ describe('authSlice', () => {
       // Then logout
       store.dispatch(logout());
 
-      const state = store.getState().auth;
+      const state = (store.getState() as any).auth;
 
       expect(state.isAuthenticated).toBe(false);
       expect(state.user).toBeNull();
@@ -124,6 +124,11 @@ describe('authSlice', () => {
         reducer: { auth: authReducer },
         preloadedState: {
           auth: {
+            // Two-tier auth state
+            status: 'not_logged_in' as const,
+            store: null,
+            member: null,
+            // Legacy fields
             isAuthenticated: false,
             user: null,
             salonId: null,
@@ -154,7 +159,7 @@ describe('authSlice', () => {
 
         store.dispatch(setDevice(device));
 
-        const state = store.getState().auth;
+        const state = (store.getState() as any).auth;
 
         expect(state.device).toEqual(device);
       });
@@ -171,7 +176,7 @@ describe('authSlice', () => {
 
         store.dispatch(setStorePolicy(policy));
 
-        const state = store.getState().auth;
+        const state = (store.getState() as any).auth;
 
         expect(state.storePolicy).toEqual(policy);
       });
@@ -192,7 +197,7 @@ describe('authSlice', () => {
         // Then update mode
         store.dispatch(updateDeviceMode('online-only'));
 
-        const state = store.getState().auth;
+        const state = (store.getState() as any).auth;
 
         expect(state.device?.mode).toBe('online-only');
         expect(state.device?.offlineModeEnabled).toBe(false);
@@ -201,7 +206,7 @@ describe('authSlice', () => {
       it('should do nothing when no device exists', () => {
         store.dispatch(updateDeviceMode('online-only'));
 
-        const state = store.getState().auth;
+        const state = (store.getState() as any).auth;
 
         expect(state.device).toBeNull();
       });
@@ -228,7 +233,7 @@ describe('authSlice', () => {
 
         store.dispatch(clearDevice());
 
-        const state = store.getState().auth;
+        const state = (store.getState() as any).auth;
 
         expect(state.device).toBeNull();
         expect(state.storePolicy).toBeNull();
@@ -264,11 +269,11 @@ describe('authSlice', () => {
     });
 
     it('selectIsAuthenticated should return auth status', () => {
-      expect(selectIsAuthenticated(store.getState())).toBe(true);
+      expect(selectIsAuthenticated(store.getState() as any as any)).toBe(true);
     });
 
     it('selectCurrentUser should return user', () => {
-      expect(selectCurrentUser(store.getState())).toEqual({
+      expect(selectCurrentUser(store.getState() as any)).toEqual({
         id: 'user-1',
         name: 'Test',
         email: 'test@test.com',
@@ -277,15 +282,15 @@ describe('authSlice', () => {
     });
 
     it('selectSalonId should return salon ID', () => {
-      expect(selectSalonId(store.getState())).toBe('salon-123');
+      expect(selectSalonId(store.getState() as any)).toBe('salon-123');
     });
 
     it('selectToken should return token', () => {
-      expect(selectToken(store.getState())).toBe('token-abc');
+      expect(selectToken(store.getState() as any)).toBe('token-abc');
     });
 
     it('selectDevice should return device state', () => {
-      expect(selectDevice(store.getState())).toEqual({
+      expect(selectDevice(store.getState() as any)).toEqual({
         id: 'device-456',
         mode: 'offline-enabled',
         offlineModeEnabled: true,
@@ -294,7 +299,7 @@ describe('authSlice', () => {
     });
 
     it('selectStorePolicy should return store policy', () => {
-      expect(selectStorePolicy(store.getState())).toEqual({
+      expect(selectStorePolicy(store.getState() as any)).toEqual({
         defaultMode: 'offline-enabled',
         allowUserOverride: false,
         maxOfflineDevices: 5,
@@ -303,15 +308,15 @@ describe('authSlice', () => {
     });
 
     it('selectDeviceMode should return device mode', () => {
-      expect(selectDeviceMode(store.getState())).toBe('offline-enabled');
+      expect(selectDeviceMode(store.getState() as any)).toBe('offline-enabled');
     });
 
     it('selectIsOfflineEnabled should return offline status', () => {
-      expect(selectIsOfflineEnabled(store.getState())).toBe(true);
+      expect(selectIsOfflineEnabled(store.getState() as any)).toBe(true);
     });
 
     it('selectDeviceId should return device ID', () => {
-      expect(selectDeviceId(store.getState())).toBe('device-456');
+      expect(selectDeviceId(store.getState() as any)).toBe('device-456');
     });
 
     describe('when no device is set', () => {
@@ -320,15 +325,15 @@ describe('authSlice', () => {
       });
 
       it('selectDeviceMode should return null', () => {
-        expect(selectDeviceMode(store.getState())).toBeNull();
+        expect(selectDeviceMode(store.getState() as any)).toBeNull();
       });
 
       it('selectIsOfflineEnabled should return false', () => {
-        expect(selectIsOfflineEnabled(store.getState())).toBe(false);
+        expect(selectIsOfflineEnabled(store.getState() as any)).toBe(false);
       });
 
       it('selectDeviceId should return null', () => {
-        expect(selectDeviceId(store.getState())).toBeNull();
+        expect(selectDeviceId(store.getState() as any)).toBeNull();
       });
     });
   });
