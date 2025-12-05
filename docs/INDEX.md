@@ -1,7 +1,7 @@
 # Mango POS Documentation Index
 
-> **Last Updated:** December 2, 2025  
-> **Active Docs:** 36 | **Archived:** 113
+> **Last Updated:** December 5, 2025  
+> **Active Docs:** 42 | **Archived:** 113
 
 Essential documentation for Mango POS Offline V2.
 
@@ -14,6 +14,18 @@ Essential documentation for Mango POS Offline V2.
 | [TECHNICAL_DOCUMENTATION.md](./architecture/TECHNICAL_DOCUMENTATION.md) | **Start here** - System overview, stack, architecture |
 | [DATA_STORAGE_STRATEGY.md](./architecture/DATA_STORAGE_STRATEGY.md) | Data layer: schemas, sync, conflicts, security |
 | [ARCHITECTURE_DECISION_RECORDS.md](./architecture/ARCHITECTURE_DECISION_RECORDS.md) | ADRs for key decisions (including ADR-016: Opt-In Offline) |
+
+---
+
+## 🧪 Testing
+
+| Document | Description |
+|----------|-------------|
+| [Testing Documentation](./testing/README.md) | **Testing Hub** - All testing guides and documentation |
+| [TESTING_GUIDE.md](./testing/TESTING_GUIDE.md) | Comprehensive testing guide for all implemented fixes |
+| [TESTING_QUICK_REFERENCE.md](./testing/TESTING_QUICK_REFERENCE.md) | Quick reference card for fast testing |
+| [FRONT_DESK_MANUAL_TEST.md](./testing/FRONT_DESK_MANUAL_TEST.md) | Step-by-step manual testing guide for Front Desk flows |
+| [FRONT_DESK_BACKEND_TEST_RESULTS.md](./testing/FRONT_DESK_BACKEND_TEST_RESULTS.md) | Backend test results and verification checklist |
 
 ---
 
@@ -142,6 +154,7 @@ docs/
 │   ├── tickets/          # 4 docs
 │   ├── checkout/         # 1 doc
 │   └── turn-tracker/     # (empty)
+├── testing/              # 6 docs - Testing guides & results
 ├── guides/               # 6 docs - How-to guides
 ├── design/               # 2 docs - Design standards
 ├── api/                  # 1 doc - API reference

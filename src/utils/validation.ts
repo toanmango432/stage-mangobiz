@@ -1,188 +1,275 @@
 /**
- * Validation utilities for forms
- * Comprehensive validation for all input types
+ * Validation Utilities
+ *
+ * Provides validation functions for foreign keys and data relationships
+ * to ensure data integrity before creating/updating entities.
+ * Also includes input validation helpers for forms.
  */
 
-/**
- * Validate email format
- */
-export function isValidEmail(email: string): boolean {
-  if (!email) return false;
-  const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-  return emailRegex.test(email);
-}
+import { dataService } from '../services/dataService';
+
+// =============================================================================
+// Input Validation & Formatting Helpers
+// =============================================================================
 
 /**
- * Get email validation error message
+ * Validate a name field and return an error message if invalid
  */
-export function getEmailError(email: string): string | null {
-  if (!email) return null; // Empty is OK for optional fields
-  if (!email.includes('@')) return 'Email must contain @';
-  if (!isValidEmail(email)) return 'Please enter a valid email address';
+export function getNameError(value: string, fieldLabel: string = 'Name'): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return `${fieldLabel} is required`;
+  }
+  if (trimmed.length < 2) {
+    return `${fieldLabel} must be at least 2 characters`;
+  }
+  if (trimmed.length > 50) {
+    return `${fieldLabel} must be less than 50 characters`;
+  }
+  // Only allow letters, spaces, hyphens, and apostrophes
+  if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) {
+    return `${fieldLabel} can only contain letters, spaces, hyphens, and apostrophes`;
+  }
   return null;
 }
 
 /**
- * Validate phone number (10 digits for US)
+ * Validate a phone number and return an error message if invalid
  */
-export function isValidPhoneNumber(phone: string): boolean {
-  // Remove all non-digits
-  const digitsOnly = phone.replace(/\D/g, '');
-
-  // US phone numbers should be 10 digits (or 11 with country code)
-  return digitsOnly.length === 10 || (digitsOnly.length === 11 && digitsOnly[0] === '1');
-}
-
-/**
- * Get phone validation error message
- */
-export function getPhoneError(phone: string): string | null {
-  if (!phone) return 'Phone number is required';
-
-  const digitsOnly = phone.replace(/\D/g, '');
-
-  if (digitsOnly.length === 0) return 'Please enter a phone number';
-  if (digitsOnly.length < 10) return `Need ${10 - digitsOnly.length} more digit${10 - digitsOnly.length > 1 ? 's' : ''}`;
-  if (digitsOnly.length > 11) return 'Phone number is too long';
-  if (digitsOnly.length === 11 && digitsOnly[0] !== '1') return 'Invalid country code';
-
+export function getPhoneError(value: string): string | null {
+  const cleaned = value.replace(/\D/g, '');
+  if (!cleaned) {
+    return 'Phone number is required';
+  }
+  if (cleaned.length < 10) {
+    return 'Phone number must be at least 10 digits';
+  }
+  if (cleaned.length > 15) {
+    return 'Phone number is too long';
+  }
   return null;
 }
 
 /**
- * Validate name (first or last)
+ * Validate an email and return an error message if invalid
  */
-export function isValidName(name: string): boolean {
-  if (!name || !name.trim()) return false;
-
-  // Name should be at least 2 characters
-  if (name.trim().length < 2) return false;
-
-  // Name should only contain letters, spaces, hyphens, and apostrophes
-  const nameRegex = /^[A-Za-z\s'-]+$/;
-  return nameRegex.test(name.trim());
-}
-
-/**
- * Get name validation error message
- */
-export function getNameError(name: string, fieldName: string = 'Name'): string | null {
-  if (!name || !name.trim()) return `${fieldName} is required`;
-  if (name.trim().length < 2) return `${fieldName} must be at least 2 characters`;
-  if (!/^[A-Za-z\s'-]+$/.test(name.trim())) return `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`;
+export function getEmailError(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null; // Email is often optional
+  }
+  // Basic email regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmed)) {
+    return 'Please enter a valid email address';
+  }
   return null;
 }
 
 /**
- * Split full name into first and last name
+ * Check if an email is valid (boolean version)
  */
-export function splitFullName(fullName: string): { firstName: string; lastName: string } {
-  const trimmed = fullName.trim();
-  const parts = trimmed.split(/\s+/);
+export function isValidEmail(value: string): boolean {
+  if (!value || !value.trim()) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(value.trim());
+}
 
-  if (parts.length === 1) {
-    return { firstName: parts[0], lastName: '' };
+/**
+ * Check if a phone number is valid (boolean version)
+ */
+export function isValidPhoneNumber(value: string): boolean {
+  const cleaned = value.replace(/\D/g, '');
+  return cleaned.length >= 10 && cleaned.length <= 15;
+}
+
+/**
+ * Format name input - allows only letters, spaces, hyphens, apostrophes
+ */
+export function formatNameInput(value: string): string {
+  // Remove any characters that aren't letters, spaces, hyphens, or apostrophes
+  return value.replace(/[^a-zA-Z\s'-]/g, '');
+}
+
+/**
+ * Capitalize a name properly (first letter uppercase, rest lowercase)
+ */
+export function capitalizeName(value: string): string {
+  if (!value) return '';
+  return value
+    .trim()
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// =============================================================================
+// Foreign Key Validation
+// =============================================================================
+
+export type EntityType = 'client' | 'staff' | 'service' | 'appointment' | 'ticket';
+
+export interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+/**
+ * Validate that a foreign key entity exists
+ */
+export async function validateForeignKey(
+  entityType: EntityType,
+  id: string | null | undefined
+): Promise<ValidationResult> {
+  // Allow null/undefined for optional foreign keys
+  if (!id) {
+    return { valid: true };
   }
 
-  // Handle middle names by putting everything after first name as last name
-  const firstName = parts[0];
-  const lastName = parts.slice(1).join(' ');
+  try {
+    let exists = false;
 
-  return { firstName, lastName };
+    switch (entityType) {
+      case 'client':
+        const client = await dataService.clients.getById(id);
+        exists = !!client;
+        break;
+
+      case 'staff':
+        const staff = await dataService.staff.getById(id);
+        exists = !!staff;
+        break;
+
+      case 'service':
+        const service = await dataService.services.getById(id);
+        exists = !!service;
+        break;
+
+      case 'appointment':
+        const appointment = await dataService.appointments.getById(id);
+        exists = !!appointment;
+        break;
+
+      case 'ticket':
+        const ticket = await dataService.tickets.getById(id);
+        exists = !!ticket;
+        break;
+
+      default:
+        return {
+          valid: false,
+          error: `Unknown entity type: ${entityType}`,
+        };
+    }
+
+    if (!exists) {
+      return {
+        valid: false,
+        error: `${entityType} with id "${id}" does not exist`,
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Error validating ${entityType}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
 }
 
 /**
- * Validate full name (must have at least first name)
+ * Validate multiple foreign keys at once
  */
-export function isValidFullName(fullName: string): boolean {
-  if (!fullName || !fullName.trim()) return false;
-
-  const { firstName } = splitFullName(fullName);
-  return isValidName(firstName);
-}
-
-/**
- * Get full name validation error
- */
-export function getFullNameError(fullName: string): string | null {
-  if (!fullName || !fullName.trim()) return 'Name is required';
-
-  const { firstName, lastName } = splitFullName(fullName);
-
-  if (!firstName) return 'First name is required';
-  if (firstName.length < 2) return 'First name must be at least 2 characters';
-  if (!/^[A-Za-z\s'-]+$/.test(firstName)) return 'Name can only contain letters, spaces, hyphens, and apostrophes';
-
-  // Last name is optional, but validate if provided
-  if (lastName && !/^[A-Za-z\s'-]+$/.test(lastName)) {
-    return 'Last name can only contain letters, spaces, hyphens, and apostrophes';
+export async function validateForeignKeys(
+  validations: Array<{ type: EntityType; id: string | null | undefined; fieldName?: string }>
+): Promise<ValidationResult> {
+  for (const validation of validations) {
+    const result = await validateForeignKey(validation.type, validation.id);
+    if (!result.valid) {
+      return {
+        valid: false,
+        error: validation.fieldName
+          ? `${validation.fieldName}: ${result.error}`
+          : result.error,
+      };
+    }
   }
 
-  return null;
+  return { valid: true };
 }
 
 /**
- * Capitalize name properly (handles McDonald, O'Brien, etc.)
+ * Validate ticket creation input
  */
-export function capitalizeName(name: string): string {
-  if (!name) return '';
+export async function validateTicketInput(input: {
+  clientId?: string | null;
+  appointmentId?: string | null;
+  services?: Array<{ serviceId: string; staffId: string }>;
+}): Promise<ValidationResult> {
+  const validations: Array<{ type: EntityType; id: string | null | undefined; fieldName?: string }> = [];
 
-  return name
-    .split(/(\s+|-)/)
-    .map(part => {
-      if (!part || part === ' ' || part === '-') return part;
-
-      // Handle special cases
-      if (part.toLowerCase().startsWith('mc')) {
-        return 'Mc' + part.slice(2).charAt(0).toUpperCase() + part.slice(3).toLowerCase();
-      }
-      if (part.toLowerCase().startsWith("o'")) {
-        return "O'" + part.slice(2).charAt(0).toUpperCase() + part.slice(3).toLowerCase();
-      }
-
-      // Normal case
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join('');
-}
-
-/**
- * Format name as it's typed (auto-capitalize)
- */
-export function formatNameInput(name: string): string {
-  if (!name) return '';
-
-  // Only capitalize after user has typed a space or hyphen
-  const lastChar = name[name.length - 1];
-  if (lastChar === ' ' || lastChar === '-') {
-    return name;
+  // Validate client
+  if (input.clientId) {
+    validations.push({ type: 'client', id: input.clientId, fieldName: 'clientId' });
   }
 
-  // If user just started typing a new word
-  const secondLastChar = name[name.length - 2];
-  if (secondLastChar === ' ' || secondLastChar === '-' || name.length === 1) {
-    const beforeLast = name.slice(0, -1);
-    const last = name[name.length - 1].toUpperCase();
-    return beforeLast + last;
+  // Validate appointment
+  if (input.appointmentId) {
+    validations.push({ type: 'appointment', id: input.appointmentId, fieldName: 'appointmentId' });
   }
 
-  return name;
+  // Validate services and staff
+  if (input.services) {
+    for (const service of input.services) {
+      validations.push({ type: 'service', id: service.serviceId, fieldName: 'serviceId' });
+      validations.push({ type: 'staff', id: service.staffId, fieldName: 'staffId' });
+    }
+  }
+
+  return await validateForeignKeys(validations);
 }
 
 /**
- * Validate required field
+ * Validate appointment creation input
  */
-export function isRequired(value: any): boolean {
-  if (value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  return true;
+export async function validateAppointmentInput(input: {
+  clientId: string;
+  staffId: string;
+  services?: Array<{ serviceId: string; staffId: string }>;
+}): Promise<ValidationResult> {
+  const validations: Array<{ type: EntityType; id: string | null | undefined; fieldName?: string }> = [
+    { type: 'client', id: input.clientId, fieldName: 'clientId' },
+    { type: 'staff', id: input.staffId, fieldName: 'staffId' },
+  ];
+
+  // Validate services and their assigned staff
+  if (input.services) {
+    for (const service of input.services) {
+      validations.push({ type: 'service', id: service.serviceId, fieldName: 'serviceId' });
+      validations.push({ type: 'staff', id: service.staffId, fieldName: 'staffId' });
+    }
+  }
+
+  return await validateForeignKeys(validations);
 }
 
 /**
- * Get required field error
+ * Validate transaction creation input
  */
-export function getRequiredError(value: any, fieldName: string): string | null {
-  if (!isRequired(value)) return `${fieldName} is required`;
-  return null;
+export async function validateTransactionInput(input: {
+  ticketId: string;
+  clientId?: string | null;
+}): Promise<ValidationResult> {
+  const validations: Array<{ type: EntityType; id: string | null | undefined; fieldName?: string }> = [
+    { type: 'ticket', id: input.ticketId, fieldName: 'ticketId' },
+  ];
+
+  // Validate client if provided
+  if (input.clientId) {
+    validations.push({ type: 'client', id: input.clientId, fieldName: 'clientId' });
+  }
+
+  return await validateForeignKeys(validations);
 }

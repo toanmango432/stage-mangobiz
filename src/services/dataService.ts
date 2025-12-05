@@ -28,6 +28,8 @@ import {
   type StaffInsert,
   type StaffUpdate,
   type ServiceRow,
+  type ServiceInsert,
+  type ServiceUpdate,
   type AppointmentRow,
   type AppointmentInsert,
   type AppointmentUpdate,
@@ -340,6 +342,10 @@ export const staffService = {
   async update(id: string, updates: StaffUpdate): Promise<StaffRow> {
     return staffTable.update(id, updates);
   },
+
+  async delete(id: string): Promise<void> {
+    return staffTable.delete(id);
+  },
 };
 
 /**
@@ -362,6 +368,20 @@ export const servicesService = {
     // Use getByStoreId and filter active
     const services = await servicesTable.getByStoreId(storeId);
     return services.filter(s => s.is_active);
+  },
+
+  async create(service: Omit<ServiceInsert, 'store_id'>): Promise<ServiceRow> {
+    const storeId = getStoreId();
+    if (!storeId) throw new Error('No store ID available');
+    return servicesTable.create({ ...service, store_id: storeId });
+  },
+
+  async update(id: string, updates: ServiceUpdate): Promise<ServiceRow> {
+    return servicesTable.update(id, updates);
+  },
+
+  async delete(id: string): Promise<void> {
+    return servicesTable.delete(id);
   },
 };
 
@@ -397,6 +417,10 @@ export const appointmentsService = {
 
   async updateStatus(id: string, status: string): Promise<AppointmentRow> {
     return appointmentsTable.updateStatus(id, status);
+  },
+
+  async delete(id: string): Promise<void> {
+    return appointmentsTable.delete(id);
   },
 };
 

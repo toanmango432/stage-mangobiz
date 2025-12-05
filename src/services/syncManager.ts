@@ -254,7 +254,7 @@ class SyncManager {
       const { entity, action, data } = change;
 
       // Import database functions dynamically
-      const { appointmentsDB, ticketsDB, staffDB, clientsDB } = await import('../db/database');
+      const { appointmentsDB, ticketsDB, staffDB, clientsDB, transactionsDB } = await import('../db/database');
 
       switch (entity) {
         case 'appointment':
@@ -294,6 +294,26 @@ class SyncManager {
         case 'client':
           if (action === 'CREATE' || action === 'UPDATE') {
             await clientsDB.update(data.id, { ...data, syncStatus: 'synced' });
+          }
+          break;
+
+        case 'transaction':
+          if (action === 'CREATE' || action === 'UPDATE') {
+            // Check for conflicts - for transactions, server always wins (financial data integrity)
+            const existing = await transactionsDB.getById(data.id);
+            if (existing && (existing as any).updatedAt && new Date((existing as any).updatedAt) > new Date(data.updatedAt || data.createdAt)) {
+              console.warn('⚠️ Transaction conflict detected:', data.id, '- Server wins for financial data');
+            }
+            // Always apply server version for transactions (server-wins strategy)
+            if (action === 'CREATE') {
+              // Add new transaction to local DB
+              await transactionsDB.addRaw({ ...data, syncStatus: 'synced' });
+            } else {
+              // Update existing transaction
+              await transactionsDB.update(data.id, { ...data, syncStatus: 'synced' });
+            }
+          } else if (action === 'DELETE') {
+            await transactionsDB.delete(data.id);
           }
           break;
 

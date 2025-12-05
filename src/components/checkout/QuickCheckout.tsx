@@ -5,8 +5,8 @@ import type { Client } from '../../types/client';
 import { TAX_RATE } from '../../constants/checkoutConfig';
 // import { POINTS_PER_DOLLAR_REDEMPTION } from '../../constants/loyaltyConfig';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createTransaction } from '../../store/slices/transactionsSlice';
-import { updateTicket } from '../../store/slices/ticketsSlice';
+import { createTransactionInSupabase } from '../../store/slices/transactionsSlice';
+import { updateTicketInSupabase } from '../../store/slices/ticketsSlice';
 import { earnLoyaltyPoints, redeemLoyaltyPoints } from '../../store/slices/clientsSlice';
 import { selectCurrentUser } from '../../store/slices/authSlice';
 import { toast } from 'react-hot-toast';
@@ -183,8 +183,8 @@ export function QuickCheckout({ isOpen, onClose, ticket, client, onComplete }: Q
         throw new Error('User not authenticated. Please log in again.');
       }
 
-      // 1. First update the ticket with payment info and mark as completed
-      await dispatch(updateTicket({
+      // 1. First update the ticket with payment info and mark as completed in Supabase
+      await dispatch(updateTicketInSupabase({
         id: ticket.id,
         updates: {
           payments,
@@ -195,15 +195,68 @@ export function QuickCheckout({ isOpen, onClose, ticket, client, onComplete }: Q
           subtotal: afterDiscount,
           tax: taxAmount,
           total: grandTotal
-        },
-        userId: currentUser.id
+        }
       })).unwrap();
 
-      // 2. Create transaction record for the completed ticket
-      const transaction = await dispatch(createTransaction({
+      // 2. Create transaction record for the completed ticket in Supabase
+      // Determine primary payment method for transaction record
+      const primaryPaymentMethod = paymentMethod === 'split' 
+        ? (payments.length > 0 ? payments[0].method : 'card')
+        : paymentMethod;
+      
+      // Build payment details object
+      const paymentDetails: any = {
+        payments: payments.map(p => ({
+          method: p.method,
+          amount: p.amount,
+          tip: p.tip,
+          total: p.total,
+          processedAt: p.processedAt,
+          cardLast4: p.cardLast4,
+          transactionId: p.transactionId,
+        })),
+      };
+      
+      // Add split payment info if applicable
+      if (paymentMethod === 'split') {
+        paymentDetails.splits = payments.map(p => ({
+          method: p.method,
+          amount: p.amount,
+          details: {
+            cardLast4: p.cardLast4,
+            transactionId: p.transactionId,
+          },
+        }));
+      }
+      
+      // Add card details if card payment
+      if (primaryPaymentMethod === 'card' && cardLast4) {
+        paymentDetails.cardLast4 = cardLast4;
+      }
+      
+      // Add cash details if cash payment
+      if (primaryPaymentMethod === 'cash') {
+        paymentDetails.amountTendered = grandTotal;
+        paymentDetails.changeDue = 0; // Could calculate if needed
+      }
+
+      const transaction = await dispatch(createTransactionInSupabase({
         ticketId: ticket.id,
-        _salonId: ticket.salonId,
-        _userId: currentUser.id
+        ticketNumber: ticket.number || 0,
+        clientId: ticket.clientId || client?.id,
+        clientName: ticket.clientName || client?.firstName + ' ' + client?.lastName || 'Walk-in',
+        subtotal: afterDiscount,
+        tax: taxAmount,
+        tip: tipValue,
+        discount: discountValue,
+        paymentMethod: primaryPaymentMethod as 'cash' | 'card' | 'debit-card' | 'credit-card' | 'gift-card' | 'split',
+        paymentDetails,
+        services: ticket.services.map(s => ({
+          name: s.serviceName || s.name || 'Service',
+          price: s.price,
+          staffName: s.staffName,
+        })),
+        processedBy: currentUser.id,
       })).unwrap();
 
       // 3. Handle loyalty points (if client has loyalty)

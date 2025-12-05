@@ -198,10 +198,26 @@ export const fetchUpcomingAppointments = createAsyncThunk(
  */
 export const createAppointmentInSupabase = createAsyncThunk(
   'appointments/createInSupabase',
-  async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const insertData = toAppointmentInsert(appointment);
-    const row = await dataService.appointments.create(insertData);
-    return toAppointment(row);
+  async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
+    try {
+      // Validate foreign keys before creating
+      const { validateAppointmentInput } = await import('../../utils/validation');
+      const validation = await validateAppointmentInput({
+        clientId: appointment.clientId,
+        staffId: appointment.staffId,
+        services: appointment.services,
+      });
+
+      if (!validation.valid) {
+        return rejectWithValue(validation.error || 'Validation failed');
+      }
+
+      const insertData = toAppointmentInsert(appointment);
+      const row = await dataService.appointments.create(insertData);
+      return toAppointment(row);
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create appointment');
+    }
   }
 );
 
@@ -214,6 +230,21 @@ export const updateAppointmentInSupabase = createAsyncThunk(
     const updateData = toAppointmentUpdate(updates);
     const row = await dataService.appointments.update(id, updateData);
     return toAppointment(row);
+  }
+);
+
+/**
+ * Delete appointment in Supabase via dataService
+ */
+export const deleteAppointmentInSupabase = createAsyncThunk(
+  'appointments/deleteInSupabase',
+  async (appointmentId: string, { rejectWithValue }) => {
+    try {
+      await dataService.appointments.delete(appointmentId);
+      return appointmentId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete appointment');
+    }
   }
 );
 
@@ -486,6 +517,25 @@ const appointmentSlice = createSlice({
       .addCase(updateAppointmentInSupabase.rejected, (state, action) => {
         state.loading.updateAppointment = false;
         state.error.updateAppointment = action.error.message || 'Failed to update in Supabase';
+      });
+
+    // Delete in Supabase
+    builder
+      .addCase(deleteAppointmentInSupabase.pending, (state) => {
+        state.loading.deleteAppointment = true;
+        state.error.deleteAppointment = null;
+      })
+      .addCase(deleteAppointmentInSupabase.fulfilled, (state, action) => {
+        state.loading.deleteAppointment = false;
+        state.appointments = state.appointments.filter(apt => apt.id !== action.payload && String(apt.serverId) !== action.payload);
+        if (state.selectedAppointmentId === action.payload) {
+          state.selectedAppointmentId = null;
+        }
+        state.syncStatus.lastSync = new Date();
+      })
+      .addCase(deleteAppointmentInSupabase.rejected, (state, action) => {
+        state.loading.deleteAppointment = false;
+        state.error.deleteAppointment = action.error.message || 'Failed to delete appointment in Supabase';
       });
   },
 });

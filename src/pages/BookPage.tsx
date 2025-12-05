@@ -29,7 +29,8 @@ import { TimelineView } from '../components/Book/TimelineView';
 import { WalkInSidebar } from '../components/Book/WalkInSidebar';
 import { AppointmentFilters } from '../components/Book/FilterPanel';
 import { LocalAppointment } from '../types/appointment';
-import { addLocalAppointment, updateLocalAppointment, removeLocalAppointment } from '../store/slices/appointmentsSlice';
+import { addLocalAppointment, updateLocalAppointment, removeLocalAppointment, updateAppointmentInSupabase } from '../store/slices/appointmentsSlice';
+import { createTicketInSupabase } from '../store/slices/ticketsSlice';
 import { detectAppointmentConflicts } from '../utils/conflictDetection';
 import { snapToGrid } from '../utils/dragAndDropHelpers';
 import { syncService } from '../services/syncService';
@@ -259,6 +260,53 @@ export function BookPage() {
         return;
       }
 
+      // Update appointment status in Supabase
+      const appointmentServerId = appointment.serverId || appointment.id;
+      await dispatch(updateAppointmentInSupabase({
+        id: String(appointmentServerId),
+        updates: { status: newStatus as any },
+      })).unwrap();
+
+      // If checking in, create a ticket linked to this appointment
+      if (newStatus === 'checked-in') {
+        try {
+          // Convert dates to ISO strings if they're Date objects
+          const startTime = appointment.scheduledStartTime instanceof Date 
+            ? appointment.scheduledStartTime.toISOString()
+            : new Date(appointment.scheduledStartTime).toISOString();
+          const endTime = appointment.scheduledEndTime instanceof Date
+            ? appointment.scheduledEndTime.toISOString()
+            : new Date(appointment.scheduledEndTime).toISOString();
+
+          // Create ticket from appointment with appointmentId link
+          await dispatch(createTicketInSupabase({
+            appointmentId: String(appointmentServerId), // ✅ CRITICAL: Link ticket to appointment (convert to string)
+            clientId: appointment.clientId,
+            clientName: appointment.clientName,
+            clientPhone: appointment.clientPhone || '',
+            services: appointment.services.map(s => ({
+              serviceId: s.serviceId,
+              serviceName: s.serviceName,
+              staffId: s.staffId,
+              staffName: s.staffName,
+              price: s.price,
+              duration: s.duration,
+              commission: (s as any).commission || 0,
+              startTime,
+              endTime,
+              status: 'not_started' as const,
+            })),
+            source: 'calendar' as const,
+          })).unwrap();
+
+          setToast({ message: 'Appointment checked in and ticket created', type: 'success' });
+        } catch (ticketError) {
+          console.error('Error creating ticket from appointment:', ticketError);
+          // Don't fail the status change if ticket creation fails
+          setToast({ message: 'Appointment checked in, but ticket creation failed. Please create ticket manually.', type: 'error' });
+        }
+      }
+
       // Update in Redux
       dispatch(updateLocalAppointment({
         id: appointmentId,
@@ -277,13 +325,15 @@ export function BookPage() {
         await db.appointments.put(updated);
       }
 
-      // Queue for sync
+      // Queue for sync (legacy support)
       await syncService.queueUpdate('appointment', {
         ...appointment,
         status: newStatus as any,
       }, 3);
 
-      setToast({ message: `Appointment marked as ${newStatus}`, type: 'success' });
+      if (newStatus !== 'checked-in') {
+        setToast({ message: `Appointment marked as ${newStatus}`, type: 'success' });
+      }
     } catch (error) {
       console.error('Error updating appointment status:', error);
       setToast({ message: 'Failed to update appointment status. Please try again.', type: 'error' });

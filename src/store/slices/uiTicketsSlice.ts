@@ -671,19 +671,39 @@ export const checkInAppointment = createAsyncThunk(
     }
 
     try {
+      // Use serverId if available, otherwise use local id
+      const appointmentServerId = appointment.serverId || appointment.id;
+      
       // 1. Update appointment status to 'checked-in' in Supabase
-      await dataService.appointments.updateStatus(appointmentId, 'checked-in');
-      console.log('✅ Appointment checked-in in Supabase:', appointmentId);
+      await dataService.appointments.updateStatus(String(appointmentServerId), 'checked-in');
+      console.log('✅ Appointment checked-in in Supabase:', appointmentServerId);
 
-      // 2. Create ticket from appointment in Supabase
+      // 2. Create ticket from appointment in Supabase with validation
       const services = appointment.services || [];
       const primaryService = services[0] || {} as any;
       const totalDuration = services.reduce((sum, s) => sum + (s.duration || 30), 0);
 
+      // Validate foreign keys before creating
+      const { validateTicketInput } = await import('../../utils/validation');
+      const validation = await validateTicketInput({
+        clientId: appointment.clientId || null,
+        appointmentId: String(appointmentServerId),
+        services: services.map(s => ({
+          serviceId: s.serviceId || '',
+          staffId: s.staffId || appointment.staffId || '',
+        })),
+      });
+
+      if (!validation.valid) {
+        throw new Error(validation.error || 'Validation failed');
+      }
+
       const ticketInsert = toTicketInsert({
         salonId: '',
+        appointmentId: String(appointmentServerId), // ✅ CRITICAL: Link ticket to appointment
         clientId: appointment.clientId || '',
         clientName: appointment.clientName || 'Guest',
+        clientPhone: appointment.clientPhone || '',
         services: services.map(s => ({
           id: uuidv4(),
           serviceId: s.serviceId || uuidv4(),
@@ -693,8 +713,13 @@ export const checkInAppointment = createAsyncThunk(
           staffName: s.staffName || appointment.staffName || '',
           price: s.price || 0,
           duration: s.duration || 30,
-          commission: 0,
-          startTime: '',
+          commission: (s as any).commission || 0,
+          startTime: appointment.scheduledStartTime instanceof Date
+            ? appointment.scheduledStartTime.toISOString()
+            : new Date(appointment.scheduledStartTime).toISOString(),
+          endTime: appointment.scheduledEndTime instanceof Date
+            ? appointment.scheduledEndTime.toISOString()
+            : new Date(appointment.scheduledEndTime).toISOString(),
           status: 'not_started' as const,
           statusHistory: [],
           totalPausedDuration: 0,
@@ -710,7 +735,6 @@ export const checkInAppointment = createAsyncThunk(
         createdBy: 'current-user',
         lastModifiedBy: 'current-user',
         syncStatus: 'synced',
-        appointmentId: appointmentId, // Link ticket to original appointment
       } as any);
 
       const row = await dataService.tickets.create(ticketInsert);
@@ -752,7 +776,7 @@ export const checkInAppointment = createAsyncThunk(
 
       return {
         ticket: newTicket,
-        appointmentId,
+        appointmentId: String(appointmentServerId),
       };
     } catch (error) {
       console.error('❌ Failed to check-in appointment:', error);

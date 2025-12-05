@@ -115,6 +115,17 @@ export const createTransactionInSupabase = createAsyncThunk(
   'transactions/createInSupabase',
   async (input: CreateTransactionInput, { rejectWithValue }) => {
     try {
+      // Validate foreign keys before creating
+      const { validateTransactionInput } = await import('../../utils/validation');
+      const validation = await validateTransactionInput({
+        ticketId: input.ticketId,
+        clientId: input.clientId,
+      });
+
+      if (!validation.valid) {
+        return rejectWithValue(validation.error || 'Validation failed');
+      }
+
       const { toTransactionInsert, toTransaction: convertToTransaction } = await import('../../services/supabase');
 
       // Calculate totals
@@ -253,16 +264,25 @@ export const refundTransactionInSupabase = createAsyncThunk(
 );
 
 // ==================== LEGACY ASYNC THUNKS (IndexedDB) ====================
+// ⚠️ DEPRECATED: These thunks use IndexedDB only and do not sync to Supabase.
+// Use the Supabase versions instead:
+// - fetchTransactions → fetchTransactionsByDateFromSupabase
+// - createTransaction → createTransactionInSupabase
 
-// Fetch all transactions
+/**
+ * @deprecated Use fetchTransactionsByDateFromSupabase instead. This only reads from IndexedDB.
+ */
 export const fetchTransactions = createAsyncThunk(
   'transactions/fetchAll',
   async (_salonId: string) => {
+    console.warn('⚠️ DEPRECATED: fetchTransactions is deprecated. Use fetchTransactionsByDateFromSupabase instead.');
     return await transactionsDB.getAll(_salonId);
   }
 );
 
-// Create transaction from completed ticket
+/**
+ * @deprecated Use createTransactionInSupabase instead. This only saves to IndexedDB and does not sync to Supabase.
+ */
 export const createTransaction = createAsyncThunk(
   'transactions/create',
   async ({
@@ -272,6 +292,7 @@ export const createTransaction = createAsyncThunk(
     _salonId: string;
     _userId: string
   }) => {
+    console.warn('⚠️ DEPRECATED: createTransaction is deprecated. Use createTransactionInSupabase instead.');
     // Fetch the completed ticket
     const ticket = await ticketsDB.getById(ticketId);
     if (!ticket) {

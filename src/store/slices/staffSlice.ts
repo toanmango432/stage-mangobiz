@@ -85,6 +85,21 @@ export const updateStaffInSupabase = createAsyncThunk(
   }
 );
 
+/**
+ * Delete staff in Supabase via dataService
+ */
+export const deleteStaffInSupabase = createAsyncThunk(
+  'staff/deleteInSupabase',
+  async (staffId: string, { rejectWithValue }) => {
+    try {
+      await dataService.staff.delete(staffId);
+      return staffId;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete staff');
+    }
+  }
+);
+
 // ==================== LEGACY ASYNC THUNKS (IndexedDB) ====================
 
 export const fetchAllStaff = createAsyncThunk(
@@ -243,6 +258,24 @@ const staffSlice = createSlice({
       .addCase(updateStaffInSupabase.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to update staff in Supabase';
+      });
+
+    // Delete staff in Supabase
+    builder
+      .addCase(deleteStaffInSupabase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteStaffInSupabase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = state.items.filter(s => s.id !== action.payload);
+        if (state.selectedStaff?.id === action.payload) {
+          state.selectedStaff = null;
+        }
+      })
+      .addCase(deleteStaffInSupabase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to delete staff in Supabase';
       });
   },
 });

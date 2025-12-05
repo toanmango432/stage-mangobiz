@@ -69,6 +69,18 @@ export const createTicketInSupabase = createAsyncThunk(
   'tickets/createInSupabase',
   async (input: CreateTicketInput, { rejectWithValue }) => {
     try {
+      // Validate foreign keys before creating
+      const { validateTicketInput } = await import('../../utils/validation');
+      const validation = await validateTicketInput({
+        clientId: input.clientId,
+        appointmentId: input.appointmentId,
+        services: input.services,
+      });
+
+      if (!validation.valid) {
+        return rejectWithValue(validation.error || 'Validation failed');
+      }
+
       // Import the adapter function for conversion
       const { toTicketInsert, toTicket: convertToTicket } = await import('../../services/supabase');
 
@@ -301,16 +313,25 @@ export const fetchTicketsByStatus = createAsyncThunk(
   }
 );
 
+/**
+ * @deprecated Use fetchTicketsByDateFromSupabase instead. This only reads from IndexedDB.
+ */
 export const fetchTickets = createAsyncThunk(
   'tickets/fetchAll',
   async (salonId: string) => {
+    console.warn('⚠️ DEPRECATED: fetchTickets is deprecated. Use fetchTicketsByDateFromSupabase instead.');
     return await ticketsDB.getAll(salonId);
   }
 );
 
+/**
+ * @deprecated Use createTicketInSupabase instead. This only saves to IndexedDB and queues for sync.
+ * For online-only mode, use createTicketInSupabase for immediate Supabase sync.
+ */
 export const createTicket = createAsyncThunk(
   'tickets/create',
   async ({ input, userId, salonId }: { input: CreateTicketInput; userId: string; salonId: string }) => {
+    console.warn('⚠️ DEPRECATED: createTicket is deprecated. Use createTicketInSupabase for online-only mode.');
     const ticket = await ticketsDB.create(input, userId, salonId);
     
     await syncQueueDB.add({
@@ -327,9 +348,14 @@ export const createTicket = createAsyncThunk(
   }
 );
 
+/**
+ * @deprecated Use updateTicketInSupabase instead. This only saves to IndexedDB and queues for sync.
+ * For online-only mode, use updateTicketInSupabase for immediate Supabase sync.
+ */
 export const updateTicket = createAsyncThunk(
   'tickets/update',
   async ({ id, updates, userId }: { id: string; updates: Partial<Ticket>; userId: string }) => {
+    console.warn('⚠️ DEPRECATED: updateTicket is deprecated. Use updateTicketInSupabase for online-only mode.');
     const ticket = await ticketsDB.update(id, updates, userId);
     
     if (ticket) {

@@ -366,6 +366,23 @@ export const transactionsDB = {
     await db.transactions.put(updated);
     return updated;
   },
+
+  /**
+   * Add a raw transaction object directly to IndexedDB.
+   * Use this when you have a pre-built transaction object with all fields.
+   */
+  async addRaw(transaction: Partial<Transaction>): Promise<Transaction> {
+    const transactionWithDefaults = {
+      ...transaction,
+      syncStatus: 'synced', // Mark as synced when adding from server
+    } as Transaction;
+    await db.transactions.put(transactionWithDefaults);
+    return transactionWithDefaults;
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.transactions.delete(id);
+  },
 };
 
 // ==================== STAFF ====================
