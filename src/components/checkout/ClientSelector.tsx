@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Search, User, Plus, AlertTriangle, ChevronDown, UserCircle, Trash2, RefreshCw, X, Edit2, Save } from "lucide-react";
+import { Search, Plus, AlertTriangle, ChevronDown, UserCircle, Trash2, RefreshCw, X, Edit2, Save } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { selectClients } from "@/store/slices/clientsSlice";
 import type { Client as ReduxClient } from "@/types";
@@ -126,7 +126,6 @@ export default function ClientSelector({
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [editedClient, setEditedClient] = useState<Partial<Client>>({});
-  const clientListRef = useRef<HTMLDivElement>(null);
   const [newClient, setNewClient] = useState({
     firstName: "",
     lastName: "",
@@ -161,16 +160,6 @@ export default function ClientSelector({
     }
     onSelectClient(client);
     setSelectedIndex(-1);
-  };
-
-  const handleWalkInClient = () => {
-    const walkInClient: Client = {
-      id: "walk-in-" + Date.now(),
-      firstName: "Walk-in",
-      lastName: "Customer",
-      phone: "",
-    };
-    handleSelectClient(walkInClient);
   };
 
   const handleSaveEdit = () => {
@@ -253,60 +242,67 @@ export default function ClientSelector({
     }
   };
 
-  // Selected client view - matches the new design
+  // Selected client view - Compact inline design
   if (selectedClient) {
     return (
       <>
-        <Card className="p-3 sm:p-6">
-          {isEditMode ? (
-            // Edit Mode
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Edit Client</h3>
+        {isEditMode ? (
+          // Edit Mode - Full card for editing
+          <Card className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Edit Client</h3>
               </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">First Name</label>
+                  <label className="text-xs font-medium mb-1 block">First Name</label>
                   <Input
                     value={editedClient.firstName ?? selectedClient.firstName}
                     onChange={(e) => setEditedClient({ ...editedClient, firstName: e.target.value })}
                     placeholder="First name"
+                    className="h-9"
                     data-testid="input-edit-first-name"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Last Name</label>
+                  <label className="text-xs font-medium mb-1 block">Last Name</label>
                   <Input
                     value={editedClient.lastName ?? selectedClient.lastName}
                     onChange={(e) => setEditedClient({ ...editedClient, lastName: e.target.value })}
                     placeholder="Last name"
+                    className="h-9"
                     data-testid="input-edit-last-name"
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Phone</label>
+                  <label className="text-xs font-medium mb-1 block">Phone</label>
                   <Input
                     value={editedClient.phone ?? selectedClient.phone}
                     onChange={(e) => setEditedClient({ ...editedClient, phone: e.target.value })}
-                    placeholder="Phone number"
+                    placeholder="Phone"
+                    className="h-9"
                     data-testid="input-edit-phone"
                   />
                 </div>
                 {selectedClient.email !== undefined && (
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">Email</label>
+                    <label className="text-xs font-medium mb-1 block">Email</label>
                     <Input
                       value={editedClient.email ?? selectedClient.email ?? ""}
                       onChange={(e) => setEditedClient({ ...editedClient, email: e.target.value })}
-                      placeholder="Email address"
+                      placeholder="Email"
+                      className="h-9"
                       data-testid="input-edit-email"
                     />
                   </div>
                 )}
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-1">
                 <Button
                   onClick={handleSaveEdit}
+                  size="sm"
                   className="flex-1"
                   disabled={
                     !editedClient.firstName && !selectedClient.firstName ||
@@ -315,11 +311,12 @@ export default function ClientSelector({
                   }
                   data-testid="button-save-edit"
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  Save
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={handleCancelEdit}
                   data-testid="button-cancel-edit"
                 >
@@ -327,151 +324,105 @@ export default function ClientSelector({
                 </Button>
               </div>
             </div>
-          ) : (
-            // View Mode - Compact on mobile, full on desktop
-            <div>
-              {/* Mobile Compact Layout */}
-              <div className="flex items-center gap-3 sm:hidden">
-                <Avatar 
-                  className="h-12 w-12 flex-shrink-0 cursor-pointer hover-elevate active-elevate-2" 
-                  onClick={() => setShowClientProfile(true)}
-                  data-testid="avatar-client"
-                >
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
-                    {getInitials(selectedClient.firstName, selectedClient.lastName)}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-base font-semibold truncate" data-testid="text-client-name">
-                    {selectedClient.firstName} {selectedClient.lastName}
-                  </h2>
-                  <p className="text-sm text-muted-foreground truncate" data-testid="text-client-email">
-                    {selectedClient.email || selectedClient.phone}
-                  </p>
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="flex-shrink-0" data-testid="button-client-actions">
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setShowClientProfile(true)} data-testid="action-view-profile-mobile">
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      View Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      setIsEditMode(true);
-                      setEditedClient({
-                        firstName: selectedClient.firstName,
-                        lastName: selectedClient.lastName,
-                        phone: selectedClient.phone,
-                        email: selectedClient.email,
-                      });
-                    }} data-testid="action-quick-edit-mobile">
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Quick Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onSelectClient(null)} data-testid="action-change-client">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Change Client
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onSelectClient(null)} className="text-destructive" data-testid="action-remove-client">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Remove
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+          </Card>
+        ) : (
+          // View Mode - Compact card with inline metrics
+          <div className="bg-white rounded-lg border border-gray-200 px-3 py-2.5">
+            <div className="flex items-center gap-3">
+              <Avatar
+                className="h-10 w-10 flex-shrink-0 cursor-pointer"
+                onClick={() => setShowClientProfile(true)}
+                data-testid="avatar-client"
+              >
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {getInitials(selectedClient.firstName, selectedClient.lastName)}
+                </AvatarFallback>
+              </Avatar>
 
-              {/* Desktop Full Layout */}
-              <div className="hidden sm:flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-semibold mb-1" data-testid="text-client-name-desktop">
-                    {selectedClient.firstName} {selectedClient.lastName}
-                  </h2>
-                  <p className="text-base text-muted-foreground mb-4" data-testid="text-client-email-desktop">
-                    {selectedClient.email || selectedClient.phone}
-                  </p>
-                  
-                  <div className="flex gap-2 flex-wrap">
-                    <Button 
-                      variant="outline" 
-                      className="rounded-full" 
-                      onClick={() => setShowClientProfile(true)}
-                      data-testid="button-view-profile"
-                    >
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      View Profile
-                    </Button>
-
-                    <Button 
-                      variant="outline" 
-                      className="rounded-full" 
-                      onClick={() => {
-                        setIsEditMode(true);
-                        setEditedClient({
-                          firstName: selectedClient.firstName,
-                          lastName: selectedClient.lastName,
-                          phone: selectedClient.phone,
-                          email: selectedClient.email,
-                        });
-                      }}
-                      data-testid="button-quick-edit"
-                    >
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Quick Edit
-                    </Button>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon" className="rounded-full" data-testid="button-client-actions-desktop">
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem onClick={() => onSelectClient(null)} data-testid="action-change-client-desktop">
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Change Client
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onSelectClient(null)} className="text-destructive" data-testid="action-remove-client-desktop">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                
-                <Avatar 
-                  className="h-20 w-20 flex-shrink-0 cursor-pointer hover-elevate active-elevate-2" 
-                  onClick={() => setShowClientProfile(true)}
-                  data-testid="avatar-client-desktop"
-                >
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl font-medium">
-                    {getInitials(selectedClient.firstName, selectedClient.lastName)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          )}
-
-          {selectedClient.allergies && selectedClient.allergies.length > 0 && (
-            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-destructive">Allergies</p>
-                <p className="text-sm text-destructive/90 mt-0.5">
-                  {selectedClient.allergies.join(", ")}
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-sm text-gray-900 truncate" data-testid="text-client-name">
+                    {selectedClient.firstName} {selectedClient.lastName}
+                  </span>
+                  {selectedClient.loyaltyStatus && (
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] px-1.5 py-0 h-4 font-medium ${getLoyaltyColor(selectedClient.loyaltyStatus)}`}
+                    >
+                      {selectedClient.loyaltyStatus}
+                    </Badge>
+                  )}
+                </div>
+                {/* Inline metrics */}
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {selectedClient.totalVisits || 0} visits
+                  <span className="mx-1.5">•</span>
+                  ${selectedClient.lifetimeSpend || 0} spent
+                  {selectedClient.lastVisitDate && (
+                    <>
+                      <span className="mx-1.5">•</span>
+                      Last: {new Date(selectedClient.lastVisitDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </>
+                  )}
                 </p>
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 flex-shrink-0"
+                    data-testid="button-client-actions"
+                  >
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowClientProfile(true)} data-testid="action-view-profile">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    View Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setIsEditMode(true);
+                    setEditedClient({
+                      firstName: selectedClient.firstName,
+                      lastName: selectedClient.lastName,
+                      phone: selectedClient.phone,
+                      email: selectedClient.email,
+                    });
+                  }} data-testid="action-quick-edit">
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Quick Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSelectClient(null)} data-testid="action-change-client">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Change Client
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onSelectClient(null)}
+                    className="text-destructive focus:text-destructive"
+                    data-testid="action-remove-client"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Remove
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
-        </Card>
+          </div>
+        )}
+
+        {/* Compact Allergy Alert - Only if allergies exist */}
+        {!isEditMode && selectedClient.allergies && selectedClient.allergies.length > 0 && (
+          <div className="mt-2 px-2 py-1.5 bg-destructive/10 border border-destructive/20 rounded-md flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+            <p className="text-xs text-destructive truncate">
+              <span className="font-medium">Allergy:</span> {selectedClient.allergies.join(", ")}
+            </p>
+          </div>
+        )}
 
         {/* Client Profile Dialog - Full Comprehensive Profile */}
         <Dialog open={showClientProfile} onOpenChange={setShowClientProfile}>
@@ -713,32 +664,8 @@ export default function ClientSelector({
       );
     }
 
-    const displayClients = getDisplayClients();
-    const hasRecentClients = !debouncedSearch && !Array.isArray(displayClients) && displayClients.recent.length > 0;
-
     return (
-      <div className="space-y-4">
-        {/* Walk-in Button - Prominent at top */}
-        <Button
-          variant="default"
-          size="lg"
-          className="w-full h-14"
-          onClick={() => handleSelectClient(null)}
-          data-testid="button-walk-in-primary"
-        >
-          <User className="mr-2 h-5 w-5" />
-          Walk-in Client
-        </Button>
-
-        <Separator />
-
-        {/* Empty State / Helper Text */}
-        {!debouncedSearch && (
-          <p className="text-sm text-muted-foreground text-center" data-testid="text-empty-state">
-            No client? Continue as walk-in
-          </p>
-        )}
-
+      <div className="space-y-3">
         {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -748,47 +675,9 @@ export default function ClientSelector({
             placeholder="Search existing client"
             className="pl-10 h-11"
             data-testid="input-search-client"
+            autoFocus
           />
         </div>
-
-        {/* Recent Clients Section */}
-        {hasRecentClients && !Array.isArray(displayClients) && (
-          <>
-            <div>
-              <h3 className="text-sm font-medium mb-2" data-testid="heading-recent-clients">Recent Clients</h3>
-              <div className="space-y-1" ref={clientListRef}>
-                {displayClients.recent.map((client: Client, index: number) => (
-                  <Card
-                    key={client.id}
-                    className={`p-4 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === index ? 'ring-2 ring-primary' : ''}`}
-                    onClick={() => handleSelectClient(client)}
-                    data-testid={`client-recent-${client.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 flex-shrink-0">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                          {getInitials(client.firstName, client.lastName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-base">
-                          {client.firstName} {client.lastName}
-                        </h3>
-                        <div className="flex flex-col gap-0.5 mt-0.5">
-                          <p className="text-sm text-muted-foreground">{client.phone}</p>
-                          {client.email && (
-                            <p className="text-sm text-muted-foreground">{client.email}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Action Card - Add New Client */}
         <Card
@@ -824,63 +713,42 @@ export default function ClientSelector({
           </>
         )}
 
-        {/* All Clients List (when searching or if no recent) */}
-        {(debouncedSearch ? filteredClients.length > 0 : !Array.isArray(displayClients) && displayClients.other && displayClients.other.length > 0) && (
-          <>
-            <Separator />
-            <div>
-              {debouncedSearch && (
-                <h3 className="text-sm font-medium mb-2" data-testid="heading-search-results">
-                  Search Results
-                </h3>
-              )}
-              {!debouncedSearch && !Array.isArray(displayClients) && displayClients.other && displayClients.other.length > 0 && (
-                <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
-                  All Clients
-                </h3>
-              )}
-              <div className="space-y-1">
-                {(debouncedSearch ? filteredClients : !Array.isArray(displayClients) ? displayClients.other || [] : []).map((client: Client, index: number) => {
-                  const adjustedIndex = hasRecentClients && !Array.isArray(displayClients) ? index + displayClients.recent.length : index;
-                  return (
-                    <Card
-                      key={client.id}
-                      className={`p-4 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === adjustedIndex ? 'ring-2 ring-primary' : ''}`}
-                      onClick={() => handleSelectClient(client)}
-                      data-testid={`client-option-${client.id}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12 flex-shrink-0">
-                          <AvatarImage src="" />
-                          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                            {getInitials(client.firstName, client.lastName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-base">
-                            {client.firstName} {client.lastName}
-                          </h3>
-                          <div className="flex flex-col gap-0.5 mt-0.5">
-                            <p className="text-sm text-muted-foreground">{client.phone}</p>
-                            {client.email && (
-                              <p className="text-sm text-muted-foreground">{client.email}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+        {/* All Clients List */}
+        {(debouncedSearch ? filteredClients.length > 0 : allClients.length > 0) && (
+          <div>
+            <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
+              {debouncedSearch ? 'Search Results' : 'All Clients'}
+            </h3>
+            <div className="space-y-1">
+              {(debouncedSearch ? filteredClients : allClients).map((client: Client, index: number) => (
+                <Card
+                  key={client.id}
+                  className={`p-3 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === index ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => handleSelectClient(client)}
+                  data-testid={`client-option-${client.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                        {getInitials(client.firstName, client.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm">
+                        {client.firstName} {client.lastName}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">{client.phone}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     );
   }
-
-  const displayClientsForDialog = getDisplayClients();
-  const hasRecentClientsInDialog = !debouncedSearch && !Array.isArray(displayClientsForDialog) && displayClientsForDialog.recent.length > 0;
 
   return (
     <>
@@ -1001,31 +869,7 @@ export default function ClientSelector({
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* Walk-in Button - Prominent at top */}
-                <Button
-                  variant="default"
-                  size="lg"
-                  className="w-full h-14"
-                  onClick={() => {
-                    handleWalkInClient();
-                    setShowClientSelector(false);
-                  }}
-                  data-testid="button-walk-in-primary"
-                >
-                  <User className="mr-2 h-5 w-5" />
-                  Walk-in Client
-                </Button>
-
-                <Separator />
-
-                {/* Empty State / Helper Text */}
-                {!debouncedSearch && (
-                  <p className="text-sm text-muted-foreground text-center" data-testid="text-empty-state">
-                    No client? Continue as walk-in
-                  </p>
-                )}
-
+              <div className="space-y-3">
                 {/* Search Input */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1035,51 +879,9 @@ export default function ClientSelector({
                     placeholder="Search existing client"
                     className="pl-10 h-11"
                     data-testid="input-search-client"
+                    autoFocus
                   />
                 </div>
-
-                {/* Recent Clients Section */}
-                {hasRecentClientsInDialog && (
-                  <>
-                    <div>
-                      <h3 className="text-sm font-medium mb-2" data-testid="heading-recent-clients">Recent Clients</h3>
-                      <div className="space-y-1">
-                        {!Array.isArray(displayClientsForDialog) && displayClientsForDialog.recent.map((client: Client, index: number) => (
-                          <Card
-                            key={client.id}
-                            className={`p-4 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === index ? 'ring-2 ring-primary' : ''}`}
-                            onClick={() => {
-                              handleSelectClient(client);
-                              setShowClientSelector(false);
-                              setSearchValue("");
-                            }}
-                            data-testid={`client-recent-${client.id}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-12 w-12 flex-shrink-0">
-                                <AvatarImage src="" />
-                                <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                                  {getInitials(client.firstName, client.lastName)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-base">
-                                  {client.firstName} {client.lastName}
-                                </h3>
-                                <div className="flex flex-col gap-0.5 mt-0.5">
-                                  <p className="text-sm text-muted-foreground">{client.phone}</p>
-                                  {client.email && (
-                                    <p className="text-sm text-muted-foreground">{client.email}</p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
 
                 {/* Action Card - Add New Client */}
                 <Card
@@ -1095,60 +897,59 @@ export default function ClientSelector({
                   </div>
                 </Card>
 
-                {/* All Clients List (when searching or if no recent) */}
-                {(debouncedSearch ? filteredClients.length > 0 : !Array.isArray(displayClientsForDialog) && displayClientsForDialog.other && displayClientsForDialog.other.length > 0) && (
-                  <>
-                    <Separator />
-                    <div>
-                      {debouncedSearch && (
-                        <h3 className="text-sm font-medium mb-2" data-testid="heading-search-results">
-                          Search Results
-                        </h3>
-                      )}
-                      {!debouncedSearch && !Array.isArray(displayClientsForDialog) && displayClientsForDialog.other && displayClientsForDialog.other.length > 0 && (
-                        <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
-                          All Clients
-                        </h3>
-                      )}
-                      <div className="space-y-1">
-                        {(debouncedSearch ? filteredClients : !Array.isArray(displayClientsForDialog) ? displayClientsForDialog.other || [] : []).map((client: Client, index: number) => {
-                          const adjustedIndex = hasRecentClientsInDialog && !Array.isArray(displayClientsForDialog) ? index + displayClientsForDialog.recent.length : index;
-                          return (
-                            <Card
-                              key={client.id}
-                              className={`p-4 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === adjustedIndex ? 'ring-2 ring-primary' : ''}`}
-                              onClick={() => {
-                                handleSelectClient(client);
-                                setShowClientSelector(false);
-                                setSearchValue("");
-                              }}
-                              data-testid={`client-option-${client.id}`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-12 w-12 flex-shrink-0">
-                                  <AvatarImage src="" />
-                                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                                    {getInitials(client.firstName, client.lastName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-medium text-base">
-                                    {client.firstName} {client.lastName}
-                                  </h3>
-                                  <div className="flex flex-col gap-0.5 mt-0.5">
-                                    <p className="text-sm text-muted-foreground">{client.phone}</p>
-                                    {client.email && (
-                                      <p className="text-sm text-muted-foreground">{client.email}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </Card>
-                          );
-                        })}
+                {/* Empty State when search returns no results */}
+                {debouncedSearch && filteredClients.length === 0 && (
+                  <Card className="p-8 text-center">
+                    <div className="flex flex-col items-center gap-4 max-w-sm mx-auto">
+                      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <UserCircle className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">No Clients Found</h3>
+                        <p className="text-sm text-muted-foreground">
+                          No clients match "{debouncedSearch}". Try a different search or add them as a new client.
+                        </p>
                       </div>
                     </div>
-                  </>
+                  </Card>
+                )}
+
+                {/* All Clients List */}
+                {(debouncedSearch ? filteredClients.length > 0 : allClients.length > 0) && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2" data-testid="heading-all-clients">
+                      {debouncedSearch ? 'Search Results' : 'All Clients'}
+                    </h3>
+                    <div className="space-y-1">
+                      {(debouncedSearch ? filteredClients : allClients).map((client: Client, index: number) => (
+                        <Card
+                          key={client.id}
+                          className={`p-3 hover-elevate active-elevate-2 cursor-pointer ${selectedIndex === index ? 'ring-2 ring-primary' : ''}`}
+                          onClick={() => {
+                            handleSelectClient(client);
+                            setShowClientSelector(false);
+                            setSearchValue("");
+                          }}
+                          data-testid={`client-option-${client.id}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 flex-shrink-0">
+                              <AvatarImage src="" />
+                              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                                {getInitials(client.firstName, client.lastName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm">
+                                {client.firstName} {client.lastName}
+                              </h3>
+                              <p className="text-xs text-muted-foreground">{client.phone}</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}

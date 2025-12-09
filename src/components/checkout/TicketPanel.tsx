@@ -40,6 +40,7 @@ import InteractiveSummary from "./InteractiveSummary";
 import PaymentModal from "./PaymentModal";
 import FullPageServiceSelector, { CategoryList } from "./FullPageServiceSelector";
 import StaffGridView from "./StaffGridView";
+import { ResizablePanel } from "@/components/ui/ResizablePanel";
 import SplitTicketDialog from "./SplitTicketDialog";
 import MergeTicketsDialog, { OpenTicket } from "./MergeTicketsDialog";
 import ServicePackages from "./ServicePackages";
@@ -47,6 +48,14 @@ import ProductSales from "./ProductSales";
 import PurchaseHistory from "./PurchaseHistory";
 import ReceiptPreview from "./ReceiptPreview";
 import RefundVoidDialog from "./RefundVoidDialog";
+import { ItemTabBar } from "./ItemTabBar";
+import { ProductGrid } from "./ProductGrid";
+import { PackageGrid } from "./PackageGrid";
+import { GiftCardGrid } from "./GiftCardGrid";
+import { SERVICE_CATEGORIES } from "./FullPageServiceSelector";
+import { getProductsByCategory, PRODUCT_CATEGORIES } from "@/data/mockProducts";
+import { getPackagesByCategory, PACKAGE_CATEGORIES } from "@/data/mockPackages";
+import { getGiftCardsByDesign, GIFT_CARD_CATEGORIES } from "@/data/mockGiftCards";
 // Collapsible imports available if needed
 // import {
 //   Collapsible,
@@ -59,10 +68,8 @@ import {
   Maximize2,
   Minimize2,
   User,
-  Scissors,
   AlertCircle,
   Plus,
-  Keyboard,
   Clock,
   Play,
   CreditCard,
@@ -1438,9 +1445,17 @@ export default function TicketPanel({
   };
 
   const handleRemoveClient = (client: Client | null) => {
-    if (client === null && selectedClient && services.length > 0) {
-      dispatch(ticketActions.toggleDialog("showRemoveClientConfirm", true));
-    } else if (client) {
+    if (client === null) {
+      // Removing client
+      if (selectedClient && services.length > 0) {
+        // Has services - show confirmation dialog
+        dispatch(ticketActions.toggleDialog("showRemoveClientConfirm", true));
+      } else if (selectedClient) {
+        // No services - remove directly
+        dispatch(ticketActions.removeClient());
+      }
+    } else {
+      // Setting/changing client
       dispatch(ticketActions.setClient(client));
     }
   };
@@ -1929,172 +1944,200 @@ export default function TicketPanel({
           mode === "dock" ? "w-full md:w-[900px]" : "w-full"
         }`}
       >
-        <div
-          className={`flex items-center justify-between px-2 py-1.5 border-b bg-card transition-transform duration-200 ${
-            headerVisible ? 'translate-y-0' : '-translate-y-full'
-          }`}
-        >
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCloseAttempt}
-              data-testid="button-close-panel"
-              className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive shrink-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              aria-label="Close checkout panel"
+        {/* Dock Mode: Floating Close & Expand Buttons */}
+        {mode === "dock" && (
+          <>
+            <div
+              className={`absolute top-4 left-4 z-20 transition-opacity duration-200 ${
+                headerVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
             >
-              <X className="h-5 w-5" />
-            </Button>
-            <div className="flex items-baseline gap-2 flex-1 min-w-0">
-              <span className="text-sm font-normal text-muted-foreground">New Ticket</span>
-              <span className="text-xs text-muted-foreground/60 truncate">
-                #{Math.random().toString(36).substr(2, 9).toUpperCase()}
-              </span>
+              <button
+                onClick={handleCloseAttempt}
+                data-testid="button-close-panel-dock"
+                className="h-11 w-11 rounded-full bg-slate-900 hover:bg-slate-800 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                aria-label="Close checkout panel"
+              >
+                <X className="h-5 w-5 text-white" strokeWidth={2.5} />
+              </button>
             </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowKeyboardShortcuts(true)}
-                  data-testid="button-shortcuts"
-                  className="h-7 w-7 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                  aria-label="Show keyboard shortcuts"
-                >
-                  <Keyboard className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  Keyboard Shortcuts
-                  <br />
-                  <span className="text-muted-foreground">Press ?</span>
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReset}
-              data-testid="button-clear"
-              className="hidden sm:inline-flex h-7 text-xs"
+            <div
+              className={`absolute top-4 right-4 z-20 transition-opacity duration-200 ${
+                headerVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
             >
-              Clear
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMode(mode === "dock" ? "full" : "dock")}
-                  data-testid="button-toggle-mode"
-                  className="hidden md:inline-flex h-7 w-7 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                  aria-label={mode === "dock" ? "Expand to full screen" : "Switch to docked view"}
-                >
-                  {mode === "dock" ? (
-                    <Maximize2 className="h-3.5 w-3.5" />
-                  ) : (
-                    <Minimize2 className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  {mode === "dock" ? "Expand to full page" : "Switch to partial view"}
-                  <br />
-                  <span className="text-muted-foreground">Preference saved automatically</span>
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        {mode === "dock" && !keyboardHintsDismissed && (
-          <KeyboardShortcutsHint
-            onDismiss={handleDismissKeyboardHints}
-            onShowShortcuts={() => setShowKeyboardShortcuts(true)}
-          />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setMode("full")}
+                    data-testid="button-toggle-mode-dock"
+                    className="hidden md:flex h-10 w-10 rounded-full bg-white items-center justify-center shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    aria-label="Expand to full screen"
+                  >
+                    <Maximize2 className="h-4 w-4 text-gray-600" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Expand to full page</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </>
         )}
 
-        <div 
-          className="flex-1 overflow-hidden" 
+        <div
+          className="flex-1 overflow-hidden"
           data-scroll-container
           role="main"
           aria-label="Checkout panel content"
         >
           {mode === "full" && (
-            <div className="h-full flex flex-col">
-              {/* Desktop Layout */}
-              <div className="hidden lg:flex flex-1 min-h-0 px-6">
-                <div className={`flex-1 grid gap-0 ${
-                  fullPageTab === "services"
-                    ? "grid-cols-[180px_1fr_506px]"
-                    : "grid-cols-[1fr_506px]"
-                }`}>
-                  <div className={`${
-                    fullPageTab === "services" ? "col-span-2" : "col-span-1"
-                  } h-full pr-6`}>
-                    <div className="flex flex-col h-full">
-                      <div className="flex gap-1 mb-2 p-1 bg-muted rounded-lg">
-                        <Button
-                          variant={fullPageTab === "services" ? "default" : "ghost"}
-                          size="sm"
-                          className="flex-1 h-9"
-                          onClick={() => setFullPageTab("services")}
-                          data-testid="button-tab-services"
+            <div className="h-full flex flex-col relative">
+              {/* Minimize Button - Absolutely positioned top-right */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setMode("dock")}
+                    data-testid="button-toggle-mode"
+                    className="absolute top-3 right-4 z-10 hidden md:flex h-9 w-9 rounded-full bg-muted hover:bg-muted/80 items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                    aria-label="Switch to docked view"
+                  >
+                    <Minimize2 className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Switch to partial view</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Desktop Layout - Resizable Panels */}
+              <div className="hidden lg:flex flex-1 min-h-0 px-6 pt-4">
+                <ResizablePanel
+                  defaultRightWidth={506}
+                  minRightWidth={380}
+                  maxRightWidth={700}
+                  storageKey="mango-checkout-right-panel-width"
+                  className="flex-1"
+                >
+                  {/* Left Panel - Services/Staff Selector */}
+                  <div className="h-full pr-4">
+                    <div className="flex h-full">
+                      {/* Close Button Column - Own column on far left */}
+                      <div className="flex-shrink-0 pr-3 pt-0">
+                        <button
+                          onClick={handleCloseAttempt}
+                          data-testid="button-close-panel"
+                          className="group h-12 w-12 rounded-full bg-gray-100 hover:bg-gray-200 shadow-md hover:shadow-lg border border-gray-200/50 flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+                          aria-label="Close checkout panel"
                         >
-                          <Scissors className="h-4 w-4 mr-2" />
-                          Services
-                        </Button>
-                        <Button
-                          variant={fullPageTab === "staff" ? "default" : "ghost"}
-                          size="sm"
-                          className="flex-1 h-9"
-                          onClick={() => setFullPageTab("staff")}
-                          data-testid="button-tab-staff"
-                        >
-                          <User className="h-4 w-4 mr-2" />
-                          Staff
-                        </Button>
+                          <X className="h-5 w-5 text-gray-700 group-hover:text-gray-900 transition-colors" strokeWidth={2.5} />
+                        </button>
                       </div>
 
-                      <div className={`flex-1 min-h-0 grid gap-6 ${
-                        fullPageTab === "services" ? "grid-cols-[180px_1fr]" : "grid-cols-1"
-                      }`}>
-                        {fullPageTab === "services" && (
-                          <div className="h-full overflow-hidden">
-                            <CategoryList
-                              selectedCategory={selectedCategory}
-                              onSelectCategory={setSelectedCategory}
-                            />
-                          </div>
-                        )}
+                      {/* Main Content Column */}
+                      <div className="flex-1 flex flex-col min-w-0">
+                        {/* Item Tab Bar - Services | Products | Packages | Gift Cards */}
+                        <ItemTabBar
+                          activeTab={addItemTab}
+                          onTabChange={(tab) => {
+                            setAddItemTab(tab);
+                            setSelectedCategory("all"); // Reset category when switching tabs
+                          }}
+                          className="mb-3"
+                        />
 
-                        <div className="h-full overflow-hidden">
-                          {fullPageTab === "services" ? (
-                            <FullPageServiceSelector
-                              selectedCategory={selectedCategory}
-                              onSelectCategory={setSelectedCategory}
-                              onAddServices={handleAddServices}
-                              staffMembers={staffMembers}
-                              activeStaffId={activeStaffId}
-                            />
-                          ) : (
-                            <StaffGridView
-                              staffMembers={staffMembers}
-                              services={services}
-                              onAddServiceToStaff={handleAddServiceToStaff}
-                              reassigningServiceIds={reassigningServiceIds}
-                            />
+                        {/* Content grid with sidebar */}
+                        <div className={`flex-1 min-h-0 grid gap-4 ${
+                          fullPageTab === "staff" ? "grid-cols-1" : "grid-cols-[180px_1fr]"
+                        }`}>
+                          {/* Category Sidebar - only show when not on staff view */}
+                          {fullPageTab !== "staff" && (
+                            <div className="h-full overflow-hidden">
+                              <CategoryList
+                                selectedCategory={selectedCategory}
+                                onSelectCategory={setSelectedCategory}
+                                onViewStaff={() => setFullPageTab("staff")}
+                                showViewStaffButton={true}
+                                categories={
+                                  addItemTab === "services" ? SERVICE_CATEGORIES :
+                                  addItemTab === "products" ? PRODUCT_CATEGORIES :
+                                  addItemTab === "packages" ? PACKAGE_CATEGORIES :
+                                  addItemTab === "giftcards" ? GIFT_CARD_CATEGORIES :
+                                  SERVICE_CATEGORIES
+                                }
+                              />
+                            </div>
                           )}
+
+                          {/* Content Area */}
+                          <div className="h-full overflow-hidden">
+                            {fullPageTab === "staff" ? (
+                              <StaffGridView
+                                staffMembers={staffMembers}
+                                services={services}
+                                onAddServiceToStaff={handleAddServiceToStaff}
+                                reassigningServiceIds={reassigningServiceIds}
+                                selectedStaffId={activeStaffId}
+                              />
+                            ) : addItemTab === "services" ? (
+                              <FullPageServiceSelector
+                                selectedCategory={selectedCategory}
+                                onSelectCategory={setSelectedCategory}
+                                onAddServices={handleAddServices}
+                                staffMembers={staffMembers}
+                                activeStaffId={activeStaffId}
+                              />
+                            ) : addItemTab === "products" ? (
+                              <ProductGrid
+                                products={getProductsByCategory(selectedCategory)}
+                                onSelectProduct={(product) => {
+                                  // Convert product to service format and add
+                                  handleAddServices([{
+                                    id: `prod-${Date.now()}`,
+                                    name: product.name,
+                                    category: product.category,
+                                    price: product.price,
+                                    duration: 0,
+                                  }]);
+                                }}
+                              />
+                            ) : addItemTab === "packages" ? (
+                              <PackageGrid
+                                packages={getPackagesByCategory(selectedCategory)}
+                                onSelectPackage={(pkg) => {
+                                  // Add package as a single line item with sale price
+                                  handleAddServices([{
+                                    id: `pkg-${Date.now()}`,
+                                    name: pkg.name,
+                                    category: "Package",
+                                    price: pkg.salePrice,
+                                    duration: 0,
+                                  }]);
+                                }}
+                              />
+                            ) : addItemTab === "giftcards" ? (
+                              <GiftCardGrid
+                                giftCards={getGiftCardsByDesign(selectedCategory)}
+                                onSelectGiftCard={(gc) => {
+                                  // Add gift card as a line item
+                                  handleAddServices([{
+                                    id: `gc-${Date.now()}`,
+                                    name: gc.name,
+                                    category: "Gift Card",
+                                    price: gc.value,
+                                    duration: 0,
+                                  }]);
+                                }}
+                              />
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="h-full border-l pl-6 overflow-hidden">
+                  {/* Right Panel - Interactive Summary (Client & Posted Items) */}
+                  <div className="h-full pl-4 overflow-hidden">
                     <InteractiveSummary
                       selectedClient={selectedClient}
                       services={services}
@@ -2121,7 +2164,7 @@ export default function TicketPanel({
                       currentTab={fullPageTab}
                     />
                   </div>
-                </div>
+                </ResizablePanel>
               </div>
 
               {/* Mobile Layout - Full screen ticket view */}
@@ -2185,57 +2228,62 @@ export default function TicketPanel({
           {/* Dock Mode - Unified layout matching full mode */}
           {mode === "dock" && (
             <div className="h-full flex flex-col">
-              {/* Desktop Layout */}
-              <div className="hidden lg:flex flex-1 min-h-0 px-6">
-                <div className={`flex-1 grid gap-0 ${
-                  fullPageTab === "services"
-                    ? "grid-cols-[140px_1fr_380px]"
-                    : "grid-cols-[1fr_380px]"
-                }`}>
-                  {/* Left Side - Services/Staff Tabs (compact width for dock) */}
-                  <div className={`${
-                    fullPageTab === "services" ? "col-span-2" : "col-span-1"
-                  } h-full pr-4`}>
+              {/* Desktop Layout - Resizable Panels (Dock Mode) */}
+              <div className="hidden lg:flex flex-1 min-h-0 px-6 pt-14">
+                <ResizablePanel
+                  defaultRightWidth={380}
+                  minRightWidth={320}
+                  maxRightWidth={550}
+                  storageKey="mango-checkout-dock-right-panel-width"
+                  className="flex-1"
+                >
+                  {/* Left Side - Item Tabs (compact width for dock) */}
+                  <div className="h-full pr-3">
                     <div className="flex flex-col h-full">
-                      {/* Services/Staff Tab Buttons */}
-                      <div className="flex gap-1 mb-2 p-1 bg-muted rounded-lg">
-                        <Button
-                          variant={fullPageTab === "services" ? "default" : "ghost"}
-                          size="sm"
-                          className="flex-1 h-8 text-xs"
-                          onClick={() => setFullPageTab("services")}
-                          data-testid="button-dock-tab-services"
-                        >
-                          <Scissors className="h-3.5 w-3.5 mr-1.5" />
-                          Services
-                        </Button>
-                        <Button
-                          variant={fullPageTab === "staff" ? "default" : "ghost"}
-                          size="sm"
-                          className="flex-1 h-8 text-xs"
-                          onClick={() => setFullPageTab("staff")}
-                          data-testid="button-dock-tab-staff"
-                        >
-                          <User className="h-3.5 w-3.5 mr-1.5" />
-                          Staff
-                        </Button>
-                      </div>
+                      {/* Item Tab Bar - Services | Products | Packages | Gift Cards */}
+                      <ItemTabBar
+                        activeTab={addItemTab}
+                        onTabChange={(tab) => {
+                          setAddItemTab(tab);
+                          setSelectedCategory("all"); // Reset category when switching tabs
+                        }}
+                        className="mb-2"
+                      />
 
-                      {/* Category List + Service/Staff Grid */}
-                      <div className={`flex-1 min-h-0 grid gap-4 ${
-                        fullPageTab === "services" ? "grid-cols-[140px_1fr]" : "grid-cols-1"
+                      {/* Category List + Item Grid */}
+                      <div className={`flex-1 min-h-0 grid gap-3 ${
+                        fullPageTab === "staff" ? "grid-cols-1" : "grid-cols-[140px_1fr]"
                       }`}>
-                        {fullPageTab === "services" && (
+                        {/* Category Sidebar */}
+                        {fullPageTab !== "staff" && (
                           <div className="h-full overflow-hidden">
                             <CategoryList
                               selectedCategory={selectedCategory}
                               onSelectCategory={setSelectedCategory}
+                              onViewStaff={() => setFullPageTab("staff")}
+                              showViewStaffButton={true}
+                              categories={
+                                addItemTab === "services" ? SERVICE_CATEGORIES :
+                                addItemTab === "products" ? PRODUCT_CATEGORIES :
+                                addItemTab === "packages" ? PACKAGE_CATEGORIES :
+                                addItemTab === "giftcards" ? GIFT_CARD_CATEGORIES :
+                                SERVICE_CATEGORIES
+                              }
                             />
                           </div>
                         )}
 
+                        {/* Content Area */}
                         <div className="h-full overflow-hidden">
-                          {fullPageTab === "services" ? (
+                          {fullPageTab === "staff" ? (
+                            <StaffGridView
+                              staffMembers={staffMembers}
+                              services={services}
+                              onAddServiceToStaff={handleAddServiceToStaff}
+                              reassigningServiceIds={reassigningServiceIds}
+                              selectedStaffId={activeStaffId}
+                            />
+                          ) : addItemTab === "services" ? (
                             <FullPageServiceSelector
                               selectedCategory={selectedCategory}
                               onSelectCategory={setSelectedCategory}
@@ -2243,21 +2291,53 @@ export default function TicketPanel({
                               staffMembers={staffMembers}
                               activeStaffId={activeStaffId}
                             />
-                          ) : (
-                            <StaffGridView
-                              staffMembers={staffMembers}
-                              services={services}
-                              onAddServiceToStaff={handleAddServiceToStaff}
-                              reassigningServiceIds={reassigningServiceIds}
+                          ) : addItemTab === "products" ? (
+                            <ProductGrid
+                              products={getProductsByCategory(selectedCategory)}
+                              onSelectProduct={(product) => {
+                                handleAddServices([{
+                                  id: `prod-${Date.now()}`,
+                                  name: product.name,
+                                  category: product.category,
+                                  price: product.price,
+                                  duration: 0,
+                                }]);
+                              }}
                             />
-                          )}
+                          ) : addItemTab === "packages" ? (
+                            <PackageGrid
+                              packages={getPackagesByCategory(selectedCategory)}
+                              onSelectPackage={(pkg) => {
+                                handleAddServices([{
+                                  id: `pkg-${Date.now()}`,
+                                  name: pkg.name,
+                                  category: "Package",
+                                  price: pkg.salePrice,
+                                  duration: 0,
+                                }]);
+                              }}
+                            />
+                          ) : addItemTab === "giftcards" ? (
+                            <GiftCardGrid
+                              giftCards={getGiftCardsByDesign(selectedCategory)}
+                              onSelectGiftCard={(gc) => {
+                                handleAddServices([{
+                                  id: `gc-${Date.now()}`,
+                                  name: gc.name,
+                                  category: "Gift Card",
+                                  price: gc.value,
+                                  duration: 0,
+                                }]);
+                              }}
+                            />
+                          ) : null}
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Right Side - Interactive Summary */}
-                  <div className="h-full border-l pl-4 overflow-hidden">
+                  <div className="h-full pl-3 overflow-hidden">
                     <InteractiveSummary
                       selectedClient={selectedClient}
                       services={services}
@@ -2284,11 +2364,11 @@ export default function TicketPanel({
                       currentTab={fullPageTab}
                     />
                   </div>
-                </div>
+                </ResizablePanel>
               </div>
 
-              {/* Mobile Layout - Full screen ticket view */}
-              <div className="flex-1 flex flex-col min-h-0 lg:hidden">
+              {/* Mobile Layout - Full screen ticket view (Dock Mode) */}
+              <div className="flex-1 flex flex-col min-h-0 lg:hidden pt-14">
                 {/* Mobile Ticket Summary - scrollable */}
                 <div className="flex-1 overflow-y-auto px-3 pb-4">
                   <InteractiveSummary
