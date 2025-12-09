@@ -1,15 +1,17 @@
 /**
  * Store Login Screen
- * Two-tier authentication: Store login + Member PIN
- * 1. First: Enter store credentials (email + password)
- * 2. Then: Enter member PIN to identify who's using the POS
+ * Supports two authentication modes:
+ * 1. Store Login: Store credentials (email + password) - for shared POS devices
+ * 2. Member Login: Member credentials (email + password) - for individual staff login
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { Store, Loader2, AlertCircle, CheckCircle2, WifiOff, XCircle, User, KeyRound, ArrowLeft } from 'lucide-react';
 import { storeAuthManager, type StoreAuthState, type MemberSession } from '../../services/storeAuthManager';
-import { setStoreSession, setMemberSession, clearAllAuth, setAuthStatus } from '../../store/slices/authSlice';
+import { setStoreSession, setMemberSession, clearAllAuth, setAuthStatus, setAvailableStores } from '../../store/slices/authSlice';
+
+type LoginMode = 'store' | 'member';
 
 interface StoreLoginScreenProps {
   onLoggedIn: () => void;
@@ -19,9 +21,16 @@ interface StoreLoginScreenProps {
 export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenProps) {
   const dispatch = useDispatch();
 
+  // Login mode toggle
+  const [loginMode, setLoginMode] = useState<LoginMode>('member');
+
   // Store login state
   const [storeId, setStoreId] = useState('');
   const [password, setPassword] = useState('');
+
+  // Member login state
+  const [memberEmail, setMemberEmail] = useState('');
+  const [memberPassword, setMemberPassword] = useState('');
 
   // PIN login state
   const [pin, setPin] = useState('');
@@ -141,6 +150,75 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     }
   };
 
+  // Handle member email/password login
+  const handleMemberLogin = async () => {
+    if (!memberEmail.trim()) {
+      setError('Please enter your email');
+      return;
+    }
+    if (!memberPassword.trim()) {
+      setError('Please enter your password');
+      return;
+    }
+
+    console.log('🔐 Starting member login for:', memberEmail.trim());
+    isLoginAttemptRef.current = true;
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const result = await storeAuthManager.loginMemberWithPassword(memberEmail.trim(), memberPassword);
+      console.log('🔐 Member login result:', JSON.stringify(result, null, 2));
+
+      if (result.success && result.member && result.store) {
+        console.log('✅ Member login successful for:', result.member.memberName);
+        setSuccess(`Welcome, ${result.member.firstName || result.member.memberName}!`);
+
+        // Dispatch Redux action for store session
+        dispatch(setStoreSession({
+          storeId: result.store.storeId,
+          storeName: result.store.storeName,
+          storeLoginId: result.store.storeLoginId,
+          tenantId: result.store.tenantId,
+          tier: result.store.tier,
+        }));
+
+        // Dispatch Redux action for member session
+        dispatch(setMemberSession({
+          memberId: result.member.memberId,
+          memberName: result.member.memberName,
+          firstName: result.member.firstName,
+          lastName: result.member.lastName,
+          email: result.member.email,
+          role: result.member.role,
+          avatarUrl: result.member.avatarUrl,
+          permissions: result.member.permissions,
+        }));
+
+        // Dispatch available stores for store switching
+        if (result.availableStores && result.availableStores.length > 0) {
+          dispatch(setAvailableStores(result.availableStores));
+        }
+
+        dispatch(setAuthStatus('active'));
+        onLoggedIn();
+      } else {
+        const errorMessage = result.error || 'Login failed. Please check your credentials.';
+        console.log('❌ Member login failed:', errorMessage);
+        setError(errorMessage);
+        isLoginAttemptRef.current = false;
+      }
+    } catch (err: any) {
+      console.error('❌ Member login exception:', err);
+      const errorMessage = err?.message || 'Unable to connect. Please check your connection and try again.';
+      setError(errorMessage);
+      isLoginAttemptRef.current = false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle PIN login
   const handlePinLogin = async () => {
     if (pin.length < 4) {
@@ -224,6 +302,20 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
       e.preventDefault();
       handleLogin();
     }
+  };
+
+  const handleMemberKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoading) {
+      e.preventDefault();
+      handleMemberLogin();
+    }
+  };
+
+  // Clear error when switching login modes
+  const handleLoginModeChange = (mode: LoginMode) => {
+    setLoginMode(mode);
+    setError(null);
+    setSuccess(null);
   };
 
   const handlePinKeyDown = (e: React.KeyboardEvent) => {
@@ -461,8 +553,16 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 space-y-6">
         {/* Logo */}
         <div className="flex justify-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center">
-            <Store className="w-10 h-10 text-white" />
+          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
+            loginMode === 'member'
+              ? 'bg-gradient-to-br from-teal-500 to-emerald-500'
+              : 'bg-gradient-to-br from-orange-500 to-pink-500'
+          }`}>
+            {loginMode === 'member' ? (
+              <User className="w-10 h-10 text-white" />
+            ) : (
+              <Store className="w-10 h-10 text-white" />
+            )}
           </div>
         </div>
 
@@ -470,29 +570,81 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-gray-900">Mango POS</h1>
           <p className="text-gray-600">
-            Log in to your store to get started
+            {loginMode === 'member'
+              ? 'Sign in with your credentials'
+              : 'Log in to your store'}
           </p>
         </div>
 
-        {/* Form */}
-        <LoginForm
-          storeId={storeId}
-          setStoreId={setStoreId}
-          password={password}
-          setPassword={setPassword}
-          isLoading={isLoading}
-          error={error}
-          success={success}
-          onLogin={handleLogin}
-          onKeyDown={handleKeyDown}
-        />
+        {/* Login Mode Toggle */}
+        <div className="flex rounded-lg bg-gray-100 p-1">
+          <button
+            onClick={() => handleLoginModeChange('member')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              loginMode === 'member'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Staff Login
+          </button>
+          <button
+            onClick={() => handleLoginModeChange('store')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              loginMode === 'store'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Store className="w-4 h-4" />
+            Store Login
+          </button>
+        </div>
+
+        {/* Form based on mode */}
+        {loginMode === 'member' ? (
+          <MemberLoginForm
+            email={memberEmail}
+            setEmail={setMemberEmail}
+            password={memberPassword}
+            setPassword={setMemberPassword}
+            isLoading={isLoading}
+            error={error}
+            success={success}
+            onLogin={handleMemberLogin}
+            onKeyDown={handleMemberKeyDown}
+          />
+        ) : (
+          <LoginForm
+            storeId={storeId}
+            setStoreId={setStoreId}
+            password={password}
+            setPassword={setPassword}
+            isLoading={isLoading}
+            error={error}
+            success={success}
+            onLogin={handleLogin}
+            onKeyDown={handleKeyDown}
+          />
+        )}
 
         {/* Demo credentials */}
         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-          <p className="text-sm text-emerald-800 font-medium mb-2">Demo Mode</p>
-          <p className="text-xs text-emerald-600">
-            Demo: <span className="font-mono">demo@salon.com</span> / <span className="font-mono">demo123</span>
+          <p className="text-sm text-emerald-800 font-medium mb-2">
+            {loginMode === 'member' ? 'Demo Staff' : 'Demo Stores'}
           </p>
+          {loginMode === 'member' ? (
+            <div className="space-y-1 text-xs text-emerald-600">
+              <p>Owner: <span className="font-mono">owner@demosalon.com</span> / <span className="font-mono">owner123</span></p>
+              <p>Manager: <span className="font-mono">mike@demosalon.com</span> / <span className="font-mono">mike123</span></p>
+            </div>
+          ) : (
+            <div className="space-y-1 text-xs text-emerald-600">
+              <p>Store 1: <span className="font-mono">demo@salon.com</span> / <span className="font-mono">demo123</span></p>
+              <p>Store 2: <span className="font-mono">mango001</span> / <span className="font-mono">password123</span></p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -588,6 +740,100 @@ function LoginForm({
           <>
             <Store className="w-5 h-5" />
             <span>Log In</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// Member login form component
+interface MemberLoginFormProps {
+  email: string;
+  setEmail: (value: string) => void;
+  password: string;
+  setPassword: (value: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  success: string | null;
+  onLogin: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+}
+
+function MemberLoginForm({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  isLoading,
+  error,
+  success,
+  onLogin,
+  onKeyDown,
+}: MemberLoginFormProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label htmlFor="member-email" className="block text-sm font-medium text-gray-700 mb-2">
+          Email
+        </label>
+        <input
+          id="member-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="you@example.com"
+          disabled={isLoading}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          autoFocus
+        />
+      </div>
+
+      <div>
+        <label htmlFor="member-password" className="block text-sm font-medium text-gray-700 mb-2">
+          Password
+        </label>
+        <input
+          id="member-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Enter your password"
+          disabled={isLoading}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-200">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>{success}</span>
+        </div>
+      )}
+
+      <button
+        onClick={onLogin}
+        disabled={isLoading || !email.trim() || !password.trim()}
+        className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Signing in...</span>
+          </>
+        ) : (
+          <>
+            <User className="w-5 h-5" />
+            <span>Sign In</span>
           </>
         )}
       </button>

@@ -155,42 +155,27 @@ function ServiceTicketCardComponent({
           {/* Dog-ear corner - compact size */}
           <div className="absolute top-0 right-0 w-[5px] h-[5px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          <div className="py-2 pr-3 pl-9">
-            {/* Row 1: Client name + Time/Progress - more compact */}
-            <div className="flex items-start justify-between gap-2 mb-0.5">
+          <div className="py-1.5 pr-2 pl-9 relative">
+            {/* Row 1: Client name + Time Left */}
+            <div className="flex items-center justify-between gap-2 mb-0.5">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-[#1a1614] truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>
+                  <span className="font-semibold text-[#1a1614] truncate leading-tight" style={{ fontSize: 'clamp(13px, 1.7vw, 15px)' }}>
                     {ticket.clientName}
                   </span>
-                  {hasStar && <span style={{ fontSize: 'clamp(10px, 1.25vw, 12px)' }}>⭐</span>}
+                  {hasStar && <span className="text-[10px]">⭐</span>}
                   {hasNote && <StickyNote className="w-2.5 h-2.5 text-amber-500" />}
-                </div>
-                <div className="text-[#6b5d52] mt-0.5 font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>
-                  {getLastVisitText()}
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)}</span>
-                <div className="w-20 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden" style={{ height: '4px', minHeight: '4px', borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
-                  <div
-                    className="h-full transition-all duration-300"
-                    style={{
-                      width: `${Math.min(progress, 100)}%`,
-                      background: currentStatus.progress,
-                      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                      borderRadius: '5px'
-                    }}
-                  />
-                </div>
-                <span className="font-bold whitespace-nowrap" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)', color: currentStatus.text }}>{Math.round(progress)}%</span>
+                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)} left</span>
               </div>
             </div>
 
-            {/* Row 2: Service + Staff badges + Done button - more compact */}
+            {/* Row 2: Service + Staff badges + Done button */}
             <div className="flex items-center justify-between gap-2">
-              <div className="text-[#2d2520] font-semibold truncate flex-1" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>
+              <div className="text-[#2d2520] truncate flex-1 leading-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }}>
                 {ticket.service}
               </div>
 
@@ -198,31 +183,41 @@ function ServiceTicketCardComponent({
                 <div className="flex items-center gap-0.5">
                   {staffList.slice(0, 2).map((staff, i) => (
                     <div key={i}
-                         className="text-white font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
-                         style={{
-                           fontSize: 'clamp(11px, 1.5vw, 13px)',
-                           background: getStaffColor(staff),
-                           boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-                           textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)'
-                         }}>
+                      className="text-white font-semibold px-1.5 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
+                      style={{
+                        fontSize: '10px',
+                        background: getStaffColor(staff),
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                        textShadow: '0 1px 1px rgba(0, 0, 0, 0.2)'
+                      }}>
                       {getFirstName(staff.name)}
                     </div>
                   ))}
-                  {staffList.length > 2 && <span className="text-[#6b5d52] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>+{staffList.length - 2}</span>}
+                  {staffList.length > 2 && <span className="text-[#6b5d52] font-medium text-[10px]">+{staffList.length - 2}</span>}
                 </div>
 
                 {/* Done button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                  style={{ width: 'clamp(32px, 4.5vw, 38px)', height: 'clamp(32px, 4.5vw, 38px)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
-                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                  style={{ width: '24px', height: '24px' }}
                   title="Mark as Done"
                 >
-                  <Check style={{ width: 'clamp(14px, 2vw, 16px)', height: 'clamp(14px, 2vw, 16px)' }} strokeWidth={2.5} />
+                  <Check style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
                 </button>
               </div>
+            </div>
+
+            {/* Super thin progress line at bottom */}
+            <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#f0e9e0] overflow-hidden" style={{ borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px' }}>
+              <div
+                className="h-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(progress, 100)}%`,
+                  background: currentStatus.progress,
+                  opacity: 0.8
+                }}
+              />
             </div>
           </div>
 
@@ -237,54 +232,58 @@ function ServiceTicketCardComponent({
       return (
         <>
           {/* Dog-ear corner - normal size */}
-          <div className="absolute top-0 right-0 w-[6px] h-[6px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
+          <div className="absolute top-0 right-0 w-[7px] h-[7px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          <div className="py-3 pr-3 pl-10">
+          <div className="py-2.5 pr-3 pl-11">
             {/* Row 1: Client name + Time/Progress */}
-            <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-start justify-between gap-3 mb-1">
               <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>
-                    {hasStar && <span className="flex-shrink-0" style={{ fontSize: 'clamp(12px, 1.5vw, 14px)' }}>⭐</span>}
-                    {hasNote && <StickyNote className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(16px, 2vw, 18px)' }}>{ticket.clientName}</span>
+                  {hasStar && <span className="flex-shrink-0 text-xs">⭐</span>}
+                  {hasNote && <StickyNote className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                </div>
+                <div className="text-[#6b5d52] font-medium tracking-wide text-xs">{getLastVisitText()}</div>
+              </div>
+              <div className="flex flex-col items-end gap-0.5 flex-shrink-0 self-start mt-0.5">
+                <span className="text-[#4a3d34] font-medium whitespace-nowrap text-xs">{formatTime(timeRemaining)} left</span>
+
+                {/* Progress Bar Component */}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-16 h-1.5 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden"
+                    style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
+                    <div className="h-full transition-all duration-300"
+                      style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, borderRadius: '5px' }} />
                   </div>
-                  <div className="text-[#6b5d52] font-medium tracking-wide mb-1.5" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div>
-                  <div className="border-t border-[#e8dcc8]/50 mb-2" />
+                  <span className="font-bold whitespace-nowrap text-xs" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
                 </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{formatTime(timeRemaining)}</span>
-                <div className="w-24 h-1.5 bg-[#f5f0e8] border border-[#e8dcc8]/40 overflow-hidden"
-                     style={{ borderRadius: '6px', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}>
-                  <div className="h-full transition-all duration-300"
-                       style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)', borderRadius: '5px' }} />
-                </div>
-                <span className="font-bold whitespace-nowrap" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)', color: currentStatus.text }}>{Math.round(progress)}%</span>
               </div>
             </div>
 
+            {/* Divider */}
+            <div className="border-t border-[#e8dcc8]/50 mb-1.5" />
+
             {/* Row 2: Service + Staff badges + Done button */}
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.service}</div>
+              <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate text-sm">{ticket.service}</div>
 
               {/* Staff badges + Done button */}
               <div className="flex-shrink-0 flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   {staffList.map((staff, i) => (
-                    <div key={i} className="text-white font-semibold px-2 py-1 rounded-md border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
-                         style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', background: getStaffColor(staff), boxShadow: '0 2.1px 4.2px rgba(0, 0, 0, 0.126), 0 0.7px 2.1px rgba(0, 0, 0, 0.084), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                    <div key={i} className="text-white font-semibold px-2 py-0.5 rounded border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide"
+                      style={{ fontSize: '11px', background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)', textShadow: '0 1px 1px rgba(0, 0, 0, 0.25)' }}>
                       {getFirstName(staff.name)}
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                  style={{ width: 'clamp(28px, 4vw, 34px)', height: 'clamp(28px, 4vw, 34px)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.25)'}
-                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                  style={{ width: '30px', height: '30px' }}
                   title="Mark as Done"
                 >
-                  <Check style={{ width: 'clamp(14px, 1.85vw, 16px)', height: 'clamp(14px, 1.85vw, 16px)' }} strokeWidth={2.5} />
+                  <Check style={{ width: '16px', height: '16px' }} strokeWidth={2.5} />
                 </button>
               </div>
             </div>

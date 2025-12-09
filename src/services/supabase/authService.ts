@@ -17,9 +17,10 @@ export interface StoreSession {
   storeName: string;
   storeLoginId: string;
   tenantId: string;
-  licenseId: string;
-  status: string;
-  timezone: string | null;
+  tier: string;
+  licenseId?: string;
+  status?: string;
+  timezone?: string | null;
 }
 
 export interface MemberSession {
@@ -139,6 +140,7 @@ export async function loginStoreWithCredentials(
       storeName: store.name,
       storeLoginId: store.store_login_id,
       tenantId: store.tenant_id,
+      tier: store.tier || 'starter',
       licenseId: store.license_id,
       status: store.status,
       timezone: store.timezone,
@@ -606,6 +608,52 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return password === hash;
 }
 
+/**
+ * Get store details by ID
+ * Used for direct member login to fetch store info
+ */
+export async function getStoreById(storeId: string): Promise<StoreSession | null> {
+  try {
+    const { data: store, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('id', storeId)
+      .single();
+
+    if (error || !store) {
+      console.error('Store not found:', storeId, error);
+      return null;
+    }
+
+    return {
+      storeId: store.id,
+      storeName: store.name,
+      storeLoginId: store.store_login_id || store.login_id || '',
+      tenantId: store.tenant_id,
+      tier: store.tier || 'starter',
+    };
+  } catch (error) {
+    console.error('Error fetching store:', error);
+    return null;
+  }
+}
+
+// ==================== SESSION PERSISTENCE ====================
+
+/**
+ * Manually set/persist a store session (for direct member login flow)
+ */
+export function setStoreSession(session: StoreSession): void {
+  saveStoreSession(session);
+}
+
+/**
+ * Manually set/persist a member session
+ */
+export function setMemberSession(session: MemberSession): void {
+  saveMemberSession(session);
+}
+
 // ==================== EXPORTS ====================
 
 export const authService = {
@@ -613,6 +661,7 @@ export const authService = {
   loginStoreWithCredentials,
   validateStoreSession,
   logoutStore,
+  getStoreById,
 
   // Member auth
   loginMemberWithPin,
@@ -629,6 +678,8 @@ export const authService = {
   getCurrentStore,
   getCurrentMember,
   isFullyAuthenticated,
+  setStoreSession,
+  setMemberSession,
 
   // License
   getLicenseInfo,

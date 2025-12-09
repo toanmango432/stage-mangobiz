@@ -5,9 +5,10 @@ import {
   LayoutGrid, CreditCard, MoreHorizontal, LogOut, Settings,
   Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2
 } from 'lucide-react';
-import { useAppSelector } from '../../store/hooks';
+import { ClockInOutButton } from './ClockInOutButton';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { storeAuthManager } from '../../services/storeAuthManager';
-import { selectStore, selectStoreName, selectMember } from '../../store/slices/authSlice';
+import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
 import { SwitchUserModal } from '../auth/SwitchUserModal';
 import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
 
@@ -36,6 +37,10 @@ export function TopHeaderBar({
   const [showSwitchUserModal, setShowSwitchUserModal] = useState(false);
   const [showPinVerificationModal, setShowPinVerificationModal] = useState(false);
   const [pendingPinAction, setPendingPinAction] = useState<'settings' | 'reports' | null>(null);
+  const [showStoreSwitcher, setShowStoreSwitcher] = useState(false);
+
+  // Get dispatch for actions
+  const dispatch = useAppDispatch();
 
   // Get online status and device mode from Redux/auth
   const isOnline = useAppSelector((state) => state.sync?.isOnline ?? true);
@@ -50,6 +55,9 @@ export function TopHeaderBar({
 
   // Get current member for display
   const currentMember = useAppSelector(selectMember);
+
+  // Get available stores for store switching
+  const availableStores = useAppSelector(selectAvailableStores);
 
   // Live clock update
   useEffect(() => {
@@ -182,6 +190,15 @@ export function TopHeaderBar({
     setShowUserMenu(false);
     await storeAuthManager.logoutStore();
     // Reload page to show login screen
+    window.location.reload();
+  };
+
+  // Handle store switch
+  const handleSwitchStore = (selectedStore: StoreSession) => {
+    dispatch(switchStore(selectedStore));
+    setShowStoreSwitcher(false);
+    setShowUserMenu(false);
+    // Reload data for the new store
     window.location.reload();
   };
 
@@ -430,6 +447,9 @@ export function TopHeaderBar({
           </span>
         </div>
 
+        {/* Clock In/Out Button - Prominent punch clock action */}
+        <ClockInOutButton />
+
         {/* Store name moved to profile dropdown for cleaner header */}
       </div>
 
@@ -631,28 +651,64 @@ export function TopHeaderBar({
               {/* Quick Actions for Shared Terminal */}
               <div className="py-1">
                 {/* Switch Store - Only shown for multi-store accounts */}
-                {/* TODO: Add availableStores state to authSlice and show when availableStores.length > 1 */}
-                {/* Currently hidden since single-store accounts don't need this option */}
-                {false && (
-                  <button
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 transition-colors flex items-center gap-3 border-b border-gray-100"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      // TODO: Open store switcher modal with list of available stores
-                      console.log('Switch Store clicked - implement store list modal');
-                    }}
-                  >
-                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="font-semibold text-purple-700">Switch Store</span>
-                      <p className="text-[10px] text-gray-500">
-                        {storeName}
-                      </p>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  </button>
+                {availableStores.length > 1 && (
+                  <div className="relative border-b border-gray-100">
+                    <button
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 transition-colors flex items-center gap-3"
+                      onClick={() => setShowStoreSwitcher(!showStoreSwitcher)}
+                    >
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <Building2 className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-semibold text-purple-700">Switch Store</span>
+                        <p className="text-[10px] text-gray-500">
+                          {storeName} • {availableStores.length} stores
+                        </p>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showStoreSwitcher ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Store List Dropdown */}
+                    {showStoreSwitcher && (
+                      <div className="bg-purple-50 border-t border-purple-100">
+                        {availableStores.map((storeOption) => {
+                          const isCurrentStore = storeOption.storeId === store?.storeId;
+                          return (
+                            <button
+                              key={storeOption.storeId}
+                              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-3 transition-colors ${
+                                isCurrentStore
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'text-gray-700 hover:bg-purple-100'
+                              }`}
+                              onClick={() => !isCurrentStore && handleSwitchStore(storeOption)}
+                              disabled={isCurrentStore}
+                            >
+                              <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                                isCurrentStore
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-white border border-gray-200'
+                              }`}>
+                                <Store className="w-3 h-3" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className={`block truncate ${isCurrentStore ? 'font-semibold' : 'font-medium'}`}>
+                                  {storeOption.storeName}
+                                </span>
+                                {isCurrentStore && (
+                                  <span className="text-[10px] text-purple-600">Current</span>
+                                )}
+                              </div>
+                              {isCurrentStore && (
+                                <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Switch User - Primary action for shift handover */}

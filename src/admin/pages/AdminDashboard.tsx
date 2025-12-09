@@ -9,7 +9,7 @@ import {
   Activity,
   RefreshCw
 } from 'lucide-react';
-import { getAdminDBStats, tenantsDB, licensesDB, storesDB } from '../db/database';
+import { getAdminDBStats, tenantsDB, licensesDB, storesDB } from '../db/supabaseDatabase';
 import type { Tenant, License, Store as StoreType } from '../types';
 
 interface DashboardStats {

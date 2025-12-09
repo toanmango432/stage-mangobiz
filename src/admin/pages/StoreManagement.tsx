@@ -14,7 +14,7 @@ import {
   Check,
   AlertCircle
 } from 'lucide-react';
-import { storesDB, tenantsDB, licensesDB } from '../db/database';
+import { storesDB, tenantsDB, licensesDB } from '../db/supabaseDatabase';
 import type { Store as StoreType, CreateStoreInput, Tenant, License } from '../types';
 
 export function StoreManagement() {

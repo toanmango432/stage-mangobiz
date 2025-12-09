@@ -114,32 +114,29 @@ function WaitListTicketCardComponent({
           {/* Dog-ear corner - compact size */}
           <div className="absolute top-0 right-0 w-[5px] h-[5px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          <div className="py-2 pr-3 pl-9">
-            {/* Row 1: Client name + Wait time - more compact */}
-            <div className="flex items-start justify-between gap-2 mb-0.5">
+          <div className="py-1.5 pr-2 pl-9 relative">
+            {/* Row 1: Client name + Wait time */}
+            <div className="flex items-center justify-between gap-2 mb-0.5">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-[#1a1614] truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>
+                  <span className="font-semibold text-[#1a1614] truncate leading-tight" style={{ fontSize: 'clamp(13px, 1.7vw, 15px)' }}>
                     {ticket.clientName}
                   </span>
                   {isFirstVisit && <span className="text-[10px]">⭐</span>}
                   {hasNote && <StickyNote className="w-2.5 h-2.5 text-amber-500" />}
                 </div>
-                <div className="text-[#6b5d52] mt-0.5 font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>
-                  {getLastVisitText()}
-                </div>
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>Waited {formatWaitTime(waitTime)}</span>
-                <span className="text-[9px] text-[#4a3d34]">•</span>
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{ticket.time}</span>
+                <div className="text-[#6b5d52] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(10px, 1.5vw, 12px)' }}>
+                  {formatWaitTime(waitTime)}
+                </div>
               </div>
             </div>
 
-            {/* Row 2: Service + Assign button - more compact */}
+            {/* Row 2: Service + Assign button */}
             <div className="flex items-center justify-between gap-2">
-              <div className="text-[#2d2520] font-semibold truncate flex-1" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>
+              <div className="text-[#2d2520] truncate flex-1 leading-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }}>
                 {ticket.service}
               </div>
 
@@ -147,12 +144,12 @@ function WaitListTicketCardComponent({
                 {/* Assign button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                  className="px-2 flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded shadow-sm hover:shadow font-semibold"
-                  style={{ height: 'clamp(28px, 4vw, 34px)' }}
+                  className="px-2 py-0.5 flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded shadow-sm hover:shadow font-medium"
+                  style={{ height: '24px' }}
                   title="Assign"
                 >
-                  <UserPlus style={{ width: 'clamp(12px, 1.75vw, 14px)', height: 'clamp(12px, 1.75vw, 14px)' }} strokeWidth={2.5} />
-                  <span style={{ fontSize: 'clamp(10px, 1.4vw, 12px)' }}>Assign</span>
+                  <UserPlus style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
+                  <span style={{ fontSize: '10px' }}>Assign</span>
                 </button>
               </div>
             </div>
@@ -171,39 +168,41 @@ function WaitListTicketCardComponent({
           {/* Dog-ear corner - normal size */}
           <div className="absolute top-0 right-0 w-[7px] h-[7px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
-          <div className="py-3 pr-3 pl-10">
+          <div className="py-2.5 pr-3 pl-11">
             {/* Row 1: Client name + Wait time */}
-            <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-start justify-between gap-3 mb-1">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>
-                  {isFirstVisit && <span className="text-sm flex-shrink-0">⭐</span>}
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(16px, 2vw, 18px)' }}>{ticket.clientName}</span>
+                  {isFirstVisit && <span className="text-xs flex-shrink-0">⭐</span>}
                   {hasNote && <StickyNote className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
                 </div>
-                <div className="text-[#6b5d52] font-medium tracking-wide mb-1.5" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div>
-                <div className="border-t border-[#e8dcc8]/50 mb-2" />
+                <div className="text-[#6b5d52] font-medium tracking-wide text-xs">{getLastVisitText()}</div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>Waited {formatWaitTime(waitTime)}</span>
-                <span className="text-xs text-[#4a3d34]">•</span>
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{ticket.time}</span>
+              <div className="flex items-center gap-2 flex-shrink-0 self-start mt-1">
+                <span className="text-[#4a3d34] font-medium whitespace-nowrap text-xs">Waited {formatWaitTime(waitTime)}</span>
+                <span className="text-xs text-[#4a3d34] opacity-50">•</span>
+                <span className="text-[#4a3d34] font-medium whitespace-nowrap text-xs">{ticket.time}</span>
               </div>
             </div>
 
+            {/* Divider */}
+            <div className="border-t border-[#e8dcc8]/50 mb-1.5" />
+
             {/* Row 2: Service + Assign button */}
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.service}</div>
+              <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate text-sm">{ticket.service}</div>
 
               {/* Assign button */}
               <div className="flex-shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                  className="px-2.5 flex items-center justify-center gap-1.5 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-semibold"
-                  style={{ height: 'clamp(26px, 3.5vw, 32px)' }}
+                  className="px-3 flex items-center justify-center gap-1.5 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-semibold"
+                  style={{ height: '30px' }}
                   title="Assign"
                 >
-                  <UserPlus style={{ width: 'clamp(13px, 1.7vw, 15px)', height: 'clamp(13px, 1.7vw, 15px)' }} strokeWidth={2.5} />
-                  <span style={{ fontSize: 'clamp(10px, 1.35vw, 12px)' }}>Assign</span>
+                  <UserPlus style={{ width: '14px', height: '14px' }} strokeWidth={2.5} />
+                  <span style={{ fontSize: '11px' }}>Assign</span>
                 </button>
               </div>
             </div>

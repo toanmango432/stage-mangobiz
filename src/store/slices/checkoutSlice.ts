@@ -7,7 +7,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { Ticket, Payment } from '../../types/Ticket';
 import type { RootState } from '../index';
-import { TIP_CONFIG } from '../../constants/checkoutConfig';
+import { getDynamicTipConfig } from '../../constants/checkoutConfig';
 import { ticketsDB } from '../../db/database';
 
 // ===================
@@ -91,6 +91,9 @@ export interface CheckoutState {
 // INITIAL STATE
 // ===================
 
+// Get initial tip config from system config
+const tipConfig = getDynamicTipConfig();
+
 const initialState: CheckoutState = {
   activeCheckout: null,
   drafts: [],
@@ -102,8 +105,8 @@ const initialState: CheckoutState = {
   isProcessingPayment: false,
   showReceiptOptions: false,
   sessionConfig: {
-    tipPercentages: [...TIP_CONFIG.defaultPercentages],
-    tipBasis: TIP_CONFIG.calculationBasis,
+    tipPercentages: [...tipConfig.defaultPercentages],
+    tipBasis: tipConfig.calculationBasis,
   },
 };
 

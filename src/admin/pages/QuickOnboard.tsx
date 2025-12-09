@@ -11,7 +11,7 @@ import {
   Copy,
   X
 } from 'lucide-react';
-import { tenantsDB, licensesDB, storesDB, membersDB } from '../db/database';
+import { tenantsDB, licensesDB, storesDB, membersDB } from '../db/supabaseDatabase';
 import type { LicenseTier, Tenant, License, Store as StoreType, Member } from '../types';
 import { LICENSE_TIER_CONFIG } from '../types/license';
 

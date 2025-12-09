@@ -52,7 +52,7 @@ import {
   TARGET_TIER_LABELS,
   TARGET_ROLE_LABELS
 } from '../types/announcement';
-import { announcementsDB } from '../db/database';
+import { announcementsDB } from '../db/supabaseDatabase';
 
 // Category Icons
 const CATEGORY_ICONS: Record<AnnouncementCategory, typeof Sparkles> = {

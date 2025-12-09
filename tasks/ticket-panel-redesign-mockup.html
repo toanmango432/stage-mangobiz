@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Panel Redesign - Full Navigation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#E0F7FA',
+              100: '#B2EBF2',
+              200: '#80DEEA',
+              300: '#4DD0E1',
+              400: '#26C6DA',
+              500: '#00BCD4',
+              600: '#00ACC1',
+              700: '#0097A7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .card-hover {
+      transition: all 0.2s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .staff-active {
+      box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.3);
+      background: linear-gradient(135deg, rgba(0, 188, 212, 0.05) 0%, rgba(0, 188, 212, 0.02) 100%);
+    }
+
+    .service-row:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+
+    .type-tab-active {
+      background: #00BCD4;
+      color: white;
+    }
+
+    .category-active {
+      background: rgba(0, 188, 212, 0.1);
+      color: #00ACC1;
+      border-left: 3px solid #00BCD4;
+    }
+
+    .subcategory-active {
+      color: #00BCD4;
+      font-weight: 600;
+    }
+
+    .pulse-ring {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  <!-- Header Controls -->
+  <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white rounded-full shadow-lg px-6 py-3 flex items-center gap-4">
+    <span class="text-sm font-medium text-gray-500">Item Type:</span>
+    <button onclick="switchItemType('services')" id="type-services" class="px-4 py-1.5 rounded-full text-sm font-medium type-tab-active">Services</button>
+    <button onclick="switchItemType('products')" id="type-products" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Products</button>
+    <button onclick="switchItemType('packages')" id="type-packages" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Packages</button>
+    <button onclick="switchItemType('giftcards')" id="type-giftcards" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Gift Cards</button>
+    <span class="text-gray-300">|</span>
+    <button onclick="toggleEmptyState()" id="empty-btn" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Empty State</button>
+  </div>
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto pt-16">
+
+    <!-- Page Title -->
+    <div class="mb-4">
+      <h1 class="text-2xl font-bold text-gray-900">Ticket Panel - Full Navigation</h1>
+      <p class="text-gray-500 mt-1">With categories, sub-categories, and multiple item types</p>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden" style="height: calc(100vh - 160px);">
+      <div class="flex h-full">
+
+        <!-- LEFT PANEL: Navigation + Items -->
+        <div class="w-[55%] border-r border-gray-200 flex flex-col">
+
+          <!-- Top Bar: Item Type Tabs + Search -->
+          <div class="border-b border-gray-200">
+            <!-- Item Type Tabs -->
+            <div class="flex px-4 pt-3 gap-1">
+              <button onclick="switchItemType('services')" class="item-type-tab px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white border border-b-0 border-gray-200 text-gray-900" data-type="services">
+                <i class="fas fa-scissors mr-2 text-primary-500"></i>Services
+              </button>
+              <button onclick="switchItemType('products')" class="item-type-tab px-4 py-2.5 rounded-t-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-type="products">
+                <i class="fas fa-shopping-bag mr-2"></i>Products
+              </button>
+              <button onclick="switchItemType('packages')" class="item-type-tab px-4 py-2.5 rounded-t-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-type="packages">
+                <i class="fas fa-box mr-2"></i>Packages
+              </button>
+              <button onclick="switchItemType('giftcards')" class="item-type-tab px-4 py-2.5 rounded-t-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-type="giftcards">
+                <i class="fas fa-gift mr-2"></i>Gift Cards
+              </button>
+            </div>
+          </div>
+
+          <!-- Content Area: Sidebar + Grid -->
+          <div class="flex flex-1 overflow-hidden">
+
+            <!-- Category Sidebar -->
+            <div class="w-48 border-r border-gray-100 flex flex-col bg-gray-50/50">
+              <!-- Search -->
+              <div class="p-3">
+                <div class="relative">
+                  <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    class="w-full h-9 pl-9 pr-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                </div>
+              </div>
+
+              <!-- Categories List -->
+              <div id="categories-services" class="flex-1 overflow-y-auto custom-scroll">
+                <!-- All Services -->
+                <button class="w-full px-4 py-3 text-left text-sm font-medium category-active">
+                  <i class="fas fa-th-large mr-2 text-primary-500"></i>All Services
+                </button>
+
+                <!-- Popular -->
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-star mr-2 text-yellow-500"></i>Popular
+                </button>
+
+                <!-- Hair - Expandable -->
+                <div class="category-group">
+                  <button onclick="toggleCategory('hair')" class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+                    <span><i class="fas fa-cut mr-2 text-gray-400"></i>Hair</span>
+                    <i id="hair-chevron" class="fas fa-chevron-down text-gray-400 text-xs transition-transform"></i>
+                  </button>
+                  <div id="hair-subcats" class="bg-white border-y border-gray-100">
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 subcategory-active">Haircut</button>
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Color</button>
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Treatment</button>
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Styling</button>
+                  </div>
+                </div>
+
+                <!-- Nails - Expandable -->
+                <div class="category-group">
+                  <button onclick="toggleCategory('nails')" class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+                    <span><i class="fas fa-hand-sparkles mr-2 text-gray-400"></i>Nails</span>
+                    <i id="nails-chevron" class="fas fa-chevron-right text-gray-400 text-xs transition-transform"></i>
+                  </button>
+                  <div id="nails-subcats" class="bg-white border-y border-gray-100 hidden">
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Manicure</button>
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Pedicure</button>
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Gel</button>
+                    <button class="w-full pl-10 pr-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50">Acrylic</button>
+                  </div>
+                </div>
+
+                <!-- Spa -->
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-100">
+                  <i class="fas fa-spa mr-2 text-gray-400"></i>Spa & Body
+                </button>
+
+                <!-- Waxing -->
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-100">
+                  <i class="fas fa-leaf mr-2 text-gray-400"></i>Waxing
+                </button>
+
+                <!-- Makeup -->
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-100">
+                  <i class="fas fa-palette mr-2 text-gray-400"></i>Makeup
+                </button>
+
+                <!-- Add-ons -->
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-100">
+                  <i class="fas fa-plus-circle mr-2 text-gray-400"></i>Add-ons
+                </button>
+              </div>
+
+              <!-- Products Categories (hidden by default) -->
+              <div id="categories-products" class="flex-1 overflow-y-auto custom-scroll hidden">
+                <button class="w-full px-4 py-3 text-left text-sm font-medium category-active">
+                  <i class="fas fa-th-large mr-2 text-primary-500"></i>All Products
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-pump-soap mr-2 text-gray-400"></i>Shampoo
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-spray-can mr-2 text-gray-400"></i>Styling
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-tint mr-2 text-gray-400"></i>Color
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-hand-holding-heart mr-2 text-gray-400"></i>Skincare
+                </button>
+              </div>
+
+              <!-- Packages Categories (hidden by default) -->
+              <div id="categories-packages" class="flex-1 overflow-y-auto custom-scroll hidden">
+                <button class="w-full px-4 py-3 text-left text-sm font-medium category-active">
+                  <i class="fas fa-th-large mr-2 text-primary-500"></i>All Packages
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-crown mr-2 text-yellow-500"></i>Bridal
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-gem mr-2 text-gray-400"></i>Spa Day
+                </button>
+                <button class="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-100">
+                  <i class="fas fa-users mr-2 text-gray-400"></i>Group
+                </button>
+              </div>
+
+              <!-- Staff Section at Bottom -->
+              <div class="border-t border-gray-200 p-3">
+                <button onclick="showStaffGrid()" class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2">
+                  <i class="fas fa-users text-primary-500"></i>
+                  View Staff
+                </button>
+              </div>
+            </div>
+
+            <!-- Items Grid -->
+            <div class="flex-1 overflow-y-auto custom-scroll p-4">
+
+              <!-- Services Grid -->
+              <div id="items-services" class="grid grid-cols-2 gap-3">
+                <!-- Service Cards -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Haircut - Women</h4>
+                    <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                      <i class="fas fa-star text-yellow-500 mr-1"></i>Popular
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">60 min</span>
+                    <span class="text-base font-bold text-gray-900">$65</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Haircut - Men</h4>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">45 min</span>
+                    <span class="text-base font-bold text-gray-900">$45</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Color - Full</h4>
+                    <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                      <i class="fas fa-star text-yellow-500 mr-1"></i>Popular
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">120 min</span>
+                    <span class="text-base font-bold text-gray-900">$120</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Color - Highlights</h4>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">90 min</span>
+                    <span class="text-base font-bold text-gray-900">$95</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Manicure</h4>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">30 min</span>
+                    <span class="text-base font-bold text-gray-900">$35</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Pedicure</h4>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">45 min</span>
+                    <span class="text-base font-bold text-gray-900">$50</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Gel Manicure</h4>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">45 min</span>
+                    <span class="text-base font-bold text-gray-900">$45</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="mb-2">
+                    <h4 class="font-semibold text-gray-900 text-sm">Facial - Classic</h4>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">60 min</span>
+                    <span class="text-base font-bold text-gray-900">$85</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Products Grid (hidden by default) -->
+              <div id="items-products" class="grid grid-cols-2 gap-3 hidden">
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
+                    <i class="fas fa-pump-soap text-gray-400 text-2xl"></i>
+                  </div>
+                  <h4 class="font-semibold text-gray-900 text-sm mb-1">Premium Shampoo</h4>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">8 oz</span>
+                    <span class="text-base font-bold text-gray-900">$28</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
+                    <i class="fas fa-spray-can text-gray-400 text-2xl"></i>
+                  </div>
+                  <h4 class="font-semibold text-gray-900 text-sm mb-1">Hair Spray</h4>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">10 oz</span>
+                    <span class="text-base font-bold text-gray-900">$22</span>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover">
+                  <div class="w-full h-20 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
+                    <i class="fas fa-tint text-gray-400 text-2xl"></i>
+                  </div>
+                  <h4 class="font-semibold text-gray-900 text-sm mb-1">Leave-in Conditioner</h4>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-500">6 oz</span>
+                    <span class="text-base font-bold text-gray-900">$35</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Packages Grid (hidden by default) -->
+              <div id="items-packages" class="grid grid-cols-1 gap-3 hidden">
+                <div class="bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 rounded-xl p-5 cursor-pointer card-hover">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <span class="text-xs bg-primary-500 text-white px-2 py-1 rounded-full mb-2 inline-block">Save 15%</span>
+                      <h4 class="font-bold text-gray-900 text-lg">Bridal Package</h4>
+                      <p class="text-sm text-gray-600 mt-1">Hair, Makeup, Manicure & Pedicure</p>
+                      <div class="flex flex-wrap gap-2 mt-3">
+                        <span class="text-xs bg-white px-2 py-1 rounded">Haircut</span>
+                        <span class="text-xs bg-white px-2 py-1 rounded">Color</span>
+                        <span class="text-xs bg-white px-2 py-1 rounded">Makeup</span>
+                        <span class="text-xs bg-white px-2 py-1 rounded">Mani/Pedi</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-sm text-gray-400 line-through">$350</span>
+                      <span class="text-2xl font-bold text-primary-600 block">$299</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-5 cursor-pointer card-hover">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <span class="text-xs bg-purple-500 text-white px-2 py-1 rounded-full mb-2 inline-block">Save 20%</span>
+                      <h4 class="font-bold text-gray-900 text-lg">Spa Day Package</h4>
+                      <p class="text-sm text-gray-600 mt-1">Full relaxation experience</p>
+                      <div class="flex flex-wrap gap-2 mt-3">
+                        <span class="text-xs bg-white px-2 py-1 rounded">Facial</span>
+                        <span class="text-xs bg-white px-2 py-1 rounded">Massage 90m</span>
+                        <span class="text-xs bg-white px-2 py-1 rounded">Pedicure</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-sm text-gray-400 line-through">$260</span>
+                      <span class="text-2xl font-bold text-purple-600 block">$199</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gift Cards Grid (hidden by default) -->
+              <div id="items-giftcards" class="grid grid-cols-2 gap-3 hidden">
+                <div class="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-5 cursor-pointer card-hover text-white">
+                  <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-xl"></i>
+                    <span class="text-sm font-medium">Gift Card</span>
+                  </div>
+                  <span class="text-3xl font-bold">$25</span>
+                </div>
+
+                <div class="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl p-5 cursor-pointer card-hover text-white">
+                  <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-xl"></i>
+                    <span class="text-sm font-medium">Gift Card</span>
+                  </div>
+                  <span class="text-3xl font-bold">$50</span>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl p-5 cursor-pointer card-hover text-white">
+                  <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-xl"></i>
+                    <span class="text-sm font-medium">Gift Card</span>
+                  </div>
+                  <span class="text-3xl font-bold">$100</span>
+                </div>
+
+                <div class="bg-gradient-to-br from-pink-400 to-pink-600 rounded-xl p-5 cursor-pointer card-hover text-white">
+                  <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-xl"></i>
+                    <span class="text-sm font-medium">Custom Amount</span>
+                  </div>
+                  <span class="text-xl font-bold">Enter Amount</span>
+                </div>
+              </div>
+
+              <!-- Staff Grid Modal/Overlay -->
+              <div id="staff-grid-overlay" class="hidden">
+                <div class="mb-4">
+                  <h3 class="font-semibold text-gray-900 mb-1">Select Staff</h3>
+                  <p class="text-sm text-gray-500">Choose a staff member to add services</p>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="bg-white border-2 border-primary-500 rounded-xl p-4 cursor-pointer text-center staff-active">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center mx-auto mb-2">
+                      <span class="text-xl font-bold text-white">SJ</span>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm">Sarah J.</h4>
+                    <p class="text-xs text-gray-500">2 services</p>
+                  </div>
+
+                  <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover text-center">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center mx-auto mb-2">
+                      <span class="text-xl font-bold text-white">MC</span>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm">Mike C.</h4>
+                    <p class="text-xs text-gray-500">1 service</p>
+                  </div>
+
+                  <div class="bg-white border border-gray-200 rounded-xl p-4 cursor-pointer card-hover text-center">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mx-auto mb-2">
+                      <span class="text-xl font-bold text-white">JL</span>
+                    </div>
+                    <h4 class="font-semibold text-gray-900 text-sm">Jenny L.</h4>
+                    <p class="text-xs text-gray-500">Available</p>
+                  </div>
+                </div>
+                <button onclick="hideStaffGrid()" class="mt-4 w-full py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  Back to Services
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT PANEL: Interactive Summary -->
+        <div class="w-[45%] flex flex-col bg-gray-50/50">
+
+          <!-- Client Section -->
+          <div class="p-5 border-b border-gray-200">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:border-primary-300 transition-colors">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center">
+                    <i class="fas fa-user text-gray-400"></i>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-gray-900">Walk-in Customer</h3>
+                    <p class="text-sm text-gray-500">Tap to select a client</p>
+                  </div>
+                </div>
+                <i class="fas fa-chevron-down text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Services by Staff -->
+          <div id="summary-content" class="flex-1 overflow-y-auto custom-scroll p-5 space-y-4">
+
+            <!-- Staff Group 1 - Active -->
+            <div class="bg-white rounded-xl border border-primary-200 staff-active overflow-hidden">
+              <div class="p-4 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+                      <span class="text-base font-bold text-white">SJ</span>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h4 class="font-semibold text-gray-900">Sarah Johnson</h4>
+                        <span class="w-2 h-2 rounded-full bg-primary-500 pulse-ring"></span>
+                      </div>
+                      <p class="text-sm text-gray-500">2 services · $185.00</p>
+                    </div>
+                  </div>
+                  <button class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="divide-y divide-gray-100">
+                <div class="p-4 service-row flex items-center gap-3">
+                  <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-500">
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                      <h5 class="font-medium text-gray-900 text-sm">Haircut - Women</h5>
+                      <span class="font-semibold text-gray-900">$65.00</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">60 min</p>
+                  </div>
+                  <button class="p-1.5 hover:bg-gray-100 rounded">
+                    <i class="fas fa-ellipsis-h text-gray-400 text-sm"></i>
+                  </button>
+                </div>
+
+                <div class="p-4 service-row flex items-center gap-3">
+                  <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-500">
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                      <h5 class="font-medium text-gray-900 text-sm">Color - Full</h5>
+                      <span class="font-semibold text-gray-900">$120.00</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">120 min</p>
+                  </div>
+                  <button class="p-1.5 hover:bg-gray-100 rounded">
+                    <i class="fas fa-ellipsis-h text-gray-400 text-sm"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="p-3 border-t border-gray-100">
+                <button class="w-full py-2 text-primary-600 hover:bg-primary-50 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                  <i class="fas fa-plus text-xs"></i>Add Service
+                </button>
+              </div>
+            </div>
+
+            <!-- Staff Group 2 -->
+            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div class="p-4 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                      <span class="text-base font-bold text-white">MC</span>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-gray-900">Mike Chen</h4>
+                      <p class="text-sm text-gray-500">1 service · $95.00</p>
+                    </div>
+                  </div>
+                  <button class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-ellipsis-v text-gray-400"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="p-4 service-row flex items-center gap-3">
+                <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-500">
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <h5 class="font-medium text-gray-900 text-sm">Massage - 60min</h5>
+                    <span class="font-semibold text-gray-900">$95.00</span>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-0.5">60 min</p>
+                </div>
+                <button class="p-1.5 hover:bg-gray-100 rounded">
+                  <i class="fas fa-ellipsis-h text-gray-400 text-sm"></i>
+                </button>
+              </div>
+
+              <div class="p-3 border-t border-gray-100">
+                <button class="w-full py-2 text-primary-600 hover:bg-primary-50 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                  <i class="fas fa-plus text-xs"></i>Add Service
+                </button>
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <button class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                <i class="fas fa-plus text-xs"></i>Add Staff
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="empty-state" class="flex-1 overflow-y-auto p-5 hidden">
+            <div class="h-full flex flex-col items-center justify-center text-center">
+              <div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mb-4">
+                <i class="fas fa-shopping-bag text-primary-500 text-2xl"></i>
+              </div>
+              <h3 class="font-semibold text-lg text-gray-900 mb-2">No Services Yet</h3>
+              <p class="text-gray-500 text-sm max-w-xs">
+                Select services from the left panel or choose a staff member to get started
+              </p>
+            </div>
+          </div>
+
+          <!-- Totals -->
+          <div id="totals-section" class="border-t border-gray-200 bg-white p-5">
+            <div class="space-y-2 mb-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Subtotal</span>
+                <span class="text-gray-900">$280.00</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Tax (8.5%)</span>
+                <span class="text-gray-900">$23.80</span>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center py-3 border-t border-gray-200">
+              <span class="font-semibold text-gray-900">Total</span>
+              <span class="text-3xl font-bold text-gray-900">$303.80</span>
+            </div>
+
+            <div class="space-y-3 mt-4">
+              <button class="w-full h-12 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2">
+                Continue to Payment
+                <i class="fas fa-arrow-right"></i>
+              </button>
+
+              <div class="flex gap-2">
+                <button class="flex-1 h-10 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-2">
+                  <i class="fas fa-clock"></i>Check In
+                </button>
+                <button class="flex-1 h-10 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-2">
+                  <i class="fas fa-play"></i>Start
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty Totals -->
+          <div id="empty-totals" class="border-t border-gray-200 bg-white p-5 hidden">
+            <div class="flex justify-between items-center py-3">
+              <span class="font-semibold text-gray-900">Total</span>
+              <span class="text-3xl font-bold text-gray-300">$0.00</span>
+            </div>
+            <button disabled class="w-full h-12 bg-gray-200 text-gray-400 rounded-xl font-semibold cursor-not-allowed">
+              Continue to Payment
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Design Notes -->
+    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm">
+      <h2 class="font-bold text-gray-900 mb-3">Navigation Structure</h2>
+      <div class="grid grid-cols-4 gap-4 text-sm">
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-2">Item Type Tabs</h3>
+          <ul class="space-y-1 text-gray-600">
+            <li>- Services</li>
+            <li>- Products</li>
+            <li>- Packages</li>
+            <li>- Gift Cards</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-2">Category Sidebar</h3>
+          <ul class="space-y-1 text-gray-600">
+            <li>- Vertical list</li>
+            <li>- Expandable subs</li>
+            <li>- Active indicator</li>
+            <li>- Search at top</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-2">Sub-categories</h3>
+          <ul class="space-y-1 text-gray-600">
+            <li>- Hair → Haircut, Color...</li>
+            <li>- Nails → Mani, Pedi...</li>
+            <li>- Indented under parent</li>
+            <li>- Collapsible</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-900 mb-2">Staff Access</h3>
+          <ul class="space-y-1 text-gray-600">
+            <li>- Button in sidebar</li>
+            <li>- Opens grid overlay</li>
+            <li>- Quick selection</li>
+            <li>- Shows service count</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentItemType = 'services';
+    let showingEmpty = false;
+
+    function switchItemType(type) {
+      currentItemType = type;
+
+      // Update top header buttons
+      document.querySelectorAll('#type-services, #type-products, #type-packages, #type-giftcards').forEach(btn => {
+        btn.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300';
+      });
+      document.getElementById('type-' + type).className = 'px-4 py-1.5 rounded-full text-sm font-medium type-tab-active';
+
+      // Update tab buttons
+      document.querySelectorAll('.item-type-tab').forEach(btn => {
+        if (btn.dataset.type === type) {
+          btn.className = 'item-type-tab px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white border border-b-0 border-gray-200 text-gray-900';
+        } else {
+          btn.className = 'item-type-tab px-4 py-2.5 rounded-t-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200';
+        }
+      });
+
+      // Show/hide item grids
+      document.getElementById('items-services').classList.toggle('hidden', type !== 'services');
+      document.getElementById('items-products').classList.toggle('hidden', type !== 'products');
+      document.getElementById('items-packages').classList.toggle('hidden', type !== 'packages');
+      document.getElementById('items-giftcards').classList.toggle('hidden', type !== 'giftcards');
+
+      // Show/hide category sidebars
+      document.getElementById('categories-services').classList.toggle('hidden', type !== 'services');
+      document.getElementById('categories-products').classList.toggle('hidden', type !== 'products');
+      document.getElementById('categories-packages').classList.toggle('hidden', type !== 'packages');
+
+      // Hide staff grid if showing
+      document.getElementById('staff-grid-overlay').classList.add('hidden');
+    }
+
+    function toggleCategory(cat) {
+      const subcats = document.getElementById(cat + '-subcats');
+      const chevron = document.getElementById(cat + '-chevron');
+
+      if (subcats.classList.contains('hidden')) {
+        subcats.classList.remove('hidden');
+        chevron.classList.remove('fa-chevron-right');
+        chevron.classList.add('fa-chevron-down');
+      } else {
+        subcats.classList.add('hidden');
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-right');
+      }
+    }
+
+    function showStaffGrid() {
+      document.getElementById('items-services').classList.add('hidden');
+      document.getElementById('items-products').classList.add('hidden');
+      document.getElementById('items-packages').classList.add('hidden');
+      document.getElementById('items-giftcards').classList.add('hidden');
+      document.getElementById('staff-grid-overlay').classList.remove('hidden');
+    }
+
+    function hideStaffGrid() {
+      document.getElementById('staff-grid-overlay').classList.add('hidden');
+      document.getElementById('items-' + currentItemType).classList.remove('hidden');
+    }
+
+    function toggleEmptyState() {
+      showingEmpty = !showingEmpty;
+      const summaryContent = document.getElementById('summary-content');
+      const emptyState = document.getElementById('empty-state');
+      const totalsSection = document.getElementById('totals-section');
+      const emptyTotals = document.getElementById('empty-totals');
+      const btn = document.getElementById('empty-btn');
+
+      if (showingEmpty) {
+        summaryContent.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        totalsSection.classList.add('hidden');
+        emptyTotals.classList.remove('hidden');
+        btn.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-orange-500 text-white';
+      } else {
+        summaryContent.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        totalsSection.classList.remove('hidden');
+        emptyTotals.classList.add('hidden');
+        btn.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300';
+      }
+    }
+  </script>
+
+</body>
+</html>

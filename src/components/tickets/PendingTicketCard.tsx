@@ -134,58 +134,66 @@ export function PendingTicketCard({
         </div>
 
         {/* Compact ticket number badge */}
-        <div className="absolute left-0 top-[6px] w-6 h-5 text-[#1a1614] flex items-center justify-center font-black text-2xs z-20"
-             style={{
-               background: 'rgba(184, 134, 11, 0.12)',
-               borderTopRightRadius: '6px',
-               borderBottomRightRadius: '6px',
-               borderTop: '2px solid #B8860B',
-               borderRight: '2px solid #B8860B',
-               borderBottom: '2px solid #B8860B',
-               boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-               letterSpacing: '-0.02em',
-               transform: 'translateX(-2px)'
-             }}>
+        <div className="absolute left-0 top-1.5 w-7 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
+          style={{
+            height: '24px',
+            background: 'rgba(184, 134, 11, 0.12)',
+            borderTopRightRadius: '6px',
+            borderBottomRightRadius: '6px',
+            borderTop: '2px solid #B8860B',
+            borderRight: '2px solid #B8860B',
+            borderBottom: '2px solid #B8860B',
+            boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+            letterSpacing: '-0.02em',
+            transform: 'translateX(-2px)'
+          }}>
           {ticket.number}
         </div>
 
         {/* Compact content area */}
-        <div className="py-0.5 pr-12 pl-7 relative">
-          {/* Single compact row */}
-          <div className="flex items-center justify-between gap-1">
-            {/* Left: Client + Service */}
+        <div className="py-1.5 pr-2 pl-9 relative">
+          {/* Row 1: Client Name + Total */}
+          <div className="flex items-center justify-between gap-2 mb-0.5">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="font-semibold text-xs text-[#1a1614] truncate leading-tight">{ticket.clientName}</span>
-                {hasStar && <span className="text-2xs">⭐</span>}
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-[#1a1614] truncate leading-tight" style={{ fontSize: 'clamp(13px, 1.7vw, 15px)' }}>{ticket.clientName}</span>
+                {hasStar && <span className="text-[10px]">⭐</span>}
               </div>
-              <div className="text-2xs text-[#6b5d52] truncate leading-tight">{ticket.service}</div>
             </div>
 
-            {/* Right: Staff + Total */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Staff badges (max 1 in compact) */}
-              {staffList.length > 0 && (
-                <div className="text-white text-2xs font-semibold px-1 py-0.5 rounded"
-                     style={{ background: getStaffColor(staffList[0]), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}>
-                  {getFirstName(staffList[0].name)}
-                </div>
-              )}
-              <span className="text-xs font-bold whitespace-nowrap text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono }}>${total.toFixed(2)}</span>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="font-bold whitespace-nowrap text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono, fontSize: 'clamp(11px, 1.5vw, 13px)' }}>${total.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Compact Pay button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(234, 179, 8, 0.25)'}
-            onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
-            title="Pay"
-          >
-            <DollarSign size={12} strokeWidth={2.5} />
-          </button>
+          {/* Row 2: Service + Staff + Pay button */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[#6b5d52] truncate flex-1 leading-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }}>{ticket.service}</div>
+
+            <div className="flex-shrink-0 flex items-center gap-1">
+              {/* Staff badges */}
+              {staffList.length > 0 && (
+                <div className="flex items-center gap-0.5">
+                  {staffList.slice(0, 1).map((staff, i) => (
+                    <div key={i} className="text-white font-semibold px-1.5 py-0.5 rounded border border-white/30"
+                      style={{ background: getStaffColor(staff), fontSize: '10px', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)' }}>
+                      {getFirstName(staff.name)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pay button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
+                className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                style={{ width: '24px', height: '24px' }}
+                title="Pay"
+              >
+                <DollarSign size={12} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Paper texture overlay */}
@@ -218,7 +226,7 @@ export function PendingTicketCard({
         <UnpaidWatermark />
 
         {/* Dog-ear corner */}
-        <div className="absolute top-0 right-0 w-[6px] h-[6px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
+        <div className="absolute top-0 right-0 w-[7px] h-[7px] z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
 
         {/* Perforation dots - barely visible */}
         <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
@@ -226,63 +234,61 @@ export function PendingTicketCard({
         </div>
 
         {/* Wrap-around ticket number badge at Row 1 height */}
-        <div className="absolute left-0 top-[2px] w-9 h-8 text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
-             style={{
-               background: 'rgba(184, 134, 11, 0.12)',
-               borderTopRightRadius: '8px',
-               borderBottomRightRadius: '8px',
-               borderTop: '2px solid #B8860B',
-               borderRight: '2px solid #B8860B',
-               borderBottom: '2px solid #B8860B',
-               boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-               letterSpacing: '-0.02em',
-               transform: 'translateX(-3px)'
-             }}>
+        <div className="absolute left-0 top-2 w-9 min-h-[30px] text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
+          style={{
+            background: 'rgba(184, 134, 11, 0.12)',
+            borderTopRightRadius: '8px',
+            borderBottomRightRadius: '8px',
+            borderTop: '2px solid #B8860B',
+            borderRight: '2px solid #B8860B',
+            borderBottom: '2px solid #B8860B',
+            boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+            letterSpacing: '-0.02em',
+            transform: 'translateX(-3px)'
+          }}>
           {ticket.number}
         </div>
 
         {/* Content area */}
-        <div className="py-0.5 pr-2.5 pl-11">
+        <div className="py-2.5 pr-3 pl-11">
           {/* Row 1: Client name + Total */}
-          <div className="flex items-start justify-between gap-1.5 mb-0.5">
+          <div className="flex items-start justify-between gap-3 mb-1">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-[#1a1614] truncate text-base leading-tight">{ticket.clientName}</span>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="font-bold text-[#1a1614] truncate leading-tight" style={{ fontSize: 'clamp(16px, 2vw, 18px)' }}>{ticket.clientName}</span>
                 {hasStar && <span className="text-sm flex-shrink-0">⭐</span>}
               </div>
-              <div className="text-2xs text-[#8b7968] font-medium tracking-wide leading-tight">{getLastVisitText()}</div>
+              <div className="text-[#8b7968] font-medium tracking-wide leading-tight text-xs">{getLastVisitText()}</div>
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-base font-bold whitespace-nowrap text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono }}>${total.toFixed(2)}</span>
+            <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+              <span className="font-bold whitespace-nowrap text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono, fontSize: 'clamp(14px, 1.75vw, 16px)' }}>${total.toFixed(2)}</span>
             </div>
           </div>
 
           {/* Divider - spans full content width */}
-          <div className="border-t border-[#e8dcc8]/50" />
+          <div className="border-t border-[#e8dcc8]/50 mb-1.5" />
 
           {/* Row 2: Service + Staff badges + Pay button */}
-          <div className="flex items-center justify-between gap-1.5 mt-0.5">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate text-sm">{ticket.service}</div>
 
             {/* Staff badges + Pay button */}
             <div className="flex-shrink-0 flex items-center gap-2">
               <div className="flex items-center gap-1">
                 {staffList.map((staff, i) => (
-                  <div key={i} className="text-white text-xs font-semibold px-2 py-0.5 rounded-md border border-white/30 tracking-wide"
-                       style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                  <div key={i} className="text-white font-semibold px-2 py-0.5 rounded border border-white/30 tracking-wide"
+                    style={{ background: getStaffColor(staff), fontSize: '11px', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)', textShadow: '0 1px 1px rgba(0, 0, 0, 0.25)' }}>
                     {getFirstName(staff.name)}
                   </div>
                 ))}
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
-                className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
-                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 8px rgba(234, 179, 8, 0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                style={{ width: '30px', height: '30px' }}
                 title="Pay"
               >
-                <DollarSign size={20} strokeWidth={2.5} />
+                <DollarSign size={16} strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -327,18 +333,18 @@ export function PendingTicketCard({
 
         {/* Ticket number tab - smaller */}
         <div className="absolute left-0 top-1.5 w-7 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
-             style={{
-               height: isFirstVisit ? 'clamp(1.4rem, 3vw, 1.6rem)' : 'clamp(1.3rem, 2.8vw, 1.5rem)',
-               background: 'rgba(184, 134, 11, 0.12)',
-               borderTopRightRadius: '6px',
-               borderBottomRightRadius: '6px',
-               borderTop: '2px solid #B8860B',
-               borderRight: '2px solid #B8860B',
-               borderBottom: '2px solid #B8860B',
-               boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
-               letterSpacing: '-0.02em',
-               transform: 'translateX(-2.5px)'
-             }}>
+          style={{
+            height: isFirstVisit ? 'clamp(1.4rem, 3vw, 1.6rem)' : 'clamp(1.3rem, 2.8vw, 1.5rem)',
+            background: 'rgba(184, 134, 11, 0.12)',
+            borderTopRightRadius: '6px',
+            borderBottomRightRadius: '6px',
+            borderTop: '2px solid #B8860B',
+            borderRight: '2px solid #B8860B',
+            borderBottom: '2px solid #B8860B',
+            boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+            letterSpacing: '-0.02em',
+            transform: 'translateX(-2.5px)'
+          }}>
           {ticket.number}
         </div>
 
@@ -371,7 +377,7 @@ export function PendingTicketCard({
           <div className="px-2 pb-1 flex items-center gap-0.5 flex-wrap">
             {staffList.slice(0, 2).map((staff, index) => (
               <div key={index} className="text-white text-2xs font-semibold px-1.5 py-0.5 rounded border border-white/30 tracking-wide"
-                   style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
                 {getFirstName(staff.name)}
               </div>
             ))}
@@ -381,12 +387,12 @@ export function PendingTicketCard({
 
         {/* Footer - compact with Pay button inside */}
         <div className="mt-auto mx-1 px-1 py-1 rounded-md flex items-center justify-center gap-1"
-             style={{
-               marginBottom: '4px',
-               background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-               boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
-               border: '1px solid rgba(212, 184, 150, 0.15)'
-             }}>
+          style={{
+            marginBottom: '4px',
+            background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+            boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)',
+            border: '1px solid rgba(212, 184, 150, 0.15)'
+          }}>
           <button
             onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
             className="w-full flex items-center justify-center bg-white border border-gray-400 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full"
@@ -508,7 +514,7 @@ export function PendingTicketCard({
         <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 flex items-center gap-1.5 flex-wrap">
           {staffList.map((staff, index) => (
             <div key={index} className="text-white text-xs sm:text-sm font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide"
-                 style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+              style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
               {getFirstName(staff.name)}
             </div>
           ))}
@@ -517,11 +523,11 @@ export function PendingTicketCard({
 
       {/* Footer with Mark Paid button inside */}
       <div className="mt-auto mx-2 sm:mx-3 md:mx-4 mb-2 px-2 py-1.5 rounded-md flex items-center justify-center gap-1.5"
-           style={{
-             background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
-             boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`,
-             border: '1px solid rgba(212, 184, 150, 0.15)'
-           }}>
+        style={{
+          background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)',
+          boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`,
+          border: '1px solid rgba(212, 184, 150, 0.15)'
+        }}>
         <button
           onClick={(e) => { e.stopPropagation(); onMarkPaid(ticket.id); }}
           className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-400 text-gray-600 hover:border-yellow-600 hover:text-white hover:bg-yellow-600 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full"

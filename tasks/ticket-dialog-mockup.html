@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreateEditTicketDialog - Design Mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .dialog-backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .step-connector {
+      height: 2px;
+      width: 80px;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-selected {
+      border-color: #00BCD4 !important;
+      background: rgba(0, 188, 212, 0.05);
+    }
+
+    .summary-panel {
+      background: linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%);
+    }
+
+    .step-transition {
+      transition: all 0.3s ease-out;
+    }
+
+    .price-highlight {
+      animation: priceUpdate 0.3s ease-out;
+    }
+
+    @keyframes priceUpdate {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); color: #00BCD4; }
+      100% { transform: scale(1); }
+    }
+
+    .tab-active {
+      color: #111827;
+      border-bottom: 2px solid #00BCD4;
+    }
+
+    .tab-inactive {
+      color: #6B7280;
+    }
+
+    /* Custom scrollbar */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- Step Navigation -->
+  <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white rounded-full shadow-lg px-6 py-3 flex items-center gap-4">
+    <span class="text-sm font-medium text-gray-500">View Step:</span>
+    <button onclick="showStep(1)" id="nav-1" class="px-4 py-1.5 rounded-full text-sm font-medium bg-teal-500 text-white">1. Client</button>
+    <button onclick="showStep(2)" id="nav-2" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">2. Services</button>
+    <button onclick="showStep(3)" id="nav-3" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">3. Review</button>
+    <span class="text-gray-300">|</span>
+    <button onclick="toggleEditMode()" id="mode-toggle" class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Show Edit Mode</button>
+  </div>
+
+  <!-- Dialog Backdrop -->
+  <div class="dialog-backdrop fixed inset-0 flex items-center justify-center p-8 pt-20">
+
+    <!-- Dialog Container -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+        <div>
+          <h1 id="dialog-title" class="text-2xl font-bold text-gray-900">Create New Ticket</h1>
+          <p id="dialog-subtitle" class="text-sm text-gray-500 mt-0.5 hidden">Editing ticket details</p>
+        </div>
+        <button class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+          <i class="fas fa-times text-gray-400"></i>
+        </button>
+      </div>
+
+      <!-- Step Indicator -->
+      <div class="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+        <div class="flex items-center justify-center">
+          <!-- Step 1 -->
+          <div class="flex flex-col items-center">
+            <div id="step-circle-1" class="w-10 h-10 rounded-full bg-teal-500 text-white flex items-center justify-center font-semibold ring-4 ring-teal-500/20">
+              1
+            </div>
+            <span id="step-label-1" class="text-sm font-medium text-gray-900 mt-2">Client</span>
+            <span class="text-xs text-gray-500">Select client</span>
+          </div>
+
+          <!-- Connector 1-2 -->
+          <div id="connector-1" class="step-connector bg-gray-200 mx-4 mt-[-24px]"></div>
+
+          <!-- Step 2 -->
+          <div class="flex flex-col items-center">
+            <div id="step-circle-2" class="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-semibold">
+              2
+            </div>
+            <span id="step-label-2" class="text-sm font-medium text-gray-500 mt-2">Services</span>
+            <span class="text-xs text-gray-400">Add services</span>
+          </div>
+
+          <!-- Connector 2-3 -->
+          <div id="connector-2" class="step-connector bg-gray-200 mx-4 mt-[-24px]"></div>
+
+          <!-- Step 3 -->
+          <div class="flex flex-col items-center">
+            <div id="step-circle-3" class="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-semibold">
+              3
+            </div>
+            <span id="step-label-3" class="text-sm font-medium text-gray-500 mt-2">Review</span>
+            <span class="text-xs text-gray-400">Confirm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="flex-1 flex overflow-hidden">
+
+        <!-- Left Panel - Main Content -->
+        <div class="flex-1 overflow-y-auto custom-scroll p-6" style="width: 60%;">
+
+          <!-- STEP 1: Client Selection -->
+          <div id="step-1-content" class="step-transition">
+
+            <!-- Walk-in Button -->
+            <button class="w-full h-14 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-semibold flex items-center justify-center gap-3 transition-colors mb-6">
+              <i class="fas fa-user text-lg"></i>
+              Continue as Walk-in
+            </button>
+
+            <!-- Divider -->
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex-1 h-px bg-gray-200"></div>
+              <span class="text-sm text-gray-400 font-medium">OR SELECT CLIENT</span>
+              <div class="flex-1 h-px bg-gray-200"></div>
+            </div>
+
+            <!-- Search -->
+            <div class="relative mb-6">
+              <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input
+                type="text"
+                placeholder="Search clients by name or phone..."
+                class="w-full h-12 pl-12 pr-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+              >
+            </div>
+
+            <!-- Recent Clients -->
+            <div class="mb-6">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Recent Clients</h3>
+
+              <!-- Client Card 1 - Selected -->
+              <div class="border-2 rounded-xl p-4 mb-3 cursor-pointer card-hover transition-all card-selected">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-teal-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="text-teal-600 font-semibold">JD</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <h4 class="font-semibold text-gray-900">John Doe</h4>
+                      <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">VIP</span>
+                    </div>
+                    <p class="text-sm text-gray-500">(555) 123-4567</p>
+                    <p class="text-sm text-gray-400">john@email.com</p>
+                  </div>
+                  <div class="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center">
+                    <i class="fas fa-check text-white text-xs"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Client Card 2 -->
+              <div class="border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="text-purple-600 font-semibold">SM</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-gray-900">Sarah Miller</h4>
+                    <p class="text-sm text-gray-500">(555) 987-6543</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Client Card 3 -->
+              <div class="border border-gray-200 rounded-xl p-4 mb-3 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="text-orange-600 font-semibold">MC</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-gray-900">Mike Chen</h4>
+                    <p class="text-sm text-gray-500">(555) 456-7890</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add New Client -->
+            <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-teal-500 hover:bg-teal-500/5 transition-all">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-teal-500/10 flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-plus text-teal-500"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-gray-900">Add New Client</h4>
+                  <p class="text-sm text-gray-500">Create a new client profile</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- STEP 2: Service Selection -->
+          <div id="step-2-content" class="step-transition hidden">
+
+            <!-- Search -->
+            <div class="relative mb-4">
+              <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input
+                type="text"
+                placeholder="Search services..."
+                class="w-full h-11 pl-12 pr-4 bg-gray-100 border-0 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all"
+              >
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="flex gap-1 mb-5 border-b border-gray-200">
+              <button class="px-4 py-2 text-sm font-medium tab-active">All</button>
+              <button class="px-4 py-2 text-sm font-medium tab-inactive hover:text-gray-700">Popular</button>
+              <button class="px-4 py-2 text-sm font-medium tab-inactive hover:text-gray-700">Hair</button>
+              <button class="px-4 py-2 text-sm font-medium tab-inactive hover:text-gray-700">Nails</button>
+              <button class="px-4 py-2 text-sm font-medium tab-inactive hover:text-gray-700">Spa</button>
+            </div>
+
+            <!-- Added Services -->
+            <div class="mb-5">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Added Services (2)</h3>
+
+              <!-- Added Service 1 -->
+              <div class="bg-teal-500/5 border border-teal-500/20 rounded-xl p-4 mb-2">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900">Haircut - Women</h4>
+                    <div class="flex items-center gap-2 mt-2">
+                      <select class="text-sm bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option>Sarah Johnson</option>
+                        <option>Mike Chen</option>
+                        <option>Any Available</option>
+                      </select>
+                      <span class="text-sm text-gray-500">60 min</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="font-bold text-gray-900">$65</span>
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-200 flex items-center justify-center transition-colors">
+                      <i class="fas fa-times text-gray-400"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Added Service 2 -->
+              <div class="bg-teal-500/5 border border-teal-500/20 rounded-xl p-4 mb-2">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900">Color - Full</h4>
+                    <div class="flex items-center gap-2 mt-2">
+                      <select class="text-sm bg-white border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option>Sarah Johnson</option>
+                        <option>Mike Chen</option>
+                        <option>Any Available</option>
+                      </select>
+                      <span class="text-sm text-gray-500">120 min</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="font-bold text-gray-900">$120</span>
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-200 flex items-center justify-center transition-colors">
+                      <i class="fas fa-times text-gray-400"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="flex items-center gap-4 mb-5">
+              <div class="flex-1 h-px bg-gray-200"></div>
+              <span class="text-sm text-gray-400 font-medium">ADD MORE SERVICES</span>
+              <div class="flex-1 h-px bg-gray-200"></div>
+            </div>
+
+            <!-- Service Grid -->
+            <div class="grid grid-cols-2 gap-3">
+
+              <!-- Service Card -->
+              <div class="border border-gray-200 rounded-xl p-4 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <h4 class="font-medium text-gray-900 mb-3">Manicure</h4>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">30 min</span>
+                  <span class="font-bold text-gray-900">$35</span>
+                </div>
+              </div>
+
+              <div class="border border-gray-200 rounded-xl p-4 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <h4 class="font-medium text-gray-900 mb-3">Pedicure</h4>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">45 min</span>
+                  <span class="font-bold text-gray-900">$50</span>
+                </div>
+              </div>
+
+              <div class="border border-gray-200 rounded-xl p-4 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <h4 class="font-medium text-gray-900 mb-3">Gel Manicure</h4>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">45 min</span>
+                  <span class="font-bold text-gray-900">$45</span>
+                </div>
+              </div>
+
+              <div class="border border-gray-200 rounded-xl p-4 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <h4 class="font-medium text-gray-900 mb-3">Facial - Classic</h4>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">60 min</span>
+                  <span class="font-bold text-gray-900">$85</span>
+                </div>
+              </div>
+
+              <div class="border border-gray-200 rounded-xl p-4 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <h4 class="font-medium text-gray-900 mb-3">Massage - 60min</h4>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">60 min</span>
+                  <span class="font-bold text-gray-900">$95</span>
+                </div>
+              </div>
+
+              <div class="border border-gray-200 rounded-xl p-4 cursor-pointer card-hover transition-all hover:border-gray-300">
+                <h4 class="font-medium text-gray-900 mb-3">Massage - 90min</h4>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-500">90 min</span>
+                  <span class="font-bold text-gray-900">$130</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- STEP 3: Review -->
+          <div id="step-3-content" class="step-transition hidden">
+
+            <!-- Client Section -->
+            <div class="mb-6">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Client</h3>
+              <div class="bg-gray-50 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-full bg-teal-500/10 flex items-center justify-center">
+                      <span class="text-teal-600 font-semibold text-lg">JD</span>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h4 class="font-semibold text-gray-900 text-lg">John Doe</h4>
+                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">VIP</span>
+                      </div>
+                      <p class="text-sm text-gray-500">(555) 123-4567</p>
+                      <p class="text-sm text-gray-400">john@email.com</p>
+                    </div>
+                  </div>
+                  <button class="text-teal-500 hover:text-teal-600 text-sm font-medium">Edit</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Services Section -->
+            <div class="mb-6">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Services</h3>
+              <div class="bg-gray-50 rounded-xl divide-y divide-gray-200">
+                <div class="p-4 flex items-center justify-between">
+                  <div>
+                    <h4 class="font-medium text-gray-900">Haircut - Women</h4>
+                    <p class="text-sm text-gray-500">with Sarah Johnson &bull; 60 min</p>
+                  </div>
+                  <span class="font-semibold text-gray-900">$65.00</span>
+                </div>
+                <div class="p-4 flex items-center justify-between">
+                  <div>
+                    <h4 class="font-medium text-gray-900">Color - Full</h4>
+                    <p class="text-sm text-gray-500">with Sarah Johnson &bull; 120 min</p>
+                  </div>
+                  <span class="font-semibold text-gray-900">$120.00</span>
+                </div>
+              </div>
+              <button class="text-teal-500 hover:text-teal-600 text-sm font-medium mt-2">Edit Services</button>
+            </div>
+
+            <!-- Totals Section -->
+            <div class="mb-6">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Totals</h3>
+              <div class="bg-gray-50 rounded-xl p-4">
+                <div class="flex justify-between text-sm mb-2">
+                  <span class="text-gray-600">Subtotal</span>
+                  <span class="text-gray-900">$185.00</span>
+                </div>
+                <div class="flex justify-between text-sm mb-3">
+                  <span class="text-gray-600">Tax (8.5%)</span>
+                  <span class="text-gray-900">$15.73</span>
+                </div>
+                <div class="border-t border-gray-200 pt-3">
+                  <div class="flex justify-between">
+                    <span class="font-semibold text-gray-900">Total</span>
+                    <span class="font-bold text-xl text-gray-900">$200.73</span>
+                  </div>
+                </div>
+                <button class="text-teal-500 hover:text-teal-600 text-sm font-medium mt-3 flex items-center gap-1">
+                  <i class="fas fa-plus text-xs"></i>
+                  Add Discount
+                </button>
+              </div>
+            </div>
+
+            <!-- Notes Section -->
+            <div>
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Notes (Optional)</h3>
+              <textarea
+                placeholder="Add any special instructions or notes..."
+                class="w-full h-24 p-4 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+              ></textarea>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Right Panel - Summary -->
+        <div class="w-[320px] flex-shrink-0 summary-panel border-l border-gray-200 p-6 flex flex-col">
+
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Ticket Summary</h3>
+
+          <!-- Client Info -->
+          <div class="mb-5">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">Client</h4>
+            <div id="summary-client" class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-teal-500/10 flex items-center justify-center">
+                <span class="text-teal-600 font-medium text-sm">JD</span>
+              </div>
+              <div>
+                <p class="font-medium text-gray-900">John Doe</p>
+                <p class="text-xs text-gray-500">VIP Client</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-200 my-4"></div>
+
+          <!-- Services -->
+          <div class="flex-1">
+            <h4 class="text-sm font-medium text-gray-700 mb-3">Services (2)</h4>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-check text-teal-500 text-xs"></i>
+                  <span class="text-sm text-gray-700">Haircut</span>
+                </div>
+                <span class="text-sm font-medium text-gray-900">$65</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-check text-teal-500 text-xs"></i>
+                  <span class="text-sm text-gray-700">Color</span>
+                </div>
+                <span class="text-sm font-medium text-gray-900">$120</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Totals -->
+          <div class="mt-auto pt-4 border-t border-gray-200">
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-gray-600">Subtotal</span>
+              <span class="text-gray-900">$185.00</span>
+            </div>
+            <div class="flex justify-between text-sm mb-3">
+              <span class="text-gray-600">Tax (8.5%)</span>
+              <span class="text-gray-900">$15.73</span>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t border-gray-300">
+              <span class="font-semibold text-gray-900">Total</span>
+              <span class="font-bold text-2xl text-gray-900">$200.73</span>
+            </div>
+          </div>
+
+          <!-- Ready indicator (Step 3 only) -->
+          <div id="ready-indicator" class="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 text-center hidden">
+            <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-2">
+              <i class="fas fa-check text-white text-xl"></i>
+            </div>
+            <p class="font-medium text-green-700">Ready to Create</p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <button id="back-btn" class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors invisible">
+          <i class="fas fa-arrow-left"></i>
+          Back
+        </button>
+
+        <button id="continue-btn" class="flex items-center gap-2 px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-semibold transition-colors">
+          Continue
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    let currentStep = 1;
+    let isEditMode = false;
+
+    function showStep(step) {
+      currentStep = step;
+
+      // Hide all content
+      document.getElementById('step-1-content').classList.add('hidden');
+      document.getElementById('step-2-content').classList.add('hidden');
+      document.getElementById('step-3-content').classList.add('hidden');
+
+      // Show current step content
+      document.getElementById(`step-${step}-content`).classList.remove('hidden');
+
+      // Update step indicators
+      for (let i = 1; i <= 3; i++) {
+        const circle = document.getElementById(`step-circle-${i}`);
+        const label = document.getElementById(`step-label-${i}`);
+
+        if (i < step) {
+          // Completed
+          circle.className = 'w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold';
+          circle.innerHTML = '<i class="fas fa-check"></i>';
+          label.className = 'text-sm font-medium text-gray-900 mt-2';
+        } else if (i === step) {
+          // Current
+          circle.className = 'w-10 h-10 rounded-full bg-teal-500 text-white flex items-center justify-center font-semibold ring-4 ring-teal-500/20';
+          circle.innerHTML = i;
+          label.className = 'text-sm font-medium text-gray-900 mt-2';
+        } else {
+          // Upcoming
+          circle.className = 'w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-semibold';
+          circle.innerHTML = i;
+          label.className = 'text-sm font-medium text-gray-500 mt-2';
+        }
+      }
+
+      // Update connectors
+      document.getElementById('connector-1').className = step > 1
+        ? 'step-connector bg-green-500 mx-4 mt-[-24px]'
+        : 'step-connector bg-gray-200 mx-4 mt-[-24px]';
+      document.getElementById('connector-2').className = step > 2
+        ? 'step-connector bg-green-500 mx-4 mt-[-24px]'
+        : 'step-connector bg-gray-200 mx-4 mt-[-24px]';
+
+      // Update back button
+      document.getElementById('back-btn').style.visibility = step > 1 ? 'visible' : 'hidden';
+
+      // Update continue button
+      const continueBtn = document.getElementById('continue-btn');
+      if (step === 3) {
+        continueBtn.innerHTML = isEditMode
+          ? '<i class="fas fa-save mr-2"></i> Save Changes'
+          : '<i class="fas fa-check mr-2"></i> Create Ticket';
+      } else {
+        continueBtn.innerHTML = 'Continue <i class="fas fa-arrow-right ml-2"></i>';
+      }
+
+      // Update ready indicator
+      document.getElementById('ready-indicator').classList.toggle('hidden', step !== 3);
+
+      // Update nav buttons
+      for (let i = 1; i <= 3; i++) {
+        const nav = document.getElementById(`nav-${i}`);
+        if (i === step) {
+          nav.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-teal-500 text-white';
+        } else {
+          nav.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300';
+        }
+      }
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const title = document.getElementById('dialog-title');
+      const subtitle = document.getElementById('dialog-subtitle');
+      const toggleBtn = document.getElementById('mode-toggle');
+
+      if (isEditMode) {
+        title.textContent = 'Edit Ticket #142';
+        subtitle.textContent = 'Created: Jan 15, 2025 at 2:30 PM';
+        subtitle.classList.remove('hidden');
+        toggleBtn.textContent = 'Show Create Mode';
+        toggleBtn.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-orange-500 text-white';
+      } else {
+        title.textContent = 'Create New Ticket';
+        subtitle.classList.add('hidden');
+        toggleBtn.textContent = 'Show Edit Mode';
+        toggleBtn.className = 'px-4 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300';
+      }
+
+      // Update button text if on step 3
+      if (currentStep === 3) {
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn.innerHTML = isEditMode
+          ? '<i class="fas fa-save mr-2"></i> Save Changes'
+          : '<i class="fas fa-check mr-2"></i> Create Ticket';
+      }
+    }
+
+    // Button click handlers
+    document.getElementById('continue-btn').addEventListener('click', function() {
+      if (currentStep < 3) {
+        showStep(currentStep + 1);
+      }
+    });
+
+    document.getElementById('back-btn').addEventListener('click', function() {
+      if (currentStep > 1) {
+        showStep(currentStep - 1);
+      }
+    });
+  </script>
+
+</body>
+</html>

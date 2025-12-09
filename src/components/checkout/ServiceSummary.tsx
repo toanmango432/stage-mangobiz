@@ -1,5 +1,5 @@
 import { Ticket } from '../../types/Ticket';
-import { TAX_RATE } from '../../constants/checkoutConfig';
+import { getTaxRateFromConfig } from '../../constants/checkoutConfig';
 
 interface ServiceSummaryProps {
   ticket: Ticket;
@@ -22,12 +22,15 @@ export function ServiceSummary({
   discountAmount = 0,
   showTip = true
 }: ServiceSummaryProps) {
+  // Get dynamic tax rate from system config
+  const taxRate = getTaxRateFromConfig();
+
   // Calculate totals
   const servicesTotal = ticket.services.reduce((sum, s) => sum + s.price, 0);
   const productsTotal = ticket.products.reduce((sum, p) => sum + p.total, 0);
   const subtotal = servicesTotal + productsTotal;
   const afterDiscount = subtotal - discountAmount;
-  const taxAmount = afterDiscount * TAX_RATE;
+  const taxAmount = afterDiscount * taxRate;
   const grandTotal = afterDiscount + taxAmount + (showTip ? tipAmount : 0);
 
   // Group services by staff
@@ -95,7 +98,7 @@ export function ServiceSummary({
         )}
 
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
+          <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(1)}%)</span>
           <span className="font-medium">${taxAmount.toFixed(2)}</span>
         </div>
 

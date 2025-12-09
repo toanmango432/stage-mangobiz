@@ -16,7 +16,7 @@ import {
   Save
 } from 'lucide-react';
 import { AdminUser, AdminRole, ADMIN_ROLE_PERMISSIONS } from '../types';
-import { adminUsersDB } from '../db/database';
+import { adminUsersDB } from '../db/supabaseDatabase';
 
 interface AdminUserFormData {
   email: string;

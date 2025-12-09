@@ -2,9 +2,13 @@
  * Checkout Configuration Constants
  * Centralized configuration for checkout-related settings
  * Per PRD Section 9: Configuration & Settings
+ *
+ * NOTE: Tax and tip settings can be overridden by Control Center via system_configs.
+ * Use useSystemConfig() hook or systemConfigService for dynamic values.
  */
 
 import type { ServiceStatus } from '../types/common';
+import { getDefaultTaxRateSync, getSystemConfigSync } from '../services/systemConfigService';
 
 // ===================
 // TAX CONFIGURATION
@@ -12,13 +16,36 @@ import type { ServiceStatus } from '../types/common';
 
 /**
  * Default tax rate applied to checkout transactions
- * Value: 0.08 represents 8% tax
+ * NOTE: This is the fallback. Use getDefaultTaxRate() or useTaxRate() hook
+ * to get the configured rate from Control Center.
+ * Value: 0.08 represents 8% tax (fallback if Control Center config unavailable)
  */
 export const TAX_RATE = 0.08;
+
+/**
+ * Get the current tax rate from system config (sync)
+ * Returns rate as decimal (e.g., 0.085 for 8.5%)
+ */
+export function getTaxRateFromConfig(): number {
+  const ratePercent = getDefaultTaxRateSync();
+  return ratePercent / 100; // Convert percentage to decimal
+}
 
 // ===================
 // TIP CONFIGURATION
 // ===================
+
+/**
+ * Get tip config from system config (sync)
+ */
+function getTipConfigFromSystemConfig() {
+  const config = getSystemConfigSync();
+  return {
+    defaultPercentages: config.tipSettings.presetPercentages,
+    allowCustomAmount: config.tipSettings.allowCustom,
+    enabled: config.tipSettings.enabled,
+  };
+}
 
 export const TIP_CONFIG = {
   /** Default tip percentage suggestions shown to customer */
@@ -38,6 +65,23 @@ export const TIP_CONFIG = {
   /** Time window for post-checkout tip edits (months) */
   postCheckoutEditWindowMonths: 6,
 } as const;
+
+/**
+ * Get dynamic tip config from Control Center
+ * Use this instead of TIP_CONFIG when you need the latest settings
+ */
+export function getDynamicTipConfig() {
+  const systemTip = getTipConfigFromSystemConfig();
+  return {
+    ...TIP_CONFIG,
+    defaultPercentages: systemTip.defaultPercentages.length > 0
+      ? systemTip.defaultPercentages
+      : TIP_CONFIG.defaultPercentages,
+    allowCustomAmount: systemTip.allowCustomAmount,
+    showOnPOS: systemTip.enabled,
+    showOnTerminal: systemTip.enabled,
+  };
+}
 
 // ===================
 // DISCOUNT CONFIGURATION

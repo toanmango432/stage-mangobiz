@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/Badge";
+// Avatar/Badge not currently used - using custom div for StaffCard alignment
+// import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+// import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/Input";
 import {
@@ -28,7 +29,7 @@ import {
   ArrowLeft,
   Copy,
   Clock,
-  Plus,
+  // Plus removed - Add Service button no longer used
 } from "lucide-react";
 import { TicketService, ServiceStatus } from "./ServiceList";
 import { Reorder, motion, PanInfo } from "framer-motion";
@@ -54,24 +55,13 @@ interface StaffGroupProps {
   totalStaffCount?: number;
 }
 
-const STATUS_CONFIG = {
-  not_started: {
-    label: "Not Started",
-    icon: Circle,
-  },
-  in_progress: {
-    label: "In Progress",
-    icon: Play,
-  },
-  paused: {
-    label: "Paused",
-    icon: Pause,
-  },
-  completed: {
-    label: "Completed",
-    icon: CheckCircle2,
-  },
-};
+// STATUS_CONFIG - kept for future use if status badges are re-added
+// const STATUS_CONFIG = {
+//   not_started: { label: "Not Started", icon: Circle },
+//   in_progress: { label: "In Progress", icon: Play },
+//   paused: { label: "Paused", icon: Pause },
+//   completed: { label: "Completed", icon: CheckCircle2 },
+// };
 
 function formatElapsedTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -354,7 +344,7 @@ export default function StaffGroup({
   onRemoveService,
   onRemoveStaff,
   onReassignStaff,
-  onAddServiceToStaff,
+  onAddServiceToStaff: _onAddServiceToStaff, // Kept for interface, button removed
   onDuplicateServices,
   selectedServices = new Set(),
   onToggleServiceSelection,
@@ -410,7 +400,8 @@ export default function StaffGroup({
   };
 
   const totalAmount = services.reduce((sum, s) => sum + s.price, 0);
-  const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
+  // totalDuration not currently displayed in simplified header
+  // const totalDuration = services.reduce((sum, s) => sum + s.duration, 0);
 
   // Determine staff-level status
   const allCompleted = services.length > 0 && services.every((s) => s.status === "completed");
@@ -418,19 +409,18 @@ export default function StaffGroup({
   const canStart = services.some((s) => s.status === "not_started" || s.status === "paused");
   const canComplete = services.some((s) => s.status !== "completed");
 
-  // Get overall status for display
-  const getOverallStatus = () => {
-    if (services.length === 0) return "not_started";
-    if (allCompleted) return "completed";
-    if (anyInProgress) return "in_progress";
-    const anyPaused = services.some((s) => s.status === "paused");
-    if (anyPaused) return "paused";
-    return "not_started";
-  };
-
-  const overallStatus = getOverallStatus();
-  const statusConfig = STATUS_CONFIG[overallStatus];
-  const StatusIcon = statusConfig.icon;
+  // Get overall status for display - kept for future use
+  // const getOverallStatus = () => {
+  //   if (services.length === 0) return "not_started";
+  //   if (allCompleted) return "completed";
+  //   if (anyInProgress) return "in_progress";
+  //   const anyPaused = services.some((s) => s.status === "paused");
+  //   if (anyPaused) return "paused";
+  //   return "not_started";
+  // };
+  // const overallStatus = getOverallStatus();
+  // const statusConfig = STATUS_CONFIG[overallStatus];
+  // const StatusIcon = statusConfig.icon;
 
   const handleStaffStatusAction = () => {
     if (anyInProgress) {
@@ -514,13 +504,13 @@ export default function StaffGroup({
         {statusAnnouncement}
       </div>
 
-      <Card className={`overflow-hidden transition-all ${
+      <Card className={`overflow-hidden transition-all duration-200 rounded-xl ${
         isActive && staffId
-          ? 'border-l-4 border-l-primary shadow-lg shadow-primary/10 ring-2 ring-primary/20' 
-          : staffId 
-            ? 'border-l-4 border-l-border' 
-            : 'border-l-4 border-l-destructive'
-      } ${isInactive ? 'opacity-50 saturate-50 cursor-pointer hover:opacity-60' : ''}`}
+          ? 'border-2 border-primary/30 shadow-lg shadow-primary/10 ring-2 ring-primary/20 bg-primary/5'
+          : staffId
+            ? 'border border-border'
+            : 'border-2 border-destructive/50'
+      } ${isInactive ? 'opacity-60 saturate-75 cursor-pointer hover:opacity-80 hover:shadow-md' : ''}`}
       onClick={(e) => {
         // Make inactive staff clickable to activate (only if multiple staff exist)
         if (isInactive && onActivate) {
@@ -555,29 +545,49 @@ export default function StaffGroup({
         </div>
       )}
       
-      {/* Staff Header */}
-      <div className={`px-3 py-2 sm:px-4 sm:py-2.5 border-b flex items-center justify-between ${
-        isActive && staffId ? 'bg-primary/5' : 'bg-muted/30'
+      {/* Staff Header - Aligned with StaffCard design from FrontDesk */}
+      <div className={`p-4 border-b border-border/50 flex items-center justify-between ${
+        isActive && staffId
+          ? 'bg-gradient-to-r from-slate-50 to-slate-100/50'
+          : ''
       }`}>
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           {staffName ? (
             <>
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs">
+              {/* Avatar - Matching StaffCard circular style with gradient */}
+              <div
+                className="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-md"
+                style={{
+                  background: 'linear-gradient(to bottom right, #FFFFFF, #F8FAFC)',
+                  border: '2px solid #E5E5E5',
+                }}
+              >
+                <span
+                  className="font-black text-sm tracking-widest uppercase"
+                  style={{
+                    color: '#525252',
+                    textShadow: '0 1px 2px rgba(255,255,255,0.5)',
+                  }}
+                >
                   {getStaffInitials(staffName)}
-                </AvatarFallback>
-              </Avatar>
+                </span>
+              </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm truncate">{staffName}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Badge variant="outline" className="text-xs h-5 px-1.5">
-                    <StatusIcon className="h-3 w-3 mr-1" />
-                    {statusConfig.label}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {services.length} {services.length === 1 ? "service" : "services"} • {totalDuration}m • ${totalAmount.toFixed(2)}
-                  </span>
+                <div className="flex items-center gap-2">
+                  {/* Name - Matching StaffCard uppercase bold style */}
+                  <h3
+                    className="font-black text-sm tracking-wide uppercase truncate"
+                    style={{ color: '#525252' }}
+                  >
+                    {staffName}
+                  </h3>
+                  {isActive && (
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  )}
                 </div>
+                <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                  {services.length} {services.length === 1 ? "service" : "services"} · ${totalAmount.toFixed(2)}
+                </p>
               </div>
             </>
           ) : (
@@ -764,21 +774,10 @@ export default function StaffGroup({
           </Reorder.Group>
         )}
 
-        {/* Add Service to this Staff - Hidden on desktop, disabled when inactive */}
-        {!isInactive && (
-          <div className="px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-center"
-              onClick={onAddServiceToStaff}
-              data-testid={`button-add-service-${staffId || "unassigned"}`}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              <span className="text-xs">Add Service</span>
-            </Button>
-          </div>
-        )}
+        {/* Add Service button removed - redundant since:
+            1. "ADDING SERVICES HERE" banner clearly shows active staff
+            2. Left panel services automatically add to active staff
+            3. Pulsing dot indicator reinforces which staff is active */}
       </div>
       </Card>
     </>

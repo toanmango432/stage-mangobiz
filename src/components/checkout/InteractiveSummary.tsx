@@ -1,7 +1,8 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Separator } from "@/components/ui/separator";
+// Separator not currently used - kept for future use
+// import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import {
@@ -488,72 +489,95 @@ export default function InteractiveSummary({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Client Section */}
-      <div className="mb-4 flex-shrink-0">
-        {!selectedClient && !showClientSelector ? (
-          <Card
-            className="p-4 hover-elevate active-elevate-2 cursor-pointer"
-            onClick={() => setShowClientSelector(true)}
-            data-testid="card-add-client"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-base">Add client</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Leave empty for walk-ins
-                </p>
+      {/* Client Section - Clean design with slide animation */}
+      <div className="border-b border-border flex-shrink-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {!selectedClient && !showClientSelector ? (
+            /* Add Client Prompt - Clean design with icon on right */
+            <motion.div
+              key="add-client-prompt"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -50, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="p-3"
+            >
+              <div
+                className="bg-muted/30 rounded-xl p-3 border border-dashed border-border cursor-pointer hover:bg-muted/50 hover:border-primary/50 transition-all"
+                onClick={() => setShowClientSelector(true)}
+                data-testid="card-add-client"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-sm text-foreground">Add client</p>
+                  <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
+                    <UserPlus className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
               </div>
-              <UserPlus className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </Card>
-        ) : (
-          <ClientSelector
-            selectedClient={selectedClient}
-            onSelectClient={(client) => {
-              onSelectClient(client);
-              setShowClientSelector(false);
-            }}
-            onCreateClient={(newClient) => {
-              onCreateClient(newClient);
-              setShowClientSelector(false);
-            }}
-            inDialog={true}
-          />
-        )}
-
-        {/* Client Quick Stats */}
-        {selectedClient && (selectedClient.totalVisits || selectedClient.lifetimeSpend || selectedClient.lastVisitDate) && (
-          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-            {selectedClient.totalVisits !== undefined && (
-              <span>{selectedClient.totalVisits} visits</span>
-            )}
-            {selectedClient.lifetimeSpend !== undefined && (
-              <span>${selectedClient.lifetimeSpend.toFixed(0)} spent</span>
-            )}
-            {selectedClient.lastVisitDate && (
-              <span>Last: {new Date(selectedClient.lastVisitDate).toLocaleDateString()}</span>
-            )}
-          </div>
-        )}
+            </motion.div>
+          ) : showClientSelector ? (
+            /* Client Selector - Slides in from right (for searching/adding) */
+            <motion.div
+              key="client-selector"
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 50, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="p-3"
+            >
+              <ClientSelector
+                selectedClient={selectedClient}
+                onSelectClient={(client) => {
+                  onSelectClient(client);
+                  setShowClientSelector(false);
+                }}
+                onCreateClient={(newClient) => {
+                  onCreateClient(newClient);
+                  setShowClientSelector(false);
+                }}
+                inDialog={true}
+              />
+            </motion.div>
+          ) : (
+            /* Selected Client Display - Uses ClientSelector with all functionality */
+            <motion.div
+              key="client-display"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -50, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="p-3"
+            >
+              <ClientSelector
+                selectedClient={selectedClient}
+                onSelectClient={onSelectClient}
+                onCreateClient={onCreateClient}
+                inDialog={true}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Client Alerts - Shows allergy, notes, balance warnings */}
-        {selectedClient && (
-          <ClientAlerts
-            client={selectedClient as ClientAlertData}
-            onBlockedOverride={() => {
-              toast({
-                title: "Proceeding with blocked client",
-                description: "Manager override recorded.",
-              });
-            }}
-          />
+        {selectedClient && !showClientSelector && (
+          <div className="px-3 pb-3">
+            <ClientAlerts
+              client={selectedClient as ClientAlertData}
+              onBlockedOverride={() => {
+                toast({
+                  title: "Proceeding with blocked client",
+                  description: "Manager override recorded.",
+                });
+              }}
+            />
+          </div>
         )}
       </div>
 
-      {/* Services Section - Grouped by Staff - scrollable */}
-      <div 
+      {/* Services Section - Grouped by Staff - scrollable with improved spacing */}
+      <div
         ref={servicesContainerRef}
-        className="flex-1 overflow-y-auto space-y-3 min-h-0"
+        className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0"
       >
         {services.length === 0 && assignedStaffIds.size === 0 ? (
           <Card className="p-12 text-center">
@@ -668,19 +692,19 @@ export default function InteractiveSummary({
         )}
       </div>
 
-      {/* Totals Section - Redesigned - Sticky at bottom - Compact - Collapsible on Mobile */}
-      <div className="flex-shrink-0 border-t pt-3 pb-3 space-y-2 bg-background">
+      {/* Totals Section - Redesigned with cleaner layout and better spacing */}
+      <div className="flex-shrink-0 border-t border-border bg-background p-5">
         {/* Mobile Collapse Toggle - Only visible on mobile */}
         <button
-          className="md:hidden flex items-center justify-between w-full px-1 py-2 touch-feedback focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+          className="md:hidden flex items-center justify-between w-full py-2 touch-feedback focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
           onClick={() => setIsTotalsCollapsed(!isTotalsCollapsed)}
           data-testid="button-toggle-totals"
           aria-label={isTotalsCollapsed ? "Expand totals breakdown" : "Collapse totals breakdown"}
           aria-expanded={!isTotalsCollapsed}
         >
-          <span className="font-semibold text-sm">Total</span>
+          <span className="font-semibold text-foreground">Total</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-2xl" data-testid="text-to-pay-mobile">
+            <span className="font-bold text-3xl text-foreground" data-testid="text-to-pay-mobile">
               ${total.toFixed(2)}
             </span>
             {isTotalsCollapsed ? (
@@ -691,22 +715,22 @@ export default function InteractiveSummary({
           </div>
         </button>
 
-        {/* Breakdown - Compact - Collapsible on mobile */}
-        <div className={`space-y-1.5 px-1 ${
+        {/* Breakdown - Improved spacing - Collapsible on mobile */}
+        <div className={`space-y-2 mb-3 ${
           isTotalsCollapsed ? 'hidden md:block' : 'block'
         }`}>
-          <div className="flex justify-between text-xs">
+          <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
-            <span className="text-muted-foreground" data-testid="text-subtotal">
+            <span className="text-foreground" data-testid="text-subtotal">
               ${subtotal.toFixed(2)}
             </span>
           </div>
 
-          {/* Discount Section */}
-          {discount > 0 ? (
-            <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-1">
-                <Tag className="h-3 w-3 text-green-600" />
+          {/* Discount Section - Only show when discount is applied */}
+          {discount > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-green-600" />
                 <span className="text-green-600 font-medium">Discount</span>
                 {onRemoveDiscount && (
                   <button
@@ -715,7 +739,7 @@ export default function InteractiveSummary({
                     data-testid="button-remove-discount"
                     aria-label="Remove discount"
                   >
-                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                    <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                   </button>
                 )}
               </div>
@@ -723,56 +747,78 @@ export default function InteractiveSummary({
                 -${discount.toFixed(2)}
               </span>
             </div>
-          ) : (
-            <div className="flex justify-between items-center text-xs">
-              <button
-                onClick={handleOpenTicketDiscount}
-                className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
-                data-testid="button-add-ticket-discount"
-              >
-                <Plus className="h-3 w-3" />
-                <span>Add Discount</span>
-              </button>
-              <span className="text-muted-foreground">$0.00</span>
-            </div>
           )}
 
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Tax</span>
-            <span className="text-muted-foreground" data-testid="text-tax">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Tax (8.5%)</span>
+            <span className="text-foreground" data-testid="text-tax">
               ${tax.toFixed(2)}
             </span>
           </div>
         </div>
 
-        <Separator className={isTotalsCollapsed ? 'hidden md:block' : 'block'} />
+        {/* Total Row - Prominent styling */}
+        <div className={`flex justify-between items-center py-3 border-t border-border ${isTotalsCollapsed ? 'hidden md:flex' : 'flex'}`}>
+          <span className="font-semibold text-foreground">Total</span>
+          <span className="font-bold text-3xl text-foreground" data-testid="text-to-pay">
+            ${total.toFixed(2)}
+          </span>
+        </div>
 
-        {/* To Pay Section - Compact - Always visible on desktop */}
-        <div className={`space-y-2 ${isTotalsCollapsed ? 'hidden md:block' : 'block'}`}>
-          <div className="hidden md:flex justify-between items-center px-1">
-            <span className="font-semibold text-sm">Total</span>
-            <span className="font-bold text-2xl" data-testid="text-to-pay">
-              ${total.toFixed(2)}
-            </span>
-          </div>
+        {/* Action Buttons - Clean layout */}
+        <div className={`space-y-3 mt-4 ${isTotalsCollapsed ? 'hidden md:block' : 'block'}`}>
+          {/* Primary CTA */}
+          <Button
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+            onClick={handleCheckoutClick}
+            disabled={services.length === 0 || total <= 0}
+            data-testid="button-checkout"
+          >
+            Continue to Payment
+          </Button>
 
-          {/* Payment Action */}
+          {/* Secondary Actions Row */}
           <div className="flex gap-2">
+            {onCheckIn && (
+              <Button
+                variant="outline"
+                className="flex-1 h-10 gap-2 rounded-lg border-border text-foreground hover:bg-muted transition-colors"
+                onClick={onCheckIn}
+                disabled={services.length === 0}
+                data-testid="button-checkin"
+              >
+                <Clock className="h-4 w-4" />
+                <span className="text-sm font-medium">Check In</span>
+              </Button>
+            )}
+            {onStartService && (
+              <Button
+                variant="outline"
+                className="flex-1 h-10 gap-2 rounded-lg border-border text-foreground hover:bg-muted transition-colors"
+                onClick={onStartService}
+                disabled={services.length === 0}
+                data-testid="button-start-service"
+              >
+                <Play className="h-4 w-4" />
+                <span className="text-sm font-medium">Start</span>
+              </Button>
+            )}
+            {/* More Options - Contains discount and tip */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-12 w-12 rounded-xl flex-shrink-0"
+                  className="h-10 w-10 rounded-lg border-border flex-shrink-0"
                   data-testid="button-payment-options"
                 >
-                  <MoreVertical className="h-5 w-5" />
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem data-testid="option-add-discount">
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleOpenTicketDiscount} data-testid="option-add-discount">
                   <Percent className="mr-2 h-4 w-4" />
-                  Add Discount
+                  {discount > 0 ? 'Change Discount' : 'Add Discount'}
                 </DropdownMenuItem>
                 <DropdownMenuItem data-testid="option-add-tip">
                   <DollarSign className="mr-2 h-4 w-4" />
@@ -780,48 +826,10 @@ export default function InteractiveSummary({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button
-              className="flex-1 h-12 text-base font-semibold rounded-xl"
-              onClick={handleCheckoutClick}
-              disabled={services.length === 0 || total <= 0}
-              data-testid="button-checkout"
-            >
-              Continue to Payment
-            </Button>
           </div>
-
-          {/* Check-in Action Buttons - visible when handlers are provided */}
-          {(onCheckIn || onStartService) && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-              {onCheckIn && (
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 gap-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
-                  onClick={onCheckIn}
-                  disabled={services.length === 0}
-                  data-testid="button-checkin"
-                >
-                  <Clock className="h-4 w-4" />
-                  <span>Check In</span>
-                </Button>
-              )}
-              {onStartService && (
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 gap-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700 transition-colors"
-                  onClick={onStartService}
-                  disabled={services.length === 0}
-                  data-testid="button-start-service"
-                >
-                  <Play className="h-4 w-4" />
-                  <span>Start Service</span>
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </div>
+
 
       {/* Bulk Delete Confirmation */}
       <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>

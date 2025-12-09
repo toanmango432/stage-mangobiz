@@ -18,7 +18,7 @@ import {
   Globe,
   Monitor
 } from 'lucide-react';
-import { auditLogsDB } from '../db/database';
+import { auditLogsDB } from '../db/supabaseDatabase';
 import type { AuditLog } from '../types';
 
 // Action category colors and icons

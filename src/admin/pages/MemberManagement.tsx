@@ -16,7 +16,7 @@ import {
   Shield,
   Store
 } from 'lucide-react';
-import { membersDB, tenantsDB, storesDB } from '../db/database';
+import { membersDB, tenantsDB, storesDB } from '../db/supabaseDatabase';
 import type { Member, CreateMemberInput, Tenant, Store as StoreType, MemberRole } from '../types';
 
 export function MemberManagement() {

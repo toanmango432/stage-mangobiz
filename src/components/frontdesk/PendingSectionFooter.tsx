@@ -19,11 +19,12 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   // Get staff from Redux for TicketPanel
   const staffFromRedux = useAppSelector(selectAllStaff);
 
-  // Convert Redux staff to StaffMember format
+  // Convert Redux staff to StaffMember format (including specialty for color matching)
   const staffMembers: StaffMember[] = staffFromRedux.map(s => ({
     id: s.id,
     name: s.name,
     available: s.status === 'ready',
+    specialty: s.specialty,
   }));
 
   // Checkout panel state (replaces payment modal)

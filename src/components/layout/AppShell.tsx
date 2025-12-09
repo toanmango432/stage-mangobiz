@@ -40,6 +40,7 @@ import { teamDB } from '../../db/teamOperations';
 import { mockTeamMembers } from '../team-settings/constants';
 import { NetworkStatus } from '../NetworkStatus';
 import { LicenseBanner } from '../licensing/LicenseBanner';
+import { AnnouncementBanner } from '../AnnouncementBanner';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 
@@ -339,6 +340,9 @@ export function AppShell() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* License Status Banner */}
       <LicenseBanner />
+
+      {/* System Announcements Banner */}
+      <AnnouncementBanner />
 
       {/* Network Status Indicator */}
       <NetworkStatus />

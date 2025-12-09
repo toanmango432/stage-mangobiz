@@ -8,6 +8,7 @@ import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSett
 import { TurnTracker } from './TurnTracker/TurnTracker';
 import { useTickets } from '../hooks/useTicketsCompat';
 import { FrontDeskSettingsData } from './frontdesk-settings/types';
+import { useFeatureFlag } from '../hooks/useFeatureFlag';
 
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;
@@ -38,6 +39,9 @@ export const determineStaffStatus = (staff: any, inServiceTickets: any[]) => {
 export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undefined }) {
   // ⚙️ FEATURE FLAG - Set to false to revert to original styling
   const USE_NEW_TEAM_STYLING = true;
+
+  // Check if Turn Tracker feature is enabled for this license tier
+  const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker');
 
   // Get context data including resetStaffStatus function
   const {
@@ -766,7 +770,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
           const modifiedStaffMember = {
             ...staffMember,
             id: staffIdNumber,
-            image: getStaffImage(staffMember), // Use real staff image or generate avatar
+            image: staffMember.name === 'Jane' ? '' : getStaffImage(staffMember), // Force empty image for Jane to test Add Photo UI
             time: (typeof staffMember.clockInTime === 'string' ? staffMember.clockInTime : staffMember.clockInTime instanceof Date ? staffMember.clockInTime.toLocaleTimeString() : '10:30a'), // Add time field for metrics display
             revenue: staffMember.revenue ?? null, // Ensure revenue is explicitly set
             count: staffMember.turnCount ?? 0, // Add count property for StaffCard
@@ -881,7 +885,9 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
         </div>
       </div>
     </div>}
-    {/* Turn Tracker Modal */}
-    <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
+    {/* Turn Tracker Modal - Only show if feature is enabled for license tier */}
+    {isTurnTrackerEnabled && (
+      <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
+    )}
   </div>;
 }

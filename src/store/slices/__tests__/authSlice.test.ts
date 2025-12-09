@@ -128,6 +128,7 @@ describe('authSlice', () => {
             status: 'not_logged_in' as const,
             store: null,
             member: null,
+            availableStores: [],
             // Legacy fields
             isAuthenticated: false,
             user: null,

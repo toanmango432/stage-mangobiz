@@ -51,7 +51,16 @@ const POPULAR_SERVICES = [
   { id: "11", name: "Massage - 60min", category: "Spa", price: 95, duration: 60 },
 ];
 
-export const CATEGORIES = [
+// Category color mapping for visual identification
+export const CATEGORY_COLORS: Record<string, { border: string; bg: string; text: string }> = {
+  Hair: { border: "border-l-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
+  Nails: { border: "border-l-pink-400", bg: "bg-pink-50", text: "text-pink-700" },
+  Spa: { border: "border-l-teal-400", bg: "bg-teal-50", text: "text-teal-700" },
+  default: { border: "border-l-gray-300", bg: "bg-gray-50", text: "text-gray-600" },
+};
+
+// Service categories (default)
+export const SERVICE_CATEGORIES = [
   { id: "all", name: "ALL", icon: Sparkles },
   { id: "popular", name: "POPULAR", icon: Star },
   { id: "Hair", name: "HAIR", icon: Scissors },
@@ -59,53 +68,78 @@ export const CATEGORIES = [
   { id: "Spa", name: "SPA", icon: UsersIcon },
 ];
 
-// Color palette for services
-const getServiceColor = (index: number) => {
-  const colors = [
-    "bg-cyan-100 border-cyan-200 text-cyan-900 dark:bg-cyan-900/20 dark:border-cyan-800 dark:text-cyan-100",
-    "bg-lime-100 border-lime-200 text-lime-900 dark:bg-lime-900/20 dark:border-lime-800 dark:text-lime-100",
-    "bg-orange-200 border-orange-300 text-orange-900 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-100",
-  ];
-  return colors[index % colors.length];
-};
+// Keep CATEGORIES as alias for backward compatibility
+export const CATEGORIES = SERVICE_CATEGORIES;
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
 interface CategoryListProps {
   selectedCategory: string;
   onSelectCategory: (categoryId: string) => void;
+  onViewStaff?: () => void;
+  showViewStaffButton?: boolean;
+  categories?: CategoryItem[];
 }
 
-export function CategoryList({ selectedCategory, onSelectCategory }: CategoryListProps) {
+export function CategoryList({
+  selectedCategory,
+  onSelectCategory,
+  onViewStaff,
+  showViewStaffButton = true,
+  categories = SERVICE_CATEGORIES
+}: CategoryListProps) {
   return (
-    <div className="flex flex-col gap-3 h-full overflow-y-auto">
-      {CATEGORIES.map((category) => {
-        const Icon = category.icon;
-        const isActive = selectedCategory === category.id;
-        return (
-          <Card
-            key={category.id}
-            className={`p-4 cursor-pointer transition-all ${
-              isActive
-                ? "ring-2 ring-primary bg-primary/5"
-                : "hover-elevate active-elevate-2"
-            }`}
-            onClick={() => onSelectCategory(category.id)}
-            data-testid={`button-category-${category.id}`}
-          >
-            <div className="flex flex-col items-center justify-center gap-2 min-h-[80px]">
-              <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                isActive ? "bg-primary text-primary-foreground" : "bg-muted"
-              }`}>
-                <Icon className="h-6 w-6" />
+    <div className="flex flex-col h-full">
+      {/* Categories - scrollable area */}
+      <div className="flex-1 flex flex-col gap-2 overflow-y-auto pb-3">
+        {categories.map((category) => {
+          const Icon = category.icon;
+          const isActive = selectedCategory === category.id;
+          return (
+            <button
+              key={category.id}
+              className={`w-full p-3 rounded-xl transition-all text-left ${
+                isActive
+                  ? "bg-gray-900 text-white shadow-sm"
+                  : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-100"
+              }`}
+              onClick={() => onSelectCategory(category.id)}
+              data-testid={`button-category-${category.id}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                  isActive ? "bg-white/20" : "bg-gray-100"
+                }`}>
+                  <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-600"}`} />
+                </div>
+                <span className={`text-sm font-medium ${
+                  isActive ? "text-white" : "text-gray-700"
+                }`}>
+                  {category.name}
+                </span>
               </div>
-              <span className={`text-xs font-bold text-center leading-tight ${
-                isActive ? "text-foreground" : "text-muted-foreground"
-              }`}>
-                {category.name}
-              </span>
-            </div>
-          </Card>
-        );
-      })}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* View Staff Button - fixed at bottom */}
+      {showViewStaffButton && onViewStaff && (
+        <div className="flex-shrink-0 pt-3 border-t border-gray-100">
+          <button
+            onClick={onViewStaff}
+            className="w-full p-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center gap-2"
+            data-testid="button-view-staff"
+          >
+            <UsersIcon className="h-4 w-4" />
+            <span className="text-sm font-medium">View Staff</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -195,14 +229,16 @@ export default function FullPageServiceSelector({
       )}
       
       {/* Search Bar */}
-      <div className="mb-3">
+      <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
+            <Search className="h-4 w-4 text-gray-500" />
+          </div>
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search services..."
-            className="pl-8 h-11 text-sm border-[0.5px]"
+            className="pl-14 h-12 text-sm bg-gray-50 border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
             data-testid="input-search-service-full"
           />
         </div>
@@ -215,27 +251,32 @@ export default function FullPageServiceSelector({
             <p className="text-sm text-muted-foreground">No services found</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 pb-4">
-            {filteredServices.map((service, index) => {
-              const colorClass = getServiceColor(index);
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-4">
+            {filteredServices.map((service) => {
+              const categoryColor = CATEGORY_COLORS[service.category] || CATEGORY_COLORS.default;
               return (
-                <Card
+                <button
                   key={service.id}
-                  className={`p-3 cursor-pointer transition-all border ${colorClass} hover-elevate active-elevate-2`}
+                  className={`bg-white rounded-xl p-4 border border-gray-200 border-l-4 ${categoryColor.border} hover:shadow-lg hover:border-gray-300 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 text-left group`}
                   onClick={() => handleServiceClick(service)}
                   data-testid={`card-service-full-${service.id}`}
                 >
-                  <div className="flex flex-col items-center justify-between min-h-[80px]">
-                    <h4 className="font-semibold text-xs text-center leading-tight mb-2">
+                  <div className="flex flex-col min-h-[90px]">
+                    {/* Service Name */}
+                    <h4 className="font-semibold text-gray-900 text-base leading-tight mb-2 group-hover:text-primary transition-colors">
                       {service.name}
                     </h4>
-                    <div className="mt-auto pt-2 border-t border-current/20 w-full">
-                      <p className="font-bold text-base text-center">
-                        ${service.price.toFixed(2)}
-                      </p>
+                    {/* Bottom row: Duration + Price */}
+                    <div className="mt-auto flex items-end justify-between">
+                      <span className="text-sm text-gray-500">
+                        {service.duration} min
+                      </span>
+                      <span className="font-bold text-gray-900 text-lg">
+                        ${service.price}
+                      </span>
                     </div>
                   </div>
-                </Card>
+                </button>
               );
             })}
           </div>

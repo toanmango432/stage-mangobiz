@@ -42,10 +42,13 @@ export interface TicketService {
   notes?: string;
 }
 
+export type Specialty = 'neutral' | 'nails' | 'hair' | 'massage' | 'skincare' | 'waxing' | 'combo' | 'support';
+
 export interface StaffMember {
   id: string;
   name: string;
   available: boolean;
+  specialty?: Specialty;
 }
 
 interface ServiceListProps {

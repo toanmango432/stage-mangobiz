@@ -166,6 +166,70 @@ CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 
+-- ==================== SYSTEM CONFIGS ====================
+-- Default settings for stores (tax, payments, etc.)
+CREATE TABLE IF NOT EXISTS system_configs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+
+  -- Business defaults
+  business_type TEXT NOT NULL DEFAULT 'salon' CHECK (business_type IN ('salon', 'spa', 'barbershop', 'other')),
+  default_currency TEXT NOT NULL DEFAULT 'USD',
+  default_timezone TEXT NOT NULL DEFAULT 'America/Los_Angeles',
+
+  -- Tax settings (JSONB array)
+  tax_settings JSONB NOT NULL DEFAULT '[{"id": "tax_1", "name": "Sales Tax", "rate": 8.5, "isDefault": true}]'::jsonb,
+
+  -- Payment methods (JSONB array)
+  payment_methods JSONB NOT NULL DEFAULT '[
+    {"id": "pay_1", "name": "Cash", "type": "cash", "isActive": true, "sortOrder": 1},
+    {"id": "pay_2", "name": "Credit Card", "type": "card", "isActive": true, "sortOrder": 2},
+    {"id": "pay_3", "name": "Debit Card", "type": "card", "isActive": true, "sortOrder": 3},
+    {"id": "pay_4", "name": "Gift Card", "type": "gift_card", "isActive": true, "sortOrder": 4}
+  ]'::jsonb,
+
+  -- Tip settings (JSONB)
+  tip_settings JSONB NOT NULL DEFAULT '{"enabled": true, "presetPercentages": [15, 18, 20, 25], "allowCustom": true}'::jsonb,
+
+  -- Checkout settings
+  require_client_for_checkout BOOLEAN NOT NULL DEFAULT false,
+  auto_print_receipt BOOLEAN NOT NULL DEFAULT false,
+
+  -- Metadata
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Only one config per tenant (or global if tenant_id is null)
+CREATE UNIQUE INDEX idx_system_configs_tenant ON system_configs(tenant_id) WHERE tenant_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_system_configs_global ON system_configs((tenant_id IS NULL)) WHERE tenant_id IS NULL;
+
+-- ==================== FEATURE FLAGS ====================
+-- Control feature availability across license tiers
+CREATE TABLE IF NOT EXISTS feature_flags (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  key TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL DEFAULT 'Infrastructure' CHECK (category IN (
+    'Infrastructure', 'Operations', 'Analytics', 'Marketing',
+    'Communication', 'Integration', 'Security', 'Payment', 'Customer Experience'
+  )),
+  globally_enabled BOOLEAN NOT NULL DEFAULT true,
+  enabled_for_free BOOLEAN NOT NULL DEFAULT false,
+  enabled_for_basic BOOLEAN NOT NULL DEFAULT false,
+  enabled_for_professional BOOLEAN NOT NULL DEFAULT true,
+  enabled_for_enterprise BOOLEAN NOT NULL DEFAULT true,
+  rollout_percentage INTEGER NOT NULL DEFAULT 100 CHECK (rollout_percentage >= 0 AND rollout_percentage <= 100),
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_feature_flags_key ON feature_flags(key);
+CREATE INDEX idx_feature_flags_category ON feature_flags(category);
+CREATE INDEX idx_feature_flags_globally_enabled ON feature_flags(globally_enabled);
+
 -- ==================== ROW LEVEL SECURITY ====================
 -- Enable RLS on all tables (optional, can be configured later)
 -- ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
@@ -253,6 +317,27 @@ VALUES (
   'staff',
   'active'
 ) ON CONFLICT DO NOTHING;
+
+-- ==================== SEED FEATURE FLAGS ====================
+-- Insert default feature flags
+INSERT INTO feature_flags (key, name, description, category, globally_enabled, enabled_for_free, enabled_for_basic, enabled_for_professional, enabled_for_enterprise, rollout_percentage)
+VALUES
+  ('multi-device-sync', 'Multi-Device Sync', 'Real-time synchronization across multiple devices', 'Infrastructure', true, false, false, true, true, 100),
+  ('inventory-management', 'Inventory Management', 'Track products, low stock alerts, reordering', 'Operations', true, false, true, true, true, 100),
+  ('advanced-reporting', 'Advanced Reporting', 'Custom reports and data analytics', 'Analytics', true, false, false, true, true, 100),
+  ('customer-loyalty', 'Customer Loyalty', 'Points-based rewards program', 'Marketing', true, false, false, true, true, 100),
+  ('online-booking', 'Online Booking', 'Web-based appointment scheduling', 'Customer Experience', true, false, true, true, true, 100),
+  ('sms-notifications', 'SMS Notifications', 'Automated SMS reminders and confirmations', 'Communication', false, false, false, false, true, 0),
+  ('multi-location', 'Multi-Location Management', 'Manage multiple store locations', 'Infrastructure', true, false, false, false, true, 100),
+  ('api-access', 'API Access', 'RESTful API for third-party integrations', 'Integration', true, false, false, false, true, 100),
+  ('advanced-permissions', 'Advanced Permissions', 'Granular role-based access control', 'Security', true, false, false, true, true, 100),
+  ('payment-gateway', 'Payment Gateway Integration', 'Direct payment processor integration', 'Payment', false, false, false, true, true, 0),
+  ('turn-tracker', 'Turn Tracker', 'Track staff turns and rotation for fair distribution', 'Operations', true, false, true, true, true, 100),
+  ('offline-mode', 'Offline Mode', 'Enable offline functionality for designated devices', 'Infrastructure', true, false, false, true, true, 100)
+ON CONFLICT (key) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  updated_at = NOW();
 
 -- Done!
 SELECT 'Schema created successfully!' as message;

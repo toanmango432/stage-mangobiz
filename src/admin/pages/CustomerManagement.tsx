@@ -12,7 +12,7 @@ import {
   X,
   Trash2
 } from 'lucide-react';
-import { tenantsDB, licensesDB, storesDB, membersDB } from '../db/database';
+import { tenantsDB, licensesDB, storesDB, membersDB } from '../db/supabaseDatabase';
 import type { Tenant, CreateTenantInput, License, Store as StoreType } from '../types';
 
 interface TenantWithStats extends Tenant {

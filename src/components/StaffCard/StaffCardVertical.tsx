@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Camera } from 'lucide-react';
 import {
   SPECIALTY_COLORS,
   STATUS_COLORS,
@@ -234,18 +234,50 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                 </button>
               </div>)}
 
-            {/* Avatar */}
+            {/* Avatar or Add Photo */}
             {config.showAvatar && (
               <div className={layout.isUltra ? 'mb-0' : 'mb-1'}>
-                <StaffCardAvatar
-                  src={staff.image}
-                  alt={staff.name}
-                  size={layout.dimensions.avatarSize}
-                  borderRadius={layout.dimensions.borderRadius}
-                  borderWidth={layout.sizes.borderWidth}
-                  isBusy={isBusy}
-                  isUltra={layout.isUltra}
-                />
+                {staff.image ? (
+                  <StaffCardAvatar
+                    src={staff.image}
+                    alt={staff.name}
+                    size={layout.dimensions.avatarSize}
+                    borderRadius={layout.dimensions.borderRadius}
+                    borderWidth={layout.sizes.borderWidth}
+                    isBusy={isBusy}
+                    isUltra={layout.isUltra}
+                  />
+                ) : (
+                  // Add Photo Empty State
+                  <button
+                    className={`
+                      group/add flex flex-col items-center justify-center 
+                      rounded-full border-2 border-dashed border-gray-300 
+                      hover:border-blue-500 hover:bg-blue-50 
+                      transition-all duration-300 cursor-pointer
+                      ${layout.isUltra ? 'w-10 h-10' : layout.isCompact ? 'w-14 h-14' : 'w-24 h-24'}
+                    `}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Trigger add photo action
+                      console.log('Add photo clicked');
+                    }}
+                    aria-label="Add photo"
+                  >
+                    <Camera
+                      className={`
+                        text-gray-400 group-hover/add:text-blue-500 transition-colors
+                        ${layout.isUltra ? 'w-4 h-4' : layout.isCompact ? 'w-5 h-5' : 'w-8 h-8'}
+                      `}
+                      strokeWidth={1.5}
+                    />
+                    {!layout.isUltra && !layout.isCompact && (
+                      <span className="text-[10px] font-medium text-gray-400 group-hover/add:text-blue-600 mt-1 transition-colors">
+                        Add Photo
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 

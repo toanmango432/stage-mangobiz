@@ -15,7 +15,7 @@ import {
   Save,
   CheckCircle
 } from 'lucide-react';
-import { featureFlagsDB, licensesDB } from '../db/database';
+import { featureFlagsDB, licensesDB } from '../db/supabaseDatabase';
 import type { FeatureFlag, FeatureFlagCategory } from '../types';
 
 // Icon mapping for features
@@ -53,14 +53,7 @@ export function FeatureFlagsManagement() {
         licensesDB.getAll(1000),
       ]);
 
-      // If no features exist, seed them
-      if (allFeatures.length === 0) {
-        await featureFlagsDB.seedDefaults();
-        const seededFeatures = await featureFlagsDB.getAll();
-        setFeatures(seededFeatures);
-      } else {
-        setFeatures(allFeatures);
-      }
+      setFeatures(allFeatures);
 
       // Count licenses by tier
       const stats = { free: 0, basic: 0, professional: 0, enterprise: 0 };

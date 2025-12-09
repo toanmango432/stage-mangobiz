@@ -296,6 +296,7 @@ class StoreAuthManager {
 
   /**
    * Log in as a member with email and password (Supabase)
+   * Requires store to be logged in first
    */
   async loginMember(email: string, password: string): Promise<{ success: boolean; member?: MemberSession; error?: string }> {
     console.log('👤 Logging in member (Supabase):', email);
@@ -326,6 +327,86 @@ class StoreAuthManager {
       return { success: true, member };
     } catch (error) {
       console.error('❌ Member login failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      };
+    }
+  }
+
+  /**
+   * Direct member login with email and password (without store login first)
+   * This method also fetches and sets up the store session automatically
+   */
+  async loginMemberWithPassword(email: string, password: string): Promise<{ success: boolean; member?: MemberSession; store?: StoreSession; availableStores?: StoreSession[]; error?: string }> {
+    console.log('👤 Direct member login (Supabase):', email);
+
+    try {
+      // First, authenticate the member
+      const memberSession = await authService.loginMemberWithPassword(email, password);
+
+      // Get the member's store access list
+      const storeIds = memberSession.storeIds || [];
+      if (storeIds.length === 0) {
+        throw new Error('No store access assigned to this member');
+      }
+
+      // Fetch all store details for switching
+      const allStores: StoreSession[] = [];
+      for (const storeId of storeIds) {
+        const storeDetails = await authService.getStoreById(storeId);
+        if (storeDetails) {
+          allStores.push({
+            storeId: storeDetails.storeId,
+            storeName: storeDetails.storeName,
+            storeLoginId: storeDetails.storeLoginId,
+            tenantId: storeDetails.tenantId,
+            tier: storeDetails.tier,
+          });
+        }
+      }
+
+      if (allStores.length === 0) {
+        throw new Error('Could not load store details');
+      }
+
+      // Use the first store as the primary
+      const store = allStores[0];
+
+      // IMPORTANT: Persist the store session to localStorage for session restoration on refresh
+      authService.setStoreSession({
+        storeId: store.storeId,
+        storeName: store.storeName,
+        storeLoginId: store.storeLoginId,
+        tenantId: store.tenantId,
+        tier: store.tier,
+      });
+
+      // Create member session
+      const member: MemberSession = {
+        memberId: memberSession.memberId,
+        memberName: `${memberSession.firstName} ${memberSession.lastName}`,
+        firstName: memberSession.firstName,
+        lastName: memberSession.lastName,
+        email: memberSession.email,
+        role: memberSession.role,
+        avatarUrl: memberSession.avatarUrl || undefined,
+        permissions: memberSession.permissions || undefined,
+      };
+
+      // Update state with both store and member
+      this.updateState({
+        status: 'active',
+        store,
+        member,
+        message: 'Logged in successfully.',
+      });
+
+      console.log(`✅ Member has access to ${allStores.length} store(s):`, allStores.map(s => s.storeName).join(', '));
+
+      return { success: true, member, store, availableStores: allStores };
+    } catch (error) {
+      console.error('❌ Direct member login failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Login failed',

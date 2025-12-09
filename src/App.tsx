@@ -8,6 +8,8 @@ import { dataCleanupService } from './services/dataCleanupService';
 import { storeAuthManager, type StoreAuthState } from './services/storeAuthManager';
 import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
 import { initializeDatabase } from './db/schema';
+import { setStoreSession, setFullSession, setAvailableStores } from './store/slices/authSlice';
+import { authService } from './services/supabase';
 import { TooltipProvider } from './components/ui/tooltip';
 import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
 import { ConflictNotificationProvider } from './contexts/ConflictNotificationContext';
@@ -82,6 +84,63 @@ export function App() {
       try {
         const state = await storeAuthManager.initialize();
         setAuthState(state);
+
+        // CRITICAL: Sync restored auth state to Redux
+        // This ensures components using Redux selectors (like TopHeaderBar) see the restored session
+        if (state.status === 'active' && state.store) {
+          console.log('🔄 Syncing restored auth state to Redux...');
+
+          if (state.member) {
+            // Full session (store + member)
+            store.dispatch(setFullSession({
+              store: {
+                storeId: state.store.storeId,
+                storeName: state.store.storeName,
+                storeLoginId: state.store.storeLoginId,
+                tenantId: state.store.tenantId,
+                tier: state.store.tier || 'starter',
+              },
+              member: {
+                memberId: state.member.memberId,
+                memberName: state.member.memberName,
+                firstName: state.member.firstName,
+                lastName: state.member.lastName,
+                email: state.member.email,
+                role: state.member.role,
+                avatarUrl: state.member.avatarUrl,
+                permissions: state.member.permissions,
+              },
+            }));
+
+            // Also restore available stores for store switching
+            // Fetch from member's store_ids if available
+            const memberSession = authService.getCurrentMember();
+            if (memberSession?.storeIds && memberSession.storeIds.length > 1) {
+              const availableStores = await Promise.all(
+                memberSession.storeIds.map(async (storeId) => {
+                  const storeDetails = await authService.getStoreById(storeId);
+                  return storeDetails;
+                })
+              );
+              const validStores = availableStores.filter((s): s is NonNullable<typeof s> => s !== null);
+              if (validStores.length > 0) {
+                store.dispatch(setAvailableStores(validStores));
+              }
+            }
+
+            console.log('✅ Redux synced with full session (store + member)');
+          } else {
+            // Store-only session
+            store.dispatch(setStoreSession({
+              storeId: state.store.storeId,
+              storeName: state.store.storeName,
+              storeLoginId: state.store.storeLoginId,
+              tenantId: state.store.tenantId,
+              tier: state.store.tier || 'starter',
+            }));
+            console.log('✅ Redux synced with store session only');
+          }
+        }
 
         // Subscribe to auth state changes
         const unsubscribe = storeAuthManager.subscribe((newState) => {

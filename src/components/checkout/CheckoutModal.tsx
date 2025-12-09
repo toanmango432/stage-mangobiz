@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, CreditCard, DollarSign, Gift, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Ticket } from '../../types/Ticket';
 import { CheckoutPaymentMethod, TipDistribution, TIP_PERCENTAGES, CHECKOUT_STEPS } from '../../types/checkout';
-import { TAX_RATE } from '../../constants/checkoutConfig';
+import { getTaxRateFromConfig } from '../../constants/checkoutConfig';
 import { ServiceSummary } from './ServiceSummary';
 
 interface CheckoutModalProps {
@@ -88,13 +88,16 @@ export function CheckoutModal({
   const [tipDistribution, setTipDistribution] = useState<TipDistribution[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Get dynamic tax rate from system config
+  const taxRate = getTaxRateFromConfig();
+
   // Calculate totals
   const servicesTotal = ticket.services.reduce((sum, s) => sum + s.price, 0);
   const productsTotal = ticket.products.reduce((sum, p) => sum + p.total, 0);
   const subtotal = servicesTotal + productsTotal;
   const discountAmount = ticket.discount || 0;
   const afterDiscount = subtotal - discountAmount;
-  const taxAmount = afterDiscount * TAX_RATE;
+  const taxAmount = afterDiscount * taxRate;
 
   const tipAmount = tipPercentage
     ? (afterDiscount * tipPercentage) / 100

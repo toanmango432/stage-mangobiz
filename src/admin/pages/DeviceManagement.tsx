@@ -17,7 +17,7 @@ import {
   Cloud,
   CloudOff
 } from 'lucide-react';
-import { devicesDB, storesDB, licensesDB } from '../db/database';
+import { devicesDB, storesDB, licensesDB } from '../db/supabaseDatabase';
 import type { Device, Store as StoreType, License, DeviceMode } from '../types';
 
 export function DeviceManagement() {

@@ -13,7 +13,7 @@ import {
   Trash2,
   AlertTriangle
 } from 'lucide-react';
-import { licensesDB, tenantsDB, storesDB } from '../db/database';
+import { licensesDB, tenantsDB, storesDB } from '../db/supabaseDatabase';
 import type { License, CreateLicenseInput, Tenant, LicenseTier } from '../types';
 import { LICENSE_TIER_CONFIG } from '../types/license';
 

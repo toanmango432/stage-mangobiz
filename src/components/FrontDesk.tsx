@@ -8,6 +8,7 @@ import { WaitListSection } from './WaitListSection';
 import { ComingAppointments } from './ComingAppointments';
 import { CreateTicketButton } from './CreateTicketButton';
 import { TurnTrackerFab } from './TurnTracker/TurnTrackerFab';
+import { useFeatureFlag } from '../hooks/useFeatureFlag';
 // CreateTicketModal removed - now navigating to Checkout page instead
 import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '../hooks/useTicketsCompat';
@@ -58,6 +59,9 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   // Redux - use useAppDispatch for async thunk support
   const dispatch = useAppDispatch();
   const frontDeskSettings = useSelector(selectFrontDeskSettings);
+
+  // Check if Turn Tracker feature is enabled for this license tier
+  const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker');
 
   // ISSUE-002: Use memoized selectors instead of duplicate local state
   // These replace useState + useLayoutEffect sync pattern
@@ -906,11 +910,13 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
           </div>
         </div>
       </div>
-      {/* Global Turn Tracker Floating Action Button */}
-      <TurnTrackerFab onClick={() => {
-        // Use a custom event so StaffSidebar can open its TurnTracker modal
-        window.dispatchEvent(new Event('open-turn-tracker'));
-      }} />
+      {/* Global Turn Tracker Floating Action Button - Only show if feature is enabled */}
+      {isTurnTrackerEnabled && (
+        <TurnTrackerFab onClick={() => {
+          // Use a custom event so StaffSidebar can open its TurnTracker modal
+          window.dispatchEvent(new Event('open-turn-tracker'));
+        }} />
+      )}
       {/* Create Ticket Button - navigates to Checkout */}
       <CreateTicketButton onClick={navigateToCheckout} />
       {/* Floating Action Button - navigates to Checkout */}

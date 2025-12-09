@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Download
 } from 'lucide-react';
-import { tenantsDB, licensesDB, storesDB, membersDB, devicesDB, auditLogsDB } from '../db/database';
+import { tenantsDB, licensesDB, storesDB, membersDB, devicesDB, auditLogsDB } from '../db/supabaseDatabase';
 import type { Tenant, License, AuditLog } from '../types';
 
 interface AnalyticsData {

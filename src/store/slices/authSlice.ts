@@ -39,6 +39,7 @@ interface AuthState {
   status: AuthStatus;
   store: StoreSession | null;
   member: MemberSession | null;
+  availableStores: StoreSession[]; // Stores the member has access to (for store switching)
 
   // Legacy fields for backward compatibility
   isAuthenticated: boolean;
@@ -65,6 +66,7 @@ const initialState: AuthState = {
   status: 'not_logged_in',
   store: null,
   member: null,
+  availableStores: [],
 
   // Legacy fields
   isAuthenticated: false,
@@ -142,6 +144,7 @@ const authSlice = createSlice({
       state.status = 'not_logged_in';
       state.store = null;
       state.member = null;
+      state.availableStores = [];
       state.isAuthenticated = false;
       state.user = null;
       state.salonId = null;
@@ -149,6 +152,17 @@ const authSlice = createSlice({
       state.error = null;
       state.device = null;
       state.storePolicy = null;
+    },
+
+    // Set available stores (for store switching)
+    setAvailableStores: (state, action: PayloadAction<StoreSession[]>) => {
+      state.availableStores = action.payload;
+    },
+
+    // Switch to a different store (for multi-store users)
+    switchStore: (state, action: PayloadAction<StoreSession>) => {
+      state.store = action.payload;
+      state.salonId = action.payload.storeId;
     },
 
     // ==================== LEGACY ACTIONS (for backward compatibility) ====================
@@ -265,6 +279,8 @@ export const {
   setAuthStatus,
   clearMemberSession,
   clearAllAuth,
+  setAvailableStores,
+  switchStore,
   // Legacy actions
   setAuth,
   logout,
@@ -285,6 +301,7 @@ export const selectStore = (state: RootState): StoreSession | null => state.auth
 export const selectStoreId = (state: RootState): string | null => state.auth.store?.storeId ?? null;
 export const selectStoreName = (state: RootState): string | null => state.auth.store?.storeName ?? null;
 export const selectTenantId = (state: RootState): string | null => state.auth.store?.tenantId ?? null;
+export const selectAvailableStores = (state: RootState): StoreSession[] => state.auth.availableStores;
 
 // Member session selector
 export const selectMember = (state: RootState): MemberSession | null => state.auth.member;

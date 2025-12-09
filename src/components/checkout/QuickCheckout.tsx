@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, CreditCard, DollarSign, Percent, Receipt, Check } from 'lucide-react';
 import { Ticket, Payment } from '../../types/Ticket';
 import type { Client } from '../../types/client';
-import { TAX_RATE } from '../../constants/checkoutConfig';
+import { getTaxRateFromConfig } from '../../constants/checkoutConfig';
 // import { POINTS_PER_DOLLAR_REDEMPTION } from '../../constants/loyaltyConfig';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createTransactionInSupabase } from '../../store/slices/transactionsSlice';
@@ -47,6 +47,9 @@ export function QuickCheckout({ isOpen, onClose, ticket, client, onComplete }: Q
   const [redeemedPoints, setRedeemedPoints] = useState(0);
   const [pointsDiscount, setPointsDiscount] = useState(0);
 
+  // Get dynamic tax rate from system config
+  const taxRate = getTaxRateFromConfig();
+
   // Calculate totals with proper rounding to avoid floating-point errors
   const servicesTotal = roundToCents(ticket.services.reduce((sum, s) => sum + s.price, 0));
   const productsTotal = roundToCents(ticket.products.reduce((sum, p) => sum + p.total, 0));
@@ -54,7 +57,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, client, onComplete }: Q
   const manualDiscount = discountAmount ? roundToCents(discountAmount) : calculatePercentage(subtotal, discountPercent);
   const discountValue = addAmounts(manualDiscount, pointsDiscount); // Include points redemption discount
   const afterDiscount = subtractAmount(subtotal, discountValue);
-  const taxAmount = multiplyAmount(afterDiscount, TAX_RATE);
+  const taxAmount = multiplyAmount(afterDiscount, taxRate);
   const tipValue = tipAmount ? roundToCents(tipAmount) : calculatePercentage(afterDiscount, tipPercent);
   const grandTotal = addAmounts(afterDiscount, taxAmount, tipValue);
 
@@ -379,7 +382,7 @@ export function QuickCheckout({ isOpen, onClose, ticket, client, onComplete }: Q
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tax ({(TAX_RATE * 100).toFixed(0)}%)</span>
+                <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(1)}%)</span>
                 <span className="font-medium">${taxAmount.toFixed(2)}</span>
               </div>
               {tipValue > 0 && (
