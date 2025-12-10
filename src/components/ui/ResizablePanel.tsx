@@ -1,13 +1,14 @@
 import { useState, useRef, useCallback, useEffect, ReactNode } from 'react';
-import { GripVertical } from 'lucide-react';
 
 interface ResizablePanelProps {
   children: [ReactNode, ReactNode]; // Left and right panels
-  defaultRightWidth?: number; // Default width for right panel in pixels
-  minRightWidth?: number; // Minimum width for right panel
-  maxRightWidth?: number; // Maximum width for right panel
+  defaultRightWidth?: number; // Default width for right panel in pixels (or left if resizeLeft=true)
+  minRightWidth?: number; // Minimum width for right panel (or left if resizeLeft=true)
+  maxRightWidth?: number; // Maximum width for right panel (or left if resizeLeft=true)
+  minOppositePanelWidth?: number; // Minimum width for the OTHER panel (ensures it never gets too small)
   storageKey?: string; // localStorage key for persistence
   className?: string;
+  resizeLeft?: boolean; // If true, the LEFT panel is resizable instead of right
 }
 
 export function ResizablePanel({
@@ -15,10 +16,12 @@ export function ResizablePanel({
   defaultRightWidth = 506,
   minRightWidth = 320,
   maxRightWidth = 800,
+  minOppositePanelWidth = 400, // Minimum width for the opposite panel
   storageKey,
   className = '',
+  resizeLeft = false,
 }: ResizablePanelProps) {
-  const [rightWidth, setRightWidth] = useState(() => {
+  const [panelWidth, setPanelWidth] = useState(() => {
     if (storageKey) {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -39,29 +42,41 @@ export function ResizablePanel({
   // Persist width to localStorage
   useEffect(() => {
     if (storageKey) {
-      localStorage.setItem(storageKey, rightWidth.toString());
+      localStorage.setItem(storageKey, panelWidth.toString());
     }
-  }, [rightWidth, storageKey]);
+  }, [panelWidth, storageKey]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
     startXRef.current = e.clientX;
-    startWidthRef.current = rightWidth;
-  }, [rightWidth]);
+    startWidthRef.current = panelWidth;
+  }, [panelWidth]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !containerRef.current) return;
 
-    // Calculate new width (dragging left increases right panel, dragging right decreases)
-    const delta = startXRef.current - e.clientX;
+    // Get container width to calculate dynamic max
+    const containerWidth = containerRef.current.offsetWidth;
+
+    // Calculate the maximum width allowed for the resizable panel
+    // ensuring the opposite panel has at least minOppositePanelWidth
+    const dynamicMaxWidth = Math.min(maxRightWidth, containerWidth - minOppositePanelWidth - 10); // 10px for divider
+
+    // Calculate delta based on which panel is resizable
+    // For right panel: dragging left increases width, dragging right decreases
+    // For left panel: dragging right increases width, dragging left decreases
+    const delta = resizeLeft
+      ? e.clientX - startXRef.current
+      : startXRef.current - e.clientX;
+
     const newWidth = Math.min(
-      maxRightWidth,
+      dynamicMaxWidth,
       Math.max(minRightWidth, startWidthRef.current + delta)
     );
 
-    setRightWidth(newWidth);
-  }, [isDragging, minRightWidth, maxRightWidth]);
+    setPanelWidth(newWidth);
+  }, [isDragging, minRightWidth, maxRightWidth, minOppositePanelWidth, resizeLeft]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -91,44 +106,36 @@ export function ResizablePanel({
 
   return (
     <div ref={containerRef} className={`flex h-full ${className}`}>
-      {/* Left Panel - takes remaining space */}
-      <div className="flex-1 min-w-0 h-full overflow-hidden">
+      {/* Left Panel */}
+      <div
+        className={resizeLeft ? "flex-shrink-0 h-full overflow-hidden" : "flex-1 min-w-0 h-full overflow-hidden"}
+        style={resizeLeft ? { width: `${panelWidth}px` } : undefined}
+      >
         {leftPanel}
       </div>
 
       {/* Resizable Divider */}
       <div
-        className={`relative flex-shrink-0 w-0 group ${isDragging ? 'z-50' : ''}`}
+        className={`relative flex-shrink-0 w-px group cursor-col-resize ${isDragging ? 'z-50' : ''}`}
         onMouseDown={handleMouseDown}
       >
         {/* Invisible hit area for easier grabbing */}
         <div className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize" />
 
-        {/* Visible divider line */}
+        {/* Visible divider line - full height */}
         <div
           className={`absolute inset-y-0 left-0 w-px transition-colors ${
             isDragging
-              ? 'bg-primary'
-              : 'bg-border group-hover:bg-primary/50'
+              ? 'bg-primary w-[2px]'
+              : 'bg-gray-200 group-hover:bg-gray-400'
           }`}
         />
-
-        {/* Drag handle indicator */}
-        <div
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-0 p-1 rounded-md cursor-col-resize transition-all ${
-            isDragging
-              ? 'bg-primary text-white scale-110'
-              : 'bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary'
-          }`}
-        >
-          <GripVertical size={14} />
-        </div>
       </div>
 
-      {/* Right Panel - fixed width */}
+      {/* Right Panel */}
       <div
-        className="flex-shrink-0 h-full overflow-hidden"
-        style={{ width: `${rightWidth}px` }}
+        className={resizeLeft ? "flex-1 h-full overflow-hidden" : "flex-shrink-0 h-full overflow-hidden"}
+        style={resizeLeft ? { minWidth: `${minOppositePanelWidth}px` } : { width: `${panelWidth}px` }}
       >
         {rightPanel}
       </div>

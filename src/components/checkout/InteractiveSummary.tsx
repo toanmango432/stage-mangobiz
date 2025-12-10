@@ -66,6 +66,7 @@ interface InteractiveSummaryProps {
   currentTab?: "services" | "staff";
   onApplyDiscount?: (data: { type: "percentage" | "fixed"; amount: number; reason: string }) => void;
   onRemoveDiscount?: () => void;
+  layout?: "classic" | "modern";
 }
 
 export default function InteractiveSummary({
@@ -95,6 +96,7 @@ export default function InteractiveSummary({
   currentTab = "services",
   onApplyDiscount,
   onRemoveDiscount,
+  layout: _layout = "classic",
 }: InteractiveSummaryProps) {
   const { toast } = useToast();
   const [showClientSelector, setShowClientSelector] = useState(false);

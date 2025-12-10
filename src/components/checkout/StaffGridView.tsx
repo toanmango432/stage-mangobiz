@@ -20,6 +20,7 @@ interface StaffGridViewProps {
   onAddServiceToStaff: (staffId: string, staffName: string) => void;
   reassigningServiceIds?: string[];
   selectedStaffId?: string | null;
+  compactMode?: boolean; // For dock mode - use auto-fill responsive grid
 }
 
 type ViewMode = 'normal' | 'compact';
@@ -268,6 +269,7 @@ export default function StaffGridView({
   onAddServiceToStaff,
   reassigningServiceIds = [],
   selectedStaffId,
+  compactMode = false,
 }: StaffGridViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -850,11 +852,18 @@ export default function StaffGridView({
               ))}
             </Reorder.Group>
           ) : (
-          <div className={`grid gap-4 pb-4 ${
-            viewMode === 'compact'
-              ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8'
-              : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-          }`}>
+          <div
+            className={compactMode ? "grid gap-3 pb-4" : `grid gap-4 pb-4 ${
+              viewMode === 'compact'
+                ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8'
+                : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+            }`}
+            style={compactMode ? {
+              gridTemplateColumns: viewMode === 'compact'
+                ? 'repeat(auto-fill, minmax(70px, 1fr))'
+                : 'repeat(auto-fill, minmax(100px, 1fr))'
+            } : undefined}
+          >
             {filteredStaff.map((staff) => (
               <StaffCard
                 key={staff.id}

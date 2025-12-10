@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/Button";
-import { Scissors, Palette, Sparkles, Users as UsersIcon, Star, Search, ArrowLeft } from "lucide-react";
+import { Scissors, Palette, Sparkles, Users as UsersIcon, Star, Search, ArrowLeft, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 export interface Service {
   id: string;
@@ -25,6 +25,10 @@ interface FullPageServiceSelectorProps {
   staffMembers: StaffMember[];
   activeStaffId?: string | null;
   onBack?: () => void;
+  layout?: "classic" | "modern";
+  externalSearchQuery?: string; // External search query from parent (modern layout)
+  searchQuery?: string; // Search query from parent (modern layout)
+  compactMode?: boolean; // For dock mode - smaller categories and service cards
 }
 
 const SERVICES: Service[] = [
@@ -51,21 +55,38 @@ const POPULAR_SERVICES = [
   { id: "11", name: "Massage - 60min", category: "Spa", price: 95, duration: 60 },
 ];
 
-// Category color mapping for visual identification
-export const CATEGORY_COLORS: Record<string, { border: string; bg: string; text: string }> = {
-  Hair: { border: "border-l-amber-400", bg: "bg-amber-50", text: "text-amber-700" },
-  Nails: { border: "border-l-pink-400", bg: "bg-pink-50", text: "text-pink-700" },
-  Spa: { border: "border-l-teal-400", bg: "bg-teal-50", text: "text-teal-700" },
-  default: { border: "border-l-gray-300", bg: "bg-gray-50", text: "text-gray-600" },
+// Category color mapping for visual identification - matching reference design
+export const CATEGORY_COLORS: Record<string, { border: string; bg: string; text: string; modernBg: string; modernBorder: string }> = {
+  Hair: { border: "border-l-amber-400", bg: "bg-amber-50", text: "text-amber-700", modernBg: "bg-yellow-100", modernBorder: "border-yellow-200" },
+  Nails: { border: "border-l-pink-400", bg: "bg-pink-50", text: "text-pink-700", modernBg: "bg-pink-200", modernBorder: "border-pink-300" },
+  Spa: { border: "border-l-teal-400", bg: "bg-teal-50", text: "text-teal-700", modernBg: "bg-teal-200", modernBorder: "border-teal-300" },
+  Massage: { border: "border-l-cyan-400", bg: "bg-cyan-50", text: "text-cyan-700", modernBg: "bg-cyan-200", modernBorder: "border-cyan-300" },
+  Skincare: { border: "border-l-rose-400", bg: "bg-rose-50", text: "text-rose-700", modernBg: "bg-rose-200", modernBorder: "border-rose-300" },
+  Lashes: { border: "border-l-purple-400", bg: "bg-purple-50", text: "text-purple-700", modernBg: "bg-purple-200", modernBorder: "border-purple-300" },
+  Brows: { border: "border-l-orange-400", bg: "bg-orange-50", text: "text-orange-700", modernBg: "bg-orange-200", modernBorder: "border-orange-300" },
+  Waxing: { border: "border-l-lime-400", bg: "bg-lime-50", text: "text-lime-700", modernBg: "bg-lime-200", modernBorder: "border-lime-300" },
+  default: { border: "border-l-gray-300", bg: "bg-gray-50", text: "text-gray-600", modernBg: "bg-gray-100", modernBorder: "border-gray-200" },
 };
 
-// Service categories (default)
+// Service categories (default - for classic layout)
 export const SERVICE_CATEGORIES = [
   { id: "all", name: "ALL", icon: Sparkles },
   { id: "popular", name: "POPULAR", icon: Star },
   { id: "Hair", name: "HAIR", icon: Scissors },
   { id: "Nails", name: "NAILS", icon: Palette },
   { id: "Spa", name: "SPA", icon: UsersIcon },
+];
+
+// Modern categories with emoji icons (matching reference design)
+export const MODERN_CATEGORIES = [
+  { id: "Hair", name: "Hair", emoji: "✂️" },
+  { id: "Nails", name: "Nails", emoji: "💅" },
+  { id: "Spa", name: "Spa", emoji: "💆" },
+  { id: "Massage", name: "Massage", emoji: "💆‍♀️" },
+  { id: "Skincare", name: "Skincare", emoji: "🧴" },
+  { id: "Lashes", name: "Lashes", emoji: "👁️" },
+  { id: "Brows", name: "Brows", emoji: "🖌️" },
+  { id: "Waxing", name: "Waxing", emoji: "🧈" },
 ];
 
 // Keep CATEGORIES as alias for backward compatibility
@@ -146,12 +167,23 @@ export function CategoryList({
 
 export default function FullPageServiceSelector({
   selectedCategory,
+  onSelectCategory,
   onAddServices,
   staffMembers,
   activeStaffId,
   onBack,
+  layout = "classic",
+  externalSearchQuery,
+  searchQuery: externalSearchQueryProp,
+  compactMode = false,
 }: FullPageServiceSelectorProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+
+  // Use external search query if provided (modern layout), otherwise use internal
+  const searchQuery = layout === "modern" && (externalSearchQuery !== undefined || externalSearchQueryProp !== undefined)
+    ? (externalSearchQueryProp ?? externalSearchQuery ?? "")
+    : internalSearchQuery;
+  const setSearchQuery = setInternalSearchQuery;
   
   const activeStaff = activeStaffId 
     ? staffMembers.find(s => s.id === activeStaffId)
@@ -187,6 +219,159 @@ export default function FullPageServiceSelector({
     onAddServices([service]);
   };
 
+  // Ref for category scroll container (modern layout)
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Check if scroll arrows should be visible
+  const checkScrollability = useCallback(() => {
+    if (categoryScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = categoryScrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+    }
+  }, []);
+
+  // Check scrollability on mount and when categories change
+  useEffect(() => {
+    checkScrollability();
+    // Add resize observer to check when container size changes
+    const resizeObserver = new ResizeObserver(checkScrollability);
+    if (categoryScrollRef.current) {
+      resizeObserver.observe(categoryScrollRef.current);
+    }
+    return () => resizeObserver.disconnect();
+  }, [checkScrollability]);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoryScrollRef.current) {
+      const scrollAmount = 200;
+      categoryScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Modern layout with horizontal category pills and emoji icons
+  if (layout === "modern") {
+    // Compact mode sizing for dock view
+    const categorySize = compactMode
+      ? "min-w-[80px] w-[80px] h-[72px]"
+      : "min-w-[110px] w-[110px] h-[100px]";
+    const categoryEmojiSize = compactMode ? "text-2xl mb-1" : "text-4xl mb-2";
+    const categoryTextSize = compactMode ? "text-xs" : "text-sm";
+    const gridMinWidth = compactMode ? "140px" : "180px";
+    const cardPadding = compactMode ? "p-3" : "p-4";
+    const cardMinHeight = compactMode ? "min-h-[100px]" : "min-h-[120px]";
+    const plusButtonSize = compactMode ? "h-6 w-6" : "h-8 w-8";
+    const plusIconSize = compactMode ? "h-4 w-4" : "h-5 w-5";
+
+    return (
+      <div className={`h-full flex flex-col ${compactMode ? 'pt-2' : 'pt-4'}`}>
+        {/* Horizontal Category Pills with emoji icons and navigation arrows */}
+        <div className={`${compactMode ? 'mb-3' : 'mb-5'} flex items-center gap-2`}>
+          {/* Left Arrow - only show when can scroll left */}
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollCategories('left')}
+              className={`flex-shrink-0 ${compactMode ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-white shadow border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors`}
+            >
+              <ChevronLeft className={`${compactMode ? 'h-3 w-3' : 'h-4 w-4'} text-gray-400`} />
+            </button>
+          )}
+
+          {/* Scrollable Category Pills - 3D elevated cards matching reference */}
+          <div
+            ref={categoryScrollRef}
+            onScroll={checkScrollability}
+            className={`flex-1 flex items-center ${compactMode ? 'gap-2' : 'gap-4'} overflow-x-auto scrollbar-hide scroll-smooth py-2 min-w-0`}
+          >
+            {MODERN_CATEGORIES.map((category) => {
+              const isSelected = selectedCategory === category.id;
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => onSelectCategory(category.id)}
+                  className={`flex flex-col items-center justify-center ${categorySize} rounded-2xl whitespace-nowrap transition-all duration-150 flex-shrink-0 ${
+                    isSelected
+                      ? "bg-white border-2 border-blue-500 shadow-lg"
+                      : "bg-gray-50 shadow-md hover:shadow-lg border border-gray-100"
+                  }`}
+                >
+                  <span className={categoryEmojiSize}>{category.emoji}</span>
+                  <span className={`${categoryTextSize} font-semibold ${isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
+                    {category.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Arrow - only show when can scroll right */}
+          {canScrollRight && (
+            <button
+              onClick={() => scrollCategories('right')}
+              className={`flex-shrink-0 ${compactMode ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-white shadow border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors`}
+            >
+              <ChevronRight className={`${compactMode ? 'h-3 w-3' : 'h-4 w-4'} text-gray-400`} />
+            </button>
+          )}
+        </div>
+
+        {/* Divider between sub-categories and items */}
+        <div className={`border-b border-gray-200 -mx-3 ${compactMode ? 'mb-3' : 'mb-4'}`} />
+
+        {/* Services Grid - auto-fit responsive columns */}
+        <div className="flex-1 overflow-y-auto pr-1">
+          {filteredServices.length === 0 ? (
+            <Card className={`${compactMode ? 'p-4' : 'p-8'} text-center`}>
+              <p className="text-sm text-muted-foreground">No services found</p>
+            </Card>
+          ) : (
+            <div className="grid gap-3 pb-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }}>
+              {filteredServices.map((service) => {
+                const categoryColor = CATEGORY_COLORS[service.category] || CATEGORY_COLORS.default;
+                return (
+                  <button
+                    key={service.id}
+                    className={`relative ${categoryColor.modernBg} rounded-2xl ${cardPadding} hover:shadow-lg active:scale-[0.98] transition-all duration-150 text-left group ${cardMinHeight}`}
+                    onClick={() => handleServiceClick(service)}
+                    data-testid={`card-service-full-${service.id}`}
+                  >
+                    {/* Plus button - always visible, top right */}
+                    <div className={`absolute ${compactMode ? 'right-2 top-2' : 'right-3 top-3'} ${plusButtonSize} rounded-full bg-white/60 flex items-center justify-center group-hover:bg-white transition-colors`}>
+                      <Plus className={`${plusIconSize} text-gray-500 group-hover:text-gray-700`} />
+                    </div>
+
+                    <div className="flex flex-col h-full">
+                      {/* Service Name - top */}
+                      <h4 className={`font-semibold text-gray-800 ${compactMode ? 'text-sm' : 'text-base'} leading-tight ${compactMode ? 'pr-8' : 'pr-10'}`}>
+                        {service.name}
+                      </h4>
+
+                      {/* Bottom row: Duration (left) + Price (right) */}
+                      <div className={`mt-auto ${compactMode ? 'pt-2' : 'pt-4'} flex items-end justify-between`}>
+                        <span className={`${compactMode ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                          {service.duration} min
+                        </span>
+                        <span className={`font-bold text-gray-800 ${compactMode ? 'text-lg' : 'text-xl'}`}>
+                          ${service.price}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Classic layout
   return (
     <div className="h-full flex flex-col">
       {/* Sticky Header with Back Button - Mobile */}
@@ -227,7 +412,7 @@ export default function FullPageServiceSelector({
           <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
         </div>
       )}
-      
+
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative">
