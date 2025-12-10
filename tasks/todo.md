@@ -1,227 +1,119 @@
-# Book Page Calendar Scrolling Fix - COMPREHENSIVE ANALYSIS
+# Checkout UI Redesign - Implementation Plan
 
-## Problem Statement
+## Overview
+Refactor the checkout page UI based on `CHECKOUT_UI_HANDOFF.md`. This is a **design-only change** - all existing state management, API calls, business logic, and offline functionality remain unchanged.
 
-The calendar on the Book page is **NOT scrollable** vertically or horizontally despite having:
-- 24 hours of content (1440px height = 24 hours × 60px per hour)
-- Multiple staff columns that should scroll horizontally
-- `overflow-auto` classes on components
+## Key Layout Changes
 
-Previous fix attempts failed because they didn't identify ALL the blocking points.
-
----
-
-## Complete Container Hierarchy (Root to Leaf)
-
-I traced the ENTIRE container chain from AppShell to DaySchedule:
-
+### Current Layout:
 ```
-AppShell.tsx
-├─ div.h-screen.flex.flex-col.overflow-hidden (line 339)
-│
-└─ main.flex-1.flex.flex-col.min-h-0.overflow-hidden (line 354) ❌ BLOCKS SCROLLING
-   │  ⚠️ Problem: overflow-hidden prevents content from scrolling
-   │
-   └─ BookPage.tsx
-      ├─ div.flex.h-full.bg-gray-50 (line 670) ✅ OK
-      │
-      ├─ div.flex-1.flex.flex-col.overflow-hidden (line 685) ✅ OK
-      │
-      └─ div.flex-1.flex...min-h-0.overflow-hidden (line 708) ❌ BLOCKS SCROLLING
-         │  ⚠️ Problem: overflow-hidden clips scroll container
-         │
-         └─ div.flex-1...min-h-0.overflow-auto (line 710) ⚠️ TRIES TO SCROLL
-            │  (Can't scroll because parent blocks it)
-            │
-            └─ DaySchedule.v2.tsx
-               └─ div.flex.h-full.min-h-0.overflow-auto (line 307) ⚠️ TRIES TO SCROLL
-                  │  (Can't scroll because grandparent blocks it)
-                  │
-                  └─ Staff columns with grid (height: 1440px) 📏 CONTENT
+[X] [Services|Products|Packages|GC] [Search]
+[Categories(vertical)] [Service Grid]    [Cart(right)]
+```
+
+### New Layout:
+```
+[Cart(left 380px)] | [X "New Ticket"] [Services|Products|Packages|GC] [Search]
+                   | [All][Popular][Hair][Nails][Spa] ← horizontal pills
+                   | [Service Grid with colored backgrounds]
 ```
 
 ---
 
-## Root Causes (ALL Must Be Fixed)
+## Implementation Tasks
 
-### 1. AppShell.tsx Line 354 - Main container blocks scroll
-```tsx
-<main className="flex-1 flex flex-col min-h-0 overflow-hidden pt-12">
-                                              ^^^^^^^^^^^^^^^^
-```
-**Problem:** `overflow-hidden` prevents any child from scrolling
-**Impact:** Even if BookPage/DaySchedule have `overflow-auto`, they can't scroll
+### Phase 1: Flip Panel Layout
+- [ ] 1.1 Modify `TicketPanel.tsx` - swap left/right panels in ResizablePanel
+- [ ] 1.2 Update panel widths (cart: 380px fixed, catalog: flex-1)
+- [ ] 1.3 Update dock mode layout similarly
 
-### 2. BookPage.tsx Line 708 - Calendar wrapper blocks scroll
-```tsx
-<div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-hidden">
-                                                                                       ^^^^^^^^^^^^^^^^
-```
-**Problem:** `overflow-hidden` clips the inner scrollable container
-**Impact:** The `overflow-auto` container at line 710 is clipped and can't show scroll
+### Phase 2: Restyle Cart Panel (Left Side)
+- [ ] 2.1 Update `InteractiveSummary.tsx` header - gray-50 bg with X + "New Ticket" title
+- [ ] 2.2 Restyle client card - rounded-2xl, subtle gradient
+- [ ] 2.3 Update line items in `StaffGroup.tsx` - colored left border (6px)
+- [ ] 2.4 Restyle totals section - gray-50 bg footer
+- [ ] 2.5 Update Pay button - emerald-600, rounded-2xl, py-5
+- [ ] 2.6 Update secondary buttons - white bg, border-2, rounded-2xl
 
-### 3. Height propagation issue
-```tsx
-// BookPage line 670
-<div className="flex h-full bg-gray-50">  // h-full needs parent height
+### Phase 3: Update Main Category Tabs
+- [ ] 3.1 Update `ItemTabBar.tsx` - bg-gray-100 container, rounded-full, p-1.5
+- [ ] 3.2 Active tab styling - bg-white, rounded-full, shadow-sm
+- [ ] 3.3 Add icons to tabs (Sparkles, ShoppingBag, Package, Gift)
+- [ ] 3.4 Move search bar to right-aligned in header
 
-// But AppShell main has overflow-hidden, breaking height calculation
-```
-**Problem:** `h-full` requires parent to have explicit height, but flex parent has `overflow-hidden`
-**Impact:** Height doesn't flow properly through flex containers
+### Phase 4: Convert Sub-Categories to Horizontal Pills
+- [ ] 4.1 Update `CategoryList` in `FullPageServiceSelector.tsx`
+  - FROM: Vertical sidebar on left
+  - TO: Horizontal scrollable pills above grid
+- [ ] 4.2 Style pills - px-4 py-2.5, rounded-xl, icon + label + count
+- [ ] 4.3 Add category-colored backgrounds to pills
+- [ ] 4.4 Update grid layout to single column (no sidebar)
 
----
+### Phase 5: Update Service Cards
+- [ ] 5.1 Update `FullPageServiceSelector.tsx` service cards
+  - Full category-colored backgrounds (not just border)
+  - Hair: bg-amber-100, border-amber-400
+  - Nails: bg-pink-100, border-pink-400
+  - Spa: bg-teal-100, border-teal-400
+- [ ] 5.2 Add white + button in corner (absolute right-3 top-3)
+- [ ] 5.3 Update hover (shadow-xl) and active states (scale-[0.97])
 
-## Solution - THREE Changes Required
-
-### ✅ Change 1: AppShell.tsx Line 354
-**File:** `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/layout/AppShell.tsx`
-
-**Old (line 354):**
-```tsx
-<main className={`relative flex-1 flex flex-col min-h-0 overflow-hidden pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
-```
-
-**New:**
-```tsx
-<main className={`relative flex-1 flex flex-col min-h-0 overflow-auto pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
-```
-
-**Change:** `overflow-hidden` → `overflow-auto`
-
-**Reason:** Allow main content to scroll when modules (like BookPage) have content exceeding viewport height.
+### Phase 6: Polish & Test
+- [ ] 6.1 Update touch targets (minimum 48px buttons, 80px cards)
+- [ ] 6.2 Test mobile responsive layout
+- [ ] 6.3 Verify all existing functionality works
+- [ ] 6.4 Test: Add service, assign staff, apply discount, checkout
 
 ---
 
-### ✅ Change 2: BookPage.tsx Line 708
-**File:** `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/pages/BookPage.tsx`
+## Files to Modify
 
-**Old (line 708):**
-```tsx
-<div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-hidden">
-```
-
-**New:**
-```tsx
-<div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 sm:gap-4 sm:p-4 min-h-0 overflow-auto">
-```
-
-**Change:** `overflow-hidden` → `overflow-auto`
-
-**Reason:** Allow calendar wrapper to scroll when DaySchedule content exceeds container bounds.
+| File | Changes |
+|------|---------|
+| `TicketPanel.tsx` | Flip panel layout, update structure |
+| `InteractiveSummary.tsx` | Restyle header, client card, totals, buttons |
+| `StaffGroup.tsx` | Update line item styling |
+| `ItemTabBar.tsx` | Pill container style, add icons |
+| `FullPageServiceSelector.tsx` | Horizontal pills, service card colors |
+| `CategoryList` component | Convert to horizontal layout |
 
 ---
 
-### ✅ Change 3: DaySchedule.v2.tsx Line 307 (Verify)
-**File:** `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/Book/DaySchedule.v2.tsx`
+## Color Tokens Reference
 
-**Current (line 307):**
-```tsx
-<div className="flex h-full min-h-0 overflow-auto bg-gray-50 overscroll-contain rounded-lg shadow-sm relative">
+```typescript
+// Category Colors
+const CATEGORY_COLORS = {
+  hair: { bg: 'bg-amber-100', border: 'border-amber-400', text: 'text-amber-800' },
+  nails: { bg: 'bg-pink-100', border: 'border-pink-400', text: 'text-pink-800' },
+  spa: { bg: 'bg-teal-100', border: 'border-teal-400', text: 'text-teal-800' },
+  default: { bg: 'bg-gray-100', border: 'border-gray-400', text: 'text-gray-800' },
+};
+
+// UI Colors
+primary: 'emerald-600'     // Pay button
+warning: 'amber-500'       // Assign Staff
+surface: 'gray-50'         // Backgrounds
 ```
 
-**Action:** ✅ ALREADY CORRECT - Has `overflow-auto`
-
-**Additional:** Ensure grid container has explicit height:
-```tsx
-// Staff column grid at line ~525
-<div className="relative bg-white" style={{ height: `${gridHeight}px` }}>
-```
-This is already correct (line 526).
-
 ---
 
-## Why This Will Fix Scrolling
-
-### Flow of Height and Overflow:
-1. **AppShell** (`overflow-auto`): Allows main to scroll if content exceeds viewport
-2. **BookPage** calendar wrapper (`overflow-auto`): Can scroll independently
-3. **DaySchedule** (`overflow-auto`): Grid with 1440px height forces parent to scroll
-
-### Vertical Scrolling:
-- DaySchedule grid: `height: 1440px` (24 hours × 60px)
-- Parent containers allow overflow, enabling scroll
-- User can scroll from 12:00 AM to 11:00 PM
-
-### Horizontal Scrolling:
-- Multiple staff columns exceed viewport width
-- Parent `overflow-auto` enables horizontal scroll
-- Time column stays fixed (has `sticky left-0`)
-
----
-
-## Implementation Checklist
-
-- [ ] **Phase 1:** Fix AppShell.tsx line 354 (`overflow-hidden` → `overflow-auto`)
-- [ ] **Phase 2:** Fix BookPage.tsx line 708 (`overflow-hidden` → `overflow-auto`)
-- [ ] **Phase 3:** Verify DaySchedule.v2.tsx line 307 has `overflow-auto` (already correct)
-- [ ] **Phase 4:** Test vertical scrolling (12am - 11pm visible via scroll)
-- [ ] **Phase 5:** Test horizontal scrolling (multiple staff columns scroll)
-- [ ] **Phase 6:** Test on mobile/tablet/desktop viewports
-- [ ] **Phase 7:** Test keyboard navigation (Tab, Arrow keys, Page Up/Down)
-- [ ] **Phase 8:** Verify current time indicator visible while scrolling
-
----
-
-## Expected Behavior After Fix
-
-### ✅ Vertical Scrolling
-- Calendar shows all 24 hours (0:00 - 23:00)
-- Smooth scroll from top to bottom
-- Current time indicator moves with scroll
-- Time column labels stay visible (sticky)
-
-### ✅ Horizontal Scrolling
-- With 3+ staff, horizontal scrollbar appears
-- Time column stays fixed on left (sticky)
-- Staff columns scroll horizontally
-- Touch/trackpad gestures work
-
-### ✅ Mobile Behavior
-- Single staff view (no horizontal scroll)
-- Vertical scroll for 24 hours
-- Touch-friendly scroll
-- 60-minute time slots for better touch targets
-
----
-
-## Testing Instructions
-
-### Manual Testing:
-1. Open Book page
-2. Select multiple staff (3+)
-3. Try scrolling vertically - should see all 24 hours
-4. Try scrolling horizontally - should see all staff columns
-5. Test on Chrome, Safari, Firefox
-6. Test on mobile viewport (< 768px)
-7. Test keyboard: Arrow keys, Page Up/Down, Home/End
-
-### Validation:
-```bash
-# Start dev server
-npm run dev
-
-# Navigate to Book page
-# Select 3+ staff members
-# Scroll vertically - expect to see 12am to 11pm
-# Scroll horizontally - expect to see all staff columns
-```
+## What NOT to Change
+- Redux/state management
+- API calls and data fetching
+- Offline/Dexie integration
+- Discount slider functionality
+- Staff assignment logic
+- Checkout flow and payment integration
+- All existing props and interfaces
 
 ---
 
 ## Review Section
+(Will be filled after implementation)
 
 ### Changes Made:
-- TBD (will be filled after implementation)
-
-### Files Modified:
-1. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/components/layout/AppShell.tsx` (line 354)
-2. `/Users/seannguyen/Winsurf built/Mango POS Offline V2/src/pages/BookPage.tsx` (line 708)
+- TBD
 
 ### Testing Results:
-- TBD (will be filled after testing)
-
-### Notes:
-- Previous fix attempts only changed BookPage line 670 (`h-screen` → `h-full`)
-- This comprehensive fix addresses ALL blocking points in the hierarchy
-- The key insight: Multiple `overflow-hidden` containers can cascade and block scrolling
+- TBD
