@@ -81,6 +81,8 @@ import {
   ShoppingBag,
   Package,
   Gift,
+  ChevronLeft,
+  Users,
 } from "lucide-react";
 
 // ============================================================================
@@ -2130,56 +2132,34 @@ export default function TicketPanel({
                     <div className="h-full flex flex-col min-w-0 overflow-hidden">
                       {/* Main Category Tab Bar - darker background */}
                       <div className="flex-shrink-0 bg-gray-100/70 px-4 py-3">
-                        <ItemTabBar
-                          activeTab={addItemTab}
-                          onTabChange={(tab) => {
-                            setAddItemTab(tab);
-                            setSelectedCategory("all");
-                            setSearchQuery(""); // Clear search when switching tabs
-                          }}
-                          layout="modern"
-                          searchQuery={searchQuery}
-                          onSearchChange={setSearchQuery}
-                          onMoreClick={() => {
-                            // TODO: Open menu editing modal
-                            console.log("More options clicked - menu editing");
-                          }}
-                          rightControls={
-                            <div className="flex items-center gap-2">
-                              {/* Layout Toggle Button */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
-                                    data-testid="button-toggle-layout-inline"
-                                    className={`h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
-                                      checkoutLayout === "modern"
-                                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                                    }`}
-                                    aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
-                                  >
-                                    {checkoutLayout === "modern" ? (
-                                      <Sparkles className="h-4 w-4" />
-                                    ) : (
-                                      <LayoutGrid className="h-4 w-4" />
-                                    )}
-                                    <span className="text-xs font-medium">
-                                      {checkoutLayout === "classic" ? "Classic" : "Modern"}
-                                    </span>
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
-                                </TooltipContent>
-                              </Tooltip>
+                        {fullPageTab === "staff" ? (
+                          /* Staff Selection Header - Clean design with back button */
+                          <div className="flex items-center gap-4">
+                            {/* Back Button - Prominent pill style */}
+                            <button
+                              onClick={() => setFullPageTab("services")}
+                              className="flex items-center gap-2 pl-3 pr-4 py-2 text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-full shadow-sm transition-all hover:shadow"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                              <span>Catalog</span>
+                            </button>
 
+                            {/* Title - Centered with icon badge */}
+                            <div className="flex-1 flex items-center justify-center">
+                              <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full">
+                                <Users className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-semibold text-primary">Select Staff</span>
+                              </div>
+                            </div>
+
+                            {/* Right side controls */}
+                            <div className="flex items-center gap-2">
                               {/* Minimize Button */}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
                                     onClick={() => setMode("dock")}
-                                    data-testid="button-toggle-mode-inline"
+                                    data-testid="button-toggle-mode-staff"
                                     className="h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
                                     aria-label="Switch to docked view"
                                   >
@@ -2191,8 +2171,72 @@ export default function TicketPanel({
                                 </TooltipContent>
                               </Tooltip>
                             </div>
-                          }
-                        />
+                          </div>
+                        ) : (
+                          <ItemTabBar
+                            activeTab={addItemTab}
+                            onTabChange={(tab) => {
+                              setAddItemTab(tab);
+                              setSelectedCategory("all");
+                              setSearchQuery(""); // Clear search when switching tabs
+                            }}
+                            layout="modern"
+                            searchQuery={searchQuery}
+                            onSearchChange={setSearchQuery}
+                            onMoreClick={() => {
+                              // TODO: Open menu editing modal
+                              console.log("More options clicked - menu editing");
+                            }}
+                            rightControls={
+                              <div className="flex items-center gap-2">
+                                {/* Layout Toggle Button */}
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
+                                      data-testid="button-toggle-layout-inline"
+                                      className={`h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
+                                        checkoutLayout === "modern"
+                                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                          : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                                      }`}
+                                      aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
+                                    >
+                                      {checkoutLayout === "modern" ? (
+                                        <Sparkles className="h-4 w-4" />
+                                      ) : (
+                                        <LayoutGrid className="h-4 w-4" />
+                                      )}
+                                      <span className="text-xs font-medium">
+                                        {checkoutLayout === "classic" ? "Classic" : "Modern"}
+                                      </span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                {/* Minimize Button */}
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => setMode("dock")}
+                                      data-testid="button-toggle-mode-inline"
+                                      className="h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                                      aria-label="Switch to docked view"
+                                    >
+                                      <Minimize2 className="h-4 w-4 text-gray-500" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Switch to partial view</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            }
+                          />
+                        )}
                       </div>
 
                       {/* Content Area - lighter background, scrollable */}
@@ -2546,101 +2590,128 @@ export default function TicketPanel({
                   <div className="h-full flex flex-col min-w-0 overflow-hidden">
                     {/* Header with controls and tabs - same background */}
                     <div className="flex-shrink-0 bg-gray-100/70 px-3 pt-2 pb-1">
-                      {/* Top Row: Controls (right-aligned) */}
-                      <div className="flex items-center justify-end gap-1.5 mb-2">
-                        {/* Search Icon */}
-                        <button
-                          onClick={() => console.log("Search clicked")}
-                          className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          aria-label="Search"
-                        >
-                          <Search className="h-3.5 w-3.5 text-gray-500" />
-                        </button>
+                      {fullPageTab === "staff" ? (
+                        /* Staff Selection Header - Clean design with back button */
+                        <div className="flex items-center gap-3 py-1.5">
+                          {/* Back Button - Prominent pill style */}
+                          <button
+                            onClick={() => setFullPageTab("services")}
+                            className="flex items-center gap-1.5 pl-2 pr-3 py-1.5 text-xs font-medium bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-full shadow-sm transition-all hover:shadow"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            <span>Catalog</span>
+                          </button>
 
-                        {/* More Options */}
-                        <button
-                          onClick={() => console.log("More options clicked")}
-                          className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          aria-label="More options"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5 text-gray-500" />
-                        </button>
+                          {/* Title - Centered with icon */}
+                          <div className="flex-1 flex items-center justify-center gap-2">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full">
+                              <Users className="h-3.5 w-3.5 text-primary" />
+                              <span className="text-xs font-semibold text-primary">Select Staff</span>
+                            </div>
+                          </div>
 
-                        {/* Layout Toggle Button */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                          {/* Spacer to balance the back button */}
+                          <div className="w-[72px]" />
+                        </div>
+                      ) : (
+                        <>
+                          {/* Top Row: Controls (right-aligned) */}
+                          <div className="flex items-center justify-end gap-1.5 mb-2">
+                            {/* Search Icon */}
                             <button
-                              onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
-                              data-testid="button-toggle-layout-dock-inline"
-                              className={`h-7 px-2 rounded-full flex items-center gap-1 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
-                                checkoutLayout === "modern"
-                                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                              }`}
-                              aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
+                              onClick={() => console.log("Search clicked")}
+                              className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              aria-label="Search"
                             >
-                              {checkoutLayout === "modern" ? (
-                                <Sparkles className="h-3.5 w-3.5" />
-                              ) : (
-                                <LayoutGrid className="h-3.5 w-3.5" />
-                              )}
-                              <span className="text-xs font-medium">
-                                {checkoutLayout === "classic" ? "Classic" : "Modern"}
-                              </span>
+                              <Search className="h-3.5 w-3.5 text-gray-500" />
                             </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
-                          </TooltipContent>
-                        </Tooltip>
 
-                        {/* Expand Button */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                            {/* More Options */}
                             <button
-                              onClick={() => setMode("full")}
-                              data-testid="button-toggle-mode-dock-inline"
-                              className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
-                              aria-label="Expand to full screen"
+                              onClick={() => console.log("More options clicked")}
+                              className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              aria-label="More options"
                             >
-                              <Maximize2 className="h-3.5 w-3.5 text-gray-500" />
+                              <MoreVertical className="h-3.5 w-3.5 text-gray-500" />
                             </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Expand to full page</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
 
-                      {/* Second Row: Main Category Tabs */}
-                      <div className="flex items-center bg-gray-100/80 p-1 rounded-full overflow-x-auto scrollbar-hide">
-                        {[
-                          { id: 'services' as const, label: 'Services', icon: Sparkles },
-                          { id: 'products' as const, label: 'Products', icon: ShoppingBag },
-                          { id: 'packages' as const, label: 'Packages', icon: Package },
-                          { id: 'giftcards' as const, label: 'Gift Cards', icon: Gift },
-                        ].map((tab) => {
-                          const Icon = tab.icon;
-                          return (
-                            <button
-                              key={tab.id}
-                              onClick={() => {
-                                setAddItemTab(tab.id);
-                                setSelectedCategory("all");
-                                setSearchQuery("");
-                              }}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap flex-shrink-0 ${
-                                addItemTab === tab.id
-                                  ? 'bg-white text-gray-800 shadow-sm'
-                                  : 'text-gray-500 hover:text-gray-600'
-                              }`}
-                            >
-                              <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                              <span>{tab.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                            {/* Layout Toggle Button */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
+                                  data-testid="button-toggle-layout-dock-inline"
+                                  className={`h-7 px-2 rounded-full flex items-center gap-1 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
+                                    checkoutLayout === "modern"
+                                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                                  }`}
+                                  aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
+                                >
+                                  {checkoutLayout === "modern" ? (
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <LayoutGrid className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="text-xs font-medium">
+                                    {checkoutLayout === "classic" ? "Classic" : "Modern"}
+                                  </span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            {/* Expand Button */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => setMode("full")}
+                                  data-testid="button-toggle-mode-dock-inline"
+                                  className="h-7 w-7 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                                  aria-label="Expand to full screen"
+                                >
+                                  <Maximize2 className="h-3.5 w-3.5 text-gray-500" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Expand to full page</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+
+                          {/* Second Row: Main Category Tabs */}
+                          <div className="flex items-center bg-gray-100/80 p-1 rounded-full overflow-x-auto scrollbar-hide">
+                            {[
+                              { id: 'services' as const, label: 'Services', icon: Sparkles },
+                              { id: 'products' as const, label: 'Products', icon: ShoppingBag },
+                              { id: 'packages' as const, label: 'Packages', icon: Package },
+                              { id: 'giftcards' as const, label: 'Gift Cards', icon: Gift },
+                            ].map((tab) => {
+                              const Icon = tab.icon;
+                              return (
+                                <button
+                                  key={tab.id}
+                                  onClick={() => {
+                                    setAddItemTab(tab.id);
+                                    setSelectedCategory("all");
+                                    setSearchQuery("");
+                                  }}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap flex-shrink-0 ${
+                                    addItemTab === tab.id
+                                      ? 'bg-white text-gray-800 shadow-sm'
+                                      : 'text-gray-500 hover:text-gray-600'
+                                  }`}
+                                >
+                                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                                  <span>{tab.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Content Area - lighter background, scrollable */}

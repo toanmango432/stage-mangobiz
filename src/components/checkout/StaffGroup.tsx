@@ -489,8 +489,13 @@ export default function StaffGroup({
 
 
   // Determine if we should show activation UI
-  const showActivation = totalStaffCount > 1 && staffId;
+  // Show activation UI when there are multiple staff members
+  const hasMultipleStaff = totalStaffCount > 1;
+  const showActivation = hasMultipleStaff && staffId;
   const isInactive = Boolean(!isActive && showActivation);
+
+  // Show "Adding Services Here" indicator when staff is active (even with single staff)
+  const showActiveIndicator = isActive && staffId;
   
   return (
     <>
@@ -505,7 +510,7 @@ export default function StaffGroup({
       </div>
 
       <Card className={`overflow-hidden transition-all duration-200 rounded-xl ${
-        isActive && staffId
+        showActiveIndicator
           ? 'border-2 border-primary/30 shadow-lg shadow-primary/10 ring-2 ring-primary/20 bg-primary/5'
           : staffId
             ? 'border border-border'
@@ -523,8 +528,8 @@ export default function StaffGroup({
       }}
       data-testid={`staff-group-${staffId || 'unassigned'}`}
       >
-      {/* Active Staff Indicator - Shows when staff is active */}
-      {isActive && staffId && (
+      {/* Active Staff Indicator - Shows when staff is active (even with single staff) */}
+      {showActiveIndicator && (
         <div className="bg-gradient-to-r from-primary to-primary/90 px-4 py-1.5 flex items-center justify-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
           <span className="text-xs font-semibold text-white tracking-wide uppercase">
@@ -547,7 +552,7 @@ export default function StaffGroup({
       
       {/* Staff Header - Aligned with StaffCard design from FrontDesk */}
       <div className={`p-4 border-b border-border/50 flex items-center justify-between ${
-        isActive && staffId
+        showActiveIndicator
           ? 'bg-gradient-to-r from-slate-50 to-slate-100/50'
           : ''
       }`}>
@@ -581,7 +586,7 @@ export default function StaffGroup({
                   >
                     {staffName}
                   </h3>
-                  {isActive && (
+                  {showActiveIndicator && (
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   )}
                 </div>
