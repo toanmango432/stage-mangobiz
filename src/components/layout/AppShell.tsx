@@ -6,6 +6,7 @@ import { FrontDesk } from '../modules/FrontDesk';
 import { Tickets } from '../modules/Tickets';
 import { Team } from '../modules/Team';
 import { Pending } from '../modules/Pending';
+import { Checkout } from '../modules/Checkout';
 import { TransactionRecords } from '../modules/TransactionRecords';
 import { ClosedTickets } from '../modules/ClosedTickets';
 import { TodaysSales } from '../modules/TodaysSales';
@@ -289,6 +290,8 @@ export function AppShell() {
         return <Team />;
       case 'pending':
         return <Pending />;
+      case 'checkout':
+        return <Checkout />;
       case 'closed':
         return <ClosedTickets />;
       case 'transaction-records':

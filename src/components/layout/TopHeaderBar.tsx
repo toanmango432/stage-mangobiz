@@ -12,7 +12,6 @@ import { storeAuthManager } from '../../services/storeAuthManager';
 import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
 import { SwitchUserModal } from '../auth/SwitchUserModal';
 import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
-import { CreateTicketModal } from '../CreateTicketModal';
 
 interface TopHeaderBarProps {
   activeModule?: string;
@@ -40,7 +39,6 @@ export function TopHeaderBar({
   const [showPinVerificationModal, setShowPinVerificationModal] = useState(false);
   const [pendingPinAction, setPendingPinAction] = useState<'settings' | 'reports' | null>(null);
   const [showStoreSwitcher, setShowStoreSwitcher] = useState(false);
-  const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
 
   // Get dispatch for actions
   const dispatch = useAppDispatch();
@@ -497,7 +495,7 @@ export function TopHeaderBar({
 
           {/* +New Button - Primary action to create new ticket */}
           <button
-            onClick={() => setShowCreateTicketModal(true)}
+            onClick={() => onModuleChange?.('checkout')}
             title="Create New Ticket"
             className="
               relative flex items-center justify-center gap-2 xl:gap-2.5
@@ -876,17 +874,6 @@ export function TopHeaderBar({
             ? 'Enter your staff PIN to access store settings'
             : 'Enter your staff PIN to continue'
         }
-      />
-
-      {/* Create New Ticket Modal */}
-      <CreateTicketModal
-        isOpen={showCreateTicketModal}
-        onClose={() => setShowCreateTicketModal(false)}
-        onSubmit={(ticketData) => {
-          console.log('New ticket created:', ticketData);
-          // Navigate to frontdesk to see the new ticket in waitlist
-          onModuleChange?.('frontdesk');
-        }}
       />
     </header>
   );

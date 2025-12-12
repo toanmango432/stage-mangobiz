@@ -8,7 +8,6 @@ import {
   CheckCircle,
   Plus
 } from 'lucide-react';
-import { CreateTicketModal } from '../CreateTicketModal';
 
 interface BottomNavBarProps {
   activeModule: string;
@@ -20,7 +19,6 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
   // Desktop: Show Front Desk (combined view)
   // Mobile: Show Team and Tickets separately (no Front Desk)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -33,19 +31,19 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
 
   // Mobile: Book, Team, Tickets, Pending, +New, More
   // Desktop: Book, Front Desk, Pending, +New, Closed, More
-  // Note: +New is a special action button that creates a new ticket
+  // Note: +New navigates to the checkout/new ticket page
   const modules = isMobile ? [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'team', label: 'Team', icon: Users },
     { id: 'tickets', label: 'Tickets', icon: Receipt },
     { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount > 0 ? pendingCount : undefined },
-    { id: 'new', label: 'New', icon: Plus, isAction: true },
+    { id: 'checkout', label: '+New', icon: Plus, isNewButton: true },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ] : [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
     { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
-    { id: 'new', label: 'New', icon: Plus, isAction: true },
+    { id: 'checkout', label: '+New', icon: Plus, isNewButton: true },
     { id: 'closed', label: 'Closed', icon: CheckCircle },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ];
@@ -68,7 +66,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
         const Icon = module.icon;
         const isActive = activeModule === module.id;
         const hasBadge = module.badge !== undefined;
-        const isNewAction = (module as any).isAction;
+        const isNewButton = (module as any).isNewButton;
 
         return (
           <button
@@ -78,20 +76,15 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
               if ('vibrate' in navigator) {
                 navigator.vibrate(10);
               }
-              // Handle +New action button differently
-              if (isNewAction) {
-                setShowCreateTicketModal(true);
-              } else {
-                onModuleChange(module.id);
-              }
+              onModuleChange(module.id);
             }}
-            aria-label={isNewAction ? 'Create new ticket' : `${module.label} module`}
+            aria-label={isNewButton ? 'Create new ticket' : `${module.label} module`}
             aria-current={isActive ? 'page' : undefined}
             className={`
               relative group flex flex-col items-center justify-center gap-0.5 sm:gap-1
               flex-1 h-[52px] sm:h-[56px] min-h-[44px] mx-0.5 rounded-lg sm:rounded-xl
               transition-all duration-300 ease-out
-              ${isNewAction
+              ${isNewButton
                 ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40 ring-1 ring-orange-400/50 hover:from-orange-600 hover:to-orange-700 hover:shadow-xl hover:scale-105 active:scale-95'
                 : isActive
                   ? 'bg-orange-500/90 shadow-lg shadow-orange-500/30 ring-1 ring-orange-400/50 scale-105 -translate-y-0.5'
@@ -117,13 +110,13 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
             <div className="relative z-20">
               {/* Icon */}
               <div className={`relative transition-all duration-300 ${
-                isNewAction ? 'text-white' : isActive ? 'text-white' : 'text-gray-600 group-hover:text-gray-800'
+                isNewButton ? 'text-white' : isActive ? 'text-white' : 'text-gray-600 group-hover:text-gray-800'
               }`}>
                 <Icon
                   className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
-                    isNewAction ? 'scale-110 group-hover:rotate-90' : isActive ? 'scale-110' : 'scale-100 group-hover:scale-105'
+                    isNewButton ? 'scale-110 group-hover:rotate-90' : isActive ? 'scale-110' : 'scale-100 group-hover:scale-105'
                   }`}
-                  strokeWidth={isNewAction ? 2.5 : isActive ? 2.5 : 2}
+                  strokeWidth={isNewButton ? 2.5 : isActive ? 2.5 : 2}
                   fill="none"
                 />
               </div>
@@ -132,29 +125,18 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
             {/* Label */}
             <span
               className={`text-[9px] sm:text-[10px] transition-all duration-300 relative z-20 leading-tight ${
-                isNewAction
+                isNewButton
                   ? 'font-bold text-white'
                   : isActive
                     ? 'font-bold text-white'
                     : 'font-medium text-gray-600 group-hover:text-gray-800'
               }`}
             >
-              {isNewAction ? '+New' : module.label}
+              {module.label}
             </span>
           </button>
         );
       })}
-
-      {/* Create New Ticket Modal */}
-      <CreateTicketModal
-        isOpen={showCreateTicketModal}
-        onClose={() => setShowCreateTicketModal(false)}
-        onSubmit={(ticketData) => {
-          console.log('New ticket created:', ticketData);
-          // Navigate to frontdesk (mobile) or team (mobile) to see the new ticket
-          onModuleChange(isMobile ? 'team' : 'frontdesk');
-        }}
-      />
     </nav>
   );
 }
