@@ -12,6 +12,37 @@ This plan addresses all issues identified in the [MORE Module Analysis](./MORE_M
 
 ---
 
+## Related Documents
+
+| Document | Purpose |
+|----------|---------|
+| [NAVIGATION_RESTRUCTURING_PLAN.md](./NAVIGATION_RESTRUCTURING_PLAN.md) | **NEW** - Main Nav & MORE Menu reorganization |
+| [MORE_MODULE_PHASED_IMPLEMENTATION.md](./MORE_MODULE_PHASED_IMPLEMENTATION.md) | Step-by-step implementation guide |
+| [MORE_MODULE_CRITICAL_TASKS.md](./MORE_MODULE_CRITICAL_TASKS.md) | Critical tasks breakdown |
+| [MORE_MODULE_ANALYSIS.md](./MORE_MODULE_ANALYSIS.md) | Initial analysis findings |
+
+---
+
+## Navigation Restructuring (Pre-Requisite)
+
+**IMPORTANT:** Before proceeding with other phases, implement the navigation restructuring outlined in [NAVIGATION_RESTRUCTURING_PLAN.md](./NAVIGATION_RESTRUCTURING_PLAN.md).
+
+### Summary of Changes
+
+| Location | Old | New | Action |
+|----------|-----|-----|--------|
+| **Main Nav** | Sales | Closed (or Closed Tickets) | BUILD NEW - `ClosedTickets.tsx` |
+| **MORE Menu** | Today's Sales | Transaction Records | MOVE - Existing `Sales.tsx` (no code changes) |
+| **MORE Menu** | (none) | Today's Sales | BUILD NEW - `TodaysSales.tsx` (EOD summary) |
+
+### Implementation Order
+
+1. **Move** `Sales.tsx` → `TransactionRecords.tsx` (rename only)
+2. **Build** `ClosedTickets.tsx` for Main Nav (new component)
+3. **Build** `TodaysSales.tsx` for MORE Menu (new component)
+
+---
+
 ## Table of Contents
 
 1. [Phase 1: Critical Route Handlers](#phase-1-critical-route-handlers)

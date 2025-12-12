@@ -1,12 +1,13 @@
 # MORE Module - Phased Implementation Guide
 
 > A step-by-step implementation guide with code templates
-> Total: 8 Phases | 47 Tasks | 8-10 Development Days
+> Total: 9 Phases | 50+ Tasks | 10-12 Development Days
 
 ---
 
 ## Table of Contents
 
+0. [Phase 0: Navigation Restructuring](#phase-0-navigation-restructuring) ⭐ **START HERE**
 1. [Phase 1: End of Day Closeout - Foundation](#phase-1-end-of-day-closeout---foundation)
 2. [Phase 2: End of Day Closeout - Wizard Steps](#phase-2-end-of-day-closeout---wizard-steps)
 3. [Phase 3: End of Day Closeout - Integration](#phase-3-end-of-day-closeout---integration)
@@ -15,6 +16,533 @@
 6. [Phase 6: Quick Stats Implementation](#phase-6-quick-stats-implementation)
 7. [Phase 7: UX Improvements](#phase-7-ux-improvements)
 8. [Phase 8: Testing & Polish](#phase-8-testing--polish)
+
+---
+
+## Phase 0: Navigation Restructuring
+
+**Duration:** 1.5-2 days
+**Priority:** 🔴 Critical (Do First)
+**Dependencies:** None
+
+> **Full details:** [NAVIGATION_RESTRUCTURING_PLAN.md](./NAVIGATION_RESTRUCTURING_PLAN.md)
+
+### Overview
+
+Restructure navigation to separate operational views (Main Nav) from administrative views (MORE Menu).
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Closed Tickets** | Main Nav | Quick view of completed tickets (operational) |
+| **Transaction Records** | MORE Menu | Full transaction history (existing Sales.tsx) |
+| **Today's Sales** | MORE Menu | EOD summary + closeout functions |
+
+### Phase 0.1: Move Sales.tsx → TransactionRecords.tsx
+
+**Action:** Rename only. No code changes.
+
+```bash
+# Rename the file
+mv src/components/modules/Sales.tsx src/components/modules/TransactionRecords.tsx
+```
+
+**Update component name in file:**
+```typescript
+// TransactionRecords.tsx
+export function TransactionRecords({ onBack }: TransactionRecordsProps) {
+  // ... existing code unchanged
+}
+```
+
+**Update More.tsx menu item:**
+```typescript
+{
+  id: 'transaction-records',
+  label: 'Transaction Records',
+  icon: FileText,
+  color: 'text-blue-600',
+  bg: 'bg-blue-50'
+},
+```
+
+**Update AppShell.tsx route:**
+```typescript
+case 'transaction-records':
+  return <TransactionRecords onBack={() => setActiveModule('more')} />;
+```
+
+**Checklist:**
+- [ ] Rename Sales.tsx to TransactionRecords.tsx
+- [ ] Update component export name
+- [ ] Update More.tsx menu item (id + label)
+- [ ] Add route in AppShell.tsx
+- [ ] Remove old 'sales' reference from MORE menu
+- [ ] Test navigation
+
+---
+
+### Phase 0.2: Build ClosedTickets.tsx (Main Nav)
+
+**File:** `src/components/modules/ClosedTickets.tsx`
+
+```typescript
+/**
+ * Closed Tickets
+ * Quick operational view of completed tickets
+ * Shows only closed/completed tickets with search and quick filters
+ */
+
+import { useState, useMemo } from 'react';
+import { Search, Filter, CheckCircle, Receipt, RefreshCcw } from 'lucide-react';
+import { useAppSelector } from '../../store/hooks';
+import { cn } from '../../lib/utils';
+
+type DateFilter = 'today' | 'yesterday' | 'week';
+
+export function ClosedTickets() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+
+  // Get all tickets from Redux
+  const allTickets = useAppSelector(state => state.uiTickets?.items || []);
+
+  // Filter to closed tickets only
+  const closedTickets = useMemo(() => {
+    return allTickets.filter(ticket =>
+      ticket.status === 'closed' ||
+      ticket.status === 'completed' ||
+      ticket.status === 'paid'
+    );
+  }, [allTickets]);
+
+  // Apply date filter
+  const filteredByDate = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    return closedTickets.filter(ticket => {
+      const ticketDate = new Date(ticket.createdAt || ticket.closedAt);
+      switch (dateFilter) {
+        case 'today':
+          return ticketDate >= today;
+        case 'yesterday':
+          return ticketDate >= yesterday && ticketDate < today;
+        case 'week':
+          return ticketDate >= weekAgo;
+        default:
+          return true;
+      }
+    });
+  }, [closedTickets, dateFilter]);
+
+  // Apply search filter
+  const displayTickets = useMemo(() => {
+    if (!searchQuery.trim()) return filteredByDate;
+
+    const query = searchQuery.toLowerCase();
+    return filteredByDate.filter(ticket =>
+      ticket.clientName?.toLowerCase().includes(query) ||
+      ticket.ticketNumber?.toString().includes(query) ||
+      ticket.staffName?.toLowerCase().includes(query)
+    );
+  }, [filteredByDate, searchQuery]);
+
+  // Calculate totals
+  const totalRevenue = displayTickets.reduce((sum, t) => sum + (t.total || 0), 0);
+
+  return (
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-green-600" />
+            <h1 className="text-xl font-semibold text-gray-900">Closed Tickets</h1>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">{displayTickets.length} tickets</p>
+            <p className="text-lg font-semibold text-gray-900">
+              ${totalRevenue.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        {/* Search & Filters */}
+        <div className="flex items-center gap-4">
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by client, ticket #, or staff..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+          </div>
+
+          {/* Date Filters */}
+          <div className="flex items-center gap-2">
+            {(['today', 'yesterday', 'week'] as DateFilter[]).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setDateFilter(filter)}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  dateFilter === filter
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                )}
+              >
+                {filter === 'today' && 'Today'}
+                {filter === 'yesterday' && 'Yesterday'}
+                {filter === 'week' && 'This Week'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Ticket List */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {displayTickets.length === 0 ? (
+          <div className="text-center py-12">
+            <CheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No closed tickets found</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {displayTickets.map((ticket) => (
+              <TicketCard key={ticket.id} ticket={ticket} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Ticket Card Component
+function TicketCard({ ticket }: { ticket: any }) {
+  const formatTime = (date: string | Date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-900">#{ticket.ticketNumber}</span>
+              <span className="text-gray-600">{ticket.clientName || 'Walk-in'}</span>
+            </div>
+            <div className="text-sm text-gray-500">
+              {ticket.services?.join(', ') || 'Services'} • Staff: {ticket.staffName || 'Unknown'}
+            </div>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <p className="font-semibold text-gray-900">${(ticket.total || 0).toFixed(2)}</p>
+          <p className="text-sm text-gray-500">
+            {ticket.paymentMethod || 'Card'} • {formatTime(ticket.closedAt || ticket.createdAt)}
+          </p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+        <button className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">
+          <Receipt className="w-4 h-4" />
+          Reprint
+        </button>
+        <button className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">
+          <RefreshCcw className="w-4 h-4" />
+          Refund
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+**Update TopHeaderBar.tsx:**
+```typescript
+// Change in modules array (around line 99)
+{ id: 'closed', label: 'Closed', icon: CheckCircle },
+```
+
+**Update BottomNavBar.tsx:**
+```typescript
+// Change in navigation items (around line 46)
+{ id: 'closed', label: 'Closed', icon: CheckCircle },
+```
+
+**Update AppShell.tsx:**
+```typescript
+// Import
+import { ClosedTickets } from '../modules/ClosedTickets';
+
+// In renderModule switch
+case 'closed':
+  return <ClosedTickets />;
+```
+
+**Checklist:**
+- [ ] Create ClosedTickets.tsx
+- [ ] Update TopHeaderBar.tsx
+- [ ] Update BottomNavBar.tsx
+- [ ] Update AppShell.tsx route
+- [ ] Test main nav navigation
+- [ ] Test ticket filtering
+- [ ] Test search
+
+---
+
+### Phase 0.3: Build TodaysSales.tsx (MORE Menu)
+
+**File:** `src/components/modules/TodaysSales.tsx`
+
+```typescript
+/**
+ * Today's Sales
+ * EOD summary view with quick stats and closeout access
+ */
+
+import { useMemo } from 'react';
+import { ArrowLeft, TrendingUp, DollarSign, Users, Receipt, Printer, FileDown } from 'lucide-react';
+import { useAppSelector } from '../../store/hooks';
+
+interface TodaysSalesProps {
+  onBack?: () => void;
+}
+
+export function TodaysSales({ onBack }: TodaysSalesProps) {
+  // Get transactions from Redux
+  const transactions = useAppSelector(state => state.transactions?.items || []);
+  const tickets = useAppSelector(state => state.uiTickets?.items || []);
+
+  // Calculate today's stats
+  const todayStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayTransactions = transactions.filter(t => {
+      const txDate = new Date(t.createdAt);
+      txDate.setHours(0, 0, 0, 0);
+      return txDate.getTime() === today.getTime() && t.status === 'completed';
+    });
+
+    const totalRevenue = todayTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
+    const totalTips = todayTransactions.reduce((sum, t) => sum + (t.tip || 0), 0);
+    const transactionCount = todayTransactions.length;
+    const avgTicket = transactionCount > 0 ? totalRevenue / transactionCount : 0;
+
+    // Payment breakdown
+    const paymentBreakdown = todayTransactions.reduce((acc, t) => {
+      const method = t.paymentMethod || 'other';
+      acc[method] = (acc[method] || 0) + (t.total || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalRevenue,
+      totalTips,
+      transactionCount,
+      avgTicket,
+      paymentBreakdown
+    };
+  }, [transactions]);
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
+  return (
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Today's Sales</h1>
+            <p className="text-sm text-gray-500">
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <SummaryCard
+              label="Total Revenue"
+              value={formatCurrency(todayStats.totalRevenue)}
+              icon={DollarSign}
+              color="green"
+            />
+            <SummaryCard
+              label="Transactions"
+              value={todayStats.transactionCount.toString()}
+              icon={Receipt}
+              color="blue"
+            />
+            <SummaryCard
+              label="Avg Ticket"
+              value={formatCurrency(todayStats.avgTicket)}
+              icon={TrendingUp}
+              color="purple"
+            />
+            <SummaryCard
+              label="Tips"
+              value={formatCurrency(todayStats.totalTips)}
+              icon={Users}
+              color="orange"
+            />
+          </div>
+
+          {/* Payment Breakdown */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Breakdown</h2>
+            <div className="space-y-3">
+              {Object.entries(todayStats.paymentBreakdown).map(([method, amount]) => {
+                const percentage = todayStats.totalRevenue > 0
+                  ? (amount / todayStats.totalRevenue) * 100
+                  : 0;
+                return (
+                  <div key={method} className="flex items-center gap-4">
+                    <span className="w-20 text-sm text-gray-600 capitalize">{method}</span>
+                    <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-orange-500 rounded-full"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="w-24 text-right text-sm font-medium">
+                      {formatCurrency(amount)}
+                    </span>
+                    <span className="w-12 text-right text-sm text-gray-500">
+                      {percentage.toFixed(0)}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div className="flex flex-wrap gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
+                <Printer className="w-4 h-4" />
+                Print Z-Report
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
+                <FileDown className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg text-white font-medium">
+                Start End-of-Day Closeout
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Summary Card Component
+function SummaryCard({
+  label,
+  value,
+  icon: Icon,
+  color
+}: {
+  label: string;
+  value: string;
+  icon: any;
+  color: 'green' | 'blue' | 'purple' | 'orange';
+}) {
+  const colors = {
+    green: 'bg-green-50 text-green-600',
+    blue: 'bg-blue-50 text-blue-600',
+    purple: 'bg-purple-50 text-purple-600',
+    orange: 'bg-orange-50 text-orange-600'
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <span className="text-sm text-gray-500">{label}</span>
+      </div>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+    </div>
+  );
+}
+```
+
+**Update More.tsx:**
+```typescript
+// Add to menuItems array
+{
+  id: 'todays-sales',
+  label: "Today's Sales",
+  icon: TrendingUp,
+  color: 'text-green-600',
+  bg: 'bg-green-50'
+},
+```
+
+**Update AppShell.tsx:**
+```typescript
+// Import
+import { TodaysSales } from '../modules/TodaysSales';
+
+// In renderModule switch
+case 'todays-sales':
+  return <TodaysSales onBack={() => setActiveModule('more')} />;
+```
+
+**Checklist:**
+- [ ] Create TodaysSales.tsx
+- [ ] Update More.tsx menu item
+- [ ] Update AppShell.tsx route
+- [ ] Test navigation from MORE menu
+- [ ] Test stats calculation
+- [ ] Connect "Start Closeout" button to EOD wizard
 
 ---
 
