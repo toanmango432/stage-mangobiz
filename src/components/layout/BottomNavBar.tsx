@@ -31,19 +31,19 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
 
   // Mobile: Book, Team, Tickets, Pending, +New, More
   // Desktop: Book, Front Desk, Pending, +New, Closed, More
-  // Note: +New navigates to the checkout/new ticket page
+  // Note: +New navigates directly to new ticket creation page
   const modules = isMobile ? [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'team', label: 'Team', icon: Users },
     { id: 'tickets', label: 'Tickets', icon: Receipt },
     { id: 'pending', label: 'Pending', icon: LayoutGrid, badge: pendingCount > 0 ? pendingCount : undefined },
-    { id: 'checkout', label: '+New', icon: Plus, isNewButton: true },
+    { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ] : [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
     { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
-    { id: 'checkout', label: '+New', icon: Plus, isNewButton: true },
+    { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
     { id: 'closed', label: 'Closed', icon: CheckCircle },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ];
@@ -75,11 +75,6 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
               // Haptic feedback on mobile devices
               if ('vibrate' in navigator) {
                 navigator.vibrate(10);
-              }
-              // If clicking +New, set flag for Checkout to auto-open ticket creation
-              if (isNewButton) {
-                localStorage.setItem('checkout-auto-open', 'new');
-                localStorage.removeItem('checkout-pending-ticket');
               }
               onModuleChange(module.id);
             }}

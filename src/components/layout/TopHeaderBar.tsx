@@ -496,10 +496,8 @@ export function TopHeaderBar({
           {/* +New Button - Primary action to create new ticket */}
           <button
             onClick={() => {
-              // Set flag for Checkout to auto-open ticket creation panel
-              localStorage.setItem('checkout-auto-open', 'new');
-              localStorage.removeItem('checkout-pending-ticket');
-              onModuleChange?.('checkout');
+              // Navigate directly to new ticket page
+              onModuleChange?.('new-ticket');
             }}
             title="Create New Ticket"
             className="

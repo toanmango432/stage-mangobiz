@@ -7,6 +7,7 @@ import { Tickets } from '../modules/Tickets';
 import { Team } from '../modules/Team';
 import { Pending } from '../modules/Pending';
 import { Checkout } from '../modules/Checkout';
+import { NewTicket } from '../modules/NewTicket';
 import { TransactionRecords } from '../modules/TransactionRecords';
 import { ClosedTickets } from '../modules/ClosedTickets';
 import { TodaysSales } from '../modules/TodaysSales';
@@ -292,6 +293,8 @@ export function AppShell() {
         return <Pending />;
       case 'checkout':
         return <Checkout />;
+      case 'new-ticket':
+        return <NewTicket onBack={() => setActiveModule('frontdesk')} />;
       case 'closed':
         return <ClosedTickets />;
       case 'transaction-records':
