@@ -76,6 +76,11 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
               if ('vibrate' in navigator) {
                 navigator.vibrate(10);
               }
+              // If clicking +New, set flag for Checkout to auto-open ticket creation
+              if (isNewButton) {
+                localStorage.setItem('checkout-auto-open', 'new');
+                localStorage.removeItem('checkout-pending-ticket');
+              }
               onModuleChange(module.id);
             }}
             aria-label={isNewButton ? 'Create new ticket' : `${module.label} module`}
