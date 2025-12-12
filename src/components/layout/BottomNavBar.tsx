@@ -4,9 +4,9 @@ import {
   LayoutGrid,
   Receipt,
   CreditCard,
-  FileText,
   MoreHorizontal,
-  Users
+  Users,
+  CheckCircle
 } from 'lucide-react';
 
 interface BottomNavBarProps {
@@ -43,7 +43,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
     { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
     { id: 'checkout', label: 'Checkout', icon: CreditCard },
-    { id: 'sales', label: 'Sales', icon: FileText },
+    { id: 'closed', label: 'Closed', icon: CheckCircle },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ];
 

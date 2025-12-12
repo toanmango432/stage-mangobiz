@@ -7,7 +7,9 @@ import { Tickets } from '../modules/Tickets';
 import { Team } from '../modules/Team';
 import { Pending } from '../modules/Pending';
 import { Checkout } from '../modules/Checkout';
-import { Sales } from '../modules/Sales';
+import { TransactionRecords } from '../modules/TransactionRecords';
+import { ClosedTickets } from '../modules/ClosedTickets';
+import { TodaysSales } from '../modules/TodaysSales';
 import { More } from '../modules/More';
 import { Schedule } from '../modules/Schedule';
 import { HeaderColorPreview } from '../HeaderColorPreview';
@@ -290,8 +292,12 @@ export function AppShell() {
         return <Pending />;
       case 'checkout':
         return <Checkout />;
-      case 'sales':
-        return <Sales />;
+      case 'closed':
+        return <ClosedTickets />;
+      case 'transaction-records':
+        return <TransactionRecords onBack={() => setActiveModule('more')} />;
+      case 'todays-sales':
+        return <TodaysSales onBack={() => setActiveModule('more')} />;
       case 'more':
         return <More onNavigate={setActiveModule} />;
       case 'schedule':

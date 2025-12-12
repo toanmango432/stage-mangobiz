@@ -3,7 +3,8 @@ import {
   Search, Bell, ChevronDown, Command, Hash, UserCircle,
   FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
   LayoutGrid, CreditCard, MoreHorizontal, LogOut, Settings,
-  Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2
+  Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2,
+  CheckCircle
 } from 'lucide-react';
 import { ClockInOutButton } from './ClockInOutButton';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -96,7 +97,7 @@ export function TopHeaderBar({
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
     { id: 'checkout', label: 'Checkout', icon: CreditCard },
-    { id: 'sales', label: 'Sales', icon: FileText },
+    { id: 'closed', label: 'Closed', icon: CheckCircle },
   ];
 
   // Universal Smart Search - AI-like suggestions across all system entities
@@ -837,7 +838,7 @@ export function TopHeaderBar({
           if (pendingPinAction === 'settings') {
             onModuleChange?.('more');
           } else if (pendingPinAction === 'reports') {
-            onModuleChange?.('sales');
+            onModuleChange?.('transaction-records');
           }
           setPendingPinAction(null);
         }}
