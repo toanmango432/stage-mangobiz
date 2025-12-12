@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Search, Bell, ChevronDown, Command, Hash, UserCircle,
   FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
-  LayoutGrid, CreditCard, MoreHorizontal, LogOut, Settings,
+  LayoutGrid, MoreHorizontal, LogOut, Settings,
   Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2,
-  CheckCircle
+  CheckCircle, Plus
 } from 'lucide-react';
 import { ClockInOutButton } from './ClockInOutButton';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -12,6 +12,7 @@ import { storeAuthManager } from '../../services/storeAuthManager';
 import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
 import { SwitchUserModal } from '../auth/SwitchUserModal';
 import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
+import { CreateTicketModal } from '../CreateTicketModal';
 
 interface TopHeaderBarProps {
   activeModule?: string;
@@ -39,6 +40,7 @@ export function TopHeaderBar({
   const [showPinVerificationModal, setShowPinVerificationModal] = useState(false);
   const [pendingPinAction, setPendingPinAction] = useState<'settings' | 'reports' | null>(null);
   const [showStoreSwitcher, setShowStoreSwitcher] = useState(false);
+  const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
 
   // Get dispatch for actions
   const dispatch = useAppDispatch();
@@ -91,12 +93,12 @@ export function TopHeaderBar({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchExpanded]);
 
-  // Navigation Modules - 4 core modules for busy salon staff
+  // Navigation Modules - 3 core modules for busy salon staff
   // Large, obvious buttons following "remote control" principle
+  // Note: +New is a special action button, not a navigation module
   const modules = [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
-    { id: 'checkout', label: 'Checkout', icon: CreditCard },
     { id: 'closed', label: 'Closed', icon: CheckCircle },
   ];
 
@@ -493,6 +495,32 @@ export function TopHeaderBar({
             );
           })}
 
+          {/* +New Button - Primary action to create new ticket */}
+          <button
+            onClick={() => setShowCreateTicketModal(true)}
+            title="Create New Ticket"
+            className="
+              relative flex items-center justify-center gap-2 xl:gap-2.5
+              px-3 lg:px-4 xl:px-5 py-2 xl:py-2.5
+              rounded-xl transition-all duration-150 group
+              min-h-[44px] xl:min-h-[52px] transform
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
+              bg-gradient-to-r from-orange-500 to-orange-600
+              text-white font-semibold shadow-lg shadow-orange-500/30
+              hover:from-orange-600 hover:to-orange-700 hover:shadow-xl hover:shadow-orange-500/40 hover:scale-[1.03]
+              active:scale-[0.97] active:shadow-md
+            "
+          >
+            <Plus
+              size={22}
+              className="w-5 h-5 xl:w-6 xl:h-6 flex-shrink-0 transition-transform duration-200 group-hover:rotate-90"
+              strokeWidth={2.5}
+            />
+            <span className="hidden lg:inline text-base xl:text-lg whitespace-nowrap">
+              New
+            </span>
+          </button>
+
           {/* More Button - glass style, secondary importance */}
           <button
             onClick={() => onModuleChange?.('more')}
@@ -848,6 +876,17 @@ export function TopHeaderBar({
             ? 'Enter your staff PIN to access store settings'
             : 'Enter your staff PIN to continue'
         }
+      />
+
+      {/* Create New Ticket Modal */}
+      <CreateTicketModal
+        isOpen={showCreateTicketModal}
+        onClose={() => setShowCreateTicketModal(false)}
+        onSubmit={(ticketData) => {
+          console.log('New ticket created:', ticketData);
+          // Navigate to frontdesk to see the new ticket in waitlist
+          onModuleChange?.('frontdesk');
+        }}
       />
     </header>
   );
