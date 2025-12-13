@@ -6,9 +6,10 @@ import { FrontDesk } from '../modules/FrontDesk';
 import { Tickets } from '../modules/Tickets';
 import { Team } from '../modules/Team';
 import { Pending } from '../modules/Pending';
-import { Checkout } from '../modules/Checkout';
-import { NewTicket } from '../modules/NewTicket';
 import { TransactionRecords } from '../modules/TransactionRecords';
+import TicketPanel from '../checkout/TicketPanel';
+import { selectAllStaff } from '../../store/slices/uiStaffSlice';
+import type { StaffMember } from '../checkout/ServiceList';
 import { ClosedTickets } from '../modules/ClosedTickets';
 import { TodaysSales } from '../modules/TodaysSales';
 import { More } from '../modules/More';
@@ -61,6 +62,16 @@ export function AppShell() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
   const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
+  const [isTicketPanelOpen, setIsTicketPanelOpen] = useState(false);
+
+  // Get staff from Redux for TicketPanel
+  const staffFromRedux = useAppSelector(selectAllStaff);
+  const staffMembers: StaffMember[] = staffFromRedux.map(s => ({
+    id: s.id,
+    name: s.name,
+    available: s.status === 'ready',
+    specialty: s.specialty,
+  }));
 
   // Handle module switch when device type changes (e.g., resize)
   useEffect(() => {
@@ -85,6 +96,19 @@ export function AppShell() {
     window.addEventListener('navigate-to-module', handleNavigate as EventListener);
     return () => {
       window.removeEventListener('navigate-to-module', handleNavigate as EventListener);
+    };
+  }, []);
+
+  // Listen for open-ticket-panel events (triggered by +New button from anywhere)
+  useEffect(() => {
+    const handleOpenTicketPanel = () => {
+      // Clear any stored pending ticket - we're creating a new one
+      localStorage.removeItem('checkout-pending-ticket');
+      setIsTicketPanelOpen(true);
+    };
+    window.addEventListener('open-ticket-panel', handleOpenTicketPanel);
+    return () => {
+      window.removeEventListener('open-ticket-panel', handleOpenTicketPanel);
     };
   }, []);
 
@@ -291,10 +315,6 @@ export function AppShell() {
         return <Team />;
       case 'pending':
         return <Pending />;
-      case 'checkout':
-        return <Checkout />;
-      case 'new-ticket':
-        return <NewTicket onBack={() => setActiveModule('frontdesk')} />;
       case 'closed':
         return <ClosedTickets />;
       case 'transaction-records':
@@ -376,6 +396,18 @@ export function AppShell() {
           pendingCount={pendingCount}
         />
       )}
+
+      {/* Global Ticket Panel Overlay - slides in from right, accessible from any screen */}
+      <TicketPanel
+        isOpen={isTicketPanelOpen}
+        onClose={() => {
+          setIsTicketPanelOpen(false);
+          localStorage.removeItem('checkout-pending-ticket');
+        }}
+        staffMembers={staffMembers.length > 0 ? staffMembers : [
+          { id: 'staff-1', name: 'Staff Member', available: true },
+        ]}
+      />
     </div>
   );
 }

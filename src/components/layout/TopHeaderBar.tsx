@@ -496,8 +496,8 @@ export function TopHeaderBar({
           {/* +New Button - Primary action to create new ticket */}
           <button
             onClick={() => {
-              // Navigate directly to new ticket page
-              onModuleChange?.('new-ticket');
+              // Dispatch event to open global ticket panel overlay
+              window.dispatchEvent(new CustomEvent('open-ticket-panel'));
             }}
             title="Create New Ticket"
             className="

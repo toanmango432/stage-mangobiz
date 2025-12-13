@@ -31,7 +31,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
 
   // Mobile: Book, Team, Tickets, Pending, +New, More
   // Desktop: Book, Front Desk, Pending, +New, Closed, More
-  // Note: +New navigates directly to new ticket creation page
+  // Note: +New opens the global ticket panel overlay (not navigation)
   const modules = isMobile ? [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'team', label: 'Team', icon: Users },
@@ -76,7 +76,12 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
               if ('vibrate' in navigator) {
                 navigator.vibrate(10);
               }
-              onModuleChange(module.id);
+              // +New button opens the global ticket panel overlay
+              if (isNewButton) {
+                window.dispatchEvent(new CustomEvent('open-ticket-panel'));
+              } else {
+                onModuleChange(module.id);
+              }
             }}
             aria-label={isNewButton ? 'Create new ticket' : `${module.label} module`}
             aria-current={isActive ? 'page' : undefined}
