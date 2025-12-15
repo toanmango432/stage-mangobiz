@@ -398,16 +398,31 @@ export function AppShell() {
       )}
 
       {/* Global Ticket Panel Overlay - slides in from right, accessible from any screen */}
-      <TicketPanel
-        isOpen={isTicketPanelOpen}
-        onClose={() => {
-          setIsTicketPanelOpen(false);
-          localStorage.removeItem('checkout-pending-ticket');
-        }}
-        staffMembers={staffMembers.length > 0 ? staffMembers : [
-          { id: 'staff-1', name: 'Staff Member', available: true },
-        ]}
-      />
+      {isTicketPanelOpen && (
+        <div className="fixed inset-0 z-[100] flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              setIsTicketPanelOpen(false);
+              localStorage.removeItem('checkout-pending-ticket');
+            }}
+          />
+          {/* Panel sliding from right */}
+          <div className="absolute right-0 top-0 bottom-0 w-full md:w-[900px] bg-white shadow-2xl animate-in slide-in-from-right duration-300">
+            <TicketPanel
+              isOpen={true}
+              onClose={() => {
+                setIsTicketPanelOpen(false);
+                localStorage.removeItem('checkout-pending-ticket');
+              }}
+              staffMembers={staffMembers.length > 0 ? staffMembers : [
+                { id: 'staff-1', name: 'Staff Member', available: true },
+              ]}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
