@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { ClientReview } from '../../../types';
-import { clientReviewsDB } from '../../../db/database';
+import type { ClientReview } from '@/types';
+import { clientReviewsDB } from '@/db/database';
 import { Card, Button, Textarea } from './SharedComponents';
 
 interface ClientReviewsCardProps {

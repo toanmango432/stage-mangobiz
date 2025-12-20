@@ -10,16 +10,16 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
-import type { AppDispatch } from '../../../store';
+import type { AppDispatch } from '@/store';
 import {
   selectAllTeamMembers,
   selectTeamLoading,
   updateMemberServices,
   saveTeamMember,
   fetchTeamMembers,
-} from '../../../store/slices/teamSlice';
+} from '@/store/slices/teamSlice';
 import type { TeamMemberSettings, ServicePricing } from '../../team-settings/types';
-import type { CategoryWithCount, MenuServiceWithEmbeddedVariants } from '../../../types/catalog';
+import type { CategoryWithCount, MenuServiceWithEmbeddedVariants } from '@/types/catalog';
 
 interface StaffPermissionsSectionProps {
   categories: CategoryWithCount[];

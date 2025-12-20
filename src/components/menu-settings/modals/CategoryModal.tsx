@@ -15,7 +15,7 @@ import {
   Droplet,
   Flame,
 } from 'lucide-react';
-import type { CategoryModalProps } from '../../../types/catalog';
+import type { CategoryModalProps } from '@/types/catalog';
 import { CATEGORY_COLORS } from '../constants';
 
 // Icon mapping

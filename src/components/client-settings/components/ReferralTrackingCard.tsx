@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Referral } from '../../../types';
-import { referralsDB } from '../../../db/database';
+import type { Referral } from '@/types';
+import { referralsDB } from '@/db/database';
 import { Card, Badge, Button } from './SharedComponents';
 
 interface ReferralTrackingCardProps {

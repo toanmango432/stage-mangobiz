@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
 
 // Mock IndexedDB storage operations - must be before slice import
-vi.mock('../../../services/frontDeskSettingsStorage', () => ({
+vi.mock('@/services/frontDeskSettingsStorage', () => ({
   loadSettings: vi.fn().mockResolvedValue({
     operationTemplate: 'frontDeskBalanced',
     organizeBy: 'busyStatus',
@@ -70,7 +70,7 @@ import frontDeskSettingsReducer, {
   selectSortBy,
   selectShowComingAppointments,
 } from '../frontDeskSettingsSlice';
-import { defaultFrontDeskSettings } from '../../../components/frontdesk-settings/constants';
+import { defaultFrontDeskSettings } from '@/components/frontdesk-settings/constants';
 import type { RootState } from '../../index';
 
 // Helper to create a test store

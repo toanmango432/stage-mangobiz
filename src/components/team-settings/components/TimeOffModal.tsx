@@ -3,9 +3,9 @@ import { Modal, Button } from './SharedComponents';
 import {
   useTimeOffTypes,
   useTimeOffRequestMutations,
-} from '../../../hooks/useSchedule';
+} from '@/hooks/useSchedule';
 import { useScheduleContext } from '../hooks/useScheduleContext';
-import type { TimeOffRequest as ScheduleTimeOffRequest } from '../../../types/schedule';
+import type { TimeOffRequest as ScheduleTimeOffRequest } from '@/types/schedule';
 
 interface TimeOffModalProps {
   isOpen: boolean;

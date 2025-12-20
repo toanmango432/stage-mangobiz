@@ -3,10 +3,10 @@ import { Modal, Button } from './SharedComponents';
 import {
   useBlockedTimeTypes,
   useBlockedTimeEntryMutations,
-} from '../../../hooks/useSchedule';
+} from '@/hooks/useSchedule';
 import { useScheduleContext } from '../hooks/useScheduleContext';
 import { isValidTimeFormat } from '../validation/validate';
-import type { BlockedTimeEntry, BlockedTimeFrequency } from '../../../types/schedule';
+import type { BlockedTimeEntry, BlockedTimeFrequency } from '@/types/schedule';
 
 interface ScheduleOverrideModalProps {
   isOpen: boolean;

@@ -20,8 +20,8 @@ import { Card, SectionHeader, Badge } from '../components/SharedComponents';
 import type {
   Achievement,
   AchievementProgress,
-} from '../../../types/performance';
-import { ACHIEVEMENT_DEFINITIONS } from '../../../types/performance';
+} from '@/types/performance';
+import { ACHIEVEMENT_DEFINITIONS } from '@/types/performance';
 
 // ============================================
 // TYPES

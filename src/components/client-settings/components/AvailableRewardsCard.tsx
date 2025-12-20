@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LoyaltyReward } from '../../../types';
+import type { LoyaltyReward } from '@/types';
 import { Card, Badge, Button } from './SharedComponents';
 
 interface AvailableRewardsCardProps {

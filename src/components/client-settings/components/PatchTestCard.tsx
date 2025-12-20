@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { PatchTest } from '../../../types';
+import type { PatchTest } from '@/types';
 import { Button, Badge, Card } from './SharedComponents';
 
 interface PatchTestCardProps {

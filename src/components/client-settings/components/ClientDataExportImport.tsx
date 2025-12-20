@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import type { Client } from '../../../types';
+import type { Client } from '@/types';
 import { Button } from './SharedComponents';
 
 // Export formats

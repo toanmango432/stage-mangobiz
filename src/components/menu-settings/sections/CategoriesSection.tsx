@@ -26,7 +26,7 @@ import type {
   ServiceCategory,
   MenuServiceWithEmbeddedVariants,
   CategoryWithCount,
-} from '../../../types/catalog';
+} from '@/types/catalog';
 import { CATEGORY_COLORS } from '../constants';
 import { CategoryModal } from '../modals/CategoryModal';
 

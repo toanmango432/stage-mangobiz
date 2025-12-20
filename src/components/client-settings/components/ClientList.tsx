@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { EnhancedClient, LoyaltyTier } from '../types';
-import type { ClientSegment } from '../../../types';
+import type { ClientSegment } from '@/types';
 import { tierLabels, clientSettingsTokens } from '../constants';
 import {
   SearchInput,

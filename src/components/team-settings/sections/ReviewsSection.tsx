@@ -22,7 +22,7 @@ import type {
   StaffReview,
   ReviewSummary,
   ReviewCategory,
-} from '../../../types/performance';
+} from '@/types/performance';
 
 // ============================================
 // TYPES

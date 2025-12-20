@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import type { MenuServiceWithEmbeddedVariants, CategoryWithCount } from '../../../types/catalog';
+import type { MenuServiceWithEmbeddedVariants, CategoryWithCount } from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 
 interface BookingSequenceSectionProps {

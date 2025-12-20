@@ -1,6 +1,6 @@
 import { MoreVertical, Edit2, Printer, Mail, Trash2 } from 'lucide-react';
 import Tippy from '@tippyjs/react';
-import { PremiumColors } from '../../../constants/premiumDesignTokens';
+import { PremiumColors } from '@/constants/premiumDesignTokens';
 
 interface TicketHeaderProps {
   ticketId: string;

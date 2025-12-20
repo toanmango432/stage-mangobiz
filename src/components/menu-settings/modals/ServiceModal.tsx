@@ -15,7 +15,7 @@ import {
   CalendarClock,
   Package,
 } from 'lucide-react';
-import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType } from '../../../types/catalog';
+import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType } from '@/types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, EXTRA_TIME_TYPES, REBOOK_REMINDER_OPTIONS, formatDuration } from '../constants';
 
 export function ServiceModal({

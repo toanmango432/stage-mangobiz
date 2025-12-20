@@ -2047,6 +2047,7 @@ export default function TicketPanel({
 
   if (!isOpen) return null;
 
+
   const setMode = (newMode: PanelMode) => dispatch(ticketActions.setMode(newMode));
   const setCheckoutLayout = (layout: CheckoutLayout) => {
     dispatch(ticketActions.setCheckoutLayout(layout));
@@ -2089,10 +2090,8 @@ export default function TicketPanel({
           mode === "dock" ? "w-full md:w-[900px]" : "w-full"
         }`}
       >
-        {/* Dock Mode: No floating buttons - controls are integrated into the layout */}
-
         <div
-          className="flex-1 overflow-hidden"
+          className="flex-1 overflow-hidden min-h-0"
           data-scroll-container
           role="main"
           aria-label="Checkout panel content"

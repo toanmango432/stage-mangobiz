@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { StaffAlert } from '../../../types';
+import type { StaffAlert } from '@/types';
 import { Button } from './SharedComponents';
 
 interface StaffAlertBannerProps {

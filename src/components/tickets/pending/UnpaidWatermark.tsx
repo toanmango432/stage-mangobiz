@@ -1,4 +1,4 @@
-import { PremiumTypography } from '../../../constants/premiumDesignTokens';
+import { PremiumTypography } from '@/constants/premiumDesignTokens';
 
 /**
  * UnpaidWatermark Component

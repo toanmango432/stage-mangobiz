@@ -15,9 +15,9 @@ import {
 import { Button, Toggle } from './SharedComponents';
 import { allDefaultRoles } from '../../role-settings/constants';
 import { isValidEmail } from '../validation/validate';
-import { selectStoreId, selectTenantId } from '../../../store/slices/authSlice';
-import { createSupabaseMember } from '../../../services/supabase/memberService';
-import type { MemberRow } from '../../../services/supabase/types';
+import { selectStoreId, selectTenantId } from '@/store/slices/authSlice';
+import { createSupabaseMember } from '@/services/supabase/memberService';
+import type { MemberRow } from '@/services/supabase/types';
 
 // Generate dynamic role labels from role-settings
 const getDynamicRoleLabels = (): Record<string, string> => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { EnhancedClient } from '../types';
-import type { GiftCardBalance } from '../../../types';
+import type { GiftCardBalance } from '@/types';
 import { Card, Button, Badge, Input } from '../components/SharedComponents';
 
 interface WalletSectionProps {

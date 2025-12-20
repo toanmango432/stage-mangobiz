@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { EnhancedClient, ClientGender, ClientSource, EmergencyContact } from '../types';
-import type { BlockReason } from '../../../types';
+import type { BlockReason } from '@/types';
 import { genderLabels, sourceLabels } from '../constants';
 import {
   Card,

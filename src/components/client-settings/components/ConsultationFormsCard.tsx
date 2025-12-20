@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { ClientFormResponse } from '../../../types';
+import type { ClientFormResponse } from '@/types';
 import { Button, Badge, Card } from './SharedComponents';
 
 interface ConsultationFormsCardProps {

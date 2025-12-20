@@ -1,4 +1,4 @@
-import { PremiumColors, PremiumTypography } from '../../../constants/premiumDesignTokens';
+import { PremiumColors, PremiumTypography } from '@/constants/premiumDesignTokens';
 
 interface PriceBreakdownProps {
   subtotal: number;

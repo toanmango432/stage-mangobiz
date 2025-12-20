@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { EnhancedClient } from '../types';
-import type { PatchTest, ClientFormResponse, FormTemplate, MedicalInfo } from '../../../types';
-import { patchTestsDB, formResponsesDB, formTemplatesDB } from '../../../db/database';
+import type { PatchTest, ClientFormResponse, FormTemplate, MedicalInfo } from '@/types';
+import { patchTestsDB, formResponsesDB, formTemplatesDB } from '@/db/database';
 import { PatchTestCard } from '../components/PatchTestCard';
 import { PatchTestModal } from '../components/PatchTestModal';
 import { ConsultationFormsCard } from '../components/ConsultationFormsCard';

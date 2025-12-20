@@ -4,9 +4,9 @@
  */
 
 import { useMemo } from 'react';
-import { useAppSelector } from '../../../store/hooks';
-import { selectCurrentUser, selectSalonId } from '../../../store/slices/authSlice';
-import type { ScheduleContext } from '../../../hooks/useSchedule';
+import { useAppSelector } from '@/store/hooks';
+import { selectCurrentUser, selectSalonId } from '@/store/slices/authSlice';
+import type { ScheduleContext } from '@/hooks/useSchedule';
 
 // Default device ID - in production this would come from a device fingerprint
 const DEFAULT_DEVICE_ID = 'web-device-001';

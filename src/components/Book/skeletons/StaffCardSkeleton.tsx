@@ -4,7 +4,7 @@
  */
 
 import { ShimmerSkeleton } from './Skeleton';
-import { cn } from '../../../lib/utils';
+import { cn } from '@/lib/utils';
 
 interface StaffCardSkeletonProps {
   className?: string;

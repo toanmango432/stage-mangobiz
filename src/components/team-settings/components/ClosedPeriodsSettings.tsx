@@ -5,9 +5,9 @@ import {
   useClosedPeriods,
   useClosedPeriodMutations,
   useUpcomingClosedPeriods,
-} from '../../../hooks/useSchedule';
+} from '@/hooks/useSchedule';
 import { useScheduleContext } from '../hooks/useScheduleContext';
-import type { BusinessClosedPeriod } from '../../../types/schedule';
+import type { BusinessClosedPeriod } from '@/types/schedule';
 
 interface ClosedPeriodsSettingsProps {
   storeId: string;

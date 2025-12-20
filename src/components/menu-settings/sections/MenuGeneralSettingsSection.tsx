@@ -8,7 +8,7 @@ import {
   Settings,
   Info,
 } from 'lucide-react';
-import type { MenuGeneralSettings } from '../../../types/catalog';
+import type { MenuGeneralSettings } from '@/types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS } from '../constants';
 
 interface MenuGeneralSettingsSectionProps {

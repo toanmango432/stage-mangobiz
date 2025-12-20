@@ -20,19 +20,19 @@ import {
   X,
 } from 'lucide-react';
 import { Card, SectionHeader, Badge } from '../components/SharedComponents';
-import type { AppDispatch } from '../../../store';
+import type { AppDispatch } from '@/store';
 import {
   fetchPayRuns,
   selectAllPayRuns,
   selectPayrollLoading,
   selectPayrollError,
-} from '../../../store/slices/payrollSlice';
-import type { PayRun, PayRunStatus, StaffPayment } from '../../../types/payroll';
+} from '@/store/slices/payrollSlice';
+import type { PayRun, PayRunStatus, StaffPayment } from '@/types/payroll';
 import {
   formatCurrency,
   formatHoursDisplay,
   formatPayPeriod,
-} from '../../../utils/payrollCalculation';
+} from '@/utils/payrollCalculation';
 
 interface PayrollSectionProps {
   memberId: string;

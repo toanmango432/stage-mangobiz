@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ClientFormResponse, FormTemplate, FormSection } from '../../../types';
+import type { ClientFormResponse, FormTemplate, FormSection } from '@/types';
 import { Button, Badge } from './SharedComponents';
 
 interface FormResponseViewerProps {

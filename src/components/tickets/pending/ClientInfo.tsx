@@ -1,5 +1,5 @@
 import { Tag } from 'lucide-react';
-import { PremiumColors } from '../../../constants/premiumDesignTokens';
+import { PremiumColors } from '@/constants/premiumDesignTokens';
 
 interface ClientInfoProps {
   clientName: string;

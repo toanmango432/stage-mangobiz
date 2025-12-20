@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Clock, Coffee, Play, CheckCircle, AlertCircle, Calendar, Timer, Users, AlertTriangle, Download, FileText, BarChart3 } from 'lucide-react';
 import { Card, SectionHeader, Button, Badge, Modal, Textarea, Tabs } from '../components/SharedComponents';
-import type { AppDispatch, RootState } from '../../../store';
+import type { AppDispatch, RootState } from '@/store';
 import {
   clockIn,
   clockOut,
@@ -15,10 +15,10 @@ import {
   approveTimesheet,
   disputeTimesheet,
   selectTimesheetLoading,
-} from '../../../store/slices/timesheetSlice';
-import { selectAllTeamMembers } from '../../../store/slices/teamSlice';
-import type { TimesheetEntry, BreakType, AttendanceAlertType } from '../../../types/timesheet';
-import { formatHours } from '../../../utils/overtimeCalculation';
+} from '@/store/slices/timesheetSlice';
+import { selectAllTeamMembers } from '@/store/slices/teamSlice';
+import type { TimesheetEntry, BreakType, AttendanceAlertType } from '@/types/timesheet';
+import { formatHours } from '@/utils/overtimeCalculation';
 import { TimesheetDashboard } from '../components/TimesheetDashboard';
 
 // Local interface for display alerts with severity (not stored, generated on-the-fly)

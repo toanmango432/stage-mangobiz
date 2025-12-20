@@ -26,7 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Card, SectionHeader, Badge } from '../components/SharedComponents';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   fetchStaffMetrics,
   fetchStaffAchievements,
@@ -36,8 +36,8 @@ import {
   selectStaffReviewSummary,
   selectPerformanceLoading,
   setCurrentPeriod,
-} from '../../../store/slices/staffPerformanceSlice';
-import { createEmptyMetrics } from '../../../types/performance';
+} from '@/store/slices/staffPerformanceSlice';
+import { createEmptyMetrics } from '@/types/performance';
 import type { PerformanceGoals as TeamPerformanceGoals } from '../types';
 import type {
   PerformancePeriod,
@@ -45,11 +45,11 @@ import type {
   GoalProgress,
   Achievement,
   ReviewSummary,
-} from '../../../types/performance';
+} from '@/types/performance';
 import {
   calculateGoalProgress,
   ACHIEVEMENT_DEFINITIONS,
-} from '../../../types/performance';
+} from '@/types/performance';
 
 // ============================================
 // TYPES

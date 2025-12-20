@@ -10,13 +10,13 @@ import {
   RefreshCw,
   Zap
 } from 'lucide-react';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import {
   selectIsOnline,
   selectIsSyncing,
   selectPendingOperations,
   selectLastSyncAt
-} from '../../../store/slices/syncSlice';
+} from '@/store/slices/syncSlice';
 
 interface DatabaseStats {
   size: number;

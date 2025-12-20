@@ -524,10 +524,7 @@ export function TopHeaderBar({
 
           {/* +New Button - Circular icon only, outlined style */}
           <button
-            onClick={() => {
-              // Use callback prop to open global ticket panel
-              onOpenTicketPanel?.();
-            }}
+            onClick={() => onOpenTicketPanel?.()}
             title="Create New Ticket"
             className="
               relative flex items-center justify-center

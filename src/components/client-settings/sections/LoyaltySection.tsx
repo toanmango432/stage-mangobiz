@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { EnhancedClient, LoyaltyTier } from '../types';
-import type { LoyaltyReward } from '../../../types';
+import type { LoyaltyReward } from '@/types';
 import { tierLabels, clientSettingsTokens } from '../constants';
 import { Card, Select, Toggle, Input, Button } from '../components/SharedComponents';
 import { ReferralTrackingCard } from '../components/ReferralTrackingCard';

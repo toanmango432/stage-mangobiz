@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Modal, Button, Toggle, Textarea } from './SharedComponents';
-import { useClosedPeriodMutations } from '../../../hooks/useSchedule';
+import { useClosedPeriodMutations } from '@/hooks/useSchedule';
 import { useScheduleContext } from '../hooks/useScheduleContext';
-import { useAppSelector } from '../../../store/hooks';
-import { selectAllAppointments } from '../../../store/slices/appointmentsSlice';
-import type { BusinessClosedPeriod, CreateBusinessClosedPeriodInput } from '../../../types/schedule';
-import type { LocalAppointment } from '../../../types/appointment';
+import { useAppSelector } from '@/store/hooks';
+import { selectAllAppointments } from '@/store/slices/appointmentsSlice';
+import type { BusinessClosedPeriod, CreateBusinessClosedPeriodInput } from '@/types/schedule';
+import type { LocalAppointment } from '@/types/appointment';
 
 interface ClosedPeriodModalProps {
   isOpen: boolean;

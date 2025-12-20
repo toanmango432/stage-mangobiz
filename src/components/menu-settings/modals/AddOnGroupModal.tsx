@@ -8,7 +8,7 @@ import {
   Layers,
   Info,
 } from 'lucide-react';
-import type { AddOnGroup, CategoryWithCount, MenuService } from '../../../types/catalog';
+import type { AddOnGroup, CategoryWithCount, MenuService } from '@/types/catalog';
 import {
   ADDON_SELECTION_MODES,
   ADDON_MIN_SELECTION_OPTIONS,

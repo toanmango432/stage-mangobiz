@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { BlockReason } from '../../../types';
+import type { BlockReason } from '@/types';
 import { Button } from './SharedComponents';
 
 interface BlockClientModalProps {

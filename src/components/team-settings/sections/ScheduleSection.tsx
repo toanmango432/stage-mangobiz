@@ -9,10 +9,10 @@ import {
   useStaffBlockedTimeEntries,
   useTimeOffRequestMutations,
   useBlockedTimeEntryMutations,
-} from '../../../hooks/useSchedule';
+} from '@/hooks/useSchedule';
 import { useScheduleContext } from '../hooks/useScheduleContext';
 import { isValidTimeFormat } from '../validation/validate';
-import type { TimeOffRequest as ScheduleTimeOffRequest, BlockedTimeEntry } from '../../../types/schedule';
+import type { TimeOffRequest as ScheduleTimeOffRequest, BlockedTimeEntry } from '@/types/schedule';
 
 interface ScheduleSectionProps {
   workingHours: WorkingHoursSettings;

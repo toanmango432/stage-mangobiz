@@ -4,7 +4,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import type { AddOnOption } from '../../../types/catalog';
+import type { AddOnOption } from '@/types/catalog';
 import { DURATION_OPTIONS } from '../constants';
 
 interface AddOnOptionModalProps {

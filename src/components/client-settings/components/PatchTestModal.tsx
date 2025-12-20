@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { PatchTest, PatchTestResult } from '../../../types';
+import type { PatchTest, PatchTestResult } from '@/types';
 import { Button, Input, Select, Textarea } from './SharedComponents';
 
 interface PatchTestModalProps {

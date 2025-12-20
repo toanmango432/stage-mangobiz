@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { LoyaltyTier, ClientTag } from '../../../types';
+import type { LoyaltyTier, ClientTag } from '@/types';
 import { Button } from './SharedComponents';
 
 interface BulkActionsToolbarProps {

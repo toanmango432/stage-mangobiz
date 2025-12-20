@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TurnQueue } from '../../../components/TurnQueue';
+import { TurnQueue } from '@/components/TurnQueue';
 
 // Mock staff data
 const createMockStaffTurn = (overrides = {}) => ({

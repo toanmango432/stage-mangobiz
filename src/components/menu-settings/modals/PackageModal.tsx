@@ -12,7 +12,7 @@ import {
   Check,
   Minus,
 } from 'lucide-react';
-import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants, BundleBookingMode } from '../../../types/catalog';
+import type { PackageServiceItem, PackageModalProps, MenuServiceWithEmbeddedVariants, BundleBookingMode } from '@/types/catalog';
 import { formatDuration, formatPrice, CATEGORY_COLORS, BUNDLE_BOOKING_MODES } from '../constants';
 
 export function PackageModal({

@@ -5,7 +5,7 @@ import type { TeamMemberSettings } from '../../components/team-settings/types';
 // Turn entry for tracking service history
 export interface TurnEntry {
   id: string;
-  timestamp: Date;
+  timestamp: string; // ISO 8601 string
   turnNumber: number;
   amount: number;
   serviceCount: number;
@@ -56,7 +56,7 @@ export interface UIStaff {
     progress?: number;  // Percentage 0-100
   };
   // Turn tracking fields
-  clockInTime?: Date;
+  clockInTime?: string; // ISO 8601 string - stored as string for Redux serialization
   serviceTurn?: number;
   bonusTurn?: number;
   adjustTurn?: number;
@@ -120,7 +120,7 @@ export const loadStaff = createAsyncThunk(
         if (shiftStatus && shiftStatus.isClockedIn) {
           staff.status = 'ready';
           if (shiftStatus.clockInTime) {
-            staff.clockInTime = new Date(shiftStatus.clockInTime);
+            staff.clockInTime = new Date(shiftStatus.clockInTime).toISOString();
             staff.time = new Date(shiftStatus.clockInTime).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit'
@@ -326,7 +326,7 @@ const uiStaffSlice = createSlice({
         if (!staff.turnLogs) staff.turnLogs = [];
         staff.turnLogs.push({
           id: `adj-${Date.now()}`,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
           turnNumber: staff.turnLogs.length + 1,
           amount: action.payload.amount,
           serviceCount: 0,
@@ -465,7 +465,7 @@ const uiStaffSlice = createSlice({
           const staff = state.staff.find(s => s.id === timesheet.staffId);
           if (staff) {
             staff.status = 'ready';
-            staff.clockInTime = new Date(timesheet.actualClockIn);
+            staff.clockInTime = new Date(timesheet.actualClockIn).toISOString();
             staff.time = new Date(timesheet.actualClockIn).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit'
@@ -516,7 +516,7 @@ export const selectStaffForTurnTracker = (state: RootState) => {
       id: staff.id,
       name: staff.name.toUpperCase(),
       photo: staff.image,
-      clockInTime: staff.clockInTime || new Date(),
+      clockInTime: staff.clockInTime || new Date().toISOString(),
       serviceTurn: staff.serviceTurn ?? staff.count ?? 0,
       bonusTurn: staff.bonusTurn ?? 0,
       adjustTurn: staff.adjustTurn ?? 0,

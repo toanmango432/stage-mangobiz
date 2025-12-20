@@ -21,7 +21,7 @@ import type {
   CategoryWithCount,
   CatalogViewMode,
   EmbeddedVariant,
-} from '../../../types/catalog';
+} from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
 

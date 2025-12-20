@@ -7,7 +7,7 @@ import {
   Link,
   Zap,
 } from 'lucide-react';
-import type { AddOnModalProps } from '../../../types/catalog';
+import type { AddOnModalProps } from '@/types/catalog';
 import { DURATION_OPTIONS } from '../constants';
 
 export function AddOnModal({

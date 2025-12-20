@@ -18,7 +18,7 @@ import type {
   MenuServiceWithEmbeddedVariants,
   CategoryWithCount,
   CatalogViewMode,
-} from '../../../types/catalog';
+} from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { PackageModal } from '../modals/PackageModal';
 

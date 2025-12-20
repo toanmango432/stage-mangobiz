@@ -412,8 +412,9 @@ export function TransactionRecords({ onBack }: TransactionRecordsProps) {
     (customDateRange.from !== null && customDateRange.to !== null);
 
   // Handle new sale creation
-  const handleNewSale = (saleData: Ticket) => {
-    setTickets([saleData, ...tickets]);
+  const handleNewSale = (_saleData: Ticket) => {
+    // TODO: Dispatch Redux action to create new ticket
+    // For now, just close the modal - tickets come from Redux
     setShowNewSaleModal(false);
   };
 

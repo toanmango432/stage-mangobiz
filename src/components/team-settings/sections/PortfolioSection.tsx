@@ -21,7 +21,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Card, SectionHeader, Badge } from '../components/SharedComponents';
-import type { PortfolioItem } from '../../../types/performance';
+import type { PortfolioItem } from '@/types/performance';
 
 // ============================================
 // TYPES

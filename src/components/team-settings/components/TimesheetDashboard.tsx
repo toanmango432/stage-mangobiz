@@ -22,7 +22,7 @@ import {
   Tabs,
   Textarea,
 } from './SharedComponents';
-import type { AppDispatch } from '../../../store';
+import type { AppDispatch } from '@/store';
 import {
   fetchTimesheetsByDateRange,
   approveTimesheet,
@@ -30,9 +30,9 @@ import {
   bulkApproveTimesheets,
   selectAllTimesheets,
   selectTimesheetLoading,
-} from '../../../store/slices/timesheetSlice';
-import type { TimesheetEntry, TimesheetStatus } from '../../../types/timesheet';
-import { formatHours } from '../../../utils/overtimeCalculation';
+} from '@/store/slices/timesheetSlice';
+import type { TimesheetEntry, TimesheetStatus } from '@/types/timesheet';
+import { formatHours } from '@/utils/overtimeCalculation';
 
 // ============================================
 // TYPES
