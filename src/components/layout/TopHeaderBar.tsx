@@ -520,7 +520,7 @@ export function TopHeaderBar({
             </button>
           </div>
 
-          {/* +New Button - Circular, outlined style for less visual weight */}
+          {/* +New Button - Pill shape with text, outlined style */}
           <button
             onClick={() => {
               // Dispatch event to open global ticket panel overlay
@@ -528,8 +528,8 @@ export function TopHeaderBar({
             }}
             title="Create New Ticket"
             className="
-              relative flex items-center justify-center
-              w-11 h-11 lg:w-12 lg:h-12
+              relative flex items-center justify-center gap-1
+              px-4 lg:px-5 py-2 lg:py-2.5
               ml-2 lg:ml-3
               rounded-full transition-all duration-200 group
               focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
@@ -541,10 +541,11 @@ export function TopHeaderBar({
             "
           >
             <Plus
-              size={24}
-              className="w-6 h-6 transition-transform duration-200 group-hover:rotate-90"
+              size={18}
+              className="w-[18px] h-[18px] transition-transform duration-200 group-hover:rotate-90"
               strokeWidth={2.5}
             />
+            <span className="text-sm font-semibold">New</span>
           </button>
         </nav>
       </div>
