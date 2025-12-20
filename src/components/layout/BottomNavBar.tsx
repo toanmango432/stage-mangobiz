@@ -44,7 +44,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
     { id: 'pending', label: 'Pending', icon: Receipt, badge: pendingCount },
     { id: 'new-ticket', label: '+New', icon: Plus, isNewButton: true },
-    { id: 'closed', label: 'Closed', icon: CheckCircle },
+    { id: 'closed', label: 'Closed Tickets', icon: CheckCircle },
     { id: 'more', label: 'More', icon: MoreHorizontal },
   ];
 

@@ -97,7 +97,7 @@ export function TopHeaderBar({
   const modules = [
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
-    { id: 'closed', label: 'Closed', icon: CheckCircle },
+    { id: 'closed', label: 'Closed Tickets', icon: CheckCircle },
   ];
 
   // Universal Smart Search - AI-like suggestions across all system entities
