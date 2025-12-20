@@ -460,6 +460,7 @@ export function TopHeaderBar({
         <nav className="flex items-center gap-1 lg:gap-1.5 h-full">
           {/* Navigation Tabs - Clean pill style */}
           <div className="flex items-center bg-gray-100/80 rounded-full p-1">
+            {/* Main Navigation: Book & Front Desk */}
             {modules.map((module) => {
               const Icon = module.icon;
               const isActive = activeModule === module.id;
@@ -476,8 +477,8 @@ export function TopHeaderBar({
                     min-h-[40px] xl:min-h-[44px]
                     focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
                     ${isActive
-                      ? 'bg-white text-orange-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                      ? 'bg-white text-orange-600 shadow-md font-semibold'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
                     }
                   `}
                 >
@@ -493,30 +494,33 @@ export function TopHeaderBar({
               );
             })}
 
-            {/* More Button - Inside the pill */}
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-300/60 mx-1" />
+
+            {/* More Button - Secondary, after divider */}
             <button
               onClick={() => onModuleChange?.('more')}
               title="More"
               className={`
-                relative flex items-center justify-center gap-2
-                px-4 lg:px-5 xl:px-6 py-2 xl:py-2.5
+                relative flex items-center justify-center gap-1.5
+                px-3 lg:px-4 py-2 xl:py-2.5
                 rounded-full transition-all duration-200
                 min-h-[40px] xl:min-h-[44px]
                 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
                 ${activeModule === 'more'
-                  ? 'bg-white text-gray-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  ? 'bg-white text-gray-700 shadow-md'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                 }
               `}
             >
-              <MoreHorizontal size={20} className="w-5 h-5 flex-shrink-0" />
-              <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
+              <MoreHorizontal size={18} className="w-[18px] h-[18px] flex-shrink-0" />
+              <span className={`hidden lg:inline text-sm whitespace-nowrap ${activeModule === 'more' ? 'font-medium' : 'font-normal'}`}>
                 More
               </span>
             </button>
           </div>
 
-          {/* +New Button - Circular, stands out */}
+          {/* +New Button - Circular with text, stands out */}
           <button
             onClick={() => {
               // Dispatch event to open global ticket panel overlay
@@ -524,22 +528,23 @@ export function TopHeaderBar({
             }}
             title="Create New Ticket"
             className="
-              relative flex items-center justify-center
-              w-11 h-11 lg:w-12 lg:h-12 xl:w-14 xl:h-14
+              relative flex items-center justify-center gap-1.5
+              h-11 lg:h-12 xl:h-14 px-4 lg:px-5 xl:px-6
               ml-3 lg:ml-4
               rounded-full transition-all duration-200 group
               focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
               bg-gradient-to-br from-orange-500 to-orange-600
-              text-white shadow-lg shadow-orange-500/40
+              text-white font-semibold shadow-lg shadow-orange-500/40
               hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105
               active:scale-95
             "
           >
             <Plus
-              size={24}
-              className="w-6 h-6 lg:w-7 lg:h-7 transition-transform duration-200 group-hover:rotate-90"
+              size={22}
+              className="w-5 h-5 lg:w-6 lg:h-6 transition-transform duration-200 group-hover:rotate-90"
               strokeWidth={2.5}
             />
+            <span className="text-sm lg:text-base font-semibold">New</span>
           </button>
         </nav>
       </div>
