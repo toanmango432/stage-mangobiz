@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, memo } from 'react';
-import { useTickets } from '../hooks/useTicketsCompat';
+import { useTickets } from '@/hooks/useTicketsCompat';
 import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil, AlertCircle } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FrontDeskSettingsData } from './frontdesk-settings/types';
+import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 
 interface ComingAppointmentsProps {
   isMinimized?: boolean;

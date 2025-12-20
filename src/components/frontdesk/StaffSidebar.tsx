@@ -2,13 +2,13 @@ import { useEffect, useState, useRef } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { Search, Filter, Users, ChevronUp, ChevronDown, Settings } from 'lucide-react';
-import { StaffCard as HorizontalCard } from './StaffCard';
-import { StaffCardVertical } from './StaffCard/StaffCardVertical';
-import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from './TeamSettingsPanel';
-import { TurnTracker } from './TurnTracker/TurnTracker';
-import { useTickets } from '../hooks/useTicketsCompat';
-import { FrontDeskSettingsData } from './frontdesk-settings/types';
-import { useFeatureFlag } from '../hooks/useFeatureFlag';
+import { StaffCard as HorizontalCard } from '@/components/StaffCard';
+import { StaffCardVertical } from '@/components/StaffCard/StaffCardVertical';
+import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from '@/components/TeamSettingsPanel';
+import { TurnTracker } from '@/components/TurnTracker/TurnTracker';
+import { useTickets } from '@/hooks/useTicketsCompat';
+import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;

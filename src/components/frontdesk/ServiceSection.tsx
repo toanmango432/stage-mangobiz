@@ -1,16 +1,16 @@
 import { useEffect, useState, useRef, memo } from 'react';
-import { useTickets } from '../hooks/useTicketsCompat';
-import { useTicketSection } from '../hooks/frontdesk';
-import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
-import { serviceHeaderTheme } from './frontdesk/headerTokens';
-import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
+import { useTickets } from '@/hooks/useTicketsCompat';
+import { useTicketSection } from '@/hooks/frontdesk';
+import { FrontDeskHeader, HeaderActionButton } from './FrontDeskHeader';
+import { serviceHeaderTheme } from './headerTokens';
+import { FrontDeskEmptyState } from './FrontDeskEmptyState';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity, Trash2 } from 'lucide-react';
-import { EditTicketModal } from './EditTicketModal';
-import { TicketDetailsModal } from './TicketDetailsModal';
-import { ServiceTicketCard, ServiceTicketCardRefactored } from './tickets';
-import { FrontDeskSettingsData } from './frontdesk-settings/types';
+import { EditTicketModal } from '@/components/tickets/EditTicketModal';
+import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
+import { ServiceTicketCard, ServiceTicketCardRefactored } from '@/components/tickets';
+import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 
 // Helper functions for time calculations
 const formatTime = (date: Date): string => {

@@ -19,6 +19,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,7 +40,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Client } from "./ClientSelector";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import ClientSelector, { Client } from "./ClientSelector";
 import ServiceGrid, { Service } from "./ServiceGrid";
 import { TicketService, StaffMember } from "./ServiceList";
 import InteractiveSummary from "./InteractiveSummary";
@@ -82,7 +96,15 @@ import {
   Package,
   Gift,
   ChevronLeft,
+  ChevronDown,
   Users,
+  RotateCcw,
+  LogIn,
+  Keyboard,
+  UserPlus,
+  AlertTriangle,
+  Phone,
+  Mail,
 } from "lucide-react";
 
 // ============================================================================
@@ -132,7 +154,9 @@ type DialogKey =
   | "showPreventStaffRemoval"
   | "showKeyboardShortcuts"
   | "showSplitTicketDialog"
-  | "showMergeTicketsDialog";
+  | "showMergeTicketsDialog"
+  | "showClientSelector"
+  | "showClientProfile";
 
 interface DialogState {
   showPaymentModal: boolean;
@@ -150,6 +174,8 @@ interface DialogState {
   showKeyboardShortcuts: boolean;
   showSplitTicketDialog: boolean;
   showMergeTicketsDialog: boolean;
+  showClientSelector: boolean;
+  showClientProfile: boolean;
 }
 
 type PanelMode = "dock" | "full";
@@ -183,6 +209,7 @@ interface TicketState {
   dialogs: DialogState;
   ui: UIState;
   undoStack: UndoSnapshot[];
+  isNewTicket: boolean; // true = unsaved new ticket, false = already saved/checked-in
 }
 
 // ============================================================================
@@ -228,7 +255,9 @@ type TicketAction =
   | { type: "MERGE_TICKETS"; payload: { services: TicketService[]; discount: number; staffIds: string[] } }
   | { type: "VOID_TICKET" }
   | { type: "UNDO_LAST_ACTION" }
-  | { type: "RESET_TICKET" };
+  | { type: "RESET_TICKET" }
+  | { type: "CLEAR_SERVICES" }
+  | { type: "MARK_TICKET_SAVED" };
 
 // ============================================================================
 // INITIAL STATE
@@ -279,6 +308,8 @@ const createInitialState = (): TicketState => ({
     showKeyboardShortcuts: false,
     showSplitTicketDialog: false,
     showMergeTicketsDialog: false,
+    showClientSelector: false,
+    showClientProfile: false,
   },
   ui: {
     mode: getDefaultMode(),
@@ -292,6 +323,7 @@ const createInitialState = (): TicketState => ({
     searchQuery: "",
   },
   undoStack: [],
+  isNewTicket: true, // New tickets start as unsaved
 });
 
 // ============================================================================
@@ -805,6 +837,34 @@ function ticketReducer(state: TicketState, action: TicketAction): TicketState {
         },
       };
 
+    case "CLEAR_SERVICES":
+      // Clear only services, keep client and other ticket state
+      return {
+        ...state,
+        services: [],
+        staff: {
+          ...state.staff,
+          activeStaffId: null,
+          assignedStaffIds: [],
+        },
+        discounts: {
+          ...state.discounts,
+          discount: 0,
+          hasDiscount: false,
+          appliedPointsDiscount: 0,
+          redeemedPoints: 0,
+          appliedCoupon: null,
+          couponDiscount: 0,
+        },
+      };
+
+    case "MARK_TICKET_SAVED":
+      // Mark ticket as saved (no longer new/unsaved)
+      return {
+        ...state,
+        isNewTicket: false,
+      };
+
     default:
       return state;
   }
@@ -1009,6 +1069,14 @@ export const ticketActions = {
   resetTicket: (): TicketAction => ({
     type: "RESET_TICKET",
   }),
+
+  clearServices: (): TicketAction => ({
+    type: "CLEAR_SERVICES",
+  }),
+
+  markTicketSaved: (): TicketAction => ({
+    type: "MARK_TICKET_SAVED",
+  }),
 };
 
 // ============================================================================
@@ -1073,13 +1141,14 @@ const MOCK_OPEN_TICKETS: OpenTicket[] = [
 
 const KEYBOARD_HINTS_DISMISSED_KEY = "mango-pos-keyboard-hints-dismissed";
 
-function KeyboardShortcutsHint({
+// KeyboardShortcutsHint - kept for future use when hints banner is re-enabled
+const KeyboardShortcutsHint = ({
   onDismiss,
   onShowShortcuts,
 }: {
   onDismiss: () => void;
   onShowShortcuts: () => void;
-}) {
+}) => {
   return (
     <div
       className="flex items-center justify-between gap-2 px-3 py-2 bg-muted/50 border-b text-xs"
@@ -1111,7 +1180,8 @@ function KeyboardShortcutsHint({
       </Button>
     </div>
   );
-}
+};
+void KeyboardShortcutsHint; // Suppress unused warning - kept for future use
 
 // ============================================================================
 // COMPONENT
@@ -1137,15 +1207,18 @@ export default function TicketPanel({
 
   const [state, dispatch] = useReducer(ticketReducer, undefined, createInitialState);
 
+  // Keyboard hints state - kept for future use when hints banner is re-enabled
   const [keyboardHintsDismissed, setKeyboardHintsDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem(KEYBOARD_HINTS_DISMISSED_KEY) === "true";
   });
+  void keyboardHintsDismissed; // Suppress unused warning - kept for future use
 
   const handleDismissKeyboardHints = () => {
     setKeyboardHintsDismissed(true);
     localStorage.setItem(KEYBOARD_HINTS_DISMISSED_KEY, "true");
   };
+  void handleDismissKeyboardHints; // Suppress unused warning - kept for future use
 
   // Load pending ticket from localStorage when panel opens
   useEffect(() => {
@@ -1200,6 +1273,9 @@ export default function TicketPanel({
             dispatch(ticketActions.applyDiscount(pendingTicket.discount));
           }
 
+          // Mark as saved since this is an existing ticket from Pending
+          dispatch(ticketActions.markTicketSaved());
+
           console.log('✅ Pending ticket loaded into checkout');
         } catch (error) {
           console.error('❌ Failed to load pending ticket:', error);
@@ -1215,6 +1291,7 @@ export default function TicketPanel({
     staff,
     dialogs,
     ui,
+    isNewTicket,
   } = state;
 
   const {
@@ -1244,6 +1321,8 @@ export default function TicketPanel({
     showKeyboardShortcuts,
     showSplitTicketDialog,
     showMergeTicketsDialog,
+    showClientSelector,
+    showClientProfile,
   } = dialogs;
 
   const {
@@ -1253,7 +1332,7 @@ export default function TicketPanel({
     fullPageTab,
     addItemTab,
     reassigningServiceIds,
-    headerVisible,
+    headerVisible: _headerVisible,
     lastScrollY,
     searchQuery,
   } = ui;
@@ -1325,6 +1404,9 @@ export default function TicketPanel({
         description: `Ticket #${result.number} added to ${statusLabels[status]}`,
       });
 
+      // Mark ticket as saved so close confirmation won't show
+      dispatch(ticketActions.markTicketSaved());
+
       console.log(`✅ Created ticket in ${statusLabels[status]}:`, result.id, result.number);
       return true;
     } catch (error) {
@@ -1393,18 +1475,19 @@ export default function TicketPanel({
   const handleAddServices = (selectedServices: Service[], staffId?: string, staffName?: string) => {
     const targetStaffId = staffId || preSelectedStaff?.id || activeStaffId || undefined;
     const targetStaffName = staffName || preSelectedStaff?.name || (targetStaffId && staffMembers.find(s => s.id === targetStaffId)?.name) || undefined;
-    
+
     const newTicketServices: TicketService[] = selectedServices.map(service => ({
       id: Math.random().toString(),
       serviceId: service.id,
       serviceName: service.name,
+      category: service.category,
       price: service.price,
       duration: service.duration,
       status: "not_started" as const,
       staffId: targetStaffId,
       staffName: targetStaffName,
     }));
-    
+
     dispatch(ticketActions.addService(newTicketServices));
     
     toast({
@@ -1820,24 +1903,29 @@ export default function TicketPanel({
   };
 
   const handleReset = () => {
-    if (selectedClient || services.length > 0) {
-      dispatch(ticketActions.toggleDialog("showDiscardTicketConfirm", true));
-    } else {
-      performReset();
+    // Reset clears services only, keeps the ticket open
+    if (services.length > 0) {
+      dispatch(ticketActions.clearServices());
+      toast({
+        title: "Cart cleared",
+        description: "All services have been removed from the ticket.",
+      });
     }
   };
 
+  // performReset - used by discard dialog to fully reset ticket
   const performReset = () => {
     dispatch(ticketActions.resetTicket());
   };
+  void performReset; // Used by discard dialog
 
-  // Handle close attempt - show exit confirmation if there are unsaved services
+  // Handle close attempt - show exit confirmation only for NEW unsaved tickets with services
   const handleCloseAttempt = () => {
-    if (services.length > 0) {
-      // Show exit confirmation dialog with 4 options
+    if (services.length > 0 && isNewTicket) {
+      // Only show confirmation for new unsaved tickets
       dispatch(ticketActions.toggleDialog("showDiscardTicketConfirm", true));
     } else {
-      // No services, just close
+      // Already saved ticket or no services - just close
       onClose();
     }
   };
@@ -1990,14 +2078,14 @@ export default function TicketPanel({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity ${
+        className={`fixed inset-0 bg-black/50 z-[60] transition-opacity ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={handleCloseAttempt}
       />
 
       <div
-        className={`fixed right-0 top-0 bottom-0 bg-background border-l shadow-xl z-50 transition-all duration-200 ease-out flex flex-col ${
+        className={`fixed right-0 top-0 bottom-0 bg-background border-l shadow-xl z-[70] transition-all duration-200 ease-out flex flex-col ${
           mode === "dock" ? "w-full md:w-[900px]" : "w-full"
         }`}
       >
@@ -2014,31 +2102,21 @@ export default function TicketPanel({
               {/* Top-right controls: Layout Toggle + Minimize - Only show for Classic layout (Modern has inline controls) */}
               {checkoutLayout === "classic" && (
                 <div className="absolute top-3 right-4 z-10 hidden md:flex items-center gap-2">
-                  {/* Layout Toggle Button */}
+                  {/* Layout Toggle Button - Inside classic block, so we're always in classic mode here */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
+                        onClick={() => setCheckoutLayout("modern")}
                         data-testid="button-toggle-layout"
-                        className={`h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
-                          checkoutLayout === "modern"
-                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
-                        }`}
-                        aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
+                        className="h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm bg-muted text-muted-foreground hover:bg-muted/80"
+                        aria-label="Switch to Modern layout"
                       >
-                        {checkoutLayout === "modern" ? (
-                          <Sparkles className="h-4 w-4" />
-                        ) : (
-                          <LayoutGrid className="h-4 w-4" />
-                        )}
-                        <span className="text-xs font-medium">
-                          {checkoutLayout === "classic" ? "Classic" : "Modern"}
-                        </span>
+                        <LayoutGrid className="h-4 w-4" />
+                        <span className="text-xs font-medium">Classic</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
+                      <p className="text-xs">Switch to Modern layout</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -2091,9 +2169,128 @@ export default function TicketPanel({
                       {/* Left Panel - Cart (resizable) */}
                       <div className="h-full">
                         <div className="h-full flex flex-col pr-4 bg-white">
-                          {/* Header with title only (X button moved outside) */}
-                          <div className="flex items-center gap-3 px-2 py-3">
-                            <h2 className="text-lg font-semibold text-gray-900">New Ticket</h2>
+                          {/* Header - Unified ticket/client left, actions right */}
+                          <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
+                            {/* Left: Unified ticket info + client */}
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {selectedClient ? (
+                                <>
+                                  {/* Client Avatar - Clickable to view profile */}
+                                  <button
+                                    onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", true))}
+                                    className="h-11 w-11 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white hover:ring-primary/30 transition-all cursor-pointer"
+                                  >
+                                    <span className="text-sm font-bold text-gray-600">
+                                      {selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}
+                                    </span>
+                                  </button>
+                                  {/* Ticket + Client Info */}
+                                  <div className="min-w-0 flex-1">
+                                    {/* Ticket # and time */}
+                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
+                                      <span className="font-medium">#{Date.now().toString().slice(-4)}</span>
+                                      <span>•</span>
+                                      <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    {/* Client name + loyalty badge - clickable with dropdown */}
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left">
+                                          <span className="font-semibold text-gray-900 truncate">
+                                            {selectedClient.firstName} {selectedClient.lastName}
+                                          </span>
+                                          {selectedClient.loyaltyStatus && (
+                                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
+                                              selectedClient.loyaltyStatus === 'gold'
+                                                ? 'bg-amber-100 text-amber-700'
+                                                : selectedClient.loyaltyStatus === 'silver'
+                                                  ? 'bg-gray-200 text-gray-600'
+                                                  : 'bg-orange-100 text-orange-600'
+                                            }`}>
+                                              {selectedClient.loyaltyStatus}
+                                            </span>
+                                          )}
+                                          <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start" className="w-48">
+                                        <DropdownMenuItem onClick={() => dispatch(ticketActions.toggleDialog("showClientSelector", true))}>
+                                          <User className="mr-2 h-4 w-4" />
+                                          Change Client
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", true))}>
+                                          <AlertCircle className="mr-2 h-4 w-4" />
+                                          View Profile
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => handleRemoveClient(null)}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Remove Client
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    {/* Client metrics */}
+                                    <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                                      <span>{selectedClient.totalVisits || 0} visits</span>
+                                      <span>•</span>
+                                      <span>${(selectedClient.lifetimeSpend || 0).toLocaleString()} spent</span>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                /* Prominent Add Client Button */
+                                <button
+                                  onClick={() => dispatch(ticketActions.toggleDialog("showClientSelector", true))}
+                                  className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/15 border border-primary/20 rounded-xl transition-all group"
+                                >
+                                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                                    <UserPlus className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div className="text-left">
+                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-0.5">
+                                      <span className="font-medium">#{Date.now().toString().slice(-4)}</span>
+                                      <span>•</span>
+                                      <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <span className="font-semibold text-primary">Add Client</span>
+                                  </div>
+                                </button>
+                              )}
+                            </div>
+                            {/* Right: Action icons */}
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={handleCheckIn}
+                                    disabled={services.length === 0}
+                                    className="h-10 w-10 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                                  >
+                                    <LogIn className="h-5 w-5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Check in client</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={handleReset}
+                                    disabled={services.length === 0}
+                                    className="h-10 w-10 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                                  >
+                                    <RotateCcw className="h-5 w-5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Clear cart</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
                           </div>
 
                           {/* Cart Content */}
@@ -2123,6 +2320,7 @@ export default function TicketPanel({
                             assignedStaffIds={assignedStaffIdsSet}
                             currentTab={fullPageTab}
                             layout="modern"
+                            hideClientSection={true}
                           />
                         </div>
                       </div>
@@ -2189,31 +2387,21 @@ export default function TicketPanel({
                             }}
                             rightControls={
                               <div className="flex items-center gap-2">
-                                {/* Layout Toggle Button */}
+                                {/* Layout Toggle Button - Inside modern block, so we're always in modern mode here */}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <button
-                                      onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
+                                      onClick={() => setCheckoutLayout("classic")}
                                       data-testid="button-toggle-layout-inline"
-                                      className={`h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
-                                        checkoutLayout === "modern"
-                                          ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                          : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                                      }`}
-                                      aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
+                                      className="h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                      aria-label="Switch to Classic layout"
                                     >
-                                      {checkoutLayout === "modern" ? (
-                                        <Sparkles className="h-4 w-4" />
-                                      ) : (
-                                        <LayoutGrid className="h-4 w-4" />
-                                      )}
-                                      <span className="text-xs font-medium">
-                                        {checkoutLayout === "classic" ? "Classic" : "Modern"}
-                                      </span>
+                                      <Sparkles className="h-4 w-4" />
+                                      <span className="text-xs font-medium">Modern</span>
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
+                                    <p className="text-xs">Switch to Classic layout</p>
                                   </TooltipContent>
                                 </Tooltip>
 
@@ -2523,7 +2711,7 @@ export default function TicketPanel({
           {mode === "dock" && (
             <div className="h-full flex flex-col">
               {/* Desktop Layout - Modern Design (Dock Mode): Cart LEFT, Catalog RIGHT */}
-              <div className="hidden lg:flex flex-1 min-h-0 px-4">
+              <div className="hidden lg:flex flex-1 min-h-0 px-2">
                 {/* Close Button Column - Own column on far left (matching Full Page) */}
                 <div className="flex-shrink-0 pr-3 pt-3">
                   <button
@@ -2548,10 +2736,43 @@ export default function TicketPanel({
                 >
                   {/* Left Panel - Cart (resizable) */}
                   <div className="h-full">
-                    <div className="h-full flex flex-col pr-4 bg-white">
-                      {/* Header with title */}
-                      <div className="flex items-center gap-3 px-2 py-2">
-                        <h2 className="text-lg font-semibold text-gray-900">New Ticket</h2>
+                    <div className="h-full flex flex-col pr-2 bg-white">
+                      {/* Header - Ticket info left, actions right */}
+                      <div className="flex items-center justify-between px-2 py-1.5 border-b border-gray-100">
+                        {/* Left: Ticket # and time */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-500">#T-{Date.now().toString().slice(-6)}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-400">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        {/* Right: Check In + Reset */}
+                        <div className="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={handleCheckIn}
+                                disabled={services.length === 0}
+                                className="h-7 px-2 rounded-md text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
+                              >
+                                <LogIn className="h-3.5 w-3.5" />
+                                <span>Check In</span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent><p className="text-xs">Check in client</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={handleReset}
+                                disabled={services.length === 0}
+                                className="h-7 w-7 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent><p className="text-xs">Reset ticket</p></TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
 
                       {/* Cart Content */}
@@ -3330,6 +3551,173 @@ export default function TicketPanel({
         onRefund={handleRefund}
         onVoid={handleVoid}
       />
+
+      {/* Client Selector Sheet - Slides from right */}
+      <Sheet
+        open={showClientSelector}
+        onOpenChange={(open) => dispatch(ticketActions.toggleDialog("showClientSelector", open))}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-md p-0">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle>Select Client</SheetTitle>
+            <SheetDescription>
+              Search for an existing client or create a new one
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-6 py-4 overflow-y-auto h-[calc(100vh-120px)]">
+            <ClientSelector
+              selectedClient={null}
+              onSelectClient={(client) => {
+                if (client) {
+                  dispatch(ticketActions.setClient(client));
+                }
+                dispatch(ticketActions.toggleDialog("showClientSelector", false));
+              }}
+              onCreateClient={(newClient) => {
+                handleCreateClient(newClient);
+                dispatch(ticketActions.toggleDialog("showClientSelector", false));
+              }}
+              inDialog={true}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Client Profile Dialog - Full Comprehensive Profile */}
+      <Dialog
+        open={showClientProfile}
+        onOpenChange={(open) => dispatch(ticketActions.toggleDialog("showClientProfile", open))}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedClient && (
+            <>
+              <DialogHeader className="border-b pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-primary">
+                      {selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <DialogTitle className="text-2xl">
+                      {selectedClient.firstName} {selectedClient.lastName}
+                    </DialogTitle>
+                    {selectedClient.loyaltyStatus && (
+                      <Badge className={`mt-1 ${
+                        selectedClient.loyaltyStatus === 'gold'
+                          ? 'bg-amber-100 text-amber-700'
+                          : selectedClient.loyaltyStatus === 'silver'
+                            ? 'bg-gray-200 text-gray-600'
+                            : 'bg-orange-100 text-orange-600'
+                      }`}>
+                        {selectedClient.loyaltyStatus.toUpperCase()} Member
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 py-4">
+                {/* Contact Information */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Card className="p-3 flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Phone className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="font-medium">{selectedClient.phone}</p>
+                      </div>
+                    </Card>
+                    {selectedClient.email && (
+                      <Card className="p-3 flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Mail className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Email</p>
+                          <p className="font-medium">{selectedClient.email}</p>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Statistics</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Card className="p-4 text-center">
+                      <p className="text-2xl font-bold text-primary">{selectedClient.totalVisits || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Total Visits</p>
+                    </Card>
+                    <Card className="p-4 text-center">
+                      <p className="text-2xl font-bold text-primary">${(selectedClient.lifetimeSpend || 0).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Lifetime Spend</p>
+                    </Card>
+                    <Card className="p-4 text-center">
+                      <p className="text-2xl font-bold text-primary">{selectedClient.rewardPoints || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Reward Points</p>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Health & Preferences - Only show if allergies or notes exist */}
+                {(selectedClient.allergies?.length || selectedClient.notes) && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Health & Preferences</h3>
+                    <div className="space-y-3">
+                      {selectedClient.allergies && selectedClient.allergies.length > 0 && (
+                        <Card className="p-3 bg-destructive/5 border-destructive/20">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">Allergies</p>
+                              <p className="text-sm text-destructive/80 mt-0.5">
+                                {selectedClient.allergies.join(", ")}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      )}
+                      {selectedClient.notes && (
+                        <Card className="p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                          <p className="text-sm">{selectedClient.notes}</p>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <Separator />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", false))}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      dispatch(ticketActions.toggleDialog("showClientProfile", false));
+                      dispatch(ticketActions.toggleDialog("showClientSelector", true));
+                    }}
+                  >
+                    Change Client
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

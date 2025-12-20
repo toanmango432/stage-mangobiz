@@ -12,7 +12,7 @@ import { setStoreSession, setFullSession, setAvailableStores } from './store/sli
 import { authService } from './services/supabase';
 import { TooltipProvider } from './components/ui/tooltip';
 import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
-import { ConflictNotificationProvider } from './contexts/ConflictNotificationContext';
+import { ConflictNotificationProvider } from './providers/ConflictNotificationContext';
 
 // NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
 // If you need to clear the database, do it manually via browser DevTools

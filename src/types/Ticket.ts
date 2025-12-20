@@ -223,6 +223,17 @@ export interface Ticket {
   // Service charges (per PRD F-005)
   serviceCharges?: ServiceCharge[];
   serviceChargeTotal?: number;
+
+  // Payment tracking
+  paymentMethod?: 'cash' | 'card' | 'gift_card' | 'store_credit' | 'check' | 'other';
+  
+  // Staff assignment (primary staff for display)
+  staffId?: string;
+  staffName?: string;
+  
+  // Closed ticket tracking
+  closedAt?: string;              // ISO 8601 string - when ticket was closed/paid
+  closedBy?: string;              // User ID who closed the ticket
 }
 
 /**

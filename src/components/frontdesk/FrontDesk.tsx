@@ -1,35 +1,35 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch } from '../store/hooks';
-import { useDeviceDetection } from '../hooks/frontdesk';
+import { useAppDispatch } from '@/store/hooks';
+import { useDeviceDetection } from '@/hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
 import { WaitListSection } from './WaitListSection';
 import { ComingAppointments } from './ComingAppointments';
 import { CreateTicketButton } from './CreateTicketButton';
-import { TurnTrackerFab } from './TurnTracker/TurnTrackerFab';
-import { useFeatureFlag } from '../hooks/useFeatureFlag';
+import { TurnTrackerFab } from '@/components/TurnTracker/TurnTrackerFab';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 // CreateTicketModal removed - now navigating to Checkout page instead
 import { FloatingActionButton } from './FloatingActionButton';
-import { useTickets } from '../hooks/useTicketsCompat';
+import { useTickets } from '@/hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { ChevronDown, Check, ChevronUp, MoreVertical, List, Grid, Eye, EyeOff, Clock, ListFilter, Activity, Hourglass } from 'lucide-react';
-import { useSwipeGestures } from '../hooks/useGestures';
-import { haptics } from '../utils/haptics';
-import { MobileTabBar, tabColors, type MobileTab } from './frontdesk/MobileTabBar';
-import { MobileTeamSection } from './frontdesk/MobileTeamSection';
-import { FrontDeskSettings, FrontDeskSettingsData } from './frontdesk-settings/FrontDeskSettings';
-import { sectionHeaderStyles, subordinateTabTheme } from './frontdesk/headerTokens';
-import { ErrorBoundary } from './frontdesk/ErrorBoundary';
+import { useSwipeGestures } from '@/hooks/useGestures';
+import { haptics } from '@/utils/haptics';
+import { MobileTabBar, tabColors, type MobileTab } from './MobileTabBar';
+import { MobileTeamSection } from './MobileTeamSection';
+import { FrontDeskSettings, FrontDeskSettingsData } from '@/components/frontdesk-settings/FrontDeskSettings';
+import { sectionHeaderStyles, subordinateTabTheme } from './headerTokens';
+import { ErrorBoundary } from './ErrorBoundary';
 import {
   TeamSectionErrorBoundary,
   WaitListErrorBoundary,
   ServiceSectionErrorBoundary,
   ComingAppointmentsErrorBoundary,
   SettingsErrorBoundary
-} from './frontdesk/SectionErrorBoundary';
-import { PendingSectionFooter } from './frontdesk/PendingSectionFooter';
+} from './SectionErrorBoundary';
+import { PendingSectionFooter } from './PendingSectionFooter';
 import {
   selectFrontDeskSettings,
   selectSortBy,
@@ -48,7 +48,7 @@ import {
   setCombinedViewMode as setCombinedViewModeAction,
   setCombinedMinimizedLineView as setCombinedMinimizedLineViewAction,
   setServiceColumnWidth as setServiceColumnWidthAction,
-} from '../store/slices/frontDeskSettingsSlice';
+} from '@/store/slices/frontDeskSettingsSlice';
 
 interface FrontDeskComponentProps {
   showFrontDeskSettings?: boolean;

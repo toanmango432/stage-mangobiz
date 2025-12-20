@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { useTickets } from '../hooks/useTicketsCompat';
-import { useTicketSection } from '../hooks/frontdesk';
+import { useTickets } from '@/hooks/useTicketsCompat';
+import { useTicketSection } from '@/hooks/frontdesk';
 import { Receipt, ChevronUp, Maximize2, MoreVertical, List, Grid, Check, ChevronDown } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { PendingTicketCard } from './tickets/PendingTicketCard';
-import { PaymentModal } from './checkout/LegacyPaymentModal';
-import type { PaymentMethod, PaymentDetails } from '../types';
-import { PendingTicket } from '../store/slices/uiTicketsSlice';
+import { PendingTicketCard } from './PendingTicketCard';
+import { PaymentModal } from '@/components/checkout/LegacyPaymentModal';
+import type { PaymentMethod, PaymentDetails } from '@/types';
+import { PendingTicket } from '@/store/slices/uiTicketsSlice';
 import toast from 'react-hot-toast';
 
 interface PendingTicketsProps {

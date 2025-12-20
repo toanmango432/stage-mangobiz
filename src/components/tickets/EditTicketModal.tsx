@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, User, Tag, Clock, Timer, AlertTriangle } from 'lucide-react';
-import { useTickets } from '../hooks/useTicketsCompat';
+import { useTickets } from '@/hooks/useTicketsCompat';
 interface EditTicketModalProps {
   isOpen: boolean;
   onClose: () => void;

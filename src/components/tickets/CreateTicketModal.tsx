@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, Tag, User, AlertCircle, Check } from 'lucide-react';
-import { useTickets } from '../hooks/useTicketsCompat';
-import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from './layout/MobileSheet';
-import { useBreakpoint } from '../hooks/useMobileModal';
-import { haptics } from '../utils/haptics';
+import { useTickets } from '@/hooks/useTicketsCompat';
+import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from '@/components/layout/MobileSheet';
+import { useBreakpoint } from '@/hooks/useMobileModal';
+import { haptics } from '@/utils/haptics';
 
 interface CreateTicketModalProps {
   isOpen: boolean;

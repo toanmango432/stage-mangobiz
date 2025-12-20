@@ -22,6 +22,25 @@
 
 ---
 
+## Environment Setup
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `VITE_SUPABASE_URL` | Supabase project URL | Yes | Hardcoded fallback (remove in prod) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Yes | Hardcoded fallback (remove in prod) |
+| `VITE_API_BASE_URL` | Legacy API base URL | No | `http://localhost:3000/api` |
+| `VITE_SOCKET_URL` | WebSocket server URL | No | `http://localhost:3000` |
+| `VITE_CONTROL_CENTER_URL` | License validation server | No | `http://localhost:4000` |
+| `VITE_DEV_MODE` | Enable dev features | No | `true` |
+| `VITE_ENABLE_SOCKET` | Enable WebSocket | No | `true` |
+| `VITE_ENABLE_OFFLINE_MODE` | Enable offline mode | No | `true` |
+
+**Security Note:** Hardcoded Supabase credentials in `src/services/supabase/client.ts` and `src/admin/db/supabaseClient.ts` must be removed before production.
+
+---
+
 ## ⚠️ Before Any Implementation
 
 ### 1. Reference Product Requirements Documents (PRDs)
@@ -31,10 +50,13 @@
 | Module/Feature | PRD Location |
 |----------------|--------------|
 | **Operations (Book, Front Desk, Pending, Checkout)** | `docs/product/Mango POS PRD v1.md` |
+| **Book Module** | `docs/product/PRD-Book-Module.md` |
 | **Sales & Checkout** | `docs/product/PRD-Sales-Checkout-Module.md` |
 | **Clients/CRM** | `docs/product/PRD-Clients-CRM-Module.md` |
+| **Team/Staff** | `docs/product/PRD-Team-Module.md` |
 | **Turn Tracker** | `docs/product/PRD-Turn-Tracker-Module.md` |
 | **Offline Mode** | `docs/product/PRD-Opt-In-Offline-Mode.md` |
+| **Feature Gap Analysis** | `docs/product/FEATURE_GAP_ANALYSIS.md` |
 
 ### 2. Read Required Documentation
 
@@ -58,16 +80,44 @@
 
 ---
 
+## Git Conventions
+
+### Branch Naming
+```
+feature/module-description    # New features
+fix/module-description        # Bug fixes
+docs/description              # Documentation only
+refactor/module-description   # Code refactoring
+```
+
+### Commit Messages (Conventional Commits)
+```
+feat(module): add new feature description
+fix(module): resolve bug description
+docs: update documentation
+refactor(module): improve code structure
+test(module): add/update tests
+```
+
+**Examples from codebase:**
+- `feat(staff): comprehensive Staff Section UX improvements`
+- `fix: BookPage not showing staff - add fetchTeamMembers before loadStaff`
+- `docs: add checkout restructuring plan with design phases`
+
+---
+
 ## Architecture Overview
 
 ```
 src/
 ├── components/          # React components
-│   ├── Book/           # Appointment calendar
-│   ├── frontdesk/      # Ticket management
+│   ├── Book/           # Appointment calendar & booking
+│   ├── frontdesk/      # Front desk operations (FrontDesk, StaffSidebar, ServiceSection, WaitList, etc.)
+│   ├── tickets/        # Ticket management (modals, cards, actions)
 │   ├── checkout/       # Payment processing
-│   ├── common/         # Reusable UI
-│   └── modules/        # Feature modules
+│   ├── common/         # Reusable UI components
+│   ├── ui/             # Base UI components (shadcn/radix)
+│   └── modules/        # Feature module wrappers
 ├── store/slices/       # Redux state (appointments, tickets, staff, clients, auth, sync)
 ├── services/           # Data services layer
 │   ├── dataService.ts  # Unified data access (routes to Supabase or IndexedDB)
@@ -77,11 +127,12 @@ src/
 │       ├── adapters/   # Type converters (SupabaseRow ↔ AppType)
 │       └── tables/     # CRUD operations per table
 ├── db/                 # IndexedDB operations (Dexie.js)
-│   └── database.ts     # Local CRUD operations
+├── providers/          # React contexts & providers
+├── hooks/              # Custom React hooks
 ├── types/              # TypeScript interfaces
 ├── utils/              # Utilities (smartAutoAssign, conflictDetection, etc.)
 ├── constants/          # Design tokens
-└── hooks/              # Custom React hooks
+└── testing/            # Test utilities & fixtures
 ```
 
 ---
@@ -132,7 +183,7 @@ const appointments = toAppointments(rows);  // Convert to app types
 ### Component Rules
 - All props must have TypeScript interfaces
 - Handle loading, error, and offline states
-- Use `src/db/database.ts` for data operations (never direct IndexedDB access)
+- Use `dataService` for data operations (never direct Supabase/IndexedDB access)
 
 ### Styling Rules
 - Use Tailwind CSS with design tokens
@@ -162,9 +213,10 @@ const appointments = toAppointments(rows);  // Convert to app types
 
 | Document | Purpose |
 |----------|---------|
-| **🚀 Implementation Plan** | [PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md](./PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md) - **Ready to execute** 10-week plan with verified metrics |
-| **📊 Production Assessment** | [PRODUCTION_READINESS_ASSESSMENT.md](./PRODUCTION_READINESS_ASSESSMENT.md) - Comprehensive frontend/backend ratings and analysis |
-| **🏗️ Codebase Structure** | [CODEBASE_STRUCTURE_ANALYSIS.md](./CODEBASE_STRUCTURE_ANALYSIS.md) - Structure analysis and cleanup recommendations |
+| **🚀 Implementation Plan** | [docs/implementation/PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md](./docs/implementation/PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md) - **Ready to execute** 10-week plan with verified metrics |
+| **📊 Production Assessment** | [docs/analysis/PRODUCTION_READINESS_ASSESSMENT.md](./docs/analysis/PRODUCTION_READINESS_ASSESSMENT.md) - Comprehensive frontend/backend ratings and analysis |
+| **🏗️ Codebase Structure** | [docs/analysis/CODEBASE_STRUCTURE_ANALYSIS.md](./docs/analysis/CODEBASE_STRUCTURE_ANALYSIS.md) - Structure analysis and cleanup recommendations |
+| **🧹 Cleanup Plan** | [docs/CODEBASE_CLEANUP_IMPLEMENTATION_PLAN.md](./docs/CODEBASE_CLEANUP_IMPLEMENTATION_PLAN.md) - Folder/file reorganization plan |
 
 **Quick Status:**
 - ✅ Supabase backend fully implemented
@@ -178,12 +230,44 @@ const appointments = toAppointments(rows);  // Convert to app types
 ## Common Commands
 
 ```bash
-npm run dev          # Start dev server
-npm run build        # Production build
-npm test             # Run tests
-npm run lint         # Lint code
-npm run test:coverage # Run tests with coverage report
+# Development
+npm run dev              # Start dev server (localhost:5173)
+npm run build            # Production build
+npm run preview          # Preview production build
+npm run lint             # Lint code
+
+# Testing
+npm test                 # Run unit tests
+npm test -- --watch      # Run tests in watch mode
+npm run test:ui          # Run tests with Vitest UI
+npm run test:coverage    # Run tests with coverage report
+npm run test:e2e         # Run Playwright E2E tests
+npm run test:e2e:ui      # Run E2E tests with UI
+
+# Admin
+npm run admin:server     # Start admin dev server
 ```
+
+---
+
+## Testing
+
+| Type | Command | Framework |
+|------|---------|-----------|
+| Unit tests | `npm test` | Vitest |
+| Unit tests (watch) | `npm test -- --watch` | Vitest |
+| Unit tests (UI) | `npm run test:ui` | Vitest UI |
+| Coverage report | `npm run test:coverage` | Vitest |
+| E2E tests | `npm run test:e2e` | Playwright |
+| E2E tests (UI) | `npm run test:e2e:ui` | Playwright |
+
+### Test File Conventions
+- Unit tests: `*.test.ts` or `*.test.tsx` alongside source files
+- E2E tests: `e2e/*.spec.ts`
+
+### Current Status
+- Unit test coverage: ~3.5% (target: 70%+)
+- E2E tests located in `e2e/` directory
 
 ---
 
@@ -220,3 +304,7 @@ npm run test:coverage # Run tests with coverage report
 - ✅ Handle loading/error/offline states
 - ✅ Use design tokens for styling
 - ✅ Check `src/services/supabase/types.ts` for existing table schemas
+
+---
+
+*Last updated: December 2024*

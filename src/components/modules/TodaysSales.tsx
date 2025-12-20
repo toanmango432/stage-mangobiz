@@ -20,14 +20,20 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
+import { selectCompletedTickets, selectPendingTickets } from '../../store/slices/uiTicketsSlice';
+import type { Ticket } from '../../types';
 
 interface TodaysSalesProps {
   onBack?: () => void;
 }
 
 export function TodaysSales({ onBack }: TodaysSalesProps) {
-  // Get tickets from Redux
-  const allTickets = useAppSelector(state => state.uiTickets?.items || []);
+  // Get completed and pending tickets from Redux
+  const completedTickets = useAppSelector(selectCompletedTickets);
+  const pendingTickets = useAppSelector(selectPendingTickets);
+  
+  // Combine completed and pending tickets for today's sales view
+  const allTickets: Ticket[] = [...completedTickets, ...pendingTickets] as Ticket[];
 
   // Calculate today's stats
   const todayStats = useMemo(() => {
@@ -43,29 +49,29 @@ export function TodaysSales({ onBack }: TodaysSalesProps) {
     });
 
     const totalRevenue = todayTickets.reduce((sum, t) => sum + (t.total || 0), 0);
-    const totalTips = todayTickets.reduce((sum, t) => sum + ((t as any).tip || 0), 0);
+    const totalTips = todayTickets.reduce((sum, t) => sum + (t.tip || 0), 0);
     const transactionCount = todayTickets.length;
     const avgTicket = transactionCount > 0 ? totalRevenue / transactionCount : 0;
 
     // Payment breakdown (mock data for now - would come from payment details)
     const cashAmount = todayTickets
-      .filter(t => (t as any).paymentMethod === 'cash')
+      .filter(t => t.paymentMethod === 'cash')
       .reduce((sum, t) => sum + (t.total || 0), 0);
     const cardAmount = todayTickets
-      .filter(t => (t as any).paymentMethod === 'card' || !(t as any).paymentMethod)
+      .filter(t => t.paymentMethod === 'card' || !t.paymentMethod)
       .reduce((sum, t) => sum + (t.total || 0), 0);
     const otherAmount = todayTickets
-      .filter(t => (t as any).paymentMethod && (t as any).paymentMethod !== 'cash' && (t as any).paymentMethod !== 'card')
+      .filter(t => t.paymentMethod && t.paymentMethod !== 'cash' && t.paymentMethod !== 'card')
       .reduce((sum, t) => sum + (t.total || 0), 0);
 
     // Staff performance (aggregate by staff)
     const staffMap = new Map<string, { name: string; revenue: number; tickets: number; tips: number }>();
     todayTickets.forEach(ticket => {
-      const staffName = (ticket as any).staffName || ticket.services?.[0]?.staffName || 'Unassigned';
+      const staffName = ticket.staffName || ticket.services?.[0]?.staffName || 'Unassigned';
       const existing = staffMap.get(staffName) || { name: staffName, revenue: 0, tickets: 0, tips: 0 };
       existing.revenue += ticket.total || 0;
       existing.tickets += 1;
-      existing.tips += (ticket as any).tip || 0;
+      existing.tips += ticket.tip || 0;
       staffMap.set(staffName, existing);
     });
 

@@ -4,7 +4,7 @@ import {
   FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
   LayoutGrid, MoreHorizontal, LogOut, Settings,
   Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2,
-  CheckCircle, Plus
+  Plus
 } from 'lucide-react';
 import { ClockInOutButton } from './ClockInOutButton';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -17,12 +17,14 @@ interface TopHeaderBarProps {
   activeModule?: string;
   onModuleChange?: (module: string) => void;
   hideNavigation?: boolean; // Hide nav tabs on mobile (handled by BottomNavBar)
+  onOpenTicketPanel?: () => void; // Callback to open the global ticket panel
 }
 
 export function TopHeaderBar({
   activeModule = 'frontdesk',
   onModuleChange,
-  hideNavigation = false
+  hideNavigation = false,
+  onOpenTicketPanel
 }: TopHeaderBarProps) {
   // Store info now comes from Redux (see selectStore/selectStoreName below)
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -523,8 +525,8 @@ export function TopHeaderBar({
           {/* +New Button - Circular icon only, outlined style */}
           <button
             onClick={() => {
-              // Dispatch event to open global ticket panel overlay
-              window.dispatchEvent(new CustomEvent('open-ticket-panel'));
+              // Use callback prop to open global ticket panel
+              onOpenTicketPanel?.();
             }}
             title="Create New Ticket"
             className="

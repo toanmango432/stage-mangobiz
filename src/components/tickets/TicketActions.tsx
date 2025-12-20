@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTickets } from '../hooks/useTicketsCompat';
+import { useTickets } from '@/hooks/useTicketsCompat';
 import { UserCheck, CheckCircle, X } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import Tippy from '@tippyjs/react';

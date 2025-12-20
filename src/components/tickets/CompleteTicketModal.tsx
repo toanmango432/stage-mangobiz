@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useTickets } from '../hooks/useTicketsCompat';
+import { useTickets } from '@/hooks/useTicketsCompat';
 import { X, CheckCircle, Tag, Clock, Calendar, DollarSign, FileText, User } from 'lucide-react';
 interface CompleteTicketModalProps {
   isOpen: boolean;

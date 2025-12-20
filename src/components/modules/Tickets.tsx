@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { ServiceSection } from '../ServiceSection';
-import { WaitListSection } from '../WaitListSection';
-import { ComingAppointments } from '../ComingAppointments';
+import { ServiceSection } from '../frontdesk/ServiceSection';
+import { WaitListSection } from '../frontdesk/WaitListSection';
+import { ComingAppointments } from '../frontdesk/ComingAppointments';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
 import { Clock, Users, Activity, ChevronUp, ChevronDown } from 'lucide-react';

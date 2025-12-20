@@ -1,17 +1,17 @@
 import { useEffect, useState, useRef, memo } from 'react';
-import { useTickets } from '../hooks/useTicketsCompat';
-import { useTicketSection } from '../hooks/frontdesk';
+import { useTickets } from '@/hooks/useTicketsCompat';
+import { useTicketSection } from '@/hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Hourglass, Maximize2 } from 'lucide-react';
-import { AssignTicketModal } from './AssignTicketModal';
-import { EditTicketModal } from './EditTicketModal';
-import { TicketDetailsModal } from './TicketDetailsModal';
-import { WaitListTicketCard, WaitListTicketCardRefactored } from './tickets';
-import { headerContentSpacer, waitingHeaderTheme } from './frontdesk/headerTokens';
-import { FrontDeskHeader, HeaderActionButton } from './frontdesk/FrontDeskHeader';
-import { FrontDeskEmptyState } from './frontdesk/FrontDeskEmptyState';
-import { FrontDeskSettingsData } from './frontdesk-settings/types';
+import { AssignTicketModal } from '@/components/tickets/AssignTicketModal';
+import { EditTicketModal } from '@/components/tickets/EditTicketModal';
+import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
+import { WaitListTicketCard, WaitListTicketCardRefactored } from '@/components/tickets';
+import { headerContentSpacer, waitingHeaderTheme } from './headerTokens';
+import { FrontDeskHeader, HeaderActionButton } from './FrontDeskHeader';
+import { FrontDeskEmptyState } from './FrontDeskEmptyState';
+import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 
 // Helper functions for time calculations
 const formatTime = (date: Date): string => {

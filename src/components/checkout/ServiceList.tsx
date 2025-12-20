@@ -33,6 +33,7 @@ export interface TicketService {
   id: string;
   serviceId: string;
   serviceName: string;
+  category?: string;
   price: number;
   duration: number;
   staffId?: string;

@@ -15,7 +15,8 @@ import {
   Plus,
   ArrowLeft
 } from 'lucide-react';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { selectAllTickets, selectTicketsLoading } from '../../store/slices/ticketsSlice';
 import type { LocalAppointment } from '../../types/appointment';
 import type { Ticket } from '../../types';
 import { SalesDetailsPanel } from '../sales/SalesDetailsPanel';
@@ -26,7 +27,8 @@ import { DateRangePicker } from '../sales/DateRangePicker';
 import { FilterChip } from '../sales/FilterChip';
 import { SalesMobileCard } from '../sales/SalesMobileCard';
 import { NewSaleModal } from '../sales/NewSaleModal';
-import { mockTickets, mockAppointments } from '../../data/mockSalesData';
+// Mock appointments for demo - tickets come from Redux
+import { mockAppointments } from '../../data/mockSalesData';
 import { Button, Input, Tabs, Tab } from '../ui';
 
 type SalesTab = 'appointments' | 'tickets';
@@ -39,17 +41,16 @@ interface TransactionRecordsProps {
 export function TransactionRecords({ onBack }: TransactionRecordsProps) {
   useAppDispatch();
 
-  // Data from Redux (commented out for now, using mock data)
-  // const appointments = useAppSelector(selectAllAppointments);
-  // const tickets = useAppSelector(selectAllTickets);
-  // const appointmentsLoading = useAppSelector(selectAppointmentsLoading);
-  // const ticketsLoading = useAppSelector(selectTicketsLoading);
-
-  // Using mock data for demonstration
+  // Get tickets from Redux store
+  const ticketsFromRedux = useAppSelector(selectAllTickets);
+  const ticketsLoading = useAppSelector(selectTicketsLoading);
+  
+  // Use Redux tickets, fallback to empty array
+  const tickets = ticketsFromRedux || [];
+  
+  // Appointments still use mock data for now (TODO: connect to Redux)
   const appointments = mockAppointments;
-  const [tickets, setTickets] = useState(mockTickets);
   const appointmentsLoading = false;
-  const ticketsLoading = false;
 
   // UI State
   const [activeTab, setActiveTab] = useState<SalesTab>('tickets');

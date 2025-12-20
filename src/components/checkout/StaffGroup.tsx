@@ -34,6 +34,18 @@ import {
 import { TicketService, ServiceStatus } from "./ServiceList";
 import { Reorder, motion, PanInfo } from "framer-motion";
 
+// Category colors for service item borders
+const CATEGORY_BORDER_COLORS: Record<string, string> = {
+  Hair: "border-l-amber-400",
+  Nails: "border-l-pink-400",
+  Spa: "border-l-teal-400",
+  Massage: "border-l-cyan-400",
+  Skincare: "border-l-rose-400",
+  Waxing: "border-l-orange-400",
+  Makeup: "border-l-fuchsia-400",
+  default: "border-l-primary",
+};
+
 interface StaffGroupProps {
   staffId: string | null;
   staffName: string | null;
@@ -109,10 +121,14 @@ function ServiceItem({
     setEditingPrice(false);
   };
 
+  // handlePriceAdjustment removed - using inline price editing instead
+  // Kept for reference if quick adjustment buttons are re-added
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePriceAdjustment = (amount: number) => {
     const newPrice = Math.max(0, service.price + amount);
     onUpdateService(service.id, { price: newPrice });
   };
+  void handlePriceAdjustment; // Prevent unused warning
 
   const handlePan = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Only allow left swipe (negative offset)
@@ -148,12 +164,16 @@ function ServiceItem({
 
   return (
     <div className="relative overflow-hidden" data-testid={`service-item-container-${service.id}`}>
-      {/* Delete Action (behind the service item) */}
-      <div className={`swipe-delete-action ${isSwipeRevealed ? 'visible' : ''}`}>
+      {/* Delete Action (behind the service item - positioned absolute right) */}
+      <div
+        className={`absolute right-0 top-0 bottom-0 flex items-center justify-center bg-destructive transition-all duration-200 ${
+          isSwipeRevealed ? 'w-16 opacity-100' : 'w-0 opacity-0'
+        }`}
+      >
         <Button
           size="icon"
           variant="ghost"
-          className="h-11 w-11 text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
+          className="h-11 w-11 text-white hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
           onClick={handleDelete}
           data-testid={`button-delete-swipe-${service.id}`}
           aria-label={`Delete ${service.serviceName} service`}
@@ -162,7 +182,7 @@ function ServiceItem({
         </Button>
       </div>
 
-      {/* Swipeable Service Item */}
+      {/* Swipeable Service Item - Compact single-row design */}
       <motion.div
         drag="x"
         dragConstraints={{ left: -80, right: 0 }}
@@ -171,12 +191,14 @@ function ServiceItem({
         onPanEnd={handlePanEnd}
         animate={{ x: swipeOffset }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col gap-2 transition-colors bg-card ${
-          isInactive 
-            ? 'cursor-default' 
-            : 'cursor-pointer hover-elevate'
+        className={`group px-3 py-2 flex items-center gap-2 transition-colors bg-card border-l-4 ${
+          CATEGORY_BORDER_COLORS[service.category || ''] || CATEGORY_BORDER_COLORS.default
         } ${
-          isSelected ? 'bg-primary/10 border-l-4 border-l-primary -ml-px' : ''
+          isInactive
+            ? 'cursor-default opacity-60'
+            : 'cursor-pointer hover:bg-gray-50'
+        } ${
+          isSelected ? 'bg-primary/5 ring-1 ring-primary/20' : ''
         }`}
         onClick={(e) => {
           if (!isInactive && swipeOffset === 0) {
@@ -185,26 +207,37 @@ function ServiceItem({
         }}
         data-testid={`service-item-${service.id}`}
       >
-      {/* Top Row: Name, Price, Actions */}
-      <div className="flex items-center gap-3">
+        {/* Service Info - Name & Duration inline */}
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-sm truncate">{service.serviceName}</h4>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-            <Clock className="h-3 w-3" />
-            <span>{service.duration}m</span>
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-sm truncate">{service.serviceName}</h4>
+            <span className="text-xs text-muted-foreground flex-shrink-0">
+              <Clock className="h-3 w-3 inline mr-0.5" />
+              {service.duration}m
+            </span>
             {service.status === 'in_progress' && (
-              <>
-                <span>•</span>
-                <span className="font-medium text-primary" data-testid={`timer-${service.id}`}>
-                  {formatElapsedTime(elapsedTime)}
-                </span>
-              </>
+              <span className="text-xs font-medium text-primary flex-shrink-0" data-testid={`timer-${service.id}`}>
+                {formatElapsedTime(elapsedTime)}
+              </span>
             )}
           </div>
+          {/* Progress Bar - inline when in progress */}
+          {(service.status === 'in_progress' || service.status === 'completed') && (
+            <div className="flex items-center gap-2 mt-1">
+              <Progress
+                value={progressPercentage}
+                className="h-1 flex-1"
+                data-testid={`progress-${service.id}`}
+              />
+              <span className="text-[10px] text-muted-foreground">
+                {Math.round(progressPercentage)}%
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Price with inline editing and quick adjustments */}
-        <div className="flex items-center gap-1">
+        {/* Price - Compact with click to edit */}
+        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
           {editingPrice ? (
             <Input
               type="number"
@@ -218,119 +251,54 @@ function ServiceItem({
                   setEditingPrice(false);
                 }
               }}
-              className="h-7 w-20 text-sm"
+              className="h-6 w-16 text-xs"
               autoFocus
-              onClick={(e) => e.stopPropagation()}
               data-testid={`input-price-${service.id}`}
             />
           ) : (
-            <>
-              <div className="flex flex-col items-end gap-0.5">
-                <div
-                  className="text-sm font-semibold cursor-pointer hover:text-primary transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingPrice(true);
-                  }}
-                  data-testid={`text-price-${service.id}`}
-                >
-                  ${service.price.toFixed(2)}
-                </div>
-                <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-4 w-4 text-xs"
-                    onClick={() => handlePriceAdjustment(-10)}
-                    disabled={isInactive}
-                    data-testid={`button-price-minus-10-${service.id}`}
-                  >
-                    <span className="text-[9px] leading-none">-10</span>
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-4 w-4 text-xs"
-                    onClick={() => handlePriceAdjustment(-5)}
-                    disabled={isInactive}
-                    data-testid={`button-price-minus-5-${service.id}`}
-                  >
-                    <span className="text-[9px] leading-none">-5</span>
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-4 w-4 text-xs"
-                    onClick={() => handlePriceAdjustment(5)}
-                    disabled={isInactive}
-                    data-testid={`button-price-plus-5-${service.id}`}
-                  >
-                    <span className="text-[9px] leading-none">+5</span>
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-4 w-4 text-xs"
-                    onClick={() => handlePriceAdjustment(10)}
-                    disabled={isInactive}
-                    data-testid={`button-price-plus-10-${service.id}`}
-                  >
-                    <span className="text-[9px] leading-none">+10</span>
-                  </Button>
-                </div>
-              </div>
-            </>
+            <button
+              className="text-sm font-semibold hover:text-primary transition-colors px-1"
+              onClick={() => setEditingPrice(true)}
+              data-testid={`text-price-${service.id}`}
+            >
+              ${service.price.toFixed(2)}
+            </button>
           )}
         </div>
 
-        {/* Duplicate Button */}
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          disabled={isInactive}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDuplicateService(service);
-          }}
-          data-testid={`button-duplicate-${service.id}`}
-          aria-label={`Duplicate ${service.serviceName} service`}
-        >
-          <Copy className="h-4 w-4" />
-        </Button>
-
-        {/* More Options */}
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          disabled={isInactive}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isInactive) {
-              onToggleSelection(service.id, e);
-            }
-          }}
-          data-testid={`button-service-options-${service.id}`}
-          aria-label={`More options for ${service.serviceName}`}
-        >
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Progress Bar (only shown if in-progress or completed) */}
-      {(service.status === 'in_progress' || service.status === 'completed') && (
-        <div className="flex items-center gap-2">
-          <Progress 
-            value={progressPercentage} 
-            className="h-1.5 flex-1"
-            data-testid={`progress-${service.id}`}
-          />
-          <span className="text-xs text-muted-foreground min-w-[3rem] text-right">
-            {Math.round(progressPercentage)}%
-          </span>
+        {/* More Options - Single dropdown with all actions */}
+        <div className="opacity-40 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                disabled={isInactive}
+                data-testid={`button-service-options-${service.id}`}
+                aria-label={`Options for ${service.serviceName}`}
+              >
+                <MoreVertical className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem
+                onClick={() => onDuplicateService(service)}
+                data-testid={`option-duplicate-${service.id}`}
+              >
+                <Copy className="mr-2 h-3.5 w-3.5" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onToggleSelection(service.id, {} as React.MouseEvent)}
+                data-testid={`option-select-${service.id}`}
+              >
+                <Circle className="mr-2 h-3.5 w-3.5" />
+                Select
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      )}
       </motion.div>
     </div>
   );

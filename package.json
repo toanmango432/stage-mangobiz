@@ -17,6 +17,7 @@
     "admin:server": "tsx src/admin/api/devServer.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -62,6 +63,7 @@
     "dayjs": "^1.11.18",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^1.1.7",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
     "focus-trap-react": "^11.0.1",
     "framer-motion": "^12.23.24",
@@ -84,7 +86,7 @@
     "tailwind-merge": "^3.4.0",
     "uuid": "^9.0.1",
     "vaul": "^1.1.2",
-    "vitest": "^1.6.1",
+    "vitest": "^4.0.16",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -104,6 +106,6 @@
     "tailwindcss": "3.4.17",
     "tsx": "^4.20.6",
     "typescript": "^5.5.4",
-    "vite": "^5.2.0"
+    "vite": "^6.4.1"
   }
 }

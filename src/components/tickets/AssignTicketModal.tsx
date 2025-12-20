@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Search, Check } from 'lucide-react';
-import { useTickets } from '../hooks/useTicketsCompat';
+import { useTickets } from '@/hooks/useTicketsCompat';
 import 'tippy.js/dist/tippy.css';
 interface AssignTicketModalProps {
   isOpen: boolean;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
 import { BottomNavBar } from './BottomNavBar';
 import { Book } from '../modules/Book';
@@ -64,6 +64,17 @@ export function AppShell() {
   const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
   const [isTicketPanelOpen, setIsTicketPanelOpen] = useState(false);
 
+  // Callback for opening ticket panel - passed to TopHeaderBar
+  const handleOpenTicketPanel = useCallback(() => {
+    localStorage.removeItem('checkout-pending-ticket');
+    setIsTicketPanelOpen(true);
+  }, []);
+
+  const handleCloseTicketPanel = useCallback(() => {
+    setIsTicketPanelOpen(false);
+    localStorage.removeItem('checkout-pending-ticket');
+  }, []);
+
   // Get staff from Redux for TicketPanel
   const staffFromRedux = useAppSelector(selectAllStaff);
   const staffMembers: StaffMember[] = staffFromRedux.map(s => ({
@@ -99,18 +110,6 @@ export function AppShell() {
     };
   }, []);
 
-  // Listen for open-ticket-panel events (triggered by +New button from anywhere)
-  useEffect(() => {
-    const handleOpenTicketPanel = () => {
-      // Clear any stored pending ticket - we're creating a new one
-      localStorage.removeItem('checkout-pending-ticket');
-      setIsTicketPanelOpen(true);
-    };
-    window.addEventListener('open-ticket-panel', handleOpenTicketPanel);
-    return () => {
-      window.removeEventListener('open-ticket-panel', handleOpenTicketPanel);
-    };
-  }, []);
 
   // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
   const pendingTickets = useAppSelector(selectPendingTickets);
@@ -381,6 +380,7 @@ export function AppShell() {
         activeModule={activeModule}
         onModuleChange={setActiveModule}
         hideNavigation={showBottomNav}
+        onOpenTicketPanel={handleOpenTicketPanel}
       />
 
       {/* Main Content Area - responsive padding for header height (h-12 mobile, h-16 desktop) */}
@@ -403,22 +403,14 @@ export function AppShell() {
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => {
-              setIsTicketPanelOpen(false);
-              localStorage.removeItem('checkout-pending-ticket');
-            }}
+            onClick={handleCloseTicketPanel}
           />
           {/* Panel sliding from right */}
           <div className="absolute right-0 top-0 bottom-0 w-full md:w-[900px] bg-white shadow-2xl animate-in slide-in-from-right duration-300">
             <TicketPanel
               isOpen={true}
-              onClose={() => {
-                setIsTicketPanelOpen(false);
-                localStorage.removeItem('checkout-pending-ticket');
-              }}
-              staffMembers={staffMembers.length > 0 ? staffMembers : [
-                { id: 'staff-1', name: 'Staff Member', available: true },
-              ]}
+              onClose={handleCloseTicketPanel}
+              staffMembers={staffMembers}
             />
           </div>
         </div>

@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserPlus, MoreVertical, Percent, DollarSign, Plus, ShoppingBag, Users, AlertCircle, ChevronDown, ChevronUp, X, Tag, Clock, Play } from "lucide-react";
+import { UserPlus, MoreVertical, Percent, DollarSign, Plus, ShoppingBag, Users, AlertCircle, ChevronDown, ChevronUp, X, Tag, Play } from "lucide-react";
 import { TicketService, ServiceStatus } from "./ServiceList";
 import { AnimatePresence, motion } from "framer-motion";
 import ClientSelector, { Client } from "./ClientSelector";
@@ -67,6 +67,7 @@ interface InteractiveSummaryProps {
   onApplyDiscount?: (data: { type: "percentage" | "fixed"; amount: number; reason: string }) => void;
   onRemoveDiscount?: () => void;
   layout?: "classic" | "modern";
+  hideClientSection?: boolean;
 }
 
 export default function InteractiveSummary({
@@ -78,7 +79,7 @@ export default function InteractiveSummary({
   total,
   discount = 0,
   onCheckout,
-  onCheckIn,
+  onCheckIn: _onCheckIn,
   onStartService,
   onSelectClient,
   onCreateClient,
@@ -97,6 +98,7 @@ export default function InteractiveSummary({
   onApplyDiscount,
   onRemoveDiscount,
   layout: _layout = "classic",
+  hideClientSection = false,
 }: InteractiveSummaryProps) {
   const { toast } = useToast();
   const [showClientSelector, setShowClientSelector] = useState(false);
@@ -491,7 +493,8 @@ export default function InteractiveSummary({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Client Section - Clean design with slide animation */}
+      {/* Client Section - Clean design with slide animation (hidden when hideClientSection is true) */}
+      {!hideClientSection && (
       <div className="border-b border-border flex-shrink-0 overflow-hidden">
         <AnimatePresence mode="wait">
           {!selectedClient && !showClientSelector ? (
@@ -575,11 +578,12 @@ export default function InteractiveSummary({
           </div>
         )}
       </div>
+      )}
 
-      {/* Services Section - Grouped by Staff - scrollable with improved spacing */}
+      {/* Services Section - Grouped by Staff - scrollable with compact spacing */}
       <div
         ref={servicesContainerRef}
-        className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0"
+        className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0"
       >
         {services.length === 0 && assignedStaffIds.size === 0 ? (
           <Card className="p-12 text-center">
@@ -694,8 +698,8 @@ export default function InteractiveSummary({
         )}
       </div>
 
-      {/* Totals Section - Redesigned with cleaner layout and better spacing */}
-      <div className="flex-shrink-0 border-t border-border bg-background p-5">
+      {/* Totals Section - Redesigned with cleaner layout and compact spacing */}
+      <div className="flex-shrink-0 border-t border-border bg-background px-3 py-3">
         {/* Mobile Collapse Toggle - Only visible on mobile */}
         <button
           className="md:hidden flex items-center justify-between w-full py-2 touch-feedback focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
@@ -759,19 +763,19 @@ export default function InteractiveSummary({
           </div>
         </div>
 
-        {/* Total Row - Prominent styling */}
-        <div className={`flex justify-between items-center py-3 border-t border-border ${isTotalsCollapsed ? 'hidden md:flex' : 'flex'}`}>
-          <span className="font-semibold text-foreground">Total</span>
-          <span className="font-bold text-3xl text-foreground" data-testid="text-to-pay">
+        {/* Total Row - Compact styling */}
+        <div className={`flex justify-between items-center pt-2 border-t border-border ${isTotalsCollapsed ? 'hidden md:flex' : 'flex'}`}>
+          <span className="text-sm font-medium text-foreground">Total</span>
+          <span className="font-bold text-xl text-foreground" data-testid="text-to-pay">
             ${total.toFixed(2)}
           </span>
         </div>
 
-        {/* Action Buttons - Clean layout */}
-        <div className={`space-y-3 mt-4 ${isTotalsCollapsed ? 'hidden md:block' : 'block'}`}>
+        {/* Action Buttons - Compact layout */}
+        <div className={`flex gap-2 mt-3 ${isTotalsCollapsed ? 'hidden md:flex' : 'flex'}`}>
           {/* Primary CTA */}
           <Button
-            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-all duration-200"
             onClick={handleCheckoutClick}
             disabled={services.length === 0 || total <= 0}
             data-testid="button-checkout"
@@ -779,56 +783,35 @@ export default function InteractiveSummary({
             Continue to Payment
           </Button>
 
-          {/* Secondary Actions Row */}
-          <div className="flex gap-2">
-            {onCheckIn && (
+          {/* More Options - Contains discount, tip, check in, start */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex-1 h-10 gap-2 rounded-lg border-border text-foreground hover:bg-muted transition-colors"
-                onClick={onCheckIn}
-                disabled={services.length === 0}
-                data-testid="button-checkin"
+                size="icon"
+                className="h-10 w-10 rounded-lg border-border flex-shrink-0"
+                data-testid="button-payment-options"
               >
-                <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium">Check In</span>
+                <MoreVertical className="h-4 w-4" />
               </Button>
-            )}
-            {onStartService && (
-              <Button
-                variant="outline"
-                className="flex-1 h-10 gap-2 rounded-lg border-border text-foreground hover:bg-muted transition-colors"
-                onClick={onStartService}
-                disabled={services.length === 0}
-                data-testid="button-start-service"
-              >
-                <Play className="h-4 w-4" />
-                <span className="text-sm font-medium">Start</span>
-              </Button>
-            )}
-            {/* More Options - Contains discount and tip */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-lg border-border flex-shrink-0"
-                  data-testid="button-payment-options"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleOpenTicketDiscount} data-testid="option-add-discount">
-                  <Percent className="mr-2 h-4 w-4" />
-                  {discount > 0 ? 'Change Discount' : 'Add Discount'}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleOpenTicketDiscount} data-testid="option-add-discount">
+                <Percent className="mr-2 h-4 w-4" />
+                {discount > 0 ? 'Change Discount' : 'Add Discount'}
+              </DropdownMenuItem>
+              <DropdownMenuItem data-testid="option-add-tip">
+                <DollarSign className="mr-2 h-4 w-4" />
+                Add Tip
+              </DropdownMenuItem>
+              {onStartService && (
+                <DropdownMenuItem onClick={onStartService} disabled={services.length === 0} data-testid="option-start-service">
+                  <Play className="mr-2 h-4 w-4" />
+                  Start Service
                 </DropdownMenuItem>
-                <DropdownMenuItem data-testid="option-add-tip">
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  Add Tip
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
