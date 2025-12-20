@@ -17,7 +17,8 @@ import {
   Users,
   Heart,
   FileText,
-  TrendingUp
+  TrendingUp,
+  CheckCircle
 } from 'lucide-react';
 import { storeAuthManager } from '../../services/storeAuthManager';
 
@@ -46,12 +47,13 @@ export function More({ onNavigate }: MoreProps = {}) {
   };
 
   const menuItems = [
+    { id: 'closed', label: 'Closed Tickets', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'todays-sales', label: "Today's Sales", icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+    { id: 'transaction-records', label: 'Transaction Records', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'frontdesk-settings', label: 'Front Desk Settings', icon: LayoutGrid, color: 'text-orange-600', bg: 'bg-orange-50' },
     { id: 'category', label: 'Category', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50' },
     { id: 'clients', label: 'Clients', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-50' },
     { id: 'provider-control-center', label: '🔐 Provider Control Center (DEV)', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { id: 'todays-sales', label: "Today's Sales", icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-    { id: 'transaction-records', label: 'Transaction Records', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: 'license', label: 'License & Activation', icon: Key, color: 'text-orange-600', bg: 'bg-orange-50' },
     { id: 'devices', label: 'Device Manager', icon: Smartphone, color: 'text-cyan-600', bg: 'bg-cyan-50' },
     { id: 'account', label: 'Account', icon: User, color: 'text-purple-600', bg: 'bg-purple-50' },
