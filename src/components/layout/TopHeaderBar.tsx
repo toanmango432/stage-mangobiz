@@ -454,45 +454,69 @@ export function TopHeaderBar({
       </div>
 
       {/* Center Section - Navigation (hidden on mobile/tablet when BottomNavBar is shown) */}
-      {/* DOMINANT, LARGE buttons for busy salon staff & older/non-tech users - "Remote Control" principle */}
-      {/* Full size at xl+, slightly compact at lg, icon-only below lg */}
+      {/* Clean, modern navigation with circular +New button */}
       {!hideNavigation && (
       <div className="flex-1 flex justify-center items-center h-full min-w-0 overflow-hidden px-2">
-        <nav className="flex items-center gap-1.5 lg:gap-2 xl:gap-3 h-full">
-          {modules.map((module) => {
-            const Icon = module.icon;
-            const isActive = activeModule === module.id;
+        <nav className="flex items-center gap-1 lg:gap-1.5 h-full">
+          {/* Navigation Tabs - Clean pill style */}
+          <div className="flex items-center bg-gray-100/80 rounded-full p-1">
+            {modules.map((module) => {
+              const Icon = module.icon;
+              const isActive = activeModule === module.id;
 
-            return (
-              <button
-                key={module.id}
-                onClick={() => onModuleChange?.(module.id)}
-                title={module.label}
-                className={`
-                  relative flex items-center justify-center gap-2 xl:gap-3
-                  px-3 lg:px-4 xl:px-6 py-2 xl:py-3
-                  rounded-xl transition-all duration-150 group
-                  min-h-[44px] xl:min-h-[52px] transform
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
-                  ${isActive
-                    ? 'bg-orange-50 text-orange-600 shadow-sm border-b-2 border-orange-500'
-                    : 'text-gray-700 bg-white shadow-md hover:shadow-lg hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98] active:shadow-sm active:bg-gray-100'
-                  }
-                `}
-              >
-                <Icon
-                  size={22}
-                  className="w-5 h-5 xl:w-6 xl:h-6 flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-                <span className={`hidden lg:inline text-base xl:text-lg whitespace-nowrap ${isActive ? 'font-bold' : 'font-semibold'}`}>
-                  {module.label}
-                </span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={module.id}
+                  onClick={() => onModuleChange?.(module.id)}
+                  title={module.label}
+                  className={`
+                    relative flex items-center justify-center gap-2
+                    px-4 lg:px-5 xl:px-6 py-2 xl:py-2.5
+                    rounded-full transition-all duration-200
+                    min-h-[40px] xl:min-h-[44px]
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
+                    ${isActive
+                      ? 'bg-white text-orange-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                    }
+                  `}
+                >
+                  <Icon
+                    size={20}
+                    className="w-5 h-5 flex-shrink-0"
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                    {module.label}
+                  </span>
+                </button>
+              );
+            })}
 
-          {/* +New Button - Primary action to create new ticket */}
+            {/* More Button - Inside the pill */}
+            <button
+              onClick={() => onModuleChange?.('more')}
+              title="More"
+              className={`
+                relative flex items-center justify-center gap-2
+                px-4 lg:px-5 xl:px-6 py-2 xl:py-2.5
+                rounded-full transition-all duration-200
+                min-h-[40px] xl:min-h-[44px]
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
+                ${activeModule === 'more'
+                  ? 'bg-white text-gray-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }
+              `}
+            >
+              <MoreHorizontal size={20} className="w-5 h-5 flex-shrink-0" />
+              <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
+                More
+              </span>
+            </button>
+          </div>
+
+          {/* +New Button - Circular, stands out */}
           <button
             onClick={() => {
               // Dispatch event to open global ticket panel overlay
@@ -500,47 +524,22 @@ export function TopHeaderBar({
             }}
             title="Create New Ticket"
             className="
-              relative flex items-center justify-center gap-2 xl:gap-2.5
-              px-3 lg:px-4 xl:px-5 py-2 xl:py-2.5
-              rounded-xl transition-all duration-150 group
-              min-h-[44px] xl:min-h-[52px] transform
+              relative flex items-center justify-center
+              w-11 h-11 lg:w-12 lg:h-12 xl:w-14 xl:h-14
+              ml-3 lg:ml-4
+              rounded-full transition-all duration-200 group
               focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
-              bg-gradient-to-r from-orange-500 to-orange-600
-              text-white font-semibold shadow-lg shadow-orange-500/30
-              hover:from-orange-600 hover:to-orange-700 hover:shadow-xl hover:shadow-orange-500/40 hover:scale-[1.03]
-              active:scale-[0.97] active:shadow-md
+              bg-gradient-to-br from-orange-500 to-orange-600
+              text-white shadow-lg shadow-orange-500/40
+              hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105
+              active:scale-95
             "
           >
             <Plus
-              size={22}
-              className="w-5 h-5 xl:w-6 xl:h-6 flex-shrink-0 transition-transform duration-200 group-hover:rotate-90"
+              size={24}
+              className="w-6 h-6 lg:w-7 lg:h-7 transition-transform duration-200 group-hover:rotate-90"
               strokeWidth={2.5}
             />
-            <span className="hidden lg:inline text-base xl:text-lg whitespace-nowrap">
-              New
-            </span>
-          </button>
-
-          {/* More Button - glass style, secondary importance */}
-          <button
-            onClick={() => onModuleChange?.('more')}
-            title="More"
-            className={`
-              relative flex items-center justify-center gap-2 xl:gap-2.5
-              px-3 lg:px-4 xl:px-5 py-2 xl:py-2.5
-              rounded-xl transition-all duration-150 group
-              min-h-[44px] xl:min-h-[48px] transform
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
-              ${activeModule === 'more'
-                ? 'bg-gray-100 text-gray-700 shadow-sm border-b-2 border-gray-500'
-                : 'text-gray-600 bg-white shadow-md hover:shadow-lg hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98] active:shadow-sm active:bg-gray-100'
-              }
-            `}
-          >
-            <MoreHorizontal size={20} className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
-            <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${activeModule === 'more' ? 'font-semibold' : 'font-medium'}`}>
-              More
-            </span>
           </button>
         </nav>
       </div>
