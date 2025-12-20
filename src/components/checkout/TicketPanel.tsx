@@ -3281,7 +3281,7 @@ export default function TicketPanel({
 
       {/* Exit Confirmation Dialog - 4 Options */}
       <Dialog open={showDiscardTicketConfirm} onOpenChange={setShowDiscardTicketConfirm}>
-        <DialogContent className="max-w-md" data-testid="dialog-exit-confirmation">
+        <DialogContent className="max-w-md z-[100]" data-testid="dialog-exit-confirmation">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />

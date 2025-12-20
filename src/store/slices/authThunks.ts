@@ -24,8 +24,10 @@ export const loginUser = createAsyncThunk(
         salonId: response.user.salonId,
         token: response.token,
       };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      return rejectWithValue(apiMessage || message);
     }
   }
 );
@@ -51,8 +53,10 @@ export const loginSalonMode = createAsyncThunk(
         salonId,
         token: response.token,
       };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Salon mode login failed');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Salon mode login failed';
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      return rejectWithValue(apiMessage || message);
     }
   }
 );
@@ -74,15 +78,17 @@ export const logoutUser = createAsyncThunk(
       socketClient.disconnect();
 
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Even if API call fails, clear local data
       await settingsDB.remove('auth_token');
       await settingsDB.remove('refresh_token');
       await settingsDB.remove('salon_id');
       await settingsDB.remove('user_data');
       socketClient.disconnect();
-      
-      return rejectWithValue(error.response?.data?.message || 'Logout failed');
+
+      const message = error instanceof Error ? error.message : 'Logout failed';
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      return rejectWithValue(apiMessage || message);
     }
   }
 );
@@ -111,14 +117,16 @@ export const verifyToken = createAsyncThunk(
         salonId,
         token,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Clear invalid session
       await settingsDB.remove('auth_token');
       await settingsDB.remove('refresh_token');
       await settingsDB.remove('salon_id');
       await settingsDB.remove('user_data');
-      
-      return rejectWithValue(error.response?.data?.message || 'Session expired');
+
+      const message = error instanceof Error ? error.message : 'Session expired';
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      return rejectWithValue(apiMessage || message);
     }
   }
 );

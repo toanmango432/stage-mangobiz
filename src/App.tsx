@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
-import { AdminPortal } from './admin/AdminPortal';
+
+// Lazy load AdminPortal - it's a separate route with its own dependencies
+const AdminPortal = lazy(() => import('./admin/AdminPortal').then(m => ({ default: m.AdminPortal })));
 import { dataCleanupService } from './services/dataCleanupService';
 import { storeAuthManager, type StoreAuthState } from './services/storeAuthManager';
 import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
@@ -214,13 +216,20 @@ export function App() {
     },
   };
 
-  // ADMIN MODE: Render AdminPortal without Redux Provider
+  // ADMIN MODE: Render AdminPortal without Redux Provider (lazy loaded)
   if (isAdminMode) {
     return (
-      <>
+      <Suspense fallback={
+        <div className="h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-gray-600">Loading Admin Portal...</p>
+          </div>
+        </div>
+      }>
         <AdminPortal />
         <Toaster {...toasterConfig} />
-      </>
+      </Suspense>
     );
   }
 

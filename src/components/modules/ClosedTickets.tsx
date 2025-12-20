@@ -7,6 +7,7 @@
 import { useState, useMemo } from 'react';
 import { Search, CheckCircle, Receipt, RefreshCcw, Eye, DollarSign } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
+import { selectCompletedTickets, UITicket } from '../../store/slices/uiTicketsSlice';
 import { cn } from '../../lib/utils';
 
 type DateFilter = 'today' | 'yesterday' | 'week';
@@ -15,17 +16,11 @@ export function ClosedTickets() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
 
-  // Get all tickets from Redux
-  const allTickets = useAppSelector(state => state.uiTickets?.items || []);
+  // Get completed tickets from Redux (these are the "closed" tickets)
+  const completedTickets = useAppSelector(selectCompletedTickets);
 
-  // Filter to closed tickets only
-  const closedTickets = useMemo(() => {
-    return allTickets.filter(ticket =>
-      ticket.status === 'closed' ||
-      ticket.status === 'completed' ||
-      ticket.status === 'paid'
-    );
-  }, [allTickets]);
+  // Completed tickets are already "closed" - no additional filtering needed
+  const closedTickets = completedTickets;
 
   // Apply date filter
   const filteredByDate = useMemo(() => {
@@ -36,8 +31,8 @@ export function ClosedTickets() {
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    return closedTickets.filter(ticket => {
-      const ticketDate = new Date(ticket.createdAt || ticket.closedAt || new Date());
+    return closedTickets.filter((ticket: UITicket) => {
+      const ticketDate = new Date(ticket.createdAt || new Date());
       switch (dateFilter) {
         case 'today':
           return ticketDate >= today;
@@ -56,16 +51,15 @@ export function ClosedTickets() {
     if (!searchQuery.trim()) return filteredByDate;
 
     const query = searchQuery.toLowerCase();
-    return filteredByDate.filter(ticket =>
+    return filteredByDate.filter((ticket: UITicket) =>
       ticket.clientName?.toLowerCase().includes(query) ||
-      ticket.ticketNumber?.toString().includes(query) ||
-      ticket.id?.toString().includes(query) ||
-      (ticket as any).staffName?.toLowerCase().includes(query)
+      ticket.number?.toString().includes(query) ||
+      ticket.id?.toString().includes(query)
     );
   }, [filteredByDate, searchQuery]);
 
-  // Calculate totals
-  const totalRevenue = displayTickets.reduce((sum, t) => sum + (t.total || 0), 0);
+  // Calculate totals (UITicket doesn't have total, so we'll use 0 for now)
+  const totalRevenue = displayTickets.reduce((sum: number, t: UITicket) => sum + ((t as any).total || 0), 0);
 
   const formatTime = (date: string | Date | undefined) => {
     if (!date) return '';

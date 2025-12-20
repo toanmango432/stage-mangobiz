@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
 import { BottomNavBar } from './BottomNavBar';
 import { Book } from '../modules/Book';
@@ -6,22 +6,24 @@ import { FrontDesk } from '../modules/FrontDesk';
 import { Tickets } from '../modules/Tickets';
 import { Team } from '../modules/Team';
 import { Pending } from '../modules/Pending';
-import { TransactionRecords } from '../modules/TransactionRecords';
 import TicketPanel from '../checkout/TicketPanel';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import type { StaffMember } from '../checkout/ServiceList';
 import { ClosedTickets } from '../modules/ClosedTickets';
-import { TodaysSales } from '../modules/TodaysSales';
 import { More } from '../modules/More';
-import { Schedule } from '../modules/Schedule';
-import { HeaderColorPreview } from '../HeaderColorPreview';
-import { TicketColorPreview } from '../TicketColorPreview';
-import { LicenseSettings } from '../licensing/LicenseSettings';
-import { MenuSettings } from '../menu-settings';
-import { TeamSettings } from '../team-settings';
-import { RoleSettings } from '../role-settings';
-import { DeviceSettings } from '../device';
-import { ClientSettings } from '../client-settings';
+
+// Lazy load less frequently used modules to reduce initial bundle size
+const TransactionRecords = lazy(() => import('../modules/TransactionRecords').then(m => ({ default: m.TransactionRecords })));
+const TodaysSales = lazy(() => import('../modules/TodaysSales').then(m => ({ default: m.TodaysSales })));
+const Schedule = lazy(() => import('../modules/Schedule').then(m => ({ default: m.Schedule })));
+const HeaderColorPreview = lazy(() => import('../HeaderColorPreview').then(m => ({ default: m.HeaderColorPreview })));
+const TicketColorPreview = lazy(() => import('../TicketColorPreview').then(m => ({ default: m.TicketColorPreview })));
+const LicenseSettings = lazy(() => import('../licensing/LicenseSettings').then(m => ({ default: m.LicenseSettings })));
+const MenuSettings = lazy(() => import('../menu-settings').then(m => ({ default: m.MenuSettings })));
+const TeamSettings = lazy(() => import('../team-settings').then(m => ({ default: m.TeamSettings })));
+const RoleSettings = lazy(() => import('../role-settings').then(m => ({ default: m.RoleSettings })));
+const DeviceSettings = lazy(() => import('../device').then(m => ({ default: m.DeviceSettings })));
+const ClientSettings = lazy(() => import('../client-settings').then(m => ({ default: m.ClientSettings })));
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -302,8 +304,19 @@ export function AppShell() {
     };
   }, [dispatch]);
 
+  // Loading fallback for lazy-loaded modules
+  const ModuleLoader = () => (
+    <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className="text-center space-y-3">
+        <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-sm text-gray-500">Loading...</p>
+      </div>
+    </div>
+  );
+
   const renderModule = () => {
     switch (activeModule) {
+      // Core modules - eagerly loaded
       case 'book':
         return <Book />;
       case 'frontdesk':
@@ -316,34 +329,36 @@ export function AppShell() {
         return <Pending />;
       case 'closed':
         return <ClosedTickets />;
-      case 'transaction-records':
-        return <TransactionRecords onBack={() => setActiveModule('more')} />;
-      case 'todays-sales':
-        return <TodaysSales onBack={() => setActiveModule('more')} />;
       case 'more':
         return <More onNavigate={setActiveModule} />;
+
+      // Lazy-loaded modules - wrapped in Suspense
+      case 'transaction-records':
+        return <Suspense fallback={<ModuleLoader />}><TransactionRecords onBack={() => setActiveModule('more')} /></Suspense>;
+      case 'todays-sales':
+        return <Suspense fallback={<ModuleLoader />}><TodaysSales onBack={() => setActiveModule('more')} /></Suspense>;
       case 'schedule':
-        return <Schedule />;
+        return <Suspense fallback={<ModuleLoader />}><Schedule /></Suspense>;
       case 'category':
-        return <MenuSettings onBack={() => setActiveModule('more')} />;
+        return <Suspense fallback={<ModuleLoader />}><MenuSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'clients':
-        return <ClientSettings onBack={() => setActiveModule('more')} />;
+        return <Suspense fallback={<ModuleLoader />}><ClientSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'license':
-        return <LicenseSettings />;
+        return <Suspense fallback={<ModuleLoader />}><LicenseSettings /></Suspense>;
       case 'header-preview':
-        return <HeaderColorPreview />;
+        return <Suspense fallback={<ModuleLoader />}><HeaderColorPreview /></Suspense>;
       case 'ticket-preview':
-        return <TicketColorPreview />;
+        return <Suspense fallback={<ModuleLoader />}><TicketColorPreview /></Suspense>;
       case 'team-settings':
-        return <TeamSettings onBack={() => setActiveModule('more')} />;
+        return <Suspense fallback={<ModuleLoader />}><TeamSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'role-settings':
-        return <RoleSettings onBack={() => setActiveModule('more')} />;
+        return <Suspense fallback={<ModuleLoader />}><RoleSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'frontdesk-settings':
         return <FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
           if (!show) setActiveModule('more');
         }} />;
       case 'devices':
-        return <DeviceSettings onBack={() => setActiveModule('more')} />;
+        return <Suspense fallback={<ModuleLoader />}><DeviceSettings onBack={() => setActiveModule('more')} /></Suspense>;
       default:
         return <FrontDesk />;
     }

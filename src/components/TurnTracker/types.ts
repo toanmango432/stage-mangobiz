@@ -5,7 +5,7 @@
 
 export interface TurnEntry {
   id: string;
-  timestamp: Date;
+  timestamp: string | Date; // ISO 8601 string or Date object
   turnNumber: number;
   amount: number;
   serviceCount: number;
@@ -20,7 +20,7 @@ export interface StaffTurnData {
   id: string;
   name: string;
   photo?: string;
-  clockInTime: Date;
+  clockInTime: string | Date; // ISO 8601 string or Date object
   serviceTurn: number;
   bonusTurn: number;
   adjustTurn: number;

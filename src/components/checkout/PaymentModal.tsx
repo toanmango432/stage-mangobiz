@@ -288,7 +288,7 @@ export default function PaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-h-[95vh] sm:max-h-[90vh] w-full max-w-full sm:max-w-3xl flex flex-col p-0">
+      <DialogContent className="max-h-[90vh] w-[95vw] max-w-lg sm:max-w-xl md:max-w-2xl flex flex-col p-0 z-[100]">
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 flex-shrink-0">
           <DialogTitle className="text-lg sm:text-xl text-center">
             Checkout

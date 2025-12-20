@@ -17,7 +17,6 @@
     "admin:server": "tsx src/admin/api/devServer.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -60,7 +59,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
-    "dayjs": "^1.11.18",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^1.1.7",
     "dotenv": "^17.2.3",
@@ -90,6 +88,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@playwright/test": "^1.56.1",
     "@types/node": "^20.11.18",
     "@types/react": "^18.3.1",
@@ -99,11 +98,13 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "latest",
+    "dayjs": "^1.11.19",
     "eslint": "^8.50.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.1",
     "fake-indexeddb": "^6.2.4",
     "postcss": "latest",
+    "rollup-plugin-visualizer": "^6.0.5",
     "tailwindcss": "3.4.17",
     "tsx": "^4.20.6",
     "typescript": "^5.5.4",

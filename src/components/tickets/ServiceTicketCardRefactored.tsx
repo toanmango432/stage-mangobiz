@@ -427,7 +427,7 @@ function ServiceTicketCardComponent({
         {content}
         {showDetailsModal && (
           <TicketDetailsModal
-            ticket={ticket}
+            ticketId={parseInt(ticket.id) || ticket.number}
             isOpen={showDetailsModal}
             onClose={() => setShowDetailsModal(false)}
           />
@@ -491,7 +491,7 @@ function ServiceTicketCardComponent({
 
       {showDetailsModal && (
         <TicketDetailsModal
-          ticket={ticket}
+          ticketId={parseInt(ticket.id) || ticket.number}
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
         />

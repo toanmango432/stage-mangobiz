@@ -247,7 +247,7 @@ function ServiceTicketCardComponent({
           {/* Paper texture overlay */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
         </div>
-        <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+        <TicketDetailsModal ticketId={parseInt(ticket.id) || ticket.number} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
       </>
     );
   }
@@ -395,7 +395,7 @@ function ServiceTicketCardComponent({
         {/* Paper texture overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
       </div>
-      <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+      <TicketDetailsModal ticketId={parseInt(ticket.id) || ticket.number} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
       </>
     );
   }
@@ -427,7 +427,7 @@ function ServiceTicketCardComponent({
         <div className="absolute inset-0 pointer-events-none opacity-15 rounded-xl" style={{ backgroundImage: `repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px), repeating-linear-gradient(0deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px, transparent 3px)`, backgroundSize: '3px 3px' }} />
         <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.4)' }} />
       </div>
-      <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+      <TicketDetailsModal ticketId={parseInt(ticket.id) || ticket.number} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
     </>
     );
   }
@@ -457,7 +457,7 @@ function ServiceTicketCardComponent({
         <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
         <div className="absolute inset-0 pointer-events-none opacity-10 rounded-lg" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent 0px, rgba(180, 150, 110, 0.03) 1px, transparent 2px)', backgroundSize: '2px 2px' }} />
       </div>
-      <TicketDetailsModal ticket={{ ...ticket, status: 'in-service' as const, priority: ticket.priority || 'normal' }} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+      <TicketDetailsModal ticketId={parseInt(ticket.id) || ticket.number} isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
     </>
     );
   }

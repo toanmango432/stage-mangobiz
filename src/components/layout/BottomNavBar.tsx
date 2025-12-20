@@ -5,7 +5,6 @@ import {
   Receipt,
   MoreHorizontal,
   Users,
-  CheckCircle,
   Plus
 } from 'lucide-react';
 

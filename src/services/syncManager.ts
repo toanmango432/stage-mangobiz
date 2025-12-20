@@ -12,6 +12,27 @@ import {
 } from '../store/slices/syncSlice';
 import { selectIsOfflineEnabled, selectDeviceMode } from '../store/slices/authSlice';
 
+// Type definitions for sync operations
+interface SyncChange {
+  entity: 'appointment' | 'ticket' | 'staff' | 'client' | 'transaction';
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  data: {
+    id: string;
+    updatedAt?: string;
+    createdAt?: string;
+    lastModifiedBy?: string;
+    syncStatus?: string;
+    [key: string]: unknown;
+  };
+}
+
+interface SyncableData {
+  id: string;
+  updatedAt?: Date | string;
+  syncStatus?: string;
+  [key: string]: unknown;
+}
+
 class SyncManager {
   private isSyncing = false;
   private syncInterval: NodeJS.Timeout | null = null;
@@ -138,9 +159,10 @@ class SyncManager {
       store.dispatch(setSyncComplete());
       console.log('✅ Sync: Complete');
 
-    } catch (error: any) {
-      console.error('❌ Sync: Error -', error.message);
-      store.dispatch(setSyncError(error.message));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown sync error';
+      console.error('❌ Sync: Error -', message);
+      store.dispatch(setSyncError(message));
     } finally {
       this.isSyncing = false;
       store.dispatch(setSyncing(false));
@@ -186,15 +208,16 @@ class SyncManager {
           }
 
           console.log(`✅ Sync Push: Batch of ${batch.length} operations synced`);
-        } catch (error: any) {
-          console.error('❌ Sync Push: Batch failed -', error.message);
-          
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'Unknown batch error';
+          console.error('❌ Sync Push: Batch failed -', message);
+
           // Update failed operations
           for (const op of batch) {
             await syncQueueDB.update(op.id!, {
               attempts: op.attempts + 1,
               lastAttemptAt: new Date(),
-              error: error.message,
+              error: message,
             });
           }
         }
@@ -249,7 +272,7 @@ class SyncManager {
   /**
    * Apply a remote change to local database
    */
-  private async applyRemoteChange(change: any) {
+  private async applyRemoteChange(change: SyncChange) {
     try {
       const { entity, action, data } = change;
 
@@ -301,7 +324,8 @@ class SyncManager {
           if (action === 'CREATE' || action === 'UPDATE') {
             // Check for conflicts - for transactions, server always wins (financial data integrity)
             const existing = await transactionsDB.getById(data.id);
-            if (existing && (existing as any).updatedAt && new Date((existing as any).updatedAt) > new Date(data.updatedAt || data.createdAt)) {
+            const existingUpdatedAt = (existing as SyncableData | null)?.updatedAt;
+            if (existing && existingUpdatedAt && new Date(existingUpdatedAt.toString()) > new Date(data.updatedAt || data.createdAt || '')) {
               console.warn('⚠️ Transaction conflict detected:', data.id, '- Server wins for financial data');
             }
             // Always apply server version for transactions (server-wins strategy)
@@ -332,8 +356,8 @@ class SyncManager {
   private async handleConflict(
     entity: string,
     entityId: string,
-    localData: any,
-    remoteData: any
+    localData: SyncableData,
+    remoteData: SyncableData
   ) {
     console.log(`⚠️ Conflict Resolution: ${entity} ${entityId}`);
 
