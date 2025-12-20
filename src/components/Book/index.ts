@@ -7,7 +7,7 @@ export { BookErrorBoundary } from './BookErrorBoundary';
 export { AppointmentCard } from './AppointmentCard';
 export { CalendarHeader } from './CalendarHeader';
 export { CommandPalette } from './CommandPalette';
-export { DaySchedule } from './DaySchedule.v2';
+export { DaySchedule } from './DaySchedule';
 export { StaffColumn } from './StaffColumn';
 export { StaffSidebar } from './StaffSidebar';
 export { TimeSlot } from './TimeSlot';

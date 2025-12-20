@@ -21,7 +21,7 @@ import {
   EditAppointmentModal,
 } from '../components/Book';
 import { CalendarLoadingOverlay } from '../components/Book/skeletons';
-import { DaySchedule } from '../components/Book/DaySchedule.v2';
+import { DaySchedule } from '../components/Book/DaySchedule';
 import { WeekView } from '../components/Book/WeekView';
 import { MonthView } from '../components/Book/MonthView';
 import { AgendaView } from '../components/Book/AgendaView';
