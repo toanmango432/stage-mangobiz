@@ -7,6 +7,55 @@ import { v4 as uuidv4 } from 'uuid';
 import { createTransactionFromPending, createTransactionInSupabase } from './transactionsSlice';
 import type { PaymentMethod, PaymentDetails, CreateTransactionInput } from '../../types';
 
+// Import TicketStatus for proper typing
+import type { TicketStatus } from '../../types';
+
+// All possible ticket statuses (TicketStatus + UI-specific statuses)
+type AllTicketStatus = TicketStatus | 'waiting' | 'in-service' | 'cancelled';
+
+// Database ticket interface (for type safety in conversions)
+interface DBTicket {
+  id: string;
+  number?: number;
+  clientId?: string;
+  clientName?: string;
+  status: AllTicketStatus;
+  services?: Array<{
+    id?: string;
+    name?: string;
+    price?: number;
+    duration?: number;
+    staffId?: string;
+    staffName?: string;
+    staffColor?: string;
+    commission?: number;
+  }>;
+  subtotal?: number;
+  tax?: number;
+  tip?: number;
+  notes?: string;
+  technician?: string;
+  techColor?: string;
+  techId?: string;
+  priority?: 'normal' | 'high';
+  serviceStatus?: ServiceStatus;
+  assignedTo?: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  assignedStaff?: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
+  syncStatus?: string;
+  lastVisitDate?: Date | null;
+  checkoutServices?: unknown[];
+}
+
 // Service status for individual services within a ticket
 export type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
 
@@ -148,7 +197,7 @@ export const loadTickets = createAsyncThunk(
   async (_salonId: string) => {
     // Helper function to merge local tickets with remote tickets
     // Local tickets (syncStatus === 'local') take precedence and are added if not already in remote
-    const mergeTickets = (remoteTickets: any[], localTickets: any[]) => {
+    const mergeTickets = (remoteTickets: DBTicket[], localTickets: DBTicket[]) => {
       const remoteIds = new Set(remoteTickets.map(t => t.id));
       const localOnlyTickets = localTickets.filter(t =>
         t.syncStatus === 'local' && !remoteIds.has(t.id)
@@ -160,14 +209,14 @@ export const loadTickets = createAsyncThunk(
       // Try Supabase first
       const today = new Date();
       const rows = await dataService.tickets.getByDate(today);
-      const remoteTickets = toTickets(rows);
+      const remoteTickets = toTickets(rows) as unknown as DBTicket[];
 
       console.log('📋 Loaded tickets from Supabase:', remoteTickets.length);
 
       // Also load local tickets from IndexedDB to merge unsynced ones
       // Try multiple possible salonIds for local tickets
-      const localTicketsDefault = await ticketsDB.getAll('default-salon');
-      const localTicketsSalon = await ticketsDB.getAll(_salonId);
+      const localTicketsDefault = await ticketsDB.getAll('default-salon') as unknown as DBTicket[];
+      const localTicketsSalon = await ticketsDB.getAll(_salonId) as unknown as DBTicket[];
       const localTickets = [...localTicketsDefault, ...localTicketsSalon];
 
       // Filter to only include today's local tickets
@@ -185,16 +234,16 @@ export const loadTickets = createAsyncThunk(
 
       // Map Supabase status to UI status
       // Supabase uses: 'pending', 'in-service', 'completed', 'paid', 'cancelled'
-      const waitlist = allTickets.filter((t: any) => t.status === 'pending' || t.status === 'waiting');
-      const serviceTickets = allTickets.filter((t: any) => t.status === 'in-service');
+      const waitlist = allTickets.filter((t) => t.status === 'pending' || t.status === 'waiting');
+      const serviceTickets = allTickets.filter((t) => t.status === 'in-service');
       // 'completed' status tickets are pending payment
-      const pendingTickets = allTickets.filter((t: any) => t.status === 'completed');
+      const pendingTickets = allTickets.filter((t) => t.status === 'completed');
       // 'paid' status tickets are fully completed
-      const completedTickets = allTickets.filter((t: any) => t.status === 'paid');
+      const completedTickets = allTickets.filter((t) => t.status === 'paid');
 
       // Get last ticket number from all tickets
       const lastTicketNumber = allTickets.length > 0
-        ? Math.max(...allTickets.map((t: any) => t.number || 0))
+        ? Math.max(...allTickets.map((t) => t.number || 0))
         : 0;
 
       console.log('📋 Tickets by status (after merge):', {
@@ -215,8 +264,8 @@ export const loadTickets = createAsyncThunk(
     } catch (error) {
       console.warn('⚠️ Supabase unavailable, falling back to IndexedDB:', error);
       // Fallback to IndexedDB for offline mode - try multiple salonIds
-      const localTicketsDefault = await ticketsDB.getAll('default-salon');
-      const localTicketsSalon = await ticketsDB.getAll(_salonId);
+      const localTicketsDefault = await ticketsDB.getAll('default-salon') as unknown as DBTicket[];
+      const localTicketsSalon = await ticketsDB.getAll(_salonId) as unknown as DBTicket[];
       const allTickets = [...localTicketsDefault, ...localTicketsSalon];
 
       // Deduplicate by id
@@ -229,13 +278,13 @@ export const loadTickets = createAsyncThunk(
 
       console.log('📋 Loaded tickets from IndexedDB:', uniqueTickets.length);
 
-      const waitlistIdb = uniqueTickets.filter((t: any) => t.status === 'waiting' || t.status === 'pending');
-      const serviceTicketsIdb = uniqueTickets.filter((t: any) => t.status === 'in-service');
-      const pendingTicketsIdb = uniqueTickets.filter((t: any) => t.status === 'completed');
-      const completedTicketsIdb = uniqueTickets.filter((t: any) => t.status === 'paid');
+      const waitlistIdb = uniqueTickets.filter((t) => t.status === 'waiting' || t.status === 'pending');
+      const serviceTicketsIdb = uniqueTickets.filter((t) => t.status === 'in-service');
+      const pendingTicketsIdb = uniqueTickets.filter((t) => t.status === 'completed');
+      const completedTicketsIdb = uniqueTickets.filter((t) => t.status === 'paid');
 
       const lastTicketNumberIdb = uniqueTickets.length > 0
-        ? Math.max(...uniqueTickets.map((t: any) => t.number || parseInt(t.id.split('-')[1]) || 0))
+        ? Math.max(...uniqueTickets.map((t) => t.number || parseInt(t.id.split('-')[1]) || 0))
         : 0;
 
       return {
@@ -1050,17 +1099,42 @@ export const updateCheckoutTicket = createAsyncThunk(
   }
 );
 
+// Map DB/API status to UI status
+function mapToUIStatus(status: AllTicketStatus): 'waiting' | 'in-service' | 'completed' {
+  switch (status) {
+    case 'pending':
+    case 'waiting':
+      return 'waiting';
+    case 'in-service':
+      return 'in-service';
+    case 'completed':
+    case 'paid':
+    case 'unpaid':
+    case 'partial-payment':
+    case 'refunded':
+    case 'partially-refunded':
+    case 'voided':
+    case 'failed':
+    case 'cancelled':
+    default:
+      return 'completed';
+  }
+}
+
 // Helper function to convert DB ticket to UI ticket (IndexedDB fallback)
-function convertToUITicket(dbTicket: any): UITicket {
+function convertToUITicket(dbTicket: DBTicket): UITicket {
+  const createdAt = dbTicket.createdAt instanceof Date ? dbTicket.createdAt : new Date(dbTicket.createdAt);
+  const updatedAt = dbTicket.updatedAt instanceof Date ? dbTicket.updatedAt : new Date(dbTicket.updatedAt || dbTicket.createdAt);
+
   return {
     id: dbTicket.id,
     number: dbTicket.number || parseInt(dbTicket.id.split('-')[1]) || 0,
     clientName: dbTicket.clientName || dbTicket.clientId || 'Walk-in',
     clientType: dbTicket.clientId ? 'appointment' : 'walk-in',
     service: dbTicket.services?.[0]?.name || 'Service',
-    time: new Date(dbTicket.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    time: createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
     duration: `${dbTicket.services?.[0]?.duration || 30}min`,
-    status: dbTicket.status,
+    status: mapToUIStatus(dbTicket.status),
     serviceStatus: dbTicket.serviceStatus,
     assignedTo: dbTicket.assignedTo,
     assignedStaff: dbTicket.assignedStaff,
@@ -1069,16 +1143,16 @@ function convertToUITicket(dbTicket: any): UITicket {
     technician: dbTicket.technician,
     techColor: dbTicket.techColor,
     techId: dbTicket.techId,
-    createdAt: dbTicket.createdAt,
-    updatedAt: dbTicket.updatedAt,
+    createdAt,
+    updatedAt,
     lastVisitDate: dbTicket.lastVisitDate || null,
   };
 }
 
 // Helper function to convert DB ticket to PendingTicket
-function convertToPendingTicket(dbTicket: any): PendingTicket {
+function convertToPendingTicket(dbTicket: DBTicket): PendingTicket {
   const services = dbTicket.services || [];
-  const subtotal = dbTicket.subtotal || services.reduce((sum: number, s: any) => sum + (s.price || 0), 0);
+  const subtotal = dbTicket.subtotal || services.reduce((sum: number, s) => sum + (s.price || 0), 0);
 
   return {
     id: dbTicket.id,
