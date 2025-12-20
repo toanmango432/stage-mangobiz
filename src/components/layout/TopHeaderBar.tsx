@@ -457,65 +457,68 @@ export function TopHeaderBar({
       {/* Clean, modern navigation with circular +New button */}
       {!hideNavigation && (
       <div className="flex-1 flex justify-center items-center h-full min-w-0 overflow-hidden px-2">
-        <nav className="flex items-center gap-2 lg:gap-3 h-full">
-          {/* Main Navigation: Book & Front Desk */}
-          {modules.map((module) => {
-            const Icon = module.icon;
-            const isActive = activeModule === module.id;
+        <nav className="flex items-center gap-1 lg:gap-1.5 h-full">
+          {/* Navigation Tabs - Clean pill style */}
+          <div className="flex items-center bg-gray-100/80 rounded-full p-1">
+            {/* Main Navigation: Book & Front Desk */}
+            {modules.map((module) => {
+              const Icon = module.icon;
+              const isActive = activeModule === module.id;
 
-            return (
-              <button
-                key={module.id}
-                onClick={() => onModuleChange?.(module.id)}
-                title={module.label}
-                className={`
-                  relative flex items-center justify-center gap-2 xl:gap-2.5
-                  px-4 lg:px-5 xl:px-6 py-2.5 xl:py-3
-                  rounded-xl transition-all duration-200
-                  min-h-[44px] xl:min-h-[48px]
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
-                  ${isActive
-                    ? 'bg-white text-orange-600 shadow-md'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/70 hover:shadow-sm'
-                  }
-                `}
-              >
-                <Icon
-                  size={20}
-                  className="w-5 h-5 xl:w-[22px] xl:h-[22px] flex-shrink-0"
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-                <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                  {module.label}
-                </span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={module.id}
+                  onClick={() => onModuleChange?.(module.id)}
+                  title={module.label}
+                  className={`
+                    relative flex items-center justify-center gap-2
+                    px-4 lg:px-5 xl:px-6 py-2 xl:py-2.5
+                    rounded-full transition-all duration-200
+                    min-h-[40px] xl:min-h-[44px]
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2
+                    ${isActive
+                      ? 'bg-white text-orange-600 shadow-md font-semibold'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
+                    }
+                  `}
+                >
+                  <Icon
+                    size={20}
+                    className="w-5 h-5 flex-shrink-0"
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  <span className={`hidden lg:inline text-sm xl:text-base whitespace-nowrap ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                    {module.label}
+                  </span>
+                </button>
+              );
+            })}
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-300/50 mx-0.5" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-300/60 mx-1" />
 
-          {/* More Button */}
-          <button
-            onClick={() => onModuleChange?.('more')}
-            title="More"
-            className={`
-              relative flex items-center justify-center gap-1.5
-              px-3 lg:px-4 py-2.5 xl:py-3
-              rounded-xl transition-all duration-200
-              min-h-[44px] xl:min-h-[48px]
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
-              ${activeModule === 'more'
-                ? 'bg-white text-gray-700 shadow-md'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-white/70 hover:shadow-sm'
-              }
-            `}
-          >
-            <MoreHorizontal size={20} className="w-5 h-5 flex-shrink-0" />
-            <span className={`hidden lg:inline text-sm whitespace-nowrap ${activeModule === 'more' ? 'font-medium' : 'font-normal'}`}>
-              More
-            </span>
-          </button>
+            {/* More Button - Inside the pill */}
+            <button
+              onClick={() => onModuleChange?.('more')}
+              title="More"
+              className={`
+                relative flex items-center justify-center gap-1.5
+                px-3 lg:px-4 py-2 xl:py-2.5
+                rounded-full transition-all duration-200
+                min-h-[40px] xl:min-h-[44px]
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2
+                ${activeModule === 'more'
+                  ? 'bg-white text-gray-700 shadow-md'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                }
+              `}
+            >
+              <MoreHorizontal size={18} className="w-[18px] h-[18px] flex-shrink-0" />
+              <span className={`hidden lg:inline text-sm whitespace-nowrap ${activeModule === 'more' ? 'font-medium' : 'font-normal'}`}>
+                More
+              </span>
+            </button>
+          </div>
 
           {/* +New Button - Circular, outlined style for less visual weight */}
           <button
