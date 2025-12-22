@@ -1,5 +1,4 @@
 import {
-  DollarSign,
   Smartphone,
   User,
   Lock,
@@ -58,7 +57,7 @@ export function More({ onNavigate }: MoreProps = {}) {
     { id: 'devices', label: 'Device Manager', icon: Smartphone, color: 'text-cyan-600', bg: 'bg-cyan-50' },
     { id: 'account', label: 'Account', icon: User, color: 'text-purple-600', bg: 'bg-purple-50' },
     { id: 'closeout', label: 'End of Day Close Out', icon: Lock, color: 'text-red-600', bg: 'bg-red-50' },
-    { id: 'team-settings', label: 'Team', icon: UserCog, color: 'text-teal-600', bg: 'bg-teal-50' },
+    { id: 'team-settings', label: 'Team', icon: UserCog, color: 'text-brand-600', bg: 'bg-brand-50' },
     { id: 'role-settings', label: 'Roles & Permissions', icon: Users, color: 'text-violet-600', bg: 'bg-violet-50' },
     { id: 'schedule', label: 'Schedule', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     { id: 'admin', label: 'Admin Back Office', icon: Settings, color: 'text-gray-600', bg: 'bg-gray-50' },

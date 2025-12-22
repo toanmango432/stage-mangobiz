@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Clock, Star, Timer, DollarSign, X } from 'lucide-react';
-import { PremiumColors, PremiumMotion } from '../constants/premiumDesignTokens';
+import { PremiumColors, PremiumMotion } from '@/constants/premiumDesignTokens';
 
 export interface MetricData {
   clientsWaiting: number;

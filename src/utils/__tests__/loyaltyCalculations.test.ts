@@ -27,12 +27,12 @@ import type { LoyaltySettings } from '../../types/loyalty';
 // Mock client factory
 const createMockClient = (overrides: Partial<Client> = {}): Client => ({
   id: 'client-1',
+  salonId: 'salon-1',
   firstName: 'John',
   lastName: 'Doe',
   phone: '1234567890',
   email: 'john@example.com',
-  memberSince: '2024-01-01',
-  status: 'active',
+  isBlocked: false,
   loyaltyInfo: {
     tier: 'bronze',
     pointsBalance: 0,
@@ -44,12 +44,13 @@ const createMockClient = (overrides: Partial<Client> = {}): Client => ({
   visitSummary: {
     totalVisits: 0,
     totalSpent: 0,
-    averageSpend: 0,
-    lastVisit: '2024-01-01',
+    averageTicket: 0,
+    lastVisitDate: '2024-01-01',
     noShowCount: 0,
+    lateCancelCount: 0,
   },
   ...overrides,
-});
+} as Client);
 
 describe('loyaltyConfig utilities', () => {
   describe('getTierConfig', () => {
@@ -140,7 +141,7 @@ describe('loyaltyCalculations utilities', () => {
   describe('calculateLoyaltyEarnings', () => {
     it('should calculate earnings for bronze tier', () => {
       const client = createMockClient();
-      const input = { servicesTotal: 100, productsTotal: 0, subtotal: 100 };
+      const input = { clientId: 'test-client', transactionId: 'test-tx', servicesTotal: 100, productsTotal: 0, subtotal: 100 };
 
       const result = calculateLoyaltyEarnings(client, input);
 
@@ -152,7 +153,7 @@ describe('loyaltyCalculations utilities', () => {
 
     it('should include products if enabled', () => {
       const client = createMockClient();
-      const input = { servicesTotal: 50, productsTotal: 50, subtotal: 100 };
+      const input = { clientId: 'test-client', transactionId: 'test-tx', servicesTotal: 50, productsTotal: 50, subtotal: 100 };
 
       const result = calculateLoyaltyEarnings(client, input);
 
@@ -162,7 +163,7 @@ describe('loyaltyCalculations utilities', () => {
 
     it('should return zero if loyalty is disabled', () => {
       const client = createMockClient();
-      const input = { servicesTotal: 100, productsTotal: 0, subtotal: 100 };
+      const input = { clientId: 'test-client', transactionId: 'test-tx', servicesTotal: 100, productsTotal: 0, subtotal: 100 };
       const settings: LoyaltySettings = { ...DEFAULT_LOYALTY_SETTINGS, enabled: false };
 
       const result = calculateLoyaltyEarnings(client, input, settings);
@@ -182,7 +183,7 @@ describe('loyaltyCalculations utilities', () => {
           excludeFromLoyalty: true,
         },
       });
-      const input = { servicesTotal: 100, productsTotal: 0, subtotal: 100 };
+      const input = { clientId: 'test-client', transactionId: 'test-tx', servicesTotal: 100, productsTotal: 0, subtotal: 100 };
 
       const result = calculateLoyaltyEarnings(client, input);
 
@@ -194,12 +195,13 @@ describe('loyaltyCalculations utilities', () => {
         visitSummary: {
           totalVisits: 5,
           totalSpent: 480, // Just under silver threshold
-          averageSpend: 96,
-          lastVisit: '2024-01-01',
+          averageTicket: 96,
+          lastVisitDate: '2024-01-01',
           noShowCount: 0,
+          lateCancelCount: 0,
         },
       });
-      const input = { servicesTotal: 30, productsTotal: 0, subtotal: 30 };
+      const input = { clientId: 'test-client', transactionId: 'test-tx', servicesTotal: 30, productsTotal: 0, subtotal: 30 };
 
       const result = calculateLoyaltyEarnings(client, input);
 

@@ -616,16 +616,16 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
     // Ultra compact header for narrow width - Modern single row design
     if (sidebarWidth <= 100) {
       const headerBg = USE_NEW_TEAM_STYLING
-        ? "border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85 -mt-0"
+        ? "border-b border-brand-300/40 bg-gradient-to-r from-brand-50/90 to-brand-100/85 -mt-0"
         : "border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
         <div className="flex flex-col p-1.5 space-y-1.5">
           <div className="flex items-center justify-between">
-            <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1 rounded-lg flex items-center justify-center" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] text-white p-1 rounded-lg flex items-center justify-center shadow-md"}>
+            <div className={USE_NEW_TEAM_STYLING ? "text-brand-600 p-1 rounded-lg flex items-center justify-center" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] text-white p-1 rounded-lg flex items-center justify-center shadow-md"}>
               <Users size={12} strokeWidth={2.5} />
             </div>
             <Tippy content="Team Settings">
-              <button className={USE_NEW_TEAM_STYLING ? "p-1 rounded-lg bg-teal-100/50 hover:bg-teal-100 text-teal-700 transition-all duration-200" : "p-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-[#3BB09A] border border-gray-200/50 shadow-sm transition-all duration-200"} onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
+              <button className={USE_NEW_TEAM_STYLING ? "p-1 rounded-lg bg-brand-100/50 hover:bg-brand-100 text-brand-700 transition-all duration-200" : "p-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-[#3BB09A] border border-gray-200/50 shadow-sm transition-all duration-200"} onClick={() => setShowTeamSettings(true)} aria-label="Open team settings">
                 <Settings size={12} />
               </button>
             </Tippy>
@@ -637,36 +637,36 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       </div>;
     } else if (viewMode === 'compact') {
       const headerBg = USE_NEW_TEAM_STYLING
-        ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
+        ? "sticky top-0 z-10 border-b border-brand-300/40 bg-gradient-to-r from-brand-50/90 to-brand-100/85"
         : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
         <div className="px-3 py-2.5">
           {/* Row 1: Team title + Action icons (always together) */}
           <div className="flex items-center justify-between gap-3 mb-2">
             {/* Team title */}
-            <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
+            <div className={USE_NEW_TEAM_STYLING ? "text-brand-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
               <Users size={16} />
             </div>
-            <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
+            <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-brand-700' : 'text-gray-900'}`}>Team</h2>
             {/* Action icons - Always on row 1 */}
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {teamSettings.showSearch && <Tippy content="Search">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
                   <Search size={15} />
                 </button>
               </Tippy>}
               <Tippy content="Filter">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
                   <Filter size={15} />
                 </button>
               </Tippy>
               {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
                   {getViewModeIcon()}
                 </button>
               </Tippy>}
               <Tippy content="Team Settings">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
                   <Settings size={15} />
                 </button>
               </Tippy>
@@ -688,36 +688,36 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
     } else {
       // Normal view - Responsive design
       const headerBg = USE_NEW_TEAM_STYLING
-        ? "sticky top-0 z-10 border-b border-teal-300/40 bg-gradient-to-r from-teal-50/90 to-teal-100/85"
+        ? "sticky top-0 z-10 border-b border-brand-300/40 bg-gradient-to-r from-brand-50/90 to-brand-100/85"
         : "sticky top-0 z-10 border-b border-gray-200/60 bg-white/95 backdrop-blur-sm";
       return <div className={headerBg}>
         <div className="px-3 py-2.5">
           {/* Row 1: Team title + Action icons (always together) */}
           <div className="flex items-center justify-between gap-3 mb-2">
             {/* Team title */}
-            <div className={USE_NEW_TEAM_STYLING ? "text-teal-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
+            <div className={USE_NEW_TEAM_STYLING ? "text-brand-600 p-1.5 rounded-xl flex-shrink-0" : "bg-gradient-to-br from-[#3BB09A] to-[#2D9B85] p-1.5 rounded-xl shadow-lg text-white flex-shrink-0"}>
               <Users size={16} />
             </div>
-            <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-teal-700' : 'text-gray-900'}`}>Team</h2>
+            <h2 className={`text-base font-bold tracking-tight ${USE_NEW_TEAM_STYLING ? 'text-brand-700' : 'text-gray-900'}`}>Team</h2>
             {/* Action icons - Always on row 1 */}
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {teamSettings.showSearch && <Tippy content="Search">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowSearch(!showSearch)}>
                   <Search size={15} />
                 </button>
               </Tippy>}
               <Tippy content="Filter">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"}>
                   <Filter size={15} />
                 </button>
               </Tippy>
               {teamSettings.showMinimizeExpandIcon && <Tippy content={getViewModeLabel()}>
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={toggleViewMode}>
                   {getViewModeIcon()}
                 </button>
               </Tippy>}
               <Tippy content="Team Settings">
-                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-teal-600 hover:text-teal-700 hover:bg-teal-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
+                <button className={USE_NEW_TEAM_STYLING ? "p-1.5 rounded-lg text-brand-600 hover:text-brand-700 hover:bg-brand-100/50 transition-all duration-200" : "p-1.5 rounded-lg text-gray-600 hover:text-[#3BB09A] hover:bg-gray-100 transition-all duration-200"} onClick={() => setShowTeamSettings(true)}>
                   <Settings size={15} />
                 </button>
               </Tippy>
@@ -744,7 +744,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
   void _getDisplayPriorityTiers;
   // 🎨 TEAM STYLING - Strong distinction from ticket sections
   const teamSidebarClasses = USE_NEW_TEAM_STYLING
-    ? "relative h-full border-r-[3px] border-teal-300/60 bg-gradient-to-b from-teal-50/95 via-teal-50/95 to-teal-100/90 flex flex-col overflow-hidden transition-all duration-300"
+    ? "relative h-full border-r-[3px] border-brand-300/60 bg-gradient-to-b from-brand-50/95 via-brand-50/95 to-brand-100/90 flex flex-col overflow-hidden transition-all duration-300"
     : "relative h-full border-r border-[#E2D9DC] bg-[#FBF8F9] flex flex-col overflow-hidden shadow-xl transition-all duration-300";
 
   const teamSidebarStyle = USE_NEW_TEAM_STYLING
@@ -771,7 +771,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
             ...staffMember,
             id: staffIdNumber,
             image: staffMember.name === 'Jane' ? '' : getStaffImage(staffMember), // Force empty image for Jane to test Add Photo UI
-            time: (typeof staffMember.clockInTime === 'string' ? staffMember.clockInTime : staffMember.clockInTime instanceof Date ? staffMember.clockInTime.toLocaleTimeString() : '10:30a'), // Add time field for metrics display
+            time: staffMember.clockInTime ? String(staffMember.clockInTime) : '10:30a', // Add time field for metrics display
             revenue: staffMember.revenue ?? null, // Ensure revenue is explicitly set
             count: staffMember.turnCount ?? 0, // Add count property for StaffCard
           };
@@ -812,7 +812,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
                   <p><span className="font-medium">Turns:</span> {modifiedStaffMember.turnCount}</p>
                 )}
                 {modifiedStaffMember.clockInTime && (
-                  <p><span className="font-medium">Clocked in:</span> {typeof modifiedStaffMember.clockInTime === 'string' ? modifiedStaffMember.clockInTime : modifiedStaffMember.clockInTime instanceof Date ? modifiedStaffMember.clockInTime.toLocaleTimeString() : String(modifiedStaffMember.clockInTime)}</p>
+                  <p><span className="font-medium">Clocked in:</span> {String(modifiedStaffMember.clockInTime)}</p>
                 )}
                 {modifiedStaffMember.status === 'busy' && modifiedStaffMember.currentTicketInfo && (
                   <>
