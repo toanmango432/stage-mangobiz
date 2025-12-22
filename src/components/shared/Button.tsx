@@ -25,9 +25,9 @@ export function Button({
   const baseClasses = 'inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-teal-500 text-white hover:bg-teal-600 active:bg-teal-700 shadow-md hover:shadow-lg active:shadow-sm hover:-translate-y-0.5 active:translate-y-0 focus:ring-teal-500',
-    secondary: 'border-2 border-teal-500 text-teal-600 bg-white hover:bg-teal-50 active:bg-teal-100 focus:ring-teal-500',
-    ghost: 'text-teal-600 hover:bg-teal-50 active:bg-teal-100 focus:ring-teal-500',
+    primary: 'bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 shadow-md hover:shadow-lg active:shadow-sm hover:-translate-y-0.5 active:translate-y-0 focus:ring-brand-500',
+    secondary: 'border-2 border-brand-500 text-brand-600 bg-white hover:bg-brand-50 active:bg-brand-100 focus:ring-brand-500',
+    ghost: 'text-brand-600 hover:bg-brand-50 active:bg-brand-100 focus:ring-brand-500',
     danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 shadow-md hover:shadow-lg active:shadow-sm hover:-translate-y-0.5 active:translate-y-0 focus:ring-red-500',
   };
   

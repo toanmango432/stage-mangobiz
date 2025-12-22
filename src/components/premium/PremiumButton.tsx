@@ -7,8 +7,8 @@ import { forwardRef, ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
 export type ButtonVariant =
-  | 'primary'       // Gradient teal (main CTA)
-  | 'secondary'     // Outlined teal
+  | 'primary'       // Gradient amber (main CTA)
+  | 'secondary'     // Outlined amber
   | 'ghost'         // Transparent with hover
   | 'danger'        // Red (destructive actions)
   | 'success'       // Green (confirmations)
@@ -63,20 +63,20 @@ export const PremiumButton = forwardRef<HTMLButtonElement, PremiumButtonProps>(
       xl: 'px-8 py-3 text-base',
     };
 
-    // Variant classes
+    // Variant classes - Golden Amber Brand
     const variantClasses = {
       primary: cn(
-        'bg-gradient-to-r from-teal-500 to-cyan-600',
+        'bg-gradient-to-r from-brand-500 to-amber-500',
         'text-white',
         'shadow-md hover:shadow-lg',
-        'hover:from-teal-600 hover:to-cyan-700',
-        'focus:ring-teal-500'
+        'hover:from-brand-600 hover:to-amber-600',
+        'focus:ring-brand-500'
       ),
       secondary: cn(
-        'border-2 border-teal-500',
-        'text-teal-700',
-        'hover:bg-teal-50',
-        'focus:ring-teal-500'
+        'border-2 border-brand-500',
+        'text-brand-700',
+        'hover:bg-brand-50',
+        'focus:ring-brand-500'
       ),
       ghost: cn(
         'text-gray-700',
@@ -104,9 +104,9 @@ export const PremiumButton = forwardRef<HTMLButtonElement, PremiumButtonProps>(
         'focus:ring-gray-400'
       ),
       link: cn(
-        'text-teal-600',
-        'hover:text-teal-700 hover:underline',
-        'focus:ring-teal-500',
+        'text-brand-600',
+        'hover:text-brand-700 hover:underline',
+        'focus:ring-brand-500',
         'px-0' // Remove padding for link style
       ),
     };
@@ -194,7 +194,7 @@ export const PremiumIconButton = forwardRef<HTMLButtonElement, PremiumIconButton
           props.variant === 'ghost'
             ? 'text-gray-700 hover:bg-gray-100 focus:ring-gray-400'
             : props.variant === 'primary'
-            ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-md hover:shadow-lg focus:ring-teal-500'
+            ? 'bg-gradient-to-r from-brand-500 to-amber-500 text-white shadow-md hover:shadow-lg focus:ring-brand-500'
             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-400',
           props.className
         )}

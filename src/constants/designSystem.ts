@@ -1,25 +1,31 @@
 /**
  * Mango 2.0 Design System
  * Best of Fresha's polish + Mango's features
+ *
+ * NOTE: The single source of truth is now at:
+ * src/design-system/tokens.ts
+ *
+ * This file is maintained for backward compatibility.
+ * New code should import from '@/design-system' instead.
  */
 
 // ============================================================================
-// COLOR PALETTE - Refined & Professional
+// COLOR PALETTE - Golden Amber Theme
 // ============================================================================
 
 export const colors = {
-  // Primary Colors (Soft Teal - less harsh than original)
+  // Primary Colors - Golden Amber (Main brand color)
   primary: {
-    50: '#E0F7FA',
-    100: '#B2EBF2',
-    200: '#80DEEA',
-    300: '#4DD0E1',
-    400: '#26C6DA', // Main primary
-    500: '#00BCD4',
-    600: '#00ACC1',
-    700: '#0097A7',
-    800: '#00838F',
-    900: '#006064',
+    50: '#FFFBF0',
+    100: '#FEF3D8',
+    200: '#FDE7B1',
+    300: '#FBD88A',
+    400: '#F9C663',
+    500: '#E6A000', // Main primary
+    600: '#CC8E00',
+    700: '#A67300',
+    800: '#805900',
+    900: '#5C4000',
   },
 
   // Secondary Colors (Soft Mint - replaces harsh lime green)
