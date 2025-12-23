@@ -1,4 +1,14 @@
 /**
+ * @deprecated This file is deprecated. Import from '@/design-system' instead.
+ *
+ * Migration guide:
+ * - Colors: Use `BOOK_COLORS` from '@/design-system/tokens/colors'
+ * - Typography: Use `BOOK_TYPOGRAPHY` from '@/design-system/tokens/typography'
+ * - Spacing: Use `BOOK_SPACING` from '@/design-system/tokens/spacing'
+ * - Shadows: Use `BOOK_SHADOWS` from '@/design-system/tokens/shadows'
+ *
+ * This file will be removed in a future release.
+ *
  * Book Module Design Tokens
  * Complete design system for appointments calendar
  * Competitive with Fresha, Mangomint, Booksy

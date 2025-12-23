@@ -66,7 +66,7 @@ export function ClosedTickets({
     clientType: 'Regular',
     technicians: [{
       name: 'Sophia Martinez',
-      color: 'bg-[#9B5DE5]'
+      color: 'bg-purple-500'
     }],
     services: ['Full Highlights', 'Haircut', 'Blow Dry'],
     total: 185.5,
@@ -81,7 +81,7 @@ export function ClosedTickets({
     clientType: 'New',
     technicians: [{
       name: 'James Wilson',
-      color: 'bg-[#3F83F8]'
+      color: 'bg-blue-500'
     }],
     services: ["Men's Haircut", 'Beard Trim'],
     total: 45.0,
@@ -95,10 +95,10 @@ export function ClosedTickets({
     clientType: 'VIP',
     technicians: [{
       name: 'Emma Johnson',
-      color: 'bg-[#4CC2A9]'
+      color: 'bg-teal-500'
     }, {
       name: 'Olivia Davis',
-      color: 'bg-[#9B5DE5]'
+      color: 'bg-purple-500'
     }],
     services: ['Manicure', 'Pedicure', 'Facial'],
     total: 210.0,
@@ -113,7 +113,7 @@ export function ClosedTickets({
     clientType: 'Regular',
     technicians: [{
       name: 'Michael Brown',
-      color: 'bg-[#E5565B]'
+      color: 'bg-red-500'
     }],
     services: ["Men's Haircut"],
     total: 35.0,
@@ -127,10 +127,10 @@ export function ClosedTickets({
     clientType: 'VIP',
     technicians: [{
       name: 'Sophia Martinez',
-      color: 'bg-[#9B5DE5]'
+      color: 'bg-purple-500'
     }, {
       name: 'Emma Johnson',
-      color: 'bg-[#4CC2A9]'
+      color: 'bg-teal-500'
     }],
     services: ['Color Correction', 'Haircut', 'Treatment', 'Styling'],
     total: 350.0,
@@ -145,7 +145,7 @@ export function ClosedTickets({
     clientType: 'Regular',
     technicians: [{
       name: 'James Wilson',
-      color: 'bg-[#3F83F8]'
+      color: 'bg-blue-500'
     }],
     services: ["Men's Haircut", 'Shave'],
     total: 55.0,
@@ -159,7 +159,7 @@ export function ClosedTickets({
     clientType: 'Regular',
     technicians: [{
       name: 'Olivia Davis',
-      color: 'bg-[#9B5DE5]'
+      color: 'bg-purple-500'
     }],
     services: ['Balayage', 'Haircut', 'Blow Dry'],
     total: 240.0,
@@ -174,7 +174,7 @@ export function ClosedTickets({
     clientType: 'New',
     technicians: [{
       name: 'Michael Brown',
-      color: 'bg-[#E5565B]'
+      color: 'bg-red-500'
     }],
     services: ["Men's Haircut", 'Beard Trim'],
     total: 45.0,
@@ -188,7 +188,7 @@ export function ClosedTickets({
     clientType: 'VIP',
     technicians: [{
       name: 'Emma Johnson',
-      color: 'bg-[#4CC2A9]'
+      color: 'bg-teal-500'
     }],
     services: ['Full Highlights', 'Haircut', 'Treatment'],
     total: 210.0,
@@ -203,7 +203,7 @@ export function ClosedTickets({
     clientType: 'Regular',
     technicians: [{
       name: 'James Wilson',
-      color: 'bg-[#3F83F8]'
+      color: 'bg-blue-500'
     }],
     services: ["Men's Haircut"],
     total: 35.0,
@@ -217,7 +217,7 @@ export function ClosedTickets({
     clientType: 'Regular',
     technicians: [{
       name: 'Sophia Martinez',
-      color: 'bg-[#9B5DE5]'
+      color: 'bg-purple-500'
     }],
     services: ['Haircut', 'Blow Dry'],
     total: 85.0,
@@ -231,7 +231,7 @@ export function ClosedTickets({
     clientType: 'New',
     technicians: [{
       name: 'Michael Brown',
-      color: 'bg-[#E5565B]'
+      color: 'bg-red-500'
     }],
     services: ["Men's Haircut", 'Shave'],
     total: 55.0,

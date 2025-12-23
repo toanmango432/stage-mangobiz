@@ -172,7 +172,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
     if (!showToast) return null;
     return createPortal(<div className="template-setup-toast fixed bottom-6 right-6 z-[2000] animate-slideInUp">
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 flex items-center max-w-md">
-          <div className="bg-[#27AE60]/10 text-[#27AE60] p-2 rounded-full mr-3">
+          <div className="bg-emerald-500/10 text-emerald-500 p-2 rounded-full mr-3">
             <CheckCircle size={20} />
           </div>
           <div>
@@ -197,9 +197,9 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             animation: slideInUp 0.3s ease-out forwards;
           }
           @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.3); }
-            70% { box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
           }
           .animate-pulse-green {
             animation: pulse 1.5s infinite;
@@ -232,12 +232,12 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
           }
           .template-card.suggested {
-            border-color: #27AE60;
-            background-color: rgba(39, 174, 96, 0.05);
+            border-color: #10B981;
+            background-color: rgba(16, 185, 129, 0.05);
           }
           .template-card.selected {
-            border-color: #27AE60;
-            background-color: rgba(39, 174, 96, 0.1);
+            border-color: #10B981;
+            background-color: rgba(16, 185, 129, 0.1);
           }
           .template-card.suggested::before {
             content: '';
@@ -247,7 +247,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             right: -2px;
             bottom: -2px;
             border-radius: 0.75rem;
-            background: linear-gradient(45deg, #27AE60, #3498DB, #FF5CA2, #FF7B54);
+            background: linear-gradient(45deg, #10B981, #3B82F6, #EC4899, #F97316);
             z-index: -1;
             opacity: 0.5;
             animation: border-glow 3s ease-in-out infinite;
@@ -267,8 +267,8 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             background-color: #f9fafb;
           }
           .answer-option.selected {
-            border-color: #27AE60;
-            background-color: rgba(39, 174, 96, 0.05);
+            border-color: #10B981;
+            background-color: rgba(16, 185, 129, 0.05);
           }
           .swipe-indicator {
             display: flex;
@@ -284,7 +284,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             transition: all 0.2s ease;
           }
           .swipe-indicator div.active {
-            background-color: #27AE60;
+            background-color: #10B981;
             width: 24px;
             border-radius: 4px;
           }
@@ -340,7 +340,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background-color: #27AE60;
+            background-color: #10B981;
             color: white;
             font-size: 12px;
             font-weight: 600;
@@ -359,7 +359,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       <header className="template-setup-header px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-10 bg-white shadow-sm">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900 flex items-center">
-            <div className="bg-[#27AE60] text-white p-1.5 rounded-lg mr-3 shadow-sm">
+            <div className="bg-emerald-500 text-white p-1.5 rounded-lg mr-3 shadow-sm">
               <Layers size={20} />
             </div>
             Who Uses This Screen?
@@ -379,7 +379,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
           <section className="template-setup-questions mb-6 max-w-3xl mx-auto">
             <div className="space-y-3">
               {/* Main Question: Who will use this screen? */}
-              <div ref={question1Ref} className={`question-card rounded-xl p-4 bg-white shadow-sm border ${quickAnswers.primaryFocus ? 'border-[#27AE60]/30' : 'border-gray-100'}`}>
+              <div ref={question1Ref} className={`question-card rounded-xl p-4 bg-white shadow-sm border ${quickAnswers.primaryFocus ? 'border-emerald-500/30' : 'border-gray-100'}`}>
                 <div className="flex items-center mb-3">
                   <div className="step-indicator w-6 h-6 text-xs flex-shrink-0">
                     1
@@ -413,7 +413,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
 
               {/* Question 2: Workflow Style - Only show after Q1 is answered */}
               {quickAnswers.primaryFocus && (
-                <div ref={question2Ref} className={`question-card rounded-xl p-4 bg-white shadow-sm border ${quickAnswers.operationStyle ? 'border-[#27AE60]/30' : 'border-gray-100'}`}>
+                <div ref={question2Ref} className={`question-card rounded-xl p-4 bg-white shadow-sm border ${quickAnswers.operationStyle ? 'border-emerald-500/30' : 'border-gray-100'}`}>
                   <div className="flex items-center mb-3">
                     <div className="step-indicator w-6 h-6 text-xs flex-shrink-0">
                       2
@@ -428,16 +428,16 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <button className={`answer-option flex flex-col p-3 rounded-lg ${quickAnswers.operationStyle === 'flow' ? 'selected bg-[#27AE60]/5 border-[#27AE60] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('operationStyle', 'flow')}>
-                      <span className={`font-medium ${quickAnswers.operationStyle === 'flow' ? 'text-[#27AE60]' : 'text-gray-700'}`}>
+                    <button className={`answer-option flex flex-col p-3 rounded-lg ${quickAnswers.operationStyle === 'flow' ? 'selected bg-emerald-500/5 border-emerald-500 border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('operationStyle', 'flow')}>
+                      <span className={`font-medium ${quickAnswers.operationStyle === 'flow' ? 'text-emerald-500' : 'text-gray-700'}`}>
                         {quickAnswers.primaryFocus === 'frontDesk' ? 'Balanced View' : 'Full Service Flow'}
                       </span>
                       <span className="text-xs text-gray-500 mt-1">
                         {quickAnswers.primaryFocus === 'frontDesk' ? 'See team status alongside tickets' : 'Track waiting → in-service → checkout'}
                       </span>
                     </button>
-                    <button className={`answer-option flex flex-col p-3 rounded-lg ${quickAnswers.operationStyle === 'inOut' ? 'selected bg-[#27AE60]/5 border-[#27AE60] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('operationStyle', 'inOut')}>
-                      <span className={`font-medium ${quickAnswers.operationStyle === 'inOut' ? 'text-[#27AE60]' : 'text-gray-700'}`}>
+                    <button className={`answer-option flex flex-col p-3 rounded-lg ${quickAnswers.operationStyle === 'inOut' ? 'selected bg-emerald-500/5 border-emerald-500 border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('operationStyle', 'inOut')}>
+                      <span className={`font-medium ${quickAnswers.operationStyle === 'inOut' ? 'text-emerald-500' : 'text-gray-700'}`}>
                         {quickAnswers.primaryFocus === 'frontDesk' ? 'Ticket-First' : 'Quick In/Out'}
                       </span>
                       <span className="text-xs text-gray-500 mt-1">
@@ -450,10 +450,10 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
 
               {/* Suggested Template Banner - Show after both questions answered */}
               {quickAnswers.primaryFocus && quickAnswers.operationStyle && (
-                <div className="rounded-xl p-4 bg-gradient-to-r from-[#27AE60]/10 to-[#3498DB]/10 border border-[#27AE60]/20">
+                <div className="rounded-xl p-4 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <CheckCircle size={20} className="text-[#27AE60] mr-3" />
+                      <CheckCircle size={20} className="text-emerald-500 mr-3" />
                       <div>
                         <span className="text-sm text-gray-600">Based on your answers, we recommend:</span>
                         <div className="font-semibold text-gray-800">
@@ -464,7 +464,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                         </div>
                       </div>
                     </div>
-                    <ArrowRight size={20} className="text-[#27AE60]" />
+                    <ArrowRight size={20} className="text-emerald-500" />
                   </div>
                 </div>
               )}
@@ -490,10 +490,10 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
               const isSuggested = getSuggestedTemplate() === template;
               const isSelected = settings.operationTemplate === template;
               return <div key={template} ref={isSuggested ? suggestedTemplateRef : null} className={`template-card border-2 rounded-xl overflow-hidden relative ${isSuggested ? 'suggested' : 'border-gray-200'} ${isSelected ? 'selected' : ''}`}>
-                      {isSuggested && <div className="absolute -top-2 -right-2 bg-[#FF7B54] text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
+                      {isSuggested && <div className="absolute -top-2 -right-2 bg-[#F97316] text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
                           Suggested for You
                         </div>}
-                      {isSelected && <div className="absolute top-3 right-3 text-[#27AE60] z-10">
+                      {isSelected && <div className="absolute top-3 right-3 text-emerald-500 z-10">
                           <CheckCircle size={20} />
                         </div>}
                       {/* Enhanced Template Preview */}
@@ -501,7 +501,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                         {/* Template header */}
                         <div className="bg-gray-100 py-2 px-4 flex items-center justify-between border-b border-gray-200">
                           <div className="flex items-center">
-                            <div className="bg-[#27AE60] text-white p-1 rounded mr-2 shadow-sm">
+                            <div className="bg-emerald-500 text-white p-1 rounded mr-2 shadow-sm">
                               <LayoutDashboard size={14} />
                             </div>
                             <h3 className="text-sm font-medium text-gray-800">
@@ -542,13 +542,13 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                               <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
                                 {details.organizeBy === 'busyStatus' ? <>
                                     {/* Ready Staff */}
-                                    <div className="text-[10px] font-medium text-[#27AE60] mb-1 px-0.5">
+                                    <div className="text-[10px] font-medium text-emerald-500 mb-1 px-0.5">
                                       Ready
                                     </div>
                                     <div className="staff-card bg-white rounded border border-gray-100 shadow-sm p-1.5">
                                       <div className="flex items-center">
-                                        <div className="w-4 h-4 rounded-full bg-[#27AE60]/20 flex items-center justify-center mr-1.5">
-                                          <div className="w-2 h-2 rounded-full bg-[#27AE60]"></div>
+                                        <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center mr-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                         </div>
                                         <span className="text-xs font-medium text-gray-800">
                                           Sarah T.
@@ -590,7 +590,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                     </div>
                                   </> : <>
                                     {/* Clocked In Staff */}
-                                    <div className="text-[10px] font-medium text-[#27AE60] mb-1 px-0.5">
+                                    <div className="text-[10px] font-medium text-emerald-500 mb-1 px-0.5">
                                       Clocked In
                                     </div>
                                     <div className="staff-card bg-white rounded border border-gray-100 shadow-sm p-1.5">
@@ -598,7 +598,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                         <span className="text-xs font-medium text-gray-800">
                                           Sarah T.
                                         </span>
-                                        <span className="ml-auto text-[9px] text-[#27AE60] bg-[#27AE60]/10 px-1 py-0.5 rounded">
+                                        <span className="ml-auto text-[9px] text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded">
                                           8:30 AM
                                         </span>
                                       </div>
@@ -608,7 +608,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                         <span className="text-xs font-medium text-gray-800">
                                           Mike R.
                                         </span>
-                                        <span className="ml-auto text-[9px] text-[#27AE60] bg-[#27AE60]/10 px-1 py-0.5 rounded">
+                                        <span className="ml-auto text-[9px] text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded">
                                           9:15 AM
                                         </span>
                                       </div>
@@ -783,7 +783,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                           {details.description}
                         </p>
                         <p className="text-xs text-gray-500 mb-4 flex items-center">
-                          <Check size={12} className="text-[#27AE60] mr-1" />
+                          <Check size={12} className="text-emerald-500 mr-1" />
                           Best for: {details.bestFor}
                         </p>
                         {/* Pre-Config Settings (Collapsible) */}
@@ -898,7 +898,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                 </div>
                                 <div>
                                   <h4 className="font-medium text-gray-800 mb-1 flex items-center">
-                                    <div className="w-3 h-3 bg-[#27AE60] rounded-sm mr-2"></div>
+                                    <div className="w-3 h-3 bg-emerald-500 rounded-sm mr-2"></div>
                                     Layout Section
                                   </h4>
                                   <ul className="ml-5 space-y-1 text-gray-600 text-xs">
@@ -923,7 +923,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                     </li>
                                   </ul>
                                 </div>
-                                <a href="#" className="text-[#27AE60] hover:text-[#219653] text-xs font-medium inline-flex items-center">
+                                <a href="#" className="text-emerald-500 hover:text-[#059669] text-xs font-medium inline-flex items-center">
                                   <Settings size={12} className="mr-1" />
                                   Customize These Settings
                                 </a>
@@ -933,7 +933,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                         </div>
                         {/* Template Actions */}
                         <div className="flex justify-between items-center">
-                          <button onClick={() => applyTemplate(template)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-[#27AE60] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                          <button onClick={() => applyTemplate(template)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                             {isSelected ? 'Selected' : 'Select Template'}
                           </button>
                           {isSelected && <button className="text-gray-500 hover:text-gray-700 text-sm flex items-center" onClick={() => applyTemplate(template)}>
@@ -953,10 +953,10 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
               const isSelected = settings.operationTemplate === template;
               if (index !== currentTemplateIndex) return null;
               return <div key={template} className={`template-card border-2 rounded-xl overflow-hidden relative ${isSuggested ? 'suggested' : 'border-gray-200'} ${isSelected ? 'selected' : ''}`}>
-                      {isSuggested && <div className="absolute -top-2 -right-2 bg-[#FF7B54] text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
+                      {isSuggested && <div className="absolute -top-2 -right-2 bg-[#F97316] text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
                           Suggested for You
                         </div>}
-                      {isSelected && <div className="absolute top-3 right-3 text-[#27AE60] z-10">
+                      {isSelected && <div className="absolute top-3 right-3 text-emerald-500 z-10">
                           <CheckCircle size={20} />
                         </div>}
                       {/* Enhanced Template Preview - Same as desktop */}
@@ -964,7 +964,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                         {/* Template header */}
                         <div className="bg-gray-100 py-2 px-4 flex items-center justify-between border-b border-gray-200">
                           <div className="flex items-center">
-                            <div className="bg-[#27AE60] text-white p-1 rounded mr-2 shadow-sm">
+                            <div className="bg-emerald-500 text-white p-1 rounded mr-2 shadow-sm">
                               <LayoutDashboard size={14} />
                             </div>
                             <h3 className="text-sm font-medium text-gray-800">
@@ -1005,13 +1005,13 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                               <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
                                 {details.organizeBy === 'busyStatus' ? <>
                                     {/* Ready Staff */}
-                                    <div className="text-[10px] font-medium text-[#27AE60] mb-1 px-0.5">
+                                    <div className="text-[10px] font-medium text-emerald-500 mb-1 px-0.5">
                                       Ready
                                     </div>
                                     <div className="staff-card bg-white rounded border border-gray-100 shadow-sm p-1.5">
                                       <div className="flex items-center">
-                                        <div className="w-4 h-4 rounded-full bg-[#27AE60]/20 flex items-center justify-center mr-1.5">
-                                          <div className="w-2 h-2 rounded-full bg-[#27AE60]"></div>
+                                        <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center mr-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                         </div>
                                         <span className="text-xs font-medium text-gray-800">
                                           Sarah T.
@@ -1040,7 +1040,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                     </div>
                                   </> : <>
                                     {/* Clocked In Staff */}
-                                    <div className="text-[10px] font-medium text-[#27AE60] mb-1 px-0.5">
+                                    <div className="text-[10px] font-medium text-emerald-500 mb-1 px-0.5">
                                       Clocked In
                                     </div>
                                     <div className="staff-card bg-white rounded border border-gray-100 shadow-sm p-1.5">
@@ -1048,7 +1048,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                         <span className="text-xs font-medium text-gray-800">
                                           Sarah T.
                                         </span>
-                                        <span className="ml-auto text-[9px] text-[#27AE60] bg-[#27AE60]/10 px-1 py-0.5 rounded">
+                                        <span className="ml-auto text-[9px] text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded">
                                           8:30 AM
                                         </span>
                                       </div>
@@ -1058,7 +1058,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                         <span className="text-xs font-medium text-gray-800">
                                           Mike R.
                                         </span>
-                                        <span className="ml-auto text-[9px] text-[#27AE60] bg-[#27AE60]/10 px-1 py-0.5 rounded">
+                                        <span className="ml-auto text-[9px] text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded">
                                           9:15 AM
                                         </span>
                                       </div>
@@ -1193,7 +1193,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                           {details.description}
                         </p>
                         <p className="text-xs text-gray-500 mb-4 flex items-center">
-                          <Check size={12} className="text-[#27AE60] mr-1" />
+                          <Check size={12} className="text-emerald-500 mr-1" />
                           Best for: {details.bestFor}
                         </p>
                         {/* Pre-Config Settings (Collapsible) */}
@@ -1308,7 +1308,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                 </div>
                                 <div>
                                   <h4 className="font-medium text-gray-800 mb-1 flex items-center">
-                                    <div className="w-3 h-3 bg-[#27AE60] rounded-sm mr-2"></div>
+                                    <div className="w-3 h-3 bg-emerald-500 rounded-sm mr-2"></div>
                                     Layout Section
                                   </h4>
                                   <ul className="ml-5 space-y-1 text-gray-600 text-xs">
@@ -1333,7 +1333,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                     </li>
                                   </ul>
                                 </div>
-                                <a href="#" className="text-[#27AE60] hover:text-[#219653] text-xs font-medium inline-flex items-center">
+                                <a href="#" className="text-emerald-500 hover:text-[#059669] text-xs font-medium inline-flex items-center">
                                   <Settings size={12} className="mr-1" />
                                   Customize These Settings
                                 </a>
@@ -1343,7 +1343,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                         </div>
                         {/* Template Actions */}
                         <div className="flex justify-between items-center">
-                          <button onClick={() => applyTemplate(template)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-[#27AE60] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                          <button onClick={() => applyTemplate(template)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                             {isSelected ? 'Selected' : 'Select Template'}
                           </button>
                           {isSelected && <button className="text-gray-500 hover:text-gray-700 text-sm flex items-center" onClick={() => applyTemplate(template)}>
@@ -1364,13 +1364,13 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
       </main>
       {/* Footer */}
       <footer className="template-setup-footer px-6 py-4 border-t border-gray-100 flex justify-between items-center bg-white sticky bottom-0 shadow-md">
-        <button onClick={onClose} className="px-5 py-2.5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#27AE60]/30 transition-colors shadow-sm">
+        <button onClick={onClose} className="px-5 py-2.5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500/30 transition-colors shadow-sm">
           <div className="flex items-center">
             <ArrowLeft size={16} className="mr-2" />
             Back to Settings
           </div>
         </button>
-        <button onClick={saveSettings} className={`px-6 py-2.5 rounded-full text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#27AE60]/30 transition-colors shadow-sm ${hasChanges ? 'bg-[#27AE60] hover:bg-[#219653]' : 'bg-[#27AE60]/60 cursor-not-allowed'}`} disabled={!hasChanges}>
+        <button onClick={saveSettings} className={`px-6 py-2.5 rounded-full text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500/30 transition-colors shadow-sm ${hasChanges ? 'bg-emerald-500 hover:bg-[#059669]' : 'bg-emerald-500/60 cursor-not-allowed'}`} disabled={!hasChanges}>
           Save & Continue
         </button>
       </footer>

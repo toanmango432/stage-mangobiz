@@ -1,4 +1,14 @@
 /**
+ * @deprecated This file is deprecated. Import from '@/design-system' instead.
+ *
+ * Migration guide:
+ * - Colors: Use `brand`, `colors` from '@/design-system/tokens'
+ * - Typography: Use `typography` from '@/design-system/tokens'
+ * - Spacing: Use `spacing` from '@/design-system/tokens'
+ * - Shadows: Use `shadows` from '@/design-system/tokens'
+ *
+ * This file will be removed in a future release.
+ *
  * Premium Design System for Book Module
  * World-class visual design tokens
  * Competitive with Square, Fresha, Calendly

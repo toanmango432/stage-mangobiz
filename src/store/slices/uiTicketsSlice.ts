@@ -1184,6 +1184,10 @@ const uiTicketsSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    // Dev/testing: Set pending tickets directly
+    setPendingTickets: (state, action: PayloadAction<PendingTicket[]>) => {
+      state.pendingTickets = action.payload;
+    },
     // Real-time update from Socket.io
     ticketUpdated: (state, action: PayloadAction<UITicket>) => {
       const ticket = action.payload;
@@ -1363,7 +1367,7 @@ const uiTicketsSlice = createSlice({
   },
 });
 
-export const { clearError, ticketUpdated } = uiTicketsSlice.actions;
+export const { clearError, ticketUpdated, setPendingTickets } = uiTicketsSlice.actions;
 
 // Selectors
 export const selectWaitlist = (state: RootState) => state.uiTickets.waitlist;

@@ -58,6 +58,21 @@
   /* Radius */
   --radius: 0.5rem;
 
+  /* Sidebar (for shadcn sidebar component) */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 24 10% 10%;
+  --sidebar-accent: 40 30% 96%;
+  --sidebar-accent-foreground: 40 100% 30%;
+  --sidebar-border: 24 10% 90%;
+  --sidebar-primary: 40 100% 45%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-ring: 40 100% 45%;
+
+  /* Border variants (for button/badge outlines) */
+  --primary-border: 40 80% 75%;
+  --secondary-border: 24 10% 80%;
+  --destructive-border: 0 70% 70%;
+
   /* Brand Colors (for direct CSS use) */
   --mango-primary: 40 100% 45%;
   --mango-primary-light: 40 100% 97%;
