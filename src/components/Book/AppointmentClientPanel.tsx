@@ -147,11 +147,11 @@ export function AppointmentClientPanel({
       )}
 
       {/* Client Search Input - Always visible at top */}
-      <div className="relative z-30 p-6 border-b border-gray-100 bg-gradient-to-br from-teal-50/30 via-white to-white">
+      <div className="relative z-30 p-6 border-b border-gray-100 bg-gradient-to-br from-brand-50/30 via-white to-white">
         {selectedClients.length === 0 || isAddingAnotherClient ? (
           <div className="space-y-2">
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-teal-400 z-10" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400 z-10" />
               <input
                 ref={clientSearchRef}
                 type="text"
@@ -159,7 +159,7 @@ export function AppointmentClientPanel({
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
                 onFocus={() => setShowAddNewForm(false)}
-                className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border-2 border-teal-200 rounded-lg focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-teal-500/10 transition-all placeholder:text-gray-400 shadow-sm shadow-teal-500/5"
+                className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border-2 border-brand-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-gray-400 shadow-sm shadow-brand-500/5"
               />
             </div>
             {isAddingAnotherClient && selectedClients.length > 0 && (
@@ -179,7 +179,7 @@ export function AppointmentClientPanel({
           <div className="space-y-3">
             {/* Individual Mode - Simple Client Display */}
             {bookingMode === 'individual' && selectedClients.length > 0 && (
-              <div className="bg-white border-2 border-teal-200 rounded-lg p-4">
+              <div className="bg-white border-2 border-brand-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-gray-900 text-sm">{selectedClients[0].name}</p>
@@ -187,7 +187,7 @@ export function AppointmentClientPanel({
                   </div>
                   <button
                     onClick={() => setIsAddingAnotherClient(true)}
-                    className="text-xs font-semibold text-teal-600 hover:text-teal-700"
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-700"
                   >
                     Change
                   </button>
@@ -205,7 +205,7 @@ export function AppointmentClientPanel({
                   </div>
                   <button
                     onClick={() => setIsAddingAnotherClient(true)}
-                    className="text-xs font-semibold text-teal-600 hover:text-teal-700"
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-700"
                   >
                     Add Member
                   </button>
@@ -216,7 +216,7 @@ export function AppointmentClientPanel({
                       key={guest.id}
                       className={cn(
                         'px-3 py-2 border rounded-lg flex items-center justify-between',
-                        activeGuestId === guest.id ? 'border-teal-500 bg-teal-50' : 'border-gray-200 bg-white'
+                        activeGuestId === guest.id ? 'border-brand-500 bg-brand-50' : 'border-gray-200 bg-white'
                       )}
                       onClick={() => onSetActiveGuestId(guest.id)}
                     >
@@ -252,7 +252,7 @@ export function AppointmentClientPanel({
             {/* Add New Client - TOP */}
             <button
               onClick={() => setShowAddNewForm(true)}
-              className="w-full px-4 py-3 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="w-full px-4 py-3 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               Add New Client
@@ -262,7 +262,7 @@ export function AppointmentClientPanel({
             {selectedClients.length === 0 && (
               <button
                 onClick={onSelectWalkIn}
-                className="w-full text-left px-4 py-3 bg-white hover:bg-gray-50 transition-colors border-2 border-gray-200 hover:border-teal-300 rounded-lg"
+                className="w-full text-left px-4 py-3 bg-white hover:bg-gray-50 transition-colors border-2 border-gray-200 hover:border-brand-300 rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
@@ -280,7 +280,7 @@ export function AppointmentClientPanel({
             {clientSearch.length >= 2 ? (
               searching ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : clients.length > 0 ? (
                 <div className="space-y-2">
@@ -289,7 +289,7 @@ export function AppointmentClientPanel({
                     <button
                       key={client.id}
                       onClick={() => bookingMode === 'group' ? onAddNamedGuest(client) : onSelectClient(client)}
-                      className="w-full text-left px-4 py-3 bg-white hover:bg-teal-50 transition-colors border border-gray-200 hover:border-teal-300 rounded-lg"
+                      className="w-full text-left px-4 py-3 bg-white hover:bg-brand-50 transition-colors border border-gray-200 hover:border-brand-300 rounded-lg"
                     >
                       <p className="font-medium text-gray-900">{client.name}</p>
                       <p className="text-sm text-gray-500">{client.phone}</p>
@@ -308,7 +308,7 @@ export function AppointmentClientPanel({
                   <button
                     key={client.id}
                     onClick={() => bookingMode === 'group' ? onAddNamedGuest(client) : onSelectClient(client)}
-                    className="w-full text-left px-4 py-3 bg-white hover:bg-teal-50 transition-colors border border-gray-200 hover:border-teal-300 rounded-lg"
+                    className="w-full text-left px-4 py-3 bg-white hover:bg-brand-50 transition-colors border border-gray-200 hover:border-brand-300 rounded-lg"
                   >
                     <p className="font-medium text-gray-900">{client.name}</p>
                     <p className="text-sm text-gray-500">{client.phone}</p>
@@ -323,7 +323,7 @@ export function AppointmentClientPanel({
       {/* Inline Add New Form - Full height overlay */}
       {showAddNewForm && (
         <div className="absolute top-[140px] left-0 right-0 bottom-0 bg-white border-r border-gray-100 z-40 p-6 overflow-y-auto">
-          <div className="bg-white border-2 border-teal-500 rounded-lg p-4 shadow-lg">
+          <div className="bg-white border-2 border-brand-500 rounded-lg p-4 shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">New Client</h3>
               <button
@@ -361,7 +361,7 @@ export function AppointmentClientPanel({
                     'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2',
                     validationErrors.firstName
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/20'
+                      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/20'
                   )}
                   autoFocus
                 />
@@ -389,7 +389,7 @@ export function AppointmentClientPanel({
                     'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2',
                     validationErrors.lastName
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/20'
+                      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/20'
                   )}
                 />
                 {validationErrors.lastName && (
@@ -416,7 +416,7 @@ export function AppointmentClientPanel({
                     'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2',
                     validationErrors.phone
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/20'
+                      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/20'
                   )}
                 />
                 {validationErrors.phone && (
@@ -440,7 +440,7 @@ export function AppointmentClientPanel({
                     'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2',
                     validationErrors.email
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500/20'
+                      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500/20'
                   )}
                 />
                 {validationErrors.email && (
@@ -451,7 +451,7 @@ export function AppointmentClientPanel({
               <button
                 onClick={onAddNewClient}
                 disabled={isAddingClient}
-                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-500 to-teal-600 rounded-lg hover:from-teal-600 hover:to-teal-700 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 rounded-lg hover:from-brand-600 hover:to-brand-700 transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isAddingClient ? 'Adding...' : 'Add Client'}
               </button>
@@ -470,7 +470,7 @@ export function AppointmentClientPanel({
             </div>
             <button
               onClick={onAddUnnamedGuest}
-              className="px-3 py-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700 bg-teal-50 border border-teal-100 rounded-lg"
+              className="px-3 py-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 border border-brand-100 rounded-lg"
             >
               Add Guest
             </button>
@@ -482,7 +482,7 @@ export function AppointmentClientPanel({
                 key={guest.id}
                 className={cn(
                   'rounded-lg border border-gray-200 bg-white shadow-sm',
-                  activeGuestId === guest.id && 'border-teal-500 ring-1 ring-teal-500/20'
+                  activeGuestId === guest.id && 'border-brand-500 ring-1 ring-brand-500/20'
                 )}
               >
                 <button
@@ -506,7 +506,7 @@ export function AppointmentClientPanel({
               onClick={onBackToGuests}
               className={cn(
                 'px-3 py-2 text-xs font-semibold rounded-lg border',
-                groupStep === 'guests' ? 'border-teal-200 text-teal-700 bg-teal-50' : 'border-gray-200 text-gray-600'
+                groupStep === 'guests' ? 'border-brand-200 text-brand-700 bg-brand-50' : 'border-gray-200 text-gray-600'
               )}
             >
               Step 1: Guests
@@ -515,7 +515,7 @@ export function AppointmentClientPanel({
               onClick={onProceedToServices}
               className={cn(
                 'px-3 py-2 text-xs font-semibold rounded-lg border',
-                groupStep === 'services' ? 'border-teal-200 text-teal-700 bg-teal-50' : 'border-gray-200 text-gray-600'
+                groupStep === 'services' ? 'border-brand-200 text-brand-700 bg-brand-50' : 'border-gray-200 text-gray-600'
               )}
             >
               Step 2: Services

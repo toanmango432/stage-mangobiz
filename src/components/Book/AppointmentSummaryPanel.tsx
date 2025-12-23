@@ -83,19 +83,19 @@ export function AppointmentSummaryPanel({
                 className={cn(
                   'rounded-lg overflow-hidden border transition-all',
                   activeStaffId === staff.staffId
-                    ? 'border-teal-500 shadow-sm ring-1 ring-teal-500/20'
+                    ? 'border-brand-500 shadow-sm ring-1 ring-brand-500/20'
                     : 'border-gray-200 hover:border-gray-300'
                 )}
               >
                 <div
                   className={cn(
                     'flex items-center justify-between p-3 cursor-pointer transition-all',
-                    activeStaffId === staff.staffId ? 'bg-teal-50/50' : 'bg-white hover:bg-gray-50'
+                    activeStaffId === staff.staffId ? 'bg-brand-50/50' : 'bg-white hover:bg-gray-50'
                   )}
                   onClick={() => onToggleStaffExpanded(staff.staffId)}
                 >
                   <div className="flex items-center gap-2.5 flex-1">
-                    <div className="w-8 h-8 rounded-md bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                    <div className="w-8 h-8 rounded-md bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
                       {staff.staffName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -104,7 +104,7 @@ export function AppointmentSummaryPanel({
                           {staff.staffName}
                         </p>
                         {staff.isRequested && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-teal-700 bg-teal-100 rounded">
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-brand-700 bg-brand-100 rounded">
                             Requested
                           </span>
                         )}
@@ -146,7 +146,7 @@ export function AppointmentSummaryPanel({
                           e.stopPropagation();
                           onToggleStaffRequested(staff.staffId);
                         }}
-                        className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-2 focus:ring-teal-500/20"
+                        className="w-3.5 h-3.5 rounded border-gray-300 text-brand-600 focus:ring-2 focus:ring-brand-500/20"
                       />
                       <span>Client requested this staff</span>
                     </label>
@@ -174,7 +174,7 @@ export function AppointmentSummaryPanel({
                                         e.target.value
                                       )
                                     }
-                                    className="text-xs text-gray-700 border-0 p-0 bg-transparent focus:ring-0 w-14 font-medium hover:text-teal-600 cursor-pointer"
+                                    className="text-xs text-gray-700 border-0 p-0 bg-transparent focus:ring-0 w-14 font-medium hover:text-brand-600 cursor-pointer"
                                   />
                                 </div>
                                 <span className="text-gray-400">{service.duration}m</span>
@@ -198,7 +198,7 @@ export function AppointmentSummaryPanel({
             ))}
             <button
               onClick={onAddAnotherStaff}
-              className="w-full py-2.5 text-sm font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-teal-400 hover:text-teal-600 transition-all flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 text-sm font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-brand-400 hover:text-brand-600 transition-all flex items-center justify-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
               Add Another Staff
@@ -241,7 +241,7 @@ export function AppointmentSummaryPanel({
             className={cn(
               'flex-1 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all relative overflow-hidden',
               canBook && !isBooking
-                ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 shadow-md shadow-teal-500/25 hover:shadow-lg hover:shadow-teal-500/35 active:scale-[0.98]'
+                ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700 shadow-md shadow-brand-500/25 hover:shadow-lg hover:shadow-brand-500/35 active:scale-[0.98]'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             )}
           >

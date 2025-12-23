@@ -244,6 +244,37 @@ export const zIndex = {
 } as const;
 
 // =============================================================================
+// CALENDAR TOKENS
+// =============================================================================
+
+export const calendar = {
+  timeColumn: {
+    width: '60px',
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+  },
+  staffColumn: {
+    minWidth: '200px',
+    headerHeight: '80px',
+  },
+  timeSlot: {
+    height: '60px', // 1 hour = 60px (15min = 15px)
+    borderColor: colors.border.light,
+  },
+  currentTime: {
+    color: brand.primary[400],
+    lineWidth: '2px',
+    dotSize: '12px',
+  },
+  appointmentBlock: {
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    shadow: shadows.sm,
+    hoverShadow: shadows.md,
+  },
+} as const;
+
+// =============================================================================
 // COMPONENT TOKENS
 // =============================================================================
 
@@ -371,6 +402,7 @@ const MangoDesignSystem = {
   shadows,
   transitions,
   zIndex,
+  calendar,
   components,
   cssVariables,
   tailwindTheme,

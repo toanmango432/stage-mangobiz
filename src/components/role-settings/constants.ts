@@ -18,7 +18,7 @@ export const roleColors: Record<string, RoleColor> = {
   manager: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
   senior: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
   standard: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-300' },
-  junior: { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-300' },
+  junior: { bg: 'bg-brand-100', text: 'text-brand-700', border: 'border-brand-300' },
   support: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
   specialty: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-300' },
   custom: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },

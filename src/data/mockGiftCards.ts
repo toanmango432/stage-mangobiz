@@ -60,7 +60,7 @@ export const MOCK_GIFT_CARDS: GiftCard[] = [
     name: '$150 Gift Card',
     value: 150,
     design: 'spa',
-    gradient: 'bg-gradient-to-br from-teal-400 to-teal-600',
+    gradient: 'bg-gradient-to-br from-brand-400 to-brand-600',
   },
   {
     id: 'gc-200',

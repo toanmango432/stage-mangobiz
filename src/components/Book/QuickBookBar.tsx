@@ -187,7 +187,7 @@ export function QuickBookBar({
               {/* Loading State */}
               {isSearching && (
                 <div className="px-6 py-8 text-center">
-                  <div className="inline-block w-6 h-6 border-3 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="inline-block w-6 h-6 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
                   <p className="mt-3 text-sm text-gray-500">Searching...</p>
                 </div>
               )}
@@ -206,12 +206,12 @@ export function QuickBookBar({
                       onClick={() => handleClientClick(client)}
                       className={cn(
                         'w-full text-left px-6 py-3 transition-colors',
-                        'hover:bg-teal-50',
-                        selectedIndex === index && 'bg-teal-50'
+                        'hover:bg-brand-50',
+                        selectedIndex === index && 'bg-brand-50'
                       )}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center flex-shrink-0">
                           <User className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -320,12 +320,12 @@ export function QuickBookBar({
                       onClick={() => handleClientClick(client)}
                       className={cn(
                         'w-full text-left px-6 py-3 transition-colors',
-                        'hover:bg-teal-50',
-                        selectedIndex === index + 1 && 'bg-teal-50'
+                        'hover:bg-brand-50',
+                        selectedIndex === index + 1 && 'bg-brand-50'
                       )}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center flex-shrink-0">
                           <span className="text-white font-bold text-sm">
                             {client.firstName[0]}{client.lastName[0]}
                           </span>

@@ -18,6 +18,7 @@ export {
   shadows,
   transitions,
   zIndex,
+  calendar,
   components,
   cssVariables,
   tailwindTheme,

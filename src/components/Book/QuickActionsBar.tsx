@@ -46,13 +46,13 @@ export const QuickActionsBar = memo(function QuickActionsBar({
           onClick={onNewAppointment}
           className={cn(
             'flex items-center gap-2 px-4 py-2.5 rounded-xl',
-            'bg-gradient-to-r from-teal-500 to-teal-600',
+            'bg-gradient-to-r from-brand-500 to-brand-600',
             'text-white font-semibold text-sm',
-            'hover:from-teal-600 hover:to-teal-700',
+            'hover:from-brand-600 hover:to-brand-700',
             'active:scale-95',
             'transition-all duration-200',
             'shadow-md hover:shadow-lg',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
           )}
           title="New Appointment"
           aria-label="Create new appointment"
@@ -75,7 +75,7 @@ export const QuickActionsBar = memo(function QuickActionsBar({
             'hover:bg-gray-100',
             'active:scale-95',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
           )}
           title="Search Appointments"
           aria-label="Search appointments"
@@ -94,7 +94,7 @@ export const QuickActionsBar = memo(function QuickActionsBar({
             'hover:bg-gray-100',
             'active:scale-95 active:rotate-180',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
           )}
           title="Refresh Calendar"
           aria-label="Refresh calendar"
@@ -121,7 +121,7 @@ export const QuickActionsBar = memo(function QuickActionsBar({
             'hover:bg-gray-100',
             'active:scale-95',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
           )}
           title="Jump to Date"
           aria-label="Jump to specific date"
@@ -140,7 +140,7 @@ export const QuickActionsBar = memo(function QuickActionsBar({
             'hover:bg-gray-100',
             'active:scale-95',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
           )}
           title="Toggle Filters"
           aria-label="Toggle filters"
@@ -162,7 +162,7 @@ export const QuickActionsBar = memo(function QuickActionsBar({
             'hover:bg-gray-100',
             'active:scale-95',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2',
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
             'group'
           )}
           title="Open Command Palette (Cmd+K)"

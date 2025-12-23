@@ -76,7 +76,7 @@ export function AppointmentContextMenu({
         onCheckIn(appointment);
         onClose();
       },
-      color: 'text-teal-600',
+      color: 'text-brand-600',
       show: appointment.status === 'scheduled',
     },
     {

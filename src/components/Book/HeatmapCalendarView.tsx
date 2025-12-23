@@ -81,7 +81,7 @@ export function HeatmapCalendarView({
     // Return color based on intensity
     if (intensity === 0) return 'bg-gray-50 border-gray-200';
     if (intensity < 0.25) return 'bg-emerald-100 border-emerald-200';
-    if (intensity < 0.5) return 'bg-teal-200 border-teal-300';
+    if (intensity < 0.5) return 'bg-brand-200 border-brand-300';
     if (intensity < 0.75) return 'bg-orange-300 border-orange-400';
     return 'bg-red-400 border-red-500';
   };
@@ -161,7 +161,7 @@ export function HeatmapCalendarView({
                 <span className="text-xs text-gray-600">Light</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-4 h-4 rounded bg-teal-200 border border-teal-300" />
+                <div className="w-4 h-4 rounded bg-brand-200 border border-brand-300" />
                 <span className="text-xs text-gray-600">Medium</span>
               </div>
               <div className="flex items-center gap-1">
@@ -231,7 +231,7 @@ export function HeatmapCalendarView({
                     onClick={() => onTimeSlotClick?.(day.date, hour)}
                     className={cn(
                       'flex-1 min-w-[120px] p-3 border-r border-gray-200 last:border-r-0',
-                      'hover:ring-2 hover:ring-teal-500 hover:ring-inset transition-all',
+                      'hover:ring-2 hover:ring-brand-500 hover:ring-inset transition-all',
                       'group relative',
                       getIntensityColor(slot)
                     )}
@@ -301,9 +301,9 @@ export function HeatmapCalendarView({
           </div>
 
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-teal-600" />
+            <TrendingUp className="w-5 h-5 text-brand-600" />
             <div className="text-sm text-gray-600">
-              <span className="font-semibold text-teal-600">Best slot:</span>{' '}
+              <span className="font-semibold text-brand-600">Best slot:</span>{' '}
               Find optimal booking times at a glance
             </div>
           </div>

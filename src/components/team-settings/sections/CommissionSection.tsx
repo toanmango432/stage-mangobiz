@@ -414,7 +414,7 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
           </Card>
 
           {/* Earnings Calculator */}
-          <Card padding="lg" className="bg-gradient-to-br from-cyan-50 to-teal-50 border-cyan-200">
+          <Card padding="lg" className="bg-gradient-to-br from-cyan-50 to-brand-50 border-cyan-200">
             <SectionHeader
               title="Earnings Calculator"
               subtitle="Example earnings based on current settings"

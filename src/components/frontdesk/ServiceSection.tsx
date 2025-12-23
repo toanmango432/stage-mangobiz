@@ -97,14 +97,14 @@ export const ServiceSection = memo(function ServiceSection({
   // Updated color tokens for section styling - teal theme
   const colorTokens = {
     primary: '#14B8A6',
-    bg: 'bg-teal-50',
-    text: 'text-teal-600',
-    border: 'ring-teal-600/30',
-    iconBg: 'bg-teal-600',
-    hoverBg: 'hover:bg-teal-50/50',
-    hoverText: 'hover:text-teal-600',
-    dropdownHover: 'hover:bg-teal-50',
-    focusRing: 'focus:ring-teal-600'
+    bg: 'bg-brand-50',
+    text: 'text-brand-600',
+    border: 'ring-brand-600/30',
+    iconBg: 'bg-brand-600',
+    hoverBg: 'hover:bg-brand-50/50',
+    hoverText: 'hover:text-brand-600',
+    dropdownHover: 'hover:bg-brand-50',
+    focusRing: 'focus:ring-brand-600'
   };
 
   // Use shared hook for view mode management (replaces 45+ lines of duplicate code)
@@ -276,7 +276,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-3 h-3 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-brand-500 opacity-60"></div>
         {/* Collapsed view */}
         <div className="flex flex-wrap sm:flex-nowrap items-center p-3 pl-4">
           {/* Left section - Number & Client */}
@@ -299,11 +299,11 @@ export const ServiceSection = memo(function ServiceSection({
               </div>
               <div className="flex items-center mt-0.5 sm:mt-1 text-xs text-gray-600">
                 <div className="flex items-center mr-2 sm:mr-3">
-                  <Clock size={12} className="text-teal-500 mr-1" />
+                  <Clock size={12} className="text-brand-500 mr-1" />
                   <span>{ticket.startTime}</span>
                 </div>
                 <div className="flex items-center">
-                  <Calendar size={12} className="text-teal-500 mr-1" />
+                  <Calendar size={12} className="text-brand-500 mr-1" />
                   <span>{ticket.duration}</span>
                 </div>
               </div>
@@ -321,10 +321,10 @@ export const ServiceSection = memo(function ServiceSection({
               <span>{ticket.techName}</span>
             </div>
             {/* Service tag */}
-            <div className="flex-grow sm:flex-grow-0 flex items-center bg-teal-50/40 px-2 py-1 rounded-md border border-teal-100 text-xs text-gray-700 truncate max-w-[160px]" style={{
+            <div className="flex-grow sm:flex-grow-0 flex items-center bg-brand-50/40 px-2 py-1 rounded-md border border-brand-100 text-xs text-gray-700 truncate max-w-[160px]" style={{
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)'
           }}>
-              <Tag size={12} className="text-teal-500 mr-1.5 flex-shrink-0" />
+              <Tag size={12} className="text-brand-500 mr-1.5 flex-shrink-0" />
               <span className="truncate">{ticket.service}</span>
             </div>
           </div>
@@ -346,7 +346,7 @@ export const ServiceSection = memo(function ServiceSection({
               </Tippy>
               {/* Complete button */}
               <Tippy content="Complete service">
-                <button className="p-1.5 text-teal-500 hover:text-teal-600 hover:bg-teal-50 rounded-full transition-colors" onClick={e => handleCompleteTicket(ticket.id, e)} aria-label="Complete service">
+                <button className="p-1.5 text-brand-500 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors" onClick={e => handleCompleteTicket(ticket.id, e)} aria-label="Complete service">
                   <CheckCircle size={14} />
                 </button>
               </Tippy>
@@ -359,15 +359,15 @@ export const ServiceSection = memo(function ServiceSection({
               {/* Dropdown menu */}
               {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-8 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()} role="menu">
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)} role="menuitem">
-                    <Edit2 size={14} className="mr-2 text-teal-500" />
+                    <Edit2 size={14} className="mr-2 text-brand-500" />
                     Edit Ticket
                   </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)} role="menuitem">
-                    <Info size={14} className="mr-2 text-teal-500" />
+                    <Info size={14} className="mr-2 text-brand-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
-                    <CheckCircle size={14} className="mr-2 text-teal-500" />
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
+                    <CheckCircle size={14} className="mr-2 text-brand-500" />
                     Complete Service
                   </button>
                 </div>}
@@ -475,7 +475,7 @@ export const ServiceSection = memo(function ServiceSection({
                     Pause Service
                   </>}
               </button>
-              <button className="flex items-center py-1.5 px-3 rounded-md bg-teal-600 text-white text-xs font-medium hover:bg-teal-700 transition-colors" onClick={e => {
+              <button className="flex items-center py-1.5 px-3 rounded-md bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 transition-colors" onClick={e => {
             e.stopPropagation();
             handleCompleteTicket(ticket.id, e);
           }}>
@@ -494,7 +494,7 @@ export const ServiceSection = memo(function ServiceSection({
           </div>}
         {/* Status stamp overlay - more subtle */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-2xl tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-brand-500'} font-bold text-2xl tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
           textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
@@ -528,7 +528,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-brand-500 opacity-60"></div>
         <div className="flex items-center p-2 pl-3">
           {/* Number & Client */}
           <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-sm mr-2 border border-gray-800" style={{
@@ -563,7 +563,7 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
         {/* Subtle status stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-lg tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-brand-500'} font-bold text-lg tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
           textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
@@ -600,7 +600,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-3 h-3 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-brand-500 opacity-60"></div>
         {/* Card header with number and status */}
         <div className="flex justify-between p-3 border-b border-dashed border-gray-300 pl-4">
           <div className="flex items-center">
@@ -639,15 +639,15 @@ export const ServiceSection = memo(function ServiceSection({
               </Tippy>
               {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()} role="menu">
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)} role="menuitem">
-                    <Edit2 size={14} className="mr-2 text-teal-500" />
+                    <Edit2 size={14} className="mr-2 text-brand-500" />
                     Edit Ticket
                   </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openDetailsModal(ticket.id, e)} role="menuitem">
-                    <Info size={14} className="mr-2 text-teal-500" />
+                    <Info size={14} className="mr-2 text-brand-500" />
                     View Details
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
-                    <CheckCircle size={14} className="mr-2 text-teal-500" />
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-brand-50 flex items-center" onClick={e => handleCompleteTicket(ticket.id, e)} role="menuitem">
+                    <CheckCircle size={14} className="mr-2 text-brand-500" />
                     Complete Service
                   </button>
                 </div>}
@@ -658,10 +658,10 @@ export const ServiceSection = memo(function ServiceSection({
         <div className="p-3">
           {/* Client information */}
           <div className="flex items-center mb-3">
-            <div className="bg-teal-50 p-2 rounded-full mr-3 border border-teal-100" style={{
+            <div className="bg-brand-50 p-2 rounded-full mr-3 border border-brand-100" style={{
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)'
           }}>
-              <User size={14} className="text-teal-500" />
+              <User size={14} className="text-brand-500" />
             </div>
             <div className="font-semibold text-gray-800 truncate">
               {ticket.clientName}
@@ -669,10 +669,10 @@ export const ServiceSection = memo(function ServiceSection({
           </div>
           {/* Time and duration */}
           <div className="flex items-center text-xs text-gray-600 mb-3">
-            <div className="flex items-center bg-teal-50/40 px-2 py-1 rounded-md border border-teal-100 mr-2" style={{
+            <div className="flex items-center bg-brand-50/40 px-2 py-1 rounded-md border border-brand-100 mr-2" style={{
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)'
           }}>
-              <Clock size={12} className="text-teal-500 mr-1" />
+              <Clock size={12} className="text-brand-500 mr-1" />
               <span className="font-medium">{ticket.startTime}</span>
               <span className="mx-1 text-gray-400">•</span>
               <span className="font-medium">{ticket.duration}</span>
@@ -761,7 +761,7 @@ export const ServiceSection = memo(function ServiceSection({
         }}>
             {isPaused ? 'Resume' : 'Pause'}
           </button>
-          <button className="py-1.5 px-3 bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 transition-colors text-xs" onClick={e => {
+          <button className="py-1.5 px-3 bg-brand-600 text-white font-medium rounded-md hover:bg-brand-700 transition-colors text-xs" onClick={e => {
           e.stopPropagation();
           handleCompleteTicket(ticket.id, e);
         }}>
@@ -774,7 +774,7 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
         {/* Status stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-2xl tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-brand-500'} font-bold text-2xl tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
           textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
@@ -808,7 +808,7 @@ export const ServiceSection = memo(function ServiceSection({
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
         </div>
         {/* Left accent bar */}
-        <div className="absolute top-0 left-0 w-1 h-full bg-teal-500 opacity-60"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-brand-500 opacity-60"></div>
         <div className="flex items-center justify-between p-2 border-b border-dashed border-gray-300 pl-3">
           <div className="flex items-center">
             <div className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs font-semibold shadow-sm mr-2 border border-gray-800" style={{
@@ -849,7 +849,7 @@ export const ServiceSection = memo(function ServiceSection({
           }}>
               {isPaused ? 'Resume' : 'Pause'}
             </button>
-            <button className="flex-1 py-1 px-1 text-center bg-teal-600 text-white font-medium rounded-md hover:bg-teal-700 transition-colors text-[10px]" onClick={e => {
+            <button className="flex-1 py-1 px-1 text-center bg-brand-600 text-white font-medium rounded-md hover:bg-brand-700 transition-colors text-[10px]" onClick={e => {
             e.stopPropagation();
             handleCompleteTicket(ticket.id, e);
           }}>
@@ -859,7 +859,7 @@ export const ServiceSection = memo(function ServiceSection({
         </div>
         {/* Status stamp overlay */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-[0.06] pointer-events-none">
-          <div className={`${isPaused ? 'text-amber-500' : 'text-teal-500'} font-bold text-lg tracking-wider uppercase`} style={{
+          <div className={`${isPaused ? 'text-amber-500' : 'text-brand-500'} font-bold text-lg tracking-wider uppercase`} style={{
           letterSpacing: '0.1em',
           textShadow: '0 0 1px rgba(20,184,166,0.2)',
           fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont'
@@ -904,7 +904,7 @@ export const ServiceSection = memo(function ServiceSection({
             </button>
           </Tippy>
           {/* Left border with status indicator */}
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-600 opacity-80"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-600 opacity-80"></div>
         </div>
       </div>;
   }
@@ -1006,7 +1006,7 @@ export const ServiceSection = memo(function ServiceSection({
                           setCardScale(newScale);
                           localStorage.setItem('serviceCardScale', newScale.toString());
                         }}
-                        className="w-full h-2 bg-teal-100 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                        className="w-full h-2 bg-brand-100 rounded-lg appearance-none cursor-pointer accent-brand-500"
                         style={{
                           background: `linear-gradient(to right, #14B8A6 0%, #14B8A6 ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB ${((cardScale - 0.7) / 0.6) * 100}%, #E5E7EB 100%)`
                         }}
@@ -1138,7 +1138,7 @@ export const ServiceSection = memo(function ServiceSection({
                 </label>
                 <select
                   id="deleteReason"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                   value={deleteReason}
                   onChange={e => setDeleteReason(e.target.value)}
                   required

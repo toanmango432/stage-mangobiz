@@ -110,7 +110,7 @@ export const SkeletonButton = memo(function SkeletonButton({
         size === 'sm' && 'h-8 w-20',
         size === 'md' && 'h-10 w-24',
         size === 'lg' && 'h-12 w-32',
-        variant === 'primary' && 'bg-teal-200',
+        variant === 'primary' && 'bg-brand-200',
         variant === 'secondary' && 'bg-gray-200',
         className
       )}

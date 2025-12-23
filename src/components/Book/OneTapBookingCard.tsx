@@ -109,7 +109,7 @@ export function OneTapBookingCard({
 
   const getConfidenceColor = (confidence: number): string => {
     if (confidence >= 90) return 'from-green-500 to-emerald-500';
-    if (confidence >= 75) return 'from-teal-500 to-cyan-500';
+    if (confidence >= 75) return 'from-brand-500 to-cyan-500';
     if (confidence >= 60) return 'from-blue-500 to-indigo-500';
     return 'from-purple-500 to-pink-500';
   };
@@ -130,7 +130,7 @@ export function OneTapBookingCard({
     <div
       className={cn(
         'relative overflow-hidden rounded-2xl',
-        'bg-gradient-to-br from-purple-50 via-white to-teal-50',
+        'bg-gradient-to-br from-purple-50 via-white to-brand-50',
         'border-2 border-purple-200',
         'shadow-lg hover:shadow-xl transition-shadow duration-300',
         className
@@ -155,7 +155,7 @@ export function OneTapBookingCard({
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-teal-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-brand-500 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white animate-pulse" />
             </div>
             <div>
@@ -188,8 +188,8 @@ export function OneTapBookingCard({
 
           {/* Services */}
           <div className="flex items-start gap-4 p-4 bg-white rounded-lg border border-gray-200">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-6 h-6 text-teal-600" />
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-brand-100 to-cyan-100 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-6 h-6 text-brand-600" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-gray-900">
@@ -282,8 +282,8 @@ export function OneTapBookingCard({
             disabled={isBooking}
             className={cn(
               'flex-1 px-6 py-4 rounded-xl font-bold text-white',
-              'bg-gradient-to-r from-purple-500 to-teal-500',
-              'hover:from-purple-600 hover:to-teal-600',
+              'bg-gradient-to-r from-purple-500 to-brand-500',
+              'hover:from-purple-600 hover:to-brand-600',
               'shadow-lg hover:shadow-xl',
               'transition-all duration-200',
               'flex items-center justify-center gap-2',

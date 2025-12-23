@@ -95,7 +95,7 @@ export function DraggableAppointment({
 
       {/* Dragging Indicator */}
       {dragState.isDragging && (
-        <div className="absolute inset-0 border-2 border-dashed border-teal-500 rounded-lg pointer-events-none" />
+        <div className="absolute inset-0 border-2 border-dashed border-brand-500 rounded-lg pointer-events-none" />
       )}
     </div>
   );
@@ -277,7 +277,7 @@ export function BatchSelection({
     <div>
       {/* Batch Actions Toolbar */}
       {selectedIds.length > 0 && (
-        <div className="sticky top-0 z-20 bg-gradient-to-r from-teal-500 to-cyan-600 text-white px-6 py-3 shadow-lg">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-brand-500 to-cyan-600 text-white px-6 py-3 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <p className="font-semibold">

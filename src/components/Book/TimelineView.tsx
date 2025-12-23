@@ -47,7 +47,7 @@ function formatDuration(startTime: Date, endTime: Date): string {
 function getStatusColor(status: string): string {
   const statusColors = {
     scheduled: 'bg-blue-50 border-blue-200 text-blue-900',
-    'checked-in': 'bg-teal-50 border-teal-200 text-teal-900',
+    'checked-in': 'bg-brand-50 border-brand-200 text-brand-900',
     'in-service': 'bg-amber-50 border-amber-200 text-amber-900',
     completed: 'bg-green-50 border-green-200 text-green-900',
     cancelled: 'bg-red-50 border-red-200 text-red-900',
@@ -62,7 +62,7 @@ function getStatusColor(status: string): string {
 function getStatusBadgeColor(status: string): string {
   const statusColors = {
     scheduled: 'bg-blue-100 text-blue-700 border-blue-300',
-    'checked-in': 'bg-teal-100 text-teal-700 border-teal-300',
+    'checked-in': 'bg-brand-100 text-brand-700 border-brand-300',
     'in-service': 'bg-amber-100 text-amber-700 border-amber-300',
     completed: 'bg-green-100 text-green-700 border-green-300',
     cancelled: 'bg-red-100 text-red-700 border-red-300',

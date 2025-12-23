@@ -284,16 +284,16 @@ export function AnalyticsOverviewPanel({ metrics }: AnalyticsOverviewPanelProps)
       {/* Appointment Analytics */}
       <div className="bg-white rounded-xl p-6 border border-gray-200">
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-teal-600" />
+          <Calendar className="w-5 h-5 text-brand-600" />
           Appointment Analytics
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg">
+          <div className="text-center p-4 bg-gradient-to-br from-brand-50 to-brand-100 rounded-lg">
             <div className="text-3xl font-bold text-gray-900 mb-1">
               {metrics.today.appointments}
             </div>
             <div className="text-sm text-gray-600 mb-2">Today's Appointments</div>
-            <div className="text-xs text-teal-600 font-semibold">+12% vs yesterday</div>
+            <div className="text-xs text-brand-600 font-semibold">+12% vs yesterday</div>
           </div>
 
           <div className="text-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg">

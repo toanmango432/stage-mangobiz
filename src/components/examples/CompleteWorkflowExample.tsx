@@ -234,7 +234,7 @@ export function CompleteWorkflowExample() {
               }}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 showStaffManagement
-                  ? 'bg-teal-500 text-white'
+                  ? 'bg-brand-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -328,7 +328,7 @@ export function CompleteWorkflowExample() {
                 <h3 className="font-semibold text-gray-900 mb-3">Workflow Steps:</h3>
                 <ol className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-start">
-                    <span className="font-bold text-teal-500 mr-2">1.</span>
+                    <span className="font-bold text-brand-500 mr-2">1.</span>
                     <span><strong>Staff Management:</strong> Add and manage your team members</span>
                   </li>
                   <li className="flex items-start">

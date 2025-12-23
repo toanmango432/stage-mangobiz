@@ -59,7 +59,7 @@ const POPULAR_SERVICES = [
 export const CATEGORY_COLORS: Record<string, { border: string; bg: string; text: string; modernBg: string; modernBorder: string }> = {
   Hair: { border: "border-l-amber-400", bg: "bg-amber-50", text: "text-amber-700", modernBg: "bg-yellow-100", modernBorder: "border-yellow-200" },
   Nails: { border: "border-l-pink-400", bg: "bg-pink-50", text: "text-pink-700", modernBg: "bg-pink-200", modernBorder: "border-pink-300" },
-  Spa: { border: "border-l-teal-400", bg: "bg-teal-50", text: "text-teal-700", modernBg: "bg-teal-200", modernBorder: "border-teal-300" },
+  Spa: { border: "border-l-brand-400", bg: "bg-brand-50", text: "text-brand-700", modernBg: "bg-brand-200", modernBorder: "border-brand-300" },
   Massage: { border: "border-l-cyan-400", bg: "bg-cyan-50", text: "text-cyan-700", modernBg: "bg-cyan-200", modernBorder: "border-cyan-300" },
   Skincare: { border: "border-l-rose-400", bg: "bg-rose-50", text: "text-rose-700", modernBg: "bg-rose-200", modernBorder: "border-rose-300" },
   Lashes: { border: "border-l-purple-400", bg: "bg-purple-50", text: "text-purple-700", modernBg: "bg-purple-200", modernBorder: "border-purple-300" },

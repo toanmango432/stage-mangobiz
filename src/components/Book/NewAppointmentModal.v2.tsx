@@ -961,7 +961,7 @@ export function NewAppointmentModalV2({
             )}
 
             {/* Client Search Input - Always visible at top */}
-            <div className="relative z-30 p-6 border-b border-gray-100 bg-gradient-to-br from-teal-50/30 via-white to-white">
+            <div className="relative z-30 p-6 border-b border-gray-100 bg-gradient-to-br from-brand-50/30 via-white to-white">
               {selectedClients.length === 0 || isAddingAnotherClient ? (
                 <div className="space-y-2">
                   <div className="relative">
@@ -973,7 +973,7 @@ export function NewAppointmentModalV2({
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                       onFocus={() => setShowAddNewForm(false)}
-                      className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border-2 border-teal-200 rounded-lg focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-gray-400 shadow-sm shadow-teal-500/5"
+                      className="w-full pl-11 pr-4 py-2.5 text-sm bg-white border-2 border-brand-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-gray-400 shadow-sm shadow-brand-500/5"
                     />
                   </div>
                   {isAddingAnotherClient && selectedClients.length > 0 && (
@@ -993,7 +993,7 @@ export function NewAppointmentModalV2({
                 <div className="space-y-3">
                   {/* Individual Mode - Simple Client Display */}
                   {bookingMode === 'individual' && selectedClients.length > 0 && (
-                    <div className="bg-white border-2 border-teal-200 rounded-lg p-4">
+                    <div className="bg-white border-2 border-brand-200 rounded-lg p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center">
                           <span className="text-white font-semibold text-sm">
@@ -1059,7 +1059,7 @@ export function NewAppointmentModalV2({
                                     <div>
                                       <p className="font-semibold text-gray-900 text-sm">
                                         {guest.name}
-                                        {index === 0 && <span className="ml-1.5 text-[10px] bg-teal-100 text-brand-700 px-1.5 py-0.5 rounded">Main</span>}
+                                        {index === 0 && <span className="ml-1.5 text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded">Main</span>}
                                       </p>
                                       <p className="text-[10px] text-gray-500">
                                         {guest.services.length} service{guest.services.length !== 1 ? 's' : ''}
@@ -1086,7 +1086,7 @@ export function NewAppointmentModalV2({
                                 setClientSearch('');
                                 setTimeout(() => clientSearchRef.current?.focus(), 100);
                               }}
-                              className="w-full px-3 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                              className="w-full px-3 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2"
                             >
                               <Plus className="w-4 h-4" />
                               {bookingGuests.length === 0 ? 'Add Main Guest (Required)' : 'Add Named Guest'}
@@ -1107,7 +1107,7 @@ export function NewAppointmentModalV2({
                           {bookingGuests.length > 0 && (
                             <button
                               onClick={handleProceedToServices}
-                              className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg hover:from-teal-700 hover:to-teal-800 transition-colors shadow-md"
+                              className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg hover:from-brand-700 hover:to-brand-800 transition-colors shadow-md"
                             >
                               Proceed to Services →
                             </button>
@@ -1152,7 +1152,7 @@ export function NewAppointmentModalV2({
                                     <div className="text-left">
                                       <p className="font-semibold text-gray-900 text-xs leading-tight">
                                         {guest.name}
-                                        {index === 0 && <span className="ml-1 text-[9px] bg-teal-100 text-brand-700 px-1 py-0.5 rounded">Main</span>}
+                                        {index === 0 && <span className="ml-1 text-[9px] bg-brand-100 text-brand-700 px-1 py-0.5 rounded">Main</span>}
                                       </p>
                                       <p className="text-[10px] text-gray-500">
                                         {guest.services.length} service{guest.services.length !== 1 ? 's' : ''}
@@ -1163,7 +1163,7 @@ export function NewAppointmentModalV2({
                                   <div className={cn(
                                     "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                                     activeGuestId === guest.id
-                                      ? "border-teal-600 bg-brand-600"
+                                      ? "border-brand-600 bg-brand-600"
                                       : "border-gray-300"
                                   )}>
                                     {activeGuestId === guest.id && (
@@ -1177,7 +1177,7 @@ export function NewAppointmentModalV2({
 
                           {/* Active Guest Services Display */}
                           {activeGuestId && (
-                            <div className="bg-brand-50 border-2 border-teal-200 rounded-lg p-3">
+                            <div className="bg-brand-50 border-2 border-brand-200 rounded-lg p-3">
                               <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs font-semibold text-brand-900 uppercase tracking-wide">
                                   {bookingGuests.find(g => g.id === activeGuestId)?.name}'s Services
@@ -1300,7 +1300,7 @@ export function NewAppointmentModalV2({
                                 }
                               }}
                               disabled={bookingGuests.reduce((sum, g) => sum + g.services.length, 0) === 0}
-                              className="w-full px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg hover:from-teal-700 hover:to-teal-800 transition-colors shadow-lg disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed"
+                              className="w-full px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg hover:from-brand-700 hover:to-brand-800 transition-colors shadow-lg disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed"
                             >
                               Book Group Appointment
                             </button>
@@ -1320,7 +1320,7 @@ export function NewAppointmentModalV2({
                   {/* Add New Client - TOP */}
                   <button
                     onClick={() => setShowAddNewForm(true)}
-                    className="w-full px-4 py-3 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    className="w-full px-4 py-3 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Client
@@ -1558,7 +1558,7 @@ export function NewAppointmentModalV2({
                         Object.values(validationErrors).some(v => v !== undefined) ||
                         isAddingClient
                       }
-                      className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isAddingClient ? (
                         <>
@@ -1699,7 +1699,7 @@ export function NewAppointmentModalV2({
                         >
                           {justAddedService === service.id && (
                             <div className="absolute top-1 right-1">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-teal-500" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
                             </div>
                           )}
                           <p className="font-medium text-gray-900 mb-1.5 line-clamp-2 leading-tight pr-4">{service.name}</p>
@@ -1742,7 +1742,7 @@ export function NewAppointmentModalV2({
                         "w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold shadow-sm transition-all",
                         activeStaffId === staff.id
                           ? "bg-gradient-to-br from-brand-500 to-brand-600"
-                          : "bg-gradient-to-br from-gray-400 to-gray-500 group-hover:from-teal-400 group-hover:to-teal-500"
+                          : "bg-gradient-to-br from-gray-400 to-gray-500 group-hover:from-brand-400 group-hover:to-brand-500"
                       )}>
                         {staff.name.charAt(0)}
                       </div>
@@ -1772,7 +1772,7 @@ export function NewAppointmentModalV2({
               /* Message when no client selected */
               <div className="flex-1 flex items-center justify-center p-8">
                 <div className="text-center max-w-sm">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-100 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-100 flex items-center justify-center">
                     <User className="w-8 h-8 text-brand-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -1875,14 +1875,14 @@ export function NewAppointmentModalV2({
                         onClick={() => toggleStaffExpanded(staff.staffId)}
                       >
                         <div className="flex items-center gap-2.5 flex-1">
-                          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-teal-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
                             {staff.staffName.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-gray-900 text-sm truncate">{staff.staffName}</p>
                               {staff.isRequested && (
-                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-brand-700 bg-teal-100 rounded">
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium text-brand-700 bg-brand-100 rounded">
                                   Requested
                                 </span>
                               )}
@@ -1964,7 +1964,7 @@ export function NewAppointmentModalV2({
                   ))}
                   <button
                     onClick={() => setActiveTab('staff')}
-                    className="w-full py-2.5 text-sm font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-teal-400 hover:text-brand-600 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 text-sm font-medium text-gray-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-brand-400 hover:text-brand-600 transition-all flex items-center justify-center gap-1.5"
                   >
                     <Plus className="w-4 h-4" />
                     Add Another Staff
@@ -2007,7 +2007,7 @@ export function NewAppointmentModalV2({
                   className={cn(
                     'flex-1 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all relative overflow-hidden',
                     canBook && !isBooking
-                      ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-teal-600 hover:to-teal-700 shadow-md shadow-teal-500/25 hover:shadow-lg hover:shadow-teal-500/35 active:scale-[0.98]'
+                      ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white hover:from-brand-600 hover:to-brand-700 shadow-md shadow-brand-500/25 hover:shadow-lg hover:shadow-brand-500/35 active:scale-[0.98]'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   )}
                 >

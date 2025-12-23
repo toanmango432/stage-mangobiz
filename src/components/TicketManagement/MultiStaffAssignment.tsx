@@ -65,9 +65,9 @@ export function MultiStaffAssignment({
                     </label>
                     
                     {service.staffId ? (
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
+                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-brand-50 to-cyan-50 rounded-lg border border-brand-200">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white font-semibold">
+                          <div className="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-semibold">
                             {assignedStaff?.name.charAt(0) || service.staffName.charAt(0)}
                           </div>
                           <div>
@@ -112,7 +112,7 @@ export function MultiStaffAssignment({
                               }}
                               className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors text-left"
                             >
-                              <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white font-semibold">
+                              <div className="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-semibold">
                                 {staff.name.charAt(0)}
                               </div>
                               <div className="flex-1">

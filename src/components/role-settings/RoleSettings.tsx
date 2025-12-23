@@ -204,7 +204,7 @@ export const RoleSettings: React.FC<RoleSettingsProps> = ({ onBack }) => {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
                 >
                   Save Changes
                 </button>
@@ -212,7 +212,7 @@ export const RoleSettings: React.FC<RoleSettingsProps> = ({ onBack }) => {
             )}
             <button
               onClick={handleAddRole}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
             >
               <PlusIcon className="w-4 h-4" />
               Add Role

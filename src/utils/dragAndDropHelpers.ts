@@ -149,7 +149,7 @@ export function getConflictColor(conflictType?: string): string {
     case 'outside-hours':
       return 'bg-gray-200 border-gray-400';
     default:
-      return 'bg-teal-100 border-teal-400';
+      return 'bg-brand-100 border-brand-400';
   }
 }
 

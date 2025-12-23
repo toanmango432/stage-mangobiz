@@ -120,7 +120,7 @@ export const StaffColumn = memo(function StaffColumn({
               className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold text-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-sm">
               {staffName.charAt(0).toUpperCase()}
             </div>
           )}
@@ -141,7 +141,7 @@ export const StaffColumn = memo(function StaffColumn({
       <div
         className={cn(
           'relative bg-white transition-colors',
-          isDragOver && 'bg-teal-50 ring-2 ring-teal-400'
+          isDragOver && 'bg-brand-50 ring-2 ring-brand-400'
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

@@ -172,7 +172,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       {/* Profile Header Card */}
       <Card padding="lg" className="relative overflow-hidden">
         {/* Background decoration */}
-        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-cyan-500 to-teal-400" />
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-cyan-500 to-brand-400" />
 
         <div className="relative">
           {/* Avatar and Status */}

@@ -60,7 +60,7 @@ export const ClientPreviewPopover = memo(function ClientPreviewPopover({
   const content = (
     <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-3">
+      <div className="bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-3">
         <div className="flex items-center gap-3">
           {client.photo ? (
             <img
@@ -69,7 +69,7 @@ export const ClientPreviewPopover = memo(function ClientPreviewPopover({
               className="w-12 h-12 rounded-full border-2 border-white object-cover"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-white text-teal-600 flex items-center justify-center text-lg font-bold border-2 border-white">
+            <div className="w-12 h-12 rounded-full bg-white text-brand-600 flex items-center justify-center text-lg font-bold border-2 border-white">
               {getInitials(client.name)}
             </div>
           )}
@@ -78,7 +78,7 @@ export const ClientPreviewPopover = memo(function ClientPreviewPopover({
               {client.name}
             </h3>
             {client.email && (
-              <p className="text-teal-50 text-xs truncate">{client.email}</p>
+              <p className="text-brand-50 text-xs truncate">{client.email}</p>
             )}
           </div>
         </div>
@@ -164,7 +164,7 @@ export const ClientPreviewPopover = memo(function ClientPreviewPopover({
               'text-gray-700 text-sm font-medium',
               'hover:bg-gray-50 hover:border-gray-400',
               'active:scale-95 transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-teal-500'
+              'focus:outline-none focus:ring-2 focus:ring-brand-500'
             )}
           >
             <Phone className="w-4 h-4" />
@@ -180,7 +180,7 @@ export const ClientPreviewPopover = memo(function ClientPreviewPopover({
               'text-gray-700 text-sm font-medium',
               'hover:bg-gray-50 hover:border-gray-400',
               'active:scale-95 transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-teal-500'
+              'focus:outline-none focus:ring-2 focus:ring-brand-500'
             )}
           >
             <MessageSquare className="w-4 h-4" />
@@ -192,11 +192,11 @@ export const ClientPreviewPopover = memo(function ClientPreviewPopover({
             onClick={() => onViewProfile(client.id)}
             className={cn(
               'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg',
-              'bg-teal-500 border border-teal-600',
+              'bg-brand-500 border border-brand-600',
               'text-white text-sm font-semibold',
-              'hover:bg-teal-600',
+              'hover:bg-brand-600',
               'active:scale-95 transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+              'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
             )}
           >
             <User className="w-4 h-4" />

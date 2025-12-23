@@ -242,11 +242,11 @@ export function ClientJourneyTimeline({
                 {/* Timeline Dot */}
                 <div className={cn(
                   'absolute left-0 w-12 h-12 rounded-full flex items-center justify-center',
-                  visit.status === 'completed' ? 'bg-teal-100 border-4 border-white shadow-md' :
+                  visit.status === 'completed' ? 'bg-brand-100 border-4 border-white shadow-md' :
                   visit.status === 'no-show' ? 'bg-red-100 border-4 border-white shadow-md' :
                   'bg-gray-100 border-4 border-white shadow-md'
                 )}>
-                  {visit.status === 'completed' && <CheckCircle2 className="w-5 h-5 text-teal-600" />}
+                  {visit.status === 'completed' && <CheckCircle2 className="w-5 h-5 text-brand-600" />}
                   {visit.status === 'no-show' && <AlertCircle className="w-5 h-5 text-red-600" />}
                   {visit.status === 'cancelled' && <span className="text-lg">✕</span>}
                 </div>
@@ -254,7 +254,7 @@ export function ClientJourneyTimeline({
                 {/* Visit Card */}
                 <div className={cn(
                   'bg-white rounded-lg border-2 p-4 hover:shadow-md transition-all',
-                  visit.status === 'completed' ? 'border-teal-200' :
+                  visit.status === 'completed' ? 'border-brand-200' :
                   visit.status === 'no-show' ? 'border-red-200' :
                   'border-gray-200'
                 )}>
@@ -272,7 +272,7 @@ export function ClientJourneyTimeline({
                       </div>
                       <span className={cn(
                         'text-xs px-2 py-0.5 rounded-full font-semibold',
-                        visit.status === 'completed' ? 'bg-teal-100 text-teal-700' :
+                        visit.status === 'completed' ? 'bg-brand-100 text-brand-700' :
                         visit.status === 'no-show' ? 'bg-red-100 text-red-700' :
                         'bg-gray-100 text-gray-700'
                       )}>
@@ -309,7 +309,7 @@ export function ClientJourneyTimeline({
         {/* Show More */}
         {visits.length > 5 && (
           <div className="text-center mt-6">
-            <button className="text-sm text-teal-600 hover:text-teal-700 font-semibold">
+            <button className="text-sm text-brand-600 hover:text-brand-700 font-semibold">
               Show All {visits.length} Visits
             </button>
           </div>

@@ -56,7 +56,7 @@ function formatDate(date: Date): string {
 function getStatusColor(status: string): string {
   const statusColors = {
     scheduled: 'bg-blue-100 text-blue-900 border-blue-300',
-    'checked-in': 'bg-teal-100 text-teal-900 border-teal-300',
+    'checked-in': 'bg-brand-100 text-brand-900 border-brand-300',
     'in-service': 'bg-green-100 text-green-900 border-green-300',
     completed: 'bg-gray-100 text-gray-600 border-gray-300',
     cancelled: 'bg-red-100 text-red-600 border-red-300',
@@ -99,7 +99,7 @@ const AppointmentRow = memo(function AppointmentRow({
       onClick={onClick}
       className={cn(
         'w-full text-left px-4 py-4 hover:bg-gray-50 transition-colors',
-        'focus:outline-none focus:bg-teal-50 border-b border-gray-100'
+        'focus:outline-none focus:bg-brand-50 border-b border-gray-100'
       )}
     >
       <div className="flex items-start gap-4">
