@@ -484,7 +484,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
           'purple-100': '#f3e8ff', 'purple-700': '#7c3aed', 'purple-300': '#c4b5fd',
           'blue-100': '#dbeafe', 'blue-700': '#1d4ed8', 'blue-300': '#93c5fd',
           'cyan-100': '#cffafe', 'cyan-700': '#0e7490', 'cyan-300': '#67e8f9',
-          'teal-100': '#ccfbf1', 'teal-700': '#0f766e', 'teal-300': '#5eead4',
+          'brand-100': '#ccfbf1', 'brand-700': '#0f766e', 'brand-300': '#5eead4',
           'green-100': '#dcfce7', 'green-700': '#15803d', 'green-300': '#86efac',
           'pink-100': '#fce7f3', 'pink-700': '#be185d', 'pink-300': '#f9a8d4',
           'gray-100': '#f3f4f6', 'gray-700': '#374151', 'gray-300': '#d1d5db',
@@ -540,7 +540,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-500 to-teal-500 px-6 py-5 text-white flex-shrink-0">
+        <div className="bg-gradient-to-r from-cyan-500 to-brand-500 px-6 py-5 text-white flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">Add New Team Member</h2>
@@ -603,7 +603,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
               {/* Avatar Placeholder */}
               <div className="flex justify-center">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-teal-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-brand-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                     {basics.firstName && basics.lastName
                       ? `${basics.firstName[0]}${basics.lastName[0]}`.toUpperCase()
                       : <UserIcon className="w-10 h-10" />
@@ -760,7 +760,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
 
               {/* Security PIN Section - Always Required */}
               <div className="pt-4 border-t border-gray-200">
-                <div className="p-4 bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-200 rounded-xl">
+                <div className="p-4 bg-gradient-to-br from-cyan-50 to-brand-50 border border-cyan-200 rounded-xl">
                   <div className="flex items-start gap-3 mb-4">
                     <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
                       <LockIcon className="w-5 h-5 text-cyan-600" />
@@ -1182,7 +1182,7 @@ export const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSave, e
               {/* Profile Card */}
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                 <div className="flex items-start gap-5">
-                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-cyan-400 to-teal-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-cyan-400 to-brand-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                     {basics.firstName[0]}{basics.lastName[0]}
                   </div>
                   <div className="flex-1">

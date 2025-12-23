@@ -125,7 +125,7 @@ export function WeekView({
                   const startTime = new Date(apt.scheduledStartTime);
                   const statusColors = {
                     scheduled: 'bg-blue-100 border-blue-300 text-blue-900',
-                    'checked-in': 'bg-teal-100 border-teal-300 text-teal-900',
+                    'checked-in': 'bg-brand-100 border-brand-300 text-brand-900',
                     'in-service': 'bg-green-100 border-green-300 text-green-900',
                     completed: 'bg-gray-100 border-gray-300 text-gray-600',
                     cancelled: 'bg-red-100 border-red-300 text-red-600',

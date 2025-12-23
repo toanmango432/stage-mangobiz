@@ -38,7 +38,7 @@ import { Reorder, motion, PanInfo } from "framer-motion";
 const CATEGORY_BORDER_COLORS: Record<string, string> = {
   Hair: "border-l-amber-400",
   Nails: "border-l-pink-400",
-  Spa: "border-l-teal-400",
+  Spa: "border-l-brand-400",
   Massage: "border-l-cyan-400",
   Skincare: "border-l-rose-400",
   Waxing: "border-l-orange-400",

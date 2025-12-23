@@ -39,6 +39,11 @@ class SyncManager {
   private readonly SYNC_INTERVAL = 30000; // 30 seconds
   private readonly MAX_BATCH_SIZE = 50;
 
+  constructor() {
+    // Suppress unused warning for future-use method
+    void this._handleConflict;
+  }
+
   /**
    * Check if sync is allowed based on device mode
    */
@@ -303,7 +308,7 @@ class SyncManager {
               // For now, just log - could implement conflict resolution
             } else {
               // Apply change - cast to expected type
-              await appointmentsDB.update(data.id, createSyncPayload() as Parameters<typeof appointmentsDB.update>[1], data.lastModifiedBy);
+              await appointmentsDB.update(data.id, createSyncPayload() as Parameters<typeof appointmentsDB.update>[1], data.lastModifiedBy ?? 'system');
             }
           } else if (action === 'DELETE') {
             await appointmentsDB.delete(data.id);
@@ -368,8 +373,9 @@ class SyncManager {
 
   /**
    * Handle sync conflict
+   * Note: Currently unused but kept for future conflict resolution implementation
    */
-  private async handleConflict(
+  private async _handleConflict(
     entity: string,
     entityId: string,
     localData: SyncableData,

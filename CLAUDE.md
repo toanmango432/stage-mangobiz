@@ -67,7 +67,7 @@ Copy `.env.example` to `.env` and configure:
 | **Book Module** | `docs/modules/book/BOOK_UX_IMPLEMENTATION_GUIDE.md` |
 | **Front Desk** | `docs/modules/frontdesk/` |
 | **Tickets** | `docs/modules/tickets/UNIFIED_TICKET_DESIGN_SYSTEM.md` |
-| **UI/Styling** | `src/constants/designSystem.ts`, `src/constants/premiumDesignTokens.ts` |
+| **UI/Styling** | `src/design-system/README.md` (Single Source of Truth) |
 
 ### 3. Pre-Implementation Checklist
 
@@ -75,7 +75,7 @@ Copy `.env.example` to `.env` and configure:
 - [ ] Read relevant technical docs from table above
 - [ ] Check existing patterns in similar components
 - [ ] Verify TypeScript interfaces in `src/types/`
-- [ ] Use design tokens from `src/constants/`
+- [ ] Use design tokens from `src/design-system/` (see README.md)
 - [ ] Check utilities in `src/utils/` before creating new ones
 
 ---
@@ -131,7 +131,8 @@ src/
 ├── hooks/              # Custom React hooks
 ├── types/              # TypeScript interfaces
 ├── utils/              # Utilities (smartAutoAssign, conflictDetection, etc.)
-├── constants/          # Design tokens
+├── design-system/      # Design tokens (SINGLE SOURCE OF TRUTH)
+├── constants/          # Legacy constants (prefer design-system/)
 └── testing/            # Test utilities & fixtures
 ```
 
@@ -186,8 +187,9 @@ const appointments = toAppointments(rows);  // Convert to app types
 - Use `dataService` for data operations (never direct Supabase/IndexedDB access)
 
 ### Styling Rules
-- Use Tailwind CSS with design tokens
-- Import from `src/constants/designSystem.ts`
+- Use Tailwind CSS with design tokens from `src/design-system/`
+- Import: `import { brand, colors } from '@/design-system'`
+- Module tokens: `import { bookTokens } from '@/design-system/modules/book'`
 - Follow existing component patterns
 
 ---
@@ -203,7 +205,7 @@ const appointments = toAppointments(rows);  // Convert to app types
 | Local Database CRUD | `src/db/database.ts` |
 | Redux Store | `src/store/index.ts` |
 | Type Definitions | `src/types/index.ts` |
-| Design Tokens | `src/constants/designSystem.ts` |
+| Design Tokens | `src/design-system/` (see README.md) |
 | Smart Assignment | `src/utils/smartAutoAssign.ts` |
 | Conflict Detection | `src/utils/conflictDetection.ts` |
 
@@ -289,7 +291,7 @@ npm run admin:server     # Start admin dev server
 - ❌ Create custom `/api/v1/...` REST endpoints (we use Supabase directly)
 - ❌ Call Supabase or IndexedDB directly from components (use dataService)
 - ❌ Create new utilities without checking `src/utils/`
-- ❌ Use inline styles instead of design tokens
+- ❌ Use inline styles or hardcoded colors (use `@/design-system` tokens)
 - ❌ Skip TypeScript interfaces for props
 - ❌ Ignore offline scenarios
 - ❌ Assume we have a Node.js/Express backend for CRUD operations
@@ -302,7 +304,7 @@ npm run admin:server     # Start admin dev server
 - ✅ Follow existing component patterns
 - ✅ Use Redux → dataService → Supabase/IndexedDB flow
 - ✅ Handle loading/error/offline states
-- ✅ Use design tokens for styling
+- ✅ Use design tokens from `@/design-system` for all colors/styling
 - ✅ Check `src/services/supabase/types.ts` for existing table schemas
 
 ---

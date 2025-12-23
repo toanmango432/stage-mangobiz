@@ -178,7 +178,7 @@ const PayRunRow: React.FC<PayRunRowProps> = ({ payRun, onClick }) => {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-brand-50 flex items-center justify-center">
             <Calendar className="w-6 h-6 text-emerald-600" />
           </div>
 

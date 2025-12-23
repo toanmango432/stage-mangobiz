@@ -18,7 +18,7 @@ export const CATEGORY_COLORS = [
   { name: 'Indigo', value: '#6366F1', bg: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-indigo-600' },
   { name: 'Blue', value: '#3B82F6', bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-600' },
   { name: 'Cyan', value: '#06B6D4', bg: 'bg-cyan-500', light: 'bg-cyan-50', text: 'text-cyan-600' },
-  { name: 'Teal', value: '#14B8A6', bg: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-600' },
+  { name: 'Teal', value: '#14B8A6', bg: 'bg-brand-500', light: 'bg-brand-50', text: 'text-brand-600' },
   { name: 'Emerald', value: '#10B981', bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-600' },
   { name: 'Green', value: '#22C55E', bg: 'bg-green-500', light: 'bg-green-50', text: 'text-green-600' },
   { name: 'Lime', value: '#84CC16', bg: 'bg-lime-500', light: 'bg-lime-50', text: 'text-lime-600' },

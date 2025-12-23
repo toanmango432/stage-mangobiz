@@ -61,7 +61,7 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl shadow-lg">
+            <div className="p-3 bg-gradient-to-br from-brand-500 to-cyan-500 rounded-xl shadow-lg">
               <Users className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -117,7 +117,7 @@ export function StaffManagementPage({ staff, onAddStaff, onEditStaff, onDeleteSt
               {/* Avatar and Status */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                  <div className="w-14 h-14 bg-gradient-to-br from-brand-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
                     {staffMember.name.charAt(0)}
                   </div>
                   <div>

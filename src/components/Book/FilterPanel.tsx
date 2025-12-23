@@ -20,7 +20,7 @@ export interface AppointmentFilters {
 
 const STATUS_OPTIONS = [
   { value: 'scheduled', label: 'Scheduled', color: 'bg-blue-500' },
-  { value: 'checked-in', label: 'Checked In', color: 'bg-teal-500' },
+  { value: 'checked-in', label: 'Checked In', color: 'bg-brand-500' },
   { value: 'in-service', label: 'In Service', color: 'bg-green-500' },
   { value: 'completed', label: 'Completed', color: 'bg-gray-500' },
   { value: 'cancelled', label: 'Cancelled', color: 'bg-red-500' },
@@ -86,14 +86,14 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
         className={cn(
           'flex items-center space-x-2 px-4 py-2 rounded-lg border-2 transition-all',
           isOpen || activeFilterCount > 0
-            ? 'border-teal-500 bg-teal-50 text-teal-700'
+            ? 'border-brand-500 bg-brand-50 text-brand-700'
             : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
         )}
       >
         <Filter className="w-5 h-5" />
         <span className="font-medium">Filters</span>
         {activeFilterCount > 0 && (
-          <span className="px-2 py-0.5 text-xs font-bold bg-teal-600 text-white rounded-full">
+          <span className="px-2 py-0.5 text-xs font-bold bg-brand-600 text-white rounded-full">
             {activeFilterCount}
           </span>
         )}
@@ -110,7 +110,7 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
               {activeFilterCount > 0 && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                  className="text-sm text-brand-600 hover:text-brand-700 font-medium"
                 >
                   Clear All
                 </button>
@@ -136,7 +136,7 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
                 placeholder="Client name, phone, service..."
                 value={filters.search}
                 onChange={(e) => updateFilters({ search: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>
@@ -154,7 +154,7 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
                   className={cn(
                     'w-full flex items-center space-x-3 p-2 rounded-lg transition-colors',
                     filters.status.includes(option.value)
-                      ? 'bg-teal-50 border-2 border-teal-500'
+                      ? 'bg-brand-50 border-2 border-brand-500'
                       : 'bg-white border-2 border-gray-200 hover:border-gray-300'
                   )}
                 >
@@ -163,7 +163,7 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
                     {option.label}
                   </span>
                   {filters.status.includes(option.value) && (
-                    <CheckCircle className="w-5 h-5 text-teal-600" />
+                    <CheckCircle className="w-5 h-5 text-brand-600" />
                   )}
                 </button>
               ))}
@@ -183,7 +183,7 @@ export function FilterPanel({ onFilterChange }: FilterPanelProps) {
                   className={cn(
                     'px-3 py-1.5 text-sm font-medium rounded-full transition-all',
                     filters.serviceTypes.includes(type)
-                      ? 'bg-teal-600 text-white'
+                      ? 'bg-brand-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   )}
                 >

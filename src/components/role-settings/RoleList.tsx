@@ -78,7 +78,7 @@ export const RoleList: React.FC<RoleListProps> = ({
             placeholder="Search roles..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         </div>
 
@@ -90,7 +90,7 @@ export const RoleList: React.FC<RoleListProps> = ({
               onClick={() => onFilterChange(option.id)}
               className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                 filterCategory === option.id
-                  ? 'bg-teal-100 text-teal-700'
+                  ? 'bg-brand-100 text-brand-700'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -196,7 +196,7 @@ const RoleListItem: React.FC<RoleListItemProps> = ({ role, isSelected, onClick }
       onClick={onClick}
       className={`w-full px-4 py-3 flex items-center gap-3 transition-colors text-left ${
         isSelected
-          ? 'bg-teal-50 border-l-4 border-l-teal-500'
+          ? 'bg-brand-50 border-l-4 border-l-brand-500'
           : 'hover:bg-gray-50 border-l-4 border-l-transparent'
       }`}
     >
@@ -210,7 +210,7 @@ const RoleListItem: React.FC<RoleListItemProps> = ({ role, isSelected, onClick }
       {/* Role Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`font-medium truncate ${isSelected ? 'text-teal-700' : 'text-gray-900'}`}>
+          <span className={`font-medium truncate ${isSelected ? 'text-brand-700' : 'text-gray-900'}`}>
             {role.name}
           </span>
           {role.isSystem && (

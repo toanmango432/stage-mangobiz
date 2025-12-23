@@ -117,7 +117,7 @@ export function MonthView({
   const getStatusColor = (status: string): string => {
     const statusColors = {
       scheduled: 'bg-blue-500',
-      'checked-in': 'bg-teal-500',
+      'checked-in': 'bg-brand-500',
       'in-service': 'bg-green-500',
       completed: 'bg-gray-400',
       cancelled: 'bg-red-500',
@@ -273,7 +273,7 @@ export function MonthView({
                     <div className="absolute top-2 right-2">
                       <div className={cn(
                         'w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold',
-                        'bg-teal-500 text-white'
+                        'bg-brand-500 text-white'
                       )}>
                         {dayAppointments.length}
                       </div>

@@ -34,7 +34,7 @@ export function AppointmentSchedulePanel({
               type="date"
               value={date.toISOString().split('T')[0]}
               onChange={(e) => onDateChange(new Date(e.target.value))}
-              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             />
           </div>
           <div>
@@ -45,7 +45,7 @@ export function AppointmentSchedulePanel({
               type="time"
               value={defaultStartTime}
               onChange={(e) => onStartTimeChange(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             />
           </div>
         </div>
@@ -83,7 +83,7 @@ export function AppointmentSchedulePanel({
           onChange={(e) => onNotesChange(e.target.value)}
           placeholder="Any special requests, preferences, or important notes..."
           rows={2}
-          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none"
         />
       </div>
     </>

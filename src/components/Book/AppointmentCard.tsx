@@ -115,7 +115,7 @@ export const AppointmentCard = memo(function AppointmentCard({
       >
         <div className="flex items-start gap-2">
           <div
-            className="w-8 h-8 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center text-xs font-semibold border border-teal-100"
+            className="w-8 h-8 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-xs font-semibold border border-brand-100"
             aria-hidden
           >
             {getInitials(appointment.clientName)}
@@ -173,7 +173,7 @@ export const AppointmentCard = memo(function AppointmentCard({
             </span>
           ))}
           {appointment.services.length > 3 && (
-            <span className="px-2 py-1 rounded-full text-[10px] font-semibold text-teal-700 bg-teal-50 border border-teal-100">
+            <span className="px-2 py-1 rounded-full text-[10px] font-semibold text-brand-700 bg-brand-50 border border-brand-100">
               +{appointment.services.length - 3} more
             </span>
           )}

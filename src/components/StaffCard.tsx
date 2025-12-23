@@ -585,16 +585,16 @@ export function StaffCard({
       },
       '[#4CC2A9]': {
         main: 'bg-white',
-        light: 'from-teal-50 to-white',
+        light: 'from-brand-50 to-white',
         dark: 'bg-[#2D9C87]',
-        glow: 'shadow-teal-300/40',
+        glow: 'shadow-brand-300/40',
         accent: 'bg-[#4CC2A9]',
-        border: 'border-teal-200',
+        border: 'border-brand-200',
         stripeBg: 'bg-gradient-to-b from-[#4CC2A9] to-[#2D9C87]',
-        badgeBg: 'bg-teal-100',
-        badgeText: 'text-teal-700',
+        badgeBg: 'bg-brand-100',
+        badgeText: 'text-brand-700',
         shadowColor: 'rgba(0,0,0,0.05)',
-        innerBorder: 'border-teal-200/60',
+        innerBorder: 'border-brand-200/60',
         highlightColor: 'rgba(204,251,241,0.8)'
       },
       '[#3C78D8]': {

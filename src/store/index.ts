@@ -113,3 +113,8 @@ export const store = configureStore({
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// Expose store to window for dev testing
+if (import.meta.env.DEV) {
+  (window as any).__REDUX_STORE__ = store;
+}

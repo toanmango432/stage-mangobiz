@@ -26,10 +26,10 @@ export const SmartBookingPanel = memo(function SmartBookingPanel({
   const hasQuickBooking = suggestions.quickBooking !== undefined;
 
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-teal-50 border border-purple-200 rounded-xl p-6 space-y-6">
+    <div className="bg-gradient-to-br from-purple-50 to-brand-50 border border-purple-200 rounded-xl p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-2">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-teal-500 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-brand-500 flex items-center justify-center">
           <Sparkles className="w-5 h-5 text-white" />
         </div>
         <div>
@@ -110,7 +110,7 @@ export const SmartBookingPanel = memo(function SmartBookingPanel({
           {onUseQuickBooking && (
             <button
               onClick={onUseQuickBooking}
-              className="w-full bg-gradient-to-r from-purple-500 to-teal-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-purple-600 hover:to-teal-600 transition-all shadow-lg hover:shadow-xl"
+              className="w-full bg-gradient-to-r from-purple-500 to-brand-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-purple-600 hover:to-brand-600 transition-all shadow-lg hover:shadow-xl"
             >
               Book Now - One Click
             </button>

@@ -65,9 +65,9 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-teal-50 to-cyan-50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-brand-50 to-cyan-50">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-teal-500 rounded-xl">
+            <div className="p-2 bg-brand-500 rounded-xl">
               <User className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -92,7 +92,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <User className="w-5 h-5 mr-2 text-teal-500" />
+              <User className="w-5 h-5 mr-2 text-brand-500" />
               Basic Information
             </h3>
             
@@ -106,7 +106,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="John Doe"
                 />
               </div>
@@ -121,7 +121,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="john@example.com"
                 />
               </div>
@@ -136,7 +136,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="(555) 123-4567"
                 />
               </div>
@@ -149,7 +149,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as StaffStatus })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
                   <option value="available">Available</option>
                   <option value="busy">Busy</option>
@@ -163,7 +163,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
           {/* Schedule */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-teal-500" />
+              <Clock className="w-5 h-5 mr-2 text-brand-500" />
               Weekly Schedule
             </h3>
             
@@ -175,7 +175,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
                       type="checkbox"
                       checked={day.isAvailable}
                       onChange={(e) => updateSchedule(index, 'isAvailable', e.target.checked)}
-                      className="w-5 h-5 text-teal-500 rounded focus:ring-teal-500"
+                      className="w-5 h-5 text-brand-500 rounded focus:ring-brand-500"
                     />
                     <span className="w-24 text-sm font-medium text-gray-700">
                       {DAYS_OF_WEEK[index]}
@@ -188,14 +188,14 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
                         type="time"
                         value={day.startTime}
                         onChange={(e) => updateSchedule(index, 'startTime', e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
                       />
                       <span className="text-gray-500">to</span>
                       <input
                         type="time"
                         value={day.endTime}
                         onChange={(e) => updateSchedule(index, 'endTime', e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500"
                       />
                     </div>
                   )}
@@ -216,7 +216,7 @@ export function AddEditStaffModal({ isOpen, onClose, onSave, staff, mode }: AddE
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all font-medium shadow-lg shadow-teal-500/30"
+            className="px-6 py-2.5 bg-gradient-to-r from-brand-500 to-cyan-500 text-white rounded-xl hover:from-brand-600 hover:to-cyan-600 transition-all font-medium shadow-lg shadow-brand-500/30"
           >
             {mode === 'add' ? 'Add Staff' : 'Save Changes'}
           </button>

@@ -110,7 +110,7 @@ const StaffPaymentRow: React.FC<StaffPaymentRowProps> = ({
         className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
       >
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-brand-500 flex items-center justify-center text-white font-semibold">
             {payment.staffName.charAt(0).toUpperCase()}
           </div>
           <div>

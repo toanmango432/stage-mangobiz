@@ -147,7 +147,7 @@ const StaffSelector: React.FC<StaffSelectorProps> = ({
               onChange={() => onToggle(member.id)}
               className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
             />
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-medium">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-brand-500 flex items-center justify-center text-white text-sm font-medium">
               {member.name.charAt(0)}
             </div>
             <span className="text-sm text-gray-900">

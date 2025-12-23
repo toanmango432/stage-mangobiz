@@ -364,7 +364,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
   // PIN Screen (store logged in, awaiting member PIN)
   if (state.status === 'store_logged_in') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 via-amber-50 to-yellow-50 p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 space-y-6">
           {/* Back button */}
           <button
@@ -377,7 +377,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
 
           {/* Store info */}
           <div className="flex justify-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-brand-500 to-amber-500 rounded-2xl flex items-center justify-center">
               <KeyRound className="w-10 h-10 text-white" />
             </div>
           </div>
@@ -433,7 +433,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
                 key={i}
                 className={`w-12 h-14 rounded-lg border-2 flex items-center justify-center text-2xl font-bold transition-all ${
                   pin.length > i
-                    ? 'border-teal-500 bg-teal-50 text-teal-600'
+                    ? 'border-brand-500 bg-brand-50 text-brand-600'
                     : 'border-gray-200 bg-gray-50 text-gray-300'
                 }`}
               >
@@ -493,7 +493,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
 
           {isLoading && (
             <div className="flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-teal-500" />
+              <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
             </div>
           )}
         </div>
@@ -555,7 +555,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
         <div className="flex justify-center">
           <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
             loginMode === 'member'
-              ? 'bg-gradient-to-br from-teal-500 to-emerald-500'
+              ? 'bg-gradient-to-br from-brand-500 to-amber-500'
               : 'bg-gradient-to-br from-orange-500 to-pink-500'
           }`}>
             {loginMode === 'member' ? (
@@ -785,7 +785,7 @@ function MemberLoginForm({
           onKeyDown={onKeyDown}
           placeholder="you@example.com"
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           autoFocus
         />
       </div>
@@ -802,7 +802,7 @@ function MemberLoginForm({
           onKeyDown={onKeyDown}
           placeholder="Enter your password"
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
       </div>
 
@@ -823,7 +823,7 @@ function MemberLoginForm({
       <button
         onClick={onLogin}
         disabled={isLoading || !email.trim() || !password.trim()}
-        className="w-full py-3 px-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+        className="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-amber-500 text-white rounded-lg font-medium hover:from-brand-600 hover:to-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
       >
         {isLoading ? (
           <>

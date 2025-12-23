@@ -17,27 +17,66 @@
   /* Staff sidebar width - updated via JavaScript on resize */
   --staff-sidebar-width: 256px;
 
-  /* shadcn/ui CSS Variables - Required for checkout components */
+  /* ==========================================================================
+     MANGO DESIGN SYSTEM - Golden Amber Theme
+     Single source of truth: src/design-system/tokens.ts
+     ========================================================================== */
+
+  /* Core */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 24 10% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 24 10% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --popover-foreground: 24 10% 10%;
+
+  /* Primary - Golden Amber */
+  --primary: 40 100% 45%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary */
+  --secondary: 40 30% 96%;
+  --secondary-foreground: 40 100% 30%;
+
+  /* Muted */
+  --muted: 40 20% 96%;
+  --muted-foreground: 24 10% 45%;
+
+  /* Accent */
+  --accent: 40 30% 94%;
+  --accent-foreground: 40 100% 30%;
+
+  /* Destructive */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Border & Input */
+  --border: 24 10% 90%;
+  --input: 24 10% 90%;
+  --ring: 40 100% 45%;
+
+  /* Radius */
   --radius: 0.5rem;
+
+  /* Sidebar (for shadcn sidebar component) */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 24 10% 10%;
+  --sidebar-accent: 40 30% 96%;
+  --sidebar-accent-foreground: 40 100% 30%;
+  --sidebar-border: 24 10% 90%;
+  --sidebar-primary: 40 100% 45%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-ring: 40 100% 45%;
+
+  /* Border variants (for button/badge outlines) */
+  --primary-border: 40 80% 75%;
+  --secondary-border: 24 10% 80%;
+  --destructive-border: 0 70% 70%;
+
+  /* Brand Colors (for direct CSS use) */
+  --mango-primary: 40 100% 45%;
+  --mango-primary-light: 40 100% 97%;
+  --mango-primary-dark: 40 100% 35%;
 }
 
 /* Modal Safe Area Utilities */
@@ -324,25 +363,25 @@ svg.crisp-icon {
    Quick wins and consistent styling utilities
    ============================================================================ */
 
-/* Consistent Button Styles */
+/* Consistent Button Styles - Golden Amber Brand */
 .btn-primary {
-  @apply px-4 py-2 bg-teal-600 text-white rounded-lg font-medium;
-  @apply hover:bg-teal-700 active:bg-teal-800 transition-all duration-150;
-  @apply focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2;
-  @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-teal-600;
+  @apply px-4 py-2 bg-brand-500 text-white rounded-lg font-medium;
+  @apply hover:bg-brand-600 active:bg-brand-700 transition-all duration-150;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-500;
 }
 
 .btn-secondary {
   @apply px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium;
   @apply hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100 transition-all duration-150;
-  @apply focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
   @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white;
 }
 
 .btn-ghost {
   @apply px-4 py-2 text-gray-700 rounded-lg font-medium;
   @apply hover:bg-gray-100 active:bg-gray-200 transition-all duration-150;
-  @apply focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
   @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent;
 }
 
@@ -366,7 +405,7 @@ svg.crisp-icon {
 .btn-icon {
   @apply p-2 rounded-lg transition-all duration-150;
   @apply hover:bg-gray-100 active:bg-gray-200;
-  @apply focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
 }
 
 /* Consistent Card Styles */
@@ -382,13 +421,13 @@ svg.crisp-icon {
 
 .book-card-clickable {
   @apply bg-white rounded-lg border border-gray-200 p-6;
-  @apply shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-200;
+  @apply shadow-sm hover:shadow-md hover:border-brand-300 transition-all duration-200;
   @apply cursor-pointer;
 }
 
 /* Focus Visible - Accessibility */
 *:focus-visible {
-  @apply outline-none ring-2 ring-teal-500 ring-offset-2;
+  @apply outline-none ring-2 ring-brand-500 ring-offset-2;
 }
 
 /* Remove focus ring from mouse clicks, keep for keyboard */
@@ -399,7 +438,7 @@ svg.crisp-icon {
 /* Better Input Styles */
 .book-input {
   @apply w-full px-3 py-2 border border-gray-300 rounded-lg;
-  @apply focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500;
   @apply transition-all duration-150;
   @apply disabled:bg-gray-100 disabled:cursor-not-allowed;
 }
@@ -477,7 +516,7 @@ svg.crisp-icon {
 }
 
 .badge-primary {
-  @apply bg-teal-100 text-teal-800;
+  @apply bg-brand-100 text-brand-800;
 }
 
 .badge-secondary {

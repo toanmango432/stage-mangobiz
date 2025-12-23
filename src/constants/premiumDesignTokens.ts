@@ -1,6 +1,15 @@
 /**
+ * @deprecated This file is deprecated. Import from '@/design-system' instead.
+ *
+ * Migration guide:
+ * - Colors: Use `colors.frontDesk` from '@/design-system/tokens'
+ * - Typography: Use `typography` from '@/design-system/tokens'
+ * - Spacing: Use `spacing` from '@/design-system/tokens'
+ * - Paper styles: Will be moved to '@/design-system/modules/frontdesk'
+ *
+ * This file will be removed in a future release.
+ *
  * Premium Design Tokens for Mango Front Desk
- * 
  * Unified design system for elevated, handcrafted interface
  * that maintains paper-ticket charm while achieving premium polish.
  */

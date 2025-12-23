@@ -682,24 +682,24 @@ export function NewAppointmentModal({
 
         {/* NEW: Context Banner - Shows which staff/time was clicked */}
         {!isMinimized && selectedStaffName && selectedTime && (
-          <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-b border-teal-200 px-6 py-3">
+          <div className="bg-gradient-to-r from-brand-50 to-blue-50 border-b border-brand-200 px-6 py-3">
             <div className="flex items-center space-x-3">
               {selectedStaffPhoto ? (
                 <img
                   src={selectedStaffPhoto}
                   alt={selectedStaffName}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-teal-400"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-brand-400"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold">
                   {selectedStaffName.charAt(0)}
                 </div>
               )}
               <div className="flex-1">
-                <p className="text-sm font-semibold text-teal-900">
+                <p className="text-sm font-semibold text-brand-900">
                   Booking with {selectedStaffName}
                 </p>
-                <p className="text-xs text-teal-700">
+                <p className="text-xs text-brand-700">
                   {selectedTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -711,7 +711,7 @@ export function NewAppointmentModal({
                   })}
                 </p>
               </div>
-              <div className="px-3 py-1 bg-teal-500 text-white text-xs font-semibold rounded-full">
+              <div className="px-3 py-1 bg-brand-500 text-white text-xs font-semibold rounded-full">
                 Staff Pre-Selected
               </div>
             </div>
@@ -737,7 +737,7 @@ export function NewAppointmentModal({
                         placeholder="Search by name or phone..."
                         value={clientSearch}
                         onChange={(e) => setClientSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -752,7 +752,7 @@ export function NewAppointmentModal({
                           <button
                             key={client.id}
                             onClick={() => handleSelectClient(client)}
-                            className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-md transition-all"
+                            className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-brand-500 hover:shadow-md transition-all"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -776,7 +776,7 @@ export function NewAppointmentModal({
                       <button
                         key={client.id}
                         onClick={() => handleSelectClient(client)}
-                        className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-teal-500 hover:shadow-md transition-all"
+                        className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-brand-500 hover:shadow-md transition-all"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -798,7 +798,7 @@ export function NewAppointmentModal({
                       <>
                         <button
                           onClick={() => setShowCreateClientForm(true)}
-                          className="w-full p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 transition-all flex items-center justify-center space-x-2 text-teal-600 font-medium"
+                          className="w-full p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-brand-500 hover:bg-brand-50 transition-all flex items-center justify-center space-x-2 text-brand-600 font-medium"
                         >
                           <Plus className="w-5 h-5" />
                           <span>Add New Client</span>
@@ -823,7 +823,7 @@ export function NewAppointmentModal({
                         </button>
                       </>
                     ) : (
-                      <div className="w-full p-4 bg-white rounded-lg border-2 border-teal-500">
+                      <div className="w-full p-4 bg-white rounded-lg border-2 border-brand-500">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-semibold text-gray-900">Create New Client</h4>
                           <button
@@ -845,7 +845,7 @@ export function NewAppointmentModal({
                               value={newClientName}
                               onChange={(e) => setNewClientName(e.target.value)}
                               placeholder="Enter client name"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                               autoFocus
                             />
                           </div>
@@ -856,7 +856,7 @@ export function NewAppointmentModal({
                               value={newClientPhone}
                               onChange={(e) => setNewClientPhone(e.target.value)}
                               placeholder="Enter phone number"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                             />
                           </div>
                           <button
@@ -910,7 +910,7 @@ export function NewAppointmentModal({
                             className={cn(
                               'w-full px-4 py-2 rounded-lg font-medium transition-colors',
                               newClientName.trim() && newClientPhone.trim() && !isCreatingClient
-                                ? 'bg-teal-500 text-white hover:bg-teal-600'
+                                ? 'bg-brand-500 text-white hover:bg-brand-600'
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             )}
                           >
@@ -943,14 +943,14 @@ export function NewAppointmentModal({
                   <div className="mb-4">
                     <button
                       onClick={() => setSelectedClient(null)}
-                      className="text-sm text-teal-600 hover:text-teal-700 font-medium mb-4"
+                      className="text-sm text-brand-600 hover:text-brand-700 font-medium mb-4"
                     >
                       ← Change Client
                     </button>
 
                     <div className="bg-white rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center space-x-3 mb-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold text-lg">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-lg">
                           {selectedClient.name.charAt(0)}
                         </div>
                         <div>
@@ -1023,7 +1023,7 @@ export function NewAppointmentModal({
                         type="date"
                         value={date.toISOString().split('T')[0]}
                         onChange={(e) => setDate(new Date(e.target.value))}
-                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
+                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
                       />
                     </div>
                   </div>
@@ -1038,7 +1038,7 @@ export function NewAppointmentModal({
                         type="time"
                         value={time}
                         onChange={(e) => setTime(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
+                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
                       />
                     </div>
                   </div>
@@ -1098,7 +1098,7 @@ export function NewAppointmentModal({
                     placeholder="Search by service name..."
                     value={serviceSearch}
                     onChange={(e) => setServiceSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1111,7 +1111,7 @@ export function NewAppointmentModal({
                       className={cn(
                         'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
                         selectedCategory === category
-                          ? 'bg-teal-500 text-white'
+                          ? 'bg-brand-500 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       )}
                     >
@@ -1123,7 +1123,7 @@ export function NewAppointmentModal({
 
               {/* Selected Services */}
               {selectedServices.length > 0 && (
-                <div className="px-6 py-4 bg-teal-50 border-b border-teal-200">
+                <div className="px-6 py-4 bg-brand-50 border-b border-brand-200">
                   <p className="text-sm font-semibold text-gray-900 mb-2">
                     Selected Services ({selectedServices.length})
                   </p>
@@ -1131,7 +1131,7 @@ export function NewAppointmentModal({
                     {selectedServices.map((service) => (
                       <div
                         key={service.id}
-                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-teal-200"
+                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-brand-200"
                       >
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{service.name}</p>
@@ -1140,8 +1140,8 @@ export function NewAppointmentModal({
                           </p>
                           {/* Show assigned staff */}
                           <div className="flex items-center gap-1 mt-1">
-                            <User className="w-3 h-3 text-teal-600" />
-                            <p className="text-xs font-semibold text-teal-700">
+                            <User className="w-3 h-3 text-brand-600" />
+                            <p className="text-xs font-semibold text-brand-700">
                               {service.assignedStaffName}
                             </p>
                           </div>
@@ -1172,8 +1172,8 @@ export function NewAppointmentModal({
                         className={cn(
                           'text-left p-4 rounded-lg border-2 transition-all',
                           isSelected
-                            ? 'border-teal-500 bg-teal-50 cursor-not-allowed'
-                            : 'border-gray-200 hover:border-teal-500 hover:shadow-md'
+                            ? 'border-brand-500 bg-brand-50 cursor-not-allowed'
+                            : 'border-gray-200 hover:border-brand-500 hover:shadow-md'
                         )}
                       >
                         <p className="font-semibold text-gray-900 mb-1">{service.name}</p>
@@ -1183,7 +1183,7 @@ export function NewAppointmentModal({
                         <p className="text-lg font-bold text-gray-900">${service.price}</p>
                         {isSelected ? (
                           <div className="mt-2">
-                            <span className="inline-block text-xs font-medium text-teal-600">
+                            <span className="inline-block text-xs font-medium text-brand-600">
                               ✓ Added - {isSelected.assignedStaffName}
                             </span>
                           </div>
@@ -1217,7 +1217,7 @@ export function NewAppointmentModal({
               className={cn(
                 'px-8 py-3 font-semibold rounded-lg transition-all',
                 canBook
-                  ? 'bg-teal-500 text-white hover:bg-teal-600 shadow-lg hover:shadow-xl'
+                  ? 'bg-brand-500 text-white hover:bg-brand-600 shadow-lg hover:shadow-xl'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               )}
             >
@@ -1279,10 +1279,10 @@ export function NewAppointmentModal({
                       'w-full flex items-center space-x-3 p-4 rounded-lg border-2 transition-all text-left',
                       isAssigned
                         ? 'border-orange-300 bg-orange-50'
-                        : 'border-gray-200 hover:border-teal-500 hover:bg-teal-50'
+                        : 'border-gray-200 hover:border-brand-500 hover:bg-brand-50'
                     )}
                   >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold">
                       {staff.name.charAt(0)}
                     </div>
                     <div className="flex-1">

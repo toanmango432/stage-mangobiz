@@ -74,7 +74,7 @@ export function RevenueDashboard({
       case 'fill-gap':
         return 'from-orange-500 to-red-500';
       case 'upsell':
-        return 'from-teal-500 to-cyan-500';
+        return 'from-brand-500 to-cyan-500';
       case 'waitlist':
         return 'from-purple-500 to-pink-500';
       case 'premium-pricing':
@@ -87,12 +87,12 @@ export function RevenueDashboard({
   return (
     <div className="space-y-6">
       {/* Main Revenue Card */}
-      <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl shadow-xl overflow-hidden">
+      <div className="bg-gradient-to-br from-brand-500 to-cyan-600 rounded-2xl shadow-xl overflow-hidden">
         <div className="p-6 text-white">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-teal-100 text-sm font-medium">
+              <p className="text-brand-100 text-sm font-medium">
                 {periodLabels[period]} Revenue
               </p>
               <div className="flex items-baseline gap-3 mt-2">
@@ -122,7 +122,7 @@ export function RevenueDashboard({
           {/* Progress Bar */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-teal-100">Goal: ${goalRevenue.toLocaleString()}</span>
+              <span className="text-brand-100">Goal: ${goalRevenue.toLocaleString()}</span>
               <span className="font-semibold">{Math.round(progress)}%</span>
             </div>
             <div className="h-3 bg-white/20 rounded-full overflow-hidden">
@@ -140,15 +140,15 @@ export function RevenueDashboard({
           {breakdown && (
             <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/20">
               <div>
-                <p className="text-xs text-teal-100">Completed</p>
+                <p className="text-xs text-brand-100">Completed</p>
                 <p className="text-lg font-bold mt-1">${breakdown.completed.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs text-teal-100">Scheduled</p>
+                <p className="text-xs text-brand-100">Scheduled</p>
                 <p className="text-lg font-bold mt-1">${breakdown.scheduled.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs text-teal-100">Potential</p>
+                <p className="text-xs text-brand-100">Potential</p>
                 <p className="text-lg font-bold mt-1">${breakdown.potential.toLocaleString()}</p>
               </div>
             </div>
@@ -178,7 +178,7 @@ export function RevenueDashboard({
             </div>
             {totalOpportunity > 0 && (
               <div className="text-right">
-                <p className="text-teal-100 text-sm">Available opportunities</p>
+                <p className="text-brand-100 text-sm">Available opportunities</p>
                 <p className="text-white font-bold text-lg">
                   +${totalOpportunity.toLocaleString()}
                 </p>
@@ -203,7 +203,7 @@ export function RevenueDashboard({
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600">Total Potential</p>
-                <p className="text-2xl font-bold text-teal-600">
+                <p className="text-2xl font-bold text-brand-600">
                   +${totalOpportunity.toLocaleString()}
                 </p>
               </div>

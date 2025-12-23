@@ -141,7 +141,7 @@ export function ResponsiveBookModal({
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left',
                     activePanel === panel.id
-                      ? 'bg-teal-50 text-teal-700'
+                      ? 'bg-brand-50 text-brand-700'
                       : 'hover:bg-gray-50 text-gray-700'
                   )}
                 >

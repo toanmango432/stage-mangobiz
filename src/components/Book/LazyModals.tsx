@@ -32,7 +32,7 @@ export function ModalLoadingFallback({ size = 'md' }: ModalLoadingFallbackProps)
         className={`${sizeClasses[size]} bg-white rounded-2xl shadow-2xl flex items-center justify-center`}
       >
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-teal-600 mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin text-brand-600 mx-auto mb-3" />
           <p className="text-sm text-gray-500">Loading...</p>
         </div>
       </div>

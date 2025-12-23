@@ -1,5 +1,5 @@
 import React from 'react';
-import { WaitListSection } from '../WaitListSection';
+import { WaitListSection } from './WaitListSection';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 
 export interface EmbeddableWaitListProps {

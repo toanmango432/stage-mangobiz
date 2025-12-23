@@ -6,7 +6,8 @@ export default {
   theme: {
     extend: {
       // ========================================
-      // PREMIUM DESIGN SYSTEM TOKENS
+      // MANGO DESIGN SYSTEM - Golden Amber Theme
+      // Single source of truth: src/design-system/tokens.ts
       // ========================================
 
       // Custom breakpoints
@@ -50,24 +51,24 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
 
-        // Brand colors (refined teal)
+        // Brand colors - Golden Amber (Mango)
         brand: {
-          50: '#EEFBF9',
-          100: '#D6F5F1',
-          200: '#ADE9E1',
-          300: '#7DD8CF',
-          400: '#4DC4BA',
-          500: '#2AA79E',
-          600: '#1F8B83',
-          700: '#186F69',
-          800: '#145854',
-          900: '#104743',
+          50: '#FFFBF0',
+          100: '#FEF3D8',
+          200: '#FDE7B1',
+          300: '#FBD88A',
+          400: '#F9C663',
+          500: '#E6A000',  // Main brand color
+          600: '#CC8E00',
+          700: '#A67300',
+          800: '#805900',
+          900: '#5C4000',
         },
-        // Surface colors (blue-tinted)
+        // Surface colors (warm-tinted to complement Golden Amber)
         surface: {
-          primary: '#FAFBFC',
-          secondary: '#F5F7FA',
-          tertiary: '#EDF1F7',
+          primary: '#FAFAF9',
+          secondary: '#F5F5F4',
+          tertiary: '#F0EFED',
           elevated: '#FFFFFF',
         },
         // Front Desk Module Colors

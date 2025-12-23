@@ -136,7 +136,7 @@ const EarningsSummary: React.FC<EarningsSummaryProps> = ({ staffPayments, period
   const periodLabel = period === 'month' ? 'This Month' : 'This Year';
 
   return (
-    <Card className="mb-6 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
+    <Card className="mb-6 bg-gradient-to-br from-emerald-50 to-brand-50 border-emerald-100">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-emerald-600" />

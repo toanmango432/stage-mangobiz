@@ -206,10 +206,7 @@ export function WaitListTicketCard({
       
       {/* Ticket Details Modal */}
       <TicketDetailsModal
-        ticket={{
-          ...ticket,
-          status: 'waiting' as const
-        }}
+        ticketId={ticket.number}
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
       />
@@ -308,10 +305,7 @@ export function WaitListTicketCard({
       
       {/* Ticket Details Modal */}
       <TicketDetailsModal
-        ticket={{
-          ...ticket,
-          status: 'waiting' as const
-        }}
+        ticketId={ticket.number}
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
       />
@@ -651,10 +645,7 @@ export function WaitListTicketCard({
     
     {/* Ticket Details Modal */}
     <TicketDetailsModal
-      ticket={{
-        ...ticket,
-        status: 'waiting' as const
-      }}
+      ticketId={ticket.number}
       isOpen={showDetailsModal}
       onClose={() => setShowDetailsModal(false)}
     />
@@ -781,10 +772,7 @@ export function WaitListTicketCard({
     
     {/* Ticket Details Modal */}
     <TicketDetailsModal
-      ticket={{
-        ...ticket,
-        status: 'waiting' as const
-      }}
+      ticketId={ticket.number}
       isOpen={showDetailsModal}
       onClose={() => setShowDetailsModal(false)}
     />

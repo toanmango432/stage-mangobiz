@@ -263,12 +263,12 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
                     isServiceProvider: template.category === 'service_provider' || template.category === 'specialty',
                   }));
                 }}
-                className="p-3 text-left border border-gray-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors"
+                className="p-3 text-left border border-gray-200 rounded-lg hover:border-brand-300 hover:bg-brand-50 transition-colors"
               >
                 <p className="font-medium text-gray-900 text-sm">{template.name}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{template.description}</p>
                 {template.isPopular && (
-                  <span className="inline-block mt-2 px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-700 rounded">Popular</span>
+                  <span className="inline-block mt-2 px-2 py-0.5 text-xs font-medium bg-brand-100 text-brand-700 rounded">Popular</span>
                 )}
               </button>
             ))}
@@ -288,7 +288,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
             value={currentRole.name || ''}
             onChange={(e) => handleUpdate('name', e.target.value)}
             disabled={role?.isSystem}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
             placeholder="Enter role name"
           />
         </div>
@@ -300,7 +300,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
             value={currentRole.description || ''}
             onChange={(e) => handleUpdate('description', e.target.value)}
             rows={2}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             placeholder="Describe this role's responsibilities"
           />
         </div>
@@ -315,7 +315,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
                 onClick={() => handleUpdate('color', color)}
                 className={`w-8 h-8 rounded-lg ${color.bg} border-2 transition-all ${
                   currentRole.color?.bg === color.bg
-                    ? `${color.border} ring-2 ring-offset-1 ring-teal-400`
+                    ? `${color.border} ring-2 ring-offset-1 ring-brand-400`
                     : 'border-transparent hover:scale-110'
                 }`}
                 title={key.charAt(0).toUpperCase() + key.slice(1)}
@@ -331,7 +331,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
               type="checkbox"
               checked={currentRole.isServiceProvider || false}
               onChange={(e) => handleUpdate('isServiceProvider', e.target.checked)}
-              className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+              className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500"
             />
             <span className="text-sm text-gray-700">Service Provider</span>
           </label>
@@ -344,7 +344,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
             value={currentRole.hierarchy || 2}
             onChange={(e) => handleUpdate('hierarchy', Number(e.target.value) as RoleHierarchy)}
             disabled={role?.isSystem}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100"
           >
             {([1, 2, 3, 4, 5] as RoleHierarchy[]).map((level) => (
               <option key={level} value={level}>
@@ -370,7 +370,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
               name="locationScope"
               checked={currentRole.locationScope === 'all_locations'}
               onChange={() => handleUpdate('locationScope', 'all_locations' as LocationScope)}
-              className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+              className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
             />
             <div>
               <p className="font-medium text-gray-900">All Locations</p>
@@ -384,7 +384,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
               name="locationScope"
               checked={currentRole.locationScope === 'specific_locations'}
               onChange={() => handleUpdate('locationScope', 'specific_locations' as LocationScope)}
-              className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+              className="w-4 h-4 text-brand-600 border-gray-300 focus:ring-brand-500"
             />
             <div>
               <p className="font-medium text-gray-900">Specific Locations</p>
@@ -415,7 +415,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
                 key={key}
                 className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                   isEnabled
-                    ? 'bg-teal-50 border-teal-200'
+                    ? 'bg-brand-50 border-brand-200'
                     : 'bg-white border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -423,10 +423,10 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
                   type="checkbox"
                   checked={isEnabled}
                   onChange={() => handlePermissionToggle(permKey)}
-                  className="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                  className="mt-0.5 w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500"
                 />
                 <div>
-                  <p className={`font-medium text-sm ${isEnabled ? 'text-teal-700' : 'text-gray-900'}`}>
+                  <p className={`font-medium text-sm ${isEnabled ? 'text-brand-700' : 'text-gray-900'}`}>
                     {label}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">{description}</p>
@@ -477,7 +477,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
                         <select
                           value={permission.level}
                           onChange={(e) => handleDetailedPermissionChange(permission.id, e.target.value as PermissionLevel)}
-                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                         >
                           <option value="full">Full</option>
                           <option value="limited">Limited</option>
@@ -506,7 +506,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
           <button
             onClick={handleCreate}
             disabled={!newRole.name?.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Role
           </button>
@@ -532,7 +532,7 @@ export const RoleEditor: React.FC<RoleEditorProps> = ({
               <select
                 value={reassignRoleId}
                 onChange={(e) => setReassignRoleId(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               >
                 <option value="">Select a role...</option>
                 {allRoles

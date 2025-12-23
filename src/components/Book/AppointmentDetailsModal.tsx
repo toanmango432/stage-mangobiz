@@ -28,7 +28,7 @@ interface AppointmentDetailsModalProps {
 
 const statusConfig = {
   scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-800', icon: Calendar },
-  'checked-in': { label: 'Checked In', color: 'bg-teal-100 text-teal-800', icon: Check },
+  'checked-in': { label: 'Checked In', color: 'bg-brand-100 text-brand-800', icon: Check },
   'in-service': { label: 'In Service', color: 'bg-green-100 text-green-800', icon: Clock },
   completed: { label: 'Completed', color: 'bg-gray-100 text-gray-800', icon: Check },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },

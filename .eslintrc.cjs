@@ -14,5 +14,13 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    // Design System: Warn on legacy teal colors - use brand-* instead
+    'no-restricted-syntax': [
+      'warn',
+      {
+        selector: 'Literal[value=/teal-/]',
+        message: 'Use brand-* colors instead of teal-* for consistent branding. Import from @/design-system.',
+      },
+    ],
   },
 }

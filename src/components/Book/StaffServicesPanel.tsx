@@ -62,12 +62,12 @@ export function StaffServicesPanel({
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-colors',
                   activeStaffId === staff.id
-                    ? 'border-teal-500 bg-teal-50 text-teal-900'
-                    : 'border-gray-200 bg-white hover:border-teal-300 hover:bg-gray-50 text-gray-800'
+                    ? 'border-brand-500 bg-brand-50 text-brand-900'
+                    : 'border-gray-200 bg-white hover:border-brand-300 hover:bg-gray-50 text-gray-800'
                 )}
                 disabled={disabled}
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white flex items-center justify-center text-sm font-semibold">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center text-sm font-semibold">
                   {staff.name?.[0] || 'S'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -98,8 +98,8 @@ export function StaffServicesPanel({
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors',
                 selectedCategory === cat
-                  ? 'bg-teal-50 text-teal-700 border-teal-200'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-teal-300'
+                  ? 'bg-brand-50 text-brand-700 border-brand-200'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-brand-300'
               )}
             >
               {cat}
@@ -115,7 +115,7 @@ export function StaffServicesPanel({
             placeholder="Search services..."
             value={serviceSearch}
             onChange={(e) => onServiceSearch(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+            className="w-full pl-10 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
           />
         </div>
 
@@ -129,7 +129,7 @@ export function StaffServicesPanel({
                 <button
                   key={service.id}
                   onClick={() => onAddService(service)}
-                  className="w-full text-left px-3 py-2 border border-gray-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50"
+                  className="w-full text-left px-3 py-2 border border-gray-200 rounded-lg hover:border-brand-400 hover:bg-brand-50 transition-colors disabled:opacity-50"
                   disabled={disabled || !activeStaffId}
                 >
                   <p className="text-sm font-semibold text-gray-900 truncate">{service.name}</p>

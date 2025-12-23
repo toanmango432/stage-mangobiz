@@ -1,23 +1,17 @@
 /**
  * Design System - Color Tokens
  * Premium color palette for Book module
+ *
+ * NOTE: Primary color is Golden Amber to align with main design system.
+ * See src/design-system/tokens.ts for the single source of truth.
  */
 
+import { brand } from '../tokens';
+
 export const BOOK_COLORS = {
-  // Primary - Teal/Cyan (trust, professionalism)
-  primary: {
-    50: '#E6FFFA',
-    100: '#B2F5EA',
-    200: '#81E6D9',
-    300: '#4FD1C5',
-    400: '#38B2AC',
-    500: '#14B8A6',  // Main primary color
-    600: '#0D9488',
-    700: '#0F766E',
-    800: '#115E59',
-    900: '#134E4A',
-    950: '#042F2E',
-  },
+  // Primary - Golden Amber (premium, mango brand)
+  // Referenced from main tokens.ts for consistency
+  primary: brand.primary,
 
   // Secondary - Purple (premium, luxury)
   secondary: {
@@ -124,9 +118,9 @@ export const BOOK_COLORS = {
       dark: '#7E22CE',
     },
     spa: {
-      main: '#14B8A6',     // Teal
-      light: '#CCFBF1',
-      dark: '#0F766E',
+      main: '#E6A000',     // Golden Amber (brand)
+      light: '#FEF3D8',
+      dark: '#A67300',
     },
   },
 
@@ -200,7 +194,7 @@ export const BOOK_COLORS = {
     'walk-in': '#66BB6A',
     phone: '#7E57C2',
     app: '#EC4899',
-    default: '#14B8A6',
+    default: '#E6A000',  // Golden Amber (brand)
   },
 
   // Value-Based Colors (for pricing tiers)

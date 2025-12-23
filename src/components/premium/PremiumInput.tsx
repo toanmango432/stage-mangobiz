@@ -67,7 +67,7 @@ export const PremiumInput = forwardRef<HTMLInputElement, PremiumInputProps>(
     // State classes
     const stateClasses = error
       ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500';
+      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500';
 
     return (
       <div className={cn(fullWidth && 'w-full')}>
@@ -183,7 +183,7 @@ export const PremiumTextarea = forwardRef<HTMLTextAreaElement, PremiumTextareaPr
     // State classes
     const stateClasses = error
       ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500';
+      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500';
 
     return (
       <div className={cn(fullWidth && 'w-full')}>
@@ -274,7 +274,7 @@ export const PremiumSelect = forwardRef<HTMLSelectElement, PremiumSelectProps>(
     // State classes
     const stateClasses = error
       ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-      : 'border-gray-300 focus:border-teal-500 focus:ring-teal-500';
+      : 'border-gray-300 focus:border-brand-500 focus:ring-brand-500';
 
     return (
       <div className={cn(fullWidth && 'w-full')}>

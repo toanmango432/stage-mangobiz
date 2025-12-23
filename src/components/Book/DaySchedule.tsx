@@ -6,7 +6,7 @@
 
 import { memo, useMemo, useEffect, useState } from 'react';
 import { LocalAppointment } from '../../types/appointment';
-import { calendar } from '../../constants/designSystem';
+import { calendar } from '../../design-system';
 import { cn } from '../../lib/utils';
 import { AppointmentContextMenu } from './AppointmentContextMenu';
 import {
