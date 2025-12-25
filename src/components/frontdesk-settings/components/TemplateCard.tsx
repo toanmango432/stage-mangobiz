@@ -24,8 +24,8 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         style={{ width: `${layoutRatio.team}%` }}
       >
         <div className="h-full flex flex-col justify-center items-center">
-          <Users size={18} className="text-[#3B82F6] mb-1.5" />
-          <div className="text-xs text-[#3B82F6] font-medium">
+          <Users size={18} className="text-blue-500 mb-1.5" />
+          <div className="text-xs text-blue-500 font-medium">
             {layoutRatio.team}%
           </div>
         </div>
@@ -35,8 +35,8 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         style={{ width: `${layoutRatio.ticket}%` }}
       >
         <div className="h-full flex flex-col justify-center items-center">
-          <FileText size={18} className="text-[#F59E0B] mb-1.5" />
-          <div className="text-xs text-[#F59E0B] font-medium">
+          <FileText size={18} className="text-amber-500 mb-1.5" />
+          <div className="text-xs text-amber-500 font-medium">
             {layoutRatio.ticket}%
           </div>
         </div>

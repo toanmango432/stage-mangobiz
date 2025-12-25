@@ -226,6 +226,10 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       window.removeEventListener('resize', handleResize);
     };
   }, [widthType, widthPercentage]);
+  // Initialize CSS custom property on mount for PendingSectionFooter positioning
+  useEffect(() => {
+    document.documentElement.style.setProperty('--staff-sidebar-width', `${sidebarWidth}px`);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Save sidebar width settings to localStorage when they change
   useEffect(() => {
     // Only save to localStorage if not in preview mode
@@ -233,6 +237,12 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
       localStorage.setItem('staffSidebarWidth', sidebarWidth.toString());
       localStorage.setItem('staffSidebarWidthType', widthType);
       localStorage.setItem('staffSidebarWidthPercentage', widthPercentage.toString());
+
+      // Update CSS custom property for PendingSectionFooter positioning
+      document.documentElement.style.setProperty('--staff-sidebar-width', `${sidebarWidth}px`);
+
+      // Dispatch event so PendingSectionFooter can update its position
+      window.dispatchEvent(new Event('staffSidebarWidthChanged'));
     }
   }, [sidebarWidth, widthType, widthPercentage, isPreviewMode]);
   // Add keyboard shortcut handler for the settings panel

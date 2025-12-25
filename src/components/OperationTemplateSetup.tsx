@@ -394,11 +394,11 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className={`answer-option flex flex-col items-center p-4 rounded-lg text-center ${quickAnswers.primaryFocus === 'frontDesk' ? 'selected bg-[#3B82F6]/5 border-[#3B82F6] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('primaryFocus', 'frontDesk')}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${quickAnswers.primaryFocus === 'frontDesk' ? 'bg-[#3B82F6]/10' : 'bg-gray-200'}`}>
-                      <FileText size={24} className={quickAnswers.primaryFocus === 'frontDesk' ? 'text-[#3B82F6]' : 'text-gray-500'} />
+                  <button className={`answer-option flex flex-col items-center p-4 rounded-lg text-center ${quickAnswers.primaryFocus === 'frontDesk' ? 'selected bg-blue-500/5 border-blue-500 border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('primaryFocus', 'frontDesk')}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${quickAnswers.primaryFocus === 'frontDesk' ? 'bg-blue-500/10' : 'bg-gray-200'}`}>
+                      <FileText size={24} className={quickAnswers.primaryFocus === 'frontDesk' ? 'text-blue-500' : 'text-gray-500'} />
                     </div>
-                    <span className={`font-medium ${quickAnswers.primaryFocus === 'frontDesk' ? 'text-[#3B82F6]' : 'text-gray-700'}`}>Front Desk Staff</span>
+                    <span className={`font-medium ${quickAnswers.primaryFocus === 'frontDesk' ? 'text-blue-500' : 'text-gray-700'}`}>Front Desk Staff</span>
                     <span className="text-xs text-gray-500 mt-1">Receptionist manages tickets</span>
                   </button>
                   <button className={`answer-option flex flex-col items-center p-4 rounded-lg text-center ${quickAnswers.primaryFocus === 'staff' ? 'selected bg-[#8E44AD]/5 border-[#8E44AD] border-2' : 'bg-gray-50 hover:bg-gray-100'}`} onClick={() => updateQuickAnswer('primaryFocus', 'staff')}>
@@ -490,7 +490,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
               const isSuggested = getSuggestedTemplate() === template;
               const isSelected = settings.operationTemplate === template;
               return <div key={template} ref={isSuggested ? suggestedTemplateRef : null} className={`template-card border-2 rounded-xl overflow-hidden relative ${isSuggested ? 'suggested' : 'border-gray-200'} ${isSelected ? 'selected' : ''}`}>
-                      {isSuggested && <div className="absolute -top-2 -right-2 bg-[#F97316] text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
+                      {isSuggested && <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
                           Suggested for You
                         </div>}
                       {isSelected && <div className="absolute top-3 right-3 text-emerald-500 z-10">
@@ -519,22 +519,22 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                       width: `${details.teamRatio}%`
                     }}>
                               {/* Team Header */}
-                              <div className="flex items-center justify-between bg-[#E8F2FF] px-2 py-1.5 border-b border-[#3B82F6]/20">
+                              <div className="flex items-center justify-between bg-[#E8F2FF] px-2 py-1.5 border-b border-blue-500/20">
                                 <div className="flex items-center">
-                                  <Users size={14} className="text-[#3B82F6] mr-1.5" />
-                                  <span className="text-xs font-medium text-[#3B82F6]">
+                                  <Users size={14} className="text-blue-500 mr-1.5" />
+                                  <span className="text-xs font-medium text-blue-500">
                                     Team
                                   </span>
                                 </div>
                                 {/* Tab/Column toggle based on teamMode */}
-                                {details.teamMode === 'tab' ? <div className="flex text-[10px] bg-[#3B82F6]/10 rounded-sm overflow-hidden">
-                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'bg-[#3B82F6] text-white' : 'text-[#3B82F6]'}`}>
+                                {details.teamMode === 'tab' ? <div className="flex text-[10px] bg-blue-500/10 rounded-sm overflow-hidden">
+                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'bg-blue-500 text-white' : 'text-blue-500'}`}>
                                       Ready
                                     </div>
-                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'text-[#3B82F6]' : 'bg-[#3B82F6] text-white'}`}>
+                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'text-blue-500' : 'bg-blue-500 text-white'}`}>
                                       Busy
                                     </div>
-                                  </div> : <div className="text-[10px] text-[#3B82F6] font-medium">
+                                  </div> : <div className="text-[10px] text-blue-500 font-medium">
                                     {details.organizeBy === 'busyStatus' ? 'Ready/Busy' : 'Clocked In/Out'}
                                   </div>}
                               </div>
@@ -553,7 +553,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                         <span className="text-xs font-medium text-gray-800">
                                           Sarah T.
                                         </span>
-                                        {template !== 'teamInOut' && <span className="ml-auto text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 px-1 py-0.5 rounded">
+                                        {template !== 'teamInOut' && <span className="ml-auto text-[9px] text-blue-500 bg-blue-500/10 px-1 py-0.5 rounded">
                                             1 client
                                           </span>}
                                       </div>
@@ -634,20 +634,20 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                               {/* Ticket Header */}
                               <div className="flex items-center justify-between bg-[#FFF8E6] px-2 py-1.5 border-b border-[#F59E0B]/20">
                                 <div className="flex items-center">
-                                  <FileText size={14} className="text-[#F59E0B] mr-1.5" />
-                                  <span className="text-xs font-medium text-[#F59E0B]">
+                                  <FileText size={14} className="text-amber-500 mr-1.5" />
+                                  <span className="text-xs font-medium text-amber-500">
                                     Tickets
                                   </span>
                                 </div>
                                 {/* Tab/Column toggle based on ticketMode */}
-                                {details.ticketMode === 'tab' ? <div className="flex text-[10px] bg-[#F59E0B]/10 rounded-sm overflow-hidden">
-                                    <div className="px-1.5 py-0.5 bg-[#F59E0B] text-white">
+                                {details.ticketMode === 'tab' ? <div className="flex text-[10px] bg-amber-500/10 rounded-sm overflow-hidden">
+                                    <div className="px-1.5 py-0.5 bg-amber-500 text-white">
                                       Waiting
                                     </div>
-                                    <div className="px-1.5 py-0.5 text-[#F59E0B]">
+                                    <div className="px-1.5 py-0.5 text-amber-500">
                                       In Service
                                     </div>
-                                  </div> : <div className="text-[10px] text-[#F59E0B] font-medium">
+                                  </div> : <div className="text-[10px] text-amber-500 font-medium">
                                     Waitlist + In Service
                                   </div>}
                               </div>
@@ -671,7 +671,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                       <span className="text-[9px] text-gray-500">
                                         5m
                                       </span>
-                                      {template === 'frontDeskTicketCenter' && <span className="text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 px-1 rounded">
+                                      {template === 'frontDeskTicketCenter' && <span className="text-[9px] text-blue-500 bg-blue-500/10 px-1 rounded">
                                           Assign
                                         </span>}
                                     </div>
@@ -691,7 +691,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                       <span className="text-[9px] text-gray-500">
                                         12m
                                       </span>
-                                      {template === 'frontDeskTicketCenter' && <span className="text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 px-1 rounded">
+                                      {template === 'frontDeskTicketCenter' && <span className="text-[9px] text-blue-500 bg-blue-500/10 px-1 rounded">
                                           Assign
                                         </span>}
                                     </div>
@@ -775,7 +775,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                             </h3>
                             <span className="text-xs text-gray-500">{details.subtitle}</span>
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${details.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                          <span className={`text-xs px-2 py-1 rounded-full ${details.userType === 'Front Desk Staff' ? 'bg-blue-500/10 text-blue-500' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
                             {details.userType}
                           </span>
                         </div>
@@ -800,7 +800,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                               <div className="space-y-3">
                                 <div>
                                   <h4 className="font-medium text-gray-800 mb-1 flex items-center">
-                                    <div className="w-3 h-3 bg-[#3B82F6] rounded-sm mr-2"></div>
+                                    <div className="w-3 h-3 bg-blue-500 rounded-sm mr-2"></div>
                                     Team Section
                                   </h4>
                                   <ul className="ml-5 space-y-1 text-gray-600 text-xs">
@@ -833,7 +833,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                 </div>
                                 {details.ticketRatio > 0 && <div>
                                     <h4 className="font-medium text-gray-800 mb-1 flex items-center">
-                                      <div className="w-3 h-3 bg-[#F59E0B] rounded-sm mr-2"></div>
+                                      <div className="w-3 h-3 bg-amber-500 rounded-sm mr-2"></div>
                                       Ticket Section
                                     </h4>
                                     <ul className="ml-5 space-y-1 text-gray-600 text-xs">
@@ -953,7 +953,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
               const isSelected = settings.operationTemplate === template;
               if (index !== currentTemplateIndex) return null;
               return <div key={template} className={`template-card border-2 rounded-xl overflow-hidden relative ${isSuggested ? 'suggested' : 'border-gray-200'} ${isSelected ? 'selected' : ''}`}>
-                      {isSuggested && <div className="absolute -top-2 -right-2 bg-[#F97316] text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
+                      {isSuggested && <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-medium py-1 px-2.5 rounded-full shadow-sm z-10">
                           Suggested for You
                         </div>}
                       {isSelected && <div className="absolute top-3 right-3 text-emerald-500 z-10">
@@ -982,22 +982,22 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                       width: `${details.teamRatio}%`
                     }}>
                               {/* Team Header */}
-                              <div className="flex items-center justify-between bg-[#E8F2FF] px-2 py-1.5 border-b border-[#3B82F6]/20">
+                              <div className="flex items-center justify-between bg-[#E8F2FF] px-2 py-1.5 border-b border-blue-500/20">
                                 <div className="flex items-center">
-                                  <Users size={14} className="text-[#3B82F6] mr-1.5" />
-                                  <span className="text-xs font-medium text-[#3B82F6]">
+                                  <Users size={14} className="text-blue-500 mr-1.5" />
+                                  <span className="text-xs font-medium text-blue-500">
                                     Team
                                   </span>
                                 </div>
                                 {/* Tab/Column toggle based on teamMode */}
-                                {details.teamMode === 'tab' ? <div className="flex text-[10px] bg-[#3B82F6]/10 rounded-sm overflow-hidden">
-                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'bg-[#3B82F6] text-white' : 'text-[#3B82F6]'}`}>
+                                {details.teamMode === 'tab' ? <div className="flex text-[10px] bg-blue-500/10 rounded-sm overflow-hidden">
+                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'bg-blue-500 text-white' : 'text-blue-500'}`}>
                                       Ready
                                     </div>
-                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'text-[#3B82F6]' : 'bg-[#3B82F6] text-white'}`}>
+                                    <div className={`px-1.5 py-0.5 ${details.organizeBy === 'busyStatus' ? 'text-blue-500' : 'bg-blue-500 text-white'}`}>
                                       Busy
                                     </div>
-                                  </div> : <div className="text-[10px] text-[#3B82F6] font-medium">
+                                  </div> : <div className="text-[10px] text-blue-500 font-medium">
                                     {details.organizeBy === 'busyStatus' ? 'Ready/Busy' : 'Clocked In/Out'}
                                   </div>}
                               </div>
@@ -1016,7 +1016,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                         <span className="text-xs font-medium text-gray-800">
                                           Sarah T.
                                         </span>
-                                        {template !== 'teamInOut' && <span className="ml-auto text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 px-1 py-0.5 rounded">
+                                        {template !== 'teamInOut' && <span className="ml-auto text-[9px] text-blue-500 bg-blue-500/10 px-1 py-0.5 rounded">
                                             1 client
                                           </span>}
                                       </div>
@@ -1084,20 +1084,20 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                               {/* Ticket Header */}
                               <div className="flex items-center justify-between bg-[#FFF8E6] px-2 py-1.5 border-b border-[#F59E0B]/20">
                                 <div className="flex items-center">
-                                  <FileText size={14} className="text-[#F59E0B] mr-1.5" />
-                                  <span className="text-xs font-medium text-[#F59E0B]">
+                                  <FileText size={14} className="text-amber-500 mr-1.5" />
+                                  <span className="text-xs font-medium text-amber-500">
                                     Tickets
                                   </span>
                                 </div>
                                 {/* Tab/Column toggle based on ticketMode */}
-                                {details.ticketMode === 'tab' ? <div className="flex text-[10px] bg-[#F59E0B]/10 rounded-sm overflow-hidden">
-                                    <div className="px-1.5 py-0.5 bg-[#F59E0B] text-white">
+                                {details.ticketMode === 'tab' ? <div className="flex text-[10px] bg-amber-500/10 rounded-sm overflow-hidden">
+                                    <div className="px-1.5 py-0.5 bg-amber-500 text-white">
                                       Waiting
                                     </div>
-                                    <div className="px-1.5 py-0.5 text-[#F59E0B]">
+                                    <div className="px-1.5 py-0.5 text-amber-500">
                                       In Service
                                     </div>
-                                  </div> : <div className="text-[10px] text-[#F59E0B] font-medium">
+                                  </div> : <div className="text-[10px] text-amber-500 font-medium">
                                     Waitlist + In Service
                                   </div>}
                               </div>
@@ -1121,7 +1121,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                       <span className="text-[9px] text-gray-500">
                                         5m
                                       </span>
-                                      {template === 'frontDeskTicketCenter' && <span className="text-[9px] text-[#3B82F6] bg-[#3B82F6]/10 px-1 rounded">
+                                      {template === 'frontDeskTicketCenter' && <span className="text-[9px] text-blue-500 bg-blue-500/10 px-1 rounded">
                                           Assign
                                         </span>}
                                     </div>
@@ -1185,7 +1185,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                             </h3>
                             <span className="text-xs text-gray-500">{details.subtitle}</span>
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${details.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                          <span className={`text-xs px-2 py-1 rounded-full ${details.userType === 'Front Desk Staff' ? 'bg-blue-500/10 text-blue-500' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
                             {details.userType}
                           </span>
                         </div>
@@ -1210,7 +1210,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                               <div className="space-y-3">
                                 <div>
                                   <h4 className="font-medium text-gray-800 mb-1 flex items-center">
-                                    <div className="w-3 h-3 bg-[#3B82F6] rounded-sm mr-2"></div>
+                                    <div className="w-3 h-3 bg-blue-500 rounded-sm mr-2"></div>
                                     Team Section
                                   </h4>
                                   <ul className="ml-5 space-y-1 text-gray-600 text-xs">
@@ -1243,7 +1243,7 @@ export const OperationTemplateSetup: React.FC<OperationTemplateSetupProps> = ({
                                 </div>
                                 {details.ticketRatio > 0 && <div>
                                     <h4 className="font-medium text-gray-800 mb-1 flex items-center">
-                                      <div className="w-3 h-3 bg-[#F59E0B] rounded-sm mr-2"></div>
+                                      <div className="w-3 h-3 bg-amber-500 rounded-sm mr-2"></div>
                                       Ticket Section
                                     </h4>
                                     <ul className="ml-5 space-y-1 text-gray-600 text-xs">

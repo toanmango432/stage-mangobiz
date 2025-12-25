@@ -57,11 +57,11 @@ export const ComingAppointments = memo(function ComingAppointments({
     headerBg: 'bg-[#F0FDFA]',
     text: 'text-[#0EA5A0]/80',
     border: 'ring-[#10B981]/30',
-    iconBg: 'bg-[#10B981]/20',
+    iconBg: 'bg-emerald-500/20',
     hoverBg: 'hover:bg-[#F9FAFB]',
     hoverText: 'hover:text-[#0EA5A0]',
     dropdownHover: 'hover:bg-[#F9FAFB]',
-    checkColor: 'text-[#10B981]/80',
+    checkColor: 'text-emerald-500/80',
     // Apple-like status colors
     statusColors: {
       booked: '#007AFF',

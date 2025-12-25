@@ -55,8 +55,8 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                   style={{ width: `${templateInfo.layoutRatio.team}%` }}
                 >
                   <div className="h-full flex flex-col justify-center items-center">
-                    <Users size={16} className="text-[#3B82F6] mb-1" />
-                    <div className="text-xs text-[#3B82F6] font-medium">
+                    <Users size={16} className="text-blue-500 mb-1" />
+                    <div className="text-xs text-blue-500 font-medium">
                       {templateInfo.layoutRatio.team}%
                     </div>
                   </div>
@@ -66,8 +66,8 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                   style={{ width: `${templateInfo.layoutRatio.ticket}%` }}
                 >
                   <div className="h-full flex flex-col justify-center items-center">
-                    <FileText size={16} className="text-[#F59E0B] mb-1" />
-                    <div className="text-xs text-[#F59E0B] font-medium">
+                    <FileText size={16} className="text-amber-500 mb-1" />
+                    <div className="text-xs text-amber-500 font-medium">
                       {templateInfo.layoutRatio.ticket}%
                     </div>
                   </div>
@@ -77,7 +77,7 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                 <h5 className="text-sm font-medium text-gray-800">
                   {templateInfo.title}
                 </h5>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${templateInfo.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${templateInfo.userType === 'Front Desk Staff' ? 'bg-blue-500/10 text-blue-500' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
                   {templateInfo.userType}
                 </span>
               </div>
@@ -124,8 +124,8 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                 style={{ width: `${templateInfo.layoutRatio.team}%` }}
               >
                 <div className="h-full flex flex-col justify-center items-center">
-                  <Users size={18} className="text-[#3B82F6] mb-1.5" />
-                  <div className="text-xs text-[#3B82F6] font-medium">
+                  <Users size={18} className="text-blue-500 mb-1.5" />
+                  <div className="text-xs text-blue-500 font-medium">
                     {templateInfo.layoutRatio.team}%
                   </div>
                 </div>
@@ -135,8 +135,8 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                 style={{ width: `${templateInfo.layoutRatio.ticket}%` }}
               >
                 <div className="h-full flex flex-col justify-center items-center">
-                  <FileText size={18} className="text-[#F59E0B] mb-1.5" />
-                  <div className="text-xs text-[#F59E0B] font-medium">
+                  <FileText size={18} className="text-amber-500 mb-1.5" />
+                  <div className="text-xs text-amber-500 font-medium">
                     {templateInfo.layoutRatio.ticket}%
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export const OperationTemplatesSection: React.FC<OperationTemplatesSectionProps>
                 <h5 className="text-base font-semibold text-gray-800">
                   {templateInfo.title}
                 </h5>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${templateInfo.userType === 'Front Desk Staff' ? 'bg-[#3B82F6]/10 text-[#3B82F6]' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${templateInfo.userType === 'Front Desk Staff' ? 'bg-blue-500/10 text-blue-500' : 'bg-[#8E44AD]/10 text-[#8E44AD]'}`}>
                   {templateInfo.userType}
                 </span>
               </div>
