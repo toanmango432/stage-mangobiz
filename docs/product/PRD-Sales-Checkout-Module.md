@@ -1,8 +1,8 @@
 # Mango Biz - Sales & Checkout Module
 ## Product Requirements Document (PRD)
 
-**Version:** 3.1
-**Date:** December 2, 2025
+**Version:** 3.2
+**Date:** December 27, 2025
 **Document Owner:** Product Team
 **Status:** In Development - Phase 1 Complete
 **Priority:** P0 - Critical Path
@@ -99,8 +99,12 @@ This approach is **faster for multi-staff tickets** and reduces errors in staff 
 - [x] Tip presets (15%, 18%, 20%, 25%)
 - [x] Custom tip amount
 - [x] Gift card stacking UI (multiple cards)
-- [ ] Real payment processor (Stripe) - **Not integrated**
+- [ ] Real payment processor (Fiserv CommerceHub via CardConnect) - **Not integrated**
+- [ ] Tap to Pay on iPhone (FiservTTP SDK) - **Pending Capacitor setup**
+- [ ] Tap to Pay on Android (Fiserv TTP SDK) - **Pending Capacitor setup**
 - [ ] Payment declined flow - **UI only, no real handling**
+
+> **Note:** See [PAYMENT_INTEGRATION.md](../architecture/PAYMENT_INTEGRATION.md) for technical integration details.
 
 #### UX Features ✅
 - [x] Undo/Redo stack (10 items)
@@ -260,14 +264,20 @@ This approach is **faster for multi-staff tickets** and reduces errors in staff 
 #### F-004: Payment Processing Integration
 **Gap**: UI exists but no real payment processor
 
+**Processor**: Fiserv CommerceHub (via existing CardConnect merchant account)
+**Technology**: Tap to Pay (SoftPOS) - uses phone's NFC to accept contactless cards
+
 **Requirements**:
 | ID | Requirement | Status |
 |----|-------------|--------|
-| F-004.1 | Stripe Terminal SDK integration | Pending |
-| F-004.2 | Card present transactions | Pending |
-| F-004.3 | Tap to Pay (iPhone/Android) | Pending |
-| F-004.4 | Payment declined flow | Partial |
-| F-004.5 | Refund/void handling | UI Only |
+| F-004.1 | Capacitor setup for native mobile apps | Pending |
+| F-004.2 | FiservTTP SDK integration (iOS) | Pending |
+| F-004.3 | Fiserv TTP SDK integration (Android) | Pending |
+| F-004.4 | Tap to Pay - contactless card transactions | Pending |
+| F-004.5 | Payment declined flow | Partial |
+| F-004.6 | Refund/void handling | UI Only |
+
+> **Technical Details**: See [PAYMENT_INTEGRATION.md](../architecture/PAYMENT_INTEGRATION.md)
 
 ---
 
@@ -761,13 +771,23 @@ New checkout slice manages:
 - [ ] Part-paid status tracking
 - [ ] Manual "Save for Later" button
 
-### Phase 7: Payment Integration (5-7 days)
-- [ ] Stripe Terminal SDK setup
-- [ ] Card present transactions
-- [ ] Tap to Pay (iPhone/Android)
-- [ ] Payment declined flow (real handling)
+### Phase 7: Payment Integration (8-14 days)
+**Platform**: Capacitor (hybrid native wrapper for iOS/Android)
+**Processor**: Fiserv CommerceHub (via CardConnect merchant account)
+**SDK**: FiservTTP (iOS Swift) / Fiserv TTP (Android Kotlin)
+
+- [ ] Capacitor project setup (`npx cap init`, add iOS/Android platforms)
+- [ ] Native FiservTTP plugin for iOS (Swift)
+- [ ] Native Fiserv TTP plugin for Android (Kotlin)
+- [ ] `useTapToPay` React hook (payment abstraction)
+- [ ] `usePlatform` hook (platform detection)
+- [ ] Tap to Pay flow integration with PaymentModal
+- [ ] Payment declined/retry flow
 - [ ] Refund/void handling
-- [ ] Offline payment queue
+- [ ] Offline payment queue (for when sync fails)
+- [ ] End-to-end testing with Fiserv sandbox
+
+> **Implementation Guide**: See [PAYMENT_INTEGRATION.md](../architecture/PAYMENT_INTEGRATION.md)
 
 ### Phase 8: Receipts & Self-Checkout (4-5 days)
 - [ ] Email receipt integration
@@ -789,9 +809,9 @@ New checkout slice manages:
 | 4 | Tip Distribution | 2-3 days | Pending |
 | 5 | Status Persistence | 2-3 days | Pending |
 | 6 | Draft Sales | 3-4 days | Pending |
-| 7 | Payment Integration | 5-7 days | Pending |
+| 7 | Payment Integration (Capacitor + Fiserv TTP) | 8-14 days | Pending |
 | 8 | Receipts & Self-Checkout | 4-5 days | Pending |
-| **Total** | | **18-24 days** | |
+| **Total** | | **24-34 days** | |
 
 ---
 
@@ -860,9 +880,10 @@ New checkout slice manages:
 | 2.0 | Dec 1, 2025 | Added Fresha features, 3-panel layout |
 | 3.0 | Dec 2, 2025 | Revised to match actual 2-panel staff-centric design |
 | 3.1 | Dec 2, 2025 | **Gap analysis corrections:** Revised completion percentages (40% vs 70-90%), added Phase 2: Fix Broken UI, documented 3 TODO handlers, updated implementation timeline |
+| 3.2 | Dec 27, 2025 | **Payment integration update:** Replaced Stripe with Fiserv CommerceHub (via CardConnect), added Tap to Pay (SoftPOS) requirements, updated Phase 7 with Capacitor setup and FiservTTP SDK integration, added link to PAYMENT_INTEGRATION.md |
 
 ---
 
 *This PRD reflects the actual implemented design and accurate completion status. The staff-centric 2-panel layout is a competitive advantage over Fresha's service-first approach.*
 
-**Last Updated:** December 2, 2025
+**Last Updated:** December 27, 2025

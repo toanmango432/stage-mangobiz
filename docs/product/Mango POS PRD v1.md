@@ -1,10 +1,10 @@
 # 📱 Mango Biz Store App: Operations Module
 ## Product Requirements Document (PRD) v1.0
 
-**Document Owner:** Product Team  
-**Last Updated:** October 21, 2025  
-**Status:** Draft for Review  
-**Version:** 1.0
+**Document Owner:** Product Team
+**Last Updated:** December 27, 2025
+**Status:** Draft for Review
+**Version:** 1.1
 
 ---
 
@@ -2883,7 +2883,22 @@ Comprehensive offline functionality ensures business continuity during connectiv
 
 ## 8. Technical Architecture
 
-### 8.1 System Architecture Overview
+> **Detailed Technical Docs:** See [TECHNICAL_DOCUMENTATION.md](../architecture/TECHNICAL_DOCUMENTATION.md) for complete architecture, and [PAYMENT_INTEGRATION.md](../architecture/PAYMENT_INTEGRATION.md) for payment SDK integration.
+
+### 8.1 Platform Architecture
+
+The Store App runs on multiple platforms using a shared React codebase:
+
+| Platform | Technology | Payment Capability |
+|----------|------------|-------------------|
+| **iOS** | Capacitor + Swift | Tap to Pay (NFC) |
+| **Android** | Capacitor + Kotlin | Tap to Pay (NFC) |
+| **Web** | Vite + React | Cash only (no NFC) |
+| **Desktop** | Electron (future) | USB card readers |
+
+**Capacitor** wraps the React web app in native iOS/Android shells, enabling access to device-native APIs like NFC for contactless payments.
+
+### 8.2 System Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -2920,7 +2935,7 @@ Comprehensive offline functionality ensures business continuity during connectiv
 │  • Retry Logic with Exponential Backoff                     │
 ├─────────────────────────────────────────────────────────────┤
 │  Integration Layer                                          │
-│  • Mango Payment SDK - Card processing                      │
+│  • Fiserv TTP SDK - Tap to Pay (via Capacitor plugin)       │
 │  • Printer Driver - Receipt printing                        │
 │  • Push Notification Handler                                │
 └─────────────────────────────────────────────────────────────┘
@@ -3618,37 +3633,64 @@ payload: {
 - Business settings (hours, tax rates, turn queue rules)
 - Client database
 
-### 9.3 Mango Payment
+### 9.3 Payment Integration (Fiserv CommerceHub)
 
-**Purpose:** Card processing and payment gateway
+**Purpose:** Card processing via Tap to Pay (contactless NFC payments)
+
+> **Detailed Documentation:** See [PAYMENT_INTEGRATION.md](../architecture/PAYMENT_INTEGRATION.md) for complete SDK integration guide, native plugin implementation, and credentials setup.
+
+**Processor Chain:**
+```
+CardConnect Account → Fiserv CommerceHub → TSYS Backend
+```
+
+**Technology:** Tap to Pay (SoftPOS) - turns mobile device into payment terminal using NFC
+
+**Platform Requirements:**
+| Platform | SDK | Requirements |
+|----------|-----|--------------|
+| iOS | FiservTTP (Swift) v1.0.7+ | iPhone XS+, iOS 16.7+ |
+| Android | Fiserv TTP (Kotlin) | NFC-enabled, Android 10+ |
+| Web | N/A | Redirect to mobile or manual entry |
 
 **Integration:**
-- **SDK:** Mango Payment SDK embedded in Store App
-- **Checkout Flow:** Store App Checkout → Mango Payment SDK → Card terminal
-- **Settlement:** Offline transactions queued → Settled when online → Mango Payment API
+- **Native Wrapper:** Capacitor (hybrid mobile framework)
+- **iOS Plugin:** Swift plugin wrapping FiservTTP SDK
+- **Android Plugin:** Kotlin plugin wrapping Fiserv TTP SDK
+- **React Hook:** `useTapToPay` for unified payment interface
+- **Checkout Flow:** PaymentModal → useTapToPay → Capacitor Bridge → Native SDK → Fiserv API
 
-**API:**
+**API (React Hook):**
 ```typescript
-// Process payment
-MangoPayment.charge({
-  amount: number,
-  currency: 'USD',
-  tip: number,
-  description: string,
-  metadata: {
-    salonId: string,
-    ticketId: string,
-    clientId: string
-  }
-}) => Promise<PaymentResult>
+// Initialize payment SDK
+const { initialize, initiatePayment, status } = useTapToPay();
 
-// Refund
-MangoPayment.refund({
-  transactionId: string,
-  amount: number,
-  reason: string
-}) => Promise<RefundResult>
+await initialize({
+  merchantId: string,
+  apiKey: string,
+  apiSecret: string
+});
+
+// Process payment
+const result = await initiatePayment(amount, {
+  currency: 'USD',
+  transactionType: 'sale'
+});
+
+// Result
+interface PaymentResult {
+  approved: boolean;
+  transactionId: string;
+  authCode: string;
+  cardLast4: string;
+  cardBrand: string;
+}
 ```
+
+**Offline Handling:**
+- Cash payments: Fully offline, synced when online
+- Card payments: Require network connection (NFC reads card, API authorizes)
+- Failed sync: Queued with retry logic
 
 ### 9.4 Mango Store (Online Booking)
 

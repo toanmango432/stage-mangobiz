@@ -14,6 +14,8 @@
 | **Local DB** | Dexie.js (IndexedDB) - For offline-enabled devices |
 | **UI** | Tailwind CSS, Radix UI, Framer Motion |
 | **Forms** | React Hook Form + Zod |
+| **Platforms** | Web, iOS (Capacitor), Android (Capacitor), Desktop (Electron) |
+| **Payment SDK** | Fiserv CommerceHub TTP (Tap to Pay) via native plugins |
 | **Dev Server** | `npm run dev` → localhost:5173 |
 | **Build** | `npm run build` |
 | **Test** | `npm test` |
@@ -52,6 +54,7 @@ Copy `.env.example` to `.env` and configure:
 | **Operations (Book, Front Desk, Pending, Checkout)** | `docs/product/Mango POS PRD v1.md` |
 | **Book Module** | `docs/product/PRD-Book-Module.md` |
 | **Sales & Checkout** | `docs/product/PRD-Sales-Checkout-Module.md` |
+| **Payment Integration** | `docs/architecture/PAYMENT_INTEGRATION.md` |
 | **Clients/CRM** | `docs/product/PRD-Clients-CRM-Module.md` |
 | **Team/Staff** | `docs/product/PRD-Team-Module.md` |
 | **Turn Tracker** | `docs/product/PRD-Turn-Tracker-Module.md` |
@@ -64,6 +67,7 @@ Copy `.env.example` to `.env` and configure:
 |-------------|-----------|
 | **Any change** | [TECHNICAL_DOCUMENTATION.md](./docs/architecture/TECHNICAL_DOCUMENTATION.md) |
 | **Data/Storage** | [DATA_STORAGE_STRATEGY.md](./docs/architecture/DATA_STORAGE_STRATEGY.md) |
+| **Native Platforms** | [PAYMENT_INTEGRATION.md](./docs/architecture/PAYMENT_INTEGRATION.md) |
 | **Book Module** | `docs/modules/book/BOOK_UX_IMPLEMENTATION_GUIDE.md` |
 | **Front Desk** | `docs/modules/frontdesk/` |
 | **Tickets** | `docs/modules/tickets/UNIFIED_TICKET_DESIGN_SYSTEM.md` |
@@ -103,6 +107,66 @@ test(module): add/update tests
 - `feat(staff): comprehensive Staff Section UX improvements`
 - `fix: BookPage not showing staff - add fetchTeamMembers before loadStaff`
 - `docs: add checkout restructuring plan with design phases`
+
+---
+
+## Native Platform Architecture
+
+Mango POS runs on **multiple platforms** using a shared React codebase:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  WEB BROWSER               │  iOS/ANDROID (Capacitor)  │  DESKTOP   │
+│  (Default)                 │  (Tap to Pay enabled)     │  (Electron)│
+│                            │                           │            │
+│  Vite Dev/Build            │  WebView + Native Plugins │  Electron  │
+│       ↓                    │       ↓                   │     ↓      │
+│  Browser                   │  Capacitor Bridge         │  Node.js   │
+│       ↓                    │       ↓                   │     ↓      │
+│  No NFC/TTP                │  Native NFC/TTP SDK       │  USB/Serial│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Platform Capabilities
+
+| Feature | Web | iOS (Capacitor) | Android (Capacitor) | Desktop (Electron) |
+|---------|-----|-----------------|---------------------|-------------------|
+| **Tap to Pay (NFC)** | ❌ | ✅ FiservTTP | ✅ Fiserv TTP | ❌ |
+| **Card Reader USB** | ❌ | ❌ | ❌ | ✅ |
+| **Receipt Printer** | Browser Print | Native ESC/POS | Native ESC/POS | USB ESC/POS |
+| **Barcode Scanner** | Camera API | Native | Native | USB HID |
+| **Offline Mode** | IndexedDB | IndexedDB | IndexedDB | IndexedDB |
+
+### Native Plugin Structure (Future)
+
+```
+ios/
+├── App/
+│   └── Plugins/
+│       └── FiservTTPPlugin/     # Tap to Pay native code (Swift)
+android/
+├── app/src/main/java/
+│   └── com/mangobiz/pos/
+│       └── FiservTTPPlugin.kt   # Tap to Pay native code (Kotlin)
+electron/
+├── main.ts                       # Electron main process
+├── preload.ts                    # Secure bridge
+└── plugins/
+    └── UsbDevicePlugin.ts       # USB device access
+src/
+├── hooks/
+│   ├── usePlatform.ts           # Platform detection
+│   └── useTapToPay.ts           # Payment abstraction
+└── services/
+    └── payment/
+        └── paymentBridge.ts     # Platform-agnostic payment service
+```
+
+### Payment Integration (Via Fiserv CommerceHub)
+
+**Processor:** CardConnect/Fiserv (TSYS backend)
+**SDK:** FiservTTP (iOS v1.0.7+, Android Kotlin)
+**Docs:** [PAYMENT_INTEGRATION.md](./docs/architecture/PAYMENT_INTEGRATION.md)
 
 ---
 
@@ -248,6 +312,15 @@ npm run test:e2e:ui      # Run E2E tests with UI
 
 # Admin
 npm run admin:server     # Start admin dev server
+
+# Native Platforms (requires setup - see PAYMENT_INTEGRATION.md)
+npx cap sync             # Sync web build to native projects
+npx cap open ios         # Open iOS project in Xcode
+npx cap open android     # Open Android project in Android Studio
+npx cap run ios          # Build and run on iOS device/simulator
+npx cap run android      # Build and run on Android device/emulator
+npm run electron:dev     # Start Electron in dev mode (future)
+npm run electron:build   # Build Electron app (future)
 ```
 
 ---
@@ -275,7 +348,7 @@ npm run admin:server     # Start admin dev server
 
 ## Before Production Deployment
 
-**⚠️ Critical:** Review and execute [PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md](./PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md)
+**⚠️ Critical:** Review and execute [PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md](./docs/implementation/PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md)
 
 **Must Complete:**
 1. Move Supabase credentials to environment variables (Phase 1, Task 1.1)
@@ -309,4 +382,4 @@ npm run admin:server     # Start admin dev server
 
 ---
 
-*Last updated: December 2024*
+*Last updated: December 2025*

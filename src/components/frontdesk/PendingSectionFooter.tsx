@@ -102,6 +102,23 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const resizeStartY = useRef(0);
   const resizeStartHeight = useRef(0);
 
+  // Update CSS variable for pending section height so FrontDesk can adjust its padding
+  useEffect(() => {
+    let height = 36; // Default for "No Pending Payments" footer
+
+    if (pendingTickets.length > 0) {
+      if (viewMode === 'collapsed') {
+        height = 100; // Two-row layout: header + ticket cards
+      } else if (viewMode === 'expanded') {
+        height = expandedHeight; // User-adjustable expanded height
+      } else if (viewMode === 'fullView') {
+        height = 0; // Full screen overlay, no padding needed
+      }
+    }
+
+    document.documentElement.style.setProperty('--pending-section-height', `${height}px`);
+  }, [pendingTickets.length, viewMode, expandedHeight]);
+
   // Calculate total amount (memoized for performance)
   const totalAmount = useMemo(() =>
     pendingTickets.reduce((sum, ticket) =>
@@ -209,12 +226,12 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
             left: 'var(--staff-sidebar-width)'
           }}
         >
-          <div className="w-full flex items-center justify-between px-4 py-3 gap-4">
-            {/* Left: Count and icon with pulsing indicator */}
-            <button
-              onClick={toggleCollapsedExpanded}
-              className="flex items-center gap-3 hover:bg-amber-100/50 transition-colors cursor-pointer p-2 rounded-lg flex-shrink-0"
-            >
+          {/* Row 1: Clickable Header - entire row is clickable to expand */}
+          <button
+            onClick={toggleCollapsedExpanded}
+            className="w-full flex items-center justify-between px-4 py-2 hover:bg-amber-100/50 transition-colors cursor-pointer border-b border-amber-200/50"
+          >
+            <div className="flex items-center gap-3">
               <div className="relative">
                 {/* Pulsing notification badge */}
                 <div className="absolute -top-1 -right-1 flex h-5 w-5">
@@ -224,67 +241,65 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                   </span>
                 </div>
                 <div className="p-2 bg-amber-400 rounded-lg shadow-md">
-                  <Receipt size={20} className="text-white" />
+                  <Receipt size={18} className="text-white" />
                 </div>
               </div>
-              <div>
-                <div className="text-amber-900 font-bold text-base flex items-center gap-2">
-                  <span>Pending Payments</span>
-                  <ChevronUp size={18} className="text-amber-600" />
+              <div className="text-left">
+                <div className="text-amber-900 font-bold text-sm">
+                  Pending Payments
                 </div>
-                <div className="text-amber-700 text-sm font-semibold">
+                <div className="text-amber-700 text-xs font-semibold">
                   Total: ${totalAmount.toFixed(2)}
                 </div>
               </div>
-            </button>
-
-            {/* Right: Clickable ticket cards */}
-            <div className="flex items-center gap-2 flex-1 overflow-x-auto">
-              <div className="flex items-center gap-3 min-w-0">
-                {/* Show first 3 tickets as clickable cards */}
-                {pendingTickets.slice(0, 3).map((ticket) => (
-                  <button
-                    key={ticket.id}
-                    onClick={(e) => handleTicketClick(ticket, e)}
-                    className="group relative px-5 py-3 bg-white rounded-xl shadow-lg border-2 border-amber-300 hover:border-amber-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 flex-shrink-0 min-w-[200px]"
-                  >
-                    {/* Static corner indicator - no pulsing for cleaner UI */}
-                    <div className="absolute -top-1.5 -right-1.5">
-                      <span className="inline-flex rounded-full h-3 w-3 bg-amber-500 ring-2 ring-white"></span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-start flex-1 min-w-0">
-                        <div className="flex items-center gap-2 w-full">
-                          <span className="font-black text-gray-900 text-base">#{ticket.number}</span>
-                          <span className="text-gray-400">·</span>
-                          <span className="text-gray-800 font-semibold truncate">{ticket.clientName}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1 bg-amber-100 px-2 py-0.5 rounded-full">
-                          <DollarSign size={14} className="text-amber-700" />
-                          <span className="text-amber-900 font-bold text-sm">${(ticket.subtotal + ticket.tax + ticket.tip).toFixed(2)}</span>
-                        </div>
-                      </div>
-
-                      {/* Payment icon on hover */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <CreditCard size={18} className="text-amber-600" />
-                      </div>
-                    </div>
-                  </button>
-                ))}
-
-                {/* "+X more" indicator */}
-                {pendingTickets.length > 3 && (
-                  <button
-                    onClick={toggleCollapsedExpanded}
-                    className="flex-shrink-0 px-4 py-3 bg-amber-100 hover:bg-amber-200 rounded-xl border-2 border-amber-300 text-amber-900 text-base font-bold transition-all hover:scale-105 shadow-md hover:shadow-lg min-w-[120px] text-center"
-                  >
-                    +{pendingTickets.length - 3} more
-                  </button>
-                )}
-              </div>
             </div>
+            <ChevronUp size={20} className="text-amber-600" />
+          </button>
+
+          {/* Row 2: Ticket cards */}
+          <div className="w-full flex items-center px-4 py-2 gap-3 overflow-x-auto">
+            {/* Show first 3 tickets as clickable cards */}
+            {pendingTickets.slice(0, 3).map((ticket) => (
+              <button
+                key={ticket.id}
+                onClick={(e) => handleTicketClick(ticket, e)}
+                className="group relative px-4 py-2 bg-white rounded-xl shadow-lg border-2 border-amber-300 hover:border-amber-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 flex-shrink-0 min-w-[180px]"
+              >
+                {/* Static corner indicator */}
+                <div className="absolute -top-1.5 -right-1.5">
+                  <span className="inline-flex rounded-full h-3 w-3 bg-amber-500 ring-2 ring-white"></span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-start flex-1 min-w-0">
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="font-black text-gray-900 text-sm">#{ticket.number}</span>
+                      <span className="text-gray-400">·</span>
+                      <span className="text-gray-800 font-semibold text-sm truncate">{ticket.clientName}</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5 bg-amber-100 px-2 py-0.5 rounded-full">
+                      <DollarSign size={12} className="text-amber-700" />
+                      <span className="text-amber-900 font-bold text-xs">${(ticket.subtotal + ticket.tax + ticket.tip).toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Payment icon on hover */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <CreditCard size={16} className="text-amber-600" />
+                  </div>
+                </div>
+              </button>
+            ))}
+
+            {/* "+X more" indicator */}
+            {pendingTickets.length > 3 && (
+              <button
+                onClick={toggleCollapsedExpanded}
+                className="flex-shrink-0 px-3 py-2 bg-amber-100 hover:bg-amber-200 rounded-xl border-2 border-amber-300 text-amber-900 text-sm font-bold transition-all hover:scale-105 shadow-md hover:shadow-lg min-w-[100px] text-center"
+              >
+                +{pendingTickets.length - 3} more
+              </button>
+            )}
           </div>
         </div>
 
@@ -322,13 +337,17 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
           </div>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
-          <div className="flex items-center gap-3">
+        {/* Header - Left side clickable to collapse */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
+          {/* Clickable area to collapse */}
+          <button
+            onClick={toggleCollapsedExpanded}
+            className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-amber-100/50 transition-colors cursor-pointer"
+          >
             <div className="p-2 bg-amber-400 rounded-lg shadow-sm">
               <Receipt size={20} className="text-white" />
             </div>
-            <div>
+            <div className="text-left">
               <div className="text-amber-900 font-bold text-base">
                 Pending Payments ({pendingTickets.length})
               </div>
@@ -336,10 +355,11 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                 Total: ${totalAmount.toFixed(2)}
               </div>
             </div>
-          </div>
+            <ChevronDown size={20} className="text-amber-600 ml-2" />
+          </button>
 
-          {/* Controls */}
-          <div className="flex items-center gap-2">
+          {/* Controls - not part of clickable area */}
+          <div className="flex items-center gap-2 px-4 py-3">
             {/* Grid/List Toggle */}
             <div className="flex items-center gap-1 bg-white rounded-lg border border-amber-200 p-1">
               <button
@@ -365,15 +385,6 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
               title="Full View"
             >
               <Maximize2 size={18} className="text-amber-600" />
-            </button>
-
-            {/* Collapse Button */}
-            <button
-              onClick={toggleCollapsedExpanded}
-              className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
-              title="Collapse"
-            >
-              <ChevronDown size={18} className="text-amber-600" />
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 # Mango POS Documentation Index
 
-> **Last Updated:** December 5, 2025  
-> **Active Docs:** 42 | **Archived:** 113
+> **Last Updated:** December 27, 2025
+> **Active Docs:** 43 | **Archived:** 113
 
 Essential documentation for Mango POS Offline V2.
 
@@ -11,8 +11,9 @@ Essential documentation for Mango POS Offline V2.
 
 | Document | Description |
 |----------|-------------|
-| [TECHNICAL_DOCUMENTATION.md](./architecture/TECHNICAL_DOCUMENTATION.md) | **Start here** - System overview, stack, architecture |
+| [TECHNICAL_DOCUMENTATION.md](./architecture/TECHNICAL_DOCUMENTATION.md) | **Start here** - System overview, stack, native platforms |
 | [DATA_STORAGE_STRATEGY.md](./architecture/DATA_STORAGE_STRATEGY.md) | Data layer: schemas, sync, conflicts, security |
+| [PAYMENT_INTEGRATION.md](./architecture/PAYMENT_INTEGRATION.md) | **NEW** - Tap to Pay, Fiserv SDK, Capacitor integration |
 | [ARCHITECTURE_DECISION_RECORDS.md](./architecture/ARCHITECTURE_DECISION_RECORDS.md) | ADRs for key decisions (including ADR-016: Opt-In Offline) |
 
 ---
@@ -146,7 +147,7 @@ Historical documentation moved to `docs/archive/`:
 ```
 docs/
 ├── INDEX.md              # This file
-├── architecture/         # 3 docs - Core technical specs
+├── architecture/         # 4 docs - Core technical specs (incl. Payment Integration)
 ├── product/              # 6 docs - PRDs
 ├── modules/              # 17 docs - Module documentation
 │   ├── book/             # 7 docs
@@ -171,10 +172,11 @@ docs/
 
 ### For Developers
 
-1. [TECHNICAL_DOCUMENTATION.md](./architecture/TECHNICAL_DOCUMENTATION.md) — Architecture
+1. [TECHNICAL_DOCUMENTATION.md](./architecture/TECHNICAL_DOCUMENTATION.md) — Architecture & native platforms
 2. [DATA_STORAGE_STRATEGY.md](./architecture/DATA_STORAGE_STRATEGY.md) — Data layer
-3. [Mango POS PRD v1.md](./product/Mango%20POS%20PRD%20v1.md) — Requirements
-4. `docs/modules/<module>/` — Module-specific
+3. [PAYMENT_INTEGRATION.md](./architecture/PAYMENT_INTEGRATION.md) — Payment & Tap to Pay
+4. [Mango POS PRD v1.md](./product/Mango%20POS%20PRD%20v1.md) — Requirements
+5. `docs/modules/<module>/` — Module-specific
 
 ### For AI Agents
 

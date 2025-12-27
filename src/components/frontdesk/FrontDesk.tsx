@@ -6,11 +6,9 @@ import { StaffSidebar } from './StaffSidebar';
 import { ServiceSection } from './ServiceSection';
 import { WaitListSection } from './WaitListSection';
 import { ComingAppointments } from './ComingAppointments';
-import { CreateTicketButton } from './CreateTicketButton';
 import { TurnTrackerFab } from '@/components/TurnTracker/TurnTrackerFab';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 // CreateTicketModal removed - now navigating to Checkout page instead
-import { FloatingActionButton } from './FloatingActionButton';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
@@ -528,8 +526,11 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
         {showSidebar && <div className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden backdrop-blur-sm" onClick={() => setShowSidebar(false)}></div>}
         {/* Enhanced visual separator between tech and service sections */}
         <div className="hidden md:block w-px bg-gray-200 relative"></div>
-        {/* Main content area with flex layout for optimal space usage - Added pb-10 for pending footer */}
-        <div className="flex-1 flex flex-col h-full min-h-0 pb-10 overflow-hidden">
+        {/* Main content area with flex layout for optimal space usage - Uses CSS variable for pending footer height */}
+        <div
+          className="flex-1 flex flex-col h-full min-h-0 overflow-hidden"
+          style={{ paddingBottom: 'var(--pending-section-height, 40px)' }}
+        >
           {/* Unified Mobile/Tablet Tab Bar - Clean and simple with metrics */}
           {(deviceInfo.isMobile || deviceInfo.isTablet) && (
             <MobileTabBar
@@ -917,10 +918,6 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
           window.dispatchEvent(new Event('open-turn-tracker'));
         }} />
       )}
-      {/* Create Ticket Button - navigates to Checkout */}
-      <CreateTicketButton onClick={navigateToCheckout} />
-      {/* Floating Action Button - navigates to Checkout */}
-      <FloatingActionButton onCreateTicket={navigateToCheckout} />
       {/* Add the new FrontDeskSettings component */}
       <SettingsErrorBoundary>
         <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />

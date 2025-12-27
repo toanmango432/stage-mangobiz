@@ -1,6 +1,6 @@
 # Mango POS Offline V2 - Technical Documentation
 
-**Version:** 2.1.0 | **Last Updated:** December 2, 2025
+**Version:** 2.4.0 | **Last Updated:** December 27, 2025
 
 ---
 
@@ -9,15 +9,17 @@
 1. [System Overview](#system-overview)
 2. [High-Level Architecture](#high-level-architecture)
 3. [Technology Stack](#technology-stack)
-4. [Data Storage Strategy](#data-storage-strategy)
-5. [Component Hierarchy](#component-hierarchy)
-6. [State Management (Redux)](#state-management-redux)
-7. [Database Schema (IndexedDB)](#database-schema-indexeddb)
-8. [Offline Sync System](#offline-sync-system)
-9. [Authentication Flow](#authentication-flow)
-10. [API Integration](#api-integration)
-11. [File Structure](#file-structure)
-12. [Security Architecture](#security-architecture)
+4. [Native Platform Architecture](#native-platform-architecture)
+5. [Data Storage Strategy](#data-storage-strategy)
+6. [Component Hierarchy](#component-hierarchy)
+7. [State Management (Redux)](#state-management-redux)
+8. [Database Schema (IndexedDB)](#database-schema-indexeddb)
+9. [Offline Sync System](#offline-sync-system)
+10. [Authentication Flow](#authentication-flow)
+11. [API Integration](#api-integration)
+12. [Payment Integration](#payment-integration)
+13. [File Structure](#file-structure)
+14. [Security Architecture](#security-architecture)
 
 ---
 
@@ -306,6 +308,153 @@ export function toAppointments(rows: AppointmentRow[]): Appointment[] {
 | **Auto Refresh Token** | Enabled |
 | **Persist Session** | Enabled |
 | **Realtime Rate** | 10 events/second |
+
+---
+
+## Native Platform Architecture
+
+Mango POS supports multiple deployment platforms using a shared React codebase with platform-specific native shells.
+
+### Platform Overview
+
+```mermaid
+flowchart LR
+    subgraph Shared["Shared Codebase (React + TypeScript)"]
+        UI[React Components]
+        Redux[Redux Store]
+        Services[Services Layer]
+    end
+
+    subgraph Platforms["Platform Targets"]
+        Web[Web Browser]
+        iOS[iOS - Capacitor]
+        Android[Android - Capacitor]
+        Desktop[Desktop - Electron]
+    end
+
+    subgraph Native["Native Features"]
+        TTP[Tap to Pay NFC]
+        USB[USB Devices]
+        Print[Receipt Printing]
+    end
+
+    Shared --> Web
+    Shared --> iOS
+    Shared --> Android
+    Shared --> Desktop
+
+    iOS --> TTP
+    Android --> TTP
+    Desktop --> USB
+    iOS --> Print
+    Android --> Print
+    Desktop --> Print
+```
+
+### Capacitor Integration (iOS & Android)
+
+**Capacitor** wraps the React web app in a native iOS/Android shell, enabling access to device-native APIs like NFC for Tap to Pay.
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Web Layer** | React + Vite (WebView) | UI and business logic |
+| **Native Bridge** | Capacitor Core | JavaScript ↔ Native communication |
+| **iOS Native** | Swift/Xcode | FiservTTP SDK, NFC access |
+| **Android Native** | Kotlin/Android Studio | Fiserv TTP SDK, NFC access |
+
+**Project Structure (Future)**:
+```
+capacitor.config.ts        # Capacitor configuration
+ios/                       # iOS Xcode project (generated)
+├── App/
+│   ├── AppDelegate.swift
+│   └── Plugins/
+│       └── FiservTTPPlugin/
+│           ├── FiservTTPPlugin.swift
+│           └── FiservTTPPlugin.m
+android/                   # Android Studio project (generated)
+├── app/src/main/
+│   ├── java/com/mangobiz/pos/
+│   │   └── FiservTTPPlugin.kt
+│   └── res/
+```
+
+**Capacitor Setup Commands**:
+```bash
+npm install @capacitor/core @capacitor/cli
+npx cap init "Mango POS" "com.mangobiz.pos"
+npm install @capacitor/ios @capacitor/android
+npx cap add ios
+npx cap add android
+npm run build && npx cap sync
+```
+
+### Electron Integration (Desktop)
+
+**Electron** packages the React app for desktop deployment with access to USB peripherals.
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Renderer** | React + Vite (Chromium) | UI layer |
+| **Main Process** | Node.js | System access, IPC |
+| **Preload** | Contextual Bridge | Secure API exposure |
+| **Native** | Node.js addons | USB device drivers |
+
+**Project Structure (Future)**:
+```
+electron/
+├── main.ts               # Main process entry
+├── preload.ts            # Secure bridge to renderer
+├── plugins/
+│   ├── UsbDevicePlugin.ts
+│   └── PrinterPlugin.ts
+└── build/
+    └── electron-builder.yml
+```
+
+### Platform Detection Hook
+
+Components can adapt behavior based on current platform:
+
+```typescript
+// src/hooks/usePlatform.ts (Future)
+import { Capacitor } from '@capacitor/core';
+
+export type Platform = 'web' | 'ios' | 'android' | 'electron';
+
+export const usePlatform = () => {
+  const platform: Platform = (() => {
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      return 'electron';
+    }
+    if (Capacitor.isNativePlatform()) {
+      return Capacitor.getPlatform() as 'ios' | 'android';
+    }
+    return 'web';
+  })();
+
+  return {
+    platform,
+    isNative: platform !== 'web',
+    isCapacitor: platform === 'ios' || platform === 'android',
+    isElectron: platform === 'electron',
+    supportsTapToPay: platform === 'ios' || platform === 'android',
+    supportsUsb: platform === 'electron',
+  };
+};
+```
+
+### Platform-Specific Capabilities Matrix
+
+| Capability | Web | iOS | Android | Electron |
+|------------|-----|-----|---------|----------|
+| **Tap to Pay (NFC)** | ❌ | ✅ iPhone XS+ | ✅ NFC-enabled | ❌ |
+| **External Card Reader** | ❌ | Bluetooth | Bluetooth | ✅ USB |
+| **Receipt Printer** | Browser Print | ESC/POS BT/WiFi | ESC/POS BT/WiFi | ESC/POS USB |
+| **Cash Drawer** | ❌ | Via Printer | Via Printer | ✅ Serial/USB |
+| **Barcode Scanner** | Camera | Native/Camera | Native/Camera | ✅ USB HID |
+| **Offline Storage** | IndexedDB | IndexedDB | IndexedDB | IndexedDB + File |
+| **Background Sync** | Service Worker | Background Tasks | Background Tasks | Node.js |
 
 ---
 
@@ -982,6 +1131,111 @@ export const toStaffInsert = (staff: Staff): SupabaseStaffInsert => ({
 
 ---
 
+## Payment Integration
+
+> **Complete Reference:** See [PAYMENT_INTEGRATION.md](./PAYMENT_INTEGRATION.md) for detailed SDK integration, credentials setup, and implementation guide.
+
+### Overview
+
+Mango POS integrates with **Fiserv CommerceHub** for payment processing, enabling **Tap to Pay** (contactless card payments) on iOS and Android devices.
+
+### Payment Processor Chain
+
+```
+CardConnect Account → Fiserv CommerceHub → TSYS Backend
+```
+
+- **CardConnect**: Merchant account and credentials
+- **Fiserv CommerceHub**: Developer portal and SDKs
+- **TSYS**: Payment processor (backend)
+
+### Tap to Pay Technology
+
+| Platform | SDK | Requirements |
+|----------|-----|--------------|
+| **iOS** | FiservTTP (Swift) v1.0.7+ | iPhone XS+, iOS 16.7+ |
+| **Android** | Fiserv TTP (Kotlin) | NFC-enabled, Android 10+ |
+
+### Payment Flow
+
+```mermaid
+sequenceDiagram
+    participant UI as React UI
+    participant Hook as useTapToPay
+    participant Bridge as Capacitor Bridge
+    participant SDK as FiservTTP SDK
+    participant API as Fiserv API
+    participant Processor as TSYS
+
+    UI->>Hook: initiatePayment(amount)
+    Hook->>Bridge: call('FiservTTP.readCard')
+    Bridge->>SDK: readCard()
+    Note over SDK: Phone shows "Ready to Pay"
+    SDK->>SDK: Customer taps card/phone
+    SDK->>API: Send encrypted card data
+    API->>Processor: Process payment
+    Processor-->>API: Authorization response
+    API-->>SDK: Transaction result
+    SDK-->>Bridge: PaymentResult
+    Bridge-->>Hook: Resolve promise
+    Hook-->>UI: Update transaction state
+```
+
+### Integration Architecture
+
+```typescript
+// src/hooks/useTapToPay.ts (Future)
+export const useTapToPay = () => {
+  const { supportsTapToPay } = usePlatform();
+
+  const initiatePayment = async (amount: number): Promise<PaymentResult> => {
+    if (!supportsTapToPay) {
+      throw new Error('Tap to Pay not supported on this platform');
+    }
+
+    // Call native plugin via Capacitor bridge
+    const result = await FiservTTPPlugin.readCard({
+      amount,
+      currency: 'USD',
+      transactionType: 'sale',
+    });
+
+    return {
+      success: result.approved,
+      transactionId: result.transactionId,
+      authCode: result.authCode,
+      cardLast4: result.cardLast4,
+      cardBrand: result.cardBrand,
+    };
+  };
+
+  return { initiatePayment, supportsTapToPay };
+};
+```
+
+### Credentials Required
+
+| Credential | Source | Purpose |
+|------------|--------|---------|
+| **Merchant ID** | CardConnect Portal | Identifies merchant account |
+| **API Key** | Fiserv Developer Portal | API authentication |
+| **API Secret** | Fiserv Developer Portal | API authentication |
+| **Terminal ID** | Fiserv | Identifies the payment device |
+
+### Current Status
+
+| Component | Status |
+|-----------|--------|
+| Payment UI (PaymentModal.tsx) | ✅ Complete |
+| Transaction Types | ✅ Defined |
+| Capacitor Setup | ⏳ Pending |
+| FiservTTP Plugin (iOS) | ⏳ Pending |
+| Fiserv TTP Plugin (Android) | ⏳ Pending |
+| useTapToPay Hook | ⏳ Pending |
+| Production Testing | ⏳ Pending |
+
+---
+
 ## File Structure
 
 ```
@@ -1209,6 +1463,7 @@ class SecureStorage {
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 2.4.0 | Dec 27, 2025 | Engineering | Added Native Platform Architecture (Capacitor, Electron), Payment Integration section (Fiserv CommerceHub Tap to Pay) |
 | 2.3.0 | Dec 2, 2025 | Engineering | Expanded Technology Stack section with full dependencies, versions, and categories |
 | 2.2.0 | Dec 2, 2025 | Engineering | Added dataService pattern, type adapter pattern, Redux integration pattern (Phase 6), updated status to Phase 1-5 Complete |
 | 2.1.0 | Dec 2, 2025 | Engineering | Added Supabase Direct Sync architecture (Phase 1-2), updated architecture diagrams, added Supabase service layer documentation |
@@ -1217,4 +1472,4 @@ class SecureStorage {
 
 ---
 
-*Generated: December 2, 2025*
+*Generated: December 27, 2025*

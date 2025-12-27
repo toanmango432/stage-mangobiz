@@ -30,9 +30,10 @@ export function FloatingActionButton({ onCreateTicket }: FloatingActionButtonPro
   return (
     <button
       onClick={onCreateTicket}
-      className={`fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-orange-500 to-pink-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-out flex items-center justify-center group ${
+      className={`fixed right-6 z-40 w-14 h-14 bg-gradient-to-br from-orange-500 to-pink-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-out flex items-center justify-center group ${
         isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-20 opacity-0 scale-75 pointer-events-none'
       }`}
+      style={{ bottom: 'calc(var(--pending-section-height, 40px) + 24px)' }}
       aria-label="Create new ticket"
       title="Create new ticket"
     >
