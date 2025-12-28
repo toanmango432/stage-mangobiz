@@ -8,6 +8,57 @@ import { Pending } from '../modules/Pending';
 import TicketPanel from '../checkout/TicketPanel';
 import type { StaffMember } from '../checkout/ServiceList';
 
+// =====================
+// CONSTANTS
+// =====================
+const PENDING_SECTION: {
+  MIN_EXPANDED_HEIGHT: number;
+  MAX_EXPANDED_HEIGHT: number;
+  DEFAULT_EXPANDED_HEIGHT: number;
+  COLLAPSED_TICKET_DISPLAY_COUNT: number;
+  EMPTY_STATE_HEIGHT: number;
+  COLLAPSED_HEIGHT: number;
+} = {
+  MIN_EXPANDED_HEIGHT: 200,
+  MAX_EXPANDED_HEIGHT: 600,
+  DEFAULT_EXPANDED_HEIGHT: 300,
+  COLLAPSED_TICKET_DISPLAY_COUNT: 3,
+  EMPTY_STATE_HEIGHT: 36,
+  COLLAPSED_HEIGHT: 100,
+};
+
+const STORAGE_KEYS = {
+  VIEW_MODE: 'pendingFooterViewMode',
+  DISPLAY_MODE: 'pendingFooterDisplayMode',
+  SIDEBAR_WIDTH: 'staffSidebarWidth',
+  CHECKOUT_TICKET: 'checkout-pending-ticket',
+} as const;
+
+// Safe localStorage helper with try-catch
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Silently fail if localStorage is unavailable or quota exceeded
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Silently fail
+    }
+  },
+};
+
 type ViewMode = 'collapsed' | 'expanded' | 'fullView';
 type DisplayMode = 'grid' | 'list';
 
@@ -33,7 +84,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   // Update CSS custom property when sidebar width changes
   useEffect(() => {
     const updateSidebarWidth = () => {
-      const savedWidth = localStorage.getItem('staffSidebarWidth');
+      const savedWidth = safeLocalStorage.getItem(STORAGE_KEYS.SIDEBAR_WIDTH);
       if (savedWidth) {
         document.documentElement.style.setProperty('--staff-sidebar-width', `${savedWidth}px`);
       }
@@ -58,7 +109,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const [viewMode, setViewMode] = useState<ViewMode>('collapsed');
 
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
-    const saved = localStorage.getItem('pendingFooterDisplayMode') as DisplayMode;
+    const saved = safeLocalStorage.getItem(STORAGE_KEYS.DISPLAY_MODE) as DisplayMode;
     return saved === 'list' ? 'list' : 'grid';
   });
 
@@ -68,7 +119,7 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   // Load saved view mode from localStorage (only once, and only if there are tickets)
   useEffect(() => {
     if (!hasRestoredState.current && pendingTickets.length > 0) {
-      const saved = localStorage.getItem('pendingFooterViewMode') as ViewMode;
+      const saved = safeLocalStorage.getItem(STORAGE_KEYS.VIEW_MODE) as ViewMode;
       if (saved && (saved === 'expanded' || saved === 'fullView')) {
         setViewMode(saved);
       }
@@ -80,37 +131,37 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   useEffect(() => {
     if (pendingTickets.length === 0 && viewMode !== 'collapsed') {
       setViewMode('collapsed');
-      localStorage.setItem('pendingFooterViewMode', 'collapsed');
+      safeLocalStorage.setItem(STORAGE_KEYS.VIEW_MODE, 'collapsed');
     }
   }, [pendingTickets.length, viewMode]);
 
   // Save viewMode to localStorage when it changes
   useEffect(() => {
     if (pendingTickets.length > 0) {
-      localStorage.setItem('pendingFooterViewMode', viewMode);
+      safeLocalStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
     }
   }, [viewMode, pendingTickets.length]);
 
   // Save displayMode to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('pendingFooterDisplayMode', displayMode);
+    safeLocalStorage.setItem(STORAGE_KEYS.DISPLAY_MODE, displayMode);
   }, [displayMode]);
 
   // Resizable expanded mode
-  const [expandedHeight, setExpandedHeight] = useState(300); // Default 300px
+  const [expandedHeight, setExpandedHeight] = useState(PENDING_SECTION.DEFAULT_EXPANDED_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartY = useRef(0);
   const resizeStartHeight = useRef(0);
 
   // Update CSS variable for pending section height so FrontDesk can adjust its padding
   useEffect(() => {
-    let height = 36; // Default for "No Pending Payments" footer
+    let height = PENDING_SECTION.EMPTY_STATE_HEIGHT;
 
     if (pendingTickets.length > 0) {
       if (viewMode === 'collapsed') {
-        height = 100; // Two-row layout: header + ticket cards
+        height = PENDING_SECTION.COLLAPSED_HEIGHT;
       } else if (viewMode === 'expanded') {
-        height = expandedHeight; // User-adjustable expanded height
+        height = expandedHeight;
       } else if (viewMode === 'fullView') {
         height = 0; // Full screen overlay, no padding needed
       }
@@ -141,7 +192,10 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const deltaY = resizeStartY.current - e.clientY; // Inverted because we're growing upward
-      const newHeight = Math.max(200, Math.min(600, resizeStartHeight.current + deltaY));
+      const newHeight = Math.max(
+        PENDING_SECTION.MIN_EXPANDED_HEIGHT,
+        Math.min(PENDING_SECTION.MAX_EXPANDED_HEIGHT, resizeStartHeight.current + deltaY)
+      );
       setExpandedHeight(newHeight);
     };
 
@@ -182,14 +236,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const handleTicketClick = (ticket: typeof pendingTickets[0], e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering parent click handlers
     // Store ticket in localStorage for TicketPanel to load
-    localStorage.setItem('checkout-pending-ticket', JSON.stringify(ticket));
+    safeLocalStorage.setItem(STORAGE_KEYS.CHECKOUT_TICKET, JSON.stringify(ticket));
     setIsCheckoutPanelOpen(true);
   };
 
   // Close checkout panel
   const handleCloseCheckoutPanel = () => {
     setIsCheckoutPanelOpen(false);
-    localStorage.removeItem('checkout-pending-ticket');
+    safeLocalStorage.removeItem(STORAGE_KEYS.CHECKOUT_TICKET);
   };
 
   // ====================
@@ -221,6 +275,8 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
     return (
       <>
         <div
+          role="region"
+          aria-label="Pending payments section"
           className="fixed bottom-0 right-0 bg-gradient-to-r from-amber-50 to-yellow-50 border-t-2 border-amber-400 shadow-2xl z-40"
           style={{
             left: 'var(--staff-sidebar-width)'
@@ -229,7 +285,9 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
           {/* Row 1: Clickable Header - entire row is clickable to expand */}
           <button
             onClick={toggleCollapsedExpanded}
-            className="w-full flex items-center justify-between px-4 py-2 hover:bg-amber-100/50 transition-colors cursor-pointer border-b border-amber-200/50"
+            aria-expanded="false"
+            aria-label={`Expand pending payments section. ${pendingTickets.length} pending payments totaling $${totalAmount.toFixed(2)}`}
+            className="w-full flex items-center justify-between px-4 py-2 hover:bg-amber-100/50 transition-colors cursor-pointer border-b border-amber-200/50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-inset"
           >
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -241,29 +299,30 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                   </span>
                 </div>
                 <div className="p-2 bg-amber-400 rounded-lg shadow-md">
-                  <Receipt size={18} className="text-white" />
+                  <Receipt size={18} className="text-white" aria-hidden="true" />
                 </div>
               </div>
               <div className="text-left">
-                <div className="text-amber-900 font-bold text-sm">
-                  Pending Payments
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-900 font-bold text-sm">Pending Payments</span>
+                  <ChevronUp size={18} className="text-amber-600" aria-hidden="true" />
                 </div>
                 <div className="text-amber-700 text-xs font-semibold">
                   Total: ${totalAmount.toFixed(2)}
                 </div>
               </div>
             </div>
-            <ChevronUp size={20} className="text-amber-600" />
           </button>
 
           {/* Row 2: Ticket cards */}
           <div className="w-full flex items-center px-4 py-2 gap-3 overflow-x-auto">
-            {/* Show first 3 tickets as clickable cards */}
-            {pendingTickets.slice(0, 3).map((ticket) => (
+            {/* Show first N tickets as clickable cards */}
+            {pendingTickets.slice(0, PENDING_SECTION.COLLAPSED_TICKET_DISPLAY_COUNT).map((ticket) => (
               <button
                 key={ticket.id}
                 onClick={(e) => handleTicketClick(ticket, e)}
-                className="group relative px-4 py-2 bg-white rounded-xl shadow-lg border-2 border-amber-300 hover:border-amber-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 flex-shrink-0 min-w-[180px]"
+                aria-label={`Open ticket ${ticket.number} for ${ticket.clientName}, $${(ticket.subtotal + ticket.tax + ticket.tip).toFixed(2)}`}
+                className="group relative px-4 py-2 bg-white rounded-xl shadow-lg border-2 border-amber-300 hover:border-amber-500 hover:shadow-xl transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 flex-shrink-0 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-amber-400"
               >
                 {/* Static corner indicator */}
                 <div className="absolute -top-1.5 -right-1.5">
@@ -292,12 +351,13 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
             ))}
 
             {/* "+X more" indicator */}
-            {pendingTickets.length > 3 && (
+            {pendingTickets.length > PENDING_SECTION.COLLAPSED_TICKET_DISPLAY_COUNT && (
               <button
                 onClick={toggleCollapsedExpanded}
-                className="flex-shrink-0 px-3 py-2 bg-amber-100 hover:bg-amber-200 rounded-xl border-2 border-amber-300 text-amber-900 text-sm font-bold transition-all hover:scale-105 shadow-md hover:shadow-lg min-w-[100px] text-center"
+                aria-label={`Show ${pendingTickets.length - PENDING_SECTION.COLLAPSED_TICKET_DISPLAY_COUNT} more pending tickets`}
+                className="flex-shrink-0 px-3 py-2 bg-amber-100 hover:bg-amber-200 rounded-xl border-2 border-amber-300 text-amber-900 text-sm font-bold transition-all hover:scale-105 shadow-md hover:shadow-lg min-w-[100px] text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
               >
-                +{pendingTickets.length - 3} more
+                +{pendingTickets.length - PENDING_SECTION.COLLAPSED_TICKET_DISPLAY_COUNT} more
               </button>
             )}
           </div>
@@ -321,6 +381,8 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   if (viewMode === 'expanded') {
     return (
       <div
+        role="region"
+        aria-label="Pending payments section - expanded"
         className="fixed bottom-0 right-0 bg-white border-t-2 border-amber-400 shadow-2xl z-40 flex flex-col"
         style={{
           height: `${expandedHeight}px`,
@@ -329,7 +391,13 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
       >
         {/* Resize Handle */}
         <div
-          className={`h-2 bg-gradient-to-b from-amber-100 to-amber-200 cursor-ns-resize hover:bg-amber-300 transition-colors ${isResizing ? 'bg-amber-400' : ''}`}
+          role="slider"
+          aria-label="Resize pending section"
+          aria-valuenow={expandedHeight}
+          aria-valuemin={PENDING_SECTION.MIN_EXPANDED_HEIGHT}
+          aria-valuemax={PENDING_SECTION.MAX_EXPANDED_HEIGHT}
+          tabIndex={0}
+          className={`h-2 bg-gradient-to-b from-amber-100 to-amber-200 cursor-ns-resize hover:bg-amber-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${isResizing ? 'bg-amber-400' : ''}`}
           onMouseDown={handleResizeStart}
         >
           <div className="w-full h-full flex items-center justify-center">
@@ -342,49 +410,57 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
           {/* Clickable area to collapse */}
           <button
             onClick={toggleCollapsedExpanded}
-            className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-amber-100/50 transition-colors cursor-pointer"
+            aria-expanded="true"
+            aria-label={`Collapse pending payments section. ${pendingTickets.length} pending payments totaling $${totalAmount.toFixed(2)}`}
+            className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-amber-100/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-inset"
           >
             <div className="p-2 bg-amber-400 rounded-lg shadow-sm">
-              <Receipt size={20} className="text-white" />
+              <Receipt size={20} className="text-white" aria-hidden="true" />
             </div>
             <div className="text-left">
-              <div className="text-amber-900 font-bold text-base">
-                Pending Payments ({pendingTickets.length})
+              <div className="flex items-center gap-2">
+                <span className="text-amber-900 font-bold text-base">
+                  Pending Payments ({pendingTickets.length})
+                </span>
+                <ChevronDown size={20} className="text-amber-600" aria-hidden="true" />
               </div>
               <div className="text-amber-700 text-sm">
                 Total: ${totalAmount.toFixed(2)}
               </div>
             </div>
-            <ChevronDown size={20} className="text-amber-600 ml-2" />
           </button>
 
           {/* Controls - not part of clickable area */}
-          <div className="flex items-center gap-2 px-4 py-3">
+          <div className="flex items-center gap-2 px-4 py-3" role="group" aria-label="View controls">
             {/* Grid/List Toggle */}
-            <div className="flex items-center gap-1 bg-white rounded-lg border border-amber-200 p-1">
+            <div className="flex items-center gap-1 bg-white rounded-lg border border-amber-200 p-1" role="radiogroup" aria-label="Display mode">
               <button
                 onClick={() => setDisplayMode('grid')}
-                className={`p-1.5 rounded ${displayMode === 'grid' ? 'bg-amber-400 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                title="Grid View"
+                role="radio"
+                aria-checked={displayMode === 'grid'}
+                aria-label="Grid view"
+                className={`p-1.5 rounded focus:outline-none focus:ring-2 focus:ring-amber-400 ${displayMode === 'grid' ? 'bg-amber-400 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
               >
-                <Grid size={16} />
+                <Grid size={16} aria-hidden="true" />
               </button>
               <button
                 onClick={() => setDisplayMode('list')}
-                className={`p-1.5 rounded ${displayMode === 'list' ? 'bg-amber-400 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                title="List View"
+                role="radio"
+                aria-checked={displayMode === 'list'}
+                aria-label="List view"
+                className={`p-1.5 rounded focus:outline-none focus:ring-2 focus:ring-amber-400 ${displayMode === 'list' ? 'bg-amber-400 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
               >
-                <List size={16} />
+                <List size={16} aria-hidden="true" />
               </button>
             </div>
 
             {/* Full View Button */}
             <button
               onClick={openFullView}
-              className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
-              title="Full View"
+              aria-label="Open full view"
+              className="p-2 hover:bg-amber-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              <Maximize2 size={18} className="text-amber-600" />
+              <Maximize2 size={18} className="text-amber-600" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -401,14 +477,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                   onMarkPaid={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
-                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      safeLocalStorage.setItem(STORAGE_KEYS.CHECKOUT_TICKET, JSON.stringify(t));
                       setIsCheckoutPanelOpen(true);
                     }
                   }}
                   onClick={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
-                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      safeLocalStorage.setItem(STORAGE_KEYS.CHECKOUT_TICKET, JSON.stringify(t));
                       setIsCheckoutPanelOpen(true);
                     }
                   }}
@@ -425,14 +501,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                   onMarkPaid={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
-                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      safeLocalStorage.setItem(STORAGE_KEYS.CHECKOUT_TICKET, JSON.stringify(t));
                       setIsCheckoutPanelOpen(true);
                     }
                   }}
                   onClick={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
-                      localStorage.setItem('checkout-pending-ticket', JSON.stringify(t));
+                      safeLocalStorage.setItem(STORAGE_KEYS.CHECKOUT_TICKET, JSON.stringify(t));
                       setIsCheckoutPanelOpen(true);
                     }
                   }}
@@ -459,15 +535,20 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   // ====================
   if (viewMode === 'fullView') {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-white">
+      <div
+        role="dialog"
+        aria-label="Pending payments full view"
+        aria-modal="true"
+        className="fixed inset-0 z-50 flex flex-col bg-white"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b-2 border-amber-400 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-400 rounded-lg shadow-sm">
-              <Receipt size={24} className="text-white" />
+              <Receipt size={24} className="text-white" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-amber-900 font-bold text-xl">Pending Payments</h2>
+              <h2 id="pending-full-view-title" className="text-amber-900 font-bold text-xl">Pending Payments</h2>
               <p className="text-amber-700 text-sm">
                 {pendingTickets.length} ticket{pendingTickets.length !== 1 ? 's' : ''} • Total: ${totalAmount.toFixed(2)}
               </p>
@@ -476,10 +557,10 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
 
           <button
             onClick={closeFullView}
-            className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
-            title="Close Full View"
+            aria-label="Close full view"
+            className="p-2 hover:bg-amber-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
-            <X size={24} className="text-amber-600" />
+            <X size={24} className="text-amber-600" aria-hidden="true" />
           </button>
         </div>
 
