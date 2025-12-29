@@ -76,8 +76,8 @@ export function EditAppointmentModal({
     const updatedAppointment: LocalAppointment = {
       ...appointment,
       staffId,
-      scheduledStartTime: newStartTime,
-      scheduledEndTime: newEndTime,
+      scheduledStartTime: newStartTime.toISOString(),
+      scheduledEndTime: newEndTime.toISOString(),
     };
 
     const detectedConflicts = detectAppointmentConflicts(
@@ -133,8 +133,8 @@ export function EditAppointmentModal({
         clientName,
         clientPhone,
         staffId,
-        scheduledStartTime: newStartTime,
-        scheduledEndTime: newEndTime,
+        scheduledStartTime: newStartTime.toISOString(),
+        scheduledEndTime: newEndTime.toISOString(),
         notes,
       };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
 import { BottomNavBar } from './BottomNavBar';
 import { Book } from '../modules/Book';
@@ -11,6 +11,7 @@ import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import type { StaffMember } from '../checkout/ServiceList';
 import { ClosedTickets } from '../modules/ClosedTickets';
 import { More } from '../modules/More';
+import { TicketPanelProvider, useTicketPanel } from '../../contexts/TicketPanelContext';
 
 // Lazy load less frequently used modules to reduce initial bundle size
 const TransactionRecords = lazy(() => import('../modules/TransactionRecords').then(m => ({ default: m.TransactionRecords })));
@@ -22,8 +23,10 @@ const LicenseSettings = lazy(() => import('../licensing/LicenseSettings').then(m
 const MenuSettings = lazy(() => import('../menu-settings').then(m => ({ default: m.MenuSettings })));
 const TeamSettings = lazy(() => import('../team-settings').then(m => ({ default: m.TeamSettings })));
 const RoleSettings = lazy(() => import('../role-settings').then(m => ({ default: m.RoleSettings })));
-const DeviceSettings = lazy(() => import('../device').then(m => ({ default: m.DeviceSettings })));
+// DeviceSettings removed - local-first architecture, no device mode toggle needed
 const ClientSettings = lazy(() => import('../client-settings').then(m => ({ default: m.ClientSettings })));
+const StoreSettings = lazy(() => import('../modules/StoreSettings').then(m => ({ default: m.StoreSettings })));
+const SettingsPage = lazy(() => import('../modules/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -50,7 +53,17 @@ import { AnnouncementBanner } from '../AnnouncementBanner';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 
+// Main AppShell wraps with TicketPanelProvider
 export function AppShell() {
+  return (
+    <TicketPanelProvider>
+      <AppShellContent />
+    </TicketPanelProvider>
+  );
+}
+
+// Inner component that uses the context
+function AppShellContent() {
   // Mobile/tablet detection for responsive navigation
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const showBottomNav = isMobile || isTablet;
@@ -64,18 +77,9 @@ export function AppShell() {
   });
   const [isInitialized, setIsInitialized] = useState(false);
   const [showFrontDeskSettings, setShowFrontDeskSettings] = useState(false);
-  const [isTicketPanelOpen, setIsTicketPanelOpen] = useState(false);
 
-  // Callback for opening ticket panel - passed to TopHeaderBar
-  const handleOpenTicketPanel = useCallback(() => {
-    localStorage.removeItem('checkout-pending-ticket');
-    setIsTicketPanelOpen(true);
-  }, []);
-
-  const handleCloseTicketPanel = useCallback(() => {
-    setIsTicketPanelOpen(false);
-    localStorage.removeItem('checkout-pending-ticket');
-  }, []);
+  // Use the TicketPanelContext for ticket panel state
+  const { isOpen: isTicketPanelOpen, openTicketPanel, closeTicketPanel } = useTicketPanel();
 
   // Get staff from Redux for TicketPanel
   const staffFromRedux = useAppSelector(selectAllStaff);
@@ -353,12 +357,15 @@ export function AppShell() {
         return <Suspense fallback={<ModuleLoader />}><TeamSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'role-settings':
         return <Suspense fallback={<ModuleLoader />}><RoleSettings onBack={() => setActiveModule('more')} /></Suspense>;
+      case 'store-settings':
+        return <Suspense fallback={<ModuleLoader />}><StoreSettings onBack={() => setActiveModule('more')} /></Suspense>;
+      case 'settings':
+        return <Suspense fallback={<ModuleLoader />}><SettingsPage onBack={() => setActiveModule('more')} /></Suspense>;
       case 'frontdesk-settings':
         return <FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
           if (!show) setActiveModule('more');
         }} />;
-      case 'devices':
-        return <Suspense fallback={<ModuleLoader />}><DeviceSettings onBack={() => setActiveModule('more')} /></Suspense>;
+      // 'devices' case removed - local-first architecture, no device settings needed
       default:
         return <FrontDesk />;
     }
@@ -395,7 +402,7 @@ export function AppShell() {
         activeModule={activeModule}
         onModuleChange={setActiveModule}
         hideNavigation={showBottomNav}
-        onOpenTicketPanel={handleOpenTicketPanel}
+        onOpenTicketPanel={openTicketPanel}
       />
 
       {/* Main Content Area - responsive padding for header height (h-12 mobile, h-16 desktop) */}
@@ -415,7 +422,7 @@ export function AppShell() {
       {/* Global Ticket Panel - TicketPanel handles its own backdrop and positioning */}
       <TicketPanel
         isOpen={isTicketPanelOpen}
-        onClose={handleCloseTicketPanel}
+        onClose={closeTicketPanel}
         staffMembers={staffMembers}
       />
     </div>

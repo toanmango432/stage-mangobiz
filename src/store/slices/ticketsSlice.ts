@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
-import { toTicket, toTickets } from '../../services/supabase';
+// toTicket/toTickets not needed - dataService returns converted types
 import type { Ticket, CreateTicketInput, TicketService } from '../../types';
 import type { ServiceStatus, ServiceStatusChange } from '../../types/common';
 import type { RootState } from '../index';
@@ -32,8 +32,8 @@ const initialState: TicketsState = {
 export const fetchTicketsByDateFromSupabase = createAsyncThunk(
   'tickets/fetchByDateFromSupabase',
   async (date: Date) => {
-    const rows = await dataService.tickets.getByDate(date);
-    return toTickets(rows);
+    // dataService already returns Ticket[] (converted)
+    return await dataService.tickets.getByDate(date);
   }
 );
 
@@ -44,8 +44,8 @@ export const fetchTicketsByDateFromSupabase = createAsyncThunk(
 export const fetchOpenTicketsFromSupabase = createAsyncThunk(
   'tickets/fetchOpenFromSupabase',
   async () => {
-    const rows = await dataService.tickets.getOpenTickets();
-    return toTickets(rows);
+    // dataService already returns Ticket[] (converted)
+    return await dataService.tickets.getOpenTickets();
   }
 );
 
@@ -55,9 +55,10 @@ export const fetchOpenTicketsFromSupabase = createAsyncThunk(
 export const fetchTicketByIdFromSupabase = createAsyncThunk(
   'tickets/fetchByIdFromSupabase',
   async (ticketId: string) => {
-    const row = await dataService.tickets.getById(ticketId);
-    if (!row) throw new Error('Ticket not found');
-    return toTicket(row);
+    // dataService already returns Ticket (converted)
+    const ticket = await dataService.tickets.getById(ticketId);
+    if (!ticket) throw new Error('Ticket not found');
+    return ticket;
   }
 );
 
@@ -81,48 +82,8 @@ export const createTicketInSupabase = createAsyncThunk(
         return rejectWithValue(validation.error || 'Validation failed');
       }
 
-      // Import the adapter function for conversion
-      const { toTicketInsert, toTicket: convertToTicket } = await import('../../services/supabase');
-
-      // Build the ticket data
-      const ticketData = {
-        salonId: '', // Will be filled by dataService
-        appointmentId: input.appointmentId,
-        clientId: input.clientId,
-        clientName: input.clientName,
-        clientPhone: input.clientPhone,
-        services: input.services.map(s => ({
-          serviceId: s.serviceId,
-          serviceName: s.serviceName,
-          name: s.serviceName,
-          staffId: s.staffId,
-          staffName: s.staffName,
-          price: s.price,
-          duration: s.duration,
-          commission: s.commission,
-          startTime: s.startTime,
-          endTime: s.endTime,
-          status: s.status || 'not_started' as ServiceStatus,
-          statusHistory: [] as ServiceStatusChange[],
-          totalPausedDuration: 0,
-        })),
-        products: input.products || [],
-        status: 'pending' as const,
-        subtotal: input.services.reduce((sum, s) => sum + s.price, 0),
-        discount: 0,
-        tax: 0,
-        tip: 0,
-        total: input.services.reduce((sum, s) => sum + s.price, 0),
-        payments: [],
-        createdBy: 'system',
-        lastModifiedBy: 'system',
-        syncStatus: 'synced' as const,
-        source: input.source,
-      };
-
-      const insertData = toTicketInsert(ticketData as any);
-      const row = await dataService.tickets.create(insertData);
-      return convertToTicket(row);
+      // dataService.tickets.create returns Ticket directly
+      return await dataService.tickets.create(input);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create ticket');
     }
@@ -136,10 +97,9 @@ export const updateTicketInSupabase = createAsyncThunk(
   'tickets/updateInSupabase',
   async ({ id, updates }: { id: string; updates: Partial<Ticket> }, { rejectWithValue }) => {
     try {
-      const { toTicketUpdate, toTicket: convertToTicket } = await import('../../services/supabase');
-      const updateData = toTicketUpdate(updates);
-      const row = await dataService.tickets.update(id, updateData);
-      return convertToTicket(row);
+      // dataService.tickets.update returns Ticket directly
+      const updated = await dataService.tickets.update(id, updates);
+      return updated;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to update ticket');
     }
@@ -153,9 +113,8 @@ export const updateTicketStatusInSupabase = createAsyncThunk(
   'tickets/updateStatusInSupabase',
   async ({ id, status }: { id: string; status: string }, { rejectWithValue }) => {
     try {
-      const { toTicket: convertToTicket } = await import('../../services/supabase');
-      const row = await dataService.tickets.updateStatus(id, status);
-      return convertToTicket(row);
+      // dataService.tickets.updateStatus returns Ticket directly
+      return await dataService.tickets.updateStatus(id, status);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to update ticket status');
     }
@@ -169,9 +128,8 @@ export const completeTicketInSupabase = createAsyncThunk(
   'tickets/completeInSupabase',
   async ({ id, payments }: { id: string; payments: unknown[] }, { rejectWithValue }) => {
     try {
-      const { toTicket: convertToTicket } = await import('../../services/supabase');
-      const row = await dataService.tickets.complete(id, payments);
-      return convertToTicket(row);
+      // dataService.tickets.complete returns Ticket directly
+      return await dataService.tickets.complete(id, payments);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to complete ticket');
     }
@@ -215,15 +173,11 @@ export const updateServiceStatusInSupabase = createAsyncThunk(
     reason?: string;
   }, { rejectWithValue }) => {
     try {
-      const { toTicket: convertToTicket, toTicketUpdate } = await import('../../services/supabase');
-
-      // Get current ticket
-      const row = await dataService.tickets.getById(ticketId);
-      if (!row) {
+      // dataService already returns Ticket directly
+      const ticket = await dataService.tickets.getById(ticketId);
+      if (!ticket) {
         return rejectWithValue('Ticket not found');
       }
-
-      const ticket = convertToTicket(row);
 
       // Find the service
       const serviceIndex = ticket.services.findIndex(s => s.serviceId === serviceId);
@@ -286,11 +240,8 @@ export const updateServiceStatusInSupabase = createAsyncThunk(
       const updatedServices = [...ticket.services];
       updatedServices[serviceIndex] = { ...service, ...serviceUpdates };
 
-      // Update ticket in Supabase
-      const updateData = toTicketUpdate({ services: updatedServices });
-      const updatedRow = await dataService.tickets.update(ticketId, updateData);
-
-      return convertToTicket(updatedRow);
+      // dataService.tickets.update returns Ticket directly
+      return await dataService.tickets.update(ticketId, { services: updatedServices });
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to update service status');
     }
@@ -675,16 +626,18 @@ const ticketsSlice = createSlice({
       })
       .addCase(updateTicketInSupabase.fulfilled, (state, action) => {
         state.loading = false;
+        if (!action.payload) return;
+        const updatedTicket = action.payload;
         const updateTicketInArray = (arr: Ticket[]) => {
-          const index = arr.findIndex(t => t.id === action.payload.id);
+          const index = arr.findIndex(t => t.id === updatedTicket.id);
           if (index !== -1) {
-            arr[index] = action.payload;
+            arr[index] = updatedTicket;
           }
         };
         updateTicketInArray(state.items);
         updateTicketInArray(state.activeTickets);
-        if (state.selectedTicket?.id === action.payload.id) {
-          state.selectedTicket = action.payload;
+        if (state.selectedTicket?.id === updatedTicket.id) {
+          state.selectedTicket = updatedTicket;
         }
       })
       .addCase(updateTicketInSupabase.rejected, (state, action) => {
@@ -700,16 +653,18 @@ const ticketsSlice = createSlice({
       })
       .addCase(updateTicketStatusInSupabase.fulfilled, (state, action) => {
         state.loading = false;
+        if (!action.payload) return;
+        const updatedTicket = action.payload;
         const updateTicketInArray = (arr: Ticket[]) => {
-          const index = arr.findIndex(t => t.id === action.payload.id);
+          const index = arr.findIndex(t => t.id === updatedTicket.id);
           if (index !== -1) {
-            arr[index] = action.payload;
+            arr[index] = updatedTicket;
           }
         };
         updateTicketInArray(state.items);
         updateTicketInArray(state.activeTickets);
-        if (state.selectedTicket?.id === action.payload.id) {
-          state.selectedTicket = action.payload;
+        if (state.selectedTicket?.id === updatedTicket.id) {
+          state.selectedTicket = updatedTicket;
         }
       })
       .addCase(updateTicketStatusInSupabase.rejected, (state, action) => {
@@ -725,14 +680,16 @@ const ticketsSlice = createSlice({
       })
       .addCase(completeTicketInSupabase.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.items.findIndex(t => t.id === action.payload.id);
+        if (!action.payload) return;
+        const completedTicket = action.payload;
+        const index = state.items.findIndex(t => t.id === completedTicket.id);
         if (index !== -1) {
-          state.items[index] = action.payload;
+          state.items[index] = completedTicket;
         }
         // Remove from active tickets since it's completed
-        state.activeTickets = state.activeTickets.filter(t => t.id !== action.payload.id);
-        if (state.selectedTicket?.id === action.payload.id) {
-          state.selectedTicket = action.payload;
+        state.activeTickets = state.activeTickets.filter(t => t.id !== completedTicket.id);
+        if (state.selectedTicket?.id === completedTicket.id) {
+          state.selectedTicket = completedTicket;
         }
       })
       .addCase(completeTicketInSupabase.rejected, (state, action) => {
@@ -767,16 +724,18 @@ const ticketsSlice = createSlice({
       })
       .addCase(updateServiceStatusInSupabase.fulfilled, (state, action) => {
         state.loading = false;
+        if (!action.payload) return;
+        const updatedTicket = action.payload;
         const updateTicketInArray = (arr: Ticket[]) => {
-          const index = arr.findIndex(t => t.id === action.payload.id);
+          const index = arr.findIndex(t => t.id === updatedTicket.id);
           if (index !== -1) {
-            arr[index] = action.payload;
+            arr[index] = updatedTicket;
           }
         };
         updateTicketInArray(state.items);
         updateTicketInArray(state.activeTickets);
-        if (state.selectedTicket?.id === action.payload.id) {
-          state.selectedTicket = action.payload;
+        if (state.selectedTicket?.id === updatedTicket.id) {
+          state.selectedTicket = updatedTicket;
         }
       })
       .addCase(updateServiceStatusInSupabase.rejected, (state, action) => {

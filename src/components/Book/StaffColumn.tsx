@@ -10,6 +10,7 @@ import { TimeSlot as TimeSlotType } from '../../utils/timeUtils';
 import { AppointmentCard } from './AppointmentCard';
 import { calculateAppointmentTop, calculateAppointmentHeight } from '../../utils/timeUtils';
 import { PIXELS_PER_15_MINUTES } from '../../constants/appointment';
+import { localTimeToUTC } from '../../utils/dateUtils';
 
 interface StaffColumnProps {
   staffId: string;
@@ -38,9 +39,11 @@ export const StaffColumn = memo(function StaffColumn({
   // Calculate positions for all appointments
   const positionedAppointments = useMemo(() => {
     return appointments.map(apt => {
-      const startSeconds = Math.floor(apt.scheduledStartTime.getTime() / 1000) % 86400;
+      const startTime = new Date(apt.scheduledStartTime);
+      const endTime = new Date(apt.scheduledEndTime);
+      const startSeconds = Math.floor(startTime.getTime() / 1000) % 86400;
       const durationMinutes = Math.round(
-        (apt.scheduledEndTime.getTime() - apt.scheduledStartTime.getTime()) / 60000
+        (endTime.getTime() - startTime.getTime()) / 60000
       );
 
       // Find the base time slot
@@ -98,10 +101,11 @@ export const StaffColumn = memo(function StaffColumn({
     if (!targetSlot) return;
 
     // Calculate the new time based on the selected date and slot
-    const newTime = new Date(selectedDate);
+    // Use timezone-aware conversion for proper UTC storage
     const hours = Math.floor(targetSlot.timeInSeconds / 3600);
     const minutes = Math.floor((targetSlot.timeInSeconds % 3600) / 60);
-    newTime.setHours(hours, minutes, 0, 0);
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    const newTime = new Date(localTimeToUTC(selectedDate, timeString));
 
     // Call the drop handler
     onAppointmentDrop(appointmentId, staffId, newTime);

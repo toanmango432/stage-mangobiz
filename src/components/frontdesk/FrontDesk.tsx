@@ -111,15 +111,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const setCombinedMinimizedLineView = useCallback((value: boolean) => {
     dispatch(setCombinedMinimizedLineViewAction(value));
   }, [dispatch]);
-  // Navigate to checkout for creating new ticket
-  const navigateToCheckout = useCallback(() => {
-    // Set flag for Checkout to auto-open the panel for new ticket
-    localStorage.setItem('checkout-auto-open', 'new');
-    // Clear any stored pending ticket to start fresh
-    localStorage.removeItem('checkout-pending-ticket');
-    // Dispatch event for AppShell to navigate
-    window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: 'checkout' }));
-  }, []);
+
   // Add state for the salon center settings (use external state if provided)
   const [internalShowSettings, internalSetShowSettings] = useState(false);
   const showFrontDeskSettings = externalShowSettings !== undefined ? externalShowSettings : internalShowSettings;
@@ -194,7 +186,7 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     const waitSecondary = avgWaitTime > 0 ? `${avgWaitTime}m avg` : undefined;
     const hasLongWait = waitlist.some(t => {
       const waitMs = Date.now() - new Date(t.createdAt).getTime();
-      return waitMs > 20 * 60 * 1000; // > 20 min
+      return waitMs > 10 * 60 * 1000; // > 10 min triggers urgent indicator
     });
 
     // Coming appointments metrics - from real appointments data

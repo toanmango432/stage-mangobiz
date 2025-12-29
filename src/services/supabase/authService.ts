@@ -66,9 +66,17 @@ export class AuthError extends Error {
 
 const STORE_SESSION_KEY = 'mango_store_session';
 const MEMBER_SESSION_KEY = 'mango_member_session';
+const STORE_SESSION_TIMESTAMP_KEY = 'mango_store_session_timestamp';
+const MEMBER_SESSION_TIMESTAMP_KEY = 'mango_member_session_timestamp';
+
+// Grace periods for cached sessions (LOCAL-FIRST)
+const STORE_SESSION_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days
+const MEMBER_SESSION_GRACE_PERIOD = 24 * 60 * 60 * 1000; // 24 hours
+const LOGIN_TIMEOUT = 10000; // 10 seconds
 
 function saveStoreSession(session: StoreSession): void {
   localStorage.setItem(STORE_SESSION_KEY, JSON.stringify(session));
+  localStorage.setItem(STORE_SESSION_TIMESTAMP_KEY, Date.now().toString());
 }
 
 function loadStoreSession(): StoreSession | null {
@@ -76,12 +84,25 @@ function loadStoreSession(): StoreSession | null {
   return data ? JSON.parse(data) : null;
 }
 
+function getStoreSessionTimestamp(): number | null {
+  const timestamp = localStorage.getItem(STORE_SESSION_TIMESTAMP_KEY);
+  return timestamp ? parseInt(timestamp, 10) : null;
+}
+
+function isStoreSessionValid(): boolean {
+  const timestamp = getStoreSessionTimestamp();
+  if (!timestamp) return false;
+  return Date.now() - timestamp < STORE_SESSION_GRACE_PERIOD;
+}
+
 function clearStoreSession(): void {
   localStorage.removeItem(STORE_SESSION_KEY);
+  localStorage.removeItem(STORE_SESSION_TIMESTAMP_KEY);
 }
 
 function saveMemberSession(session: MemberSession): void {
   localStorage.setItem(MEMBER_SESSION_KEY, JSON.stringify(session));
+  localStorage.setItem(MEMBER_SESSION_TIMESTAMP_KEY, Date.now().toString());
 }
 
 function loadMemberSession(): MemberSession | null {
@@ -89,8 +110,125 @@ function loadMemberSession(): MemberSession | null {
   return data ? JSON.parse(data) : null;
 }
 
+function getMemberSessionTimestamp(): number | null {
+  const timestamp = localStorage.getItem(MEMBER_SESSION_TIMESTAMP_KEY);
+  return timestamp ? parseInt(timestamp, 10) : null;
+}
+
+function isMemberSessionValid(): boolean {
+  const timestamp = getMemberSessionTimestamp();
+  if (!timestamp) return false;
+  return Date.now() - timestamp < MEMBER_SESSION_GRACE_PERIOD;
+}
+
 function clearMemberSession(): void {
   localStorage.removeItem(MEMBER_SESSION_KEY);
+  localStorage.removeItem(MEMBER_SESSION_TIMESTAMP_KEY);
+}
+
+// ==================== TIMEOUT WRAPPER (LOCAL-FIRST) ====================
+
+/**
+ * Wrap a promise with a timeout
+ * LOCAL-FIRST: Fail fast on slow networks
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number = LOGIN_TIMEOUT): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new AuthError('Request timeout', 'NETWORK_ERROR')), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
+// ==================== CACHED-FIRST LOGIN (LOCAL-FIRST) ====================
+
+/**
+ * Get cached store session if valid
+ * LOCAL-FIRST: Returns cached session if within grace period
+ */
+export function getCachedStoreSession(): { session: StoreSession; isValid: boolean } | null {
+  const session = loadStoreSession();
+  if (!session) return null;
+  return { session, isValid: isStoreSessionValid() };
+}
+
+/**
+ * Get cached member session if valid
+ * LOCAL-FIRST: Returns cached session if within grace period
+ */
+export function getCachedMemberSession(): { session: MemberSession; isValid: boolean } | null {
+  const session = loadMemberSession();
+  if (!session) return null;
+  return { session, isValid: isMemberSessionValid() };
+}
+
+/**
+ * Validate store session in background (non-blocking)
+ * LOCAL-FIRST: Fires and forgets - doesn't block login
+ */
+export function validateStoreSessionInBackground(storeId: string): void {
+  // Don't await - fire and forget
+  validateStoreSession(storeId)
+    .then(isValid => {
+      if (!isValid) {
+        console.warn('[AuthService] Store session invalidated by server');
+        // Mark session as invalid - will force re-login next time
+        localStorage.setItem('mango_session_invalid', 'true');
+      } else {
+        // Update timestamp on successful validation
+        localStorage.setItem(STORE_SESSION_TIMESTAMP_KEY, Date.now().toString());
+        localStorage.removeItem('mango_session_invalid');
+      }
+    })
+    .catch(() => {
+      // Network error - ignore, keep using cached session
+      console.log('[AuthService] Background validation failed (network) - using cached session');
+    });
+}
+
+/**
+ * Validate member session in background (non-blocking)
+ * LOCAL-FIRST: Fires and forgets - doesn't block login
+ */
+export function validateMemberSessionInBackground(memberId: string): void {
+  // Don't await - fire and forget
+  validateMemberSession(memberId)
+    .then(isValid => {
+      if (!isValid) {
+        console.warn('[AuthService] Member session invalidated by server');
+        // Mark as invalid - will require re-login
+        localStorage.setItem('mango_member_invalid', 'true');
+      } else {
+        // Update timestamp on successful validation
+        localStorage.setItem(MEMBER_SESSION_TIMESTAMP_KEY, Date.now().toString());
+        localStorage.removeItem('mango_member_invalid');
+      }
+    })
+    .catch(() => {
+      // Network error - ignore, keep using cached session
+      console.log('[AuthService] Background member validation failed (network) - using cached session');
+    });
+}
+
+/**
+ * Check if session was marked as invalid by background validation
+ */
+export function isSessionMarkedInvalid(): boolean {
+  return localStorage.getItem('mango_session_invalid') === 'true';
+}
+
+/**
+ * Check if member session was marked as invalid by background validation
+ */
+export function isMemberMarkedInvalid(): boolean {
+  return localStorage.getItem('mango_member_invalid') === 'true';
+}
+
+/**
+ * Clear invalid session markers
+ */
+export function clearInvalidMarkers(): void {
+  localStorage.removeItem('mango_session_invalid');
+  localStorage.removeItem('mango_member_invalid');
 }
 
 // ==================== STORE AUTHENTICATION ====================
@@ -98,6 +236,7 @@ function clearMemberSession(): void {
 /**
  * Login with store credentials
  * Verifies against `stores` table in Supabase
+ * Wrapped with timeout for LOCAL-FIRST architecture
  */
 export async function loginStoreWithCredentials(
   loginId: string,
@@ -158,17 +297,49 @@ export async function loginStoreWithCredentials(
 
 /**
  * Validate existing store session
+ * LOCAL-FIRST: Checks if store is still active on server
  */
 export async function validateStoreSession(storeId: string): Promise<boolean> {
   try {
-    const { data: store, error } = await supabase
-      .from('stores')
-      .select('id, status')
-      .eq('id', storeId)
-      .single();
+    // Wrap Supabase query with Promise.resolve to convert PromiseLike to Promise
+    const result = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('stores')
+          .select('id, status')
+          .eq('id', storeId)
+          .single()
+      )
+    );
 
-    if (error || !store) return false;
-    if (store.status === 'suspended') return false;
+    if (result.error || !result.data) return false;
+    if (result.data.status === 'suspended') return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate existing member session
+ * LOCAL-FIRST: Checks if member is still active
+ */
+export async function validateMemberSession(memberId: string): Promise<boolean> {
+  try {
+    // Wrap Supabase query with Promise.resolve to convert PromiseLike to Promise
+    const result = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('members')
+          .select('id, status')
+          .eq('id', memberId)
+          .single()
+      )
+    );
+
+    if (result.error || !result.data) return false;
+    if (result.data.status !== 'active') return false;
 
     return true;
   } catch {
@@ -671,6 +842,7 @@ export const authService = {
   switchMember,
   verifyMemberPin,
   verifyMemberCard,
+  validateMemberSession,
   logoutMember,
 
   // Session management
@@ -680,6 +852,15 @@ export const authService = {
   isFullyAuthenticated,
   setStoreSession,
   setMemberSession,
+
+  // Cached-first login (LOCAL-FIRST)
+  getCachedStoreSession,
+  getCachedMemberSession,
+  validateStoreSessionInBackground,
+  validateMemberSessionInBackground,
+  isSessionMarkedInvalid,
+  isMemberMarkedInvalid,
+  clearInvalidMarkers,
 
   // License
   getLicenseInfo,

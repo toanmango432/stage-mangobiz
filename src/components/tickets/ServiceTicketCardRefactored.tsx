@@ -45,6 +45,7 @@ interface ServiceTicketCardProps {
   onResume?: (ticketId: string) => void;
   onDelete?: (ticketId: string) => void;
   onClick?: (ticketId: string) => void;
+  onAddNote?: (ticketId: string, ticketNumber: number, clientName: string, currentNote?: string) => void;
 }
 
 function ServiceTicketCardComponent({
@@ -54,7 +55,8 @@ function ServiceTicketCardComponent({
   onPause,
   onResume,
   onDelete,
-  onClick
+  onClick,
+  onAddNote: _onAddNote, // Available for use when wiring up the note modal
 }: ServiceTicketCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);

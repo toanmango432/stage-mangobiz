@@ -51,14 +51,14 @@ Copy `.env.example` to `.env` and configure:
 
 | Module/Feature | PRD Location |
 |----------------|--------------|
-| **Operations (Book, Front Desk, Pending, Checkout)** | `docs/product/Mango POS PRD v1.md` |
+| **Operations (Book, Front Desk, Pending, Checkout)** | `docs/product/Mango POS PRD.md` |
 | **Book Module** | `docs/product/PRD-Book-Module.md` |
 | **Sales & Checkout** | `docs/product/PRD-Sales-Checkout-Module.md` |
 | **Payment Integration** | `docs/architecture/PAYMENT_INTEGRATION.md` |
 | **Clients/CRM** | `docs/product/PRD-Clients-CRM-Module.md` |
 | **Team/Staff** | `docs/product/PRD-Team-Module.md` |
 | **Turn Tracker** | `docs/product/PRD-Turn-Tracker-Module.md` |
-| **Offline Mode** | `docs/product/PRD-Opt-In-Offline-Mode.md` |
+| **Offline Mode** | `docs/product/PRD-Offline-Mode.md` |
 | **Feature Gap Analysis** | `docs/product/FEATURE_GAP_ANALYSIS.md` |
 
 ### 2. Read Required Documentation

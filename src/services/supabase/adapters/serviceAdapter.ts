@@ -21,8 +21,8 @@ export function toService(row: ServiceRow): Service {
     price: row.price,
     commissionRate: 0, // Not stored in current Supabase schema
     isActive: row.is_active,
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
+    createdAt: row.created_at, // ISO string (UTC)
+    updatedAt: row.updated_at, // ISO string (UTC)
     syncStatus: row.sync_status as SyncStatus,
   };
 }

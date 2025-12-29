@@ -1,25 +1,13 @@
 /**
  * Data Service Tests
  *
- * Tests for mode-aware data operations.
+ * Tests for LOCAL-FIRST data operations.
+ * All operations read/write to local IndexedDB first, sync in background.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer, { setDevice } from '@/store/slices/authSlice';
 
-// We need to mock the store import before importing dataService
-let mockStore: ReturnType<typeof configureStore>;
-
-vi.mock('@/store', () => {
-  return {
-    store: {
-      getState: () => mockStore?.getState() ?? { auth: { device: null } },
-    },
-  };
-});
-
-// Import after mocking
+// Import dataService functions
 import {
   dataService,
   executeDataOperation,
@@ -30,18 +18,8 @@ import {
   getModeInfo,
 } from '../dataService';
 
-// Create test store
-function createTestStore() {
-  return configureStore({
-    reducer: {
-      auth: authReducer,
-    },
-  });
-}
-
-describe('dataService', () => {
+describe('dataService - LOCAL-FIRST', () => {
   beforeEach(() => {
-    mockStore = createTestStore();
     vi.clearAllMocks();
 
     // Mock navigator.onLine
@@ -53,149 +31,57 @@ describe('dataService', () => {
   });
 
   describe('shouldUseLocalDB', () => {
-    it('should return false when no device is set', () => {
-      expect(shouldUseLocalDB()).toBe(false);
-    });
-
-    it('should return false for online-only mode', () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'online-only',
-          offlineModeEnabled: false,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
-      expect(shouldUseLocalDB()).toBe(false);
-    });
-
-    it('should return true for offline-enabled mode', () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
+    it('should always return true (local-first)', () => {
       expect(shouldUseLocalDB()).toBe(true);
     });
   });
 
   describe('shouldUseServer', () => {
-    it('should return true when no device is set', () => {
-      expect(shouldUseServer()).toBe(true);
-    });
-
-    it('should return true for online-only mode', () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'online-only',
-          offlineModeEnabled: false,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
-      expect(shouldUseServer()).toBe(true);
-    });
-
-    it('should return false for offline-enabled mode', () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
+    it('should always return false (local-first, server is for sync only)', () => {
       expect(shouldUseServer()).toBe(false);
     });
   });
 
   describe('shouldSync', () => {
-    it('should return false when offline mode is not enabled', () => {
-      expect(shouldSync()).toBe(false);
-    });
-
-    it('should return true for offline-enabled mode when online', () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
+    it('should return true when online', () => {
       expect(shouldSync()).toBe(true);
     });
 
-    it('should return false for offline-enabled mode when offline', () => {
+    it('should return false when offline', () => {
       Object.defineProperty(navigator, 'onLine', {
         value: false,
         configurable: true,
       });
-
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
 
       expect(shouldSync()).toBe(false);
     });
   });
 
   describe('getModeInfo', () => {
-    it('should return correct mode info', () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
+    it('should return local-first mode info', () => {
+      const info = getModeInfo();
+
+      expect(info.mode).toBe('local-first');
+      expect(info.online).toBe(true);
+      expect(info.dataSource).toBe('local');
+    });
+
+    it('should reflect offline status', () => {
+      Object.defineProperty(navigator, 'onLine', {
+        value: false,
+        configurable: true,
+      });
 
       const info = getModeInfo();
 
-      expect(info.mode).toBe('offline-enabled');
-      expect(info.offlineEnabled).toBe(true);
-      expect(info.online).toBe(true);
+      expect(info.mode).toBe('local-first');
+      expect(info.online).toBe(false);
       expect(info.dataSource).toBe('local');
     });
   });
 
   describe('executeDataOperation', () => {
-    it('should execute server function in online-only mode', async () => {
-      const localFn = vi.fn().mockResolvedValue('local-data');
-      const serverFn = vi.fn().mockResolvedValue('server-data');
-
-      const result = await executeDataOperation(localFn, serverFn);
-
-      expect(serverFn).toHaveBeenCalled();
-      expect(localFn).not.toHaveBeenCalled();
-      expect(result.data).toBe('server-data');
-      expect(result.source).toBe('server');
-    });
-
-    it('should execute local function in offline-enabled mode', async () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
+    it('should always execute local function (local-first)', async () => {
       const localFn = vi.fn().mockResolvedValue('local-data');
       const serverFn = vi.fn().mockResolvedValue('server-data');
 
@@ -207,65 +93,63 @@ describe('dataService', () => {
       expect(result.source).toBe('local');
     });
 
-    it('should fallback to local on server error when offline-enabled', async () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
+    it('should use server when forceSource is set', async () => {
       const localFn = vi.fn().mockResolvedValue('local-data');
-      const serverFn = vi.fn().mockRejectedValue(new Error('Server error'));
+      const serverFn = vi.fn().mockResolvedValue('server-data');
 
-      // Force server source
       const result = await executeDataOperation(localFn, serverFn, {
         forceSource: 'server',
       });
 
-      // Should fallback to local
-      expect(localFn).toHaveBeenCalled();
-      expect(result.data).toBe('local-data');
-      expect(result.cached).toBe(true);
+      expect(serverFn).toHaveBeenCalled();
+      expect(localFn).not.toHaveBeenCalled();
+      expect(result.data).toBe('server-data');
+      expect(result.source).toBe('server');
     });
 
-    it('should return error when server fails in online-only mode', async () => {
-      const localFn = vi.fn().mockResolvedValue('local-data');
-      const serverFn = vi.fn().mockRejectedValue(new Error('Server error'));
+    it('should return error when local function fails', async () => {
+      const localFn = vi.fn().mockRejectedValue(new Error('Local error'));
+      const serverFn = vi.fn().mockResolvedValue('server-data');
 
       const result = await executeDataOperation(localFn, serverFn);
 
       expect(result.data).toBeNull();
-      expect(result.error).toBe('Server error');
+      expect(result.error).toBe('Local error');
     });
   });
 
   describe('executeWriteOperation', () => {
-    it('should write to server in online-only mode', async () => {
+    it('should always write to local first (local-first)', async () => {
       const localFn = vi.fn().mockResolvedValue('local-result');
       const serverFn = vi.fn().mockResolvedValue('server-result');
-      const syncFn = vi.fn();
+      const syncFn = vi.fn().mockResolvedValue(undefined);
 
       const result = await executeWriteOperation(localFn, serverFn, syncFn);
 
-      expect(serverFn).toHaveBeenCalled();
-      expect(localFn).not.toHaveBeenCalled();
-      expect(syncFn).not.toHaveBeenCalled();
-      expect(result.data).toBe('server-result');
-      expect(result.source).toBe('server');
+      expect(localFn).toHaveBeenCalled();
+      expect(serverFn).not.toHaveBeenCalled();
+      expect(result.data).toBe('local-result');
+      expect(result.source).toBe('local');
     });
 
-    it('should write to local and sync in offline-enabled mode', async () => {
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
+    it('should queue sync in background (non-blocking)', async () => {
+      const localFn = vi.fn().mockResolvedValue('local-result');
+      const serverFn = vi.fn().mockResolvedValue('server-result');
+      const syncFn = vi.fn().mockResolvedValue(undefined);
+
+      await executeWriteOperation(localFn, serverFn, syncFn);
+
+      // Sync is queued in background (non-blocking)
+      // Wait for microtask to process
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(syncFn).toHaveBeenCalled();
+    });
+
+    it('should work when offline (writes locally, syncs later)', async () => {
+      Object.defineProperty(navigator, 'onLine', {
+        value: false,
+        configurable: true,
+      });
 
       const localFn = vi.fn().mockResolvedValue('local-result');
       const serverFn = vi.fn().mockResolvedValue('server-result');
@@ -275,51 +159,18 @@ describe('dataService', () => {
 
       expect(localFn).toHaveBeenCalled();
       expect(serverFn).not.toHaveBeenCalled();
-      expect(syncFn).toHaveBeenCalled();
       expect(result.data).toBe('local-result');
       expect(result.source).toBe('local');
     });
 
-    it('should return error when offline in online-only mode', async () => {
-      Object.defineProperty(navigator, 'onLine', {
-        value: false,
-        configurable: true,
-      });
-
-      const localFn = vi.fn().mockResolvedValue('local-result');
+    it('should return error when local write fails', async () => {
+      const localFn = vi.fn().mockRejectedValue(new Error('Write failed'));
       const serverFn = vi.fn().mockResolvedValue('server-result');
 
       const result = await executeWriteOperation(localFn, serverFn);
 
       expect(result.data).toBeNull();
-      expect(result.error).toContain('offline');
-    });
-
-    it('should write locally when offline in offline-enabled mode', async () => {
-      Object.defineProperty(navigator, 'onLine', {
-        value: false,
-        configurable: true,
-      });
-
-      mockStore.dispatch(
-        setDevice({
-          id: 'device-123',
-          mode: 'offline-enabled',
-          offlineModeEnabled: true,
-          registeredAt: new Date().toISOString(),
-        })
-      );
-
-      const localFn = vi.fn().mockResolvedValue('local-result');
-      const serverFn = vi.fn().mockResolvedValue('server-result');
-      const syncFn = vi.fn();
-
-      const result = await executeWriteOperation(localFn, serverFn, syncFn);
-
-      expect(localFn).toHaveBeenCalled();
-      expect(serverFn).not.toHaveBeenCalled();
-      expect(syncFn).not.toHaveBeenCalled(); // Not syncing when offline
-      expect(result.data).toBe('local-result');
+      expect(result.error).toBe('Write failed');
     });
   });
 

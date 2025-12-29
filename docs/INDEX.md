@@ -1,7 +1,7 @@
 # Mango POS Documentation Index
 
-> **Last Updated:** December 27, 2025
-> **Active Docs:** 43 | **Archived:** 113
+> **Last Updated:** December 28, 2025
+> **Active Docs:** 45 | **Archived:** 113
 
 Essential documentation for Mango POS Offline V2.
 
@@ -14,7 +14,7 @@ Essential documentation for Mango POS Offline V2.
 | [TECHNICAL_DOCUMENTATION.md](./architecture/TECHNICAL_DOCUMENTATION.md) | **Start here** - System overview, stack, native platforms |
 | [DATA_STORAGE_STRATEGY.md](./architecture/DATA_STORAGE_STRATEGY.md) | Data layer: schemas, sync, conflicts, security |
 | [PAYMENT_INTEGRATION.md](./architecture/PAYMENT_INTEGRATION.md) | **NEW** - Tap to Pay, Fiserv SDK, Capacitor integration |
-| [ARCHITECTURE_DECISION_RECORDS.md](./architecture/ARCHITECTURE_DECISION_RECORDS.md) | ADRs for key decisions (including ADR-016: Opt-In Offline) |
+| [ARCHITECTURE_DECISION_RECORDS.md](./architecture/ARCHITECTURE_DECISION_RECORDS.md) | ADRs for key decisions (including ADR-016: Offline-First) |
 
 ---
 
@@ -34,12 +34,14 @@ Essential documentation for Mango POS Offline V2.
 
 | Document | Description |
 |----------|-------------|
-| [Mango POS PRD v1.md](./product/Mango%20POS%20PRD%20v1.md) | **Main PRD** - Operations (Book, Front Desk, Pending, Checkout) |
+| [Mango POS PRD.md](./product/Mango%20POS%20PRD.md) | **Main PRD** - Operations (Book, Front Desk, Pending, Checkout) |
+| [PRD-Front-Desk-Module.md](./product/PRD-Front-Desk-Module.md) | **NEW** - Operations command center (P0 module) |
 | [PRD-Team-Module.md](./product/PRD-Team-Module.md) | **v2.0** - Team Management (profiles, timesheets, payroll, turns) |
 | [PRD-Sales-Checkout-Module.md](./product/PRD-Sales-Checkout-Module.md) | Sales & Checkout with three-panel layout |
 | [PRD-Clients-CRM-Module.md](./product/PRD-Clients-CRM-Module.md) | Clients/CRM with blocking, forms, loyalty |
 | [PRD-Turn-Tracker-Module.md](./product/PRD-Turn-Tracker-Module.md) | Turn Tracker module |
-| [PRD-Opt-In-Offline-Mode.md](./product/PRD-Opt-In-Offline-Mode.md) | Opt-in offline mode |
+| [PRD-Offline-Mode.md](./product/PRD-Offline-Mode.md) | Offline-first architecture (all devices offline by default) |
+| [PRD-API-Specifications.md](./product/PRD-API-Specifications.md) | **NEW** - Complete API specs (~160 endpoints, 16 categories) |
 | [TEAM-MODULE-COMPARISON-FRESHA.md](./product/TEAM-MODULE-COMPARISON-FRESHA.md) | Competitive analysis: Mango vs Fresha |
 | [FEATURE_GAP_ANALYSIS.md](./product/FEATURE_GAP_ANALYSIS.md) | Feature gap analysis |
 
@@ -117,6 +119,7 @@ Essential documentation for Mango POS Offline V2.
 
 | Document | Description |
 |----------|-------------|
+| [PRD-API-Specifications.md](./product/PRD-API-Specifications.md) | **Complete External API** - 160 endpoints, webhooks, data models |
 | [CONTROL_CENTER_API.md](./api/CONTROL_CENTER_API.md) | Control Center API |
 
 ---
@@ -148,7 +151,7 @@ Historical documentation moved to `docs/archive/`:
 docs/
 ├── INDEX.md              # This file
 ├── architecture/         # 4 docs - Core technical specs (incl. Payment Integration)
-├── product/              # 6 docs - PRDs
+├── product/              # 8 docs - PRDs + API Specs
 ├── modules/              # 17 docs - Module documentation
 │   ├── book/             # 7 docs
 │   ├── frontdesk/        # 4 docs

@@ -50,7 +50,7 @@ export const AppointmentCard = memo(function AppointmentCard({
       Math.max(
         0,
         Math.round(
-          (appointment.scheduledEndTime.getTime() - appointment.scheduledStartTime.getTime()) / 60000
+          (new Date(appointment.scheduledEndTime).getTime() - new Date(appointment.scheduledStartTime).getTime()) / 60000
         )
       ),
     [appointment.scheduledEndTime, appointment.scheduledStartTime]
@@ -148,7 +148,7 @@ export const AppointmentCard = memo(function AppointmentCard({
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-gray-600">
-              <span>{formatTimeDisplay(appointment.scheduledStartTime)}</span>
+              <span>{formatTimeDisplay(new Date(appointment.scheduledStartTime))}</span>
               <span className="text-gray-300">•</span>
               <span className="font-medium">
                 {formatDurationDisplay(durationMinutes)}

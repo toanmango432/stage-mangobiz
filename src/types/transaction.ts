@@ -60,15 +60,15 @@ export interface Transaction {
 
   // Status and timestamps
   status: TransactionStatus;
-  createdAt: Date;
-  processedAt?: Date;
+  createdAt: string;    // ISO string (stored in UTC)
+  processedAt?: string; // ISO string
   processedBy?: string; // Staff who processed payment
 
   // Void/Refund info
-  voidedAt?: Date;
+  voidedAt?: string;   // ISO string
   voidedBy?: string;
   voidReason?: string;
-  refundedAt?: Date;
+  refundedAt?: string; // ISO string
   refundedAmount?: number;
   refundReason?: string;
 
@@ -77,7 +77,7 @@ export interface Transaction {
 
   // Sync status
   syncStatus: SyncStatus;
-  syncedAt?: Date;
+  syncedAt?: string;  // ISO string
 }
 
 // Input type for creating transactions from pending tickets

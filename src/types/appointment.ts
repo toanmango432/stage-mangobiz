@@ -24,15 +24,15 @@ export interface Appointment {
   staffName: string;
   services: AppointmentService[];
   status: AppointmentStatus;
-  scheduledStartTime: Date;
-  scheduledEndTime: Date;
-  actualStartTime?: Date;
-  actualEndTime?: Date;
-  checkInTime?: Date;
+  scheduledStartTime: string; // ISO string (stored in UTC, display in store timezone)
+  scheduledEndTime: string;   // ISO string (stored in UTC, display in store timezone)
+  actualStartTime?: string;   // ISO string
+  actualEndTime?: string;     // ISO string
+  checkInTime?: string;       // ISO string
   notes?: string;
   source: BookingSource;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string; // ISO string (stored in UTC)
+  updatedAt: string; // ISO string (stored in UTC)
   createdBy: string;
   lastModifiedBy: string;
   syncStatus: SyncStatus;
@@ -45,7 +45,7 @@ export interface CreateAppointmentInput {
   staffId: string;
   staffName: string;
   services: Omit<AppointmentService, 'staffName' | 'serviceName'>[];
-  scheduledStartTime: Date;
+  scheduledStartTime: Date | string; // Accepts Date or ISO string
   notes?: string;
   source: BookingSource;
 }
@@ -217,7 +217,7 @@ export interface LocalAppointment extends Appointment {
   localId?: string;           // Local-only ID before sync
   serverId?: number;          // Server appointment ID after sync
   syncStatus: SyncStatus;
-  lastSyncAttempt?: Date;
+  lastSyncAttempt?: string;   // ISO 8601 string
   syncError?: string;
 }
 

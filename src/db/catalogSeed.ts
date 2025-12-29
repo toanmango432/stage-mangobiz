@@ -41,7 +41,7 @@ export async function seedCatalog() {
   await db.addOnOptions.clear();
   await db.catalogSettings.clear();
 
-  const now = new Date();
+  const now = new Date().toISOString();
 
   // ==================== CATEGORIES ====================
   const categories: ServiceCategory[] = [
@@ -749,7 +749,7 @@ export async function migrateServicesToCatalog(salonId: string): Promise<{
     return { migrated: 0, categoriesCreated: 0, skipped: legacyServices.length };
   }
 
-  const now = new Date();
+  const now = new Date().toISOString();
   let migrated = 0;
   let categoriesCreated = 0;
   const categoryMap = new Map<string, string>(); // category name -> category ID

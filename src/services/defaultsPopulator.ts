@@ -147,6 +147,7 @@ class DefaultsPopulator {
     }
 
     // Convert items to Service objects
+    const now = new Date().toISOString();
     const services: Service[] = items.map((item) => ({
       id: uuidv4(),
       salonId,
@@ -157,8 +158,8 @@ class DefaultsPopulator {
       price: item.price,
       commissionRate: item.commissionRate || 50,
       isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       syncStatus: 'synced' as const,
     }));
 

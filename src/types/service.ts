@@ -10,7 +10,7 @@ export interface Service {
   price: number;
   commissionRate: number; // percentage
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string; // ISO string (stored in UTC)
+  updatedAt: string; // ISO string (stored in UTC)
   syncStatus: SyncStatus;
 }

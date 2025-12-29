@@ -48,6 +48,7 @@ import { generateSmartBookingSuggestions, createSmartBookingDefaults, SmartBooki
 import { SmartBookingPanel } from './SmartBookingPanel';
 import { Client as ClientType } from '../../types/client';
 import { Service as ServiceType } from '../../types/service';
+import { localTimeToUTC } from '../../utils/dateUtils';
 
 interface Client {
   id: string;
@@ -382,8 +383,8 @@ export function NewAppointmentModal({
             price: s.price,
             commissionRate: 0,
             isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             syncStatus: 'synced' as const,
           }))
         );
@@ -449,13 +450,10 @@ export function NewAppointmentModal({
   const handleAddService = async (service: Service, staffId: string | number) => {
     // If "Next Available" (9999), use smart auto-assign
     if (staffId === NEXT_AVAILABLE_STAFF_ID || staffId === 9999 || staffId === '9999') {
-      // Calculate appointment times
-      const [hours, minutes] = time.split(':').map(Number);
-      const scheduledStartTime = new Date(date);
-      scheduledStartTime.setHours(hours, minutes, 0, 0);
-
-      const scheduledEndTime = new Date(scheduledStartTime);
-      scheduledEndTime.setMinutes(scheduledEndTime.getMinutes() + service.duration);
+      // Calculate appointment times using timezone-aware conversion
+      const scheduledStartTime = new Date(localTimeToUTC(date, time));
+      // Add duration to the UTC time
+      const scheduledEndTime = new Date(scheduledStartTime.getTime() + service.duration * 60 * 1000);
 
       // Create temporary appointment for auto-assign
       const tempAppointment: Partial<LocalAppointment> = {
@@ -569,14 +567,11 @@ export function NewAppointmentModal({
       phone: '',
     };
 
-    // Create appointment object
-    const [hours, minutes] = time.split(':').map(Number);
-    const scheduledStartTime = new Date(date);
-    scheduledStartTime.setHours(hours, minutes, 0, 0);
-
+    // Create appointment object using timezone-aware conversion
+    const scheduledStartTime = new Date(localTimeToUTC(date, time));
     const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
-    const scheduledEndTime = new Date(scheduledStartTime);
-    scheduledEndTime.setMinutes(scheduledEndTime.getMinutes() + totalDuration);
+    // Add duration to the UTC time
+    const scheduledEndTime = new Date(scheduledStartTime.getTime() + totalDuration * 60 * 1000);
 
     const appointment = {
       id: `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -586,8 +581,8 @@ export function NewAppointmentModal({
       clientPhone: finalClient.phone,
       staffId: selectedServices[0]?.assignedStaffId || '',
       staffName: selectedServices[0]?.assignedStaffName || '',
-      scheduledStartTime,
-      scheduledEndTime,
+      scheduledStartTime: scheduledStartTime.toISOString(),
+      scheduledEndTime: scheduledEndTime.toISOString(),
       status: 'scheduled' as const,
       source: 'admin-portal' as const,
       services: selectedServices.map(s => ({
@@ -602,8 +597,8 @@ export function NewAppointmentModal({
       notes: '',
       createdBy: 'current-user', // TODO: Get from auth context
       lastModifiedBy: 'current-user', // TODO: Get from auth context
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'pending' as const,
     };
 

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { transactionsDB, ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
-import { toTransaction, toTransactions } from '../../services/supabase';
+// toTransaction/toTransactions not needed - dataService returns converted types
 import type { Transaction, PaymentMethod, CreateTransactionInput } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
@@ -70,8 +70,8 @@ const canVoidTransaction = (createdAt: Date | string): boolean => {
 export const fetchTransactionsByDateFromSupabase = createAsyncThunk(
   'transactions/fetchByDateFromSupabase',
   async (date: Date) => {
-    const rows = await dataService.transactions.getByDate(date);
-    return toTransactions(rows);
+    // dataService already returns Transaction[] (converted)
+    return await dataService.transactions.getByDate(date);
   }
 );
 
@@ -81,9 +81,10 @@ export const fetchTransactionsByDateFromSupabase = createAsyncThunk(
 export const fetchTransactionByIdFromSupabase = createAsyncThunk(
   'transactions/fetchByIdFromSupabase',
   async (transactionId: string) => {
-    const row = await dataService.transactions.getById(transactionId);
-    if (!row) throw new Error('Transaction not found');
-    return toTransaction(row);
+    // dataService already returns Transaction (converted)
+    const transaction = await dataService.transactions.getById(transactionId);
+    if (!transaction) throw new Error('Transaction not found');
+    return transaction;
   }
 );
 
@@ -126,8 +127,6 @@ export const createTransactionInSupabase = createAsyncThunk(
         return rejectWithValue(validation.error || 'Validation failed');
       }
 
-      const { toTransactionInsert, toTransaction: convertToTransaction } = await import('../../services/supabase');
-
       // Calculate totals
       const subtotal = input.subtotal || 0;
       const tax = input.tax || 0;
@@ -140,7 +139,7 @@ export const createTransactionInSupabase = createAsyncThunk(
         return rejectWithValue('Transaction total must be greater than 0');
       }
 
-      // Build transaction data for insert
+      // Build transaction data for insert (dataService returns Transaction directly)
       const transactionData = {
         salonId: '', // Will be filled by dataService
         ticketId: input.ticketId,
@@ -156,12 +155,10 @@ export const createTransactionInSupabase = createAsyncThunk(
         paymentMethod: input.paymentMethod,
         paymentDetails: input.paymentDetails,
         status: 'completed' as const,
-        syncStatus: 'synced' as const,
       };
 
-      const insertData = toTransactionInsert(transactionData as any);
-      const row = await dataService.transactions.create(insertData);
-      return convertToTransaction(row);
+      // dataService.transactions.create returns Transaction directly
+      return await dataService.transactions.create(transactionData);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create transaction');
     }
@@ -174,8 +171,8 @@ export const createTransactionInSupabase = createAsyncThunk(
 export const fetchTransactionsByTicketIdFromSupabase = createAsyncThunk(
   'transactions/fetchByTicketIdFromSupabase',
   async (ticketId: string) => {
-    const rows = await dataService.transactions.getByTicketId(ticketId);
-    return toTransactions(rows);
+    // dataService already returns Transaction[] (converted)
+    return await dataService.transactions.getByTicketId(ticketId);
   }
 );
 
@@ -186,15 +183,11 @@ export const voidTransactionInSupabase = createAsyncThunk(
   'transactions/voidInSupabase',
   async ({ id, voidReason: _voidReason }: { id: string; voidReason: string }, { rejectWithValue }) => {
     try {
-      const { toTransaction: convertToTransaction } = await import('../../services/supabase');
-
-      // First fetch the transaction to validate
-      const row = await dataService.transactions.getById(id);
-      if (!row) {
+      // dataService already returns Transaction directly
+      const transaction = await dataService.transactions.getById(id);
+      if (!transaction) {
         return rejectWithValue('Transaction not found');
       }
-
-      const transaction = convertToTransaction(row);
 
       if (transaction.status === 'voided') {
         return rejectWithValue('Transaction already voided');
@@ -209,12 +202,12 @@ export const voidTransactionInSupabase = createAsyncThunk(
         return rejectWithValue('Cannot void transaction older than 24 hours');
       }
 
-      // Update in Supabase
-      const updatedRow = await dataService.transactions.update(id, {
+      // Update in Supabase - dataService returns Transaction directly
+      const updated = await dataService.transactions.update(id, {
         status: 'voided',
       });
 
-      return convertToTransaction(updatedRow);
+      return updated;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to void transaction');
     }
@@ -228,15 +221,11 @@ export const refundTransactionInSupabase = createAsyncThunk(
   'transactions/refundInSupabase',
   async ({ id, refundAmount, refundReason: _refundReason }: { id: string; refundAmount: number; refundReason: string }, { rejectWithValue }) => {
     try {
-      const { toTransaction: convertToTransaction } = await import('../../services/supabase');
-
-      // First fetch the transaction to validate
-      const row = await dataService.transactions.getById(id);
-      if (!row) {
+      // dataService already returns Transaction directly
+      const transaction = await dataService.transactions.getById(id);
+      if (!transaction) {
         return rejectWithValue('Transaction not found');
       }
-
-      const transaction = convertToTransaction(row);
 
       if (transaction.status === 'voided') {
         return rejectWithValue('Cannot refund voided transaction');
@@ -251,12 +240,12 @@ export const refundTransactionInSupabase = createAsyncThunk(
       // Determine new status
       const newStatus = refundAmount === transaction.total ? 'refunded' : 'partially-refunded';
 
-      // Update in Supabase
-      const updatedRow = await dataService.transactions.update(id, {
+      // Update in Supabase - dataService returns Transaction directly
+      const updated = await dataService.transactions.update(id, {
         status: newStatus,
       });
 
-      return convertToTransaction(updatedRow);
+      return updated;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to refund transaction');
     }
@@ -347,7 +336,7 @@ export const createTransaction = createAsyncThunk(
         authCode: ticket.payments?.[0]?.transactionId,
       },
       status: 'completed',
-      processedAt: new Date(),
+      processedAt: new Date().toISOString(),
     };
 
     // Create in database
@@ -423,8 +412,8 @@ export const createTransactionFromPending = createAsyncThunk(
 
       // Status and timestamps
       status: 'completed',
-      createdAt: new Date(),
-      processedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      processedAt: new Date().toISOString(),
       processedBy: input.processedBy || userId,
 
       // Additional metadata
@@ -485,7 +474,7 @@ export const voidTransaction = createAsyncThunk(
 
     const voided = await transactionsDB.update(id, {
       status: 'voided',
-      voidedAt: new Date(),
+      voidedAt: new Date().toISOString(),
       voidedBy: userId,
       voidReason,
     });
@@ -538,7 +527,7 @@ export const refundTransaction = createAsyncThunk(
 
     const refunded = await transactionsDB.update(id, {
       status: refundAmount === transaction.total ? 'refunded' : 'partially-refunded',
-      refundedAt: new Date(),
+      refundedAt: new Date().toISOString(),
       refundedAmount: existingRefund + refundAmount,
       refundReason,
     });
@@ -762,9 +751,11 @@ const transactionsSlice = createSlice({
       })
       .addCase(voidTransactionInSupabase.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.items.findIndex(t => t.id === action.payload.id);
+        if (!action.payload) return;
+        const voidedTransaction = action.payload;
+        const index = state.items.findIndex(t => t.id === voidedTransaction.id);
         if (index !== -1) {
-          state.items[index] = action.payload;
+          state.items[index] = voidedTransaction;
         }
       })
       .addCase(voidTransactionInSupabase.rejected, (state, action) => {
@@ -780,9 +771,11 @@ const transactionsSlice = createSlice({
       })
       .addCase(refundTransactionInSupabase.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.items.findIndex(t => t.id === action.payload.id);
+        if (!action.payload) return;
+        const refundedTransaction = action.payload;
+        const index = state.items.findIndex(t => t.id === refundedTransaction.id);
         if (index !== -1) {
-          state.items[index] = action.payload;
+          state.items[index] = refundedTransaction;
         }
       })
       .addCase(refundTransactionInSupabase.rejected, (state, action) => {

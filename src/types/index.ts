@@ -83,3 +83,109 @@ export type {
   CalculatedPayData,
 } from './payroll';
 export type { PaymentMethod as PayrollPaymentMethod } from './payroll';
+
+// ============================================
+// API MODULE TYPES (PRD-API-Specifications.md)
+// ============================================
+
+// Gift Cards
+export * from './gift-card';
+
+// Memberships
+export * from './membership';
+
+// Client Packages (pre-paid service bundles)
+export * from './client-package';
+
+// Inventory & Products
+export * from './inventory';
+
+// Organization & Multi-Location
+export * from './organization';
+
+// Waitlist
+export * from './waitlist';
+
+// Deposits
+export * from './deposit';
+
+// Reviews & Reputation
+export * from './review';
+
+// Notifications
+export * from './notification';
+
+// Marketing & Campaigns
+export * from './marketing';
+
+// Integrations & Webhooks
+export * from './integration';
+
+// Settings Module (selective export to avoid conflicts)
+export type {
+  BusinessType,
+  DateFormat,
+  TimeFormat,
+  TipCalculation,
+  TipDistributionMethod,
+  TipDefaultSelection,
+  ServiceChargeApplyTo,
+  RoundingMethod,
+  GatewayProvider,
+  GatewayApiMode,
+  TerminalType,
+  ConnectionStatus,
+  HardwareDeviceType,
+  ConnectionType,
+  ThemeMode,
+  DefaultView,
+  SidebarPosition,
+  FontSize,
+  LicenseStatus,
+  LicenseTier,
+  SubscriptionPlan,
+  BillingCycle,
+  SocialMedia,
+  BusinessAddress,
+  BusinessLocale,
+  OperatingHours as SettingsOperatingHours,
+  SpecialHours,
+  ClosedPeriod as SettingsClosedPeriod,
+  TaxRate as SettingsTaxRate,
+  TaxExemption,
+  TaxSettings,
+  BusinessProfile,
+  BusinessContact,
+  BusinessSettings,
+  TipSettings,
+  TipDistribution,
+  DiscountSettings,
+  ServiceChargeSettings,
+  RoundingSettings,
+  PaymentMethodsSettings,
+  PaymentTerminal,
+  PaymentGateway,
+  HardwareDevice,
+  CheckoutSettings,
+  ReceiptHeader,
+  ReceiptFooter,
+  ReceiptOptions,
+  ReceiptSettings,
+  NotificationChannel as SettingsNotificationChannel,
+  ClientNotifications,
+  StaffNotifications,
+  OwnerNotifications,
+  NotificationSettings as SettingsNotificationSettings,
+  AccountInfo,
+  SecuritySettings,
+  SubscriptionInfo,
+  LicenseInfo,
+  AccountSettings,
+  RegisteredDevice,
+  ThemeSettings,
+  LayoutSettings,
+  ModuleVisibility,
+  SystemSettings,
+  StoreSettings,
+  SettingsCategory,
+} from './settings';

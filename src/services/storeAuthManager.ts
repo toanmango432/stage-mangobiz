@@ -3,9 +3,10 @@
  * Manages store login session and member authentication
  * Updated for Supabase-based two-tier authentication (Option C)
  *
- * Authentication Flow:
- * 1. Store Login: Verify credentials against Supabase `stores` table
- * 2. Member PIN: Verify PIN against Supabase `members` table
+ * LOCAL-FIRST Authentication Flow:
+ * 1. Check cached session first (instant access if valid)
+ * 2. Validate with Supabase in background (non-blocking)
+ * 3. Only hit Supabase on first login or expired session
  */
 
 import { secureStorage } from './secureStorage';
@@ -14,6 +15,7 @@ import {
   AuthError as SupabaseAuthError,
 } from './supabase';
 import { devicesDB } from './devicesDB';
+import { setStoreTimezone } from '@/utils/dateUtils';
 import type { DeviceMode, Device } from '@/types/device';
 
 const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -36,6 +38,7 @@ export interface StoreSession {
   storeLoginId: string;
   tenantId: string;
   tier: string;
+  timezone?: string;  // IANA timezone (e.g., "America/Los_Angeles")
   token?: string;
   deviceMode?: DeviceMode;
   deviceId?: string;
@@ -83,12 +86,97 @@ class StoreAuthManager {
   };
 
   /**
-   * Initialize auth manager - check for existing session from Supabase authService
+   * Initialize auth manager - LOCAL-FIRST: Check cached session first
    */
   async initialize(): Promise<StoreAuthState> {
-    console.log('🔐 Initializing Store Auth Manager (Supabase)...');
+    console.log('🔐 Initializing Store Auth Manager (LOCAL-FIRST)...');
 
-    // Check for existing session in authService (localStorage)
+    // LOCAL-FIRST: Check if session was marked invalid by background validation
+    if (authService.isSessionMarkedInvalid()) {
+      console.log('⚠️ Session was invalidated - clearing and requiring re-login');
+      authService.clearInvalidMarkers();
+      await this.logoutStore();
+      this.updateState({
+        status: 'not_logged_in',
+        message: 'Session expired. Please log in again.',
+      });
+      return this.currentState;
+    }
+
+    // LOCAL-FIRST: Check for valid cached session first (instant access)
+    const cachedStore = authService.getCachedStoreSession();
+    const cachedMember = authService.getCachedMemberSession();
+
+    if (cachedStore?.session && cachedStore.isValid) {
+      const storeSession = cachedStore.session;
+      const tier = await secureStorage.getTier();
+
+      // Grant IMMEDIATE access with cached session
+      console.log('✅ Cached session valid - granting immediate access (LOCAL-FIRST)');
+
+      // Restore timezone from cached session or localStorage
+      const storedTz = await this.getStoredTimezone();
+      const timezone = storeSession.timezone || storedTz || undefined;
+      if (timezone) {
+        setStoreTimezone(timezone);
+      }
+
+      // Check if we also have a valid member session
+      if (cachedMember?.session && cachedMember.isValid) {
+        const memberSession = cachedMember.session;
+        console.log('✅ Full session restored from cache (store + member)');
+
+        this.updateState({
+          status: 'active',
+          store: {
+            storeId: storeSession.storeId,
+            storeName: storeSession.storeName,
+            storeLoginId: storeSession.storeLoginId,
+            tenantId: storeSession.tenantId,
+            tier: tier || storeSession.tier || 'basic',
+            timezone,
+          },
+          member: {
+            memberId: memberSession.memberId,
+            memberName: `${memberSession.firstName} ${memberSession.lastName}`,
+            firstName: memberSession.firstName,
+            lastName: memberSession.lastName,
+            email: memberSession.email,
+            role: memberSession.role,
+            avatarUrl: memberSession.avatarUrl || undefined,
+            permissions: memberSession.permissions || undefined,
+          },
+          message: 'Session restored.',
+        });
+
+        // Validate in background (non-blocking)
+        authService.validateStoreSessionInBackground(storeSession.storeId);
+        authService.validateMemberSessionInBackground(memberSession.memberId);
+
+        return this.currentState;
+      }
+
+      // Store session only - grant access
+      this.updateState({
+        status: 'active',
+        store: {
+          storeId: storeSession.storeId,
+          storeName: storeSession.storeName,
+          storeLoginId: storeSession.storeLoginId,
+          tenantId: storeSession.tenantId,
+          tier: tier || storeSession.tier || 'basic',
+          timezone,
+        },
+        message: 'Store session restored.',
+      });
+
+      // Validate in background (non-blocking)
+      authService.validateStoreSessionInBackground(storeSession.storeId);
+
+      return this.currentState;
+    }
+
+    // Fallback: Check legacy authService session (for backward compatibility)
     const existingSession = authService.getCurrentSession();
 
     // If we have a store session in authService, restore it
@@ -96,6 +184,13 @@ class StoreAuthManager {
       const storeSession = existingSession.store;
       const tier = await secureStorage.getTier();
       const deviceMode = await this.getStoredDeviceMode();
+      const storedLegacyTz = await this.getStoredTimezone();
+      const legacyTimezone = storeSession.timezone || storedLegacyTz || undefined;
+
+      // Restore timezone
+      if (legacyTimezone) {
+        setStoreTimezone(legacyTimezone);
+      }
 
       // Check if we also have a member session
       if (existingSession.isMemberLoggedIn && existingSession.member) {
@@ -110,6 +205,7 @@ class StoreAuthManager {
             storeLoginId: storeSession.storeLoginId,
             tenantId: storeSession.tenantId,
             tier: tier || 'basic',
+            timezone: legacyTimezone,
             deviceMode,
           },
           member: {
@@ -124,6 +220,10 @@ class StoreAuthManager {
           },
           message: 'Session restored.',
         });
+
+        // Validate in background
+        authService.validateStoreSessionInBackground(storeSession.storeId);
+
         return this.currentState;
       }
 
@@ -137,10 +237,15 @@ class StoreAuthManager {
           storeLoginId: storeSession.storeLoginId,
           tenantId: storeSession.tenantId,
           tier: tier || 'basic',
+          timezone: legacyTimezone,
           deviceMode,
         },
         message: 'Store session restored.',
       });
+
+      // Validate in background
+      authService.validateStoreSessionInBackground(storeSession.storeId);
+
       return this.currentState;
     }
 
@@ -240,6 +345,12 @@ class StoreAuthManager {
       // Store device mode
       await this.setStoredDeviceMode(deviceMode);
 
+      // Set store timezone for date formatting
+      if (storeSession.timezone) {
+        setStoreTimezone(storeSession.timezone);
+        await this.setStoredTimezone(storeSession.timezone);
+      }
+
       console.log('✅ Store login successful (Supabase) with device mode:', deviceMode);
 
       // Determine next status based on skipMemberLogin option
@@ -253,6 +364,7 @@ class StoreAuthManager {
           storeLoginId: storeSession.storeLoginId,
           tenantId: storeSession.tenantId,
           tier: licenseInfo?.tier || 'basic',
+          timezone: storeSession.timezone || undefined,
           deviceMode,
         },
         message: skipMemberLogin ? 'Logged in successfully.' : 'Please enter your PIN.',
@@ -362,6 +474,7 @@ class StoreAuthManager {
             storeLoginId: storeDetails.storeLoginId,
             tenantId: storeDetails.tenantId,
             tier: storeDetails.tier,
+            timezone: storeDetails.timezone || undefined,
           });
         }
       }
@@ -373,6 +486,12 @@ class StoreAuthManager {
       // Use the first store as the primary
       const store = allStores[0];
 
+      // Set store timezone for date formatting
+      if (store.timezone) {
+        setStoreTimezone(store.timezone);
+        await this.setStoredTimezone(store.timezone);
+      }
+
       // IMPORTANT: Persist the store session to localStorage for session restoration on refresh
       authService.setStoreSession({
         storeId: store.storeId,
@@ -380,6 +499,7 @@ class StoreAuthManager {
         storeLoginId: store.storeLoginId,
         tenantId: store.tenantId,
         tier: store.tier,
+        timezone: store.timezone,
       });
 
       // Create member session
@@ -510,6 +630,7 @@ class StoreAuthManager {
     await this.clearStoredTenantId();
     await this.clearStoredDeviceMode();
     await this.clearStoredDeviceId();
+    await this.clearStoredTimezone();
 
     this.updateState({
       status: 'not_logged_in',
@@ -696,6 +817,19 @@ class StoreAuthManager {
 
   private async clearStoredDeviceMode(): Promise<void> {
     localStorage.removeItem('mango_device_mode');
+  }
+
+  // Timezone storage methods
+  private async getStoredTimezone(): Promise<string | null> {
+    return localStorage.getItem('mango_store_timezone');
+  }
+
+  private async setStoredTimezone(timezone: string): Promise<void> {
+    localStorage.setItem('mango_store_timezone', timezone);
+  }
+
+  private async clearStoredTimezone(): Promise<void> {
+    localStorage.removeItem('mango_store_timezone');
   }
 
   /**

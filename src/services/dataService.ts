@@ -1,48 +1,32 @@
 /**
  * Data Service
  *
- * Provides a unified interface for data operations that automatically
- * routes to local IndexedDB or server API based on device mode.
+ * LOCAL-FIRST architecture - Phase 4 Implementation
  *
- * This is the key abstraction for the opt-in offline mode feature.
+ * All reads come from IndexedDB first (instant response)
+ * All writes go to IndexedDB first, then queue for background sync
+ * Supabase is used for sync only, never blocks UI
+ *
+ * This service is the single source of truth for all data operations.
  * Components should use this service instead of directly accessing
  * database operations or API calls.
  */
 
 import { store } from '@/store';
-import { selectIsOfflineEnabled, selectDeviceMode } from '@/store/slices/authSlice';
-import type { DeviceMode } from '@/types/device';
 
-// Supabase table operations
+// LOCAL-FIRST: Import IndexedDB operations
 import {
-  clientsTable,
-  staffTable,
-  servicesTable,
-  appointmentsTable,
-  ticketsTable,
-  transactionsTable,
-  type ClientRow,
-  type ClientInsert,
-  type ClientUpdate,
-  type StaffRow,
-  type StaffInsert,
-  type StaffUpdate,
-  type ServiceRow,
-  type ServiceInsert,
-  type ServiceUpdate,
-  type AppointmentRow,
-  type AppointmentInsert,
-  type AppointmentUpdate,
-  type TicketRow,
-  type TicketInsert,
-  type TicketUpdate,
-  type TransactionRow,
-  type TransactionInsert,
-  type TransactionUpdate,
-} from './supabase';
+  clientsDB,
+  staffDB,
+  servicesDB,
+  appointmentsDB,
+  ticketsDB,
+  transactionsDB,
+  syncQueueDB,
+} from '@/db/database';
 
-// Note: IndexedDB operations (clientsDB, staffDB, appointmentsDB, ticketsDB)
-// from '../db/database' will be imported in Phase 5 for offline-enabled mode
+// Type imports for compatibility
+import type { Client, Staff, Service, Appointment, Ticket, Transaction } from '@/types';
 
 // ==================== TYPES ====================
 
@@ -67,27 +51,11 @@ export interface DataResult<T> {
 // ==================== HELPERS ====================
 
 /**
- * Get current device mode from Redux store
- */
-function getMode(): DeviceMode | null {
-  const state = store.getState();
-  return selectDeviceMode(state);
-}
-
-/**
  * Get current store ID from Redux store
  */
 function getStoreId(): string {
   const state = store.getState();
   return state.auth.salonId || '';
-}
-
-/**
- * Check if offline mode is enabled
- */
-function isOfflineEnabled(): boolean {
-  const state = store.getState();
-  return selectIsOfflineEnabled(state);
 }
 
 /**
@@ -99,38 +67,28 @@ function isOnline(): boolean {
 
 /**
  * Determine which data source to use
+ * LOCAL-FIRST: Always use local IndexedDB for reads, sync in background
  */
 function getDataSource(config?: DataServiceConfig): DataSourceType {
-  // Respect forced source
+  // Respect forced source (for special cases like initial hydration)
   if (config?.forceSource) {
     return config.forceSource;
   }
 
-  const mode = getMode();
-  const offlineEnabled = isOfflineEnabled();
-  const online = isOnline();
-
-  // Online-only mode: always use server
-  if (!offlineEnabled || mode === 'online-only') {
-    return 'server';
-  }
-
-  // Offline-enabled mode: use local when offline, prefer local when online
-  if (!online) {
-    return 'local';
-  }
-
-  // When online in offline-enabled mode, prefer local for reads (faster)
+  // LOCAL-FIRST: Always prefer local for instant response
   return 'local';
 }
 
 // ==================== DATA SERVICE ====================
 
 /**
- * Create a mode-aware data operation
+ * Execute a data read operation (LOCAL-FIRST)
+ *
+ * Always reads from local IndexedDB first for instant response.
+ * Background sync will keep data fresh.
  *
  * @param localFn - Function to execute for local database
- * @param serverFn - Function to execute for server API
+ * @param serverFn - Function to execute for server API (used for forced server reads)
  * @param config - Optional configuration
  */
 export async function executeDataOperation<T>(
@@ -145,78 +103,41 @@ export async function executeDataOperation<T>(
       const data = await localFn();
       return { data, source: 'local' };
     } else {
+      // Forced server read (e.g., during hydration)
       const data = await serverFn();
       return { data, source: 'server' };
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-
-    // If server fails and we have offline capability, fallback to local
-    if (source === 'server' && isOfflineEnabled() && getMode() === 'offline-enabled') {
-      console.warn('[DataService] Server failed, falling back to local:', message);
-      try {
-        const data = await localFn();
-        return { data, source: 'local', cached: true };
-      } catch (localError) {
-        return { data: null, source: 'local', error: message };
-      }
-    }
-
     return { data: null, source, error: message };
   }
 }
 
 /**
- * Execute a write operation with proper sync handling
+ * Execute a write operation (LOCAL-FIRST)
  *
- * For offline-enabled mode:
- * - Writes to local database immediately
- * - Queues for sync with server
- *
- * For online-only mode:
- * - Writes directly to server
+ * LOCAL-FIRST architecture:
+ * - Always writes to local database immediately (instant response)
+ * - Queues for background sync with server
+ * - Never blocks on network
  */
 export async function executeWriteOperation<T>(
   localFn: () => Promise<T>,
-  serverFn: () => Promise<T>,
+  _serverFn: () => Promise<T>,
   syncQueueFn?: () => Promise<void>,
   _config?: DataServiceConfig
 ): Promise<DataResult<T>> {
-  const mode = getMode();
-  const offlineEnabled = isOfflineEnabled();
-  const online = isOnline();
-
-  // Online-only mode: write directly to server
-  if (!offlineEnabled || mode === 'online-only') {
-    if (!online) {
-      return {
-        data: null,
-        source: 'server',
-        error: 'Cannot save changes while offline. Please check your internet connection.',
-      };
-    }
-
-    try {
-      const data = await serverFn();
-      return { data, source: 'server' };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save';
-      return { data: null, source: 'server', error: message };
-    }
-  }
-
-  // Offline-enabled mode: write to local, queue for sync
+  // LOCAL-FIRST: Always write to local first for instant response
   try {
     const data = await localFn();
 
-    // Queue for sync if online and sync function provided
-    if (online && syncQueueFn) {
-      try {
-        await syncQueueFn();
-      } catch (syncError) {
+    // Queue for background sync (non-blocking)
+    if (syncQueueFn) {
+      // Don't await - queue sync in background
+      syncQueueFn().catch(syncError => {
         console.warn('[DataService] Failed to queue sync:', syncError);
         // Don't fail the operation, sync will retry later
-      }
+      });
     }
 
     return { data, source: 'local' };
@@ -230,331 +151,552 @@ export async function executeWriteOperation<T>(
 
 /**
  * Check if local database should be used for the current operation
+ * LOCAL-FIRST: Always returns true
  */
 export function shouldUseLocalDB(): boolean {
-  return getDataSource() === 'local';
+  return true; // Always local-first
 }
 
 /**
  * Check if server should be used for the current operation
+ * LOCAL-FIRST: Always returns false (server is for sync only)
  */
 export function shouldUseServer(): boolean {
-  return getDataSource() === 'server';
+  return false; // Never use server directly, sync in background
 }
 
 /**
  * Check if sync operations should run
+ * Returns true if we're online and can sync
  */
 export function shouldSync(): boolean {
-  const offlineEnabled = isOfflineEnabled();
-  const online = isOnline();
-  return offlineEnabled && online;
+  return isOnline();
+}
+
+/**
+ * Queue a sync operation for background processing
+ * LOCAL-FIRST: Non-blocking, fire-and-forget
+ */
+function queueSyncOperation(
+  entity: 'client' | 'staff' | 'service' | 'appointment' | 'ticket' | 'transaction',
+  action: 'create' | 'update' | 'delete',
+  entityId: string,
+  payload: unknown
+): void {
+  // Don't await - queue async
+  syncQueueDB.add({
+    type: action,
+    entity,
+    entityId,
+    action: action.toUpperCase() as 'CREATE' | 'UPDATE' | 'DELETE',
+    payload,
+    priority: action === 'delete' ? 1 : action === 'create' ? 2 : 3,
+    maxAttempts: 5,
+  }).catch(error => {
+    console.warn('[DataService] Failed to queue sync operation:', error);
+    // Don't fail the operation - sync will be retried
+  });
 }
 
 /**
  * Get current mode info for debugging/logging
+ * LOCAL-FIRST: Mode is always 'local-first'
  */
 export function getModeInfo(): {
-  mode: DeviceMode | null;
-  offlineEnabled: boolean;
+  mode: string;
   online: boolean;
   dataSource: DataSourceType;
 } {
   return {
-    mode: getMode(),
-    offlineEnabled: isOfflineEnabled(),
+    mode: 'local-first',
     online: isOnline(),
     dataSource: getDataSource(),
   };
 }
 
-// ==================== SUPABASE ENTITY SERVICES ====================
-// These services provide direct access to Supabase tables.
-// For Phase 4, we use Supabase directly. IndexedDB integration can be added later.
+// ==================== LOCAL-FIRST ENTITY SERVICES ====================
+// All reads from IndexedDB (instant), writes queue to sync
 
 /**
- * Clients data operations via Supabase
+ * Clients data operations - LOCAL-FIRST
+ * Reads from IndexedDB, writes queue for background sync
  */
 export const clientsService = {
-  async getAll(): Promise<ClientRow[]> {
+  async getAll(): Promise<Client[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return clientsDB.getAll(storeId);
+  },
+
+  async getById(id: string): Promise<Client | null> {
+    const client = await clientsDB.getById(id);
+    return client || null;
+  },
+
+  async search(query: string): Promise<Client[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return clientsDB.search(storeId, query);
+  },
+
+  async create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<Client> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
-    return clientsTable.getByStoreId(storeId);
+
+    // Write to IndexedDB first (instant)
+    const created = await clientsDB.create({ ...client, salonId: storeId });
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('client', 'create', created.id, created);
+
+    return created;
   },
 
-  async getById(id: string): Promise<ClientRow | null> {
-    return clientsTable.getById(id);
-  },
+  async update(id: string, updates: Partial<Client>): Promise<Client | null> {
+    // Update IndexedDB first (instant)
+    const updated = await clientsDB.update(id, updates);
+    if (!updated) return null;
 
-  async search(query: string): Promise<ClientRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return clientsTable.search(storeId, query);
-  },
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('client', 'update', id, updated);
 
-  async create(client: Omit<ClientInsert, 'store_id'>): Promise<ClientRow> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return clientsTable.create({ ...client, store_id: storeId });
-  },
-
-  async update(id: string, updates: ClientUpdate): Promise<ClientRow> {
-    return clientsTable.update(id, updates);
+    return updated;
   },
 
   async delete(id: string): Promise<void> {
-    return clientsTable.delete(id);
+    // Delete from IndexedDB first (instant)
+    await clientsDB.delete(id);
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('client', 'delete', id, { id });
   },
 
-  async getVipClients(): Promise<ClientRow[]> {
+  async getVipClients(): Promise<Client[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return clientsTable.getVipClients(storeId);
+    if (!storeId) return [];
+    return clientsDB.getVips(storeId);
   },
 };
 
 /**
- * Staff data operations via Supabase
+ * Staff data operations - LOCAL-FIRST
+ * Reads from IndexedDB, writes queue for background sync
  */
 export const staffService = {
-  async getAll(): Promise<StaffRow[]> {
+  async getAll(): Promise<Staff[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return staffTable.getByStoreId(storeId);
+    if (!storeId) return [];
+    return staffDB.getAll(storeId);
   },
 
-  async getById(id: string): Promise<StaffRow | null> {
-    return staffTable.getById(id);
+  async getById(id: string): Promise<Staff | null> {
+    const staff = await staffDB.getById(id);
+    return staff || null;
   },
 
-  async getActive(): Promise<StaffRow[]> {
+  async getActive(): Promise<Staff[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return staffTable.getActiveByStoreId(storeId);
+    if (!storeId) return [];
+    return staffDB.getAvailable(storeId);
   },
 
-  async create(staff: Omit<StaffInsert, 'store_id'>): Promise<StaffRow> {
+  async create(staffData: Omit<Staff, 'id' | 'createdAt' | 'updatedAt'>): Promise<Staff> {
+    // Create in IndexedDB first (instant)
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return staffTable.create({ ...staff, store_id: storeId });
+    if (!storeId) throw new Error('No store ID');
+    const created = await staffDB.create({ ...staffData, salonId: storeId });
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('staff', 'create', created.id, created);
+
+    return created;
   },
 
-  async update(id: string, updates: StaffUpdate): Promise<StaffRow> {
-    return staffTable.update(id, updates);
+  async update(id: string, updates: Partial<Staff>): Promise<Staff | null> {
+    // Update IndexedDB first (instant)
+    const updated = await staffDB.update(id, updates);
+    if (!updated) return null;
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('staff', 'update', id, updated);
+
+    return updated;
   },
 
   async delete(id: string): Promise<void> {
-    return staffTable.delete(id);
+    // Delete from IndexedDB first (instant)
+    await staffDB.delete(id);
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('staff', 'delete', id, null);
+  },
+
+  async clockIn(id: string): Promise<Staff | null> {
+    const updated = await staffDB.clockIn(id);
+    if (updated) {
+      queueSyncOperation('staff', 'update', id, updated);
+    }
+    return updated || null;
+  },
+
+  async clockOut(id: string): Promise<Staff | null> {
+    const updated = await staffDB.clockOut(id);
+    if (updated) {
+      queueSyncOperation('staff', 'update', id, updated);
+    }
+    return updated || null;
   },
 };
 
 /**
- * Services data operations via Supabase
+ * Services data operations - LOCAL-FIRST
+ * Reads from IndexedDB (services are read-only in POS, managed via Admin)
  */
 export const servicesService = {
-  async getAll(): Promise<ServiceRow[]> {
+  async getAll(): Promise<Service[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return servicesTable.getByStoreId(storeId);
+    if (!storeId) return [];
+    return servicesDB.getAll(storeId);
   },
 
-  async getById(id: string): Promise<ServiceRow | null> {
-    return servicesTable.getById(id);
+  async getById(id: string): Promise<Service | null> {
+    const service = await servicesDB.getById(id);
+    return service || null;
   },
 
-  async getActive(): Promise<ServiceRow[]> {
+  async getActive(): Promise<Service[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    // Use getByStoreId and filter active
-    const services = await servicesTable.getByStoreId(storeId);
-    return services.filter(s => s.is_active);
+    if (!storeId) return [];
+    const services = await servicesDB.getAll(storeId);
+    return services.filter(s => s.isActive);
   },
 
-  async create(service: Omit<ServiceInsert, 'store_id'>): Promise<ServiceRow> {
+  async getByCategory(category: string): Promise<Service[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return servicesTable.create({ ...service, store_id: storeId });
-  },
-
-  async update(id: string, updates: ServiceUpdate): Promise<ServiceRow> {
-    return servicesTable.update(id, updates);
-  },
-
-  async delete(id: string): Promise<void> {
-    return servicesTable.delete(id);
+    if (!storeId) return [];
+    return servicesDB.getByCategory(storeId, category);
   },
 };
 
 /**
- * Appointments data operations via Supabase
+ * Appointments data operations - LOCAL-FIRST
+ * Reads from IndexedDB, writes queue for background sync
  */
 export const appointmentsService = {
-  async getByDate(date: Date): Promise<AppointmentRow[]> {
+  async getByDate(date: Date): Promise<Appointment[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return appointmentsDB.getByDate(storeId, date);
+  },
+
+  async getById(id: string): Promise<Appointment | null> {
+    const appointment = await appointmentsDB.getById(id);
+    return appointment || null;
+  },
+
+  async create(appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<Appointment> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
-    return appointmentsTable.getByDate(storeId, date);
+
+    // Write to IndexedDB first (instant)
+    const created = await appointmentsDB.create(
+      appointment as Parameters<typeof appointmentsDB.create>[0],
+      'system', // userId - will be replaced by actual user context
+      storeId
+    );
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('appointment', 'create', created.id, created);
+
+    return created;
   },
 
-  async getById(id: string): Promise<AppointmentRow | null> {
-    return appointmentsTable.getById(id);
+  async update(id: string, updates: Partial<Appointment>): Promise<Appointment | null> {
+    // Update IndexedDB first (instant)
+    const updated = await appointmentsDB.update(id, updates, 'system');
+    if (!updated) return null;
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('appointment', 'update', id, updated);
+
+    return updated;
   },
 
-  async create(appointment: Omit<AppointmentInsert, 'store_id'>): Promise<AppointmentRow> {
+  async getUpcoming(limit = 50): Promise<Appointment[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return appointmentsTable.create({ ...appointment, store_id: storeId });
+    if (!storeId) return [];
+    // Get appointments from today onwards
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return appointmentsDB.getByDate(storeId, today, limit);
   },
 
-  async update(id: string, updates: AppointmentUpdate): Promise<AppointmentRow> {
-    return appointmentsTable.update(id, updates);
-  },
-
-  async getUpcoming(limit = 50): Promise<AppointmentRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return appointmentsTable.getUpcoming(storeId, limit);
-  },
-
-  async updateStatus(id: string, status: string): Promise<AppointmentRow> {
-    return appointmentsTable.updateStatus(id, status);
+  async updateStatus(id: string, status: string): Promise<Appointment | null> {
+    return this.update(id, { status: status as Appointment['status'] });
   },
 
   async delete(id: string): Promise<void> {
-    return appointmentsTable.delete(id);
+    // Delete from IndexedDB first (instant)
+    await appointmentsDB.delete(id);
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('appointment', 'delete', id, { id });
+  },
+
+  async checkIn(id: string): Promise<Appointment | null> {
+    const updated = await appointmentsDB.checkIn(id, 'system');
+    if (updated) {
+      queueSyncOperation('appointment', 'update', id, updated);
+    }
+    return updated || null;
   },
 };
 
 /**
- * Tickets data operations via Supabase
+ * Tickets data operations - LOCAL-FIRST
+ * Reads from IndexedDB, writes queue for background sync
  */
 export const ticketsService = {
-  async getByDate(date: Date): Promise<TicketRow[]> {
+  async getByDate(date: Date): Promise<Ticket[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    // Get all tickets and filter by date
+    const allTickets = await ticketsDB.getAll(storeId, 500);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    return allTickets.filter(t => {
+      const createdAt = new Date(t.createdAt);
+      return createdAt >= startOfDay && createdAt <= endOfDay;
+    });
+  },
+
+  async getById(id: string): Promise<Ticket | null> {
+    const ticket = await ticketsDB.getById(id);
+    return ticket || null;
+  },
+
+  async getOpenTickets(): Promise<Ticket[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return ticketsDB.getActive(storeId);
+  },
+
+  async getByStatus(status: string): Promise<Ticket[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return ticketsDB.getByStatus(storeId, status);
+  },
+
+  async getByClientId(clientId: string): Promise<Ticket[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    const allTickets = await ticketsDB.getAll(storeId, 500);
+    return allTickets.filter(t => t.clientId === clientId);
+  },
+
+  async getByAppointmentId(appointmentId: string): Promise<Ticket | null> {
+    const storeId = getStoreId();
+    if (!storeId) return null;
+    const allTickets = await ticketsDB.getAll(storeId, 500);
+    return allTickets.find(t => t.appointmentId === appointmentId) || null;
+  },
+
+  async create(input: Parameters<typeof ticketsDB.create>[0]): Promise<Ticket> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.getByDate(storeId, date);
+
+    // Write to IndexedDB first (instant)
+    const created = await ticketsDB.create(input, 'system', storeId);
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('ticket', 'create', created.id, created);
+
+    return created;
   },
 
-  async getById(id: string): Promise<TicketRow | null> {
-    return ticketsTable.getById(id);
+  async update(id: string, updates: Partial<Ticket>): Promise<Ticket | null> {
+    // Update IndexedDB first (instant)
+    const updated = await ticketsDB.update(id, updates, 'system');
+    if (!updated) return null;
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('ticket', 'update', id, updated);
+
+    return updated;
   },
 
-  async getOpenTickets(): Promise<TicketRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.getOpenTickets(storeId);
+  async updateStatus(id: string, status: string): Promise<Ticket | null> {
+    return this.update(id, { status: status as Ticket['status'] });
   },
 
-  async getByStatus(status: string): Promise<TicketRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.getByStatus(storeId, status);
-  },
-
-  async getByClientId(clientId: string): Promise<TicketRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.getByClientId(storeId, clientId);
-  },
-
-  async getByAppointmentId(appointmentId: string): Promise<TicketRow | null> {
-    return ticketsTable.getByAppointmentId(appointmentId);
-  },
-
-  async create(ticket: Omit<TicketInsert, 'store_id'>): Promise<TicketRow> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.create({ ...ticket, store_id: storeId });
-  },
-
-  async update(id: string, updates: TicketUpdate): Promise<TicketRow> {
-    return ticketsTable.update(id, updates);
-  },
-
-  async updateStatus(id: string, status: string): Promise<TicketRow> {
-    return ticketsTable.updateStatus(id, status);
-  },
-
-  async complete(id: string, payments: unknown[]): Promise<TicketRow> {
-    return ticketsTable.complete(id, payments);
+  async complete(id: string, _payments: unknown[]): Promise<Ticket | null> {
+    // Complete ticket in IndexedDB
+    const completed = await ticketsDB.complete(id, 'system');
+    if (completed) {
+      queueSyncOperation('ticket', 'update', id, completed);
+    }
+    return completed || null;
   },
 
   async delete(id: string): Promise<void> {
-    return ticketsTable.delete(id);
+    // Delete from IndexedDB first (instant)
+    await ticketsDB.delete(id);
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('ticket', 'delete', id, { id });
   },
 
   async getDailySummary(date: Date) {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.getDailySummary(storeId, date);
+    const tickets = await this.getByDate(date);
+    const completedTickets = tickets.filter(t => t.status === 'paid');
+    return {
+      totalTickets: tickets.length,
+      completedTickets: completedTickets.length,
+      totalRevenue: completedTickets.reduce((sum, t) => sum + t.total, 0),
+      totalTips: completedTickets.reduce((sum, t) => sum + (t.tip || 0), 0),
+    };
   },
 
-  async getUpdatedSince(since: Date): Promise<TicketRow[]> {
+  async getUpdatedSince(since: Date): Promise<Ticket[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    const allTickets = await ticketsDB.getAll(storeId, 1000);
+    return allTickets.filter(t => {
+      // Check if ticket was updated since the given date
+      // This is a simplified version - in production you'd have an updatedAt field
+      const createdAt = new Date(t.createdAt);
+      return createdAt >= since;
+    });
+  },
+
+  async getDrafts(): Promise<Ticket[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return ticketsDB.getDrafts(storeId);
+  },
+
+  async createDraft(services: Ticket['services'], clientInfo?: { clientId: string; clientName: string; clientPhone: string }): Promise<Ticket> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
-    return ticketsTable.getUpdatedSince(storeId, since);
+    return ticketsDB.createDraft(services, 'system', storeId, clientInfo);
   },
 };
 
 /**
- * Transactions data operations via Supabase
+ * Transactions data operations - LOCAL-FIRST
+ * Reads from IndexedDB, writes queue for background sync
  */
 export const transactionsService = {
-  async getByDate(date: Date): Promise<TransactionRow[]> {
+  async getByDate(date: Date): Promise<Transaction[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    return transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
+  },
+
+  async getById(id: string): Promise<Transaction | null> {
+    const transaction = await transactionsDB.getById(id);
+    return transaction || null;
+  },
+
+  async getByTicketId(ticketId: string): Promise<Transaction[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    const allTransactions = await transactionsDB.getAll(storeId, 1000);
+    return allTransactions.filter(t => t.ticketId === ticketId);
+  },
+
+  async getByClientId(clientId: string): Promise<Transaction[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    const allTransactions = await transactionsDB.getAll(storeId, 1000);
+    return allTransactions.filter(t => t.clientId === clientId);
+  },
+
+  async getByPaymentMethod(paymentMethod: string, date?: Date): Promise<Transaction[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    let transactions: Transaction[];
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      transactions = await transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
+    } else {
+      transactions = await transactionsDB.getAll(storeId, 1000);
+    }
+    return transactions.filter(t => t.paymentMethod === paymentMethod);
+  },
+
+  async create(transaction: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'>): Promise<Transaction> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.getByDate(storeId, date);
+
+    // Write to IndexedDB first (instant)
+    const created = await transactionsDB.create({ ...transaction, salonId: storeId });
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('transaction', 'create', created.id, created);
+
+    return created;
   },
 
-  async getById(id: string): Promise<TransactionRow | null> {
-    return transactionsTable.getById(id);
-  },
+  async update(id: string, updates: Partial<Transaction>): Promise<Transaction | null> {
+    // Update IndexedDB first (instant)
+    const updated = await transactionsDB.update(id, updates);
+    if (!updated) return null;
 
-  async getByTicketId(ticketId: string): Promise<TransactionRow[]> {
-    return transactionsTable.getByTicketId(ticketId);
-  },
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('transaction', 'update', id, updated);
 
-  async getByClientId(clientId: string): Promise<TransactionRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.getByClientId(storeId, clientId);
-  },
-
-  async getByType(type: string, date?: Date): Promise<TransactionRow[]> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.getByType(storeId, type, date);
-  },
-
-  async create(transaction: Omit<TransactionInsert, 'store_id'>): Promise<TransactionRow> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.create({ ...transaction, store_id: storeId });
-  },
-
-  async update(id: string, updates: TransactionUpdate): Promise<TransactionRow> {
-    return transactionsTable.update(id, updates);
+    return updated;
   },
 
   async delete(id: string): Promise<void> {
-    return transactionsTable.delete(id);
+    // Delete from IndexedDB first (instant)
+    await transactionsDB.delete(id);
+
+    // Queue for background sync (non-blocking)
+    queueSyncOperation('transaction', 'delete', id, { id });
   },
 
   async getDailySummary(date: Date) {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.getDailySummary(storeId, date);
+    const transactions = await this.getByDate(date);
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+    const byPaymentMethod = transactions.reduce((acc, t) => {
+      const method = t.paymentMethod || 'unknown';
+      acc[method] = (acc[method] || 0) + t.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalTransactions: transactions.length,
+      totalAmount,
+      byPaymentMethod,
+    };
   },
 
   async getPaymentBreakdown(date: Date) {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.getPaymentBreakdown(storeId, date);
+    const transactions = await this.getByDate(date);
+    return transactions.reduce((acc, t) => {
+      const method = t.paymentMethod || 'unknown';
+      acc[method] = (acc[method] || 0) + t.amount;
+      return acc;
+    }, {} as Record<string, number>);
   },
 
-  async getUpdatedSince(since: Date): Promise<TransactionRow[]> {
+  async getUpdatedSince(since: Date): Promise<Transaction[]> {
     const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    return transactionsTable.getUpdatedSince(storeId, since);
+    if (!storeId) return [];
+    const sinceIso = since.toISOString();
+    const allTransactions = await transactionsDB.getAll(storeId, 1000);
+    return allTransactions.filter(t => t.createdAt >= sinceIso);
   },
 };
 

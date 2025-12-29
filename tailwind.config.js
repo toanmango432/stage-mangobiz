@@ -169,6 +169,7 @@ export default {
         'slide-left': 'slideLeft 0.4s ease-out',
         'scale-spring': 'scaleSpring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-subtle': 'pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
 
         // Loading skeletons
         'shimmer': 'shimmer 2s infinite',
@@ -211,6 +212,10 @@ export default {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
+        pulseSubtle: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.92', transform: 'scale(1.005)' },
+        },
       },
 
       // Border radius
@@ -220,6 +225,11 @@ export default {
         'premium-lg': '16px',
         'premium-xl': '20px',
         'premium-2xl': '24px',
+      },
+
+      // Extended stone palette
+      borderColor: {
+        'stone-150': 'rgb(231 229 228)', // Between stone-100 and stone-200
       },
 
       // Custom spacing (if needed beyond defaults)

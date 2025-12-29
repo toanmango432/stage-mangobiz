@@ -2,7 +2,20 @@
  * Time Utility Functions
  * CRITICAL: These formulas are preserved EXACTLY from jQuery calendar
  * DO NOT MODIFY without testing against original system
+ *
+ * NOTE: Display and validation functions now use timezone-aware dateUtils
  */
+
+import {
+  formatTime as dateUtilsFormatTime,
+  formatLongDate,
+  getStoreTimezone,
+  isToday as dateUtilsIsToday,
+  isPast as dateUtilsIsPast,
+  startOfDay as dateUtilsStartOfDay,
+  endOfDay as dateUtilsEndOfDay,
+  localTimeToUTC,
+} from './dateUtils';
 
 // ============================================================================
 // CONSTANTS (From jQuery Calendar)
@@ -183,17 +196,17 @@ export function parseAPIDate(dateString: string): Date {
 }
 
 /**
- * Combine date and time strings into Date object
- * 
+ * Combine date and time strings into Date object - TIMEZONE AWARE
+ * Uses store timezone for proper UTC conversion
+ *
  * @param dateString Date in MM/dd/yyyy format
  * @param timeString Time in HH:mm format
- * @returns Combined Date object
+ * @returns Combined Date object with correct UTC time
  */
 export function combineDateAndTime(dateString: string, timeString: string): Date {
   const date = parseAPIDate(dateString);
-  const [hours, minutes] = timeString.split(':').map(Number);
-  date.setHours(hours, minutes, 0, 0);
-  return date;
+  // Use timezone-aware conversion for proper UTC storage
+  return new Date(localTimeToUTC(date, timeString));
 }
 
 // ============================================================================
@@ -290,7 +303,7 @@ export function generateTimeSlots(
  * @returns Start and end time in seconds, or null if no appointments
  */
 export function calculate2HourWindow(
-  appointments: Array<{ scheduledStartTime: Date }>
+  appointments: Array<{ scheduledStartTime: Date | string }>
 ): { startTime: number; endTime: number } | null {
   if (appointments.length === 0) {
     return null;
@@ -329,32 +342,26 @@ export function addMinutes(date: Date, minutes: number): Date {
 }
 
 // ============================================================================
-// DISPLAY FORMATTING
+// DISPLAY FORMATTING (Timezone-aware via dateUtils)
 // ============================================================================
 
 /**
- * Format time for display (12-hour format)
- * 
+ * Format time for display (12-hour format) - TIMEZONE AWARE
+ * Uses store timezone for consistent display
+ *
  * @param date Date object
- * @param includeAmPm Include AM/PM
+ * @param includeAmPm Include AM/PM (always true for timezone-aware version)
  * @returns Formatted time string (e.g., "9:30 AM")
  */
 export function formatTimeDisplay(date: Date, includeAmPm: boolean = true): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  
-  hours = hours % 12;
-  hours = hours ? hours : 12; // 0 should be 12
-  
-  const minutesStr = minutes.toString().padStart(2, '0');
-  
-  return includeAmPm ? `${hours}:${minutesStr} ${ampm}` : `${hours}:${minutesStr}`;
+  // Use timezone-aware formatting from dateUtils
+  return dateUtilsFormatTime(date, { use24Hour: !includeAmPm });
 }
 
 /**
- * Format date for display
- * 
+ * Format date for display - TIMEZONE AWARE
+ * Uses store timezone for consistent display
+ *
  * @param date Date object
  * @param format 'short' | 'medium' | 'long'
  * @returns Formatted date string
@@ -363,11 +370,17 @@ export function formatDateDisplay(
   date: Date,
   format: 'short' | 'medium' | 'long' = 'medium'
 ): string {
-  const options: Intl.DateTimeFormatOptions = 
-    format === 'short' ? { month: 'numeric', day: 'numeric' } :
-    format === 'medium' ? { month: 'short', day: 'numeric', year: 'numeric' } :
-    { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-  
+  // Use timezone-aware formatting from dateUtils
+  if (format === 'long') {
+    return formatLongDate(date);
+  }
+  // For short and medium, use formatShortDate which handles timezone
+  const tz = getStoreTimezone();
+  const options: Intl.DateTimeFormatOptions =
+    format === 'short'
+      ? { month: 'numeric', day: 'numeric', timeZone: tz }
+      : { month: 'short', day: 'numeric', year: 'numeric', timeZone: tz };
+
   return date.toLocaleDateString('en-US', options);
 }
 
@@ -410,52 +423,46 @@ export function isWithinBusinessHours(
 }
 
 /**
- * Check if date is today
- * 
+ * Check if date is today - TIMEZONE AWARE
+ * Uses store timezone for comparison
+ *
  * @param date Date to check
- * @returns True if date is today
+ * @returns True if date is today in store timezone
  */
 export function isToday(date: Date): boolean {
-  const today = new Date();
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
+  return dateUtilsIsToday(date);
 }
 
 /**
  * Check if date is in the past
- * 
+ *
  * @param date Date to check
  * @returns True if date is in the past
  */
 export function isPast(date: Date): boolean {
-  return date < new Date();
+  return dateUtilsIsPast(date);
 }
 
 /**
- * Get start of day
- * 
+ * Get start of day - TIMEZONE AWARE
+ * Returns midnight in store timezone
+ *
  * @param date Date object
- * @returns Date at 00:00:00
+ * @returns Date at 00:00:00 in store timezone
  */
 export function startOfDay(date: Date): Date {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  return result;
+  return dateUtilsStartOfDay(date);
 }
 
 /**
- * Get end of day
- * 
+ * Get end of day - TIMEZONE AWARE
+ * Returns 23:59:59.999 in store timezone
+ *
  * @param date Date object
- * @returns Date at 23:59:59
+ * @returns Date at 23:59:59.999 in store timezone
  */
 export function endOfDay(date: Date): Date {
-  const result = new Date(date);
-  result.setHours(23, 59, 59, 999);
-  return result;
+  return dateUtilsEndOfDay(date);
 }
 
 // ============================================================================

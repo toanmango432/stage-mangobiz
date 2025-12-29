@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { clientsDB, patchTestsDB, formResponsesDB, referralsDB, clientReviewsDB, loyaltyRewardsDB, reviewRequestsDB, customSegmentsDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
-import { toClient, toClients, toClientInsert, toClientUpdate } from '../../services/supabase';
+// toClient/toClients/etc not needed - dataService returns converted types
 import type {
   Client,
   ClientFilters,
@@ -131,8 +131,8 @@ const initialState: ClientsState = {
 export const fetchClientsFromSupabase = createAsyncThunk(
   'clients/fetchFromSupabase',
   async () => {
-    const rows = await dataService.clients.getAll();
-    return toClients(rows);
+    // dataService already returns Client[] (converted)
+    return await dataService.clients.getAll();
   }
 );
 
@@ -143,8 +143,8 @@ export const fetchClientsFromSupabase = createAsyncThunk(
 export const searchClientsFromSupabase = createAsyncThunk(
   'clients/searchFromSupabase',
   async (query: string) => {
-    const rows = await dataService.clients.search(query);
-    return toClients(rows);
+    // dataService already returns Client[] (converted)
+    return await dataService.clients.search(query);
   }
 );
 
@@ -154,9 +154,10 @@ export const searchClientsFromSupabase = createAsyncThunk(
 export const fetchClientByIdFromSupabase = createAsyncThunk(
   'clients/fetchByIdFromSupabase',
   async (clientId: string) => {
-    const row = await dataService.clients.getById(clientId);
-    if (!row) throw new Error('Client not found');
-    return toClient(row);
+    // dataService already returns Client (converted)
+    const client = await dataService.clients.getById(clientId);
+    if (!client) throw new Error('Client not found');
+    return client;
   }
 );
 
@@ -167,9 +168,8 @@ export const fetchClientByIdFromSupabase = createAsyncThunk(
 export const createClientInSupabase = createAsyncThunk(
   'clients/createInSupabase',
   async (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const insertData = toClientInsert(client);
-    const row = await dataService.clients.create(insertData);
-    return toClient(row);
+    // dataService.clients.create returns Client directly
+    return await dataService.clients.create(client);
   }
 );
 
@@ -179,10 +179,10 @@ export const createClientInSupabase = createAsyncThunk(
 export const updateClientInSupabase = createAsyncThunk(
   'clients/updateInSupabase',
   async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
-    const updateData = toClientUpdate(updates);
-    const row = await dataService.clients.update(id, updateData);
-    if (!row) throw new Error('Failed to update client');
-    return toClient(row);
+    // dataService.clients.update returns Client directly
+    const updated = await dataService.clients.update(id, updates);
+    if (!updated) throw new Error('Failed to update client');
+    return updated;
   }
 );
 

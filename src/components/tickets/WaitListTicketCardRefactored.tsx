@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { MoreVertical, UserPlus, Edit2, Trash2, StickyNote } from 'lucide-react';
+import { MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ExternalLink } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { TicketDetailsModal } from './TicketDetailsModal';
@@ -25,6 +25,7 @@ interface WaitListTicketCardProps {
   onEdit?: (ticketId: string) => void;
   onDelete?: (ticketId: string) => void;
   onClick?: (ticketId: string) => void;
+  onOpenTicket?: (ticketId: string) => void;
 }
 
 function WaitListTicketCardComponent({
@@ -33,7 +34,8 @@ function WaitListTicketCardComponent({
   onAssign,
   onEdit,
   onDelete,
-  onClick
+  onClick,
+  onOpenTicket
 }: WaitListTicketCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -70,6 +72,32 @@ function WaitListTicketCardComponent({
     const hrs = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  };
+
+  // Long wait visual indicators
+  // 10-20 min = orange warning, >20 min = red alert
+  const isLongWait = waitTime >= 10;
+  const isVeryLongWait = waitTime >= 20;
+
+  // Dynamic border color based on wait time
+  const getWaitBorderColor = () => {
+    if (isVeryLongWait) return 'rgba(239, 68, 68, 0.7)'; // red-500
+    if (isLongWait) return 'rgba(249, 115, 22, 0.6)'; // orange-500
+    return 'rgba(139, 92, 246, 0.28)'; // purple (default)
+  };
+
+  // Dynamic border width for emphasis
+  const getWaitBorderWidth = () => {
+    if (isVeryLongWait) return '4px';
+    if (isLongWait) return '3px';
+    return '3px';
+  };
+
+  // Dynamic wait time text color
+  const getWaitTimeColor = () => {
+    if (isVeryLongWait) return '#DC2626'; // red-600
+    if (isLongWait) return '#EA580C'; // orange-600
+    return '#6b5d52'; // default brown
   };
 
   // Get last visit text similar to service tickets
@@ -128,7 +156,8 @@ function WaitListTicketCardComponent({
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <div className="text-[#6b5d52] font-medium whitespace-nowrap" style={{ fontSize: 'clamp(10px, 1.5vw, 12px)' }}>
+                <div className="font-medium whitespace-nowrap flex items-center gap-1" style={{ fontSize: 'clamp(10px, 1.5vw, 12px)', color: getWaitTimeColor() }}>
+                  {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
                   {formatWaitTime(waitTime)}
                 </div>
               </div>
@@ -180,7 +209,10 @@ function WaitListTicketCardComponent({
                 <div className="text-[#6b5d52] font-medium tracking-wide text-xs">{getLastVisitText()}</div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 self-start mt-1">
-                <span className="text-[#4a3d34] font-medium whitespace-nowrap text-xs">Waited {formatWaitTime(waitTime)}</span>
+                <span className="font-medium whitespace-nowrap text-xs flex items-center gap-1" style={{ color: getWaitTimeColor() }}>
+                  {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+                  Waited {formatWaitTime(waitTime)}
+                </span>
                 <span className="text-xs text-[#4a3d34] opacity-50">•</span>
                 <span className="text-[#4a3d34] font-medium whitespace-nowrap text-xs">{ticket.time}</span>
               </div>
@@ -217,7 +249,7 @@ function WaitListTicketCardComponent({
     // GRID COMPACT VIEW - Same design language, more compact
     if (viewMode === 'grid-compact') {
       return (
-        <div onClick={() => onClick?.(ticket.id)} className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[5px] hover:shadow-2xl flex flex-col min-w-[220px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: '3px solid rgba(139, 92, 246, 0.28)', borderRadius: '10px', boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)' }}>
+        <div onClick={() => onClick?.(ticket.id)} className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[5px] hover:shadow-2xl flex flex-col min-w-[220px] max-w-full cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`} role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`, borderRadius: '10px', boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)' }}>
           {/* Perforation dots - compact */}
           <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-2 z-10" style={{ opacity: 0.108 }}>{[...Array(10)].map((_, i) => (<div key={i} className="w-[1.5px] h-[1.5px] rounded-full bg-[#c4b5a0]" />))}</div>
 
@@ -227,7 +259,7 @@ function WaitListTicketCardComponent({
           {/* Ticket number tab - smaller */}
           <div className="absolute left-0 top-1.5 w-7 text-[#1a1614] flex items-center justify-center font-black text-xs z-20" style={{ height: isFirstVisit ? 'clamp(1.4rem, 3vw, 1.6rem)' : 'clamp(1.3rem, 2.8vw, 1.5rem)', background: 'rgba(139, 92, 246, 0.06)', borderTopRightRadius: '6px', borderBottomRightRadius: '6px', borderTop: '2px solid rgba(139, 92, 246, 0.28)', borderRight: '2px solid rgba(139, 92, 246, 0.28)', borderBottom: '2px solid rgba(139, 92, 246, 0.28)', boxShadow: '2px 0 4px rgba(139, 92, 246, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)', letterSpacing: '-0.02em', transform: 'translateX(-2.5px)' }}>{ticket.number}</div>
           <div className="flex items-start justify-between px-2 sm:px-3 pt-2 sm:pt-3 pb-1 pl-9 sm:pl-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 sm:gap-1.5"><span className="font-bold text-[#1a1614] truncate" style={{ fontSize: 'clamp(14px, 1.75vw, 16px)' }}>{ticket.clientName}</span>{isFirstVisit && <span className="text-xs sm:text-sm flex-shrink-0">⭐</span>}{hasNote && <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 flex-shrink-0" />}</div></div>
-            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"><button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Edit2 size={12} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 min-w-[44px] min-h-[44px] rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} /></button></Tippy>
+            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"><button onClick={(e) => { e.stopPropagation(); onOpenTicket?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 font-medium"><ExternalLink size={12} className="text-purple-500" /> Open Ticket</button><div className="h-px bg-gray-200 my-0.5" /><button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Edit2 size={12} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 min-w-[44px] min-h-[44px] rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} /></button></Tippy>
           </div>
           {/* Service - compact */}
           <div className="px-2 pb-1.5 text-[11px] text-[#1a1614] font-semibold line-clamp-1">{ticket.service}</div>
@@ -237,7 +269,10 @@ function WaitListTicketCardComponent({
 
           {/* Wait info - compact (simplified, removed redundant check-in time) */}
           <div className="px-2 pb-1">
-            <div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>Waited {formatWaitTime(waitTime)}</div>
+            <div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>
+              {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+              Waited {formatWaitTime(waitTime)}
+            </div>
           </div>
 
           {/* Footer - compact */}
@@ -257,18 +292,18 @@ function WaitListTicketCardComponent({
     // GRID NORMAL VIEW - Full Reference Design
     if (viewMode === 'grid-normal') {
       return (
-        <div onClick={() => onClick?.(ticket.id)} className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[6px] hover:shadow-2xl flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: '3px solid rgba(139, 92, 246, 0.28)', borderRadius: '10px', boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)' }}>
+        <div onClick={() => onClick?.(ticket.id)} className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[6px] hover:shadow-2xl flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`} role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`, borderRadius: '10px', boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)' }}>
           <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-2 sm:px-3 md:px-4 z-10" style={{ opacity: 0.108 }}>{[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}</div>
 
           {/* Dog-ear corner */}
           <div className="absolute top-0 right-0 w-7 h-7 z-10" style={{ background: 'linear-gradient(225deg, #FFFDFB 50%, transparent 50%)', boxShadow: '-1px 1px 2px rgba(0,0,0,0.06), -0.5px 0.5px 1px rgba(0,0,0,0.04)', borderRadius: '0 10px 0 0' }} />
           <div className="absolute left-0 text-[#1a1614] flex items-center justify-center font-black z-20" style={{ top: 'clamp(12px, 2vw, 20px)', width: 'clamp(40px, 5.5vw, 56px)', fontSize: 'clamp(16px, 2.25vw, 24px)', height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)', background: 'rgba(139, 92, 246, 0.06)', borderTopRightRadius: '8px', borderBottomRightRadius: '8px', borderTop: '2px solid rgba(139, 92, 246, 0.28)', borderRight: '2px solid rgba(139, 92, 246, 0.28)', borderBottom: '2px solid rgba(139, 92, 246, 0.28)', boxShadow: `3px 0 6px rgba(139, 92, 246, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, letterSpacing: '-0.02em', transform: 'translateX(-4px)' }}>{ticket.number}</div>
           <div className="flex items-start justify-between px-2 sm:px-3 md:px-4 pb-1" style={{ paddingTop: 'clamp(12px, 2vw, 20px)', paddingLeft: 'clamp(44px, calc(5.5vw + 4px), 60px)' }}><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="font-bold text-[#1a1614] truncate tracking-tight" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>{isFirstVisit && <span className="text-xs sm:text-sm md:text-base flex-shrink-0">⭐</span>}{hasNote && <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />}</div><div className="text-[#6b5d52] font-medium tracking-wide" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div></div>
-            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Edit2 size={14} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 sm:p-2.5 min-w-[44px] min-h-[44px] rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
+            <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onOpenTicket?.(ticket.id); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 font-medium"><ExternalLink size={14} className="text-purple-500" /> Open Ticket</button><div className="h-px bg-gray-200 my-0.5" /><button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Edit2 size={14} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 sm:p-2.5 min-w-[44px] min-h-[44px] rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
           </div>
           <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 md:pb-4 text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight line-clamp-2">{ticket.service}</div>
           <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 md:mb-4 border-t border-[#e8dcc8]/50" />
-          <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>Waited {formatWaitTime(waitTime)}</div><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>In at {ticket.time}</div></div>
+          <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>{isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}Waited {formatWaitTime(waitTime)}</div><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>In at {ticket.time}</div></div>
 
           {/* Footer with Assign button inside */}
           <div className="mt-auto px-2 py-1.5 rounded-md" style={{ marginLeft: 'clamp(8px, 1.5vw, 16px)', marginRight: 'clamp(8px, 1.5vw, 16px)', marginBottom: 'clamp(8px, 1.5vw, 16px)', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
@@ -309,11 +344,11 @@ function WaitListTicketCardComponent({
         role="button"
         tabIndex={0}
         aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
-        className="relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg"
+        className={`relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`}
         style={{
           background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
           border: '1px dashed #D8D8D8',
-          borderLeft: '3px solid rgba(139, 92, 246, 0.28)',
+          borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`,
           borderRadius: '10px',
           boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}

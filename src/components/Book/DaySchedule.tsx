@@ -23,6 +23,7 @@ import { getStatusColor } from '../../constants/premiumDesignSystem';
 import { staggerDelayStyle } from '../../utils/animations';
 import { DayViewSkeleton } from './skeletons';
 import type { BlockedTimeEntry, BusinessClosedPeriod } from '../../types/schedule';
+import { localTimeToUTC } from '../../utils/dateUtils';
 
 interface Staff {
   id: string;
@@ -628,7 +629,12 @@ export const DaySchedule = memo(function DaySchedule({
                       <button
                         key={`slot-${hour}-${intervalIndex}`}
                         onClick={() => {
-                          onTimeSlotClick(staffMember.id, snappedTime);
+                          // Convert to timezone-aware UTC for storage
+                          const h = snappedTime.getHours();
+                          const m = snappedTime.getMinutes();
+                          const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                          const utcTime = new Date(localTimeToUTC(date, timeStr));
+                          onTimeSlotClick(staffMember.id, utcTime);
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
@@ -659,7 +665,12 @@ export const DaySchedule = memo(function DaySchedule({
                           e.preventDefault();
                           if (draggedAppointment && onAppointmentDrop) {
                             const finalTime = snapToGrid(slotTime);
-                            onAppointmentDrop(draggedAppointment.id, staffMember.id, finalTime);
+                            // Convert to timezone-aware UTC for storage
+                            const h = finalTime.getHours();
+                            const m = finalTime.getMinutes();
+                            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                            const utcTime = new Date(localTimeToUTC(date, timeStr));
+                            onAppointmentDrop(draggedAppointment.id, staffMember.id, utcTime);
                           }
                           setDragOverSlot(null);
                           setDragConflict(null);

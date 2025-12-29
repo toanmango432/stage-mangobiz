@@ -18,7 +18,10 @@ import {
   Check,
   DollarSign,
   Printer,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { paymentBridge } from "@/services/payment";
 
 export interface PaymentMethod {
   type: "card" | "cash" | "gift_card" | "custom";
@@ -123,6 +126,8 @@ export default function PaymentModal({
   const [showTipDistribution, setShowTipDistribution] = useState(false);
   const [tipDistribution, setTipDistribution] = useState<TipDistribution[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const tipAmount = tipPercentage
     ? (total * tipPercentage) / 100
@@ -152,12 +157,12 @@ export default function PaymentModal({
     setCashTendered(amount.toString());
   };
 
-  const handleAddPayment = (amount?: number) => {
+  const handleAddPayment = async (amount?: number) => {
     if (!currentMethod) return;
-    
+
     let paymentAmount = amount;
     let tenderedAmount = amount;
-    
+
     if (!paymentAmount) {
       if (currentMethod === "cash" && cashTendered) {
         tenderedAmount = parseFloat(cashTendered);
@@ -166,19 +171,50 @@ export default function PaymentModal({
     }
 
     if (paymentAmount && paymentAmount > 0) {
+      // Clear any previous error
+      setPaymentError(null);
+
+      // For card and gift card, process through paymentBridge
+      if (currentMethod === "card" || currentMethod === "gift_card") {
+        setIsProcessing(true);
+
+        try {
+          const result = await paymentBridge.processPayment({
+            amount: Math.min(paymentAmount, remaining),
+            method: currentMethod,
+            ticketId: "pending", // Will be set properly when integrated
+          });
+
+          if (!result.success) {
+            setPaymentError(result.error || "Payment failed. Please try again.");
+            setIsProcessing(false);
+            return;
+          }
+
+          console.log("✅ Payment processed:", result.transactionId);
+        } catch (error) {
+          setPaymentError("Payment processing failed. Please try again.");
+          setIsProcessing(false);
+          return;
+        }
+
+        setIsProcessing(false);
+      }
+
+      // Add the payment method to the list
       const newPayment: PaymentMethod = {
         type: currentMethod,
         amount: Math.min(paymentAmount, remaining),
       };
-      
+
       if (currentMethod === "cash" && tenderedAmount) {
         newPayment.tendered = tenderedAmount;
       }
-      
+
       if (currentMethod === "custom" && customPaymentName.trim()) {
         newPayment.customName = customPaymentName.trim();
       }
-      
+
       setPaymentMethods([...paymentMethods, newPayment]);
       setCashTendered("");
       setCustomPaymentName("");
@@ -297,6 +333,22 @@ export default function PaymentModal({
 
         <StepIndicator currentStep={currentStep} isFullyPaid={isFullyPaid} />
 
+        {/* Processing overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 bg-background/95 flex items-center justify-center z-50 rounded-lg">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-1">Processing payment...</h3>
+                <p className="text-sm text-muted-foreground">Please wait</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success overlay */}
         {showSuccess && (
           <div className="absolute inset-0 bg-background/95 flex items-center justify-center z-50 rounded-lg">
             <div className="flex flex-col items-center gap-4">
@@ -435,6 +487,28 @@ export default function PaymentModal({
                   ← Back to tip
                 </Button>
 
+                {/* Payment error display */}
+                {paymentError && (
+                  <Card className="p-4 bg-red-500/10 border-red-500/30">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-500 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-600 dark:text-red-500">
+                          {paymentError}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPaymentError(null)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
                 {remaining > 0.01 ? (
                   <Card className="p-4 sm:p-6 bg-primary/10 border-primary/30">
                     <div className="text-center">
@@ -549,10 +623,15 @@ export default function PaymentModal({
                           <Button
                             className="w-full h-14 text-base"
                             onClick={() => handleAddPayment(remaining)}
+                            disabled={isProcessing}
                             data-testid="button-apply-card"
                           >
-                            <CreditCard className="h-5 w-5 mr-2" />
-                            Apply ${remaining.toFixed(2)}
+                            {isProcessing ? (
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            ) : (
+                              <CreditCard className="h-5 w-5 mr-2" />
+                            )}
+                            {isProcessing ? "Processing..." : `Apply $${remaining.toFixed(2)}`}
                           </Button>
                         )}
 
@@ -606,10 +685,15 @@ export default function PaymentModal({
                           <Button
                             className="w-full h-14 text-base"
                             onClick={() => handleAddPayment(remaining)}
+                            disabled={isProcessing}
                             data-testid="button-apply-gift-card"
                           >
-                            <Gift className="h-5 w-5 mr-2" />
-                            Apply ${remaining.toFixed(2)}
+                            {isProcessing ? (
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            ) : (
+                              <Gift className="h-5 w-5 mr-2" />
+                            )}
+                            {isProcessing ? "Processing..." : `Apply $${remaining.toFixed(2)}`}
                           </Button>
                         )}
 

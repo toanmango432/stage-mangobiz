@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, memo } from 'react';
+import { useEffect, useState, useRef, memo, useMemo } from 'react';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { useTicketSection } from '@/hooks/frontdesk';
 import { FrontDeskHeader, HeaderActionButton } from './FrontDeskHeader';
@@ -6,11 +6,14 @@ import { serviceHeaderTheme } from './headerTokens';
 import { FrontDeskEmptyState } from './FrontDeskEmptyState';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity, Trash2 } from 'lucide-react';
+import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity, Trash2, AlertCircle, ExternalLink } from 'lucide-react';
+import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
 import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
 import { ServiceTicketCard, ServiceTicketCardRefactored } from '@/components/tickets';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
+import { SearchBar } from './SearchBar';
+import { FrontDeskSubTabs, SubTab } from './FrontDeskSubTabs';
 
 // Helper functions for time calculations
 const formatTime = (date: Date): string => {
@@ -94,6 +97,41 @@ export const ServiceSection = memo(function ServiceSection({
     resumeTicket,
     deleteTicket
   } = useTickets();
+
+  // Get ticket panel context for opening tickets
+  const { openTicketWithData } = useTicketPanel();
+
+  // Handler to open a ticket in the Ticket Control Center
+  const handleOpenTicket = (ticket: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const ticketData: TicketData = {
+      id: ticket.id,
+      number: ticket.number,
+      clientName: ticket.clientName,
+      clientType: ticket.clientType,
+      service: ticket.service,
+      checkoutServices: ticket.services || (ticket.service ? [{
+        id: `service-${Date.now()}`,
+        serviceId: ticket.serviceId,
+        serviceName: ticket.service,
+        price: ticket.price || 0,
+        duration: parseInt(ticket.duration) || 30,
+        status: ticket.serviceStatus || 'in_progress',
+        staffId: ticket.techId,
+        staffName: ticket.technician,
+      }] : []),
+      technician: ticket.technician,
+      techId: ticket.techId,
+      duration: ticket.duration,
+      subtotal: ticket.price || ticket.subtotal,
+      notes: ticket.notes,
+      time: ticket.time,
+      status: 'in_service',
+    };
+    openTicketWithData(ticketData);
+    setOpenDropdownId(null);
+  };
+
   // Updated color tokens for section styling - teal theme
   const colorTokens = {
     primary: '#14B8A6',
@@ -157,6 +195,57 @@ export const ServiceSection = memo(function ServiceSection({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
+  // Search state for filtering tickets
+  const [searchQuery, setSearchQuery] = useState('');
+  // Category filter state
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Extract unique service categories from tickets (using first word of service name)
+  const categoryTabs = useMemo((): SubTab[] => {
+    const categoryMap = new Map<string, number>();
+    serviceTickets.forEach(ticket => {
+      if (ticket.service) {
+        // Use first word of service as category (e.g., "Manicure", "Pedicure", "Haircut")
+        const category = ticket.service.split(/\s+/)[0] || 'Other';
+        categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+      }
+    });
+    const tabs: SubTab[] = [{ id: 'all', label: 'All', count: serviceTickets.length }];
+    // Sort categories alphabetically
+    Array.from(categoryMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([category, count]) => {
+        tabs.push({ id: category.toLowerCase(), label: category, count });
+      });
+    return tabs;
+  }, [serviceTickets]);
+
+  // Filter service tickets based on search query and category
+  const filteredServiceTickets = useMemo(() => {
+    let filtered = serviceTickets;
+
+    // Filter by category first
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(ticket => {
+        const ticketCategory = ticket.service?.split(/\s+/)[0]?.toLowerCase() || '';
+        return ticketCategory === selectedCategory;
+      });
+    }
+
+    // Then filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(ticket =>
+        ticket.clientName?.toLowerCase().includes(query) ||
+        ticket.service?.toLowerCase().includes(query) ||
+        ticket.technician?.toLowerCase().includes(query) ||
+        ticket.notes?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [serviceTickets, searchQuery, selectedCategory]);
+
   // Track expanded tickets
   const [expandedTickets, setExpandedTickets] = useState<Record<number, boolean>>({});
   // Toggle ticket expansion
@@ -358,6 +447,10 @@ export const ServiceSection = memo(function ServiceSection({
               </Tippy>
               {/* Dropdown menu */}
               {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-8 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()} role="menu">
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 flex items-center font-medium" onClick={e => handleOpenTicket(ticket, e)} role="menuitem">
+                    <ExternalLink size={14} className="mr-2 text-purple-500" />
+                    Open Ticket
+                  </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)} role="menuitem">
                     <Edit2 size={14} className="mr-2 text-brand-500" />
                     Edit Ticket
@@ -638,6 +731,10 @@ export const ServiceSection = memo(function ServiceSection({
                 </button>
               </Tippy>
               {openDropdownId === ticket.id && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()} role="menu">
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 flex items-center font-medium" onClick={e => handleOpenTicket(ticket, e)} role="menuitem">
+                    <ExternalLink size={14} className="mr-2 text-purple-500" />
+                    Open Ticket
+                  </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.id, e)} role="menuitem">
                     <Edit2 size={14} className="mr-2 text-brand-500" />
                     Edit Ticket
@@ -1020,8 +1117,42 @@ export const ServiceSection = memo(function ServiceSection({
         />
       )}
       <div id="service-content" className={`flex-1 overflow-auto p-3 scroll-smooth bg-white ${isMobile ? 'pb-3' : 'pb-16'}`}>
+        {/* Search bar for filtering tickets */}
+        {serviceTickets.length > 0 && (
+          <div className="mb-3 space-y-2">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by client, service, or technician..."
+              size="sm"
+            />
+            {/* Category filter tabs - only show if there are multiple categories */}
+            {categoryTabs.length > 2 && (
+              <FrontDeskSubTabs
+                tabs={categoryTabs}
+                activeTab={selectedCategory}
+                onTabChange={setSelectedCategory}
+                className="rounded-lg -mx-1"
+              />
+            )}
+            {/* Filter indicator */}
+            {(searchQuery || selectedCategory !== 'all') && filteredServiceTickets.length !== serviceTickets.length && (
+              <p className="text-xs text-gray-500">
+                Showing {filteredServiceTickets.length} of {serviceTickets.length} tickets
+                {selectedCategory !== 'all' && !searchQuery && (
+                  <button
+                    onClick={() => setSelectedCategory('all')}
+                    className="ml-2 text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </p>
+            )}
+          </div>
+        )}
         {/* Show content based on whether there are tickets */}
-        {serviceTickets.length > 0 ? viewMode === 'grid' ? <div
+        {filteredServiceTickets.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-3"
           style={{
             gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))',
@@ -1031,7 +1162,7 @@ export const ServiceSection = memo(function ServiceSection({
             justifyContent: 'start'
           }}
         >
-              {serviceTickets.map(ticket => (
+              {filteredServiceTickets.map(ticket => (
                 <ServiceTicketCardRefactored
                   key={ticket.id}
                   ticket={{
@@ -1070,7 +1201,7 @@ export const ServiceSection = memo(function ServiceSection({
                 width: `${100 / cardScale}%`
               }}
             >
-              {serviceTickets.map(ticket => (
+              {filteredServiceTickets.map(ticket => (
                 <ServiceTicketCard
                   key={ticket.id}
                   ticket={{
@@ -1100,7 +1231,24 @@ export const ServiceSection = memo(function ServiceSection({
                   }}
                 />
               ))}
-            </div> : <FrontDeskEmptyState section="service" />}
+            </div> : (
+              // Show different empty state based on whether search is active
+              serviceTickets.length > 0 && searchQuery ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                  <AlertCircle size={40} className="mb-3 text-gray-400" />
+                  <p className="text-sm font-medium">No matching tickets</p>
+                  <p className="text-xs mt-1">Try a different search term</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-3 text-xs text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              ) : (
+                <FrontDeskEmptyState section="service" />
+              )
+            )}
       </div>
       {/* Modals */}
       <EditTicketModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} ticketId={ticketToEdit} />

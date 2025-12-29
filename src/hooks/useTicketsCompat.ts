@@ -100,9 +100,7 @@ export function useTicketsCompat() {
         return {
           id: apt.id,
           clientName: apt.clientName || 'Unknown Client',
-          appointmentTime: typeof apt.scheduledStartTime === 'string'
-            ? apt.scheduledStartTime
-            : apt.scheduledStartTime.toISOString(),
+          appointmentTime: apt.scheduledStartTime,
           service: apt.services?.[0]?.serviceName || 'Service',
           duration: `${totalDuration}m`,
           technician: apt.staffName || assignedStaff?.name || 'Any Available',

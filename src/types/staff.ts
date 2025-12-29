@@ -22,7 +22,7 @@ export interface Staff {
   role?: string; // Staff role (e.g., "stylist", "manager", "technician")
   hireDate?: string; // Hire date in ISO format
   commissionRate?: number; // Commission rate as decimal (e.g., 0.30 for 30%)
-  clockedInAt?: Date;
+  clockedInAt?: string; // ISO string
   currentTicketId?: string;
   schedule: StaffSchedule[];
   turnQueuePosition?: number;
@@ -31,7 +31,7 @@ export interface Staff {
   tipsToday: number;
   rating?: number; // Average service rating (1-5)
   vipPreferred?: boolean; // Preferred for VIP clients
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string; // ISO string (stored in UTC)
+  updatedAt: string; // ISO string (stored in UTC)
   syncStatus: SyncStatus;
 }

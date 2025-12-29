@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, memo } from 'react';
+import { useEffect, useState, useRef, memo, useMemo } from 'react';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { useTicketSection } from '@/hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Hourglass, Maximize2 } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Tag, User, Clock, Calendar, Trash2, Edit2, Info, AlertCircle, MessageSquare, Star, PlusCircle, Bell, ChevronRight, Hourglass, Maximize2, ExternalLink } from 'lucide-react';
+import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { AssignTicketModal } from '@/components/tickets/AssignTicketModal';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
 import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
@@ -12,6 +13,8 @@ import { headerContentSpacer, waitingHeaderTheme } from './headerTokens';
 import { FrontDeskHeader, HeaderActionButton } from './FrontDeskHeader';
 import { FrontDeskEmptyState } from './FrontDeskEmptyState';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
+import { SearchBar } from './SearchBar';
+import { FrontDeskSubTabs, SubTab } from './FrontDeskSubTabs';
 
 // Helper functions for time calculations
 const formatTime = (date: Date): string => {
@@ -93,6 +96,42 @@ export const WaitListSection = memo(function WaitListSection({
     assignTicket,
     deleteTicket
   } = useTickets();
+
+  // Get ticket panel context for opening tickets
+  const { openTicketWithData } = useTicketPanel();
+
+  // Handler to open a ticket in the Ticket Control Center
+  const handleOpenTicket = (ticket: any, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    console.log('🎫 handleOpenTicket called with ticket:', ticket);
+    const ticketData: TicketData = {
+      id: ticket.id,
+      number: ticket.number,
+      clientName: ticket.clientName,
+      clientType: ticket.clientType,
+      service: ticket.service,
+      checkoutServices: ticket.services || (ticket.service ? [{
+        id: `service-${Date.now()}`,
+        serviceId: ticket.serviceId,
+        serviceName: ticket.service,
+        price: ticket.price || 0,
+        duration: parseInt(ticket.duration) || 30,
+        status: 'not_started',
+        staffId: ticket.techId,
+        staffName: ticket.technician,
+      }] : []),
+      technician: ticket.technician,
+      techId: ticket.techId,
+      duration: ticket.duration,
+      subtotal: ticket.price || ticket.subtotal,
+      notes: ticket.notes,
+      time: ticket.time,
+      status: 'waiting',
+    };
+    console.log('🎫 Calling openTicketWithData with:', ticketData);
+    openTicketWithData(ticketData);
+    setOpenDropdownId(null);
+  };
 
   // Calculate average wait time from ticket.time (check-in time)
   // Handles various time formats: ISO date, "HH:MM", "H:MM AM/PM"
@@ -191,6 +230,56 @@ export const WaitListSection = memo(function WaitListSection({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
+  // Search state for filtering tickets
+  const [searchQuery, setSearchQuery] = useState('');
+  // Category filter state
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Extract unique service categories from tickets (using first word of service name)
+  const categoryTabs = useMemo((): SubTab[] => {
+    const categoryMap = new Map<string, number>();
+    waitlist.forEach(ticket => {
+      if (ticket.service) {
+        // Use first word of service as category (e.g., "Manicure", "Pedicure", "Haircut")
+        const category = ticket.service.split(/\s+/)[0] || 'Other';
+        categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+      }
+    });
+    const tabs: SubTab[] = [{ id: 'all', label: 'All', count: waitlist.length }];
+    // Sort categories alphabetically
+    Array.from(categoryMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([category, count]) => {
+        tabs.push({ id: category.toLowerCase(), label: category, count });
+      });
+    return tabs;
+  }, [waitlist]);
+
+  // Filter waitlist based on search query and category
+  const filteredWaitlist = useMemo(() => {
+    let filtered = waitlist;
+
+    // Filter by category first
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(ticket => {
+        const ticketCategory = ticket.service?.split(/\s+/)[0]?.toLowerCase() || '';
+        return ticketCategory === selectedCategory;
+      });
+    }
+
+    // Then filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(ticket =>
+        ticket.clientName?.toLowerCase().includes(query) ||
+        ticket.service?.toLowerCase().includes(query) ||
+        ticket.notes?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [waitlist, searchQuery, selectedCategory]);
+
   // Track expanded tickets
   const [expandedTickets, setExpandedTickets] = useState<Record<number, boolean>>({});
   // Toggle ticket expansion
@@ -464,6 +553,10 @@ export const WaitListSection = memo(function WaitListSection({
                 </button>
               </Tippy>
               {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-6 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 flex items-center font-medium" onClick={e => handleOpenTicket(ticket, e)}>
+                    <ExternalLink size={14} className="mr-2 text-purple-500" />
+                    Open Ticket
+                  </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                     <Edit2 size={14} className="mr-2 text-blue-500" />
                     Edit Ticket
@@ -664,6 +757,10 @@ export const WaitListSection = memo(function WaitListSection({
                 </button>
               </Tippy>
               {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                  <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-purple-50 flex items-center font-medium" onClick={e => handleOpenTicket(ticket, e)}>
+                    <ExternalLink size={14} className="mr-2 text-purple-500" />
+                    Open Ticket
+                  </button>
                   <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                     <Edit2 size={14} className="mr-2 text-blue-500" />
                     Edit Ticket
@@ -752,6 +849,10 @@ export const WaitListSection = memo(function WaitListSection({
                 </button>
               </Tippy>
               {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 flex items-center font-medium" onClick={e => handleOpenTicket(ticket, e)}>
+                    <ExternalLink size={14} className="mr-2 text-purple-500" />
+                    Open Ticket
+                  </button>
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                     <Edit2 size={14} className="mr-2 text-blue-500" />
                     Edit Ticket
@@ -942,6 +1043,10 @@ export const WaitListSection = memo(function WaitListSection({
               </button>
             </Tippy>
             {openDropdownId === ticket.number && <div ref={ticketDropdownRef} className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200 py-1" onClick={e => e.stopPropagation()}>
+                <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-purple-50 flex items-center font-medium" onClick={e => handleOpenTicket(ticket, e)}>
+                  <ExternalLink size={14} className="mr-2 text-purple-500" />
+                  Open Ticket
+                </button>
                 <button className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center" onClick={e => openEditModal(ticket.number, e)}>
                   <Edit2 size={14} className="mr-2 text-blue-500" />
                   Edit Ticket
@@ -1139,8 +1244,42 @@ export const WaitListSection = memo(function WaitListSection({
         />
       )}
       <div className={`flex-1 overflow-auto px-4 bg-white ${isMobile ? 'pb-3' : 'pb-16'} ${headerContentSpacer} scroll-smooth`}>
+        {/* Search bar for filtering tickets */}
+        {waitlist.length > 0 && (
+          <div className="mb-3 pt-1 space-y-2">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by client name, service, or notes..."
+              size="sm"
+            />
+            {/* Category filter tabs - only show if there are multiple categories */}
+            {categoryTabs.length > 2 && (
+              <FrontDeskSubTabs
+                tabs={categoryTabs}
+                activeTab={selectedCategory}
+                onTabChange={setSelectedCategory}
+                className="rounded-lg -mx-1"
+              />
+            )}
+            {/* Filter indicator */}
+            {(searchQuery || selectedCategory !== 'all') && filteredWaitlist.length !== waitlist.length && (
+              <p className="text-xs text-gray-500">
+                Showing {filteredWaitlist.length} of {waitlist.length} tickets
+                {selectedCategory !== 'all' && !searchQuery && (
+                  <button
+                    onClick={() => setSelectedCategory('all')}
+                    className="ml-2 text-rose-600 hover:text-rose-700 font-medium"
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </p>
+            )}
+          </div>
+        )}
         {/* Show content based on whether there are tickets */}
-        {waitlist.length > 0 ? viewMode === 'grid' ? <div
+        {filteredWaitlist.length > 0 ? viewMode === 'grid' ? <div
           className="grid gap-3"
           style={{
             gridTemplateColumns: cardViewMode === 'compact' ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))',
@@ -1150,7 +1289,7 @@ export const WaitListSection = memo(function WaitListSection({
             justifyContent: 'start'
           }}
         >
-              {waitlist.map(ticket => (
+              {filteredWaitlist.map(ticket => (
                 <WaitListTicketCardRefactored
                   key={ticket.id}
                   ticket={{
@@ -1180,8 +1319,10 @@ export const WaitListSection = memo(function WaitListSection({
                     setShowDeleteModal(true);
                   }}
                   onClick={(id) => {
-                    setTicketToView(Number(id));
-                    setShowDetailsModal(true);
+                    const ticketToOpen = filteredWaitlist.find(t => t.id === id);
+                    if (ticketToOpen) {
+                      handleOpenTicket(ticketToOpen);
+                    }
                   }}
                 />
               ))}
@@ -1193,7 +1334,7 @@ export const WaitListSection = memo(function WaitListSection({
                 width: `${100 / cardScale}%`
               }}
             >
-              {waitlist.map(ticket => (
+              {filteredWaitlist.map(ticket => (
                 <WaitListTicketCard
                   key={ticket.id}
                   ticket={{
@@ -1221,12 +1362,31 @@ export const WaitListSection = memo(function WaitListSection({
                     setShowDeleteModal(true);
                   }}
                   onClick={(id) => {
-                    setTicketToView(Number(id));
-                    setShowDetailsModal(true);
+                    const ticketToOpen = filteredWaitlist.find(t => t.id === id);
+                    if (ticketToOpen) {
+                      handleOpenTicket(ticketToOpen);
+                    }
                   }}
                 />
               ))}
-            </div> : <FrontDeskEmptyState section="waitList" />}
+            </div> : (
+              // Show different empty state based on whether search is active
+              waitlist.length > 0 && searchQuery ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                  <AlertCircle size={40} className="mb-3 text-gray-400" />
+                  <p className="text-sm font-medium">No matching tickets</p>
+                  <p className="text-xs mt-1">Try a different search term</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-3 text-xs text-rose-600 hover:text-rose-700 font-medium"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              ) : (
+                <FrontDeskEmptyState section="waitList" />
+              )
+            )}
       </div>
       {/* Modals */}
       <AssignTicketModal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} onAssign={handleAssignSubmit} ticketId={selectedTicketId} />

@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Search, Bell, ChevronDown, Command, Hash, UserCircle,
-  FileText, Calendar, DollarSign, Users, Scissors, TrendingUp, Zap,
+  Search, Bell, ChevronDown, Command,
+  Calendar,
   LayoutGrid, MoreHorizontal, LogOut, Settings,
   Clock, HelpCircle, KeyRound, Store, Wifi, WifiOff, UserPlus, Building2,
   Plus
@@ -12,6 +12,7 @@ import { storeAuthManager } from '../../services/storeAuthManager';
 import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
 import { SwitchUserModal } from '../auth/SwitchUserModal';
 import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
+import { GlobalSearchModal } from '../search';
 
 interface TopHeaderBarProps {
   activeModule?: string;
@@ -31,16 +32,13 @@ export function TopHeaderBar({
   const [notificationCount] = useState(3);
   // Header always visible since sections handle their own scrolling
   const [isHeaderVisible] = useState(true);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showStatusTooltip, setShowStatusTooltip] = useState(false);
   const [showSwitchUserModal, setShowSwitchUserModal] = useState(false);
   const [showPinVerificationModal, setShowPinVerificationModal] = useState(false);
   const [pendingPinAction, setPendingPinAction] = useState<'settings' | 'reports' | null>(null);
   const [showStoreSwitcher, setShowStoreSwitcher] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // Get dispatch for actions
   const dispatch = useAppDispatch();
@@ -73,25 +71,20 @@ export function TopHeaderBar({
   // Note: Auto-hide disabled because app uses overflow-hidden layout
   // where individual sections handle scrolling, not the window
 
-  // Keyboard shortcut for search (Cmd/Ctrl + K)
+  // Keyboard shortcut for search (Cmd/Ctrl + K) - Opens GlobalSearchModal
+  // Note: The GlobalSearchModal also registers this shortcut internally,
+  // but we keep this for cases where the modal component isn't mounted yet
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsSearchExpanded(true);
-        setTimeout(() => searchInputRef.current?.focus(), 100);
-      }
-      // Escape to close search
-      if (e.key === 'Escape' && isSearchExpanded) {
-        setIsSearchExpanded(false);
-        setShowSearchSuggestions(false);
-        setSearchQuery('');
+        setShowGlobalSearch(true);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSearchExpanded]);
+  }, []);
 
   // Navigation Modules - 3 core modules for busy salon staff
   // Large, obvious buttons following "remote control" principle
@@ -100,92 +93,6 @@ export function TopHeaderBar({
     { id: 'book', label: 'Book', icon: Calendar },
     { id: 'frontdesk', label: 'Front Desk', icon: LayoutGrid },
   ];
-
-  // Universal Smart Search - AI-like suggestions across all system entities
-  const searchCategories = [
-    {
-      category: 'Tickets',
-      icon: <FileText size={12} />,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      results: searchQuery ? [
-        { id: '#91', name: 'Emily Chen - Gel Manicure', meta: 'In Service • 1h 23m', match: 'ticket' },
-        { id: '#110', name: 'Blake Wilson - Facial', meta: 'Waiting Queue • 8:19 AM', match: 'ticket' },
-      ] : []
-    },
-    {
-      category: 'Clients',
-      icon: <UserCircle size={12} />,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      results: searchQuery ? [
-        { id: 'C-1234', name: 'Emily Chen', meta: '15 visits • VIP • (555) 123-4567', match: 'client' },
-        { id: 'C-5678', name: 'Sarah Johnson', meta: '8 visits • Regular', match: 'client' },
-      ] : []
-    },
-    {
-      category: 'Services',
-      icon: <Scissors size={12} />,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      results: searchQuery ? [
-        { id: 'S-101', name: 'Gel Manicure', meta: '$45 • 45min • Popular', match: 'service' },
-        { id: 'S-102', name: 'Acrylic Full Set', meta: '$65 • 1h 30min', match: 'service' },
-      ] : []
-    },
-    {
-      category: 'Staff',
-      icon: <Users size={12} />,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      results: searchQuery ? [
-        { id: 'ST-01', name: 'Sophia', meta: 'Busy • 3 tickets • Nails specialist', match: 'staff' },
-        { id: 'ST-02', name: 'Isabella', meta: 'Ready • Hair specialist', match: 'staff' },
-      ] : []
-    },
-    {
-      category: 'Appointments',
-      icon: <Calendar size={12} />,
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-50',
-      results: searchQuery ? [
-        { id: 'A-789', name: 'Emily Chen - 2:00 PM Today', meta: 'Gel Manicure • Sophia', match: 'appointment' },
-      ] : []
-    },
-    {
-      category: 'Sales',
-      icon: <DollarSign size={12} />,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
-      results: searchQuery ? [
-        { id: 'T-4567', name: '$125.00 - Emily Chen', meta: 'Today 1:45 PM • Card • #91', match: 'transaction' },
-      ] : []
-    },
-  ];
-
-  const quickActions = [
-    { icon: <Zap size={12} />, label: 'Quick Search', prefix: '', desc: 'Search everything' },
-    { icon: <Hash size={12} />, label: 'Ticket #', prefix: '#', desc: 'Find by ticket number' },
-    { icon: <UserCircle size={12} />, label: 'Client', prefix: '@', desc: 'Find by client name' },
-    { icon: <Calendar size={12} />, label: 'Date', prefix: 'date:', desc: 'Search by date' },
-    { icon: <DollarSign size={12} />, label: 'Amount', prefix: '$', desc: 'Find by amount' },
-    { icon: <TrendingUp size={12} />, label: 'Status', prefix: 'status:', desc: 'Filter by status' },
-  ];
-
-  const handleSearchFocus = () => {
-    setIsSearchExpanded(true);
-    setShowSearchSuggestions(true);
-  };
-
-  const handleSearchBlur = () => {
-    // Delay to allow clicking on suggestions
-    setTimeout(() => {
-      if (!searchQuery) {
-        setIsSearchExpanded(false);
-      }
-      setShowSearchSuggestions(false);
-    }, 200);
-  };
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -552,84 +459,22 @@ export function TopHeaderBar({
       {/* Right Section - Search, Actions & User */}
       {/* Responsive: shrinks search bar at narrow widths, maintains core actions */}
       <div className={`flex items-center gap-1.5 lg:gap-2 xl:gap-3 justify-end flex-shrink-0 ${hideNavigation ? '' : 'min-w-[180px] lg:min-w-[200px] xl:min-w-[240px]'}`}>
-        {/* Compact Search - glass style */}
-        <div className={`relative transition-all duration-300 ease-out ${
-          isSearchExpanded ? 'w-64' : hideNavigation ? 'w-32 sm:w-44 md:w-52' : 'w-28 lg:w-36 xl:w-44'
-        }`}>
-          <Search className="absolute left-3 md:left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-600" strokeWidth={2.5} />
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={handleSearchFocus}
-            onBlur={handleSearchBlur}
-            className="w-full pl-9 md:pl-10 pr-3 md:pr-10 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300 focus:bg-white/80 transition-all placeholder:text-gray-400 text-gray-700"
-          />
-          {!isSearchExpanded && !hideNavigation && (
-            <div className="hidden xl:flex absolute right-3 top-1/2 transform -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium">
+        {/* Compact Search Trigger - Opens GlobalSearchModal */}
+        <button
+          onClick={() => setShowGlobalSearch(true)}
+          className={`relative flex items-center gap-2 transition-all duration-300 ease-out ${
+            hideNavigation ? 'w-32 sm:w-44 md:w-52' : 'w-28 lg:w-36 xl:w-44'
+          } pl-3 md:pl-3.5 pr-3 md:pr-3.5 py-1.5 md:py-2 bg-white/60 backdrop-blur-sm border border-gray-200/60 rounded-lg hover:bg-white/80 hover:border-gray-300/80 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-300`}
+        >
+          <Search className="w-[18px] h-[18px] text-gray-600 flex-shrink-0" strokeWidth={2.5} />
+          <span className="text-sm text-gray-400 truncate flex-1 text-left">Search...</span>
+          {!hideNavigation && (
+            <div className="hidden xl:flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 rounded text-gray-400 text-[10px] font-medium flex-shrink-0">
               <Command size={10} />
               <span>K</span>
             </div>
           )}
-
-          {/* Search Results Dropdown */}
-          {showSearchSuggestions && isSearchExpanded && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
-              {/* Reuse existing search results logic */}
-              {!searchQuery ? (
-                <>
-                  <div className="p-3 border-b border-gray-100">
-                    <div className="text-[10px] font-bold text-gray-400 mb-2 px-1 uppercase tracking-wide">Quick Actions</div>
-                    <div className="grid grid-cols-2 gap-1">
-                      {quickActions.map((action, idx) => (
-                        <button
-                          key={idx}
-                          className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 text-left transition-colors group"
-                          onClick={() => {
-                            setSearchQuery(action.prefix);
-                            searchInputRef.current?.focus();
-                          }}
-                        >
-                          <div className="text-gray-400 group-hover:text-orange-500 mt-0.5">{action.icon}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[11px] font-medium text-gray-700 group-hover:text-gray-900">{action.label}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {searchCategories.filter(cat => cat.results.length > 0).map((category, catIdx) => (
-                    <div key={catIdx} className="p-2">
-                      <div className="flex items-center gap-1.5 mb-1.5 px-2">
-                        <div className={`${category.color}`}>{category.icon}</div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{category.category}</span>
-                      </div>
-                      <div className="space-y-0.5">
-                        {category.results.map((result, idx) => (
-                          <button
-                            key={idx}
-                            className={`w-full flex items-start gap-2 px-2 py-1.5 rounded-lg hover:${category.bgColor} text-left transition-colors group`}
-                            onClick={() => setShowSearchSuggestions(false)}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[11px] font-medium text-gray-900 truncate">{result.name}</div>
-                              <div className="text-[10px] text-gray-500 truncate">{result.meta}</div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        </button>
 
         {/* Notifications - glass style with badge */}
         <button className="relative p-2 bg-white/60 backdrop-blur-sm hover:bg-white/80 rounded-lg transition-all">
@@ -879,6 +724,12 @@ export function TopHeaderBar({
             ? 'Enter your staff PIN to access store settings'
             : 'Enter your staff PIN to continue'
         }
+      />
+
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        open={showGlobalSearch}
+        onOpenChange={setShowGlobalSearch}
       />
     </header>
   );

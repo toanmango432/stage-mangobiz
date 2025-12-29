@@ -30,12 +30,12 @@ export function toAppointment(row: AppointmentRow): Appointment {
     staffName: primaryStaff?.staffName || '',
     services,
     status: row.status as AppointmentStatus,
-    scheduledStartTime: new Date(row.scheduled_start_time),
-    scheduledEndTime: new Date(row.scheduled_end_time),
+    scheduledStartTime: row.scheduled_start_time, // ISO string (UTC)
+    scheduledEndTime: row.scheduled_end_time,     // ISO string (UTC)
     notes: row.notes || undefined,
     source: 'walk_in' as BookingSource, // Default, not stored in row
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
+    createdAt: row.created_at,  // ISO string (UTC)
+    updatedAt: row.updated_at,  // ISO string (UTC)
     createdBy: 'system', // Not stored in row
     lastModifiedBy: 'system', // Not stored in row
     syncStatus: row.sync_status as SyncStatus,
@@ -56,8 +56,8 @@ export function toAppointmentInsert(
     staff_id: appointment.staffId || null,
     services: serializeServices(appointment.services) as Json,
     status: appointment.status,
-    scheduled_start_time: appointment.scheduledStartTime.toISOString(),
-    scheduled_end_time: appointment.scheduledEndTime.toISOString(),
+    scheduled_start_time: appointment.scheduledStartTime, // Already ISO string
+    scheduled_end_time: appointment.scheduledEndTime,     // Already ISO string
     notes: appointment.notes || null,
     sync_status: appointment.syncStatus || 'synced',
     sync_version: 1,
@@ -73,7 +73,11 @@ export function fromCreateInput(
 ): Omit<AppointmentInsert, 'id' | 'created_at' | 'updated_at'> {
   // Calculate end time from services
   const totalDuration = input.services.reduce((sum, s) => sum + (s.duration || 0), 0);
-  const endTime = new Date(input.scheduledStartTime.getTime() + totalDuration * 60000);
+  // Handle both Date and string for scheduledStartTime
+  const startDate = typeof input.scheduledStartTime === 'string'
+    ? new Date(input.scheduledStartTime)
+    : input.scheduledStartTime;
+  const endTime = new Date(startDate.getTime() + totalDuration * 60000);
 
   return {
     store_id: storeId,
@@ -89,7 +93,7 @@ export function fromCreateInput(
       price: (s as { BasePrice?: number }).BasePrice || 0,
     }))) as Json,
     status: 'scheduled',
-    scheduled_start_time: input.scheduledStartTime.toISOString(),
+    scheduled_start_time: startDate.toISOString(),
     scheduled_end_time: endTime.toISOString(),
     notes: input.notes || null,
     sync_status: 'synced',
@@ -119,10 +123,10 @@ export function toAppointmentUpdate(updates: Partial<Appointment>): AppointmentU
     result.status = updates.status;
   }
   if (updates.scheduledStartTime !== undefined) {
-    result.scheduled_start_time = updates.scheduledStartTime.toISOString();
+    result.scheduled_start_time = updates.scheduledStartTime; // Already ISO string
   }
   if (updates.scheduledEndTime !== undefined) {
-    result.scheduled_end_time = updates.scheduledEndTime.toISOString();
+    result.scheduled_end_time = updates.scheduledEndTime; // Already ISO string
   }
   if (updates.notes !== undefined) {
     result.notes = updates.notes || null;

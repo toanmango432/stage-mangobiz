@@ -45,9 +45,8 @@ export const makeSelectAppointmentsByDate = (date: Date) => {
   return createSelector(
     [selectAppointments],
     (appointments) => appointments.filter(apt => {
-      const aptDate = apt.scheduledStartTime instanceof Date
-        ? apt.scheduledStartTime
-        : new Date(apt.scheduledStartTime);
+      // scheduledStartTime is now always an ISO string
+      const aptDate = new Date(apt.scheduledStartTime);
       return startOfDay(aptDate).toISOString() === dateKey;
     })
   );
@@ -73,9 +72,8 @@ export const makeSelectAppointmentsByDateRange = (start: Date, end: Date) => {
   return createSelector(
     [selectAppointments],
     (appointments) => appointments.filter(apt => {
-      const aptTime = apt.scheduledStartTime instanceof Date
-        ? apt.scheduledStartTime.getTime()
-        : new Date(apt.scheduledStartTime).getTime();
+      // scheduledStartTime is now always an ISO string
+      const aptTime = new Date(apt.scheduledStartTime).getTime();
       return aptTime >= startTime && aptTime <= endTime;
     })
   );
@@ -103,17 +101,13 @@ export const selectFilteredAppointmentsMemoized = createSelector(
 
     // Filter by date range
     if (filters.dateRange) {
-      const startTime = filters.dateRange.start instanceof Date
-        ? filters.dateRange.start.getTime()
-        : new Date(filters.dateRange.start).getTime();
-      const endTime = filters.dateRange.end instanceof Date
-        ? filters.dateRange.end.getTime()
-        : new Date(filters.dateRange.end).getTime();
+      // filters.dateRange.start/end are Date objects from UI state
+      const startTime = filters.dateRange.start.getTime();
+      const endTime = filters.dateRange.end.getTime();
 
       filtered = filtered.filter(apt => {
-        const aptTime = apt.scheduledStartTime instanceof Date
-          ? apt.scheduledStartTime.getTime()
-          : new Date(apt.scheduledStartTime).getTime();
+        // scheduledStartTime is now always an ISO string
+        const aptTime = new Date(apt.scheduledStartTime).getTime();
         return aptTime >= startTime && aptTime <= endTime;
       });
     }
@@ -227,9 +221,8 @@ export const selectTodaysAppointments = createSelector(
     const todayEnd = endOfDay(today).getTime();
 
     return appointments.filter(apt => {
-      const aptTime = apt.scheduledStartTime instanceof Date
-        ? apt.scheduledStartTime.getTime()
-        : new Date(apt.scheduledStartTime).getTime();
+      // scheduledStartTime is now always an ISO string
+      const aptTime = new Date(apt.scheduledStartTime).getTime();
       return aptTime >= todayStart && aptTime <= todayEnd;
     });
   }
@@ -246,18 +239,14 @@ export const selectUpcomingAppointments = createSelector(
 
     return appointments
       .filter(apt => {
-        const aptTime = apt.scheduledStartTime instanceof Date
-          ? apt.scheduledStartTime.getTime()
-          : new Date(apt.scheduledStartTime).getTime();
+        // scheduledStartTime is now always an ISO string
+        const aptTime = new Date(apt.scheduledStartTime).getTime();
         return aptTime >= now && aptTime <= twoHoursLater;
       })
       .sort((a, b) => {
-        const aTime = a.scheduledStartTime instanceof Date
-          ? a.scheduledStartTime.getTime()
-          : new Date(a.scheduledStartTime).getTime();
-        const bTime = b.scheduledStartTime instanceof Date
-          ? b.scheduledStartTime.getTime()
-          : new Date(b.scheduledStartTime).getTime();
+        // scheduledStartTime is now always an ISO string
+        const aTime = new Date(a.scheduledStartTime).getTime();
+        const bTime = new Date(b.scheduledStartTime).getTime();
         return aTime - bTime;
       });
   }
@@ -320,9 +309,8 @@ export const createAppointmentsByDateSelector = () => {
 
     const appointments = selectAppointments(state);
     const filtered = appointments.filter(apt => {
-      const aptDate = apt.scheduledStartTime instanceof Date
-        ? apt.scheduledStartTime
-        : new Date(apt.scheduledStartTime);
+      // scheduledStartTime is now always an ISO string
+      const aptDate = new Date(apt.scheduledStartTime);
       return startOfDay(aptDate).toISOString() === dateKey;
     });
 

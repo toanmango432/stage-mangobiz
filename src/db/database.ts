@@ -54,12 +54,14 @@ export const appointmentsDB = {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const startIso = startOfDay.toISOString();
+    const endIso = endOfDay.toISOString();
     return await db.appointments
       .where('salonId')
       .equals(salonId)
       .and(apt =>
-        apt.scheduledStartTime >= startOfDay &&
-        apt.scheduledStartTime <= endOfDay
+        apt.scheduledStartTime >= startIso &&
+        apt.scheduledStartTime <= endIso
       )
       .limit(limit)
       .toArray();
@@ -75,16 +77,21 @@ export const appointmentsDB = {
   },
 
   async create(input: CreateAppointmentInput, userId: string, salonId: string): Promise<Appointment> {
-    const now = new Date();
+    const now = new Date().toISOString();
+    const startTime = typeof input.scheduledStartTime === 'string'
+      ? new Date(input.scheduledStartTime)
+      : input.scheduledStartTime;
+    const endTime = new Date(
+      startTime.getTime() +
+      input.services.reduce((sum, s) => sum + s.duration, 0) * 60000
+    );
     const appointment: Appointment = {
       id: uuidv4(),
       salonId,
       ...input,
       status: 'scheduled',
-      scheduledEndTime: new Date(
-        input.scheduledStartTime.getTime() +
-        input.services.reduce((sum, s) => sum + s.duration, 0) * 60000
-      ),
+      scheduledStartTime: startTime.toISOString(),
+      scheduledEndTime: endTime.toISOString(),
       createdAt: now,
       updatedAt: now,
       createdBy: userId,
@@ -103,7 +110,7 @@ export const appointmentsDB = {
     const updated: Appointment = {
       ...appointment,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       lastModifiedBy: userId,
       syncStatus: 'local',
     };
@@ -119,7 +126,7 @@ export const appointmentsDB = {
   async checkIn(id: string, userId: string): Promise<Appointment | undefined> {
     return await this.update(id, {
       status: 'checked-in',
-      checkInTime: new Date(),
+      checkInTime: new Date().toISOString(),
     }, userId);
   },
 };
@@ -332,10 +339,12 @@ export const transactionsDB = {
   },
 
   async getByDateRange(salonId: string, startDate: Date, endDate: Date, limit: number = 100): Promise<Transaction[]> {
+    const startIso = startDate.toISOString();
+    const endIso = endDate.toISOString();
     return await db.transactions
       .where('salonId')
       .equals(salonId)
-      .and(txn => txn.createdAt >= startDate && txn.createdAt <= endDate)
+      .and(txn => txn.createdAt >= startIso && txn.createdAt <= endIso)
       .reverse()
       .limit(limit)
       .toArray();
@@ -345,7 +354,7 @@ export const transactionsDB = {
     const newTransaction: Transaction = {
       id: uuidv4(),
       ...transaction,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 
@@ -409,6 +418,20 @@ export const staffDB = {
       .toArray();
   },
 
+  async create(staffData: Omit<Staff, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<Staff> {
+    const now = new Date().toISOString();
+    const newStaff: Staff = {
+      ...staffData,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'local',
+    };
+
+    await db.staff.add(newStaff);
+    return newStaff;
+  },
+
   async update(id: string, updates: Partial<Staff>): Promise<Staff | undefined> {
     const staff = await db.staff.get(id);
     if (!staff) return undefined;
@@ -416,7 +439,7 @@ export const staffDB = {
     const updated: Staff = {
       ...staff,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 
@@ -424,10 +447,14 @@ export const staffDB = {
     return updated;
   },
 
+  async delete(id: string): Promise<void> {
+    await db.staff.delete(id);
+  },
+
   async clockIn(id: string): Promise<Staff | undefined> {
     return await this.update(id, {
       status: 'available',
-      clockedInAt: new Date(),
+      clockedInAt: new Date().toISOString(),
     });
   },
 

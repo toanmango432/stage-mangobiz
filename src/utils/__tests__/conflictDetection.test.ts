@@ -22,8 +22,8 @@ describe('conflictDetection', () => {
       staffName: 'Alice Smith',
       clientId: 'client-1',
       clientName: 'John Doe',
-      scheduledStartTime: baseTime,
-      scheduledEndTime: new Date('2024-02-10T10:30:00'),
+      scheduledStartTime: baseTime.toISOString(),
+      scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
       status: 'scheduled',
       ...overrides,
     });
@@ -47,8 +47,8 @@ describe('conflictDetection', () => {
 
       it('should detect staff double-booking with overlapping time', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T10:15:00'),
-          scheduledEndTime: new Date('2024-02-10T10:45:00'),
+          scheduledStartTime: new Date('2024-02-10T10:15:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:45:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -71,8 +71,8 @@ describe('conflictDetection', () => {
 
       it('should not detect conflict when times do not overlap', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T11:00:00'),
-          scheduledEndTime: new Date('2024-02-10T11:30:00'),
+          scheduledStartTime: new Date('2024-02-10T11:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T11:30:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -98,8 +98,8 @@ describe('conflictDetection', () => {
       it('should detect client conflict with overlapping time', () => {
         const appointment = createAppointment({
           staffId: 'staff-2',
-          scheduledStartTime: new Date('2024-02-10T10:15:00'),
-          scheduledEndTime: new Date('2024-02-10T10:45:00'),
+          scheduledStartTime: new Date('2024-02-10T10:15:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:45:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -138,8 +138,8 @@ describe('conflictDetection', () => {
     describe('Buffer Time Violation Detection', () => {
       it('should detect buffer time violation when appointments are 5 minutes apart', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T10:35:00'), // 5 min after previous ends
-          scheduledEndTime: new Date('2024-02-10T11:05:00'),
+          scheduledStartTime: new Date('2024-02-10T10:35:00').toISOString(), // 5 min after previous ends
+          scheduledEndTime: new Date('2024-02-10T11:05:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -153,8 +153,8 @@ describe('conflictDetection', () => {
 
       it('should detect buffer violation when appointment ends 5 minutes before another starts', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T09:25:00'),
-          scheduledEndTime: new Date('2024-02-10T09:55:00'), // 5 min before existing starts
+          scheduledStartTime: new Date('2024-02-10T09:25:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T09:55:00').toISOString(), // 5 min before existing starts
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -167,8 +167,8 @@ describe('conflictDetection', () => {
 
       it('should not detect buffer violation when gap is exactly 10 minutes', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T10:40:00'), // 10 min after previous ends
-          scheduledEndTime: new Date('2024-02-10T11:10:00'),
+          scheduledStartTime: new Date('2024-02-10T10:40:00').toISOString(), // 10 min after previous ends
+          scheduledEndTime: new Date('2024-02-10T11:10:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -180,8 +180,8 @@ describe('conflictDetection', () => {
       it('should not detect buffer violation for different staff', () => {
         const appointment = createAppointment({
           staffId: 'staff-2',
-          scheduledStartTime: new Date('2024-02-10T10:35:00'), // Would violate if same staff
-          scheduledEndTime: new Date('2024-02-10T11:05:00'),
+          scheduledStartTime: new Date('2024-02-10T10:35:00').toISOString(), // Would violate if same staff
+          scheduledEndTime: new Date('2024-02-10T11:05:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -192,8 +192,8 @@ describe('conflictDetection', () => {
 
       it('should not detect any violation for back-to-back appointments (0 minutes)', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T10:30:00'), // Exactly when previous ends
-          scheduledEndTime: new Date('2024-02-10T11:00:00'),
+          scheduledStartTime: new Date('2024-02-10T10:30:00').toISOString(), // Exactly when previous ends
+          scheduledEndTime: new Date('2024-02-10T11:00:00').toISOString(),
         });
         const existing = [createAppointment({ id: 'apt-existing' })];
 
@@ -208,8 +208,8 @@ describe('conflictDetection', () => {
     describe('Business Hours Violation Detection', () => {
       it('should detect violation when appointment starts before 8am', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T07:00:00'),
-          scheduledEndTime: new Date('2024-02-10T07:30:00'),
+          scheduledStartTime: new Date('2024-02-10T07:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T07:30:00').toISOString(),
         });
         const existing: LocalAppointment[] = [];
 
@@ -222,8 +222,8 @@ describe('conflictDetection', () => {
 
       it('should detect violation when appointment ends after 8pm', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T19:30:00'),
-          scheduledEndTime: new Date('2024-02-10T20:30:00'),
+          scheduledStartTime: new Date('2024-02-10T19:30:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T20:30:00').toISOString(),
         });
         const existing: LocalAppointment[] = [];
 
@@ -235,8 +235,8 @@ describe('conflictDetection', () => {
 
       it('should allow appointment ending exactly at 8pm', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T19:30:00'),
-          scheduledEndTime: new Date('2024-02-10T20:00:00'),
+          scheduledStartTime: new Date('2024-02-10T19:30:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T20:00:00').toISOString(),
         });
         const existing: LocalAppointment[] = [];
 
@@ -247,8 +247,8 @@ describe('conflictDetection', () => {
 
       it('should allow appointment starting exactly at 8am', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T08:00:00'),
-          scheduledEndTime: new Date('2024-02-10T08:30:00'),
+          scheduledStartTime: new Date('2024-02-10T08:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T08:30:00').toISOString(),
         });
         const existing: LocalAppointment[] = [];
 
@@ -261,14 +261,14 @@ describe('conflictDetection', () => {
     describe('Multiple Conflicts Detection', () => {
       it('should detect multiple conflict types simultaneously', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T07:30:00'), // Before 8am
-          scheduledEndTime: new Date('2024-02-10T08:00:00'),
+          scheduledStartTime: new Date('2024-02-10T07:30:00').toISOString(), // Before 8am
+          scheduledEndTime: new Date('2024-02-10T08:00:00').toISOString(),
         });
         const existing = [
           createAppointment({
             id: 'apt-1',
-            scheduledStartTime: new Date('2024-02-10T07:30:00'),
-            scheduledEndTime: new Date('2024-02-10T08:00:00'),
+            scheduledStartTime: new Date('2024-02-10T07:30:00').toISOString(),
+            scheduledEndTime: new Date('2024-02-10T08:00:00').toISOString(),
           }),
         ];
 
@@ -282,19 +282,19 @@ describe('conflictDetection', () => {
 
       it('should handle multiple existing appointments', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T10:15:00'),
-          scheduledEndTime: new Date('2024-02-10T10:45:00'),
+          scheduledStartTime: new Date('2024-02-10T10:15:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:45:00').toISOString(),
         });
         const existing = [
           createAppointment({
             id: 'apt-1',
-            scheduledStartTime: new Date('2024-02-10T10:00:00'),
-            scheduledEndTime: new Date('2024-02-10T10:30:00'),
+            scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+            scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
           }),
           createAppointment({
             id: 'apt-2',
-            scheduledStartTime: new Date('2024-02-10T10:50:00'), // 5 min after new appointment
-            scheduledEndTime: new Date('2024-02-10T11:20:00'),
+            scheduledStartTime: new Date('2024-02-10T10:50:00').toISOString(), // 5 min after new appointment
+            scheduledEndTime: new Date('2024-02-10T11:20:00').toISOString(),
           }),
         ];
 
@@ -309,8 +309,8 @@ describe('conflictDetection', () => {
     describe('Edge Cases', () => {
       it('should handle appointments exactly at midnight', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T00:00:00'),
-          scheduledEndTime: new Date('2024-02-10T00:30:00'),
+          scheduledStartTime: new Date('2024-02-10T00:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T00:30:00').toISOString(),
         });
         const existing: LocalAppointment[] = [];
 
@@ -322,8 +322,8 @@ describe('conflictDetection', () => {
 
       it('should handle appointments crossing day boundary', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T23:30:00'),
-          scheduledEndTime: new Date('2024-02-11T00:30:00'),
+          scheduledStartTime: new Date('2024-02-10T23:30:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-11T00:30:00').toISOString(),
         });
         const existing: LocalAppointment[] = [];
 
@@ -337,14 +337,14 @@ describe('conflictDetection', () => {
 
       it('should handle very short appointments (5 minutes)', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:05:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:05:00').toISOString(),
         });
         const existing = [
           createAppointment({
             id: 'apt-1',
-            scheduledStartTime: new Date('2024-02-10T10:00:00'),
-            scheduledEndTime: new Date('2024-02-10T10:05:00'),
+            scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+            scheduledEndTime: new Date('2024-02-10T10:05:00').toISOString(),
           }),
         ];
 
@@ -356,14 +356,14 @@ describe('conflictDetection', () => {
 
       it('should handle very long appointments (8 hours)', () => {
         const appointment = createAppointment({
-          scheduledStartTime: new Date('2024-02-10T09:00:00'),
-          scheduledEndTime: new Date('2024-02-10T17:00:00'),
+          scheduledStartTime: new Date('2024-02-10T09:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T17:00:00').toISOString(),
         });
         const existing = [
           createAppointment({
             id: 'apt-1',
-            scheduledStartTime: new Date('2024-02-10T12:00:00'),
-            scheduledEndTime: new Date('2024-02-10T12:30:00'),
+            scheduledStartTime: new Date('2024-02-10T12:00:00').toISOString(),
+            scheduledEndTime: new Date('2024-02-10T12:30:00').toISOString(),
           }),
         ];
 
@@ -390,8 +390,8 @@ describe('conflictDetection', () => {
         createAppointment({
           id: 'apt-1',
           staffId: 'staff-2', // Different staff
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:30:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
         }),
       ];
 
@@ -410,8 +410,8 @@ describe('conflictDetection', () => {
         createAppointment({
           id: 'apt-1',
           staffId: 'staff-1',
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:30:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
         }),
       ];
 
@@ -431,8 +431,8 @@ describe('conflictDetection', () => {
           id: 'apt-1',
           staffId: 'staff-1',
           status: 'cancelled',
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:30:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
         }),
       ];
 
@@ -452,8 +452,8 @@ describe('conflictDetection', () => {
           id: 'apt-1',
           staffId: 'staff-1',
           status: 'no-show',
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:30:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
         }),
       ];
 
@@ -472,8 +472,8 @@ describe('conflictDetection', () => {
         createAppointment({
           id: 'apt-1',
           staffId: 'staff-1',
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:30:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
         }),
       ];
 
@@ -536,8 +536,8 @@ describe('conflictDetection', () => {
         createAppointment({
           id: 'apt-1',
           staffId: 'staff-2',
-          scheduledStartTime: new Date('2024-02-10T10:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:30:00'),
+          scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:30:00').toISOString(),
         }),
       ];
       const staffIds = ['staff-1', 'staff-2', 'staff-3'];
@@ -557,20 +557,20 @@ describe('conflictDetection', () => {
         createAppointment({
           id: 'apt-1',
           staffId: 'staff-1',
-          scheduledStartTime: new Date('2024-02-10T09:00:00'),
-          scheduledEndTime: new Date('2024-02-10T10:00:00'),
+          scheduledStartTime: new Date('2024-02-10T09:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:00:00').toISOString(),
         }),
         createAppointment({
           id: 'apt-2',
           staffId: 'staff-1',
-          scheduledStartTime: new Date('2024-02-10T11:00:00'),
-          scheduledEndTime: new Date('2024-02-10T12:00:00'),
+          scheduledStartTime: new Date('2024-02-10T11:00:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T12:00:00').toISOString(),
         }),
         createAppointment({
           id: 'apt-3',
           staffId: 'staff-2',
-          scheduledStartTime: new Date('2024-02-10T10:15:00'),
-          scheduledEndTime: new Date('2024-02-10T10:45:00'),
+          scheduledStartTime: new Date('2024-02-10T10:15:00').toISOString(),
+          scheduledEndTime: new Date('2024-02-10T10:45:00').toISOString(),
         }),
       ];
       const staffIds = ['staff-1', 'staff-2', 'staff-3'];

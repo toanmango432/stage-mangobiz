@@ -19,16 +19,18 @@ export function toTransaction(row: TransactionRow): Transaction {
     ticketNumber: 0, // Not stored in Supabase row - computed at runtime
     clientId: row.client_id || undefined,
     clientName: '', // Not stored in Supabase row
-    subtotal: row.amount - row.tip, // Derived from amount
-    tax: 0, // Not stored in current Supabase schema
+    // Correct formula: subtotal = total - tip (when tax=0 and discount=0)
+    // Using total - tip because total = subtotal + tax + tip - discount
+    subtotal: row.total - row.tip,
+    tax: 0, // TODO: Add tax column to Supabase transactions table
     tip: row.tip,
-    discount: 0, // Not stored in current Supabase schema
+    discount: 0, // TODO: Add discount column to Supabase transactions table
     amount: row.amount,
     total: row.total,
     paymentMethod: row.payment_method as PaymentMethod,
     paymentDetails: {}, // Not stored in current Supabase schema
     status: row.status as TransactionStatus,
-    createdAt: new Date(row.created_at),
+    createdAt: row.created_at, // ISO string (UTC)
     syncStatus: row.sync_status as SyncStatus,
   };
 }

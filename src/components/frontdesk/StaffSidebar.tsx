@@ -781,7 +781,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
             ...staffMember,
             id: staffIdNumber,
             image: staffMember.name === 'Jane' ? '' : getStaffImage(staffMember), // Force empty image for Jane to test Add Photo UI
-            time: (typeof staffMember.clockInTime === 'string' ? staffMember.clockInTime : staffMember.clockInTime instanceof Date ? staffMember.clockInTime.toLocaleTimeString() : '10:30a'), // Add time field for metrics display
+            time: (typeof staffMember.clockInTime === 'string' ? new Date(staffMember.clockInTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '10:30a'), // Add time field for metrics display
             revenue: staffMember.revenue ?? null, // Ensure revenue is explicitly set
             count: staffMember.turnCount ?? 0, // Add count property for StaffCard
           };
@@ -822,7 +822,7 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
                   <p><span className="font-medium">Turns:</span> {modifiedStaffMember.turnCount}</p>
                 )}
                 {modifiedStaffMember.clockInTime && (
-                  <p><span className="font-medium">Clocked in:</span> {typeof modifiedStaffMember.clockInTime === 'string' ? modifiedStaffMember.clockInTime : modifiedStaffMember.clockInTime instanceof Date ? modifiedStaffMember.clockInTime.toLocaleTimeString() : String(modifiedStaffMember.clockInTime)}</p>
+                  <p><span className="font-medium">Clocked in:</span> {typeof modifiedStaffMember.clockInTime === 'string' ? new Date(modifiedStaffMember.clockInTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : String(modifiedStaffMember.clockInTime)}</p>
                 )}
                 {modifiedStaffMember.status === 'busy' && modifiedStaffMember.currentTicketInfo && (
                   <>

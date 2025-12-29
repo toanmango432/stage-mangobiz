@@ -28,8 +28,8 @@ export function CompleteWorkflowExample() {
       servicesCountToday: 5,
       revenueToday: 450,
       tipsToday: 75,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'synced'
     },
     {
@@ -45,8 +45,8 @@ export function CompleteWorkflowExample() {
       servicesCountToday: 3,
       revenueToday: 280,
       tipsToday: 45,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'synced'
     }
   ]);
@@ -125,8 +125,8 @@ export function CompleteWorkflowExample() {
       servicesCountToday: 0,
       revenueToday: 0,
       tipsToday: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'pending'
     };
     setStaff([...staff, staffMember]);
@@ -135,7 +135,7 @@ export function CompleteWorkflowExample() {
 
   const handleEditStaff = (updatedStaff: Partial<Staff>) => {
     setStaff(staff.map(s =>
-      s.id === updatedStaff.id ? { ...s, ...updatedStaff, updatedAt: new Date() } : s
+      s.id === updatedStaff.id ? { ...s, ...updatedStaff, updatedAt: new Date().toISOString() } : s
     ));
     console.log('✅ Staff updated:', updatedStaff);
   };

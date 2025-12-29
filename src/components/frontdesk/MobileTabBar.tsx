@@ -151,9 +151,9 @@ export const MobileTabBar = memo(function MobileTabBar({
                 {tab.metrics.count}
               </span>
 
-              {/* Urgent indicator - small red dot */}
+              {/* Urgent indicator - small pulsing red dot for long waits */}
               {tab.metrics.urgent && (
-                <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-sm shadow-red-300" />
               )}
             </button>
           );

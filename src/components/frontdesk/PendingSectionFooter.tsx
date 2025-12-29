@@ -3,10 +3,12 @@ import { Receipt, ChevronUp, ChevronDown, Maximize2, X, Grid, List, DollarSign, 
 import { useAppSelector } from '../../store/hooks';
 import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
+import { selectFrontDeskSettings } from '../../store/slices/frontDeskSettingsSlice';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
 import { Pending } from '../modules/Pending';
 import TicketPanel from '../checkout/TicketPanel';
 import type { StaffMember } from '../checkout/ServiceList';
+import { sortByUrgency, hasUrgentTickets, UrgencyThresholds } from '../../utils/urgencyUtils';
 
 // =====================
 // CONSTANTS

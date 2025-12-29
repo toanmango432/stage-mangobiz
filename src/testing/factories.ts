@@ -58,8 +58,8 @@ export function createMockService(overrides: Partial<Service> = {}): Service {
     description: 'Test service description',
     commissionRate: 0.3,
     isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     syncStatus: 'synced',
     ...overrides,
   };
@@ -98,8 +98,8 @@ export function createMockStaff(overrides: Partial<Staff> = {}): Staff {
     servicesCountToday: 0,
     revenueToday: 0,
     tipsToday: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     syncStatus: 'synced',
     ...overrides,
   };
@@ -120,13 +120,13 @@ export function createMockAppointment(overrides: Partial<LocalAppointment> = {})
     clientPhone: '(555) 000-0000',
     staffId: 'staff-1',
     staffName: 'Test Staff',
-    scheduledStartTime: start,
-    scheduledEndTime: end,
+    scheduledStartTime: start.toISOString(),
+    scheduledEndTime: end.toISOString(),
     services: [],
     status: 'scheduled',
     source: 'admin-portal',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     createdBy: 'user-1',
     lastModifiedBy: 'user-1',
     syncStatus: 'synced',
@@ -153,8 +153,8 @@ export function createMockGroupBooking(
         clientId: generateId('client'),
         clientName,
         clientPhone: `(555) 000-${String(i).padStart(4, '0')}`,
-        scheduledStartTime: startTime,
-        scheduledEndTime: new Date(startTime.getTime() + 30 * 60000),
+        scheduledStartTime: startTime.toISOString(),
+        scheduledEndTime: new Date(startTime.getTime() + 30 * 60000).toISOString(),
         ...groupOverrides,
       } as any)
     );
@@ -175,8 +175,8 @@ export function createConflictingAppointments(): LocalAppointment[] {
       id: 'apt-original',
       staffId: 'staff-1',
       staffName: 'Alice Smith',
-      scheduledStartTime: baseTime,
-      scheduledEndTime: new Date(baseTime.getTime() + 30 * 60000),
+      scheduledStartTime: baseTime.toISOString(),
+      scheduledEndTime: new Date(baseTime.getTime() + 30 * 60000).toISOString(),
     }),
     // Staff conflict - same staff, overlapping time
     createMockAppointment({
@@ -185,8 +185,8 @@ export function createConflictingAppointments(): LocalAppointment[] {
       staffName: 'Alice Smith',
       clientId: 'client-2',
       clientName: 'Different Client',
-      scheduledStartTime: new Date(baseTime.getTime() + 15 * 60000), // 15 min later
-      scheduledEndTime: new Date(baseTime.getTime() + 45 * 60000),
+      scheduledStartTime: new Date(baseTime.getTime() + 15 * 60000).toISOString(), // 15 min later
+      scheduledEndTime: new Date(baseTime.getTime() + 45 * 60000).toISOString(),
     }),
     // Client conflict - same client, overlapping time
     createMockAppointment({
@@ -195,8 +195,8 @@ export function createConflictingAppointments(): LocalAppointment[] {
       clientName: 'Test Client',
       staffId: 'staff-2',
       staffName: 'Bob Johnson',
-      scheduledStartTime: new Date(baseTime.getTime() + 20 * 60000), // 20 min later
-      scheduledEndTime: new Date(baseTime.getTime() + 50 * 60000),
+      scheduledStartTime: new Date(baseTime.getTime() + 20 * 60000).toISOString(), // 20 min later
+      scheduledEndTime: new Date(baseTime.getTime() + 50 * 60000).toISOString(),
     }),
   ];
 }
@@ -222,32 +222,32 @@ export function createBoundaryAppointments(): LocalAppointment[] {
     // Early morning (before business hours)
     createMockAppointment({
       id: 'apt-early',
-      scheduledStartTime: new Date('2024-02-10T06:00:00'),
-      scheduledEndTime: new Date('2024-02-10T06:30:00'),
+      scheduledStartTime: new Date('2024-02-10T06:00:00').toISOString(),
+      scheduledEndTime: new Date('2024-02-10T06:30:00').toISOString(),
     }),
     // Midnight appointment
     createMockAppointment({
       id: 'apt-midnight',
-      scheduledStartTime: new Date('2024-02-10T00:00:00'),
-      scheduledEndTime: new Date('2024-02-10T00:30:00'),
+      scheduledStartTime: new Date('2024-02-10T00:00:00').toISOString(),
+      scheduledEndTime: new Date('2024-02-10T00:30:00').toISOString(),
     }),
     // Crossing day boundary
     createMockAppointment({
       id: 'apt-day-boundary',
-      scheduledStartTime: new Date('2024-02-10T23:30:00'),
-      scheduledEndTime: new Date('2024-02-11T00:30:00'),
+      scheduledStartTime: new Date('2024-02-10T23:30:00').toISOString(),
+      scheduledEndTime: new Date('2024-02-11T00:30:00').toISOString(),
     }),
     // Late evening (after business hours)
     createMockAppointment({
       id: 'apt-late',
-      scheduledStartTime: new Date('2024-02-10T21:00:00'),
-      scheduledEndTime: new Date('2024-02-10T21:30:00'),
+      scheduledStartTime: new Date('2024-02-10T21:00:00').toISOString(),
+      scheduledEndTime: new Date('2024-02-10T21:30:00').toISOString(),
     }),
     // Very long appointment
     createMockAppointment({
       id: 'apt-long',
-      scheduledStartTime: new Date('2024-02-10T09:00:00'),
-      scheduledEndTime: new Date('2024-02-10T17:00:00'), // 8 hours
+      scheduledStartTime: new Date('2024-02-10T09:00:00').toISOString(),
+      scheduledEndTime: new Date('2024-02-10T17:00:00').toISOString(), // 8 hours
       services: [
         createMockAppointmentService({ serviceName: 'Full Day Package', duration: 480 }),
       ],
@@ -255,8 +255,8 @@ export function createBoundaryAppointments(): LocalAppointment[] {
     // Very short appointment
     createMockAppointment({
       id: 'apt-short',
-      scheduledStartTime: new Date('2024-02-10T10:00:00'),
-      scheduledEndTime: new Date('2024-02-10T10:05:00'), // 5 minutes
+      scheduledStartTime: new Date('2024-02-10T10:00:00').toISOString(),
+      scheduledEndTime: new Date('2024-02-10T10:05:00').toISOString(), // 5 minutes
       services: [
         createMockAppointmentService({ serviceName: 'Quick Touch-up', duration: 5 }),
       ],

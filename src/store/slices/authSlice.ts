@@ -332,12 +332,13 @@ export const selectSalonId = (state: RootState) => state.auth.salonId;
 export const selectToken = (state: RootState) => state.auth.token;
 
 // Device selectors
+// LOCAL-FIRST: Device is always offline-enabled, no toggle needed
 export const selectDevice = (state: RootState) => state.auth.device;
 export const selectStorePolicy = (state: RootState) => state.auth.storePolicy;
-export const selectDeviceMode = (state: RootState): DeviceMode | null =>
-  state.auth.device?.mode ?? null;
-export const selectIsOfflineEnabled = (state: RootState): boolean =>
-  state.auth.device?.offlineModeEnabled ?? false;
+// Always returns 'offline-enabled' for local-first architecture
+export const selectDeviceMode = (_state: RootState): 'offline-enabled' => 'offline-enabled';
+// Always returns true for local-first architecture
+export const selectIsOfflineEnabled = (_state: RootState): boolean => true;
 export const selectDeviceId = (state: RootState): string | null =>
   state.auth.device?.id ?? null;
 

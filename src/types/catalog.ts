@@ -39,9 +39,9 @@ export interface ServiceCategory {
   // Hierarchy
   parentCategoryId?: string;
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 
   // Audit
@@ -75,9 +75,9 @@ export interface ServiceVariant {
   displayOrder: number;
   isActive: boolean;
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
@@ -147,9 +147,9 @@ export interface MenuService {
   showPriceOnline: boolean;
   allowCustomDuration: boolean;
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 
   // Audit
@@ -201,9 +201,9 @@ export interface ServicePackage {
   color?: string;
   images?: string[];
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 
   // Audit
@@ -252,9 +252,9 @@ export interface AddOnGroup {
   displayOrder: number;
   onlineBookingEnabled: boolean;
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
@@ -275,9 +275,9 @@ export interface AddOnOption {
   isActive: boolean;
   displayOrder: number;
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
@@ -309,9 +309,9 @@ export interface StaffServiceAssignment {
   // Status
   isActive: boolean;
 
-  // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  // Timestamps & Sync (ISO 8601 strings)
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
@@ -350,8 +350,8 @@ export interface CatalogSettings {
   bookingSequenceEnabled: boolean;
 
   // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
@@ -374,8 +374,8 @@ export interface BookingSequence {
   isEnabled: boolean;
 
   // Timestamps & Sync
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   syncStatus: SyncStatus;
 }
 
@@ -470,8 +470,8 @@ export interface ServiceAddOn {
   isActive: boolean;
   displayOrder: number;
   onlineBookingEnabled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**

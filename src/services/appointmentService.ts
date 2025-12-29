@@ -355,15 +355,15 @@ export class AppointmentService {
         price: svc.BasePrice,
       })),
       status: apt.IsRequest ? 'requested' : ('scheduled' as any),
-      scheduledStartTime: new Date(`${apt.startDate} ${apt.startTime}`),
+      scheduledStartTime: new Date(`${apt.startDate} ${apt.startTime}`).toISOString(),
       scheduledEndTime: new Date(
         new Date(`${apt.startDate} ${apt.startTime}`).getTime() +
           apt.totalDuration * 60000
-      ),
+      ).toISOString(),
       notes: apt.note,
       source: 'online',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       createdBy: 'current_user',
       lastModifiedBy: 'current_user',
       syncStatus: 'pending',
@@ -401,7 +401,7 @@ export class AppointmentService {
       data: apt,
       priority: 3, // Appointments have priority 3
       status: 'pending' as const,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       retryCount: 0,
     }));
 
@@ -446,10 +446,10 @@ export class AppointmentService {
 
     // Filter by ticket type if specified
     if (ticketType) {
-      const now = new Date();
+      const nowIso = new Date().toISOString();
       appointments = appointments.filter((apt) => {
         if (ticketType === 'Upcoming') {
-          return apt.scheduledStartTime > now && apt.status !== 'cancelled';
+          return apt.scheduledStartTime > nowIso && apt.status !== 'cancelled';
         } else if (ticketType === 'Completed') {
           return apt.status === 'completed';
         } else if (ticketType === 'Cancelled') {
@@ -466,6 +466,8 @@ export class AppointmentService {
    * Map local appointment to TicketDTO
    */
   private mapLocalToTicketDTO(local: LocalAppointment): TicketDTO {
+    const startTime = new Date(local.scheduledStartTime);
+    const endTime = new Date(local.scheduledEndTime);
     return {
       appointmentID: local.serverId || 0,
       customerID: parseInt(local.clientId),
@@ -474,17 +476,14 @@ export class AppointmentService {
       staffID: parseInt(local.staffId),
       staffName: local.staffName,
       serviceName: local.services.map((s) => s.serviceName).join(', '),
-      startTime: local.scheduledStartTime,
-      endTime: local.scheduledEndTime,
-      duration: Math.round(
-        (local.scheduledEndTime.getTime() - local.scheduledStartTime.getTime()) /
-          60000
-      ),
+      startTime,
+      endTime,
+      duration: Math.round((endTime.getTime() - startTime.getTime()) / 60000),
       status: local.status,
       note: local.notes,
       isOnlineBooking: local.source === 'online',
       isConfirmed: (local.status as any) === 'confirmed' || local.status === ('scheduled' as any),
-      createdAt: local.createdAt,
+      createdAt: new Date(local.createdAt),
     };
   }
 }

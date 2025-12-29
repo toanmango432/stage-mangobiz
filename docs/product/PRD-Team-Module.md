@@ -2,9 +2,10 @@
 
 **Product:** Mango POS
 **Module:** Team Management
-**Version:** 2.0
-**Last Updated:** December 2, 2024
-**Status:** Enhanced PRD (Best of Mango + Fresha)
+**Version:** 3.0
+**Last Updated:** December 28, 2025
+**Status:** Complete PRD with Acceptance Criteria
+**Priority:** P0 (Critical)
 
 ---
 
@@ -13,25 +14,28 @@
 1. [Executive Summary](#1-executive-summary)
 2. [Problem Statement](#2-problem-statement)
 3. [Goals & Objectives](#3-goals--objectives)
-4. [User Personas](#4-user-personas)
+4. [User Personas & Use Cases](#4-user-personas)
 5. [Feature Overview](#5-feature-overview)
-6. [Detailed Requirements](#6-detailed-requirements)
-   - 6.1 [Staff Profile Management](#61-staff-profile-management)
-   - 6.2 [Staff Roles & Permissions](#62-staff-roles--permissions)
-   - 6.3 [Service Assignments](#63-service-assignments)
-   - 6.4 [Schedule & Timesheet Management](#64-schedule--timesheet-management)
-   - 6.5 [Commission & Compensation](#65-commission--compensation)
-   - 6.6 [Payroll & Pay Runs](#66-payroll--pay-runs) ⭐ NEW
-   - 6.7 [Online Booking Settings](#67-online-booking-settings)
-   - 6.8 [Turn Tracking](#68-turn-tracking)
-   - 6.9 [Performance & Analytics](#69-performance--analytics) ⭐ NEW
-   - 6.10 [Notifications](#610-notifications)
-7. [Data Architecture](#7-data-architecture)
-8. [User Interface Specifications](#8-user-interface-specifications)
-9. [Technical Architecture](#9-technical-architecture)
-10. [Business Rules](#10-business-rules)
-11. [Success Metrics](#11-success-metrics)
-12. [Implementation Phases](#12-implementation-phases)
+6. [Feature Requirements Summary](#6-feature-requirements-summary)
+7. [Detailed Requirements](#7-detailed-requirements)
+   - 7.1 [Staff Profile Management](#71-staff-profile-management)
+   - 7.2 [Staff Roles & Permissions](#72-staff-roles--permissions)
+   - 7.3 [Service Assignments](#73-service-assignments)
+   - 7.4 [Schedule & Timesheet Management](#74-schedule--timesheet-management)
+   - 7.5 [Commission & Compensation](#75-commission--compensation)
+   - 7.6 [Payroll & Pay Runs](#76-payroll--pay-runs)
+   - 7.7 [Online Booking Settings](#77-online-booking-settings)
+   - 7.8 [Turn Tracking](#78-turn-tracking)
+   - 7.9 [Performance & Analytics](#79-performance--analytics)
+   - 7.10 [Notifications](#710-notifications)
+8. [Data Architecture](#8-data-architecture)
+9. [User Interface Specifications](#9-user-interface-specifications)
+10. [Technical Architecture](#10-technical-architecture)
+11. [Business Rules](#11-business-rules)
+12. [Success Metrics](#12-success-metrics)
+13. [Risks & Mitigations](#13-risks--mitigations)
+14. [Implementation Phases](#14-implementation-phases)
+15. [Appendices](#appendix-a-competitive-positioning)
 
 ---
 
@@ -135,6 +139,31 @@ The Team Module is a comprehensive, industry-leading staff management system for
 **Key Features:** Personal dashboard, earnings view, time-off requests
 **Success Metric:** Earnings visibility within 24 hours
 
+### 4.5 Use Cases
+
+| ID | Use Case | Actor | Priority |
+|----|----------|-------|----------|
+| TEAM-UC-001 | Create new staff profile with required info | Manager | P0 |
+| TEAM-UC-002 | Assign role and set permissions | Owner | P0 |
+| TEAM-UC-003 | Assign services staff can perform | Manager | P0 |
+| TEAM-UC-004 | Configure weekly working schedule | Manager | P0 |
+| TEAM-UC-005 | Set rotating schedule pattern | Manager | P0 |
+| TEAM-UC-006 | Configure commission rates | Owner | P0 |
+| TEAM-UC-007 | Clock in at start of shift | Staff | P1 |
+| TEAM-UC-008 | Take and log a break | Staff | P1 |
+| TEAM-UC-009 | Clock out at end of shift | Staff | P1 |
+| TEAM-UC-010 | Review and approve timesheets | Manager | P1 |
+| TEAM-UC-011 | Create pay run for period | Owner | P1 |
+| TEAM-UC-012 | Add manual adjustment to pay run | Manager | P1 |
+| TEAM-UC-013 | Approve and process pay run | Owner | P1 |
+| TEAM-UC-014 | View personal earnings | Staff | P1 |
+| TEAM-UC-015 | Submit time-off request | Staff | P2 |
+| TEAM-UC-016 | Approve/deny time-off request | Manager | P2 |
+| TEAM-UC-017 | View performance dashboard | Staff | P2 |
+| TEAM-UC-018 | Set performance goals for staff | Manager | P2 |
+| TEAM-UC-019 | Upload portfolio images | Staff | P2 |
+| TEAM-UC-020 | View staff ratings and reviews | Staff | P2 |
+
 ---
 
 ## 5. Feature Overview
@@ -192,9 +221,87 @@ The Team Module is a comprehensive, industry-leading staff management system for
 
 ---
 
-## 6. Detailed Requirements
+## 6. Feature Requirements Summary
 
-### 6.1 Staff Profile Management
+### 6.0 Requirements by Priority
+
+#### P0 (Critical) - Phase 1
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| TEAM-P0-001 | Staff profile creation with required fields | P0 | First/last name, email, phone validated; profile saved in < 2s |
+| TEAM-P0-002 | Staff role assignment from 14 predefined roles | P0 | Role selected from dropdown; permissions auto-applied |
+| TEAM-P0-003 | Service assignment per staff member | P0 | Can assign multiple services; custom price/duration per service |
+| TEAM-P0-004 | Weekly schedule configuration | P0 | Set working hours per day; supports multiple shifts per day |
+| TEAM-P0-005 | Rotating schedule patterns (1-4 weeks) | P0 | Pattern repeats correctly; schedule displays in Book module |
+| TEAM-P0-006 | Turn tracking for walk-in distribution | P0 | Turn count increments on checkout; lowest turn gets next walk-in |
+| TEAM-P0-007 | Permission-based access control | P0 | Actions blocked if permission denied; shows appropriate error |
+| TEAM-P0-008 | Commission rate configuration | P0 | Set % or fixed amount; applies to checkouts automatically |
+| TEAM-P0-009 | Online booking availability toggle | P0 | Staff appears/hidden from online booking within 30s |
+| TEAM-P0-010 | Offline-first data synchronization | P0 | Changes persist locally; sync when online without data loss |
+
+#### P1 (High) - Phase 2: Time & Attendance
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| TEAM-P1-001 | Clock in/out system | P1 | Timestamp recorded; UI shows clocked-in status |
+| TEAM-P1-002 | Break tracking (paid/unpaid) | P1 | Break duration tracked; unpaid deducted from hours |
+| TEAM-P1-003 | Timesheet dashboard with weekly view | P1 | Shows all staff hours; scheduled vs actual comparison |
+| TEAM-P1-004 | Overtime calculation (daily/weekly threshold) | P1 | OT hours calculated automatically; configurable threshold |
+| TEAM-P1-005 | Late arrival/early departure alerts | P1 | Alert shown if > 5 min late or > 15 min early |
+| TEAM-P1-006 | Timesheet manager approval workflow | P1 | Pending → Approved/Disputed status flow |
+| TEAM-P1-007 | Timesheet export (CSV, PDF) | P1 | Export includes all columns; date range selectable |
+| TEAM-P1-008 | GPS/IP location capture on clock-in | P1 | Optional setting; location recorded if enabled |
+| TEAM-P1-009 | Photo verification at clock-in | P1 | Optional setting; photo stored if enabled |
+| TEAM-P1-010 | Scheduled vs actual hours variance report | P1 | Shows variance per staff; highlights discrepancies |
+
+#### P1 (High) - Phase 3: Payroll & Pay Runs
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| TEAM-P1-011 | Pay run creation with period selection | P1 | Select date range; auto-include active staff |
+| TEAM-P1-012 | Automatic wage calculation from timesheets | P1 | Hours × rate calculated; includes OT multiplier |
+| TEAM-P1-013 | Automatic commission calculation | P1 | Service/product/tip commissions calculated |
+| TEAM-P1-014 | Tiered commission calculation | P1 | Progressive rates applied correctly to period total |
+| TEAM-P1-015 | Manual adjustments (bonus, deduction, reimbursement) | P1 | Add/edit adjustments; reflected in total |
+| TEAM-P1-016 | Pay run review interface | P1 | Shows breakdown per staff; total summary |
+| TEAM-P1-017 | Manager approval workflow for pay runs | P1 | Requires approval before processing |
+| TEAM-P1-018 | Direct deposit payment processing | P1 | Integration with payment processor; ACH transfer |
+| TEAM-P1-019 | Pay stub generation (PDF) | P1 | Detailed breakdown; emailed to staff |
+| TEAM-P1-020 | 9 payroll reports | P1 | All 9 report types available; export supported |
+| TEAM-P1-021 | Staff earnings portal (self-service) | P1 | Staff can view own earnings; historical data |
+| TEAM-P1-022 | Guaranteed minimum pay enforcement | P1 | If commission < minimum, pay minimum instead |
+
+#### P2 (Medium) - Phase 4: Staff Experience
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| TEAM-P2-001 | Staff rating display from client reviews | P2 | Average rating calculated; shown on profile |
+| TEAM-P2-002 | Portfolio gallery (up to 20 images) | P2 | Upload/delete images; shown in online booking |
+| TEAM-P2-003 | Professional bio and specialties | P2 | Text fields saved; displayed to clients |
+| TEAM-P2-004 | Performance goals configuration | P2 | Set revenue/service/client targets per staff |
+| TEAM-P2-005 | Performance dashboard with progress bars | P2 | Real-time % toward goals; visual indicators |
+| TEAM-P2-006 | Achievement badges system | P2 | Badges earned for milestones; displayed on profile |
+| TEAM-P2-007 | Group booking for multiple guests | P2 | Book multiple people at once; find overlapping availability |
+| TEAM-P2-008 | Staff notification preferences | P2 | Toggle email/SMS/push per notification type |
+| TEAM-P2-009 | Time-off request submission | P2 | Request form with dates/type; manager notified |
+| TEAM-P2-010 | Time-off approval workflow | P2 | Manager approves/denies; staff notified |
+
+#### P3 (Lower) - Phase 5: Advanced
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| TEAM-P3-001 | Multi-location staff assignment | P3 | Staff can work at multiple locations; schedule per location |
+| TEAM-P3-002 | AI-powered schedule optimization | P3 | Suggests optimal schedules based on demand patterns |
+| TEAM-P3-003 | Skills matrix tracking | P3 | Track skill levels per service; training progress |
+| TEAM-P3-004 | HR integrations (Gusto, ADP) | P3 | Export payroll data to external HR systems |
+| TEAM-P3-005 | Calendar sync (Google, Apple, Outlook) | P3 | Two-way sync with personal calendars |
+
+---
+
+## 7. Detailed Requirements
+
+### 7.1 Staff Profile Management
 
 #### 6.1.1 Required Fields
 
@@ -954,9 +1061,9 @@ interface PerformanceGoals {
 
 ---
 
-## 7. Data Architecture
+## 8. Data Architecture
 
-### 7.1 Core Entity: TeamMemberSettings
+### 8.1 Core Entity: TeamMemberSettings
 
 ```typescript
 interface TeamMemberSettings extends BaseSyncableEntity {
@@ -998,7 +1105,7 @@ interface TeamMemberSettings extends BaseSyncableEntity {
 }
 ```
 
-### 7.2 Related Entities
+### 8.2 Related Entities
 
 ```typescript
 // Timesheet (Daily entries)
@@ -1046,7 +1153,7 @@ interface StaffRating {
 }
 ```
 
-### 7.3 State Management Architecture
+### 8.3 State Management Architecture
 
 | Slice | Purpose | Sync |
 |-------|---------|------|
@@ -1056,7 +1163,7 @@ interface StaffRating {
 | `turnSlice` | Turn tracking data | Local (daily reset) |
 | `uiStaffSlice` | Front desk display | Memory only |
 
-### 7.4 Offline-First Data Flow
+### 8.4 Offline-First Data Flow
 
 ```
 User Action
@@ -1081,9 +1188,9 @@ Other Devices (Real-time Sync)
 
 ---
 
-## 8. User Interface Specifications
+## 9. User Interface Specifications
 
-### 8.1 Team Settings Layout
+### 9.1 Team Settings Layout
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1112,7 +1219,7 @@ Other Devices (Real-time Sync)
 └────────────────┴────────────────────────────────────────────────┘
 ```
 
-### 8.2 Turn Tracker Layout
+### 9.2 Turn Tracker Layout
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1136,7 +1243,7 @@ Other Devices (Real-time Sync)
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 8.3 Timesheet Dashboard ⭐ NEW
+### 9.3 Timesheet Dashboard
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1157,7 +1264,7 @@ Other Devices (Real-time Sync)
 ⚠ = Variance from schedule    [Approve All] [View Details]
 ```
 
-### 8.4 Pay Run Interface ⭐ NEW
+### 9.4 Pay Run Interface
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1185,9 +1292,9 @@ Other Devices (Real-time Sync)
 
 ---
 
-## 9. Technical Architecture
+## 10. Technical Architecture
 
-### 9.1 Redux Store Structure
+### 10.1 Redux Store Structure
 
 ```typescript
 interface RootState {
@@ -1204,7 +1311,7 @@ interface RootState {
 }
 ```
 
-### 9.2 Key Actions
+### 10.2 Key Actions
 
 ```typescript
 // Team Management
@@ -1240,7 +1347,7 @@ submitTimeOffRequest({ staffId, request })
 approveTimeOffRequest({ requestId, approvedBy })
 ```
 
-### 9.3 Database Schema (IndexedDB)
+### 10.3 Database Schema (IndexedDB)
 
 ```typescript
 // Team Members
@@ -1268,7 +1375,7 @@ turnLogs: {
 }
 ```
 
-### 9.4 API Endpoints (Supabase)
+### 10.4 API Endpoints (Supabase)
 
 ```
 # Team Members
@@ -1300,63 +1407,93 @@ PATCH  /turn-logs/{id}/void
 
 ---
 
-## 10. Business Rules
+## 11. Business Rules
 
-### 10.1 Team Member Rules
+### 11.1 Team Member Rules
 
-| Rule ID | Rule | Enforcement |
-|---------|------|-------------|
-| BR-TM-001 | Email must be unique per tenant | Database constraint |
-| BR-TM-002 | Cannot delete only owner | Application logic |
-| BR-TM-003 | Archived members cannot receive bookings | Query filter |
-| BR-TM-004 | Contractors cannot access payroll details | Permission check |
-| BR-TM-005 | Staff must have at least one assigned service to be bookable | Validation |
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-001 | Email must be unique per tenant | Database constraint prevents duplicate emails |
+| TEAM-BR-002 | Cannot delete only owner | At least one owner must remain active |
+| TEAM-BR-003 | Archived members cannot receive bookings | Query filter excludes archived status |
+| TEAM-BR-004 | Contractors cannot access payroll details | Permission check on contractor role |
+| TEAM-BR-005 | Staff must have at least one service to be bookable | Validation on online booking toggle |
+| TEAM-BR-006 | Display name defaults to "First Last" if not set | Concatenate first_name + last_name |
+| TEAM-BR-007 | Terminated staff data retained for reports | Soft delete with terminated status |
 
-### 10.2 Timesheet Rules ⭐ NEW
+### 11.2 Timesheet Rules
 
-| Rule ID | Rule | Enforcement |
-|---------|------|-------------|
-| BR-TS-001 | Cannot clock in before scheduled shift minus grace period | Validation |
-| BR-TS-002 | Break duration deducted from hours if unpaid | Calculation |
-| BR-TS-003 | Overtime calculated after regular hours threshold | Calculation |
-| BR-TS-004 | Manager approval required for timesheet edits | Workflow |
-| BR-TS-005 | Cannot clock in to multiple locations simultaneously | Validation |
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-008 | Cannot clock in before scheduled shift minus grace | Grace period default: 30 minutes |
+| TEAM-BR-009 | Unpaid break duration deducted from total hours | total_hours = clock_out - clock_in - unpaid_breaks |
+| TEAM-BR-010 | Overtime calculated after threshold | If daily > 8 or weekly > 40, apply OT rate |
+| TEAM-BR-011 | Manager approval required for timesheet edits | Any modification after submission requires approval |
+| TEAM-BR-012 | Cannot clock in to multiple locations simultaneously | Check active clock-in before allowing new one |
+| TEAM-BR-013 | Late arrival threshold default: 5 minutes | late_arrival = actual_clock_in > scheduled_start + 5min |
+| TEAM-BR-014 | Early departure threshold default: 15 minutes | early_departure = actual_clock_out < scheduled_end - 15min |
+| TEAM-BR-015 | Forgot clock-out auto-closes at midnight | If no clock_out by 11:59 PM, set to scheduled_end |
 
-### 10.3 Payroll Rules ⭐ NEW
+### 11.3 Payroll Rules
 
-| Rule ID | Rule | Enforcement |
-|---------|------|-------------|
-| BR-PR-001 | Pay run cannot be processed without approval | Workflow |
-| BR-PR-002 | Commissions calculated from approved checkouts only | Query filter |
-| BR-PR-003 | Guaranteed minimum applied per pay period | Calculation |
-| BR-PR-004 | Tiered commission calculated on period total | Calculation |
-| BR-PR-005 | Previous pay runs must be processed before new ones | Validation |
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-016 | Pay run cannot be processed without approval | Status must be 'approved' to process |
+| TEAM-BR-017 | Commissions calculated from approved checkouts only | Filter: checkout.status = 'completed' |
+| TEAM-BR-018 | Guaranteed minimum applied per pay period | If calculated_pay < minimum, pay = minimum |
+| TEAM-BR-019 | Tiered commission on period total | Calculate total first, then apply tiered rates |
+| TEAM-BR-020 | Previous pay runs must be processed first | Check no pending/approved runs for earlier periods |
+| TEAM-BR-021 | Fee pass-through is optional per staff | If enabled, deduct processing_fee from staff pay |
+| TEAM-BR-022 | Tips follow configured handling policy | Options: keep_all, pool, percentage_to_house |
+| TEAM-BR-023 | Cash advances deducted from pay run | advance_balance reduced per pay period |
 
-### 10.4 Turn Tracking Rules
+### 11.4 Turn Tracking Rules
 
-| Rule ID | Rule | Enforcement |
-|---------|------|-------------|
-| BR-TT-001 | Only clocked-in staff appear in turn tracker | Query filter |
-| BR-TT-002 | Turn adjustments require reason | Validation |
-| BR-TT-003 | Void entries reverse original turn count | Calculation |
-| BR-TT-004 | Turns reset at configured time daily | Scheduled job |
-| BR-TT-005 | Queue position determined by turn count then clock-in time | Sort logic |
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-024 | Only clocked-in staff appear in turn tracker | Filter: staff.is_clocked_in = true |
+| TEAM-BR-025 | Turn adjustments require reason | Validation: reason field required for adjust type |
+| TEAM-BR-026 | Void entries reverse original turn count | new_turn_count = turn_count - voided_turn.value |
+| TEAM-BR-027 | Turns reset at configured time daily | Default: business open time; option: midnight |
+| TEAM-BR-028 | Queue position by turn count, then clock-in time | Primary sort: turns ASC; Secondary: clock_in ASC |
+| TEAM-BR-029 | Bonus turns for high-value services | If service_amount >= bonus_threshold, add bonus_turn |
+| TEAM-BR-030 | Tardy penalty optional | If enabled and late > grace, deduct tardy_penalty turns |
 
-### 10.5 Commission Rules
+### 11.5 Commission Rules
 
-| Rule ID | Rule | Enforcement |
-|---------|------|-------------|
-| BR-CM-001 | Service-specific override takes precedence | Calculation |
-| BR-CM-002 | Tiered rates apply to period total, not per-service | Calculation |
-| BR-CM-003 | Tips follow configured handling policy | Distribution logic |
-| BR-CM-004 | Bonuses applied after base commission | Calculation order |
-| BR-CM-005 | Supply deduction calculated before commission | Calculation order |
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-031 | Service-specific override takes precedence | Check service_override first, then base_rate |
+| TEAM-BR-032 | Tiered rates apply to period total | Progressive: apply each tier rate to its bracket |
+| TEAM-BR-033 | Bonuses applied after base commission | Order: base_commission → add bonuses |
+| TEAM-BR-034 | Supply deduction calculated before commission | Order: revenue - supply_cost → apply commission % |
+| TEAM-BR-035 | Product commission separate from service commission | Different rates: product_commission vs service_commission |
+| TEAM-BR-036 | Gift card commission on sale, not redemption | Commission earned when gift card sold |
+
+### 11.6 Schedule Rules
+
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-037 | Schedule overrides take precedence | Check override first, then rotating pattern |
+| TEAM-BR-038 | Rotating patterns repeat after N weeks | Week = (current_week % pattern_length) + 1 |
+| TEAM-BR-039 | Time-off approved overrides scheduled availability | Staff unavailable for booking during approved time-off |
+| TEAM-BR-040 | Multiple shifts per day allowed | Support split shifts (e.g., 9-12, 2-6) |
+| TEAM-BR-041 | Buffer time between appointments | Add buffer_minutes before/after each service |
+
+### 11.7 Permission Rules
+
+| ID | Rule | Logic |
+|----|------|-------|
+| TEAM-BR-042 | Role permissions are defaults | Can override per staff member |
+| TEAM-BR-043 | PIN required for sensitive actions | Configurable: refunds, voids, discounts > X% |
+| TEAM-BR-044 | Owner permission cannot be revoked | At least one user must have full access |
+| TEAM-BR-045 | Staff can only view own earnings | Unless has canAccessPayroll permission |
 
 ---
 
-## 11. Success Metrics
+## 12. Success Metrics
 
-### 11.1 Business Metrics
+### 12.1 Business Metrics
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
@@ -1366,7 +1503,7 @@ PATCH  /turn-logs/{id}/void
 | Staff booking rate increase | +25% | Analytics |
 | Staff retention improvement | +15% | HR data |
 
-### 11.2 User Experience Metrics
+### 12.2 User Experience Metrics
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
@@ -1376,7 +1513,7 @@ PATCH  /turn-logs/{id}/void
 | Manager satisfaction score | > 4.5/5 | Survey |
 | Staff earnings visibility | Real-time | Feature check |
 
-### 11.3 Technical Metrics
+### 12.3 Technical Metrics
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
@@ -1388,7 +1525,50 @@ PATCH  /turn-logs/{id}/void
 
 ---
 
-## 12. Implementation Phases
+## 13. Risks & Mitigations
+
+### 13.1 Technical Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Timesheet sync conflicts between devices | Medium | High | Implement vector clock conflict resolution; last-write-wins with audit trail |
+| Pay run calculation errors | Low | Critical | Extensive unit tests for all commission scenarios; manager review step required |
+| Offline payroll processing not supported | High | Medium | Clearly communicate payroll requires online; queue for sync if offline |
+| Clock-in GPS spoofing | Low | Medium | Optional photo verification; IP address logging; anomaly detection |
+| Large team data affects performance | Medium | Medium | Pagination, lazy loading; limit staff list to 100 per page |
+
+### 13.2 Business Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Payroll compliance issues (labor laws) | Medium | Critical | Consult labor law experts; provide configurable OT rules by state |
+| Commission disputes from staff | Medium | High | Transparent calculation breakdowns; audit logs; dispute resolution workflow |
+| Incorrect turn tracking causes staff conflict | Low | High | Clear rules displayed; manual adjustment with reason required |
+| Privacy concerns with GPS/photo tracking | Medium | Medium | Make tracking optional; clear consent; data retention policy |
+| Competitor has better payroll features | High | Medium | Focus on salon-specific features (turn tracking, commission tiers) |
+
+### 13.3 UX Risks
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| Complex payroll UI overwhelms small salons | Medium | Medium | Provide simplified "quick pay run" mode for basic needs |
+| Staff forget to clock in/out | High | Medium | Reminder notifications; auto-clock-out at shift end |
+| Timesheet dashboard too dense on mobile | Medium | Medium | Responsive design; separate mobile-optimized views |
+| Too many permission options confuse managers | Medium | Low | Use role-based defaults; hide advanced options behind toggle |
+
+### 13.4 Mitigation Priority
+
+| Priority | Risk | Action | Owner |
+|----------|------|--------|-------|
+| 1 | Pay run calculation errors | Build comprehensive test suite with edge cases | Dev |
+| 2 | Commission disputes | Design transparent earnings breakdown UI | PM + Dev |
+| 3 | Payroll compliance | Research labor laws; make OT configurable by state | PM |
+| 4 | Staff forget clock in/out | Implement reminder notifications | Dev |
+| 5 | Sync conflicts | Design conflict resolution strategy | Dev |
+
+---
+
+## 14. Implementation Phases
 
 ### Phase 1: Foundation (Current + Enhancements)
 **Timeline: Implemented**
@@ -1504,5 +1684,15 @@ PATCH  /turn-logs/{id}/void
 
 ---
 
-*PRD Version 2.0 - Enhanced with best practices from Mango POS and Fresha analysis.*
+## Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | Nov 2024 | Initial Team Module PRD |
+| 2.0 | Dec 2, 2024 | Enhanced with Fresha best practices |
+| 3.0 | Dec 28, 2025 | Added: Requirement IDs (TEAM-P0/P1/P2/P3-XXX), 47 requirements with acceptance criteria, 20 use cases, 45 business rules (TEAM-BR-XXX), Risks & Mitigations section, standardized 14-section format |
+
+---
+
+*PRD Version 3.0 - Complete with acceptance criteria and standardized format.*
 *Prepared for Mango POS Team Module development.*

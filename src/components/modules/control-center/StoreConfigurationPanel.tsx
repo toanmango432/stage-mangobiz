@@ -12,6 +12,7 @@ import {
   Globe,
   Settings
 } from 'lucide-react';
+import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
 
 interface StoreLocation {
   id: string;
@@ -288,6 +289,9 @@ export function StoreConfigurationPanel() {
           </div>
         </div>
       </div>
+
+      {/* Timezone Settings */}
+      <TimezoneSettings />
     </div>
   );
 }

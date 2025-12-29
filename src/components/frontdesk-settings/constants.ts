@@ -52,5 +52,11 @@ export const defaultFrontDeskSettings: FrontDeskSettingsData = {
 
   // Workflow Activation
   waitListActive: true,
-  inServiceActive: true
+  inServiceActive: true,
+
+  // Urgency Settings (Pending Section)
+  urgencyEnabled: true,
+  urgencyAttentionMinutes: 10,
+  urgencyUrgentMinutes: 15,
+  urgencyCriticalMinutes: 20
 };

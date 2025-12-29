@@ -31,6 +31,8 @@ export interface PendingTicket {
     color: string;
   }>;
   lastVisitDate?: Date | null;
+  // When service was marked done (for urgency calculation)
+  completedAt?: Date | string;
 }
 
 interface PendingTicketCardProps {

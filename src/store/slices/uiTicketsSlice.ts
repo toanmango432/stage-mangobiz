@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
-import { toTickets, toTicket, toTicketInsert, toTicketUpdate } from '../../services/supabase';
+// Adapters not needed - dataService returns converted types
+import type { CreateTicketInput } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
 import { createTransactionFromPending, createTransactionInSupabase } from './transactionsSlice';
@@ -116,6 +117,8 @@ export interface PendingTicket {
     color: string;
   }>;
   lastVisitDate?: Date | null;
+  // When service was marked done (for urgency calculation)
+  completedAt?: Date | string;
 }
 
 export interface CompletionDetails {
@@ -208,8 +211,8 @@ export const loadTickets = createAsyncThunk(
     try {
       // Try Supabase first
       const today = new Date();
-      const rows = await dataService.tickets.getByDate(today);
-      const remoteTickets = toTickets(rows) as unknown as DBTicket[];
+      // dataService.tickets.getByDate already returns Ticket[] (converted)
+      const remoteTickets = await dataService.tickets.getByDate(today) as unknown as DBTicket[];
 
       console.log('📋 Loaded tickets from Supabase:', remoteTickets.length);
 
@@ -306,41 +309,28 @@ export const createTicket = createAsyncThunk(
     const ticketNumber = state.uiTickets.lastTicketNumber + 1;
 
     try {
-      // Build ticket for Supabase
-      const ticketInsert = toTicketInsert({
-        salonId: '', // Will be filled by dataService
+      // Build ticket for Supabase using CreateTicketInput
+      const ticketInput: CreateTicketInput = {
         clientId: '',
         clientName: ticketData.clientName,
+        clientPhone: '',
         services: [{
-          id: uuidv4(),
           serviceId: uuidv4(),
           serviceName: ticketData.service,
-          name: ticketData.service,
           staffId: ticketData.techId || '',
           staffName: ticketData.technician || '',
           price: 0,
           duration: parseInt(ticketData.duration || '30') || 30,
           commission: 0,
-          startTime: '',
+          startTime: new Date().toISOString(),
           status: 'not_started' as const,
-          statusHistory: [],
-          totalPausedDuration: 0,
         }],
         products: [],
-        status: 'pending', // Supabase uses 'pending' for waitlist
-        subtotal: 0,
-        discount: 0,
-        tax: 0,
-        tip: 0,
-        total: 0,
-        payments: [],
-        createdBy: 'current-user',
-        lastModifiedBy: 'current-user',
-        syncStatus: 'synced',
-      } as any);
+        source: 'pos', // 'pos' for walk-in tickets
+      };
 
-      const row = await dataService.tickets.create(ticketInsert);
-      const createdTicket = toTicket(row);
+      // dataService.tickets.create returns Ticket directly
+      const createdTicket = await dataService.tickets.create(ticketInput);
 
       console.log('✅ Ticket created in Supabase:', createdTicket.id);
 
@@ -541,14 +531,14 @@ export const pauseTicket = createAsyncThunk(
     try {
       // Update service status in Supabase
       // Get current ticket, update first service to 'paused'
-      const row = await dataService.tickets.getById(ticketId);
-      if (row) {
-        const ticketData = toTicket(row);
+      // dataService.tickets.getById returns Ticket directly
+      const ticketData = await dataService.tickets.getById(ticketId);
+      if (ticketData) {
         const updatedServices = ticketData.services.map((s, i) =>
           i === 0 ? { ...s, status: 'paused' as const, pausedAt: new Date().toISOString() } : s
         );
-        const updateData = toTicketUpdate({ services: updatedServices });
-        await dataService.tickets.update(ticketId, updateData);
+        // dataService.tickets.update accepts Partial<Ticket>
+        await dataService.tickets.update(ticketId, { services: updatedServices });
         console.log('✅ Ticket paused in Supabase:', ticketId);
       }
     } catch (error) {
@@ -590,9 +580,9 @@ export const resumeTicket = createAsyncThunk(
 
     try {
       // Update service status in Supabase
-      const row = await dataService.tickets.getById(ticketId);
-      if (row) {
-        const ticketData = toTicket(row);
+      // dataService.tickets.getById returns Ticket directly
+      const ticketData = await dataService.tickets.getById(ticketId);
+      if (ticketData) {
         const now = new Date().toISOString();
         const updatedServices = ticketData.services.map((s, i) => {
           if (i === 0 && s.status === 'paused') {
@@ -609,8 +599,8 @@ export const resumeTicket = createAsyncThunk(
           }
           return s;
         });
-        const updateData = toTicketUpdate({ services: updatedServices });
-        await dataService.tickets.update(ticketId, updateData);
+        // dataService.tickets.update accepts Partial<Ticket>
+        await dataService.tickets.update(ticketId, { services: updatedServices });
         console.log('✅ Ticket resumed in Supabase:', ticketId);
       }
     } catch (error) {
@@ -747,47 +737,38 @@ export const checkInAppointment = createAsyncThunk(
         throw new Error(validation.error || 'Validation failed');
       }
 
-      const ticketInsert = toTicketInsert({
-        salonId: '',
+      // Build ticket using CreateTicketInput type
+      // Note: scheduledStartTime and scheduledEndTime are now ISO strings
+      const startTimeIso = typeof appointment.scheduledStartTime === 'string'
+        ? appointment.scheduledStartTime
+        : new Date(appointment.scheduledStartTime).toISOString();
+      const endTimeIso = typeof appointment.scheduledEndTime === 'string'
+        ? appointment.scheduledEndTime
+        : new Date(appointment.scheduledEndTime).toISOString();
+
+      const ticketInput: CreateTicketInput = {
         appointmentId: String(appointmentServerId), // ✅ CRITICAL: Link ticket to appointment
         clientId: appointment.clientId || '',
         clientName: appointment.clientName || 'Guest',
         clientPhone: appointment.clientPhone || '',
         services: services.map(s => ({
-          id: uuidv4(),
           serviceId: s.serviceId || uuidv4(),
           serviceName: s.serviceName || 'Service',
-          name: s.serviceName || 'Service',
           staffId: s.staffId || appointment.staffId || '',
           staffName: s.staffName || appointment.staffName || '',
           price: s.price || 0,
           duration: s.duration || 30,
           commission: (s as any).commission || 0,
-          startTime: appointment.scheduledStartTime instanceof Date
-            ? appointment.scheduledStartTime.toISOString()
-            : new Date(appointment.scheduledStartTime).toISOString(),
-          endTime: appointment.scheduledEndTime instanceof Date
-            ? appointment.scheduledEndTime.toISOString()
-            : new Date(appointment.scheduledEndTime).toISOString(),
+          startTime: startTimeIso,
+          endTime: endTimeIso,
           status: 'not_started' as const,
-          statusHistory: [],
-          totalPausedDuration: 0,
         })),
         products: [],
-        status: 'pending', // Supabase uses 'pending' for waitlist
-        subtotal: services.reduce((sum, s) => sum + (s.price || 0), 0),
-        discount: 0,
-        tax: 0,
-        tip: 0,
-        total: services.reduce((sum, s) => sum + (s.price || 0), 0),
-        payments: [],
-        createdBy: 'current-user',
-        lastModifiedBy: 'current-user',
-        syncStatus: 'synced',
-      } as any);
+        source: 'calendar', // 'calendar' for tickets created from appointments
+      };
 
-      const row = await dataService.tickets.create(ticketInsert);
-      const createdTicket = toTicket(row);
+      // dataService.tickets.create returns Ticket directly
+      const createdTicket = await dataService.tickets.create(ticketInput);
 
       console.log('✅ Ticket created from appointment in Supabase:', createdTicket.id);
 

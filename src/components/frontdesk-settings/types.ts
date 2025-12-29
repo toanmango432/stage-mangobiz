@@ -58,6 +58,12 @@ export interface FrontDeskSettingsData {
   // Workflow Activation
   waitListActive: boolean;
   inServiceActive: boolean;
+
+  // Urgency Settings (Pending Section)
+  urgencyEnabled: boolean;
+  urgencyAttentionMinutes: number;
+  urgencyUrgentMinutes: number;
+  urgencyCriticalMinutes: number;
 }
 
 // Template info type

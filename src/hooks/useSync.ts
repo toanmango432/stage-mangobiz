@@ -2,9 +2,8 @@
  * useSync Hook
  * React hook for offline/online synchronization
  *
- * Updated for opt-in offline mode:
- * - Only enables sync for offline-enabled devices
- * - Provides mode-aware sync status
+ * LOCAL-FIRST: All devices are always offline-enabled.
+ * Sync happens in background, never blocks UI.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -91,8 +90,8 @@ export function useModeAwareSync() {
     syncNow,
 
     // Computed
-    /** Whether device can work offline */
-    canWorkOffline: isOfflineEnabled && deviceMode === 'offline-enabled',
+    /** Whether device can work offline - LOCAL-FIRST: Always true */
+    canWorkOffline: true,
     /** Whether device needs to sync pending changes */
     hasPendingSync: pendingOperations > 0,
     /** Status message for UI */
@@ -108,6 +107,7 @@ export function useModeAwareSync() {
 
 /**
  * Get human-readable status message
+ * LOCAL-FIRST: Simplified for always-offline-first architecture
  */
 function getStatusMessage(params: {
   isOnline: boolean;
@@ -116,14 +116,7 @@ function getStatusMessage(params: {
   pendingOperations: number;
   deviceMode: string | null;
 }): string {
-  const { isOnline, isSyncing, syncEnabled, pendingOperations, deviceMode } = params;
-
-  if (!syncEnabled) {
-    if (deviceMode === 'online-only') {
-      return 'Online mode - changes saved directly to server';
-    }
-    return 'Sync not enabled';
-  }
+  const { isOnline, isSyncing, pendingOperations } = params;
 
   if (!isOnline) {
     return pendingOperations > 0
@@ -143,24 +136,10 @@ function getStatusMessage(params: {
 }
 
 /**
- * Hook for checking if device can operate (online or has offline capability)
+ * Hook for checking if device can operate
+ * LOCAL-FIRST: Always returns true - all devices can work offline
  */
 export function useCanOperate(): { canOperate: boolean; reason: string | null } {
-  const isOnline = useSelector(selectIsOnline);
-  const isOfflineEnabled = useSelector(selectIsOfflineEnabled);
-  const deviceMode = useSelector(selectDeviceMode);
-
-  // Can operate if online OR if offline-enabled
-  if (isOnline) {
-    return { canOperate: true, reason: null };
-  }
-
-  if (isOfflineEnabled && deviceMode === 'offline-enabled') {
-    return { canOperate: true, reason: null };
-  }
-
-  return {
-    canOperate: false,
-    reason: 'No internet connection and device is not enabled for offline mode',
-  };
+  // LOCAL-FIRST: All devices can always operate
+  return { canOperate: true, reason: null };
 }

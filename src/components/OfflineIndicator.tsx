@@ -1,43 +1,34 @@
 /**
  * Offline Indicator
  *
- * Shows sync status and offline mode information.
- * Updated for opt-in offline mode.
+ * Shows sync status for local-first architecture.
+ * LOCAL-FIRST: Always shows sync status, never shows "online-only" mode.
  */
 
 import { useEffect, useState } from 'react';
 import { useModeAwareSync } from '../hooks/useSync';
 import { getDBStats } from '../db/database';
-import { Cloud, CloudOff, RefreshCw, AlertTriangle, Check } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, Check } from 'lucide-react';
 
 export function OfflineIndicator() {
   const {
     isOnline,
     isSyncing,
-    syncEnabled,
-    deviceMode,
     pendingOperations: reduxPendingOps,
     lastSyncAt: reduxLastSyncAt,
-    canWorkOffline,
     syncNow,
   } = useModeAwareSync();
 
   const [showDetails, setShowDetails] = useState(false);
   const [pendingOps, setPendingOps] = useState(0);
 
-  // Poll DB stats every 5 seconds (only if sync is enabled)
+  // Poll DB stats every 5 seconds
   useEffect(() => {
-    if (!syncEnabled) {
-      setPendingOps(0);
-      return;
-    }
-
     const updateStats = async () => {
       try {
         const stats = await getDBStats();
         setPendingOps(stats.pendingSync);
       } catch {
-        // Database might not be initialized in online-only mode
         setPendingOps(reduxPendingOps);
       }
     };
@@ -46,7 +37,7 @@ export function OfflineIndicator() {
     const interval = setInterval(updateStats, 5000);
 
     return () => clearInterval(interval);
-  }, [syncEnabled, reduxPendingOps]);
+  }, [reduxPendingOps]);
 
   const handleSyncNow = async () => {
     await syncNow();
@@ -69,27 +60,9 @@ export function OfflineIndicator() {
     return `${days}d ago`;
   };
 
-  // Determine what to show based on mode
+  // LOCAL-FIRST: Determine indicator config based on sync status only
   const getIndicatorConfig = () => {
-    // Online-only mode - show minimal indicator or nothing
-    if (deviceMode === 'online-only' || !syncEnabled) {
-      if (!isOnline) {
-        // Critical: Online-only device is offline
-        return {
-          show: true,
-          icon: AlertTriangle,
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200',
-          dotColor: 'bg-red-500',
-          title: 'No Connection',
-          subtitle: 'Internet required to continue',
-        };
-      }
-      // Online-only and connected - don't show indicator
-      return { show: false };
-    }
-
-    // Offline-enabled mode
+    // Offline - show amber indicator
     if (!isOnline) {
       return {
         show: true,
@@ -102,6 +75,7 @@ export function OfflineIndicator() {
       };
     }
 
+    // Syncing - show blue indicator
     if (isSyncing) {
       return {
         show: true,
@@ -115,6 +89,7 @@ export function OfflineIndicator() {
       };
     }
 
+    // Pending sync - show yellow indicator
     if (pendingOps > 0) {
       return {
         show: true,
@@ -127,7 +102,7 @@ export function OfflineIndicator() {
       };
     }
 
-    // All synced - don't show
+    // All synced - don't show indicator
     return { show: false };
   };
 
@@ -177,27 +152,17 @@ export function OfflineIndicator() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Device Mode:</span>
-                <span className="font-medium text-gray-900">
-                  {deviceMode === 'offline-enabled' ? 'Offline-Enabled' : 'Online-Only'}
-                </span>
+                <span className="text-gray-600">Pending:</span>
+                <span className="font-medium">{pendingOps} changes</span>
               </div>
-              {syncEnabled && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Pending:</span>
-                    <span className="font-medium">{pendingOps} changes</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Last Sync:</span>
-                    <span className="font-medium">{formatLastSync(reduxLastSyncAt)}</span>
-                  </div>
-                </>
-              )}
+              <div className="flex justify-between">
+                <span className="text-gray-600">Last Sync:</span>
+                <span className="font-medium">{formatLastSync(reduxLastSyncAt)}</span>
+              </div>
             </div>
 
             {/* Sync button */}
-            {syncEnabled && isOnline && pendingOps > 0 && (
+            {isOnline && pendingOps > 0 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -221,7 +186,7 @@ export function OfflineIndicator() {
             )}
 
             {/* Status messages */}
-            {!isOnline && canWorkOffline && (
+            {!isOnline && (
               <div className="p-3 bg-amber-100 rounded-lg">
                 <p className="text-xs text-amber-800">
                   <strong>Working Offline</strong>
@@ -231,17 +196,7 @@ export function OfflineIndicator() {
               </div>
             )}
 
-            {!isOnline && !canWorkOffline && (
-              <div className="p-3 bg-red-100 rounded-lg">
-                <p className="text-xs text-red-800">
-                  <strong>Connection Required</strong>
-                  <br />
-                  This device requires internet to operate. Please check your connection.
-                </p>
-              </div>
-            )}
-
-            {isOnline && pendingOps === 0 && syncEnabled && (
+            {isOnline && pendingOps === 0 && (
               <div className="p-3 bg-green-100 rounded-lg flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600" />
                 <p className="text-xs text-green-800 font-medium">All changes synced</p>

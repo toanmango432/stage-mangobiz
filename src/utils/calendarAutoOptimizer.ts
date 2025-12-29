@@ -399,11 +399,11 @@ export async function applyOptimization(
   for (const action of suggestion.actions) {
     if (action.appointmentId !== 'new') {
       await updateAppointment(action.appointmentId, {
-        scheduledStartTime: action.suggestedTime,
+        scheduledStartTime: action.suggestedTime.toISOString(),
         scheduledEndTime: new Date(
           action.suggestedTime.getTime() +
           60 * 60 * 1000 // Placeholder - should calculate based on services
-        ),
+        ).toISOString(),
       });
     }
   }

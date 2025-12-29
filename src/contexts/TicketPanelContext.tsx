@@ -1,8 +1,49 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
+// Type for ticket data that can be opened in the panel
+export interface TicketData {
+  id: string;
+  number?: number;
+  clientId?: string;
+  clientName: string;
+  clientType?: string;
+  service?: string;
+  services?: Array<{
+    id?: string;
+    serviceId?: string;
+    serviceName?: string;
+    name?: string;
+    price?: number;
+    duration?: number;
+    status?: string;
+    staffId?: string;
+    staffName?: string;
+  }>;
+  checkoutServices?: Array<{
+    id?: string;
+    serviceId?: string;
+    serviceName?: string;
+    name?: string;
+    price?: number;
+    duration?: number;
+    status?: string;
+    staffId?: string;
+    staffName?: string;
+  }>;
+  technician?: string;
+  techId?: string;
+  duration?: string;
+  subtotal?: number;
+  discount?: number;
+  status?: string;
+  time?: string;
+  notes?: string;
+}
+
 interface TicketPanelContextType {
   isOpen: boolean;
   openTicketPanel: () => void;
+  openTicketWithData: (ticket: TicketData) => void;
   closeTicketPanel: () => void;
   toggleTicketPanel: () => void;
 }
@@ -22,6 +63,15 @@ export function TicketPanelProvider({ children }: TicketPanelProviderProps) {
     setIsOpen(true);
   }, []);
 
+  // Open the panel with an existing ticket's data
+  const openTicketWithData = useCallback((ticket: TicketData) => {
+    console.log('🎫 TicketPanelContext.openTicketWithData called:', ticket);
+    // Store the ticket data in localStorage so TicketPanel can load it
+    localStorage.setItem('checkout-pending-ticket', JSON.stringify(ticket));
+    console.log('🎫 Setting isOpen to true');
+    setIsOpen(true);
+  }, []);
+
   const closeTicketPanel = useCallback(() => {
     setIsOpen(false);
     localStorage.removeItem('checkout-pending-ticket');
@@ -37,7 +87,7 @@ export function TicketPanelProvider({ children }: TicketPanelProviderProps) {
   }, []);
 
   return (
-    <TicketPanelContext.Provider value={{ isOpen, openTicketPanel, closeTicketPanel, toggleTicketPanel }}>
+    <TicketPanelContext.Provider value={{ isOpen, openTicketPanel, openTicketWithData, closeTicketPanel, toggleTicketPanel }}>
       {children}
     </TicketPanelContext.Provider>
   );

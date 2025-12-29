@@ -26,6 +26,7 @@ import {
   capitalizeName,
 } from '../../utils/validation';
 import { formatPhoneNumber } from '../../utils/phoneUtils';
+import { localTimeToUTC } from '../../utils/dateUtils';
 
 interface Client {
   id: string;
@@ -678,12 +679,9 @@ export function NewAppointmentModalV2({
           );
           const firstService = sortedServices[0];
           const lastService = sortedServices[sortedServices.length - 1];
-          const [startHours, startMinutes] = firstService.startTime.split(':').map(Number);
-          const scheduledStartTime = new Date(date);
-          scheduledStartTime.setHours(startHours, startMinutes, 0, 0);
-          const [endHours, endMinutes] = lastService.endTime.split(':').map(Number);
-          const scheduledEndTime = new Date(date);
-          scheduledEndTime.setHours(endHours, endMinutes, 0, 0);
+          // Use timezone-aware conversion for proper UTC storage
+          const scheduledStartTime = new Date(localTimeToUTC(date, firstService.startTime));
+          const scheduledEndTime = new Date(localTimeToUTC(date, lastService.endTime));
           const staffTotalDuration = staff.services.reduce((sum, svc) => sum + svc.duration, 0);
           const staffTotalPrice = staff.services.reduce((sum, svc) => sum + svc.price, 0);
           const services = staff.services.map(svc => ({

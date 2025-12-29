@@ -28,8 +28,8 @@ const mockStaff: Staff[] = [
     servicesCountToday: 0,
     revenueToday: 0,
     tipsToday: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     syncStatus: 'synced',
   },
   {
@@ -46,8 +46,8 @@ const mockStaff: Staff[] = [
     servicesCountToday: 0,
     revenueToday: 0,
     tipsToday: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     syncStatus: 'synced',
   },
   {
@@ -64,8 +64,8 @@ const mockStaff: Staff[] = [
     servicesCountToday: 0,
     revenueToday: 0,
     tipsToday: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     syncStatus: 'synced',
   },
   {
@@ -82,8 +82,8 @@ const mockStaff: Staff[] = [
     servicesCountToday: 0,
     revenueToday: 0,
     tipsToday: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     syncStatus: 'synced',
   },
 ];
@@ -105,13 +105,13 @@ const createTestAppointment = (overrides: Partial<LocalAppointment> = {}): Local
       duration: 30,
     },
   ],
-  scheduledStartTime: new Date('2025-01-15T10:00:00.000Z'),
-  scheduledEndTime: new Date('2025-01-15T10:30:00.000Z'),
+  scheduledStartTime: new Date('2025-01-15T10:00:00.000Z').toISOString(),
+  scheduledEndTime: new Date('2025-01-15T10:30:00.000Z').toISOString(),
   status: 'scheduled',
   source: 'admin-portal',
   salonId: 'salon-1',
-  createdAt: new Date('2025-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2025-01-01T00:00:00.000Z'),
+  createdAt: new Date('2025-01-01T00:00:00.000Z').toISOString(),
+  updatedAt: new Date('2025-01-01T00:00:00.000Z').toISOString(),
   createdBy: 'user-1',
   lastModifiedBy: 'user-1',
   syncStatus: 'synced',
@@ -247,11 +247,11 @@ describe('calculateAssignmentScore', () => {
   describe('Fair Rotation (20% weight)', () => {
     it('should prefer staff with fewer appointments today', () => {
       const todayAppointments = [
-        createTestAppointment({ id: 'today-1', staffId: 'staff-1', scheduledStartTime: new Date('2025-01-15T09:00:00.000Z') }),
-        createTestAppointment({ id: 'today-2', staffId: 'staff-1', scheduledStartTime: new Date('2025-01-15T11:00:00.000Z') }),
-        createTestAppointment({ id: 'today-3', staffId: 'staff-2', scheduledStartTime: new Date('2025-01-15T09:00:00.000Z') }),
-        createTestAppointment({ id: 'today-4', staffId: 'staff-2', scheduledStartTime: new Date('2025-01-15T11:00:00.000Z') }),
-        createTestAppointment({ id: 'today-5', staffId: 'staff-2', scheduledStartTime: new Date('2025-01-15T14:00:00.000Z') }),
+        createTestAppointment({ id: 'today-1', staffId: 'staff-1', scheduledStartTime: new Date('2025-01-15T09:00:00.000Z').toISOString() }),
+        createTestAppointment({ id: 'today-2', staffId: 'staff-1', scheduledStartTime: new Date('2025-01-15T11:00:00.000Z').toISOString() }),
+        createTestAppointment({ id: 'today-3', staffId: 'staff-2', scheduledStartTime: new Date('2025-01-15T09:00:00.000Z').toISOString() }),
+        createTestAppointment({ id: 'today-4', staffId: 'staff-2', scheduledStartTime: new Date('2025-01-15T11:00:00.000Z').toISOString() }),
+        createTestAppointment({ id: 'today-5', staffId: 'staff-2', scheduledStartTime: new Date('2025-01-15T14:00:00.000Z').toISOString() }),
       ];
 
       const score1 = calculateAssignmentScore(
@@ -305,8 +305,8 @@ describe('calculateAssignmentScore', () => {
         createTestAppointment({
           id: 'active-1',
           staffId: 'staff-1',
-          scheduledStartTime: new Date(now.getTime() - 10 * 60000), // 10 min ago
-          scheduledEndTime: new Date(now.getTime() + 20 * 60000), // 20 min from now
+          scheduledStartTime: new Date(now.getTime() - 10 * 60000).toISOString(), // 10 min ago
+          scheduledEndTime: new Date(now.getTime() + 20 * 60000).toISOString(), // 20 min from now
           status: 'scheduled',
         }),
       ];

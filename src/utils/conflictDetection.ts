@@ -112,8 +112,8 @@ export function detectAppointmentConflicts(
 /**
  * Format time for display
  */
-function formatTime(date: Date): string {
-  const d = new Date(date);
+function formatTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
   const hours = d.getHours();
   const minutes = d.getMinutes();
   const period = hours >= 12 ? 'PM' : 'AM';

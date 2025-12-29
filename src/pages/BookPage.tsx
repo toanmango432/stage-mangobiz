@@ -199,12 +199,12 @@ export function BookPage() {
       );
       const newEndTime = new Date(snappedTime.getTime() + duration * 60000);
 
-      // Create updated appointment with snapped time
+      // Create updated appointment with snapped time (dates as ISO strings)
       const updatedAppointment: LocalAppointment = {
         ...appointment,
         staffId: newStaffId,
-        scheduledStartTime: snappedTime,
-        scheduledEndTime: newEndTime,
+        scheduledStartTime: snappedTime.toISOString(),
+        scheduledEndTime: newEndTime.toISOString(),
       };
 
       // Check for conflicts
@@ -218,13 +218,13 @@ export function BookPage() {
         if (!confirmed) return;
       }
 
-      // Update in Redux with snapped time
+      // Update in Redux with snapped time (dates as ISO strings)
       dispatch(updateLocalAppointment({
         id: appointmentId,
         updates: {
           staffId: newStaffId,
-          scheduledStartTime: snappedTime,
-          scheduledEndTime: newEndTime,
+          scheduledStartTime: snappedTime.toISOString(),
+          scheduledEndTime: newEndTime.toISOString(),
         },
       }));
 
@@ -234,9 +234,9 @@ export function BookPage() {
         const updated: LocalAppointment = {
           ...appointmentToUpdate,
           staffId: newStaffId,
-          scheduledStartTime: snappedTime,
-          scheduledEndTime: newEndTime,
-          updatedAt: new Date(),
+          scheduledStartTime: snappedTime.toISOString(),
+          scheduledEndTime: newEndTime.toISOString(),
+          updatedAt: new Date().toISOString(),
           syncStatus: 'pending', // Mark as pending sync
         };
         await db.appointments.put(updated);
@@ -270,12 +270,12 @@ export function BookPage() {
       // If checking in, create a ticket linked to this appointment
       if (newStatus === 'checked-in') {
         try {
-          // Convert dates to ISO strings if they're Date objects
-          const startTime = appointment.scheduledStartTime instanceof Date 
-            ? appointment.scheduledStartTime.toISOString()
+          // scheduledStartTime/scheduledEndTime are now always ISO strings
+          const startTime = typeof appointment.scheduledStartTime === 'string'
+            ? appointment.scheduledStartTime
             : new Date(appointment.scheduledStartTime).toISOString();
-          const endTime = appointment.scheduledEndTime instanceof Date
-            ? appointment.scheduledEndTime.toISOString()
+          const endTime = typeof appointment.scheduledEndTime === 'string'
+            ? appointment.scheduledEndTime
             : new Date(appointment.scheduledEndTime).toISOString();
 
           // Create ticket from appointment with appointmentId link
@@ -319,7 +319,7 @@ export function BookPage() {
         const updated: LocalAppointment = {
           ...appointmentToUpdate,
           status: newStatus as any,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
           syncStatus: 'pending', // Mark as pending sync
         };
         await db.appointments.put(updated);
@@ -354,7 +354,7 @@ export function BookPage() {
         const updated: LocalAppointment = {
           ...appointmentToUpdate,
           ...updates,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
           syncStatus: 'pending', // Mark as pending sync
         };
         await db.appointments.put(updated);
@@ -429,7 +429,7 @@ export function BookPage() {
       const updates: Partial<LocalAppointment> = {
         status: 'cancelled',
         notes: reason ? `${appointment.notes || ''}\n\nCancellation reason: ${reason}`.trim() : appointment.notes,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       };
 
       // Update in Redux

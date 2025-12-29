@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useReducer } from "react";
+import { useState, useEffect, useRef, useReducer, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -11,6 +11,8 @@ import {
   type ServiceStatus,
   type CheckoutTicketService,
 } from "@/store/slices/uiTicketsSlice";
+import { updateServiceStatusInSupabase } from "@/store/slices/ticketsSlice";
+import type { ServiceStatus as TicketServiceStatus } from "@/types/common";
 import {
   Dialog,
   DialogContent,
@@ -70,6 +72,7 @@ import { SERVICE_CATEGORIES } from "./FullPageServiceSelector";
 import { getProductsByCategory, PRODUCT_CATEGORIES } from "@/data/mockProducts";
 import { getPackagesByCategory, PACKAGE_CATEGORIES } from "@/data/mockPackages";
 import { getGiftCardsByDesign, GIFT_CARD_CATEGORIES } from "@/data/mockGiftCards";
+import { dataService } from "@/services/dataService";
 // Collapsible imports available if needed
 // import {
 //   Collapsible,
@@ -202,6 +205,7 @@ interface UndoSnapshot {
 }
 
 interface TicketState {
+  ticketId: string | null; // ID for persistence to Supabase
   services: TicketService[];
   selectedClient: Client | null;
   discounts: DiscountState;
@@ -257,7 +261,8 @@ type TicketAction =
   | { type: "UNDO_LAST_ACTION" }
   | { type: "RESET_TICKET" }
   | { type: "CLEAR_SERVICES" }
-  | { type: "MARK_TICKET_SAVED" };
+  | { type: "MARK_TICKET_SAVED" }
+  | { type: "SET_TICKET_ID"; payload: string | null };
 
 // ============================================================================
 // INITIAL STATE
@@ -276,6 +281,7 @@ const getDefaultCheckoutLayout = (): CheckoutLayout => {
 };
 
 const createInitialState = (): TicketState => ({
+  ticketId: null,
   services: [],
   selectedClient: null,
   discounts: {
@@ -865,6 +871,12 @@ function ticketReducer(state: TicketState, action: TicketAction): TicketState {
         isNewTicket: false,
       };
 
+    case "SET_TICKET_ID":
+      return {
+        ...state,
+        ticketId: action.payload,
+      };
+
     default:
       return state;
   }
@@ -1077,6 +1089,11 @@ export const ticketActions = {
   markTicketSaved: (): TicketAction => ({
     type: "MARK_TICKET_SAVED",
   }),
+
+  setTicketId: (ticketId: string | null): TicketAction => ({
+    type: "SET_TICKET_ID",
+    payload: ticketId,
+  }),
 };
 
 // ============================================================================
@@ -1221,70 +1238,109 @@ export default function TicketPanel({
   void handleDismissKeyboardHints; // Suppress unused warning - kept for future use
 
   // Load pending ticket from localStorage when panel opens
+  // Then fetch persisted status from Supabase if available
   useEffect(() => {
     if (isOpen) {
       const storedTicket = localStorage.getItem('checkout-pending-ticket');
       if (storedTicket) {
-        try {
-          const pendingTicket = JSON.parse(storedTicket);
-          console.log('📋 Loading pending ticket:', pendingTicket);
+        const loadTicket = async () => {
+          try {
+            const pendingTicket = JSON.parse(storedTicket);
+            console.log('📋 Loading pending ticket:', pendingTicket);
 
-          // Set client from pending ticket
-          if (pendingTicket.clientName && pendingTicket.clientName !== 'Walk-in') {
-            const client: Client = {
-              id: pendingTicket.clientId || `client-${Date.now()}`,
-              firstName: pendingTicket.clientName.split(' ')[0] || '',
-              lastName: pendingTicket.clientName.split(' ').slice(1).join(' ') || '',
-              phone: '',
-            };
-            dispatch(ticketActions.setClient(client));
+            // CRITICAL: Clear any existing services BEFORE loading to prevent duplicates
+            dispatch(ticketActions.clearServices());
+
+            // Set client from pending ticket
+            if (pendingTicket.clientName && pendingTicket.clientName !== 'Walk-in') {
+              const client: Client = {
+                id: pendingTicket.clientId || `client-${Date.now()}`,
+                firstName: pendingTicket.clientName.split(' ')[0] || '',
+                lastName: pendingTicket.clientName.split(' ').slice(1).join(' ') || '',
+                phone: '',
+              };
+              dispatch(ticketActions.setClient(client));
+            }
+
+            // Try to fetch persisted ticket from Supabase for latest service statuses
+            let persistedServices: any[] | null = null;
+            if (pendingTicket.id) {
+              try {
+                const persistedTicket = await dataService.tickets.getById(pendingTicket.id);
+                if (persistedTicket && persistedTicket.services) {
+                  persistedServices = persistedTicket.services;
+                  console.log('📥 Fetched persisted ticket from Supabase:', persistedTicket.id);
+                }
+              } catch (fetchError) {
+                console.warn('⚠️ Could not fetch persisted ticket, using localStorage data:', fetchError);
+              }
+            }
+
+            // Load services - merge persisted status if available
+            if (pendingTicket.checkoutServices && pendingTicket.checkoutServices.length > 0) {
+              const ticketServices: TicketService[] = pendingTicket.checkoutServices.map((s: any) => {
+                // Find persisted service to get latest status
+                const persistedService = persistedServices?.find(ps => ps.serviceId === (s.serviceId || s.id));
+                return {
+                  id: s.id || `service-${Date.now()}-${Math.random()}`,
+                  serviceId: s.serviceId || s.id,
+                  serviceName: s.serviceName || s.name,
+                  price: s.price || 0,
+                  duration: s.duration || 30,
+                  // Use persisted status if available, otherwise use localStorage/default
+                  status: persistedService?.status || s.status || 'not_started',
+                  staffId: s.staffId,
+                  staffName: s.staffName,
+                  // Restore timing data from persisted service
+                  actualStartTime: persistedService?.actualStartTime,
+                  pausedAt: persistedService?.pausedAt,
+                  totalPausedDuration: persistedService?.totalPausedDuration,
+                  endTime: persistedService?.endTime,
+                  actualDuration: persistedService?.actualDuration,
+                };
+              });
+              dispatch(ticketActions.addService(ticketServices));
+            } else if (pendingTicket.service) {
+              // Fallback: create service from basic pending ticket data
+              const ticketService: TicketService = {
+                id: `service-${Date.now()}`,
+                serviceId: `service-${Date.now()}`,
+                serviceName: pendingTicket.service,
+                price: pendingTicket.subtotal || 0,
+                duration: parseInt(pendingTicket.duration) || 30,
+                status: 'completed',
+                staffId: pendingTicket.techId,
+                staffName: pendingTicket.technician,
+              };
+              dispatch(ticketActions.addService([ticketService]));
+            }
+
+            // Set discount if any
+            if (pendingTicket.discount && pendingTicket.discount > 0) {
+              dispatch(ticketActions.applyDiscount(pendingTicket.discount));
+            }
+
+            // Save ticket ID for persistence
+            if (pendingTicket.id) {
+              dispatch(ticketActions.setTicketId(pendingTicket.id));
+            }
+
+            // Mark as saved since this is an existing ticket from Pending
+            dispatch(ticketActions.markTicketSaved());
+
+            console.log('✅ Pending ticket loaded into checkout, ID:', pendingTicket.id);
+          } catch (error) {
+            console.error('❌ Failed to load pending ticket:', error);
           }
+        };
 
-          // Load services from checkoutServices if available
-          if (pendingTicket.checkoutServices && pendingTicket.checkoutServices.length > 0) {
-            const ticketServices: TicketService[] = pendingTicket.checkoutServices.map((s: any) => ({
-              id: s.id || `service-${Date.now()}-${Math.random()}`,
-              serviceId: s.serviceId || s.id,
-              serviceName: s.serviceName || s.name,
-              price: s.price || 0,
-              duration: s.duration || 30,
-              status: s.status || 'not_started',
-              staffId: s.staffId,
-              staffName: s.staffName,
-            }));
-            dispatch(ticketActions.addService(ticketServices));
-          } else if (pendingTicket.service) {
-            // Fallback: create service from basic pending ticket data
-            const ticketService: TicketService = {
-              id: `service-${Date.now()}`,
-              serviceId: `service-${Date.now()}`,
-              serviceName: pendingTicket.service,
-              price: pendingTicket.subtotal || 0,
-              duration: parseInt(pendingTicket.duration) || 30,
-              status: 'completed',
-              staffId: pendingTicket.techId,
-              staffName: pendingTicket.technician,
-            };
-            dispatch(ticketActions.addService([ticketService]));
-          }
-
-          // Set discount if any
-          if (pendingTicket.discount && pendingTicket.discount > 0) {
-            dispatch(ticketActions.applyDiscount(pendingTicket.discount));
-          }
-
-          // Mark as saved since this is an existing ticket from Pending
-          dispatch(ticketActions.markTicketSaved());
-
-          console.log('✅ Pending ticket loaded into checkout');
-        } catch (error) {
-          console.error('❌ Failed to load pending ticket:', error);
-        }
+        loadTicket();
       }
     }
   }, [isOpen]);
 
   const {
+    ticketId,
     services,
     selectedClient,
     discounts,
@@ -1342,6 +1398,16 @@ export default function TicketPanel({
   const tax = Math.max(0, discountedSubtotal) * 0.085;
   const total = Math.max(0, discountedSubtotal) + tax;
   const canCheckout = services.length > 0 && total > 0;
+
+  // Calculate per-staff service totals for tip distribution
+  const staffServiceTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    services.forEach(s => {
+      const staffId = s.staffId || 'unassigned';
+      totals[staffId] = (totals[staffId] || 0) + s.price;
+    });
+    return totals;
+  }, [services]);
 
   // ============================================================================
   // TICKET CREATION - Only create ticket when user explicitly chooses an action
@@ -1537,7 +1603,26 @@ export default function TicketPanel({
   };
 
   const handleUpdateService = (serviceId: string, updates: Partial<TicketService>) => {
+    // Update local state immediately for responsive UI
     dispatch(ticketActions.updateService(serviceId, updates));
+
+    // Persist status changes to Supabase if we have a ticket ID
+    if (updates.status && ticketId) {
+      const service = services.find(s => s.id === serviceId);
+      if (service && service.serviceId) {
+        reduxDispatch(updateServiceStatusInSupabase({
+          ticketId,
+          serviceId: service.serviceId,
+          newStatus: updates.status as TicketServiceStatus,
+          userId: 'current-user', // TODO: Get from auth context
+          deviceId: 'web-browser', // TODO: Get from device context
+        })).then(() => {
+          console.log('✅ Service status persisted:', updates.status);
+        }).catch((error) => {
+          console.error('❌ Failed to persist service status:', error);
+        });
+      }
+    }
   };
 
   const handleRemoveService = (serviceId: string) => {
@@ -1876,26 +1961,103 @@ export default function TicketPanel({
     dispatch(ticketActions.toggleDialog("showPaymentModal", true));
   };
 
-  const handleCompletePayment = (payment: any) => {
+  const handleCompletePayment = async (payment: any) => {
+    // Mark all services as completed
     services.forEach((s) => {
       if (s.status !== "completed") {
         dispatch(ticketActions.updateService(s.id, { status: "completed" }));
       }
     });
-    
+
     console.log("Payment completed:", { selectedClient, services, payment });
+
+    // Close the payment modal first
     dispatch(ticketActions.toggleDialog("showPaymentModal", false));
-    
-    toast({
-      title: "Payment Complete!",
-      description: `Successfully processed payment of $${total.toFixed(2)}. Ticket will close shortly.`,
-      duration: 3000,
-    });
-    
+
+    try {
+      // 1. Complete the ticket in the database (marks status as 'completed')
+      if (ticketId) {
+        console.log("📝 Completing ticket in database:", ticketId);
+        const completedTicket = await dataService.tickets.complete(ticketId, payment.methods || []);
+        if (completedTicket) {
+          console.log("✅ Ticket completed:", completedTicket.id, "Status:", completedTicket.status);
+        }
+      }
+
+      // 2. Create transaction record for the payment
+      const primaryMethod = payment.methods?.[0];
+      const primaryPaymentMethod = (primaryMethod?.type || 'cash') as 'cash' | 'card' | 'gift_card' | 'other';
+      const storedTicket = localStorage.getItem('checkout-pending-ticket');
+      const ticketNumber = storedTicket ? (JSON.parse(storedTicket)?.number || 0) : Date.now();
+
+      // Build payment details based on payment method
+      const paymentDetails: {
+        amountTendered?: number;
+        changeDue?: number;
+        authCode?: string;
+        transactionId?: string;
+        splits?: Array<{ method: 'cash' | 'card' | 'gift_card' | 'other'; amount: number; details: any }>;
+      } = {};
+
+      if (primaryPaymentMethod === 'cash' && primaryMethod?.tendered) {
+        paymentDetails.amountTendered = primaryMethod.tendered;
+        paymentDetails.changeDue = primaryMethod.tendered - primaryMethod.amount;
+      }
+
+      // Handle split payments
+      if (payment.methods && payment.methods.length > 1) {
+        paymentDetails.splits = payment.methods.map((m: any) => ({
+          method: m.type as 'cash' | 'card' | 'gift_card' | 'other',
+          amount: m.amount,
+          details: m,
+        }));
+      }
+
+      await dataService.transactions.create({
+        ticketId: ticketId || `ticket-${Date.now()}`,
+        ticketNumber: ticketNumber,
+        clientId: selectedClient?.id,
+        clientName: selectedClient
+          ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() || 'Walk-in'
+          : 'Walk-in',
+        subtotal: subtotal,
+        tax: taxAmount,
+        tip: payment.tip || 0,
+        discount: discount || 0,
+        paymentMethod: primaryPaymentMethod,
+        paymentDetails: paymentDetails,
+        services: services.map(s => ({
+          name: s.serviceName,
+          price: s.price,
+          staffName: s.staffName,
+        })),
+        notes: '',
+      });
+      console.log("✅ Transaction record created");
+
+      // Show success toast
+      toast({
+        title: "Payment Complete!",
+        description: `Successfully processed payment of $${total.toFixed(2)}. Ticket closed.`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("❌ Error completing ticket:", error);
+      // Still show success since payment was processed
+      toast({
+        title: "Payment Complete!",
+        description: `Payment of $${total.toFixed(2)} processed. Some records may sync later.`,
+        duration: 3000,
+      });
+    }
+
+    // Reset ticket state and close the panel
+    dispatch(ticketActions.resetTicket());
+
     const closeTimeout = setTimeout(() => {
       onClose();
-    }, 2000);
-    
+    }, 1500);
+
     if (checkoutCloseTimeoutRef.current) {
       clearTimeout(checkoutCloseTimeoutRef.current);
     }
@@ -3067,7 +3229,13 @@ export default function TicketPanel({
         onClose={() => setShowPaymentModal(false)}
         total={total}
         onComplete={handleCompletePayment}
-        staffMembers={staffMembers.map((s) => ({ id: s.id, name: s.name }))}
+        staffMembers={staffMembers
+          .filter((s) => staffServiceTotals[s.id] > 0) // Only staff who worked on this ticket
+          .map((s) => ({
+            id: s.id,
+            name: s.name,
+            serviceTotal: staffServiceTotals[s.id],
+          }))}
       />
 
       <Dialog open={showServicesOnMobile} onOpenChange={(open) => {

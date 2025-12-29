@@ -63,7 +63,7 @@ export const serviceCategoriesDB = {
   },
 
   async create(input: CreateCategoryInput, userId: string, salonId: string): Promise<ServiceCategory> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     // Get next display order
     const maxOrder = await db.serviceCategories
@@ -95,7 +95,7 @@ export const serviceCategoriesDB = {
     const updated: ServiceCategory = {
       ...category,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       lastModifiedBy: userId,
       syncStatus: 'local',
     };
@@ -113,7 +113,7 @@ export const serviceCategoriesDB = {
       for (let i = 0; i < orderedIds.length; i++) {
         await db.serviceCategories.update(orderedIds[i], {
           displayOrder: i,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
           lastModifiedBy: userId,
           syncStatus: 'local',
         });
@@ -168,7 +168,7 @@ export const menuServicesDB = {
   },
 
   async create(input: CreateMenuServiceInput, userId: string, salonId: string): Promise<MenuService> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     // Get next display order within category
     const maxOrder = await db.menuServices
@@ -200,7 +200,7 @@ export const menuServicesDB = {
     const updated: MenuService = {
       ...service,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       lastModifiedBy: userId,
       syncStatus: 'local',
     };
@@ -224,7 +224,7 @@ export const menuServicesDB = {
       for (let i = 0; i < orderedIds.length; i++) {
         await db.menuServices.update(orderedIds[i], {
           displayOrder: i,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
           lastModifiedBy: userId,
           syncStatus: 'local',
         });
@@ -267,7 +267,7 @@ export const serviceVariantsDB = {
   },
 
   async create(input: CreateVariantInput, salonId: string): Promise<ServiceVariant> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     // Get next display order
     const maxOrder = await db.serviceVariants
@@ -297,7 +297,7 @@ export const serviceVariantsDB = {
     const updated: ServiceVariant = {
       ...variant,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 
@@ -316,7 +316,7 @@ export const serviceVariantsDB = {
       for (const v of variants) {
         await db.serviceVariants.update(v.id, {
           isDefault: v.id === variantId,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
           syncStatus: 'local',
         });
       }
@@ -344,7 +344,7 @@ export const servicePackagesDB = {
   },
 
   async create(input: CreatePackageInput, userId: string, salonId: string): Promise<ServicePackage> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const maxOrder = await db.servicePackages
       .where('salonId')
@@ -375,7 +375,7 @@ export const servicePackagesDB = {
     const updated: ServicePackage = {
       ...pkg,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       lastModifiedBy: userId,
       syncStatus: 'local',
     };
@@ -444,7 +444,7 @@ export const addOnGroupsDB = {
   },
 
   async create(input: CreateAddOnGroupInput, salonId: string): Promise<AddOnGroup> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const maxOrder = await db.addOnGroups
       .where('salonId')
@@ -473,7 +473,7 @@ export const addOnGroupsDB = {
     const updated: AddOnGroup = {
       ...group,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 
@@ -508,7 +508,7 @@ export const addOnOptionsDB = {
   },
 
   async create(input: CreateAddOnOptionInput, salonId: string): Promise<AddOnOption> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const maxOrder = await db.addOnOptions
       .where('groupId')
@@ -537,7 +537,7 @@ export const addOnOptionsDB = {
     const updated: AddOnOption = {
       ...option,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 
@@ -581,7 +581,7 @@ export const staffServiceAssignmentsDB = {
   },
 
   async create(input: CreateStaffAssignmentInput, salonId: string): Promise<StaffServiceAssignment> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const assignment: StaffServiceAssignment = {
       id: uuidv4(),
@@ -603,7 +603,7 @@ export const staffServiceAssignmentsDB = {
     const updated: StaffServiceAssignment = {
       ...assignment,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 
@@ -664,7 +664,7 @@ export const catalogSettingsDB = {
     if (existing) return existing;
 
     // Create default settings
-    const now = new Date();
+    const now = new Date().toISOString();
     const defaults: CatalogSettings = {
       id: uuidv4(),
       salonId,
@@ -707,7 +707,7 @@ export const catalogSettingsDB = {
     const updated: CatalogSettings = {
       ...settings,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
       syncStatus: 'local',
     };
 

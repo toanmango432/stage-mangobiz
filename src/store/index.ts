@@ -17,6 +17,7 @@ import checkoutReducer from './slices/checkoutSlice';
 import timesheetReducer from './slices/timesheetSlice';
 import payrollReducer from './slices/payrollSlice';
 import staffPerformanceReducer from './slices/staffPerformanceSlice';
+import settingsReducer from './slices/settingsSlice';
 import { teamStaffSyncMiddleware } from './middleware/teamStaffSyncMiddleware';
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
 // See src/hooks/useCatalog.ts
@@ -42,6 +43,7 @@ export const store = configureStore({
     timesheet: timesheetReducer,
     payroll: payrollReducer,
     staffPerformance: staffPerformanceReducer,
+    settings: settingsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -106,6 +108,11 @@ export const store = configureStore({
           'payroll.payRuns',
           // Staff Performance module
           'staffPerformance.byStaffId',
+          // Settings module
+          'settings.settings',
+          'settings.paymentTerminals',
+          'settings.hardwareDevices',
+          'settings.lastSaved',
         ],
       },
     }).concat(teamStaffSyncMiddleware),

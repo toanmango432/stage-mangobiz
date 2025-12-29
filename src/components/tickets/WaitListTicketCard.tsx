@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight, User, Calendar, Tag } from 'lucide-react';
+import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight, User, Calendar, Tag, ExternalLink } from 'lucide-react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
 interface WaitListTicketCardProps {
@@ -19,6 +19,7 @@ interface WaitListTicketCardProps {
   onEdit?: (ticketId: string) => void;
   onDelete?: (ticketId: string) => void;
   onClick?: (ticketId: string) => void;
+  onOpenTicket?: (ticketId: string) => void;
 }
 
 export function WaitListTicketCard({
@@ -27,7 +28,8 @@ export function WaitListTicketCard({
   onAssign,
   onEdit,
   onDelete,
-  onClick
+  onClick,
+  onOpenTicket
 }: WaitListTicketCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -92,6 +94,24 @@ export function WaitListTicketCard({
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
+  // Long wait visual indicators
+  const isLongWait = waitTime >= 10;
+  const isVeryLongWait = waitTime >= 20;
+
+  // Dynamic border color based on wait time
+  const getWaitBorderColor = () => {
+    if (isVeryLongWait) return 'rgba(239, 68, 68, 0.7)'; // red-500
+    if (isLongWait) return 'rgba(249, 115, 22, 0.6)'; // orange-500
+    return 'rgba(139, 92, 246, 0.18)'; // purple (default)
+  };
+
+  // Dynamic wait time text color
+  const getWaitTimeColor = () => {
+    if (isVeryLongWait) return '#DC2626'; // red-600
+    if (isLongWait) return '#EA580C'; // orange-600
+    return '#6b5d52'; // default brown
+  };
+
   // Helper variables for display
   const isFirstVisit = ticket.clientType === 'New';
   const hasNote = !!ticket.notes;
@@ -130,7 +150,7 @@ export function WaitListTicketCard({
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className="relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer"
+          className={`relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`}
           role="button"
           tabIndex={0}
           aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
@@ -138,7 +158,7 @@ export function WaitListTicketCard({
           style={{
             background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
             border: '1px dashed #D8D8D8',
-            borderLeft: '3px solid rgba(139, 92, 246, 0.18)',
+            borderLeft: `3px solid ${getWaitBorderColor()}`,
             borderRadius: '10px',
             boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)'
           }}
@@ -183,7 +203,10 @@ export function WaitListTicketCard({
 
               {/* Right: Wait time */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-2xs text-[#6b5d52] whitespace-nowrap">{formatWaitTime(waitTime)}</span>
+                <span className="text-2xs whitespace-nowrap flex items-center gap-0.5" style={{ color: getWaitTimeColor() }}>
+                  {isLongWait && <span className="inline-block w-1 h-1 rounded-full bg-current animate-pulse" />}
+                  {formatWaitTime(waitTime)}
+                </span>
               </div>
             </div>
 
@@ -220,7 +243,7 @@ export function WaitListTicketCard({
       <>
       <div
         onClick={() => onClick?.(ticket.id)}
-        className="relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer"
+        className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`}
         role="button"
         tabIndex={0}
         aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
@@ -228,7 +251,7 @@ export function WaitListTicketCard({
         style={{
           background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
           border: '1px dashed #D8D8D8',
-          borderLeft: '3px solid rgba(139, 92, 246, 0.18)',
+          borderLeft: `3px solid ${getWaitBorderColor()}`,
           borderRadius: '10px',
           boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
@@ -270,7 +293,10 @@ export function WaitListTicketCard({
               <div className="text-2xs text-[#6b5d52] font-medium tracking-wide leading-tight">{getLastVisitText()}</div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-[#6b5d52] whitespace-nowrap">Waited {formatWaitTime(waitTime)}</span>
+              <span className="text-xs whitespace-nowrap flex items-center gap-1" style={{ color: getWaitTimeColor() }}>
+                {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+                Waited {formatWaitTime(waitTime)}
+              </span>
               <span className="text-xs text-[#6b5d52]">•</span>
               <span className="text-xs text-[#6b5d52] whitespace-nowrap">{ticket.time}</span>
             </div>
@@ -505,6 +531,9 @@ export function WaitListTicketCard({
           
           {showMenu && (
             <div className="absolute right-2 top-14 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-10 min-w-[120px]">
+              <button onClick={(e) => { e.stopPropagation(); onOpenTicket?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-purple-50 flex items-center gap-2 font-medium">
+                <ExternalLink size={14} className="text-purple-500" /> Open Ticket
+              </button>
               <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
                 <Edit2 size={14} /> Edit
               </button>
@@ -707,6 +736,9 @@ export function WaitListTicketCard({
             </button>
             {showMenu && (
               <div className="absolute right-0 top-6 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[110px]">
+                <button onClick={(e) => { e.stopPropagation(); onOpenTicket?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-1.5 font-medium">
+                  <ExternalLink size={11} className="text-purple-500" /> Open Ticket
+                </button>
                 <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-2.5 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-1.5">
                   <Edit2 size={11} /> Edit
                 </button>

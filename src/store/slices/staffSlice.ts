@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { staffDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
-import { toStaff, toStaffList, toStaffInsert, toStaffUpdate } from '../../services/supabase';
+// toStaff/toStaffList/etc not needed - dataService returns converted types
 import type { Staff } from '../../types';
 import type { RootState } from '../index';
 
@@ -31,8 +31,8 @@ const initialState: StaffState = {
 export const fetchAllStaffFromSupabase = createAsyncThunk(
   'staff/fetchAllFromSupabase',
   async () => {
-    const rows = await dataService.staff.getAll();
-    return toStaffList(rows);
+    // dataService already returns Staff[] (converted)
+    return await dataService.staff.getAll();
   }
 );
 
@@ -43,8 +43,8 @@ export const fetchAllStaffFromSupabase = createAsyncThunk(
 export const fetchActiveStaffFromSupabase = createAsyncThunk(
   'staff/fetchActiveFromSupabase',
   async () => {
-    const rows = await dataService.staff.getActive();
-    return toStaffList(rows);
+    // dataService already returns Staff[] (converted)
+    return await dataService.staff.getActive();
   }
 );
 
@@ -54,9 +54,10 @@ export const fetchActiveStaffFromSupabase = createAsyncThunk(
 export const fetchStaffByIdFromSupabase = createAsyncThunk(
   'staff/fetchByIdFromSupabase',
   async (staffId: string) => {
-    const row = await dataService.staff.getById(staffId);
-    if (!row) throw new Error('Staff not found');
-    return toStaff(row);
+    // dataService already returns Staff (converted)
+    const staff = await dataService.staff.getById(staffId);
+    if (!staff) throw new Error('Staff not found');
+    return staff;
   }
 );
 
@@ -67,9 +68,8 @@ export const fetchStaffByIdFromSupabase = createAsyncThunk(
 export const createStaffInSupabase = createAsyncThunk(
   'staff/createInSupabase',
   async (staff: Omit<Staff, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const insertData = toStaffInsert(staff);
-    const row = await dataService.staff.create(insertData);
-    return toStaff(row);
+    // dataService.staff.create returns Staff directly
+    return await dataService.staff.create(staff);
   }
 );
 
@@ -79,9 +79,8 @@ export const createStaffInSupabase = createAsyncThunk(
 export const updateStaffInSupabase = createAsyncThunk(
   'staff/updateInSupabase',
   async ({ id, updates }: { id: string; updates: Partial<Staff> }) => {
-    const updateData = toStaffUpdate(updates);
-    const row = await dataService.staff.update(id, updateData);
-    return toStaff(row);
+    // dataService.staff.update returns Staff directly
+    return await dataService.staff.update(id, updates);
   }
 );
 
@@ -247,12 +246,14 @@ const staffSlice = createSlice({
       })
       .addCase(updateStaffInSupabase.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.items.findIndex(s => s.id === action.payload.id);
+        if (!action.payload) return;
+        const updatedStaff = action.payload;
+        const index = state.items.findIndex(s => s.id === updatedStaff.id);
         if (index !== -1) {
-          state.items[index] = action.payload;
+          state.items[index] = updatedStaff;
         }
-        if (state.selectedStaff?.id === action.payload.id) {
-          state.selectedStaff = action.payload;
+        if (state.selectedStaff?.id === updatedStaff.id) {
+          state.selectedStaff = updatedStaff;
         }
       })
       .addCase(updateStaffInSupabase.rejected, (state, action) => {

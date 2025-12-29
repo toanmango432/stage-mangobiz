@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { appointmentService } from '../../services/appointmentService';
 import { dataService } from '../../services/dataService';
-import { toAppointment, toAppointments, toAppointmentInsert, toAppointmentUpdate } from '../../services/supabase';
+// toAppointment/toAppointments/etc not needed - dataService returns converted types
 import {
   LocalAppointment,
   Appointment,
@@ -177,8 +177,8 @@ export const fetchAppointmentDetail = createAsyncThunk(
 export const fetchAppointmentsFromSupabase = createAsyncThunk(
   'appointments/fetchFromSupabase',
   async (date: Date) => {
-    const rows = await dataService.appointments.getByDate(date);
-    return toAppointments(rows);
+    // dataService already returns Appointment[] (converted from Supabase rows)
+    return await dataService.appointments.getByDate(date);
   }
 );
 
@@ -188,8 +188,8 @@ export const fetchAppointmentsFromSupabase = createAsyncThunk(
 export const fetchUpcomingAppointments = createAsyncThunk(
   'appointments/fetchUpcoming',
   async (limit: number = 50) => {
-    const rows = await dataService.appointments.getUpcoming(limit);
-    return toAppointments(rows);
+    // dataService already returns Appointment[] (converted from Supabase rows)
+    return await dataService.appointments.getUpcoming(limit);
   }
 );
 
@@ -212,9 +212,9 @@ export const createAppointmentInSupabase = createAsyncThunk(
         return rejectWithValue(validation.error || 'Validation failed');
       }
 
-      const insertData = toAppointmentInsert(appointment);
-      const row = await dataService.appointments.create(insertData);
-      return toAppointment(row);
+      // dataService handles the conversion internally
+      const created = await dataService.appointments.create(appointment as any);
+      return created;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create appointment');
     }
@@ -227,9 +227,9 @@ export const createAppointmentInSupabase = createAsyncThunk(
 export const updateAppointmentInSupabase = createAsyncThunk(
   'appointments/updateInSupabase',
   async ({ id, updates }: { id: string; updates: Partial<Appointment> }) => {
-    const updateData = toAppointmentUpdate(updates);
-    const row = await dataService.appointments.update(id, updateData);
-    return toAppointment(row);
+    // dataService handles the conversion internally
+    const updated = await dataService.appointments.update(id, updates as any);
+    return updated;
   }
 );
 
@@ -508,7 +508,8 @@ const appointmentSlice = createSlice({
         state.isEditingAppointment = false;
         state.selectedAppointmentId = null;
         // Update the appointment in state
-        const index = state.appointments.findIndex(apt => apt.id === action.payload.id);
+        if (!action.payload) return;
+        const index = state.appointments.findIndex(apt => apt.id === action.payload!.id);
         if (index !== -1) {
           state.appointments[index] = appointmentToLocalAppointment(action.payload);
         }
@@ -548,22 +549,11 @@ const appointmentSlice = createSlice({
 
 /**
  * Convert Appointment (from Supabase) to LocalAppointment
+ * Now simplified since both types use ISO strings for dates
  */
 function appointmentToLocalAppointment(apt: Appointment): LocalAppointment {
   return {
     ...apt,
-    scheduledStartTime: apt.scheduledStartTime instanceof Date
-      ? apt.scheduledStartTime
-      : new Date(apt.scheduledStartTime),
-    scheduledEndTime: apt.scheduledEndTime instanceof Date
-      ? apt.scheduledEndTime
-      : new Date(apt.scheduledEndTime),
-    createdAt: apt.createdAt instanceof Date
-      ? apt.createdAt
-      : new Date(apt.createdAt),
-    updatedAt: apt.updatedAt instanceof Date
-      ? apt.updatedAt
-      : new Date(apt.updatedAt),
     syncStatus: apt.syncStatus || 'synced',
   };
 }
@@ -590,12 +580,12 @@ function ticketDTOToLocalAppointment(ticket: TicketDTO): LocalAppointment {
       price: ticket.totalAmount || 0,
     }],
     status: ticket.status as any,
-    scheduledStartTime: new Date(ticket.startTime),
-    scheduledEndTime: new Date(ticket.endTime),
+    scheduledStartTime: new Date(ticket.startTime).toISOString(),
+    scheduledEndTime: new Date(ticket.endTime).toISOString(),
     notes: ticket.note,
     source: ticket.isOnlineBooking ? 'online' : 'walk-in',
-    createdAt: new Date(ticket.createdAt),
-    updatedAt: new Date(ticket.createdAt),
+    createdAt: new Date(ticket.createdAt).toISOString(),
+    updatedAt: new Date(ticket.createdAt).toISOString(),
     createdBy: 'system',
     lastModifiedBy: 'system',
     syncStatus: 'synced',
@@ -640,9 +630,11 @@ export const selectFilteredAppointments = (state: { appointments: AppointmentSta
   
   // Filter by date range
   if (filters.dateRange) {
-    filtered = filtered.filter(apt => 
-      apt.scheduledStartTime >= filters.dateRange!.start &&
-      apt.scheduledStartTime <= filters.dateRange!.end
+    const startIso = filters.dateRange.start.toISOString();
+    const endIso = filters.dateRange.end.toISOString();
+    filtered = filtered.filter(apt =>
+      apt.scheduledStartTime >= startIso &&
+      apt.scheduledStartTime <= endIso
     );
   }
   
