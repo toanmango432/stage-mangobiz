@@ -2053,7 +2053,7 @@ export default function TicketPanel({
         console.log("📝 Marking ticket as paid:", ticketId);
         // Map payment method to expected format
         const mappedPaymentMethod = primaryPaymentMethod === 'card' ? 'credit-card' : primaryPaymentMethod;
-        await dispatch(markTicketAsPaid({
+        await reduxDispatch(markTicketAsPaid({
           ticketId,
           paymentMethod: mappedPaymentMethod as any,
           paymentDetails: paymentDetails,
