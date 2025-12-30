@@ -2,6 +2,10 @@ import './index.css';
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import * as serviceWorkerRegistration from './services/serviceWorkerRegistration';
+import { initSentry } from './services/monitoring/sentry';
+
+// Initialize Sentry error tracking FIRST (before any other code)
+initSentry();
 
 // Validate required environment variables before rendering
 function validateEnvironment(): void {

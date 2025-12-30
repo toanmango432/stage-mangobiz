@@ -12,6 +12,7 @@ import type { Transaction, CreateTransactionInput, PaymentDetails } from '@/type
 import { PaymentProvider, PaymentRequest, PaymentResult } from './types';
 import { mockPaymentProvider } from './mockPaymentProvider';
 import { dataService } from '../dataService';
+import { captureException, addBreadcrumb } from '../monitoring/sentry';
 
 // Detect platform (for future native integration)
 const detectPlatform = (): 'web' | 'ios' | 'android' | 'desktop' => {
@@ -66,31 +67,77 @@ class PaymentBridge {
   async processPayment(request: PaymentRequest): Promise<PaymentResult> {
     console.log(`[PaymentBridge] Processing ${request.method} payment:`, request.amount);
 
+    // Add breadcrumb for tracking
+    addBreadcrumb({
+      category: 'payment',
+      message: `Processing ${request.method} payment`,
+      level: 'info',
+      data: {
+        method: request.method,
+        amount: request.amount,
+        ticketId: request.ticketId,
+      },
+    });
+
     let result: PaymentResult;
 
-    switch (request.method) {
-      case 'card':
-        result = await this.provider.processCardPayment(request);
-        break;
-      case 'cash':
-        result = await this.provider.processCashPayment(request);
-        break;
-      case 'gift_card':
-        result = await this.provider.processGiftCardPayment(request);
-        break;
-      case 'custom':
-        result = await this.provider.processCustomPayment(request);
-        break;
-      default:
-        return {
-          success: false,
-          error: `Unknown payment method: ${request.method}`,
-          errorCode: 'PROCESSING_ERROR',
-        };
-    }
+    try {
+      switch (request.method) {
+        case 'card':
+          result = await this.provider.processCardPayment(request);
+          break;
+        case 'cash':
+          result = await this.provider.processCashPayment(request);
+          break;
+        case 'gift_card':
+          result = await this.provider.processGiftCardPayment(request);
+          break;
+        case 'custom':
+          result = await this.provider.processCustomPayment(request);
+          break;
+        default:
+          return {
+            success: false,
+            error: `Unknown payment method: ${request.method}`,
+            errorCode: 'PROCESSING_ERROR',
+          };
+      }
 
-    console.log(`[PaymentBridge] Payment result:`, result.success ? 'SUCCESS' : 'FAILED');
-    return result;
+      // Track failed payments (not errors, but business failures)
+      if (!result.success) {
+        addBreadcrumb({
+          category: 'payment',
+          message: `Payment declined: ${result.error}`,
+          level: 'warning',
+          data: {
+            method: request.method,
+            errorCode: result.errorCode,
+          },
+        });
+      }
+
+      console.log(`[PaymentBridge] Payment result:`, result.success ? 'SUCCESS' : 'FAILED');
+      return result;
+    } catch (error) {
+      // Capture unexpected errors to Sentry
+      captureException(error, {
+        tags: {
+          module: 'payment',
+          method: request.method,
+        },
+        extra: {
+          amount: request.amount,
+          ticketId: request.ticketId,
+        },
+      });
+
+      console.error('[PaymentBridge] Unexpected payment error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unexpected payment error',
+        errorCode: 'SYSTEM_ERROR',
+      };
+    }
   }
 
   /**
@@ -101,8 +148,34 @@ class PaymentBridge {
     try {
       const transaction = await dataService.transactions.create(input);
       console.log('[PaymentBridge] Transaction record created:', transaction.id);
+
+      addBreadcrumb({
+        category: 'payment',
+        message: 'Transaction record created',
+        level: 'info',
+        data: {
+          transactionId: transaction.id,
+          ticketId: input.ticketId,
+          paymentMethod: input.paymentMethod,
+        },
+      });
+
       return transaction;
     } catch (error) {
+      // Capture to Sentry - this is critical as payment succeeded but record failed
+      captureException(error, {
+        tags: {
+          module: 'payment',
+          operation: 'createTransactionRecord',
+        },
+        extra: {
+          ticketId: input.ticketId,
+          paymentMethod: input.paymentMethod,
+          subtotal: input.subtotal,
+        },
+        level: 'error',
+      });
+
       console.error('[PaymentBridge] Failed to create transaction record:', error);
       return null;
     }

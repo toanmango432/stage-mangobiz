@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
+import { captureException, addBreadcrumb } from '@/services/monitoring/sentry';
 
 interface Props {
   children: ReactNode;
@@ -8,6 +9,8 @@ interface Props {
   resetKeys?: Array<string | number>;
   resetOnPropsChange?: boolean;
   isolate?: boolean; // If true, only shows error UI without crashing parent
+  /** Module name for error context in Sentry */
+  module?: string;
 }
 
 interface State {
@@ -15,6 +18,8 @@ interface State {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   errorBoundaryKey: number;
+  /** Sentry error ID for support reference */
+  errorId: string | null;
 }
 
 /**
@@ -29,7 +34,8 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
-      errorBoundaryKey: 0
+      errorBoundaryKey: 0,
+      errorId: null
     };
   }
 
@@ -43,9 +49,30 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('Error caught by ErrorBoundary:', error, errorInfo);
     }
+
+    // Add breadcrumb for context
+    addBreadcrumb({
+      category: 'error-boundary',
+      message: `Error caught in ${this.props.module || 'unknown'} module`,
+      level: 'error',
+      data: {
+        componentStack: errorInfo.componentStack,
+      },
+    });
+
+    // Capture to Sentry and get error ID
+    const errorId = captureException(error, {
+      tags: {
+        module: this.props.module || 'unknown',
+        boundary: 'react-error-boundary',
+      },
+      extra: {
+        componentStack: errorInfo.componentStack,
+      },
+    });
 
     // Call custom error handler if provided
     if (this.props.onError) {
@@ -55,12 +82,9 @@ export class ErrorBoundary extends Component<Props, State> {
     // Update state with error details
     this.setState({
       error,
-      errorInfo
+      errorInfo,
+      errorId: errorId || null
     });
-
-    // Log to error reporting service (e.g., Sentry, LogRocket)
-    // TODO: Integrate with error reporting service
-    // errorReportingService.logError(error, errorInfo);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -85,12 +109,13 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
-      errorBoundaryKey: this.state.errorBoundaryKey + 1
+      errorBoundaryKey: this.state.errorBoundaryKey + 1,
+      errorId: null
     });
   };
 
   render() {
-    const { hasError, error } = this.state;
+    const { hasError, error, errorId } = this.state;
     const { children, fallback, isolate } = this.props;
 
     if (hasError) {
@@ -113,8 +138,15 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
             </div>
 
+            {/* Error ID for support */}
+            {errorId && (
+              <p className="mb-4 text-xs text-center text-gray-400">
+                Error ID: <code className="font-mono">{errorId}</code>
+              </p>
+            )}
+
             {/* Error details in development */}
-            {process.env.NODE_ENV === 'development' && error && (
+            {import.meta.env.DEV && error && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs font-mono text-gray-700 break-all">
                   {error.message || 'Unknown error'}

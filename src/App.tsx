@@ -3,6 +3,8 @@ import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { setUserContext, clearUserContext } from './services/monitoring/sentry';
 
 // Lazy load AdminPortal - it's a separate route with its own dependencies
 const AdminPortal = lazy(() => import('./admin/AdminPortal').then(m => ({ default: m.AdminPortal })));
@@ -165,6 +167,20 @@ export function App() {
     };
   }, [isAdminMode, isDbInitialized]);
 
+  // Set Sentry user context when auth state changes
+  useEffect(() => {
+    if (authState?.status === 'active' && authState.store) {
+      setUserContext({
+        id: authState.member?.memberId || authState.store.storeId,
+        storeId: authState.store.storeId,
+        storeName: authState.store.storeName,
+        role: authState.member?.role,
+      });
+    } else {
+      clearUserContext();
+    }
+  }, [authState]);
+
   // Data cleanup (only for authenticated POS mode)
   useEffect(() => {
     if (isAdminMode) return;
@@ -267,15 +283,17 @@ export function App() {
 
   // POS MODE: Normal app flow
   return (
-    <Provider store={store}>
-      <SupabaseSyncProvider autoSyncInterval={30000} enableRealtime={true}>
-        <ConflictNotificationProvider>
-          <TooltipProvider>
-            <AppShell />
-            <Toaster {...toasterConfig} />
-          </TooltipProvider>
-        </ConflictNotificationProvider>
-      </SupabaseSyncProvider>
-    </Provider>
+    <ErrorBoundary module="app">
+      <Provider store={store}>
+        <SupabaseSyncProvider autoSyncInterval={30000} enableRealtime={true}>
+          <ConflictNotificationProvider>
+            <TooltipProvider>
+              <AppShell />
+              <Toaster {...toasterConfig} />
+            </TooltipProvider>
+          </ConflictNotificationProvider>
+        </SupabaseSyncProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }
