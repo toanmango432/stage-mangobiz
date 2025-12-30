@@ -1212,7 +1212,7 @@ export const ServiceSection = memo(function ServiceSection({
                     service: ticket.service,
                     duration: ticket.duration || '30min',
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                    status: (ticket.status as 'waiting' | 'in-service' | 'completed') || 'in-service',
+                    status: ticket.status as 'waiting' | 'in-service' | 'completed', // Bug #7 fix: Remove fallback, trust data
                     notes: ticket.notes,
                     technician: ticket.technician,
                     techColor: ticket.techColor,

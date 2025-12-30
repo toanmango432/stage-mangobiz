@@ -46,6 +46,7 @@ interface PaymentModalProps {
     tipDistribution?: TipDistribution[];
   }) => void;
   staffMembers?: { id: string; name: string; serviceTotal?: number }[];
+  ticketId?: string; // Bug #8 fix: Pass actual ticket ID for transaction linking
 }
 
 const TIP_PERCENTAGES = [15, 18, 20, 25];
@@ -115,6 +116,7 @@ export default function PaymentModal({
   total,
   onComplete,
   staffMembers = [],
+  ticketId,
 }: PaymentModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [tipPercentage, setTipPercentage] = useState<number | null>(20);
@@ -182,7 +184,7 @@ export default function PaymentModal({
           const result = await paymentBridge.processPayment({
             amount: Math.min(paymentAmount, remaining),
             method: currentMethod,
-            ticketId: "pending", // Will be set properly when integrated
+            ticketId: ticketId || "unknown", // Bug #8 fix: Use actual ticket ID
           });
 
           if (!result.success) {

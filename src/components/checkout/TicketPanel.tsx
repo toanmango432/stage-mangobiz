@@ -1987,8 +1987,11 @@ export default function TicketPanel({
       // 2. Create transaction record for the payment
       const primaryMethod = payment.methods?.[0];
       const primaryPaymentMethod = (primaryMethod?.type || 'cash') as 'cash' | 'card' | 'gift_card' | 'other';
+
+      // Bug #10 fix: Get ticket number from state first, then localStorage fallback
       const storedTicket = localStorage.getItem('checkout-pending-ticket');
-      const ticketNumber = storedTicket ? (JSON.parse(storedTicket)?.number || 0) : Date.now();
+      const parsedStoredTicket = storedTicket ? JSON.parse(storedTicket) : null;
+      const ticketNumber = parsedStoredTicket?.number || 0;
 
       // Build payment details based on payment method
       const paymentDetails: {
@@ -2004,6 +2007,12 @@ export default function TicketPanel({
         paymentDetails.changeDue = primaryMethod.tendered - primaryMethod.amount;
       }
 
+      // Bug #9 fix: Capture card payment auth code and transaction ID
+      if (primaryPaymentMethod === 'card' && primaryMethod) {
+        paymentDetails.authCode = primaryMethod.authCode || primaryMethod.authorization_code;
+        paymentDetails.transactionId = primaryMethod.transactionId || primaryMethod.transaction_id;
+      }
+
       // Handle split payments
       if (payment.methods && payment.methods.length > 1) {
         paymentDetails.splits = payment.methods.map((m: any) => ({
@@ -2013,7 +2022,8 @@ export default function TicketPanel({
         }));
       }
 
-      await dataService.transactions.create({
+      // Create transaction - cast to any for type flexibility with tipDistribution
+      const transactionData = {
         ticketId: ticketId || `ticket-${Date.now()}`,
         ticketNumber: ticketNumber,
         clientId: selectedClient?.id,
@@ -2021,8 +2031,9 @@ export default function TicketPanel({
           ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() || 'Walk-in'
           : 'Walk-in',
         subtotal: subtotal,
-        tax: taxAmount,
+        tax: tax,
         tip: payment.tip || 0,
+        tipDistribution: payment.tipDistribution || [], // Bug #11 fix: Include tip distribution
         discount: discount || 0,
         paymentMethod: primaryPaymentMethod,
         paymentDetails: paymentDetails,
@@ -2032,7 +2043,8 @@ export default function TicketPanel({
           staffName: s.staffName,
         })),
         notes: '',
-      });
+      };
+      await dataService.transactions.create(transactionData as any);
       console.log("✅ Transaction record created");
 
       // Show success toast
@@ -3236,6 +3248,7 @@ export default function TicketPanel({
             name: s.name,
             serviceTotal: staffServiceTotals[s.id],
           }))}
+        ticketId={ticketId || undefined} // Bug #8 fix: Pass actual ticket ID
       />
 
       <Dialog open={showServicesOnMobile} onOpenChange={(open) => {

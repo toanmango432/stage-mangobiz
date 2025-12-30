@@ -119,6 +119,8 @@ export interface PendingTicket {
   lastVisitDate?: Date | null;
   // When service was marked done (for urgency calculation)
   completedAt?: Date | string;
+  // Ticket status - should be 'completed' when in pending section
+  status?: 'completed' | 'paid' | 'closed';
 }
 
 export interface CompletionDetails {
@@ -414,13 +416,27 @@ export const assignTicket = createAsyncThunk(
     };
 
     try {
-      // Update in Supabase - change status to 'in-service'
-      await dataService.tickets.updateStatus(ticketId, 'in-service');
-      console.log('✅ Ticket assigned in Supabase:', ticketId);
+      // Update in Supabase - include ALL staff assignment data
+      await dataService.tickets.update(ticketId, {
+        status: 'in-service' as any, // UI-specific status not in TicketStatus type
+        technician: staffName,
+        techId: staffId,
+        techColor: staffColor,
+        assignedTo: { id: staffId, name: staffName, color: staffColor },
+        updatedAt: new Date().toISOString(),
+      } as any);
+      console.log('✅ Ticket assigned in Supabase:', ticketId, 'Staff:', staffName);
     } catch (error) {
       console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
-      // Fallback to IndexedDB
-      await ticketsDB.update(ticketId, { status: 'in-service', updatedAt: new Date() } as any, 'current-user');
+      // Fallback to IndexedDB - include ALL staff assignment data
+      await ticketsDB.update(ticketId, {
+        status: 'in-service',
+        technician: staffName,
+        techId: staffId,
+        techColor: staffColor,
+        assignedTo: { id: staffId, name: staffName, color: staffColor },
+        updatedAt: new Date(),
+      } as any, 'current-user');
 
       // Queue for sync
       await syncQueueDB.add({
@@ -503,6 +519,8 @@ export const completeTicket = createAsyncThunk(
       techId: ticket?.techId,
       assignedStaff: ticket?.assignedStaff,
       lastVisitDate: ticket?.lastVisitDate,
+      status: 'completed', // Bug #5 fix: Ensure status is set
+      completedAt: new Date().toISOString(),
     };
 
     return {

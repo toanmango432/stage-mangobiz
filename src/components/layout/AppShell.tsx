@@ -1,16 +1,19 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
 import { BottomNavBar } from './BottomNavBar';
-import { Book } from '../modules/Book';
-import { FrontDesk } from '../modules/FrontDesk';
-import { Tickets } from '../modules/Tickets';
-import { Team } from '../modules/Team';
-import { Pending } from '../modules/Pending';
-import TicketPanel from '../checkout/TicketPanel';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import type { StaffMember } from '../checkout/ServiceList';
-import { ClosedTickets } from '../modules/ClosedTickets';
-import { More } from '../modules/More';
+
+// Lazy load ALL modules to reduce initial bundle size
+// Core modules (frequently used but still lazy for faster initial load)
+const Book = lazy(() => import('../modules/Book').then(m => ({ default: m.Book })));
+const FrontDesk = lazy(() => import('../modules/FrontDesk').then(m => ({ default: m.FrontDesk })));
+const Tickets = lazy(() => import('../modules/Tickets').then(m => ({ default: m.Tickets })));
+const Team = lazy(() => import('../modules/Team').then(m => ({ default: m.Team })));
+const Pending = lazy(() => import('../modules/Pending').then(m => ({ default: m.Pending })));
+const TicketPanel = lazy(() => import('../checkout/TicketPanel'));
+const ClosedTickets = lazy(() => import('../modules/ClosedTickets').then(m => ({ default: m.ClosedTickets })));
+const More = lazy(() => import('../modules/More').then(m => ({ default: m.More })));
 import { TicketPanelProvider, useTicketPanel } from '../../contexts/TicketPanelContext';
 
 // Lazy load less frequently used modules to reduce initial bundle size
@@ -320,21 +323,21 @@ function AppShellContent() {
 
   const renderModule = () => {
     switch (activeModule) {
-      // Core modules - eagerly loaded
+      // Core modules - now lazy loaded with Suspense
       case 'book':
-        return <Book />;
+        return <Suspense fallback={<ModuleLoader />}><Book /></Suspense>;
       case 'frontdesk':
-        return <FrontDesk showFrontDeskSettings={showFrontDeskSettings} setShowFrontDeskSettings={setShowFrontDeskSettings} />;
+        return <Suspense fallback={<ModuleLoader />}><FrontDesk showFrontDeskSettings={showFrontDeskSettings} setShowFrontDeskSettings={setShowFrontDeskSettings} /></Suspense>;
       case 'tickets':
-        return <Tickets />;
+        return <Suspense fallback={<ModuleLoader />}><Tickets /></Suspense>;
       case 'team':
-        return <Team />;
+        return <Suspense fallback={<ModuleLoader />}><Team /></Suspense>;
       case 'pending':
-        return <Pending />;
+        return <Suspense fallback={<ModuleLoader />}><Pending /></Suspense>;
       case 'closed':
-        return <ClosedTickets />;
+        return <Suspense fallback={<ModuleLoader />}><ClosedTickets /></Suspense>;
       case 'more':
-        return <More onNavigate={setActiveModule} />;
+        return <Suspense fallback={<ModuleLoader />}><More onNavigate={setActiveModule} /></Suspense>;
 
       // Lazy-loaded modules - wrapped in Suspense
       case 'transaction-records':
@@ -362,12 +365,12 @@ function AppShellContent() {
       case 'settings':
         return <Suspense fallback={<ModuleLoader />}><SettingsPage onBack={() => setActiveModule('more')} /></Suspense>;
       case 'frontdesk-settings':
-        return <FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
+        return <Suspense fallback={<ModuleLoader />}><FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
           if (!show) setActiveModule('more');
-        }} />;
+        }} /></Suspense>;
       // 'devices' case removed - local-first architecture, no device settings needed
       default:
-        return <FrontDesk />;
+        return <Suspense fallback={<ModuleLoader />}><FrontDesk /></Suspense>;
     }
   };
 
@@ -420,11 +423,13 @@ function AppShellContent() {
       )}
 
       {/* Global Ticket Panel - TicketPanel handles its own backdrop and positioning */}
-      <TicketPanel
-        isOpen={isTicketPanelOpen}
-        onClose={closeTicketPanel}
-        staffMembers={staffMembers}
-      />
+      <Suspense fallback={null}>
+        <TicketPanel
+          isOpen={isTicketPanelOpen}
+          onClose={closeTicketPanel}
+          staffMembers={staffMembers}
+        />
+      </Suspense>
     </div>
   );
 }

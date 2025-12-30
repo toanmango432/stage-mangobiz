@@ -17,3 +17,7 @@ export type {
   ConflictDetails,
   ConflictResolution,
 } from './ConflictNotification';
+
+export { VirtualList, VirtualGrid } from './VirtualList';
+
+export { ErrorBoundary } from './ErrorBoundary';

@@ -21,7 +21,6 @@ export function AssignTicketModal({
   const {
     staff,
     waitlist,
-    inService
   } = useTickets();
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,26 +68,15 @@ export function AssignTicketModal({
           }))
         });
         onAssign(techId, techName, techColor);
-        // Verify the ticket has been moved to inService
+        // Bug #4 fix: Trust Redux, show success and close immediately
+        setFeedbackMessage({
+          type: 'success',
+          message: `Ticket assigned to ${techName} successfully!`
+        });
+        // Close the modal after a brief delay to show success message
         setTimeout(() => {
-          const ticketInService = inService.find(t => t.id === String(ticketId));
-          console.log('MODAL: After assignment - checking if ticket moved to inService:', ticketInService);
-          if (ticketInService) {
-            setFeedbackMessage({
-              type: 'success',
-              message: `Ticket assigned to ${techName} successfully!`
-            });
-            // Close the modal after a brief delay to show success message
-            setTimeout(() => {
-              onClose();
-            }, 1500);
-          } else {
-            setFeedbackMessage({
-              type: 'error',
-              message: 'Assignment may have failed. Please check and try again.'
-            });
-          }
-        }, 100);
+          onClose();
+        }, 800);
       } catch (error) {
         console.error('Error during ticket assignment:', error);
         setFeedbackMessage({

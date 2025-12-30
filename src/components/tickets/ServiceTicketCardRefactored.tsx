@@ -198,15 +198,26 @@ function ServiceTicketCardComponent({
                   {staffList.length > 2 && <span className="text-[#6b5d52] font-medium text-[10px]">+{staffList.length - 2}</span>}
                 </div>
 
-                {/* Done button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
-                  style={{ width: '24px', height: '24px' }}
-                  title="Mark as Done"
-                >
-                  <Check style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
-                </button>
+                {/* Done/Resume button - Bug #6 fix */}
+                {isPaused ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }}
+                    className="flex items-center justify-center bg-white border border-amber-400 text-amber-600 hover:border-amber-500 hover:text-white hover:bg-amber-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                    style={{ width: '24px', height: '24px' }}
+                    title="Resume"
+                  >
+                    <Play style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                    style={{ width: '24px', height: '24px' }}
+                    title="Mark as Done"
+                  >
+                    <Check style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -279,14 +290,26 @@ function ServiceTicketCardComponent({
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
-                  className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
-                  style={{ width: '30px', height: '30px' }}
-                  title="Mark as Done"
-                >
-                  <Check style={{ width: '16px', height: '16px' }} strokeWidth={2.5} />
-                </button>
+                {/* Done/Resume button - Bug #6 fix */}
+                {isPaused ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onResume?.(ticket.id); }}
+                    className="flex items-center justify-center bg-white border border-amber-400 text-amber-600 hover:border-amber-500 hover:text-white hover:bg-amber-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                    style={{ width: '30px', height: '30px' }}
+                    title="Resume"
+                  >
+                    <Play style={{ width: '16px', height: '16px' }} strokeWidth={2.5} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }}
+                    className="flex items-center justify-center bg-white border border-gray-300 text-gray-600 hover:border-green-500 hover:text-white hover:bg-green-500 hover:scale-105 active:scale-95 transition-all rounded shadow-sm hover:shadow"
+                    style={{ width: '30px', height: '30px' }}
+                    title="Mark as Done"
+                  >
+                    <Check style={{ width: '16px', height: '16px' }} strokeWidth={2.5} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
