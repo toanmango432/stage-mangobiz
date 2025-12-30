@@ -102,6 +102,20 @@ export {
   toTransactionUpdate,
 } from './adapters';
 
+// Pagination
+export {
+  getClientsPaginated,
+  getAppointmentsPaginated,
+  getTransactionsPaginated,
+  getTicketsPaginated,
+  searchClientsPaginated,
+  encodeCursor,
+  decodeCursor,
+  getPaginationQueryKey,
+  type PaginationParams,
+  type PaginatedResult,
+} from './pagination';
+
 /**
  * All table operations in one object for convenience
  */

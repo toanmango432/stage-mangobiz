@@ -8,6 +8,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
 import {
   createCheckoutTicket,
+  markTicketAsPaid,
   type ServiceStatus,
   type CheckoutTicketService,
 } from "@/store/slices/uiTicketsSlice";
@@ -2046,6 +2047,20 @@ export default function TicketPanel({
       };
       await dataService.transactions.create(transactionData as any);
       console.log("✅ Transaction record created");
+
+      // 3. Mark ticket as paid and move from pending to closed
+      if (ticketId) {
+        console.log("📝 Marking ticket as paid:", ticketId);
+        // Map payment method to expected format
+        const mappedPaymentMethod = primaryPaymentMethod === 'card' ? 'credit-card' : primaryPaymentMethod;
+        await dispatch(markTicketAsPaid({
+          ticketId,
+          paymentMethod: mappedPaymentMethod as any,
+          paymentDetails: paymentDetails,
+          tip: payment.tip || 0,
+        })).unwrap();
+        console.log("✅ Ticket marked as paid and moved to closed");
+      }
 
       // Show success toast
       toast({
