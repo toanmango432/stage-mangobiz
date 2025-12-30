@@ -52,18 +52,20 @@ export interface CursorConfig {
 
 /**
  * Encode cursor value for URL safety
+ * Uses btoa for browser compatibility (Buffer is Node.js only)
  */
 export function encodeCursor(value: string | number | Date): string {
   const str = value instanceof Date ? value.toISOString() : String(value);
-  return Buffer.from(str).toString('base64');
+  return btoa(str);
 }
 
 /**
  * Decode cursor back to original value
+ * Uses atob for browser compatibility
  */
 export function decodeCursor(cursor: string): string {
   try {
-    return Buffer.from(cursor, 'base64').toString('utf-8');
+    return atob(cursor);
   } catch {
     return cursor;
   }
