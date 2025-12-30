@@ -8,6 +8,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
 import {
   createCheckoutTicket,
+  updateCheckoutTicket,
   markTicketAsPaid,
   type ServiceStatus,
   type CheckoutTicketService,
@@ -1340,6 +1341,100 @@ export default function TicketPanel({
     }
   }, [isOpen]);
 
+  // ============================================================================
+  // AUTO-SAVE FOR EXISTING TICKETS
+  // When opening an existing ticket and making changes, save automatically
+  // ============================================================================
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTicketIdRef = useRef<string | null>(null);
+  const loadCompleteRef = useRef(false);
+
+  // Reset auto-save state when panel opens/closes or ticket changes
+  useEffect(() => {
+    if (!isOpen) {
+      // Panel closed - reset everything
+      loadCompleteRef.current = false;
+      lastTicketIdRef.current = null;
+      return;
+    }
+
+    // New ticket loaded - reset load complete flag
+    if (state.ticketId !== lastTicketIdRef.current) {
+      loadCompleteRef.current = false;
+      lastTicketIdRef.current = state.ticketId;
+    }
+  }, [isOpen, state.ticketId]);
+
+  // Mark load as complete after a short delay (after all initial state updates settle)
+  useEffect(() => {
+    if (!isOpen || !state.ticketId) return;
+
+    const timer = setTimeout(() => {
+      loadCompleteRef.current = true;
+      console.log('📋 Ticket load complete, auto-save enabled for:', state.ticketId);
+    }, 500); // Wait for initial load to settle
+
+    return () => clearTimeout(timer);
+  }, [isOpen, state.ticketId]);
+
+  // Auto-save effect for existing tickets - only triggers on data changes AFTER load is complete
+  useEffect(() => {
+    // Skip if panel is not open
+    if (!isOpen) return;
+
+    // Skip if no ticketId (new ticket - requires explicit save)
+    if (!state.ticketId) return;
+
+    // Skip if load is not complete (still loading initial data)
+    if (!loadCompleteRef.current) {
+      console.log('⏳ Skipping auto-save - still loading ticket');
+      return;
+    }
+
+    // Clear any pending auto-save
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Debounce auto-save by 1 second
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      const checkoutServices = convertToCheckoutServices(state.services);
+      const clientName = state.selectedClient
+        ? `${state.selectedClient.firstName} ${state.selectedClient.lastName}`.trim()
+        : 'Walk-in';
+
+      console.log('💾 Auto-saving existing ticket:', state.ticketId);
+
+      try {
+        await reduxDispatch(updateCheckoutTicket({
+          ticketId: state.ticketId!,
+          updates: {
+            clientId: state.selectedClient?.id,
+            clientName,
+            services: checkoutServices,
+            discount: state.discounts.discount,
+            subtotal: state.services.reduce((sum, s) => sum + s.price, 0),
+            tax: Math.max(0, state.services.reduce((sum, s) => sum + s.price, 0) - state.discounts.discount) * 0.085,
+            total: Math.max(0, state.services.reduce((sum, s) => sum + s.price, 0) - state.discounts.discount) * 1.085,
+          },
+        })).unwrap();
+
+        console.log('✅ Auto-save successful for ticket:', state.ticketId);
+        dispatch(ticketActions.markTicketSaved());
+      } catch (error) {
+        console.error('❌ Auto-save failed:', error);
+        // Don't show toast on auto-save failure to avoid interrupting workflow
+      }
+    }, 1000);
+
+    // Cleanup timeout on unmount or re-run
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [isOpen, state.ticketId, state.services, state.selectedClient, state.discounts.discount]);
+
   const {
     ticketId,
     services,
@@ -1447,7 +1542,44 @@ export default function TicketPanel({
       ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
       : 'Walk-in';
 
+    const statusLabels: Record<TicketStatus, string> = {
+      'waiting': 'Waitlist',
+      'in-service': 'In Service',
+      'completed': 'Pending',
+    };
+
     try {
+      // If ticketId exists, UPDATE the existing ticket instead of creating a new one
+      if (ticketId) {
+        console.log('📝 Updating existing ticket:', ticketId, 'with status:', status);
+        await reduxDispatch(updateCheckoutTicket({
+          ticketId,
+          updates: {
+            clientId: selectedClient?.id,
+            clientName,
+            services: checkoutServices,
+            notes: undefined,
+            discount,
+            subtotal,
+            tax,
+            total,
+            status, // Pass the desired status
+          },
+        })).unwrap();
+
+        toast({
+          title: "Ticket Updated",
+          description: `Ticket updated and saved to ${statusLabels[status]}`,
+        });
+
+        // Mark ticket as saved so close confirmation won't show
+        dispatch(ticketActions.markTicketSaved());
+
+        console.log(`✅ Updated ticket in ${statusLabels[status]}:`, ticketId);
+        return true;
+      }
+
+      // No ticketId - create a new ticket
       const result = await reduxDispatch(createCheckoutTicket({
         clientId: selectedClient?.id,
         clientName,
@@ -1460,12 +1592,6 @@ export default function TicketPanel({
         status, // Pass the desired status
       })).unwrap();
 
-      const statusLabels: Record<TicketStatus, string> = {
-        'waiting': 'Waitlist',
-        'in-service': 'In Service',
-        'completed': 'Pending',
-      };
-
       toast({
         title: "Ticket Created",
         description: `Ticket #${result.number} added to ${statusLabels[status]}`,
@@ -1477,10 +1603,10 @@ export default function TicketPanel({
       console.log(`✅ Created ticket in ${statusLabels[status]}:`, result.id, result.number);
       return true;
     } catch (error) {
-      console.error('❌ Failed to create ticket:', error);
+      console.error('❌ Failed to save ticket:', error);
       toast({
         title: "Error",
-        description: "Failed to create ticket. Please try again.",
+        description: "Failed to save ticket. Please try again.",
         variant: "destructive",
       });
       return false;
@@ -1975,11 +2101,38 @@ export default function TicketPanel({
     // Close the payment modal first
     dispatch(ticketActions.toggleDialog("showPaymentModal", false));
 
+    // Track the effective ticket ID (either existing or newly created)
+    let effectiveTicketId = ticketId;
+
     try {
-      // 1. Complete the ticket in the database (marks status as 'completed')
-      if (ticketId) {
-        console.log("📝 Completing ticket in database:", ticketId);
-        const completedTicket = await dataService.tickets.complete(ticketId, payment.methods || []);
+      // 1. If no ticketId exists, create the ticket first (for direct checkout without prior save)
+      if (!effectiveTicketId && services.length > 0) {
+        console.log("📝 Creating ticket for direct checkout (no prior save)...");
+        const checkoutServices = convertToCheckoutServices(services);
+        const clientName = selectedClient
+          ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
+          : 'Walk-in';
+
+        const result = await reduxDispatch(createCheckoutTicket({
+          clientId: selectedClient?.id,
+          clientName,
+          services: checkoutServices,
+          notes: undefined,
+          discount,
+          subtotal,
+          tax,
+          total,
+          status: 'completed', // Mark as completed since we're paying now
+        })).unwrap();
+
+        effectiveTicketId = result.id;
+        console.log("✅ Ticket created for direct checkout:", effectiveTicketId, "Number:", result.number);
+      }
+
+      // 2. Complete the ticket in the database (marks status as 'completed')
+      if (effectiveTicketId) {
+        console.log("📝 Completing ticket in database:", effectiveTicketId);
+        const completedTicket = await dataService.tickets.complete(effectiveTicketId, payment.methods || []);
         if (completedTicket) {
           console.log("✅ Ticket completed:", completedTicket.id, "Status:", completedTicket.status);
         }
@@ -2025,7 +2178,7 @@ export default function TicketPanel({
 
       // Create transaction - cast to any for type flexibility with tipDistribution
       const transactionData = {
-        ticketId: ticketId || `ticket-${Date.now()}`,
+        ticketId: effectiveTicketId || `ticket-${Date.now()}`,
         ticketNumber: ticketNumber,
         clientId: selectedClient?.id,
         clientName: selectedClient
@@ -2049,12 +2202,12 @@ export default function TicketPanel({
       console.log("✅ Transaction record created");
 
       // 3. Mark ticket as paid and move from pending to closed
-      if (ticketId) {
-        console.log("📝 Marking ticket as paid:", ticketId);
+      if (effectiveTicketId) {
+        console.log("📝 Marking ticket as paid:", effectiveTicketId);
         // Map payment method to expected format
         const mappedPaymentMethod = primaryPaymentMethod === 'card' ? 'credit-card' : primaryPaymentMethod;
         await reduxDispatch(markTicketAsPaid({
-          ticketId,
+          ticketId: effectiveTicketId,
           paymentMethod: mappedPaymentMethod as any,
           paymentDetails: paymentDetails,
           tip: payment.tip || 0,

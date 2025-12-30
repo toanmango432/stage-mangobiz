@@ -709,6 +709,9 @@ export const markTicketAsPaid = createAsyncThunk(
     return {
       ticketId,
       transaction,
+      pendingTicket, // Include ticket data for reducer to add to completedTickets
+      paymentMethod, // Include payment method for display in closed tickets
+      tip, // Include tip amount for total calculation
     };
   }
 );
@@ -985,11 +988,18 @@ export const updateCheckoutTicket = createAsyncThunk(
     const state = getState() as RootState;
     const now = new Date();
 
-    // Find existing ticket
-    const existingTicket = state.uiTickets.serviceTickets.find(t => t.id === ticketId);
+    // Find existing ticket - search across all ticket arrays
+    const existingTicket =
+      state.uiTickets.serviceTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.waitlistTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.pendingTickets.find(t => t.id === ticketId);
+
     if (!existingTicket) {
+      console.error('❌ Ticket not found in any array:', ticketId);
       throw new Error('Ticket not found');
     }
+
+    console.log('📍 Found ticket in state, current status:', existingTicket.status);
 
     // Calculate new totals if services updated
     let subtotal = updates.subtotal;
@@ -1271,12 +1281,42 @@ const uiTicketsSlice = createSlice({
       })
       .addCase(markTicketAsPaid.fulfilled, (state, action) => {
         state.loading = false;
-        const { ticketId } = action.payload;
+        const { ticketId, pendingTicket, paymentMethod, tip } = action.payload;
 
         // Remove from pending tickets
         const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
         if (ticketIndex !== -1) {
           state.pendingTickets.splice(ticketIndex, 1);
+        }
+
+        // Bug #12 fix: Add to completedTickets (closed tickets)
+        // Convert PendingTicket to UITicket format
+        if (pendingTicket) {
+          // Calculate total from pendingTicket data
+          const total = (pendingTicket.subtotal || 0) + (pendingTicket.tax || 0) + (tip || 0);
+
+          const closedTicket: UITicket = {
+            id: pendingTicket.id,
+            number: pendingTicket.number,
+            clientName: pendingTicket.clientName,
+            clientType: pendingTicket.clientType || 'walk-in',
+            service: pendingTicket.service,
+            time: pendingTicket.time,
+            duration: pendingTicket.duration,
+            status: 'completed', // Mark as completed (paid tickets show as completed in UI)
+            technician: pendingTicket.technician,
+            techColor: pendingTicket.techColor,
+            techId: pendingTicket.techId,
+            assignedStaff: pendingTicket.assignedStaff,
+            notes: pendingTicket.notes,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastVisitDate: pendingTicket.lastVisitDate,
+            // Add financial data for display
+            total,
+            paymentMethod: paymentMethod === 'credit-card' ? 'Card' : paymentMethod === 'cash' ? 'Cash' : paymentMethod,
+          } as UITicket; // Use type assertion since UITicket may not have these optional fields defined
+          state.completedTickets.push(closedTicket);
         }
       })
       .addCase(markTicketAsPaid.rejected, (state, action) => {
@@ -1352,16 +1392,44 @@ const uiTicketsSlice = createSlice({
             break;
         }
       })
-      // Update checkout ticket - update in service tickets
+      // Update checkout ticket - update in ALL ticket arrays (waitlist, service, pending)
       .addCase(updateCheckoutTicket.fulfilled, (state, action) => {
         const { ticketId, updates } = action.payload;
-        const ticketIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
-        if (ticketIndex !== -1) {
-          state.serviceTickets[ticketIndex] = {
-            ...state.serviceTickets[ticketIndex],
+
+        // Try to find and update in serviceTickets
+        const serviceIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
+        if (serviceIndex !== -1) {
+          state.serviceTickets[serviceIndex] = {
+            ...state.serviceTickets[serviceIndex],
             ...updates,
           };
+          console.log('✅ Updated ticket in serviceTickets:', ticketId);
+          return;
         }
+
+        // Try to find and update in waitlistTickets
+        const waitlistIndex = state.waitlistTickets.findIndex(t => t.id === ticketId);
+        if (waitlistIndex !== -1) {
+          state.waitlistTickets[waitlistIndex] = {
+            ...state.waitlistTickets[waitlistIndex],
+            ...updates,
+          };
+          console.log('✅ Updated ticket in waitlistTickets:', ticketId);
+          return;
+        }
+
+        // Try to find and update in pendingTickets
+        const pendingIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+        if (pendingIndex !== -1) {
+          state.pendingTickets[pendingIndex] = {
+            ...state.pendingTickets[pendingIndex],
+            ...updates,
+          };
+          console.log('✅ Updated ticket in pendingTickets:', ticketId);
+          return;
+        }
+
+        console.warn('⚠️ Ticket not found in any array for update:', ticketId);
       });
   },
 });

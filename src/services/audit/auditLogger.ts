@@ -400,7 +400,7 @@ class AuditLogger {
     await this.flush();
 
     let query = supabase
-      .from('audit_logs')
+      .from('store_audit_logs')
       .select('*')
       .order('timestamp', { ascending: false });
 
@@ -468,7 +468,7 @@ class AuditLogger {
     try {
       const rows = entries.map(this.entryToRow);
 
-      const { error } = await supabase.from('audit_logs').insert(rows);
+      const { error } = await supabase.from('store_audit_logs').insert(rows);
 
       if (error) {
         console.error('[AuditLogger] Flush failed:', error);

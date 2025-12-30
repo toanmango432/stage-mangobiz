@@ -1,3 +1,44 @@
+# Front Desk Bug Fixes - December 30, 2024
+
+## Completed Fixes
+
+### ✅ Bug: In-Service tickets not opening checkout panel
+**Issue:** Clicking on In-Service tickets didn't open the checkout panel
+**Root Cause:** onClick handlers called `toggleTicketExpansion()` instead of `handleOpenTicket()`
+**Fix:** Updated 6 onClick handlers in ServiceSection.tsx:
+- 4 inline ticket card renderers (lines 360, 617, 687, 901)
+- 2 ServiceTicketCardRefactored component props
+
+### ✅ Bug: Changes to existing tickets not auto-saved
+**Issue:** When opening an active ticket and making changes, changes were not automatically saved
+**Expected Behavior (per PRD):**
+- NEW tickets → require explicit save action (Save to Waitlist / Start Service / To Pending)
+- EXISTING tickets → changes auto-save immediately (no save button needed)
+
+**Fix:** Added auto-save `useEffect` in TicketPanel.tsx that:
+- Only triggers when `ticketId` exists (existing ticket)
+- Watches `services`, `selectedClient`, and `discount` for changes
+- Debounces save by 1 second to avoid excessive API calls
+- Skips initial load to prevent saving when ticket first opens
+- Calls `updateCheckoutTicket` Redux thunk to persist changes
+
+### Additional Fix: updateCheckoutTicket only searched serviceTickets
+**Issue:** The `updateCheckoutTicket` thunk and reducer only looked in `serviceTickets` array
+**Impact:** Tickets from WaitList or Pending couldn't be updated (threw "Ticket not found" error)
+**Fix:** Updated both thunk and reducer to search across all arrays:
+- `serviceTickets` (in-service tickets)
+- `waitlistTickets` (waiting tickets)
+- `pendingTickets` (completed/pending tickets)
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/components/frontdesk/ServiceSection.tsx` | Fixed onClick handlers to open checkout panel |
+| `src/components/checkout/TicketPanel.tsx` | Added auto-save useEffect with proper load detection |
+| `src/store/slices/uiTicketsSlice.ts` | Fixed `updateCheckoutTicket` to search/update all ticket arrays |
+
+---
+
 # Phase 2: Fix Deep Imports
 
 ## Overview
@@ -926,3 +967,81 @@ Performed comprehensive UltraThink deep-dive analysis to identify ALL gaps in Fr
 4. [ ] Create Gherkin scenarios for key requirements
 5. [ ] Design team creates missing UI specifications
 6. [ ] Update PRD to v1.2 with critical additions
+
+---
+
+# Bug #12: Tickets Not Moving from Pending to Closed - FIXED
+
+## Date: December 29, 2024
+
+## Summary
+
+Fixed the critical bug where tickets were removed from Pending Payments but never appeared in Closed Tickets after payment completion.
+
+## Root Cause Analysis
+
+Two issues were identified:
+
+### Issue 1: `ticketId` was null for direct checkout flow
+When a ticket was created directly during checkout (not loaded from pending), `ticketId` was never set because `createTicketWithStatus` doesn't call `setTicketId`. The `handleCompletePayment` function then couldn't mark the ticket as paid.
+
+### Issue 2: Reducer not including financial data
+The `markTicketAsPaid.fulfilled` reducer wasn't including `total` or `paymentMethod` when creating the closed ticket entry.
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/checkout/TicketPanel.tsx` | Added `effectiveTicketId` logic to create ticket on-the-fly if not exists, ensuring ticketId always available for payment |
+| `src/store/slices/uiTicketsSlice.ts` | Updated thunk to return `paymentMethod` and `tip`, updated reducer to calculate `total` and format `paymentMethod` |
+
+## Key Code Changes
+
+### TicketPanel.tsx - Added effectiveTicketId pattern
+```typescript
+let effectiveTicketId = ticketId;
+
+// If no ticketId exists, create ticket first (direct checkout flow)
+if (!effectiveTicketId && services.length > 0) {
+  const result = await reduxDispatch(createCheckoutTicket({...})).unwrap();
+  effectiveTicketId = result.id;
+}
+
+// Use effectiveTicketId for all subsequent operations
+```
+
+### uiTicketsSlice.ts - Enhanced markTicketAsPaid reducer
+```typescript
+.addCase(markTicketAsPaid.fulfilled, (state, action) => {
+  const { ticketId, pendingTicket, paymentMethod, tip } = action.payload;
+
+  // Calculate total including tip
+  const total = (pendingTicket.subtotal || 0) + (pendingTicket.tax || 0) + (tip || 0);
+
+  const closedTicket = {
+    ...ticketData,
+    total,
+    paymentMethod: paymentMethod === 'credit-card' ? 'Card' : paymentMethod === 'cash' ? 'Cash' : paymentMethod,
+  };
+  state.completedTickets.push(closedTicket);
+})
+```
+
+## Verification
+
+- [x] Ticket removed from Pending Payments after payment
+- [x] Ticket appears in Closed Tickets
+- [x] Total displays correctly ($45.57)
+- [x] Payment method displays correctly (Cash)
+- [x] Works for both direct checkout and loaded pending tickets
+
+## Test Case
+
+1. Created new ticket with Manicure service ($35.00)
+2. Added 20% tip ($7.00)
+3. Total: $45.57 (with tax)
+4. Selected Cash payment, $50 received
+5. Completed payment
+6. Verified in Closed Tickets: `#baab5e6b-f578-4faf-93fb-ff3bbd378dd7` - $45.57 - Cash • 9:45 PM ✅
+
+---

@@ -148,12 +148,22 @@ export default function PaymentModal({
     .reduce((sum, m) => sum + m.amount, 0);
   const totalChangeToReturn = Math.max(0, totalCashTendered - totalCashApplied);
 
-  // Auto-advance to step 3 when fully paid
+  // Auto-advance to step 3 when fully paid and trigger completion
   useEffect(() => {
     if (isFullyPaid && currentStep === 2) {
       setCurrentStep(3);
+      // Bug #12 fix: Auto-trigger completion when advancing to step 3
+      // This ensures onComplete is called to close the ticket
+      setShowSuccess(true);
+      setTimeout(() => {
+        onComplete({
+          methods: paymentMethods,
+          tip: tipAmount,
+          tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
+        });
+      }, 800);
     }
-  }, [isFullyPaid, currentStep]);
+  }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete]);
 
   const handleQuickCash = (amount: number) => {
     setCashTendered(amount.toString());

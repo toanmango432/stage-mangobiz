@@ -357,7 +357,7 @@ export const ServiceSection = memo(function ServiceSection({
       boxShadow: '0 1px 2px rgba(0,0,0,0.03), 0 1px 1px rgba(0,0,0,0.02), inset 0 0 0 1px rgba(255,255,255,0.4)',
       transform: isExpanded ? 'scale(1.01)' : 'scale(1)',
       zIndex: isExpanded ? 10 : 'auto'
-    }} onClick={() => toggleTicketExpansion(ticket.id)}>
+    }} onClick={(e) => handleOpenTicket(ticket, e)}>
         {/* Ticket stub edge with semicircle cut-outs - more subtle */}
         <div className="absolute top-0 left-0 h-full w-1 flex flex-col justify-between items-center pointer-events-none opacity-40">
           <div className="w-3 h-3 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
@@ -614,7 +614,7 @@ export const ServiceSection = memo(function ServiceSection({
       backgroundImage: texturePattern,
       backgroundBlendMode: 'multiply',
       boxShadow: '0 1px 2px rgba(0,0,0,0.03), 0 1px 1px rgba(0,0,0,0.02), inset 0 0 0 1px rgba(255,255,255,0.4)'
-    }} onClick={() => toggleTicketExpansion(ticket.id)}>
+    }} onClick={(e) => handleOpenTicket(ticket, e)}>
         {/* Ticket stub edge with semicircle cut-outs - more subtle */}
         <div className="absolute top-0 left-0 h-full w-1 flex flex-col justify-between items-center pointer-events-none opacity-40">
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
@@ -684,7 +684,7 @@ export const ServiceSection = memo(function ServiceSection({
       boxShadow: '0 1px 2px rgba(0,0,0,0.03), 0 1px 1px rgba(0,0,0,0.02), inset 0 0 0 1px rgba(255,255,255,0.4)',
       transform: isExpanded ? 'scale(1.01)' : 'scale(1)',
       zIndex: isExpanded ? 10 : 'auto'
-    }} onClick={() => toggleTicketExpansion(ticket.id)}>
+    }} onClick={(e) => handleOpenTicket(ticket, e)}>
         {/* Ticket stub edge with semicircle cut-outs */}
         <div className="absolute top-0 left-0 h-full w-1 flex flex-col justify-between items-center pointer-events-none opacity-40">
           <div className="w-3 h-3 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
@@ -898,7 +898,7 @@ export const ServiceSection = memo(function ServiceSection({
       backgroundImage: texturePattern,
       backgroundBlendMode: 'multiply',
       boxShadow: '0 1px 2px rgba(0,0,0,0.03), 0 1px 1px rgba(0,0,0,0.02), inset 0 0 0 1px rgba(255,255,255,0.4)'
-    }} onClick={() => toggleTicketExpansion(ticket.id)}>
+    }} onClick={(e) => handleOpenTicket(ticket, e)}>
         {/* Ticket stub edge with semicircle cut-outs */}
         <div className="absolute top-0 left-0 h-full w-1 flex flex-col justify-between items-center pointer-events-none opacity-40">
           <div className="w-2 h-2 bg-gray-50 rounded-full transform translate-x-[-50%]"></div>
@@ -1188,8 +1188,12 @@ export const ServiceSection = memo(function ServiceSection({
                   onPause={(id: string) => pauseTicket?.(id)}
                   onResume={(id: string) => resumeTicket?.(id)}
                   onDelete={(id: string) => openDeleteConfirmation(id)}
-                  onClick={(_id: string) => {
-                    // Handle click to show details
+                  onClick={(id: string) => {
+                    // Open ticket in checkout panel
+                    const clickedTicket = filteredServiceTickets.find(t => t.id === id);
+                    if (clickedTicket) {
+                      handleOpenTicket(clickedTicket, { stopPropagation: () => {} } as React.MouseEvent);
+                    }
                   }}
                 />
               ))}
@@ -1226,8 +1230,12 @@ export const ServiceSection = memo(function ServiceSection({
                   onPause={(id: string) => pauseTicket?.(id)}
                   onResume={(id: string) => resumeTicket?.(id)}
                   onDelete={(id: string) => openDeleteConfirmation(id)}
-                  onClick={(_id: string) => {
-                    // Handle click to show details
+                  onClick={(id: string) => {
+                    // Open ticket in checkout panel
+                    const clickedTicket = filteredServiceTickets.find(t => t.id === id);
+                    if (clickedTicket) {
+                      handleOpenTicket(clickedTicket, { stopPropagation: () => {} } as React.MouseEvent);
+                    }
                   }}
                 />
               ))}
