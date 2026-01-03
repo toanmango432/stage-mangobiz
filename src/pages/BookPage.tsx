@@ -11,6 +11,7 @@ import { useBookSidebar } from '../hooks/useBookSidebar';
 import { selectAllStaff, loadStaff } from '../store/slices/uiStaffSlice';
 import { fetchTeamMembers } from '../store/slices/teamSlice';
 import { selectStoreId } from '../store/slices/authSlice';
+import { selectPendingBookingClient, clearPendingBookingClient } from '../store/slices/uiSlice';
 import {
   CalendarHeader,
   CommandPalette,
@@ -103,12 +104,13 @@ export function BookPage() {
   const salonId = getTestSalonId();
   const authStoreId = useAppSelector(selectStoreId);
   const allStaff = useAppSelector(selectAllStaff) || [];
+  const pendingBookingClient = useAppSelector(selectPendingBookingClient);
 
   // Load staff on mount - must fetch team members first (same pattern as useTicketsCompat)
   useEffect(() => {
     const storeId = authStoreId || 'default-store';
     console.log('[BookPage] Loading staff for storeId:', storeId);
-    
+
     // First fetch team members from Supabase into Redux, then load staff for UI
     // This ensures state.team.members is populated before loadStaff reads from it
     dispatch(fetchTeamMembers(storeId)).then(() => {
@@ -116,6 +118,14 @@ export function BookPage() {
       dispatch(loadStaff(storeId));
     });
   }, [dispatch, authStoreId]);
+
+  // Auto-open appointment modal when client is pre-selected from global search
+  useEffect(() => {
+    if (pendingBookingClient) {
+      setSelectedTimeSlot(null); // Clear any previous time slot selection
+      setIsNewAppointmentOpen(true);
+    }
+  }, [pendingBookingClient]);
 
   // Debug: Log staff data
   console.log('[BookPage] allStaff from uiStaffSlice:', allStaff.length, allStaff.map(s => s.name));
@@ -890,6 +900,8 @@ export function BookPage() {
           selectedStaffName={selectedTimeSlot?.staffName}
           onSave={handleSaveAppointment}
           viewMode="slide"
+          initialClient={pendingBookingClient}
+          onInitialClientUsed={() => dispatch(clearPendingBookingClient())}
         />
       </ErrorBoundary>
 

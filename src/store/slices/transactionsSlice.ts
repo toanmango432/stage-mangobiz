@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { transactionsDB, ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
+import { auditLogger } from '../../services/audit/auditLogger';
 // toTransaction/toTransactions not needed - dataService returns converted types
 import type { Transaction, PaymentMethod, CreateTransactionInput } from '../../types';
 import type { RootState } from '../index';
@@ -158,7 +159,29 @@ export const createTransactionInSupabase = createAsyncThunk(
       };
 
       // dataService.transactions.create returns Transaction directly
-      return await dataService.transactions.create(transactionData);
+      const transaction = await dataService.transactions.create(transactionData);
+
+      // Audit log payment creation
+      auditLogger.log({
+        action: 'payment_process',
+        entityType: 'transaction',
+        entityId: transaction.id,
+        description: `Payment ${input.paymentMethod}: $${total.toFixed(2)} for ${input.clientName || 'Walk-in'}`,
+        severity: 'high',
+        success: true,
+        metadata: {
+          paymentMethod: input.paymentMethod,
+          amount: total,
+          subtotal,
+          tax,
+          tip,
+          discount,
+          clientName: input.clientName,
+          ticketId: input.ticketId,
+        },
+      }).catch(console.warn);
+
+      return transaction;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create transaction');
     }
@@ -207,6 +230,23 @@ export const voidTransactionInSupabase = createAsyncThunk(
         status: 'voided',
       });
 
+      // Audit log void
+      if (updated) {
+        auditLogger.log({
+          action: 'void',
+          entityType: 'transaction',
+          entityId: id,
+          description: `Voided transaction $${transaction.total?.toFixed(2) || '0.00'} - ${_voidReason}`,
+          severity: 'high',
+          success: true,
+          metadata: {
+            originalAmount: transaction.total,
+            voidReason: _voidReason,
+            clientName: transaction.clientName,
+          },
+        }).catch(console.warn);
+      }
+
       return updated;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to void transaction');
@@ -244,6 +284,16 @@ export const refundTransactionInSupabase = createAsyncThunk(
       const updated = await dataService.transactions.update(id, {
         status: newStatus,
       });
+
+      // Audit log the refund
+      if (updated) {
+        auditLogger.logRefund(
+          `refund-${updated.id}`,
+          id,
+          refundAmount,
+          _refundReason || 'Customer requested refund'
+        ).catch(console.warn);
+      }
 
       return updated;
     } catch (error) {

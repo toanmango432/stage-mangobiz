@@ -13,6 +13,7 @@ import { PaymentProvider, PaymentRequest, PaymentResult } from './types';
 import { mockPaymentProvider } from './mockPaymentProvider';
 import { dataService } from '../dataService';
 import { captureException, addBreadcrumb } from '../monitoring/sentry';
+import { auditLogger } from '../audit/auditLogger';
 
 // Detect platform (for future native integration)
 const detectPlatform = (): 'web' | 'ios' | 'android' | 'desktop' => {
@@ -115,6 +116,20 @@ class PaymentBridge {
           },
         });
       }
+
+      // Audit log the payment
+      auditLogger.logPayment(
+        result.transactionId || request.ticketId || 'unknown',
+        request.amount,
+        request.method,
+        result.success,
+        {
+          ticketId: request.ticketId,
+          clientId: request.clientId,
+          errorCode: result.errorCode,
+          errorMessage: result.error,
+        }
+      ).catch(console.warn);
 
       console.log(`[PaymentBridge] Payment result:`, result.success ? 'SUCCESS' : 'FAILED');
       return result;
@@ -266,7 +281,25 @@ class PaymentBridge {
    * Void a transaction
    */
   async voidTransaction(transactionId: string): Promise<PaymentResult> {
-    return this.provider.voidTransaction(transactionId);
+    const result = await this.provider.voidTransaction(transactionId);
+
+    // Audit log the void (critical severity)
+    auditLogger.log({
+      action: 'void',
+      entityType: 'transaction',
+      entityId: transactionId,
+      description: result.success
+        ? `Transaction ${transactionId} voided`
+        : `Failed to void transaction ${transactionId}: ${result.error}`,
+      severity: 'critical',
+      success: result.success,
+      errorMessage: result.error,
+      metadata: {
+        errorCode: result.errorCode,
+      },
+    }).catch(console.warn);
+
+    return result;
   }
 }
 

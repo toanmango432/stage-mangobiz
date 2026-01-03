@@ -24,7 +24,8 @@ export type SearchEntityType =
   | 'ticket'
   | 'transaction'
   | 'setting'
-  | 'giftcard';
+  | 'giftcard'
+  | 'page';
 
 export type SearchPrefix =
   | ''           // General search
@@ -35,7 +36,8 @@ export type SearchPrefix =
   | 'staff:'     // Staff name
   | 'status:'    // Status filter
   | 'service:'   // Service name
-  | 'set:';      // Settings
+  | 'set:'       // Settings
+  | 'go:';       // Go to page/navigation
 
 // ============================================================================
 // Search Result Types
@@ -43,7 +45,7 @@ export type SearchPrefix =
 
 export interface SearchBadge {
   label: string;
-  color: 'green' | 'red' | 'orange' | 'blue' | 'purple' | 'gray' | 'amber' | 'emerald' | 'pink';
+  color: 'green' | 'red' | 'orange' | 'blue' | 'purple' | 'gray' | 'amber' | 'emerald' | 'pink' | 'slate' | 'indigo';
 }
 
 export interface QuickAction {
@@ -322,6 +324,12 @@ export const ENTITY_CONFIG: Record<SearchEntityType, {
     color: 'text-pink-600',
     bgColor: 'bg-pink-50',
   },
+  page: {
+    label: 'Pages',
+    icon: 'Navigation',
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50',
+  },
 };
 
 export const PREFIX_CONFIG: Record<SearchPrefix, {
@@ -384,12 +392,18 @@ export const PREFIX_CONFIG: Record<SearchPrefix, {
     icon: 'Settings',
     targetEntities: ['setting'],
   },
+  'go:': {
+    label: 'Go to',
+    description: 'Navigate to a page',
+    icon: 'Navigation',
+    targetEntities: ['page'],
+  },
 };
 
 // Default search options
 export const DEFAULT_SEARCH_OPTIONS: Required<SearchOptions> = {
   limit: 20,
-  entityTypes: ['client', 'staff', 'service', 'appointment', 'ticket', 'transaction', 'setting'],
+  entityTypes: ['client', 'staff', 'service', 'appointment', 'ticket', 'transaction', 'setting', 'page'],
   minScore: 0.4,
   boostRecent: true,
 };

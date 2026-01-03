@@ -12,6 +12,8 @@
  * - Export for compliance
  */
 
+import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { supabase } from '../supabase/client';
 import { captureException, addBreadcrumb } from '../monitoring/sentry';
 
@@ -43,6 +45,7 @@ export type AuditEntityType =
   | 'service'
   | 'user'
   | 'store'
+  | 'member'
   | 'settings';
 
 export type AuditSeverity = 'low' | 'medium' | 'high' | 'critical';
@@ -285,17 +288,25 @@ class AuditLogger {
     userId: string,
     userName: string,
     success: boolean,
-    errorMessage?: string
+    errorMessage?: string,
+    metadata?: Record<string, any>
   ): Promise<void> {
+    const loginMethod = metadata?.loginMethod || 'password';
+    const loginType = metadata?.loginType || 'user';
+
     await this.log({
       action: 'login',
-      entityType: 'user',
+      entityType: loginType === 'store' ? 'store' : loginType === 'member' ? 'member' : 'user',
       entityId: userId,
-      description: success ? `User ${userName} logged in` : `Login failed for ${userName}`,
+      description: success
+        ? `${loginType === 'store' ? 'Store' : 'User'} ${userName} logged in via ${loginMethod}`
+        : `Login failed for ${userName} via ${loginMethod}`,
       success,
       errorMessage,
       metadata: {
-        loginMethod: 'password', // or 'sso', 'pin', etc.
+        loginMethod,
+        loginType,
+        ...metadata,
       },
     });
   }
@@ -492,6 +503,8 @@ class AuditLogger {
    * Convert audit entry to database row
    */
   private entryToRow(entry: AuditEntry): Record<string, any> {
+    // Explicitly set store_id from context for filtering
+    // user_name is stored in context JSONB (no dedicated column)
     return {
       timestamp: entry.timestamp,
       action: entry.action,
@@ -506,6 +519,8 @@ class AuditLogger {
       metadata: entry.metadata,
       success: entry.success,
       error_message: entry.errorMessage,
+      // Explicitly set store_id for query filtering (not a GENERATED column)
+      store_id: entry.context?.storeId || null,
     };
   }
 
@@ -583,5 +598,76 @@ class AuditLogger {
 // ============================================================================
 
 export const auditLogger = new AuditLogger();
+
+// ============================================================================
+// REACT HOOK FOR CONTEXT MANAGEMENT
+// ============================================================================
+
+/**
+ * React hook to automatically set audit context based on auth state
+ *
+ * Usage:
+ * ```tsx
+ * // In App.tsx or AuthProvider
+ * import { useAuditContext } from '@/services/audit/auditLogger';
+ *
+ * function App() {
+ *   useAuditContext(); // Sets context from Redux auth state
+ *   return <AppContent />;
+ * }
+ * ```
+ */
+export function useAuditContext(): void {
+
+  // Get auth state from Redux
+  const store = useSelector((state: any) => state.auth?.store);
+  const member = useSelector((state: any) => state.auth?.member);
+  const salonId = useSelector((state: any) => state.auth?.salonId);
+
+  useEffect(() => {
+    // Set audit context when auth state changes
+    if (store || member || salonId) {
+      auditLogger.setContext({
+        // Store context
+        storeId: store?.storeId || salonId || undefined,
+        storeName: store?.storeName,
+        tenantId: store?.tenantId,
+        // User context
+        userId: member?.memberId || store?.storeId,
+        userName: member?.memberName || store?.storeName,
+        userRole: member?.role,
+        // Platform detection
+        platform: detectPlatform(),
+      });
+    }
+
+    // Cleanup on unmount or when logging out
+    return () => {
+      // Only clear if we're unmounting due to logout (no auth data)
+      // Don't clear on every re-render
+    };
+  }, [store, member, salonId]);
+}
+
+/**
+ * Detect current platform for audit context
+ */
+function detectPlatform(): 'web' | 'ios' | 'android' | 'desktop' {
+  if (typeof window === 'undefined') return 'web';
+
+  // Check for Capacitor (iOS/Android)
+  if ((window as any).Capacitor) {
+    const platform = (window as any).Capacitor.getPlatform();
+    if (platform === 'ios') return 'ios';
+    if (platform === 'android') return 'android';
+  }
+
+  // Check for Electron (Desktop)
+  if ((window as any).electron) {
+    return 'desktop';
+  }
+
+  return 'web';
+}
 
 export default auditLogger;

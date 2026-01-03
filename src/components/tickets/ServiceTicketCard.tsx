@@ -6,6 +6,16 @@ import { TicketDetailsModal } from './TicketDetailsModal';
 // Service status for individual services within a ticket
 type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
 
+// Checkout service type for displaying actual services
+interface CheckoutService {
+  id: string;
+  serviceName: string;
+  price: number;
+  duration?: number;
+  staffId?: string;
+  staffName?: string;
+}
+
 interface ServiceTicketCardProps {
   ticket: {
     id: string;
@@ -35,6 +45,8 @@ interface ServiceTicketCardProps {
     lastVisitDate?: Date | null; // null for first-time clients
     // Service status - determines if ticket is paused
     serviceStatus?: ServiceStatus;
+    // Actual services from checkout panel (auto-saved)
+    checkoutServices?: CheckoutService[];
   };
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onComplete?: (ticketId: string) => void;
@@ -115,6 +127,22 @@ function ServiceTicketCardComponent({
   const isFirstVisit = ticket.clientType === 'New';
   const hasStar = ticket.clientType === 'VIP';
   const hasNote = !!ticket.notes;
+
+  // Compute actual service display from checkoutServices if available
+  const hasCheckoutServices = ticket.checkoutServices && ticket.checkoutServices.length > 0;
+  const serviceCount = hasCheckoutServices ? ticket.checkoutServices!.length : 1;
+  const serviceTotal = hasCheckoutServices
+    ? ticket.checkoutServices!.reduce((sum, s) => sum + (s.price || 0), 0)
+    : 0;
+
+  // Get service display text - show first service + count if multiple
+  const getServiceDisplay = () => {
+    if (!hasCheckoutServices) return ticket.service;
+    const services = ticket.checkoutServices!;
+    if (services.length === 1) return services[0].serviceName;
+    return `${services[0].serviceName} +${services.length - 1} more`;
+  };
+  const serviceDisplay = getServiceDisplay();
 
   // Format last visit date
   const getLastVisitText = () => {
@@ -202,7 +230,14 @@ function ServiceTicketCardComponent({
 
             {/* Row 2: Service + Progress + Staff */}
             <div className="flex items-center justify-between gap-1">
-              <div className="text-2xs text-[#6b5d52] truncate leading-tight flex-1 min-w-0">{ticket.service}</div>
+              <div className="text-2xs text-[#6b5d52] truncate leading-tight flex-1 min-w-0 flex items-center gap-1">
+                <span className="truncate">{serviceDisplay}</span>
+                {hasCheckoutServices && serviceCount > 1 && (
+                  <span className="flex-shrink-0 text-[8px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-semibold">
+                    ${serviceTotal.toFixed(0)}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <span className="text-2xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
                 {/* Staff badges (max 2) */}
@@ -352,7 +387,14 @@ function ServiceTicketCardComponent({
 
           {/* Row 2: Service + Staff badges + Done/Resume button */}
           <div className="flex items-center justify-between gap-1.5 mt-1">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
+            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 flex items-center gap-1.5">
+              <span className="truncate">{serviceDisplay}</span>
+              {hasCheckoutServices && serviceCount > 1 && (
+                <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                  ${serviceTotal.toFixed(0)}
+                </span>
+              )}
+            </div>
 
             {/* Staff badges + Done/Resume button */}
             <div className="relative flex-shrink-0 flex items-center gap-2">
@@ -416,7 +458,14 @@ function ServiceTicketCardComponent({
         <div className="flex items-start justify-between px-3 sm:px-4 pt-4 sm:pt-5 pb-1 pl-12 sm:pl-14"><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="text-base sm:text-lg md:text-xl font-bold text-[#1a1614] truncate tracking-tight">{ticket.clientName}</span>{hasStar && <span className="text-sm sm:text-base md:text-lg flex-shrink-0">⭐</span>}{hasNote && <span className="text-sm sm:text-base md:text-lg flex-shrink-0">📋</span>}</div><div className="text-2xs sm:text-xs text-[#6b5d52] font-medium tracking-wide">{getLastVisitText()}</div></div>
           <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Pause size={14} /> Pause</button><button onClick={(e) => { e.stopPropagation(); setShowDetailsModal(true); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><StickyNote size={14} /> Details</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-1 sm:p-1.5 rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 -mr-0.5 sm:-mr-1"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
         </div>
-        <div className="px-3 sm:px-4 pb-3 sm:pb-4 text-sm sm:text-base text-[#1a1614] font-semibold leading-snug tracking-tight line-clamp-2">{ticket.service}</div>
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4 text-sm sm:text-base text-[#1a1614] font-semibold leading-snug tracking-tight flex items-center gap-2">
+          <span className="line-clamp-2">{serviceDisplay}</span>
+          {hasCheckoutServices && serviceCount > 1 && (
+            <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+              ${serviceTotal.toFixed(0)}
+            </span>
+          )}
+        </div>
         <div className="mx-3 sm:px-4 mb-3 sm:mb-4 border-t border-[#e8dcc8]/50" />
         <div className="px-3 sm:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-xs sm:text-sm text-[#6b5d52] font-medium">{formatTime(timeRemaining)} left</div><div className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-3 sm:px-4 pb-4 sm:pb-5"><div className="h-2 sm:h-2.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden" style={{ boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} /></div></div>
@@ -447,7 +496,14 @@ function ServiceTicketCardComponent({
         <div className="flex items-start justify-between px-2 sm:px-3 pt-2 sm:pt-3 pb-1 pl-9 sm:pl-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 sm:gap-1.5 mb-0.5"><span className="text-sm sm:text-base font-bold text-[#1a1614] truncate">{ticket.clientName}</span>{hasStar && <span className="text-xs sm:text-sm flex-shrink-0">⭐</span>}{hasNote && <span className="text-xs sm:text-sm flex-shrink-0">📋</span>}</div><div className="text-2xs text-[#6b5d52] font-medium">{getLastVisitText()}</div></div>
           <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"><button onClick={(e) => { e.stopPropagation(); onPause?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Pause size={12} /> Pause</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-0.5 sm:p-1 rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"><MoreVertical size={14} className="sm:w-4 sm:h-4" /></button></Tippy>
         </div>
-        <div className="px-2 sm:px-3 pb-2 sm:pb-3 text-xs sm:text-sm text-[#1a1614] font-semibold line-clamp-1">{ticket.service}</div>
+        <div className="px-2 sm:px-3 pb-2 sm:pb-3 text-xs sm:text-sm text-[#1a1614] font-semibold flex items-center gap-1">
+          <span className="line-clamp-1">{serviceDisplay}</span>
+          {hasCheckoutServices && serviceCount > 1 && (
+            <span className="flex-shrink-0 text-[9px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-semibold">
+              ${serviceTotal.toFixed(0)}
+            </span>
+          )}
+        </div>
         <div className="mx-2 sm:mx-3 mb-2 border-t border-[#e8dcc8]/50" />
         <div className="px-2 sm:px-3 pb-1 flex items-center justify-between"><div className="text-2xs sm:text-xs text-[#6b5d52]">{formatTime(timeRemaining)} left</div><div className="text-base sm:text-lg font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-2 sm:px-3 pb-2 sm:pb-3"><div className="h-1.5 sm:h-2 bg-[#f5f0e8] rounded-full overflow-hidden"><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} /></div></div>

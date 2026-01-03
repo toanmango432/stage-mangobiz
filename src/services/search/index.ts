@@ -121,6 +121,7 @@ export {
   getTicketActions,
   getTransactionActions,
   getSettingActions,
+  getPageActions,
 } from './searchers';
 
 // Settings registry (for settings search)
@@ -133,3 +134,12 @@ export {
   getCategorySummary,
 } from './settingsRegistry';
 export type { SettingEntry, SettingCategory } from './settingsRegistry';
+
+// Pages registry (for page/navigation search)
+export {
+  PAGES_REGISTRY,
+  getPagesByCategory,
+  getPageById,
+  getPagesForDevice,
+} from './pagesRegistry';
+export type { PageEntry } from './pagesRegistry';

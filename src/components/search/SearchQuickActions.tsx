@@ -19,6 +19,7 @@ import {
   Scissors,
   Settings,
   Sparkles,
+  Navigation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SearchPrefix } from '@/services/search';
@@ -110,10 +111,18 @@ const PREFIX_STYLES: Record<SearchPrefix, PrefixStyle> = {
     borderColor: 'border-slate-200/60',
     shadowColor: 'shadow-slate-500/20',
   },
+  'go:': {
+    icon: Navigation,
+    gradient: 'from-indigo-400 to-indigo-500',
+    iconColor: 'text-indigo-500',
+    bgColor: 'bg-indigo-50',
+    borderColor: 'border-indigo-200/60',
+    shadowColor: 'shadow-indigo-500/20',
+  },
 };
 
 // Prefixes to display (excluding empty and status prefixes for cleaner UI)
-const DISPLAY_PREFIXES: SearchPrefix[] = ['#', '@', '$', 'date:', 'staff:', 'service:', 'set:'];
+const DISPLAY_PREFIXES: SearchPrefix[] = ['#', '@', '$', 'date:', 'staff:', 'service:', 'set:', 'go:'];
 
 // ============================================================================
 // Types

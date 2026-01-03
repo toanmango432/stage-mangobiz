@@ -29,6 +29,8 @@ import type { Ticket } from '@/types/Ticket';
 import type { Transaction } from '@/types/transaction';
 import { SETTINGS_REGISTRY, SETTING_CATEGORY_CONFIG } from './settingsRegistry';
 import type { SettingEntry } from './settingsRegistry';
+import { PAGES_REGISTRY } from './pagesRegistry';
+import type { PageEntry } from './pagesRegistry';
 
 // ============================================================================
 // Search Index Class
@@ -96,6 +98,9 @@ export class SearchIndex {
       // Index settings (static data from registry)
       this.indexSettings();
 
+      // Index pages (static navigation data from registry)
+      this.indexPages();
+
       this.lastUpdate = Date.now();
 
       const duration = performance.now() - startTime;
@@ -136,6 +141,7 @@ export class SearchIndex {
       transaction: 0,
       setting: 0,
       giftcard: 0,
+      page: 0,
     };
 
     for (const entity of this.entities.values()) {
@@ -548,6 +554,44 @@ export class SearchIndex {
     this.entities.set(key, indexed);
   }
 
+  /**
+   * Index all pages from the registry (static navigation data)
+   */
+  private indexPages(): void {
+    PAGES_REGISTRY.forEach((page) => this.indexPage(page));
+  }
+
+  private indexPage(page: PageEntry): void {
+    const key = `page:${page.id}`;
+
+    const badges: SearchBadge[] = [
+      { label: page.category.charAt(0).toUpperCase() + page.category.slice(1), color: 'indigo' },
+    ];
+
+    const indexed: IndexedEntity = {
+      key,
+      id: page.id,
+      type: 'page',
+      searchableText: [
+        normalizeText(page.label),
+        normalizeText(page.description || ''),
+        ...page.keywords.map((k) => normalizeText(k)),
+      ].filter(Boolean),
+      phoneNumbers: [],
+      displayData: {
+        title: page.label,
+        subtitle: page.description,
+        badges,
+        category: page.category,
+        // Store the page id for navigation
+        status: page.id,
+      },
+      timestamp: Date.now(), // Static data, no real timestamp
+    };
+
+    this.entities.set(key, indexed);
+  }
+
   // ==========================================================================
   // Phone Index Management
   // ==========================================================================
@@ -814,6 +858,9 @@ export class SearchIndex {
         break;
       case 'giftcard':
         // Gift cards deferred - no data layer yet
+        break;
+      case 'page':
+        this.indexPage(data as PageEntry);
         break;
     }
     this.lastUpdate = Date.now();

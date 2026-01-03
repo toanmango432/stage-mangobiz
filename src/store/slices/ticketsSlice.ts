@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
+import { auditLogger } from '../../services/audit/auditLogger';
 // toTicket/toTickets not needed - dataService returns converted types
 import type { Ticket, CreateTicketInput, TicketService } from '../../types';
 import type { ServiceStatus, ServiceStatusChange } from '../../types/common';
@@ -144,6 +145,17 @@ export const deleteTicketInSupabase = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       await dataService.tickets.delete(id);
+
+      // Audit log ticket deletion (high severity)
+      auditLogger.log({
+        action: 'delete',
+        entityType: 'ticket',
+        entityId: id,
+        description: `Ticket ${id} deleted`,
+        severity: 'high',
+        success: true,
+      }).catch(console.warn);
+
       return id;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete ticket');
@@ -241,7 +253,32 @@ export const updateServiceStatusInSupabase = createAsyncThunk(
       updatedServices[serviceIndex] = { ...service, ...serviceUpdates };
 
       // dataService.tickets.update returns Ticket directly
-      return await dataService.tickets.update(ticketId, { services: updatedServices });
+      const updatedTicket = await dataService.tickets.update(ticketId, { services: updatedServices });
+
+      // Audit log service status change (only for significant transitions)
+      if (newStatus === 'in_progress' && previousStatus === 'not_started') {
+        auditLogger.log({
+          action: 'update',
+          entityType: 'ticket',
+          entityId: ticketId,
+          description: `Service "${service.serviceName}" started for ticket #${ticket.number}`,
+          severity: 'low',
+          success: true,
+          metadata: { serviceId, newStatus, staffName: service.staffName },
+        }).catch(console.warn);
+      } else if (newStatus === 'completed') {
+        auditLogger.log({
+          action: 'update',
+          entityType: 'ticket',
+          entityId: ticketId,
+          description: `Service "${service.serviceName}" completed for ticket #${ticket.number}`,
+          severity: 'low',
+          success: true,
+          metadata: { serviceId, newStatus, actualDuration: serviceUpdates.actualDuration },
+        }).catch(console.warn);
+      }
+
+      return updatedTicket;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to update service status');
     }

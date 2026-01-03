@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { clientsDB, patchTestsDB, formResponsesDB, referralsDB, clientReviewsDB, loyaltyRewardsDB, reviewRequestsDB, customSegmentsDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
+import { auditLogger } from '../../services/audit/auditLogger';
 // toClient/toClients/etc not needed - dataService returns converted types
 import type {
   Client,
@@ -169,7 +170,20 @@ export const createClientInSupabase = createAsyncThunk(
   'clients/createInSupabase',
   async (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
     // dataService.clients.create returns Client directly
-    return await dataService.clients.create(client);
+    const created = await dataService.clients.create(client);
+
+    // Audit log client creation
+    auditLogger.log({
+      action: 'create',
+      entityType: 'client',
+      entityId: created.id,
+      description: `Created client: ${created.firstName} ${created.lastName}`,
+      severity: 'low',
+      success: true,
+      newData: { firstName: created.firstName, lastName: created.lastName, phone: created.phone, email: created.email },
+    }).catch(console.warn);
+
+    return created;
   }
 );
 
@@ -182,6 +196,19 @@ export const updateClientInSupabase = createAsyncThunk(
     // dataService.clients.update returns Client directly
     const updated = await dataService.clients.update(id, updates);
     if (!updated) throw new Error('Failed to update client');
+
+    // Audit log client update
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: id,
+      description: `Updated client: ${updated.firstName} ${updated.lastName}`,
+      severity: 'low',
+      success: true,
+      changedFields: Object.keys(updates),
+      newData: updates,
+    }).catch(console.warn);
+
     return updated;
   }
 );
@@ -191,8 +218,24 @@ export const updateClientInSupabase = createAsyncThunk(
  */
 export const deleteClientInSupabase = createAsyncThunk(
   'clients/deleteInSupabase',
-  async (id: string) => {
+  async (id: string, { getState }) => {
+    // Get client info before deletion for audit log
+    const state = getState() as { clients: { items: Client[] } };
+    const client = state.clients.items.find(c => c.id === id);
+
     await dataService.clients.delete(id);
+
+    // Audit log client deletion
+    auditLogger.log({
+      action: 'delete',
+      entityType: 'client',
+      entityId: id,
+      description: client ? `Deleted client: ${client.firstName} ${client.lastName}` : `Deleted client: ${id}`,
+      severity: 'medium',
+      success: true,
+      oldData: client ? { firstName: client.firstName, lastName: client.lastName } : undefined,
+    }).catch(console.warn);
+
     return id;
   }
 );
@@ -312,6 +355,18 @@ export const blockClient = createAsyncThunk(
   }) => {
     const updated = await clientsDB.block(id, reason, blockedBy, note);
     if (!updated) throw new Error('Failed to block client');
+
+    // Audit log client blocked (high severity)
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: id,
+      description: `Client ${updated.firstName} ${updated.lastName} blocked: ${reason}`,
+      severity: 'high',
+      success: true,
+      metadata: { reason, blockedBy, note },
+    }).catch(console.warn);
+
     return updated;
   }
 );
@@ -322,6 +377,17 @@ export const unblockClient = createAsyncThunk(
   async (id: string) => {
     const updated = await clientsDB.unblock(id);
     if (!updated) throw new Error('Failed to unblock client');
+
+    // Audit log client unblocked
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: id,
+      description: `Client ${updated.firstName} ${updated.lastName} unblocked`,
+      severity: 'medium',
+      success: true,
+    }).catch(console.warn);
+
     return updated;
   }
 );
@@ -362,6 +428,18 @@ export const setClientVipStatus = createAsyncThunk(
   async ({ id, isVip }: { id: string; isVip: boolean }) => {
     const updated = await clientsDB.setVipStatus(id, isVip);
     if (!updated) throw new Error('Failed to update VIP status');
+
+    // Audit log VIP status change
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: id,
+      description: `Client ${updated.firstName} ${updated.lastName} VIP status ${isVip ? 'enabled' : 'removed'}`,
+      severity: 'medium',
+      success: true,
+      metadata: { isVip },
+    }).catch(console.warn);
+
     return updated;
   }
 );
@@ -370,7 +448,19 @@ export const setClientVipStatus = createAsyncThunk(
 export const bulkUpdateClients = createAsyncThunk(
   'clients/bulkUpdate',
   async ({ ids, updates }: { ids: string[]; updates: Partial<Client> }) => {
-    return await clientsDB.bulkUpdate(ids, updates);
+    const result = await clientsDB.bulkUpdate(ids, updates);
+
+    // Audit log bulk update
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      description: `Bulk updated ${ids.length} clients`,
+      severity: 'medium',
+      success: true,
+      metadata: { clientIds: ids, updateFields: Object.keys(updates) },
+    }).catch(console.warn);
+
+    return result;
   }
 );
 
@@ -378,7 +468,19 @@ export const bulkUpdateClients = createAsyncThunk(
 export const bulkDeleteClients = createAsyncThunk(
   'clients/bulkDelete',
   async (ids: string[]) => {
-    return await clientsDB.bulkDelete(ids);
+    const result = await clientsDB.bulkDelete(ids);
+
+    // Audit log bulk delete (high severity - destructive operation)
+    auditLogger.log({
+      action: 'delete',
+      entityType: 'client',
+      description: `Bulk deleted ${ids.length} clients`,
+      severity: 'high',
+      success: true,
+      metadata: { clientIds: ids },
+    }).catch(console.warn);
+
+    return result;
   }
 );
 
@@ -451,6 +553,22 @@ export const earnLoyaltyPoints = createAsyncThunk<
       throw new Error('Failed to update client loyalty');
     }
 
+    // Audit log loyalty points earned
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: input.clientId,
+      description: `Client ${updatedClient.firstName} ${updatedClient.lastName} earned ${result.pointsEarned} loyalty points`,
+      severity: 'low',
+      success: true,
+      metadata: {
+        pointsEarned: result.pointsEarned,
+        newBalance: updatedLoyaltyInfo.pointsBalance,
+        tierChanged: result.tierChanged,
+        transactionId: input.transactionId,
+      },
+    }).catch(console.warn);
+
     return { client: updatedClient, result };
   }
 );
@@ -488,6 +606,21 @@ export const redeemLoyaltyPoints = createAsyncThunk<
     if (!updatedClient) {
       throw new Error('Failed to update client after points redemption');
     }
+
+    // Audit log loyalty points redemption
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: clientId,
+      description: `Client ${updatedClient.firstName} ${updatedClient.lastName} redeemed ${pointsToRedeem} loyalty points`,
+      severity: 'medium',
+      success: true,
+      metadata: {
+        pointsRedeemed: pointsToRedeem,
+        previousBalance: availablePoints,
+        newBalance: updatedLoyaltyInfo.pointsBalance,
+      },
+    }).catch(console.warn);
 
     return updatedClient;
   }

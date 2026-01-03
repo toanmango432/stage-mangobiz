@@ -225,6 +225,28 @@ export interface Database {
           status: string;
           is_active: boolean;
           schedule: Json;
+          // New fields from migration 008
+          role: StaffRole;
+          hire_date: string | null;
+          employment_type: EmploymentType;
+          termination_date: string | null;
+          commission_settings: Json;
+          wage_settings: Json;
+          online_booking_settings: Json;
+          permissions: Json;
+          professional_profile: Json;
+          hr_info: Json;
+          notification_preferences: Json;
+          performance_goals: Json;
+          turn_queue_position: number;
+          daily_turn_count: number;
+          daily_revenue: number;
+          clocked_in_at: string | null;
+          current_ticket_id: string | null;
+          average_rating: number;
+          total_reviews: number;
+          service_assignments: Json;
+          // Sync fields
           sync_status: string;
           sync_version: number;
           created_at: string;
@@ -239,6 +261,26 @@ export interface Database {
           status?: string;
           is_active?: boolean;
           schedule?: Json;
+          role?: StaffRole;
+          hire_date?: string | null;
+          employment_type?: EmploymentType;
+          termination_date?: string | null;
+          commission_settings?: Json;
+          wage_settings?: Json;
+          online_booking_settings?: Json;
+          permissions?: Json;
+          professional_profile?: Json;
+          hr_info?: Json;
+          notification_preferences?: Json;
+          performance_goals?: Json;
+          turn_queue_position?: number;
+          daily_turn_count?: number;
+          daily_revenue?: number;
+          clocked_in_at?: string | null;
+          current_ticket_id?: string | null;
+          average_rating?: number;
+          total_reviews?: number;
+          service_assignments?: Json;
           sync_status?: string;
           sync_version?: number;
           created_at?: string;
@@ -392,6 +434,332 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['transactions']['Insert']>;
       };
+
+      // Team Module Tables (migrations 009-013)
+
+      timesheets: {
+        Row: {
+          id: string;
+          store_id: string;
+          staff_id: string;
+          date: string;
+          scheduled_start: string | null;
+          scheduled_end: string | null;
+          scheduled_break_minutes: number;
+          actual_clock_in: string | null;
+          actual_clock_out: string | null;
+          breaks: Json;
+          hours: Json;
+          is_late_arrival: boolean;
+          is_early_departure: boolean;
+          is_no_show: boolean;
+          late_minutes: number;
+          early_departure_minutes: number;
+          status: TimesheetStatus;
+          approved_by: string | null;
+          approved_at: string | null;
+          dispute_reason: string | null;
+          dispute_notes: string | null;
+          notes: string | null;
+          manager_notes: string | null;
+          clock_in_location: Json | null;
+          clock_out_location: Json | null;
+          clock_in_photo_url: string | null;
+          clock_out_photo_url: string | null;
+          sync_status: string;
+          sync_version: number;
+          created_by: string | null;
+          created_by_device: string | null;
+          last_modified_by: string | null;
+          last_modified_by_device: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          staff_id: string;
+          date: string;
+          scheduled_start?: string | null;
+          scheduled_end?: string | null;
+          scheduled_break_minutes?: number;
+          actual_clock_in?: string | null;
+          actual_clock_out?: string | null;
+          breaks?: Json;
+          hours?: Json;
+          is_late_arrival?: boolean;
+          is_early_departure?: boolean;
+          is_no_show?: boolean;
+          late_minutes?: number;
+          early_departure_minutes?: number;
+          status?: TimesheetStatus;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          dispute_reason?: string | null;
+          dispute_notes?: string | null;
+          notes?: string | null;
+          manager_notes?: string | null;
+          clock_in_location?: Json | null;
+          clock_out_location?: Json | null;
+          clock_in_photo_url?: string | null;
+          clock_out_photo_url?: string | null;
+          sync_status?: string;
+          sync_version?: number;
+          created_by?: string | null;
+          created_by_device?: string | null;
+          last_modified_by?: string | null;
+          last_modified_by_device?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['timesheets']['Insert']>;
+      };
+
+      pay_runs: {
+        Row: {
+          id: string;
+          store_id: string;
+          tenant_id: string | null;
+          period_start: string;
+          period_end: string;
+          pay_date: string | null;
+          pay_period_type: PayPeriodType;
+          status: PayRunStatus;
+          staff_payments: Json;
+          totals: Json;
+          submitted_by: string | null;
+          submitted_at: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          approval_notes: string | null;
+          processed_by: string | null;
+          processed_at: string | null;
+          processing_notes: string | null;
+          payment_method: string | null;
+          voided_by: string | null;
+          voided_at: string | null;
+          void_reason: string | null;
+          rejected_by: string | null;
+          rejected_at: string | null;
+          rejection_reason: string | null;
+          notes: string | null;
+          sync_status: string;
+          sync_version: number;
+          created_by: string | null;
+          created_by_device: string | null;
+          last_modified_by: string | null;
+          last_modified_by_device: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          tenant_id?: string | null;
+          period_start: string;
+          period_end: string;
+          pay_date?: string | null;
+          pay_period_type?: PayPeriodType;
+          status?: PayRunStatus;
+          staff_payments?: Json;
+          totals?: Json;
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          approval_notes?: string | null;
+          processed_by?: string | null;
+          processed_at?: string | null;
+          processing_notes?: string | null;
+          payment_method?: string | null;
+          voided_by?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          rejected_by?: string | null;
+          rejected_at?: string | null;
+          rejection_reason?: string | null;
+          notes?: string | null;
+          sync_status?: string;
+          sync_version?: number;
+          created_by?: string | null;
+          created_by_device?: string | null;
+          last_modified_by?: string | null;
+          last_modified_by_device?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['pay_runs']['Insert']>;
+      };
+
+      turn_logs: {
+        Row: {
+          id: string;
+          store_id: string;
+          staff_id: string;
+          date: string;
+          turn_number: number;
+          turn_type: TurnType;
+          turn_value: number;
+          ticket_id: string | null;
+          appointment_id: string | null;
+          client_name: string | null;
+          services: string[] | null;
+          service_amount: number;
+          adjustment_reason: string | null;
+          adjusted_by: string | null;
+          is_voided: boolean;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+          turn_timestamp: string;
+          created_by: string | null;
+          created_by_device: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          staff_id: string;
+          date?: string;
+          turn_number: number;
+          turn_type: TurnType;
+          turn_value?: number;
+          ticket_id?: string | null;
+          appointment_id?: string | null;
+          client_name?: string | null;
+          services?: string[] | null;
+          service_amount?: number;
+          adjustment_reason?: string | null;
+          adjusted_by?: string | null;
+          is_voided?: boolean;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+          turn_timestamp?: string;
+          created_by?: string | null;
+          created_by_device?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['turn_logs']['Insert']>;
+      };
+
+      time_off_requests: {
+        Row: {
+          id: string;
+          store_id: string;
+          staff_id: string;
+          request_type: TimeOffType;
+          start_date: string;
+          end_date: string;
+          all_day: boolean;
+          start_time: string | null;
+          end_time: string | null;
+          notes: string | null;
+          reason: string | null;
+          total_hours: number | null;
+          status: TimeOffStatus;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_notes: string | null;
+          has_conflicts: boolean;
+          conflict_details: Json | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          cancellation_reason: string | null;
+          sync_status: string;
+          sync_version: number;
+          created_by: string | null;
+          created_by_device: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          staff_id: string;
+          request_type: TimeOffType;
+          start_date: string;
+          end_date: string;
+          all_day?: boolean;
+          start_time?: string | null;
+          end_time?: string | null;
+          notes?: string | null;
+          reason?: string | null;
+          total_hours?: number | null;
+          status?: TimeOffStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_notes?: string | null;
+          has_conflicts?: boolean;
+          conflict_details?: Json | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          cancellation_reason?: string | null;
+          sync_status?: string;
+          sync_version?: number;
+          created_by?: string | null;
+          created_by_device?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['time_off_requests']['Insert']>;
+      };
+
+      staff_ratings: {
+        Row: {
+          id: string;
+          store_id: string;
+          staff_id: string;
+          client_id: string | null;
+          client_name: string | null;
+          appointment_id: string | null;
+          ticket_id: string | null;
+          rating: number;
+          review_text: string | null;
+          is_public: boolean;
+          is_verified: boolean;
+          status: RatingStatus;
+          flagged_reason: string | null;
+          moderated_by: string | null;
+          moderated_at: string | null;
+          moderation_notes: string | null;
+          response_text: string | null;
+          response_by: string | null;
+          response_at: string | null;
+          services_performed: string[] | null;
+          service_date: string | null;
+          source: RatingSource;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          staff_id: string;
+          client_id?: string | null;
+          client_name?: string | null;
+          appointment_id?: string | null;
+          ticket_id?: string | null;
+          rating: number;
+          review_text?: string | null;
+          is_public?: boolean;
+          is_verified?: boolean;
+          status?: RatingStatus;
+          flagged_reason?: string | null;
+          moderated_by?: string | null;
+          moderated_at?: string | null;
+          moderation_notes?: string | null;
+          response_text?: string | null;
+          response_by?: string | null;
+          response_at?: string | null;
+          services_performed?: string[] | null;
+          service_date?: string | null;
+          source?: RatingSource;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['staff_ratings']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -444,3 +812,81 @@ export type LicenseUpdate = Database['public']['Tables']['licenses']['Update'];
 // Auth session types for the application
 export type MemberRole = 'owner' | 'manager' | 'staff' | 'receptionist' | 'junior' | 'admin';
 export type LicenseTier = 'starter' | 'growth' | 'pro' | 'enterprise';
+
+// Team Module Enums (matching migrations 008-013)
+export type StaffRole =
+  | 'owner'
+  | 'manager'
+  | 'senior_stylist'
+  | 'stylist'
+  | 'junior_stylist'
+  | 'apprentice'
+  | 'barber'
+  | 'colorist'
+  | 'nail_technician'
+  | 'esthetician'
+  | 'massage_therapist'
+  | 'makeup_artist'
+  | 'receptionist'
+  | 'assistant';
+
+export type EmploymentType = 'full-time' | 'part-time' | 'contractor' | 'temporary';
+
+export type TimesheetStatus = 'pending' | 'approved' | 'disputed' | 'auto_approved';
+
+export type PayRunStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'approved'
+  | 'processing'
+  | 'processed'
+  | 'voided'
+  | 'rejected';
+
+export type PayPeriodType = 'weekly' | 'bi-weekly' | 'semi-monthly' | 'monthly';
+
+export type TurnType =
+  | 'service'
+  | 'checkout'
+  | 'bonus'
+  | 'adjust'
+  | 'tardy'
+  | 'partial'
+  | 'void'
+  | 'appointment';
+
+export type TimeOffType =
+  | 'vacation'
+  | 'sick'
+  | 'personal'
+  | 'unpaid'
+  | 'bereavement'
+  | 'jury_duty'
+  | 'other';
+
+export type TimeOffStatus = 'pending' | 'approved' | 'denied' | 'cancelled' | 'expired';
+
+export type RatingStatus = 'active' | 'hidden' | 'flagged' | 'removed' | 'pending_review';
+
+export type RatingSource = 'in_app' | 'online_booking' | 'google' | 'yelp' | 'imported';
+
+// Team Module Table Types
+export type TimesheetRow = Database['public']['Tables']['timesheets']['Row'];
+export type TimesheetInsert = Database['public']['Tables']['timesheets']['Insert'];
+export type TimesheetUpdate = Database['public']['Tables']['timesheets']['Update'];
+
+export type PayRunRow = Database['public']['Tables']['pay_runs']['Row'];
+export type PayRunInsert = Database['public']['Tables']['pay_runs']['Insert'];
+export type PayRunUpdate = Database['public']['Tables']['pay_runs']['Update'];
+
+export type TurnLogRow = Database['public']['Tables']['turn_logs']['Row'];
+export type TurnLogInsert = Database['public']['Tables']['turn_logs']['Insert'];
+export type TurnLogUpdate = Database['public']['Tables']['turn_logs']['Update'];
+
+export type TimeOffRequestRow = Database['public']['Tables']['time_off_requests']['Row'];
+export type TimeOffRequestInsert = Database['public']['Tables']['time_off_requests']['Insert'];
+export type TimeOffRequestUpdate = Database['public']['Tables']['time_off_requests']['Update'];
+
+export type StaffRatingRow = Database['public']['Tables']['staff_ratings']['Row'];
+export type StaffRatingInsert = Database['public']['Tables']['staff_ratings']['Insert'];
+export type StaffRatingUpdate = Database['public']['Tables']['staff_ratings']['Update'];

@@ -37,7 +37,17 @@ export function getClientActions(
         // Navigate to booking with client pre-selected
         window.dispatchEvent(
           new CustomEvent('global-search-action', {
-            detail: { action: 'book', entityType: 'client', entityId: clientId },
+            detail: {
+              action: 'book',
+              entityType: 'client',
+              entityId: clientId,
+              clientData: {
+                id: clientId,
+                name: clientData.title as string,
+                phone: clientData.phone as string,
+                email: clientData.email as string,
+              },
+            },
           })
         );
       },
@@ -399,6 +409,37 @@ export function getSettingActions(
   ];
 }
 
+/**
+ * Create quick actions for pages (navigation)
+ */
+export function getPageActions(
+  pageId: string,
+  pageData: Record<string, unknown>
+): QuickAction[] {
+  const targetPage = pageData.status as string | undefined; // page id stored in status field
+
+  return [
+    {
+      id: 'go',
+      label: 'Go',
+      icon: 'ArrowRight',
+      variant: 'primary',
+      action: () => {
+        window.dispatchEvent(
+          new CustomEvent('global-search-action', {
+            detail: {
+              action: 'navigate-page',
+              entityType: 'page',
+              entityId: pageId,
+              page: targetPage || pageId,
+            },
+          })
+        );
+      },
+    },
+  ];
+}
+
 // ============================================================================
 // Entity Result Transformer
 // ============================================================================
@@ -426,6 +467,8 @@ function getQuickActions(
       return getTransactionActions(id, displayData);
     case 'setting':
       return getSettingActions(id, displayData);
+    case 'page':
+      return getPageActions(id, displayData);
     case 'giftcard':
       // Gift cards deferred - no data layer yet
       return [];

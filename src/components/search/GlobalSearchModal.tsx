@@ -24,11 +24,11 @@ import {
   Scissors,
   Calendar,
   DollarSign,
-  Command,
   ArrowUp,
   ArrowDown,
   CornerDownLeft,
   Sparkles,
+  Navigation,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -55,6 +55,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Gift,
   Sparkles,
+  Navigation,
 };
 
 // ============================================================================

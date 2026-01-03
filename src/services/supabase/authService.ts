@@ -9,6 +9,7 @@
 
 import { supabase } from './client';
 import type { MemberRow, MemberRole } from './types';
+import { auditLogger } from '../audit/auditLogger';
 
 // ==================== SESSION TYPES ====================
 
@@ -288,8 +289,27 @@ export async function loginStoreWithCredentials(
     // Save session
     saveStoreSession(session);
 
+    // Set audit context and log successful login
+    auditLogger.setContext({
+      storeId: session.storeId,
+      storeName: session.storeName,
+      tenantId: session.tenantId,
+      userId: session.storeId,
+      userName: session.storeName,
+    });
+    auditLogger.logLogin(session.storeId, session.storeName, true, undefined, {
+      loginMethod: 'password',
+      loginType: 'store',
+    }).catch(console.warn);
+
     return session;
   } catch (error) {
+    // Log failed login attempt
+    auditLogger.logLogin(loginId, loginId, false,
+      error instanceof AuthError ? error.message : 'Login failed',
+      { loginMethod: 'password', loginType: 'store' }
+    ).catch(console.warn);
+
     if (error instanceof AuthError) throw error;
     throw new AuthError('Network error during login', 'NETWORK_ERROR');
   }
@@ -351,8 +371,21 @@ export async function validateMemberSession(memberId: string): Promise<boolean> 
  * Logout store (clears both store and member sessions)
  */
 export function logoutStore(): void {
+  // Log logout before clearing session
+  auditLogger.log({
+    action: 'logout',
+    entityType: 'store',
+    severity: 'low',
+    description: 'Store logged out',
+    metadata: { logoutType: 'store' },
+    success: true,
+  }).catch(console.warn);
+
   clearStoreSession();
   clearMemberSession();
+
+  // Clear audit context
+  auditLogger.clearContext();
 }
 
 // ==================== MEMBER AUTHENTICATION ====================
@@ -414,8 +447,25 @@ export async function loginMemberWithPin(
     // Save session
     saveMemberSession(session);
 
+    // Update audit context with member info and log login
+    auditLogger.setContext({
+      userId: session.memberId,
+      userName: `${session.firstName} ${session.lastName}`.trim(),
+      userRole: session.role,
+    });
+    auditLogger.logLogin(session.memberId, `${session.firstName} ${session.lastName}`.trim(), true, undefined, {
+      loginMethod: 'pin',
+      loginType: 'member',
+    }).catch(console.warn);
+
     return session;
   } catch (error) {
+    // Log failed PIN login
+    auditLogger.logLogin('unknown', 'unknown', false,
+      error instanceof AuthError ? error.message : 'PIN login failed',
+      { loginMethod: 'pin', loginType: 'member' }
+    ).catch(console.warn);
+
     if (error instanceof AuthError) throw error;
     throw new AuthError('Network error during login', 'NETWORK_ERROR');
   }
@@ -479,8 +529,25 @@ export async function loginMemberWithPassword(
     // Save session
     saveMemberSession(session);
 
+    // Update audit context with member info and log login
+    auditLogger.setContext({
+      userId: session.memberId,
+      userName: `${session.firstName} ${session.lastName}`.trim(),
+      userRole: session.role,
+    });
+    auditLogger.logLogin(session.memberId, `${session.firstName} ${session.lastName}`.trim(), true, undefined, {
+      loginMethod: 'password',
+      loginType: 'member',
+    }).catch(console.warn);
+
     return session;
   } catch (error) {
+    // Log failed password login
+    auditLogger.logLogin('unknown', email, false,
+      error instanceof AuthError ? error.message : 'Password login failed',
+      { loginMethod: 'password', loginType: 'member' }
+    ).catch(console.warn);
+
     if (error instanceof AuthError) throw error;
     throw new AuthError('Network error during login', 'NETWORK_ERROR');
   }
@@ -615,8 +682,25 @@ export async function loginMemberWithCard(
     // Save session
     saveMemberSession(session);
 
+    // Update audit context with member info and log login
+    auditLogger.setContext({
+      userId: session.memberId,
+      userName: `${session.firstName} ${session.lastName}`.trim(),
+      userRole: session.role,
+    });
+    auditLogger.logLogin(session.memberId, `${session.firstName} ${session.lastName}`.trim(), true, undefined, {
+      loginMethod: 'card',
+      loginType: 'member',
+    }).catch(console.warn);
+
     return session;
   } catch (error) {
+    // Log failed card login
+    auditLogger.logLogin('unknown', 'unknown', false,
+      error instanceof AuthError ? error.message : 'Card login failed',
+      { loginMethod: 'card', loginType: 'member' }
+    ).catch(console.warn);
+
     if (error instanceof AuthError) throw error;
     throw new AuthError('Network error during card login', 'NETWORK_ERROR');
   }
@@ -674,6 +758,16 @@ export async function verifyMemberCard(
  * Logout current member (keeps store session active)
  */
 export function logoutMember(): void {
+  // Log member logout before clearing session
+  auditLogger.log({
+    action: 'logout',
+    entityType: 'member',
+    severity: 'low',
+    description: 'Member logged out',
+    metadata: { logoutType: 'member' },
+    success: true,
+  }).catch(console.warn);
+
   clearMemberSession();
 }
 

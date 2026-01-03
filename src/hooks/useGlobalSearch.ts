@@ -92,7 +92,7 @@ const DEFAULT_OPTIONS: Required<UseGlobalSearchOptions> = {
   minQueryLength: 2,
   saveToRecent: true,
   limit: 20,
-  entityTypes: ['client', 'staff', 'service', 'appointment', 'ticket', 'transaction'],
+  entityTypes: ['client', 'staff', 'service', 'appointment', 'ticket', 'transaction', 'setting', 'page'],
   minScore: 0.4,
   boostRecent: true,
 };

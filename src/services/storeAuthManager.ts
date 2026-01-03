@@ -16,6 +16,7 @@ import {
 } from './supabase';
 import { devicesDB } from './devicesDB';
 import { setStoreTimezone } from '@/utils/dateUtils';
+import { auditLogger } from './audit/auditLogger';
 import type { DeviceMode, Device } from '@/types/device';
 
 const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -370,9 +371,43 @@ class StoreAuthManager {
         message: skipMemberLogin ? 'Logged in successfully.' : 'Please enter your PIN.',
       });
 
+      // Audit log successful login
+      auditLogger.setContext({
+        storeId: storeSession.storeId,
+        storeName: storeSession.storeName,
+        tenantId: storeSession.tenantId,
+      });
+      auditLogger.log({
+        action: 'login',
+        entityType: 'store',
+        entityId: storeSession.storeId,
+        description: `Store login: ${storeSession.storeName}`,
+        severity: 'medium',
+        success: true,
+        metadata: {
+          loginId,
+          deviceMode,
+          tier: licenseInfo?.tier,
+        },
+      }).catch(console.warn);
+
       return this.currentState;
     } catch (error) {
       console.error('❌ Store login failed:', error);
+
+      // Audit log failed login attempt
+      auditLogger.log({
+        action: 'login',
+        entityType: 'store',
+        description: `Failed login attempt for: ${loginId}`,
+        severity: 'high',
+        success: false,
+        errorMessage: error instanceof Error ? error.message : 'Login failed',
+        metadata: {
+          loginId,
+          errorCode: error instanceof SupabaseAuthError ? error.code : undefined,
+        },
+      }).catch(console.warn);
 
       // Handle Supabase auth errors
       if (error instanceof SupabaseAuthError) {
@@ -619,6 +654,31 @@ class StoreAuthManager {
    */
   async logoutStore(): Promise<void> {
     console.log('🔓 Logging out from store...');
+
+    // Audit log logout BEFORE clearing state (so we have context)
+    const storeId = this.currentState.store?.storeId;
+    const storeName = this.currentState.store?.storeName;
+    const memberName = this.currentState.member?.memberName;
+
+    if (storeId) {
+      auditLogger.log({
+        action: 'logout',
+        entityType: 'store',
+        entityId: storeId,
+        description: memberName
+          ? `Logout: ${memberName} from ${storeName}`
+          : `Store logout: ${storeName}`,
+        severity: 'medium',
+        success: true,
+        metadata: {
+          storeName,
+          memberName,
+        },
+      }).catch(console.warn);
+
+      // Flush immediately since we're logging out
+      await auditLogger.flush().catch(console.warn);
+    }
 
     // Clear Supabase auth sessions
     authService.logoutStore();

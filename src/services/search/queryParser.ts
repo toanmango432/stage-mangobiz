@@ -37,6 +37,7 @@ export function detectPrefix(query: string): SearchPrefix {
   if (lower.startsWith('status:')) return 'status:';
   if (lower.startsWith('service:')) return 'service:';
   if (lower.startsWith('set:')) return 'set:';
+  if (lower.startsWith('go:')) return 'go:';
 
   return '';
 }

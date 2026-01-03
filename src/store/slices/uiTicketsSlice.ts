@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
+import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
 import type { CreateTicketInput } from '../../types';
 import type { RootState } from '../index';
@@ -91,6 +92,9 @@ export interface UITicket {
   createdAt: Date;
   updatedAt: Date;
   lastVisitDate?: Date | null; // null for first-time clients
+  // Checkout panel edits - saved by auto-save
+  checkoutServices?: CheckoutTicketService[];
+  clientId?: string;
 }
 
 export interface PendingTicket {
@@ -121,6 +125,10 @@ export interface PendingTicket {
   completedAt?: Date | string;
   // Ticket status - should be 'completed' when in pending section
   status?: 'completed' | 'paid' | 'closed';
+  // Full service details for checkout panel editing
+  checkoutServices?: CheckoutTicketService[];
+  // Client ID for editing
+  clientId?: string;
 }
 
 export interface CompletionDetails {
@@ -336,6 +344,24 @@ export const createTicket = createAsyncThunk(
 
       console.log('✅ Ticket created in Supabase:', createdTicket.id);
 
+      // Audit log ticket creation
+      // Note: storeId comes from createdTicket which has salonId from dataService
+      auditLogger.log({
+        action: 'create',
+        entityType: 'ticket',
+        entityId: createdTicket.id,
+        description: `Created ticket #${ticketNumber} for ${ticketData.clientName || 'Walk-in'} - ${ticketData.service || 'Service'}`,
+        severity: 'low',
+        success: true,
+        metadata: {
+          ticketNumber,
+          clientName: ticketData.clientName,
+          service: ticketData.service,
+          technician: ticketData.technician,
+          storeId: createdTicket.salonId, // Include for debugging
+        },
+      }).catch((err) => console.warn('[Audit] createTicket log failed:', err));
+
       // Convert to UITicket format
       const newTicket: UITicket = {
         ...ticketData,
@@ -484,6 +510,23 @@ export const completeTicket = createAsyncThunk(
       // Update in Supabase - change status to 'completed'
       await dataService.tickets.updateStatus(ticketId, 'completed');
       console.log('✅ Ticket completed in Supabase:', ticketId);
+
+      // Audit log ticket completion
+      auditLogger.log({
+        action: 'update',
+        entityType: 'ticket',
+        entityId: ticketId,
+        description: `Completed ticket #${ticket?.number || ticketId} for ${ticket?.clientName || 'Walk-in'}`,
+        severity: 'medium',
+        success: true,
+        metadata: {
+          ticketNumber: ticket?.number,
+          clientName: ticket?.clientName,
+          technician: ticket?.technician,
+          amount: completionDetails.amount,
+          tip: completionDetails.tip,
+        },
+      }).catch((err) => console.warn('[Audit] completeTicket log failed:', err));
     } catch (error) {
       console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
       // Fallback to IndexedDB
@@ -991,7 +1034,7 @@ export const updateCheckoutTicket = createAsyncThunk(
     // Find existing ticket - search across all ticket arrays
     const existingTicket =
       state.uiTickets.serviceTickets.find(t => t.id === ticketId) ||
-      state.uiTickets.waitlistTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.waitlist.find(t => t.id === ticketId) ||
       state.uiTickets.pendingTickets.find(t => t.id === ticketId);
 
     if (!existingTicket) {
@@ -1388,6 +1431,9 @@ const uiTicketsSlice = createSlice({
               techId: ticket.techId,
               assignedStaff: ticket.assignedStaff,
               lastVisitDate: ticket.lastVisitDate,
+              // Include full checkout services for editing in checkout panel
+              checkoutServices: (ticket as any).checkoutServices,
+              clientId: (ticket as any).clientId,
             });
             break;
         }
@@ -1407,14 +1453,14 @@ const uiTicketsSlice = createSlice({
           return;
         }
 
-        // Try to find and update in waitlistTickets
-        const waitlistIndex = state.waitlistTickets.findIndex(t => t.id === ticketId);
+        // Try to find and update in waitlist
+        const waitlistIndex = state.waitlist.findIndex(t => t.id === ticketId);
         if (waitlistIndex !== -1) {
-          state.waitlistTickets[waitlistIndex] = {
-            ...state.waitlistTickets[waitlistIndex],
+          state.waitlist[waitlistIndex] = {
+            ...state.waitlist[waitlistIndex],
             ...updates,
           };
-          console.log('✅ Updated ticket in waitlistTickets:', ticketId);
+          console.log('✅ Updated ticket in waitlist:', ticketId);
           return;
         }
 

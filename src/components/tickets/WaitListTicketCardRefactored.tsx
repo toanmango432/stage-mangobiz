@@ -5,6 +5,16 @@ import 'tippy.js/dist/tippy.css';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import './paper';
 
+// Checkout service type for displaying actual services
+interface CheckoutService {
+  id: string;
+  serviceName: string;
+  price: number;
+  duration?: number;
+  staffId?: string;
+  staffName?: string;
+}
+
 interface WaitListTicketCardProps {
   ticket: {
     id: string;
@@ -19,6 +29,8 @@ interface WaitListTicketCardProps {
     priority?: 'normal' | 'high';
     createdAt?: Date;
     lastVisitDate?: Date;
+    // Actual services from checkout panel (auto-saved)
+    checkoutServices?: CheckoutService[];
   };
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onAssign?: (ticketId: string) => void;
@@ -126,6 +138,22 @@ function WaitListTicketCardComponent({
   // Check if this is a first visit (star indicator)
   const isFirstVisit = ticket.clientType === 'New';
 
+  // Compute actual service display from checkoutServices if available
+  const hasCheckoutServices = ticket.checkoutServices && ticket.checkoutServices.length > 0;
+  const serviceCount = hasCheckoutServices ? ticket.checkoutServices!.length : 1;
+  const serviceTotal = hasCheckoutServices
+    ? ticket.checkoutServices!.reduce((sum, s) => sum + (s.price || 0), 0)
+    : 0;
+
+  // Get service display text - show first service + count if multiple
+  const getServiceDisplay = () => {
+    if (!hasCheckoutServices) return ticket.service;
+    const services = ticket.checkoutServices!;
+    if (services.length === 1) return services[0].serviceName;
+    return `${services[0].serviceName} +${services.length - 1} more`;
+  };
+  const serviceDisplay = getServiceDisplay();
+
   // Handle keyboard interaction
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -165,8 +193,13 @@ function WaitListTicketCardComponent({
 
             {/* Row 2: Service + Assign button */}
             <div className="flex items-center justify-between gap-2">
-              <div className="text-[#2d2520] truncate flex-1 leading-tight" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }}>
-                {ticket.service}
+              <div className="text-[#2d2520] flex-1 leading-tight flex items-center gap-1.5" style={{ fontSize: 'clamp(12px, 1.6vw, 14px)' }}>
+                <span className="truncate">{serviceDisplay}</span>
+                {hasCheckoutServices && serviceCount > 1 && (
+                  <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                    ${serviceTotal.toFixed(0)}
+                  </span>
+                )}
               </div>
 
               <div className="flex-shrink-0">
@@ -223,7 +256,14 @@ function WaitListTicketCardComponent({
 
             {/* Row 2: Service + Assign button */}
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[#1a1614] font-semibold leading-snug flex-1 truncate text-sm">{ticket.service}</div>
+              <div className="text-[#1a1614] font-semibold leading-snug flex-1 text-sm flex items-center gap-2">
+                <span className="truncate">{serviceDisplay}</span>
+                {hasCheckoutServices && serviceCount > 1 && (
+                  <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                    ${serviceTotal.toFixed(0)}
+                  </span>
+                )}
+              </div>
 
               {/* Assign button */}
               <div className="flex-shrink-0">
@@ -262,7 +302,14 @@ function WaitListTicketCardComponent({
             <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]"><button onClick={(e) => { e.stopPropagation(); onOpenTicket?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-purple-50 flex items-center gap-2 font-medium"><ExternalLink size={12} className="text-purple-500" /> Open Ticket</button><div className="h-px bg-gray-200 my-0.5" /><button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2"><Edit2 size={12} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={12} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 min-w-[44px] min-h-[44px] rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} /></button></Tippy>
           </div>
           {/* Service - compact */}
-          <div className="px-2 pb-1.5 text-[11px] text-[#1a1614] font-semibold line-clamp-1">{ticket.service}</div>
+          <div className="px-2 pb-1.5 text-[11px] text-[#1a1614] font-semibold flex items-center gap-1.5">
+            <span className="line-clamp-1">{serviceDisplay}</span>
+            {hasCheckoutServices && serviceCount > 1 && (
+              <span className="flex-shrink-0 text-[9px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-semibold">
+                ${serviceTotal.toFixed(0)}
+              </span>
+            )}
+          </div>
 
           {/* Divider */}
           <div className="mx-2 mb-1.5 border-t border-[#e8dcc8]/50" />
@@ -301,7 +348,14 @@ function WaitListTicketCardComponent({
           <div className="flex items-start justify-between px-2 sm:px-3 md:px-4 pb-1" style={{ paddingTop: 'clamp(12px, 2vw, 20px)', paddingLeft: 'clamp(44px, calc(5.5vw + 4px), 60px)' }}><div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1"><span className="font-bold text-[#1a1614] truncate tracking-tight" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>{ticket.clientName}</span>{isFirstVisit && <span className="text-xs sm:text-sm md:text-base flex-shrink-0">⭐</span>}{hasNote && <StickyNote className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-500 flex-shrink-0" />}</div><div className="text-[#6b5d52] font-medium tracking-wide" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div></div>
             <Tippy content={<div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px]"><button onClick={(e) => { e.stopPropagation(); onOpenTicket?.(ticket.id); setShowMenu(false); }} className="w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 font-medium"><ExternalLink size={14} className="text-purple-500" /> Open Ticket</button><div className="h-px bg-gray-200 my-0.5" /><button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><Edit2 size={14} /> Edit</button><button onClick={(e) => { e.stopPropagation(); onDelete?.(ticket.id); }} className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"><Trash2 size={14} /> Delete</button></div>} visible={showMenu} onClickOutside={() => setShowMenu(false)} interactive={true} placement="bottom-end"><button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="text-[#6b5d52] hover:text-[#2d2520] p-2 sm:p-2.5 min-w-[44px] min-h-[44px] rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0 flex items-center justify-center"><MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" /></button></Tippy>
           </div>
-          <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 md:pb-4 text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight line-clamp-2">{ticket.service}</div>
+          <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 md:pb-4 text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight flex items-center gap-2">
+            <span className="line-clamp-2">{serviceDisplay}</span>
+            {hasCheckoutServices && serviceCount > 1 && (
+              <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                ${serviceTotal.toFixed(0)}
+              </span>
+            )}
+          </div>
           <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 md:mb-4 border-t border-[#e8dcc8]/50" />
           <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>{isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}Waited {formatWaitTime(waitTime)}</div><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>In at {ticket.time}</div></div>
 

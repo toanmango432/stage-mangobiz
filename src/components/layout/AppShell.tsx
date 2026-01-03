@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { TopHeaderBar } from './TopHeaderBar';
 import { BottomNavBar } from './BottomNavBar';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
+import { useAuditContext } from '../../services/audit/auditLogger';
 import type { StaffMember } from '../checkout/ServiceList';
 
 // Lazy load ALL modules to reduce initial bundle size
@@ -30,6 +31,7 @@ const RoleSettings = lazy(() => import('../role-settings').then(m => ({ default:
 const ClientSettings = lazy(() => import('../client-settings').then(m => ({ default: m.ClientSettings })));
 const StoreSettings = lazy(() => import('../modules/StoreSettings').then(m => ({ default: m.StoreSettings })));
 const SettingsPage = lazy(() => import('../modules/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const StoreAuditViewer = lazy(() => import('../modules/settings/StoreAuditViewer'));
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
@@ -67,6 +69,9 @@ export function AppShell() {
 
 // Inner component that uses the context
 function AppShellContent() {
+  // Initialize audit context (sets user/store info for audit logging)
+  useAuditContext();
+
   // Mobile/tablet detection for responsive navigation
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const showBottomNav = isMobile || isTablet;
@@ -364,6 +369,8 @@ function AppShellContent() {
         return <Suspense fallback={<ModuleLoader />}><StoreSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'settings':
         return <Suspense fallback={<ModuleLoader />}><SettingsPage onBack={() => setActiveModule('more')} /></Suspense>;
+      case 'activity-log':
+        return <Suspense fallback={<ModuleLoader />}><StoreAuditViewer onBack={() => setActiveModule('more')} /></Suspense>;
       case 'frontdesk-settings':
         return <Suspense fallback={<ModuleLoader />}><FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
           if (!show) setActiveModule('more');

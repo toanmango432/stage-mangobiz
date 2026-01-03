@@ -10,6 +10,7 @@ import { ClockInOutButton } from './ClockInOutButton';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { storeAuthManager } from '../../services/storeAuthManager';
 import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
+import { setPendingBookingClient } from '../../store/slices/uiSlice';
 import { SwitchUserModal } from '../auth/SwitchUserModal';
 import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
 import { GlobalSearchModal } from '../search';
@@ -85,6 +86,110 @@ export function TopHeaderBar({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Listen for search action events - handles page navigation and other actions
+  useEffect(() => {
+    const handleSearchAction = (event: CustomEvent) => {
+      const { action, entityType, entityId, page, path, clientData } = event.detail;
+
+      // Always close search modal first
+      setShowGlobalSearch(false);
+
+      // Handle page navigation from search (go: prefix)
+      if (action === 'navigate-page' && page) {
+        onModuleChange?.(page);
+        return;
+      }
+
+      // Handle settings navigation (set: prefix)
+      if (action === 'navigate' && path) {
+        onModuleChange?.('more');
+        return;
+      }
+
+      // Handle entity-specific actions
+      switch (entityType) {
+        case 'client':
+          if (action === 'book') {
+            // Set pending booking client and navigate to book page
+            if (clientData) {
+              dispatch(setPendingBookingClient({
+                id: clientData.id,
+                name: clientData.name,
+                phone: clientData.phone || '',
+                email: clientData.email || '',
+              }));
+            }
+            onModuleChange?.('book');
+          } else if (action === 'view') {
+            // Navigate to clients list/detail
+            onModuleChange?.('clients');
+          } else if (action === 'create-ticket') {
+            // Open ticket panel for this client
+            onOpenTicketPanel?.();
+          }
+          break;
+
+        case 'staff':
+          if (action === 'view-schedule' || action === 'view') {
+            onModuleChange?.('schedule');
+          } else if (action === 'assign') {
+            // Navigate to team/front desk
+            onModuleChange?.('frontdesk');
+          }
+          break;
+
+        case 'service':
+          if (action === 'book') {
+            onModuleChange?.('book');
+          } else if (action === 'view' || action === 'add-to-ticket') {
+            onModuleChange?.('category');
+          }
+          break;
+
+        case 'appointment':
+          if (action === 'check-in' || action === 'edit' || action === 'cancel' || action === 'create-ticket') {
+            onModuleChange?.('book');
+          }
+          break;
+
+        case 'ticket':
+          if (action === 'view' || action === 'edit' || action === 'checkout') {
+            // Navigate to frontdesk where tickets are managed
+            onModuleChange?.('frontdesk');
+          } else if (action === 'print') {
+            // Print action - would need printer service
+            console.log('Print ticket:', entityId);
+          }
+          break;
+
+        case 'transaction':
+          if (action === 'view-receipt' || action === 'print' || action === 'refund') {
+            // Navigate to closed tickets/transaction records
+            onModuleChange?.('closed');
+          }
+          break;
+
+        case 'setting':
+          // Settings navigate to more/settings
+          onModuleChange?.('more');
+          break;
+
+        case 'page':
+          // Direct page navigation
+          if (entityId) {
+            onModuleChange?.(entityId);
+          }
+          break;
+
+        default:
+          console.log('Unhandled search action:', action, entityType, entityId);
+      }
+    };
+
+    window.addEventListener('global-search-action', handleSearchAction as EventListener);
+    return () => window.removeEventListener('global-search-action', handleSearchAction as EventListener);
+  }, [onModuleChange, onOpenTicketPanel, dispatch]);
 
   // Navigation Modules - 3 core modules for busy salon staff
   // Large, obvious buttons following "remote control" principle

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useReducer, useMemo } from "react";
+import { useState, useEffect, useRef, useReducer, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -56,7 +56,7 @@ import ServiceGrid, { Service } from "./ServiceGrid";
 import { TicketService, StaffMember } from "./ServiceList";
 import InteractiveSummary from "./InteractiveSummary";
 import PaymentModal from "./PaymentModal";
-import FullPageServiceSelector, { CategoryList } from "./FullPageServiceSelector";
+import FullPageServiceSelector from "./FullPageServiceSelector";
 import StaffGridView from "./StaffGridView";
 import { ResizablePanel } from "@/components/ui/ResizablePanel";
 import SplitTicketDialog from "./SplitTicketDialog";
@@ -70,10 +70,9 @@ import { ItemTabBar } from "./ItemTabBar";
 import { ProductGrid } from "./ProductGrid";
 import { PackageGrid } from "./PackageGrid";
 import { GiftCardGrid } from "./GiftCardGrid";
-import { SERVICE_CATEGORIES } from "./FullPageServiceSelector";
-import { getProductsByCategory, PRODUCT_CATEGORIES } from "@/data/mockProducts";
-import { getPackagesByCategory, PACKAGE_CATEGORIES } from "@/data/mockPackages";
-import { getGiftCardsByDesign, GIFT_CARD_CATEGORIES } from "@/data/mockGiftCards";
+import { getProductsByCategory } from "@/data/mockProducts";
+import { getPackagesByCategory } from "@/data/mockPackages";
+import { getGiftCardsByDesign } from "@/data/mockGiftCards";
 import { dataService } from "@/services/dataService";
 // Collapsible imports available if needed
 // import {
@@ -93,7 +92,6 @@ import {
   Play,
   CreditCard,
   Trash2,
-  LayoutGrid,
   Sparkles,
   Search,
   MoreVertical,
@@ -184,11 +182,9 @@ interface DialogState {
 }
 
 type PanelMode = "dock" | "full";
-type CheckoutLayout = "classic" | "modern";
 
 interface UIState {
   mode: PanelMode;
-  checkoutLayout: CheckoutLayout;
   selectedCategory: string;
   fullPageTab: "services" | "staff";
   addItemTab: "services" | "products" | "packages" | "giftcards";
@@ -242,7 +238,6 @@ type TicketAction =
   | { type: "TOGGLE_DIALOG"; payload: { dialog: DialogKey; value: boolean } }
   | { type: "SET_PREVENT_STAFF_REMOVAL_MESSAGE"; payload: string }
   | { type: "SET_MODE"; payload: PanelMode }
-  | { type: "SET_CHECKOUT_LAYOUT"; payload: CheckoutLayout }
   | { type: "SET_CATEGORY"; payload: string }
   | { type: "SET_FULL_PAGE_TAB"; payload: "services" | "staff" }
   | { type: "SET_ADD_ITEM_TAB"; payload: "services" | "products" | "packages" | "giftcards" }
@@ -274,12 +269,6 @@ const getDefaultMode = (): PanelMode => {
   if (typeof window === "undefined") return "dock";
   const saved = localStorage.getItem("checkout-default-mode");
   return (saved === "full" || saved === "dock") ? saved : "dock";
-};
-
-const getDefaultCheckoutLayout = (): CheckoutLayout => {
-  if (typeof window === "undefined") return "classic";
-  const saved = localStorage.getItem("checkout-layout");
-  return (saved === "classic" || saved === "modern") ? saved : "classic";
 };
 
 const createInitialState = (): TicketState => ({
@@ -321,7 +310,6 @@ const createInitialState = (): TicketState => ({
   },
   ui: {
     mode: getDefaultMode(),
-    checkoutLayout: getDefaultCheckoutLayout(),
     selectedCategory: "all",
     fullPageTab: "services",
     addItemTab: "services",
@@ -601,15 +589,6 @@ function ticketReducer(state: TicketState, action: TicketAction): TicketState {
         ui: {
           ...state.ui,
           mode: action.payload,
-        },
-      };
-
-    case "SET_CHECKOUT_LAYOUT":
-      return {
-        ...state,
-        ui: {
-          ...state.ui,
-          checkoutLayout: action.payload,
         },
       };
 
@@ -981,11 +960,6 @@ export const ticketActions = {
     payload: mode,
   }),
 
-  setCheckoutLayout: (layout: CheckoutLayout): TicketAction => ({
-    type: "SET_CHECKOUT_LAYOUT",
-    payload: layout,
-  }),
-
   setCategory: (category: string): TicketAction => ({
     type: "SET_CATEGORY",
     payload: category,
@@ -1337,15 +1311,18 @@ export default function TicketPanel({
         };
 
         loadTicket();
+      } else {
+        // No stored ticket - this is a NEW ticket, reset state completely
+        console.log('🆕 Opening new ticket panel - resetting state');
+        dispatch(ticketActions.resetTicket());
       }
     }
   }, [isOpen]);
 
   // ============================================================================
   // AUTO-SAVE FOR EXISTING TICKETS
-  // When opening an existing ticket and making changes, save automatically
+  // When opening an existing ticket and making changes, save immediately (no debounce)
   // ============================================================================
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTicketIdRef = useRef<string | null>(null);
   const loadCompleteRef = useRef(false);
 
@@ -1377,7 +1354,64 @@ export default function TicketPanel({
     return () => clearTimeout(timer);
   }, [isOpen, state.ticketId]);
 
-  // Auto-save effect for existing tickets - only triggers on data changes AFTER load is complete
+  // Helper function to perform auto-save (reusable for immediate save and save-on-close)
+  const performAutoSave = useCallback(async () => {
+    if (!state.ticketId) return;
+
+    const checkoutServices = convertToCheckoutServices(state.services);
+    const clientName = state.selectedClient
+      ? `${state.selectedClient.firstName} ${state.selectedClient.lastName}`.trim()
+      : 'Walk-in';
+    const subtotal = state.services.reduce((sum, s) => sum + s.price, 0);
+    const tax = Math.max(0, subtotal - state.discounts.discount) * 0.085;
+    const total = Math.max(0, subtotal - state.discounts.discount) * 1.085;
+
+    console.log('💾 Auto-saving ticket:', state.ticketId);
+
+    try {
+      // Update Redux state
+      await reduxDispatch(updateCheckoutTicket({
+        ticketId: state.ticketId,
+        updates: {
+          clientId: state.selectedClient?.id,
+          clientName,
+          services: checkoutServices,
+          discount: state.discounts.discount,
+          subtotal,
+          tax,
+          total,
+        },
+      })).unwrap();
+
+      // CRITICAL: Update localStorage IMMEDIATELY so reopening shows saved changes
+      const storedTicket = localStorage.getItem('checkout-pending-ticket');
+      if (storedTicket) {
+        try {
+          const existingTicket = JSON.parse(storedTicket);
+          const updatedTicket = {
+            ...existingTicket,
+            clientId: state.selectedClient?.id,
+            clientName,
+            checkoutServices,
+            discount: state.discounts.discount,
+            subtotal,
+            tax,
+            total,
+          };
+          localStorage.setItem('checkout-pending-ticket', JSON.stringify(updatedTicket));
+        } catch (e) {
+          console.warn('⚠️ Could not update localStorage:', e);
+        }
+      }
+
+      console.log('✅ Auto-save complete for ticket:', state.ticketId);
+      dispatch(ticketActions.markTicketSaved());
+    } catch (error) {
+      console.error('❌ Auto-save failed:', error);
+    }
+  }, [state.ticketId, state.services, state.selectedClient, state.discounts.discount, reduxDispatch]);
+
+  // Auto-save effect - IMMEDIATE save on every change (no debounce)
   useEffect(() => {
     // Skip if panel is not open
     if (!isOpen) return;
@@ -1391,49 +1425,9 @@ export default function TicketPanel({
       return;
     }
 
-    // Clear any pending auto-save
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    // Debounce auto-save by 1 second
-    autoSaveTimeoutRef.current = setTimeout(async () => {
-      const checkoutServices = convertToCheckoutServices(state.services);
-      const clientName = state.selectedClient
-        ? `${state.selectedClient.firstName} ${state.selectedClient.lastName}`.trim()
-        : 'Walk-in';
-
-      console.log('💾 Auto-saving existing ticket:', state.ticketId);
-
-      try {
-        await reduxDispatch(updateCheckoutTicket({
-          ticketId: state.ticketId!,
-          updates: {
-            clientId: state.selectedClient?.id,
-            clientName,
-            services: checkoutServices,
-            discount: state.discounts.discount,
-            subtotal: state.services.reduce((sum, s) => sum + s.price, 0),
-            tax: Math.max(0, state.services.reduce((sum, s) => sum + s.price, 0) - state.discounts.discount) * 0.085,
-            total: Math.max(0, state.services.reduce((sum, s) => sum + s.price, 0) - state.discounts.discount) * 1.085,
-          },
-        })).unwrap();
-
-        console.log('✅ Auto-save successful for ticket:', state.ticketId);
-        dispatch(ticketActions.markTicketSaved());
-      } catch (error) {
-        console.error('❌ Auto-save failed:', error);
-        // Don't show toast on auto-save failure to avoid interrupting workflow
-      }
-    }, 1000);
-
-    // Cleanup timeout on unmount or re-run
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [isOpen, state.ticketId, state.services, state.selectedClient, state.discounts.discount]);
+    // Save IMMEDIATELY on every change - no debounce to prevent data loss
+    performAutoSave();
+  }, [isOpen, state.ticketId, state.services, state.selectedClient, state.discounts.discount, performAutoSave]);
 
   const {
     ticketId,
@@ -1479,7 +1473,6 @@ export default function TicketPanel({
 
   const {
     mode,
-    checkoutLayout,
     selectedCategory,
     fullPageTab,
     addItemTab,
@@ -2391,10 +2384,6 @@ export default function TicketPanel({
 
 
   const setMode = (newMode: PanelMode) => dispatch(ticketActions.setMode(newMode));
-  const setCheckoutLayout = (layout: CheckoutLayout) => {
-    dispatch(ticketActions.setCheckoutLayout(layout));
-    localStorage.setItem("checkout-layout", layout);
-  };
   const setSelectedCategory = (category: string) => dispatch(ticketActions.setCategory(category));
   const setFullPageTab = (tab: "services" | "staff") => dispatch(ticketActions.setFullPageTab(tab));
   const setAddItemTab = (tab: "services" | "products" | "packages" | "giftcards") => dispatch(ticketActions.setAddItemTab(tab));
@@ -2440,51 +2429,10 @@ export default function TicketPanel({
         >
           {mode === "full" && (
             <div className="h-full flex flex-col relative">
-              {/* Top-right controls: Layout Toggle + Minimize - Only show for Classic layout (Modern has inline controls) */}
-              {checkoutLayout === "classic" && (
-                <div className="absolute top-3 right-4 z-10 hidden md:flex items-center gap-2">
-                  {/* Layout Toggle Button - Inside classic block, so we're always in classic mode here */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setCheckoutLayout("modern")}
-                        data-testid="button-toggle-layout"
-                        className="h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm bg-muted text-muted-foreground hover:bg-muted/80"
-                        aria-label="Switch to Modern layout"
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                        <span className="text-xs font-medium">Classic</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Switch to Modern layout</p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  {/* Minimize Button */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setMode("dock")}
-                        data-testid="button-toggle-mode"
-                        className="h-9 w-9 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
-                        aria-label="Switch to docked view"
-                      >
-                        <Minimize2 className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Switch to partial view</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-
               {/* Desktop Layout - Resizable Panels */}
               <div className="hidden lg:flex flex-1 min-h-0">
-                {checkoutLayout === "modern" ? (
-                  /* ========== MODERN LAYOUT: Cart LEFT (resizable), Catalog RIGHT ========== */
-                  <div className="flex-1 flex px-6">
+                {/* Modern Layout: Cart LEFT (resizable), Catalog RIGHT */}
+                <div className="flex-1 flex px-6">
                     {/* Close Button Column - Own column on far left (matching Classic) */}
                     <div className="flex-shrink-0 pr-4 pt-1">
                       <button
@@ -2727,42 +2675,21 @@ export default function TicketPanel({
                               console.log("More options clicked - menu editing");
                             }}
                             rightControls={
-                              <div className="flex items-center gap-2">
-                                {/* Layout Toggle Button - Inside modern block, so we're always in modern mode here */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      onClick={() => setCheckoutLayout("classic")}
-                                      data-testid="button-toggle-layout-inline"
-                                      className="h-9 px-3 rounded-full flex items-center gap-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                      aria-label="Switch to Classic layout"
-                                    >
-                                      <Sparkles className="h-4 w-4" />
-                                      <span className="text-xs font-medium">Modern</span>
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">Switch to Classic layout</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                {/* Minimize Button */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      onClick={() => setMode("dock")}
-                                      data-testid="button-toggle-mode-inline"
-                                      className="h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
-                                      aria-label="Switch to docked view"
-                                    >
-                                      <Minimize2 className="h-4 w-4 text-gray-500" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">Switch to partial view</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => setMode("dock")}
+                                    data-testid="button-toggle-mode-inline"
+                                    className="h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                                    aria-label="Switch to docked view"
+                                  >
+                                    <Minimize2 className="h-4 w-4 text-gray-500" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Switch to partial view</p>
+                                </TooltipContent>
+                              </Tooltip>
                             }
                           />
                         )}
@@ -2831,163 +2758,7 @@ export default function TicketPanel({
                       </div>
                     </div>
                   </ResizablePanel>
-                  </div>
-                ) : (
-                  /* ========== CLASSIC LAYOUT: Catalog LEFT, Cart RIGHT ========== */
-                  <ResizablePanel
-                    defaultRightWidth={506}
-                    minRightWidth={380}
-                    maxRightWidth={700}
-                    storageKey="mango-checkout-right-panel-width"
-                    className="flex-1 px-6 pt-4"
-                  >
-                    {/* Left Panel - Services/Staff Selector */}
-                    <div className="h-full pr-4">
-                      <div className="flex h-full">
-                        {/* Close Button Column - Large X in own column on far left */}
-                        <div className="flex-shrink-0 pr-4 pt-1">
-                          <button
-                            onClick={handleCloseAttempt}
-                            data-testid="button-close-panel"
-                            className="group h-10 w-10 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
-                            aria-label="Close checkout panel"
-                          >
-                            <X className="h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors" strokeWidth={2} />
-                          </button>
-                        </div>
-
-                        {/* Main Content Column */}
-                        <div className="flex-1 flex flex-col min-w-0">
-                          {/* Item Tab Bar - Services | Products | Packages | Gift Cards */}
-                          <ItemTabBar
-                            activeTab={addItemTab}
-                            onTabChange={(tab) => {
-                              setAddItemTab(tab);
-                              setSelectedCategory("all"); // Reset category when switching tabs
-                            }}
-                            className="mb-3"
-                          />
-
-                          {/* Content grid with sidebar */}
-                          <div className={`flex-1 min-h-0 grid gap-4 ${
-                            fullPageTab === "staff" ? "grid-cols-1" : "grid-cols-[180px_1fr]"
-                          }`}>
-                            {/* Category Sidebar - only show when not on staff view */}
-                            {fullPageTab !== "staff" && (
-                              <div className="h-full overflow-hidden">
-                                <CategoryList
-                                  selectedCategory={selectedCategory}
-                                  onSelectCategory={setSelectedCategory}
-                                  onViewStaff={() => setFullPageTab("staff")}
-                                  showViewStaffButton={true}
-                                  categories={
-                                    addItemTab === "services" ? SERVICE_CATEGORIES :
-                                    addItemTab === "products" ? PRODUCT_CATEGORIES :
-                                    addItemTab === "packages" ? PACKAGE_CATEGORIES :
-                                    addItemTab === "giftcards" ? GIFT_CARD_CATEGORIES :
-                                    SERVICE_CATEGORIES
-                                  }
-                                />
-                              </div>
-                            )}
-
-                            {/* Content Area */}
-                            <div className="h-full overflow-hidden">
-                              {fullPageTab === "staff" ? (
-                                <StaffGridView
-                                  staffMembers={staffMembers}
-                                  services={services}
-                                  onAddServiceToStaff={handleAddServiceToStaff}
-                                  reassigningServiceIds={reassigningServiceIds}
-                                  selectedStaffId={activeStaffId}
-                                />
-                              ) : addItemTab === "services" ? (
-                                <FullPageServiceSelector
-                                  selectedCategory={selectedCategory}
-                                  onSelectCategory={setSelectedCategory}
-                                  onAddServices={handleAddServices}
-                                  staffMembers={staffMembers}
-                                  activeStaffId={activeStaffId}
-                                />
-                              ) : addItemTab === "products" ? (
-                                <ProductGrid
-                                  products={getProductsByCategory(selectedCategory)}
-                                  onSelectProduct={(product) => {
-                                    // Convert product to service format and add
-                                    handleAddServices([{
-                                      id: `prod-${Date.now()}`,
-                                      name: product.name,
-                                      category: product.category,
-                                      price: product.price,
-                                      duration: 0,
-                                    }]);
-                                  }}
-                                />
-                              ) : addItemTab === "packages" ? (
-                                <PackageGrid
-                                  packages={getPackagesByCategory(selectedCategory)}
-                                  onSelectPackage={(pkg) => {
-                                    // Add package as a single line item with sale price
-                                    handleAddServices([{
-                                      id: `pkg-${Date.now()}`,
-                                      name: pkg.name,
-                                      category: "Package",
-                                      price: pkg.salePrice,
-                                      duration: 0,
-                                    }]);
-                                  }}
-                                />
-                              ) : addItemTab === "giftcards" ? (
-                                <GiftCardGrid
-                                  giftCards={getGiftCardsByDesign(selectedCategory)}
-                                  onSelectGiftCard={(gc) => {
-                                    // Add gift card as a line item
-                                    handleAddServices([{
-                                      id: `gc-${Date.now()}`,
-                                      name: gc.name,
-                                      category: "Gift Card",
-                                      price: gc.value,
-                                      duration: 0,
-                                    }]);
-                                  }}
-                                />
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Panel - Interactive Summary (Client & Posted Items) */}
-                    <div className="h-full pl-4 overflow-hidden">
-                      <InteractiveSummary
-                        selectedClient={selectedClient}
-                        services={services}
-                        staffMembers={staffMembers}
-                        subtotal={subtotal}
-                        tax={tax}
-                        total={total}
-                        onCheckout={handleCheckout}
-                        onCheckIn={handleCheckIn}
-                        onStartService={handleStartService}
-                        onSelectClient={handleRemoveClient}
-                        onCreateClient={handleCreateClient}
-                        onUpdateService={handleUpdateService}
-                        onRemoveService={handleRemoveService}
-                        onRemoveStaff={handleRemoveStaff}
-                        onReassignStaff={handleReassignStaff}
-                        onAddServiceToStaff={handleAddServiceToStaff}
-                        onAddStaff={handleAddStaff}
-                        onDuplicateServices={handleDuplicateServices}
-                        onRequestAddStaff={() => setFullPageTab("staff")}
-                        activeStaffId={activeStaffId}
-                        onSetActiveStaff={setActiveStaffId}
-                        assignedStaffIds={assignedStaffIdsSet}
-                        currentTab={fullPageTab}
-                      />
-                    </div>
-                  </ResizablePanel>
-                )}
+                </div>
               </div>
 
               {/* Mobile Layout - Full screen ticket view */}
@@ -3196,34 +2967,6 @@ export default function TicketPanel({
                             >
                               <MoreVertical className="h-3.5 w-3.5 text-gray-500" />
                             </button>
-
-                            {/* Layout Toggle Button */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => setCheckoutLayout(checkoutLayout === "classic" ? "modern" : "classic")}
-                                  data-testid="button-toggle-layout-dock-inline"
-                                  className={`h-7 px-2 rounded-full flex items-center gap-1 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm ${
-                                    checkoutLayout === "modern"
-                                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                                  }`}
-                                  aria-label={`Switch to ${checkoutLayout === "classic" ? "Modern" : "Classic"} layout`}
-                                >
-                                  {checkoutLayout === "modern" ? (
-                                    <Sparkles className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <LayoutGrid className="h-3.5 w-3.5" />
-                                  )}
-                                  <span className="text-xs font-medium">
-                                    {checkoutLayout === "classic" ? "Classic" : "Modern"}
-                                  </span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Switch to {checkoutLayout === "classic" ? "Modern" : "Classic"} layout</p>
-                              </TooltipContent>
-                            </Tooltip>
 
                             {/* Expand Button */}
                             <Tooltip>

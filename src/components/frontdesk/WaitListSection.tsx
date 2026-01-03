@@ -110,7 +110,8 @@ export const WaitListSection = memo(function WaitListSection({
       clientName: ticket.clientName,
       clientType: ticket.clientType,
       service: ticket.service,
-      checkoutServices: ticket.services || (ticket.service ? [{
+      // CRITICAL: Check checkoutServices first (set by auto-save), then services, then fallback
+      checkoutServices: ticket.checkoutServices || ticket.services || (ticket.service ? [{
         id: `service-${Date.now()}`,
         serviceId: ticket.serviceId,
         serviceName: ticket.service,
@@ -1304,6 +1305,7 @@ export const WaitListSection = memo(function WaitListSection({
                     notes: ticket.notes,
                     createdAt: ticket.createdAt,
                     lastVisitDate: ticket.lastVisitDate ?? undefined,
+                    checkoutServices: ticket.checkoutServices, // Pass actual services from auto-save
                   }}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onAssign={(id) => {
@@ -1347,6 +1349,7 @@ export const WaitListSection = memo(function WaitListSection({
                     time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
                     status: 'waiting',
                     notes: ticket.notes,
+                    checkoutServices: ticket.checkoutServices, // Pass actual services from auto-save
                   }}
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
                   onAssign={(id) => {

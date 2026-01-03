@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { appointmentService } from '../../services/appointmentService';
 import { dataService } from '../../services/dataService';
+import { auditLogger } from '../../services/audit/auditLogger';
 // toAppointment/toAppointments/etc not needed - dataService returns converted types
 import {
   LocalAppointment,
@@ -150,6 +151,18 @@ export const cancelAppointment = createAsyncThunk(
   async (params: { id: number; reason: string; rvcNo: number }) => {
     const { id, reason, rvcNo } = params;
     const result = await appointmentService.cancelAppointment(id, reason, rvcNo);
+
+    // Audit log appointment cancellation (high severity)
+    auditLogger.log({
+      action: 'update',
+      entityType: 'appointment',
+      entityId: String(id),
+      description: `Appointment #${id} cancelled: ${reason}`,
+      severity: 'high',
+      success: true,
+      metadata: { reason, rvcNo },
+    }).catch(console.warn);
+
     return { id, result };
   }
 );
@@ -214,6 +227,21 @@ export const createAppointmentInSupabase = createAsyncThunk(
 
       // dataService handles the conversion internally
       const created = await dataService.appointments.create(appointment as any);
+
+      // Audit log appointment creation
+      auditLogger.log({
+        action: 'create',
+        entityType: 'appointment',
+        entityId: created.id,
+        description: `Appointment created for ${appointment.clientName || 'Walk-in'}`,
+        severity: 'low',
+        success: true,
+        metadata: {
+          clientId: appointment.clientId,
+          staffId: appointment.staffId,
+        },
+      }).catch(console.warn);
+
       return created;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create appointment');
@@ -241,6 +269,17 @@ export const deleteAppointmentInSupabase = createAsyncThunk(
   async (appointmentId: string, { rejectWithValue }) => {
     try {
       await dataService.appointments.delete(appointmentId);
+
+      // Audit log appointment deletion (high severity)
+      auditLogger.log({
+        action: 'delete',
+        entityType: 'appointment',
+        entityId: appointmentId,
+        description: `Appointment ${appointmentId} deleted`,
+        severity: 'high',
+        success: true,
+      }).catch(console.warn);
+
       return appointmentId;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete appointment');

@@ -32,6 +32,8 @@ import {
   Settings,
   Gift,
   ChevronRight,
+  Navigation,
+  ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SearchResult, QuickAction, SearchEntityType } from '@/services/search';
@@ -56,6 +58,7 @@ const ENTITY_ICONS: Record<SearchEntityType, React.ComponentType<{ className?: s
   transaction: DollarSign,
   setting: Settings,
   giftcard: Gift,
+  page: Navigation,
 };
 
 const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -73,6 +76,8 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   UserPlus: UserPlus,
   Settings: Settings,
   Gift: Gift,
+  Navigation: Navigation,
+  ArrowRight: ArrowRight,
 };
 
 // Premium badge styling with refined colors
@@ -127,6 +132,11 @@ const BADGE_STYLES: Record<string, { bg: string; text: string; border: string }>
     text: 'text-slate-700',
     border: 'border-slate-200/60',
   },
+  indigo: {
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    border: 'border-indigo-200/60',
+  },
 };
 
 // Entity-specific accent gradients for premium feel
@@ -139,6 +149,7 @@ const ENTITY_GRADIENTS: Record<SearchEntityType, string> = {
   transaction: 'from-teal-500 to-teal-600',
   setting: 'from-slate-500 to-slate-600',
   giftcard: 'from-rose-500 to-rose-600',
+  page: 'from-indigo-500 to-indigo-600',
 };
 
 // ============================================================================

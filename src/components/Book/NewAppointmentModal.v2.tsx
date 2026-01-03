@@ -86,6 +86,10 @@ interface NewAppointmentModalV2Props {
   selectedStaffName?: string;
   onSave?: (appointment: LocalAppointment) => void;
   viewMode?: 'slide' | 'fullpage';
+  /** Pre-selected client from global search */
+  initialClient?: Client | null;
+  /** Callback to clear pending client after it's been used */
+  onInitialClientUsed?: () => void;
 }
 
 export function NewAppointmentModalV2({
@@ -97,6 +101,8 @@ export function NewAppointmentModalV2({
   selectedStaffName,
   onSave,
   viewMode = 'slide',
+  initialClient,
+  onInitialClientUsed,
 }: NewAppointmentModalV2Props) {
   // STATE
   const [view, setView] = useState<'slide' | 'fullpage'>(() => {
@@ -173,6 +179,15 @@ export function NewAppointmentModalV2({
       });
     }
   }, [isOpen, selectedClients.length, salonId]);
+
+  // Handle initial client from global search
+  useEffect(() => {
+    if (isOpen && initialClient && selectedClients.length === 0) {
+      setSelectedClients([initialClient]);
+      // Clear the pending client so it won't be re-used
+      onInitialClientUsed?.();
+    }
+  }, [isOpen, initialClient, selectedClients.length, onInitialClientUsed]);
 
   // LOAD DATA
   useEffect(() => {

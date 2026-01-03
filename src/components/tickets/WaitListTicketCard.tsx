@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { Clock, MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ChevronRight, User, Calendar, Tag, ExternalLink } from 'lucide-react';
 import { TicketDetailsModal } from './TicketDetailsModal';
 
+// Checkout service type for displaying actual services
+interface CheckoutService {
+  id: string;
+  serviceName: string;
+  price: number;
+  duration?: number;
+  staffId?: string;
+  staffName?: string;
+}
+
 interface WaitListTicketCardProps {
   ticket: {
     id: string;
@@ -13,6 +23,8 @@ interface WaitListTicketCardProps {
     time: string;
     notes?: string;
     priority?: 'normal' | 'high';
+    // Actual services from checkout panel (auto-saved)
+    checkoutServices?: CheckoutService[];
   };
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onAssign?: (ticketId: string) => void;
@@ -115,6 +127,23 @@ export function WaitListTicketCard({
   // Helper variables for display
   const isFirstVisit = ticket.clientType === 'New';
   const hasNote = !!ticket.notes;
+
+  // Compute actual service display from checkoutServices if available
+  const hasCheckoutServices = ticket.checkoutServices && ticket.checkoutServices.length > 0;
+  const serviceCount = hasCheckoutServices ? ticket.checkoutServices!.length : 1;
+  const serviceTotal = hasCheckoutServices
+    ? ticket.checkoutServices!.reduce((sum, s) => sum + (s.price || 0), 0)
+    : 0;
+
+  // Get service display text - show first service + count if multiple
+  const getServiceDisplay = () => {
+    if (!hasCheckoutServices) return ticket.service;
+    const services = ticket.checkoutServices!;
+    if (services.length === 1) return services[0].serviceName;
+    return `${services[0].serviceName} +${services.length - 1} more`;
+  };
+  const serviceDisplay = getServiceDisplay();
+
   const getLastVisitText = () => {
     if (ticket.clientType === 'New') {
       return 'First Visit';
@@ -198,7 +227,14 @@ export function WaitListTicketCard({
                   {isFirstVisit && <span className="text-2xs">⭐</span>}
                   {hasNote && <span className="text-2xs">📋</span>}
                 </div>
-                <div className="text-2xs text-[#6b5d52] truncate leading-tight">{ticket.service}</div>
+                <div className="text-2xs text-[#6b5d52] leading-tight flex items-center gap-1">
+                  <span className="truncate">{serviceDisplay}</span>
+                  {hasCheckoutServices && serviceCount > 1 && (
+                    <span className="flex-shrink-0 text-[8px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-semibold">
+                      ${serviceTotal.toFixed(0)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Right: Wait time */}
@@ -307,7 +343,14 @@ export function WaitListTicketCard({
 
           {/* Row 2: Service + Assign button */}
           <div className="flex items-center justify-between gap-1.5 mt-0.5">
-            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 truncate">{ticket.service}</div>
+            <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 flex items-center gap-1.5">
+              <span className="truncate">{serviceDisplay}</span>
+              {hasCheckoutServices && serviceCount > 1 && (
+                <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                  ${serviceTotal.toFixed(0)}
+                </span>
+              )}
+            </div>
 
             {/* Assign button */}
             <div className="flex-shrink-0">
@@ -564,8 +607,8 @@ export function WaitListTicketCard({
         {/* Service Title with icon */}
         <div className="flex items-center gap-2">
           <Tag size={14} className="text-amber-700 flex-shrink-0" />
-          <div 
-            className="truncate"
+          <div
+            className="truncate flex items-center gap-2"
             style={{
               fontFamily: 'Inter, -apple-system, "SF Pro Text", sans-serif',
               fontSize: '15px',
@@ -578,7 +621,12 @@ export function WaitListTicketCard({
             }}
             title={ticket.service}
           >
-            {ticket.service}
+            <span className="truncate">{serviceDisplay}</span>
+            {hasCheckoutServices && serviceCount > 1 && (
+              <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                ${serviceTotal.toFixed(0)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -752,8 +800,13 @@ export function WaitListTicketCard({
 
         {/* Row 2: Service */}
         <div className="mb-1">
-          <div className="truncate" style={{ color: '#555555', fontSize: '9px', fontWeight: 600, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
-            {ticket.service}
+          <div className="flex items-center gap-1" style={{ color: '#555555', fontSize: '9px', fontWeight: 600, fontFamily: 'Inter, -apple-system, sans-serif', textShadow: '0 0.4px 0 rgba(0,0,0,0.2)', WebkitFontSmoothing: 'antialiased' }} title={ticket.service}>
+            <span className="truncate">{serviceDisplay}</span>
+            {hasCheckoutServices && serviceCount > 1 && (
+              <span className="flex-shrink-0 text-[8px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-semibold">
+                ${serviceTotal.toFixed(0)}
+              </span>
+            )}
           </div>
         </div>
 

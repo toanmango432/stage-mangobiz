@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
+import type { Client } from '@/types/client';
 
 interface UIState {
   activeModule: 'book' | 'frontdesk' | 'checkout' | 'transactions' | 'more';
@@ -11,6 +12,8 @@ interface UIState {
     message: string;
     timestamp: Date;
   }>;
+  /** Client pre-selected for booking from search */
+  pendingBookingClient: Client | null;
 }
 
 const initialState: UIState = {
@@ -18,6 +21,7 @@ const initialState: UIState = {
   sidebarOpen: true,
   modalOpen: null,
   notifications: [],
+  pendingBookingClient: null,
 };
 
 const uiSlice = createSlice({
@@ -46,13 +50,30 @@ const uiSlice = createSlice({
     removeNotification: (state, action: PayloadAction<string>) => {
       state.notifications = state.notifications.filter(n => n.id !== action.payload);
     },
+    setPendingBookingClient: (state, action: PayloadAction<Client | null>) => {
+      state.pendingBookingClient = action.payload;
+    },
+    clearPendingBookingClient: (state) => {
+      state.pendingBookingClient = null;
+    },
   },
 });
 
-export const { setActiveModule, toggleSidebar, openModal, closeModal, addNotification, removeNotification } = uiSlice.actions;
+export const {
+  setActiveModule,
+  toggleSidebar,
+  openModal,
+  closeModal,
+  addNotification,
+  removeNotification,
+  setPendingBookingClient,
+  clearPendingBookingClient,
+} = uiSlice.actions;
+
 export const selectActiveModule = (state: RootState) => state.ui.activeModule;
 export const selectSidebarOpen = (state: RootState) => state.ui.sidebarOpen;
 export const selectModalOpen = (state: RootState) => state.ui.modalOpen;
 export const selectNotifications = (state: RootState) => state.ui.notifications;
+export const selectPendingBookingClient = (state: RootState) => state.ui.pendingBookingClient;
 
 export default uiSlice.reducer;

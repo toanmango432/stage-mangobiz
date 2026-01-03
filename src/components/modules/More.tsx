@@ -14,6 +14,7 @@ import {
   TrendingUp,
   CheckCircle,
   Store,
+  ClipboardList,
   type LucideIcon
 } from 'lucide-react';
 import { storeAuthManager } from '../../services/storeAuthManager';
@@ -86,6 +87,7 @@ export function More({ onNavigate }: MoreProps = {}) {
     {
       title: 'Administration',
       items: [
+        { id: 'activity-log', label: 'Activity Log', icon: ClipboardList, color: 'text-teal-600', bg: 'bg-teal-50' },
         { id: 'admin', label: 'Admin Back Office', icon: Settings, color: 'text-gray-600', bg: 'bg-gray-100' },
         { id: 'provider-control-center', label: '🔐 Provider Control Center (DEV)', icon: Shield, color: 'text-blue-600', bg: 'bg-blue-50' },
       ]

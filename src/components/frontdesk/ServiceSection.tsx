@@ -110,7 +110,8 @@ export const ServiceSection = memo(function ServiceSection({
       clientName: ticket.clientName,
       clientType: ticket.clientType,
       service: ticket.service,
-      checkoutServices: ticket.services || (ticket.service ? [{
+      // CRITICAL: Check checkoutServices first (set by auto-save), then services, then fallback
+      checkoutServices: ticket.checkoutServices || ticket.services || (ticket.service ? [{
         id: `service-${Date.now()}`,
         serviceId: ticket.serviceId,
         serviceName: ticket.service,
@@ -1182,6 +1183,7 @@ export const ServiceSection = memo(function ServiceSection({
                     createdAt: ticket.createdAt,
                     lastVisitDate: ticket.lastVisitDate,
                     serviceStatus: ticket.serviceStatus, // Pass service status for pause/resume
+                    checkoutServices: ticket.checkoutServices, // Pass actual services from auto-save
                   }}
                   viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                   onComplete={(id: string) => completeTicket?.(id, {})}
@@ -1224,6 +1226,7 @@ export const ServiceSection = memo(function ServiceSection({
                     assignedStaff: ticket.assignedStaff, // Pass multi-staff array
                     createdAt: ticket.createdAt,
                     serviceStatus: ticket.serviceStatus, // Pass service status for pause/resume
+                    checkoutServices: ticket.checkoutServices, // Pass actual services from auto-save
                   }}
                   viewMode={minimizedLineView ? 'compact' : 'normal'}
                   onComplete={(id: string) => completeTicket?.(id, {})}
