@@ -10,6 +10,7 @@ import { DeviceType, DeviceRegistration, DeviceMode } from '@/types/device';
 // Storage key for device ID
 const DEVICE_ID_KEY = 'mango_device_id';
 const DEVICE_NAME_KEY = 'mango_device_name';
+const MQTT_CLIENT_ID_KEY = 'mango_mqtt_client_id';
 
 /**
  * Manages device identification and fingerprinting.
@@ -47,6 +48,7 @@ class DeviceManager {
   clearDeviceId(): void {
     localStorage.removeItem(DEVICE_ID_KEY);
     localStorage.removeItem(DEVICE_NAME_KEY);
+    localStorage.removeItem(MQTT_CLIENT_ID_KEY);
     this.cachedFingerprint = null;
   }
 
@@ -253,6 +255,57 @@ class DeviceManager {
     const os = this.getOS();
 
     return `${browser} on ${os} (${type})`;
+  }
+
+  // ==================== MQTT SUPPORT (Phase 3) ====================
+
+  /**
+   * Get or create a stable MQTT client ID.
+   * Format: mango-{deviceType}-{shortId}
+   */
+  getMqttClientId(): string {
+    let clientId = localStorage.getItem(MQTT_CLIENT_ID_KEY);
+    if (!clientId) {
+      const deviceId = this.getDeviceId();
+      const deviceType = this.getDeviceType();
+      clientId = `mango-${deviceType}-${deviceId.substring(0, 8)}`;
+      localStorage.setItem(MQTT_CLIENT_ID_KEY, clientId);
+    }
+    return clientId;
+  }
+
+  /**
+   * Build MQTT connection config for this device.
+   */
+  getMqttConfig(storeId: string): {
+    storeId: string;
+    deviceId: string;
+    deviceType: DeviceType;
+    mqttClientId: string;
+    deviceName: string;
+  } {
+    return {
+      storeId,
+      deviceId: this.getDeviceId(),
+      deviceType: this.getDeviceType(),
+      mqttClientId: this.getMqttClientId(),
+      deviceName: this.getDeviceName() || this.getDeviceDescription(),
+    };
+  }
+
+  /**
+   * Check if this device should act as an MQTT hub.
+   * Only desktop (Electron) devices can be hubs as they run Mosquitto.
+   */
+  canBeHub(): boolean {
+    return this.getDeviceType() === 'desktop';
+  }
+
+  /**
+   * Clear MQTT client ID (used when device is revoked).
+   */
+  clearMqttClientId(): void {
+    localStorage.removeItem(MQTT_CLIENT_ID_KEY);
   }
 }
 

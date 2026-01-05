@@ -14,6 +14,9 @@ import { storeAuthManager } from '@/services/storeAuthManager';
 import { hydrationService, type HydrationProgress } from '@/services/hydrationService';
 import { backgroundSyncService, type BackgroundSyncState } from '@/services/backgroundSyncService';
 import { searchService } from '@/services/search';
+// MQTT Integration (Phase 3)
+import { mqttBridge, isMqttEnabled, isMqttFeatureEnabled } from '@/services/mqtt';
+import { deviceManager } from '@/services/deviceManager';
 
 // ==================== TYPES ====================
 
@@ -169,6 +172,26 @@ export function SupabaseSyncProvider({
         backgroundSyncService.subscribe(setBgSyncState);
         console.log('🔄 SupabaseSyncProvider: Background sync started');
 
+        // MQTT Integration (Phase 3): Initialize and connect to MQTT broker
+        if (isMqttEnabled() && isMqttFeatureEnabled('devicePresence')) {
+          try {
+            console.log('📡 SupabaseSyncProvider: Initializing MQTT bridge...');
+            await mqttBridge.initialize({
+              storeId,
+              deviceId: deviceManager.getDeviceId(),
+              deviceType: deviceManager.getDeviceType() as 'ios' | 'android' | 'web' | 'desktop',
+              // Local broker URL will be discovered via Supabase salon_devices table
+              // Cloud broker URL from environment (optional fallback)
+            });
+            await mqttBridge.connect();
+            await mqttBridge.publishPresence(true);
+            console.log('✅ SupabaseSyncProvider: MQTT bridge connected');
+          } catch (mqttError) {
+            console.warn('⚠️ SupabaseSyncProvider: MQTT initialization failed (non-fatal):', mqttError);
+            // MQTT is non-fatal - app continues with Supabase Realtime
+          }
+        }
+
         // Start auto-sync if interval provided
         if (autoSyncInterval > 0) {
           supabaseSyncService.startAutoSync(autoSyncInterval);
@@ -199,6 +222,11 @@ export function SupabaseSyncProvider({
       supabaseSyncService.stopAutoSync();
       supabaseSyncService.unsubscribeFromChanges();
       backgroundSyncService.stop();
+      // MQTT cleanup (Phase 3)
+      if (mqttBridge.isReady()) {
+        mqttBridge.publishPresence(false).catch(() => {});
+        mqttBridge.disconnect().catch(() => {});
+      }
     };
   }, [autoSyncInterval, enableRealtime, handleRealtimeChange]);
 
@@ -258,6 +286,11 @@ export function SupabaseSyncProvider({
         supabaseSyncService.destroy();
         hydrationService.abort();
         backgroundSyncService.stop();
+        // MQTT cleanup (Phase 3)
+        if (mqttBridge.isReady()) {
+          mqttBridge.publishPresence(false).catch(() => {});
+          mqttBridge.disconnect().catch(() => {});
+        }
         setIsInitialized(false);
         setIsHydrating(false);
         setHydrationProgress(null);

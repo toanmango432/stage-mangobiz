@@ -760,6 +760,45 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['staff_ratings']['Insert']>;
       };
+
+      // MQTT Device Discovery (migration 014)
+      salon_devices: {
+        Row: {
+          id: string;
+          store_id: string;
+          device_fingerprint: string;
+          device_name: string | null;
+          device_type: SalonDeviceType;
+          mqtt_client_id: string | null;
+          local_ip: string | null;
+          mqtt_port: number;
+          is_hub: boolean;
+          is_online: boolean;
+          last_seen_at: string;
+          capabilities: Json;
+          settings: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          device_fingerprint: string;
+          device_name?: string | null;
+          device_type: SalonDeviceType;
+          mqtt_client_id?: string | null;
+          local_ip?: string | null;
+          mqtt_port?: number;
+          is_hub?: boolean;
+          is_online?: boolean;
+          last_seen_at?: string;
+          capabilities?: Json;
+          settings?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['salon_devices']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -890,3 +929,26 @@ export type TimeOffRequestUpdate = Database['public']['Tables']['time_off_reques
 export type StaffRatingRow = Database['public']['Tables']['staff_ratings']['Row'];
 export type StaffRatingInsert = Database['public']['Tables']['staff_ratings']['Insert'];
 export type StaffRatingUpdate = Database['public']['Tables']['staff_ratings']['Update'];
+
+// MQTT Device Discovery Types (migration 014)
+export type SalonDeviceType = 'ios' | 'android' | 'web' | 'desktop';
+
+export type SalonDeviceRow = Database['public']['Tables']['salon_devices']['Row'];
+export type SalonDeviceInsert = Database['public']['Tables']['salon_devices']['Insert'];
+export type SalonDeviceUpdate = Database['public']['Tables']['salon_devices']['Update'];
+
+// Device capabilities interface for type safety
+export interface DeviceCapabilities {
+  tapToPay?: boolean;
+  printer?: boolean;
+  scanner?: boolean;
+  nfc?: boolean;
+  signatureCapture?: boolean;
+}
+
+// Device settings interface
+export interface DeviceSettings {
+  autoConnect?: boolean;
+  preferLocalBroker?: boolean;
+  heartbeatInterval?: number;
+}
