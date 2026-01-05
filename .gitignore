@@ -34,3 +34,18 @@ dist-ssr
 e2e/
 playwright.config.ts
 archive/
+
+# Electron
+dist-electron
+release
+out
+
+# Mosquitto binaries (download separately)
+electron/mosquitto/bin/darwin/arm64/mosquitto
+electron/mosquitto/bin/darwin/x64/mosquitto
+electron/mosquitto/bin/win32/x64/mosquitto.exe
+electron/mosquitto/bin/linux/x64/mosquitto
+electron/mosquitto/bin/linux/arm64/mosquitto
+
+# Mosquitto persistence
+/tmp/mosquitto/

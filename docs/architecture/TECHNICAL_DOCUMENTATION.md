@@ -9,17 +9,19 @@
 1. [System Overview](#system-overview)
 2. [High-Level Architecture](#high-level-architecture)
 3. [Technology Stack](#technology-stack)
-4. [Native Platform Architecture](#native-platform-architecture)
-5. [Data Storage Strategy](#data-storage-strategy)
-6. [Component Hierarchy](#component-hierarchy)
-7. [State Management (Redux)](#state-management-redux)
-8. [Database Schema (IndexedDB)](#database-schema-indexeddb)
-9. [Offline Sync System](#offline-sync-system)
-10. [Authentication Flow](#authentication-flow)
-11. [API Integration](#api-integration)
-12. [Payment Integration](#payment-integration)
-13. [File Structure](#file-structure)
-14. [Security Architecture](#security-architecture)
+4. [Monorepo Architecture](#monorepo-architecture)
+5. [Real-time Communication](#real-time-communication)
+6. [Native Platform Architecture](#native-platform-architecture)
+7. [Data Storage Strategy](#data-storage-strategy)
+8. [Component Hierarchy](#component-hierarchy)
+9. [State Management (Redux)](#state-management-redux)
+10. [Database Schema (IndexedDB)](#database-schema-indexeddb)
+11. [Offline Sync System](#offline-sync-system)
+12. [Authentication Flow](#authentication-flow)
+13. [API Integration](#api-integration)
+14. [Payment Integration](#payment-integration)
+15. [File Structure](#file-structure)
+16. [Security Architecture](#security-architecture)
 
 ---
 
@@ -276,7 +278,8 @@ export function toAppointments(rows: AppointmentRow[]): Appointment[] {
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Socket.io Client** | 4.8.1 | WebSocket client |
+| **MQTT.js** | 5.x | MQTT client for device communication |
+| **Mosquitto** | 2.x | Local MQTT broker (embedded in Store App) |
 | **Supabase Realtime** | (via supabase-js) | Postgres change subscriptions |
 
 ### Testing
@@ -308,6 +311,100 @@ export function toAppointments(rows: AppointmentRow[]): Appointment[] {
 | **Auto Refresh Token** | Enabled |
 | **Persist Session** | Enabled |
 | **Realtime Rate** | 10 events/second |
+
+---
+
+## Monorepo Architecture
+
+Mango POS uses a **monorepo structure** with Turborepo + pnpm workspaces to manage multiple applications and shared packages.
+
+### Directory Structure
+
+```
+mango-pos/
+├── apps/
+│   ├── store-app/          # Main POS (Electron + React)
+│   ├── online-store/       # Customer booking (Next.js)
+│   ├── check-in/           # Walk-in kiosk (React + Capacitor)
+│   ├── mango-pad/          # Signature iPad (React + Capacitor)
+│   └── client-portal/      # Client self-service (Next.js)
+├── services/
+│   └── cloud-mqtt/         # Cloud MQTT broker configuration
+├── packages/
+│   ├── types/              # @mango/types - Shared TypeScript types
+│   ├── database/           # @mango/database - Supabase client
+│   ├── utils/              # @mango/utils - Shared utilities
+│   ├── ui/                 # @mango/ui - Shared components
+│   └── mqtt-client/        # @mango/mqtt-client - MQTT wrapper
+└── supabase/
+    └── functions/          # Edge Functions
+```
+
+### Applications
+
+| App | Platform | Purpose |
+|-----|----------|---------|
+| **Store App** | Electron + React | Main POS, runs local Mosquitto MQTT broker |
+| **Online Store** | Next.js | Customer booking portal |
+| **Check-In** | React + Capacitor | Walk-in registration kiosk |
+| **Mango Pad** | React + Capacitor | Signature capture iPad |
+| **Client Portal** | Next.js | Client self-service |
+
+> **Full Documentation:** [MONOREPO_ARCHITECTURE.md](./MONOREPO_ARCHITECTURE.md)
+
+---
+
+## Real-time Communication
+
+Mango POS uses **MQTT** (Message Queuing Telemetry Transport) for real-time device communication with a dual-broker architecture:
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SALON LOCAL NETWORK                          │
+│                                                                  │
+│   Check-In ◄──── LOCAL (2-10ms) ────► Store App (Mosquitto)     │
+│   Mango Pad ◄─── LOCAL (2-10ms) ────► Port 1883                 │
+│   Staff Tablet ◄ LOCAL (2-10ms) ───►                            │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                     CLOUD (30-80ms)
+                              │
+┌─────────────────────────────────────────────────────────────────┐
+│   Online Store ◄──────────► Cloud MQTT Broker (HiveMQ/EMQX)     │
+│   Client Portal ◄─────────► Port 8883 (TLS)                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Topics & QoS
+
+| Topic | QoS | Latency | Description |
+|-------|-----|---------|-------------|
+| `salon/{id}/pad/signature` | 1 | <50ms | Customer signature from Mango Pad |
+| `salon/{id}/checkin/client` | 1 | <100ms | Walk-in from Check-In App |
+| `salon/{id}/appointments/updated` | 1 | <200ms | Appointment changes |
+| `salon/{id}/tickets/created` | 1 | <200ms | New ticket opened |
+| `salon/{id}/payments/completed` | 2 | <200ms | Payment processed (exactly-once) |
+| `salon/{id}/bookings/created` | 1 | <500ms | Online booking (cloud) |
+
+### QoS Levels
+
+| Level | Guarantee | Use Case |
+|-------|-----------|----------|
+| **0** | At most once | Non-critical UI updates |
+| **1** | At least once | Signatures, check-ins, appointments |
+| **2** | Exactly once | Financial transactions (payments) |
+
+### Reliability
+
+- **Local broker (Mosquitto):** 99% uptime
+- **Cloud broker:** 99.6% uptime
+- **Combined:** 99.96% (at least one available)
+- **Built-in message queue:** QoS 1/2 auto-retries on disconnect
+
+> **Full Documentation:** [REALTIME_COMMUNICATION.md](./REALTIME_COMMUNICATION.md)
 
 ---
 

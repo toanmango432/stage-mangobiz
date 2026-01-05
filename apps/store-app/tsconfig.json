@@ -1,0 +1,24 @@
+{
+  "extends": "../../tooling/tsconfig/react-app.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@mango/types": ["../../packages/types/src"],
+      "@mango/types/*": ["../../packages/types/src/*"],
+      "@mango/design-system": ["../../packages/design-system/src"],
+      "@mango/design-system/*": ["../../packages/design-system/src/*"],
+      "@mango/utils": ["../../packages/utils/src"],
+      "@mango/utils/*": ["../../packages/utils/src/*"],
+      "@mango/database": ["../../packages/database/src"],
+      "@mango/database/*": ["../../packages/database/src/*"],
+      "@mango/supabase": ["../../packages/supabase/src"],
+      "@mango/supabase/*": ["../../packages/supabase/src/*"],
+      "@mango/mqtt": ["../../packages/mqtt/src"],
+      "@mango/mqtt/*": ["../../packages/mqtt/src/*"],
+      "@mango/ui": ["../../packages/ui/src"],
+      "@mango/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["src"]
+}

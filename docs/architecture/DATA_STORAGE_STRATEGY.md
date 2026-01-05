@@ -137,6 +137,31 @@ Data that exists only in the cloud, accessed via API. Never stored locally on PO
 | **System Config** | Default settings templates | Fetch once at setup | Single source of truth |
 | **Sync Checkpoints** | Server-side sync tracking | Internal use | Consistency verification |
 | **Device Registry** | Registered device inventory | Admin Portal | Security management |
+| **Salon Devices** | Device discovery for Socket.io | All devices | Real-time communication |
+
+**Salon Devices Table (Device Discovery):**
+
+The `salon_devices` table enables zero-config device discovery for real-time communication:
+
+```sql
+CREATE TABLE salon_devices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  salon_id UUID NOT NULL REFERENCES stores(id),
+  device_id TEXT NOT NULL,
+  device_name TEXT,
+  device_type TEXT NOT NULL, -- 'store-app', 'check-in', 'mango-pad', etc.
+  local_ip TEXT,             -- For local Socket.io discovery
+  local_port INTEGER DEFAULT 3001,
+  is_local_hub BOOLEAN DEFAULT false,
+  is_online BOOLEAN DEFAULT true,
+  last_seen TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  app_version TEXT,
+  capabilities TEXT[],
+  UNIQUE(salon_id, device_id)
+);
+```
+
+> **Full Documentation:** [DEVICE_DISCOVERY.md](./DEVICE_DISCOVERY.md)
 
 ---
 

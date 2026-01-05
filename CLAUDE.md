@@ -9,7 +9,7 @@
 | Item | Details |
 |------|---------|
 | **Frontend** | React 18, TypeScript 5.5, Vite |
-| **State** | Redux Toolkit, React Query |
+| **State** | Redux Toolkit (all state management) |
 | **Cloud DB** | Supabase (PostgreSQL) - Direct sync, NO custom backend API |
 | **Local DB** | Dexie.js (IndexedDB) - For offline-enabled devices |
 | **UI** | Tailwind CSS, Radix UI, Framer Motion |
@@ -33,10 +33,10 @@ Copy `.env.example` to `.env` and configure:
 | `VITE_SUPABASE_URL` | Supabase project URL | Yes | Hardcoded fallback (remove in prod) |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Yes | Hardcoded fallback (remove in prod) |
 | `VITE_API_BASE_URL` | Legacy API base URL | No | `http://localhost:3000/api` |
-| `VITE_SOCKET_URL` | WebSocket server URL | No | `http://localhost:3000` |
+| `VITE_MQTT_CLOUD_URL` | Cloud MQTT broker URL | No | `mqtts://mqtt.mango.com:8883` |
 | `VITE_CONTROL_CENTER_URL` | License validation server | No | `http://localhost:4000` |
 | `VITE_DEV_MODE` | Enable dev features | No | `true` |
-| `VITE_ENABLE_SOCKET` | Enable WebSocket | No | `true` |
+| `VITE_ENABLE_MQTT` | Enable MQTT communication | No | `true` |
 | `VITE_ENABLE_OFFLINE_MODE` | Enable offline mode | No | `true` |
 
 **Security Note:** Hardcoded Supabase credentials in `src/services/supabase/client.ts` and `src/admin/db/supabaseClient.ts` must be removed before production.
@@ -67,6 +67,10 @@ Copy `.env.example` to `.env` and configure:
 |-------------|-----------|
 | **Any change** | [TECHNICAL_DOCUMENTATION.md](./docs/architecture/TECHNICAL_DOCUMENTATION.md) |
 | **Data/Storage** | [DATA_STORAGE_STRATEGY.md](./docs/architecture/DATA_STORAGE_STRATEGY.md) |
+| **Real-time/Socket** | [REALTIME_COMMUNICATION.md](./docs/architecture/REALTIME_COMMUNICATION.md) |
+| **Monorepo/Apps** | [MONOREPO_ARCHITECTURE.md](./docs/architecture/MONOREPO_ARCHITECTURE.md) |
+| **Device Discovery** | [DEVICE_DISCOVERY.md](./docs/architecture/DEVICE_DISCOVERY.md) |
+| **Notifications** | [NOTIFICATION_ABSTRACTION.md](./docs/architecture/NOTIFICATION_ABSTRACTION.md) |
 | **Native Platforms** | [PAYMENT_INTEGRATION.md](./docs/architecture/PAYMENT_INTEGRATION.md) |
 | **Book Module** | `docs/modules/book/BOOK_UX_IMPLEMENTATION_GUIDE.md` |
 | **Front Desk** | `docs/modules/frontdesk/` |
@@ -77,10 +81,69 @@ Copy `.env.example` to `.env` and configure:
 
 - [ ] **Read the relevant PRD** for feature requirements and business rules
 - [ ] Read relevant technical docs from table above
-- [ ] Check existing patterns in similar components
+- [ ] Check existing patterns in similar components (see [PATTERNS.md](./docs/PATTERNS.md))
 - [ ] Verify TypeScript interfaces in `src/types/`
 - [ ] Use design tokens from `src/design-system/` (see README.md)
 - [ ] Check utilities in `src/utils/` before creating new ones
+
+---
+
+## File Size Guidelines
+
+**Target file sizes for AI agent comprehension:**
+
+| File Type | Target Lines | Max Lines | Action if Exceeded |
+|-----------|--------------|-----------|-------------------|
+| Component | <300 | 500 | Split into module structure |
+| Redux slice | <400 | 600 | Extract thunks/selectors |
+| Hook | <150 | 250 | Split into smaller hooks |
+| Utility | <100 | 200 | Split by functionality |
+
+### Module Structure Template
+
+When a component exceeds ~300 lines, split into this structure:
+
+```
+src/components/ExampleModule/
+├── index.ts                 # Barrel exports
+├── ExampleModule.tsx        # Main component (~200-300 lines)
+├── types.ts                 # Interfaces and types
+├── constants.ts             # Default values, options
+├── hooks/
+│   └── useExampleLogic.ts   # Complex state logic
+├── components/
+│   ├── Header.tsx           # Sub-components
+│   └── Content.tsx
+└── utils/
+    └── helpers.ts           # Utility functions
+```
+
+### Import Order Convention
+
+```typescript
+// 1. React and core libraries
+import React, { useState, useEffect } from 'react';
+
+// 2. Third-party libraries
+import { format } from 'date-fns';
+
+// 3. Store and hooks
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+
+// 4. Components
+import { Button } from '@/components/ui/button';
+
+// 5. Utils and services
+import { dataService } from '@/services/dataService';
+
+// 6. Types (use 'import type')
+import type { Client } from '@/types';
+
+// 7. Local files (constants, styles)
+import { STATUS_OPTIONS } from './constants';
+```
+
+> **Full Pattern Documentation:** [docs/PATTERNS.md](./docs/PATTERNS.md)
 
 ---
 
@@ -199,6 +262,37 @@ src/
 ├── constants/          # Legacy constants (prefer design-system/)
 └── testing/            # Test utilities & fixtures
 ```
+
+### Multi-App Architecture (Monorepo)
+
+Mango POS is structured as a monorepo with multiple applications:
+
+| App | Platform | Purpose |
+|-----|----------|---------|
+| **Store App** | Electron + React | Main POS, runs local Mosquitto MQTT broker |
+| **Online Store** | Next.js | Customer booking portal |
+| **Check-In** | React + Capacitor | Walk-in registration kiosk |
+| **Mango Pad** | React + Capacitor | Signature capture iPad |
+| **Client Portal** | Next.js | Client self-service |
+
+> **Full Documentation:** [MONOREPO_ARCHITECTURE.md](./docs/architecture/MONOREPO_ARCHITECTURE.md)
+
+### Real-time Communication (MQTT)
+
+Devices communicate via MQTT with dual-broker architecture:
+
+- **Local Broker** (2-10ms): Mosquitto on Store App for in-salon devices
+- **Cloud Broker** (30-80ms): HiveMQ/EMQX for fallback and external apps
+- **QoS Levels**: 0 (at most once), 1 (at least once), 2 (exactly once)
+
+| Topic | QoS | Latency | Description |
+|-------|-----|---------|-------------|
+| `salon/{id}/pad/signature` | 1 | <50ms | Mango Pad → Store App |
+| `salon/{id}/checkin/client` | 1 | <100ms | Check-In → Store App |
+| `salon/{id}/payments/completed` | 2 | <200ms | Exactly-once payment events |
+| `salon/{id}/bookings/created` | 1 | <500ms | Online Store → Store App |
+
+> **Full Documentation:** [REALTIME_COMMUNICATION.md](./docs/architecture/REALTIME_COMMUNICATION.md)
 
 ---
 
@@ -374,12 +468,14 @@ npm run electron:build   # Build Electron app (future)
 - ✅ Use `dataService` for all data operations
 - ✅ Create type adapters when adding new Supabase tables
 - ✅ Read relevant docs before implementing
-- ✅ Follow existing component patterns
+- ✅ Follow existing component patterns (see [PATTERNS.md](./docs/PATTERNS.md))
 - ✅ Use Redux → dataService → Supabase/IndexedDB flow
 - ✅ Handle loading/error/offline states
 - ✅ Use design tokens from `@/design-system` for all colors/styling
 - ✅ Check `src/services/supabase/types.ts` for existing table schemas
+- ✅ Keep files under 500 lines (split into modules if needed)
+- ✅ Use `import type` for type-only imports
 
 ---
 
-*Last updated: December 2025*
+*Last updated: January 2026*

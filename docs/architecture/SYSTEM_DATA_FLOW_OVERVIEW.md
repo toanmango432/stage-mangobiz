@@ -459,6 +459,138 @@ After 10 failures: Mark as 'error', stop retrying
 
 ---
 
+## 8. Device-to-Device Communication
+
+Real-time data flow between devices using MQTT with local-first architecture:
+
+### 8.1 Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         DEVICE COMMUNICATION FLOW                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   LOCAL NETWORK (2-10ms latency)                                            │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                     │   │
+│   │   ┌─────────────┐          ┌─────────────────────┐                 │   │
+│   │   │  Check-In   │◄────────▶│    STORE APP        │                 │   │
+│   │   │    App      │          │   (Local Hub)       │                 │   │
+│   │   └─────────────┘  MQTT    │                     │                 │   │
+│   │                            │  Mosquitto Broker   │                 │   │
+│   │   ┌─────────────┐          │  Port 1883          │                 │   │
+│   │   │  Mango Pad  │◄────────▶│                     │                 │   │
+│   │   │ (Signature) │  MQTT    └──────────┬──────────┘                 │   │
+│   │   └─────────────┘                     │                            │   │
+│   │                                       │ Bridge                     │   │
+│   └───────────────────────────────────────┼────────────────────────────┘   │
+│                                           │                                 │
+│   CLOUD (30-80ms latency)                 │ Sync & Fallback                │
+│   ┌───────────────────────────────────────┼────────────────────────────┐   │
+│   │                                       ▼                            │   │
+│   │   ┌─────────────┐          ┌─────────────────────┐                 │   │
+│   │   │Online Store │◄────────▶│   Cloud MQTT Broker │                 │   │
+│   │   │ (Customers) │          │   (HiveMQ/EMQX)     │                 │   │
+│   │   └─────────────┘          │   Port 8883 (TLS)   │                 │   │
+│   │                            └──────────┬──────────┘                 │   │
+│   │   ┌─────────────┐                     ▼                            │   │
+│   │   │Client Portal│◄──────────┬──────────────────┐                   │   │
+│   │   └─────────────┘           │    Supabase      │                   │   │
+│   │                             │   (PostgreSQL)   │                   │   │
+│   └─────────────────────────────┴──────────────────┴───────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Message Flow Examples
+
+**Signature Capture (Mango Pad → Store App):**
+```
+Mango Pad                    Local MQTT Broker              Store App
+    │                              │                             │
+    │  PUBLISH                     │                             │
+    │  salon/{id}/pad/signature    │                             │
+    │  QoS: 1                      │                             │
+    ├─────────────────────────────▶│                             │
+    │      (< 50ms)                │                             │
+    │                              │  Forward to subscriber      │
+    │                              ├────────────────────────────▶│
+    │                              │                             │
+    │  PUBACK                      │                     Update Ticket
+    │◄─────────────────────────────┤                             │
+    │                              │                             │
+```
+
+**Walk-In Check-In (Check-In App → Store App):**
+```
+Check-In App                 Local MQTT Broker              Store App
+    │                              │                             │
+    │  PUBLISH                     │                             │
+    │  salon/{id}/checkin/client   │                             │
+    │  QoS: 1                      │                             │
+    ├─────────────────────────────▶│                             │
+    │      (< 100ms)               │                             │
+    │                              │  Forward to subscriber      │
+    │                              ├────────────────────────────▶│
+    │                              │                             │
+    │                              │                      Add to Waitlist
+    │                              │                             │
+    │                              │  PUBLISH waitlist/updated   │
+    │                              │◄────────────────────────────┤
+    │  (subscribed)                │                             │
+    │◄─────────────────────────────┤                             │
+    │                              │                             │
+```
+
+**Online Booking (Online Store → Store App via Cloud):**
+```
+Online Store                 Cloud MQTT Broker              Store App
+    │                              │                             │
+    │  PUBLISH                     │                             │
+    │  salon/{id}/bookings/created │                             │
+    │  QoS: 1                      │                             │
+    ├─────────────────────────────▶│                             │
+    │      (< 500ms)               │                             │
+    │                              │  Forward via bridge         │
+    │                              ├────────────────────────────▶│
+    │                              │                             │
+    │                              │                    Create Appointment
+    │                              │                             │
+    │  (subscribed)                │  PUBLISH confirmed          │
+    │◄─────────────────────────────┤◄────────────────────────────┤
+    │                              │                             │
+```
+
+### 8.3 Connection Priority
+
+Devices attempt connections in this order:
+
+1. **Local MQTT Broker** (via Supabase discovery) - Preferred for in-salon operations
+2. **Cloud MQTT Broker** (fallback) - When local unavailable or for external apps
+3. **Supabase Realtime** (data sync) - Database change subscriptions
+
+### 8.4 QoS Level Selection
+
+| Event Type | QoS | Reason |
+|------------|-----|--------|
+| Signatures | 1 | Must not lose, idempotent |
+| Check-ins | 1 | Must not lose, idempotent |
+| Payments | 2 | Financial - exactly once |
+| Waitlist updates | 0 | Can miss, will refresh |
+
+### 8.5 Key Implementation Files
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| MQTT Client | `packages/mqtt-client/src/MangoMqtt.ts` | Connection manager |
+| Discovery | `packages/mqtt-client/src/discovery.ts` | Local broker finder |
+| Local Broker | `apps/store-app/electron/mosquitto/` | Embedded Mosquitto |
+| Bridge Config | `services/cloud-mqtt/bridge.conf` | Cloud relay |
+
+> **Full Documentation:** [REALTIME_COMMUNICATION.md](./REALTIME_COMMUNICATION.md)
+
+---
+
 ## Related Documentation
 
 - [STATE_MACHINES.md](./STATE_MACHINES.md) - Entity state definitions

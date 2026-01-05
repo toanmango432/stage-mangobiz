@@ -1,0 +1,105 @@
+{
+  "name": "@mango/store-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mango POS Store Application - Main salon management interface",
+  "type": "module",
+  "main": "out/main/main.mjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "electron:dev": "electron-vite dev",
+    "electron:build": "electron-vite build",
+    "electron:preview": "electron-vite preview",
+    "electron:package": "electron-builder --dir",
+    "electron:dist": "electron-builder"
+  },
+  "dependencies": {
+    "@mango/types": "workspace:*",
+    "@mango/design-system": "workspace:*",
+    "@mango/utils": "workspace:*",
+    "@mango/database": "workspace:*",
+    "@mango/supabase": "workspace:*",
+    "@mango/mqtt": "workspace:*",
+    "@mango/ui": "workspace:*",
+    "@hookform/resolvers": "^3.10.0",
+    "@reduxjs/toolkit": "^2.9.1",
+    "@sentry/react": "^10.32.1",
+    "@tanstack/react-query": "^5.90.11",
+    "@tanstack/react-virtual": "^3.13.13",
+    "@tippyjs/react": "^4.2.6",
+    "axios": "^1.12.2",
+    "focus-trap-react": "^11.0.1",
+    "framer-motion": "^12.23.24",
+    "next-themes": "^0.4.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.65.0",
+    "react-hot-toast": "^2.6.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.9.6",
+    "react-window": "^2.2.3",
+    "socket.io-client": "^4.8.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^20.11.18",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@types/react-window": "^1.8.8",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.0.16",
+    "autoprefixer": "latest",
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^5.0.0",
+    "eslint": "^8.50.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.1",
+    "fake-indexeddb": "^6.2.4",
+    "jsdom": "^23.2.0",
+    "postcss": "latest",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.5.4",
+    "vite": "^6.4.1",
+    "vitest": "^4.0.16"
+  },
+  "build": {
+    "appId": "com.mangobiz.pos",
+    "productName": "Mango POS",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "out/**/*",
+      "electron/mosquitto/bin/**/*",
+      "electron/mosquitto/config/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    },
+    "extraResources": [
+      {
+        "from": "electron/mosquitto",
+        "to": "mosquitto",
+        "filter": ["**/*"]
+      }
+    ]
+  }
+}
