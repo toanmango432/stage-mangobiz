@@ -6,8 +6,6 @@
 // Main Components
 export { StaffCardVertical } from './StaffCardVertical';
 export type { StaffCardVerticalProps, StaffMember, ViewMode, StaffStatus, Specialty } from './StaffCardVertical';
-export { StaffCardHorizontal } from './StaffCardHorizontal';
-export type { StaffCardHorizontalProps } from './StaffCardHorizontal';
 
 // Sub-components (exported for advanced usage)
 export { StaffCardNotch } from './components/StaffCardNotch';

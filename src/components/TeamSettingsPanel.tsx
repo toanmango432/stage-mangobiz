@@ -26,8 +26,6 @@ export interface TeamSettings {
   // UI Controls
   showSearch: boolean;
   showMinimizeExpandIcon: boolean;
-  // Card Layout
-  cardLayout: 'horizontal' | 'vertical';
   // Views & Widths
   viewWidth: 'ultraCompact' | 'compact' | 'wide' | 'fullScreen' | 'custom';
   customWidthPercentage: number;
@@ -49,8 +47,6 @@ export const defaultTeamSettings: TeamSettings = {
   // UI Controls
   showSearch: true,
   showMinimizeExpandIcon: true,
-  // Card Layout
-  cardLayout: 'vertical',
   // Views & Widths
   viewWidth: 'wide',
   customWidthPercentage: 25
@@ -543,20 +539,6 @@ export const TeamSettingsPanel: React.FC<TeamSettingsProps> = ({
                   <ToggleSwitch checked={settings.showTicketCount} onChange={checked => updateSetting('showTicketCount', checked)} label="Ticket Count" description="Number of tickets serviced" />
                   <ToggleSwitch checked={settings.showLastDone} onChange={checked => updateSetting('showLastDone', checked)} label="Last Done" description="Time of the most recent completed service" />
                   <ToggleSwitch checked={settings.showMoreOptionsButton} onChange={checked => updateSetting('showMoreOptionsButton', checked)} label="More Options Button" description="Button to access additional staff actions" />
-                </div>
-                {/* Card Layout Toggle */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Card Layout</label>
-                  <SegmentedControl
-                    name="cardLayout"
-                    value={settings.cardLayout}
-                    onChange={value => updateSetting('cardLayout', value as 'horizontal' | 'vertical')}
-                    options={[
-                      { value: 'horizontal', label: 'Horizontal' },
-                      { value: 'vertical', label: 'Vertical' },
-                    ]}
-                    disabled={false}
-                  />
                 </div>
                 <p className="text-xs text-gray-500 mt-4 flex items-center">
                   <Info size={14} className="mr-1 text-gray-400" />
