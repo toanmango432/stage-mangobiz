@@ -6,7 +6,12 @@
  */
 
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM __dirname polyfill
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import { MosquittoManager } from './mosquitto/MosquittoManager';
 import { NetworkMonitor } from './services/NetworkMonitor';
 import { HeartbeatService } from './services/HeartbeatService';

@@ -16,6 +16,12 @@ export default defineConfig({
     build: {
       lib: {
         entry: resolve(__dirname, 'electron/main.ts'),
+        formats: ['es'],
+      },
+      rollupOptions: {
+        output: {
+          entryFileNames: '[name].mjs',
+        },
       },
     },
     resolve: {
