@@ -130,7 +130,7 @@ function AppShellContent() {
   const pendingCount = pendingTickets.length;
 
   const dispatch = useAppDispatch();
-  const salonId = getTestSalonId();
+  const storeId = getTestSalonId();
 
   // Initialize database and sync manager on app load
   useEffect(() => {
@@ -148,7 +148,7 @@ function AppShellContent() {
 
         // 2. Apply defaults from license (first-time setup)
         try {
-          await defaultsPopulator.applyDefaults(salonId);
+          await defaultsPopulator.applyDefaults(storeId);
         } catch (error) {
           console.error('⚠️ Failed to apply defaults:', error);
         }
@@ -176,7 +176,7 @@ function AppShellContent() {
 
         // 3b. Initialize catalog (migrate legacy services or seed if empty)
         try {
-          const catalogResult = await initializeCatalog(salonId, true);
+          const catalogResult = await initializeCatalog(storeId, true);
           console.log(`✅ Catalog initialized: ${catalogResult.action}`, catalogResult.details);
         } catch (error) {
           console.error('⚠️ Failed to initialize catalog:', error);
@@ -197,7 +197,7 @@ function AppShellContent() {
         }
 
         // 4a. Load staff into Redux (legacy staffSlice for backwards compatibility)
-        await dispatch(fetchAllStaff(salonId));
+        await dispatch(fetchAllStaff(storeId));
         console.log('✅ Staff loaded into Redux (staffSlice)');
 
         // 4a2. Seed team members if needed (required for uiStaffSlice)
@@ -242,7 +242,7 @@ function AppShellContent() {
         }
 
         // 4c. Load tickets into Redux from IndexedDB
-        await dispatch(loadTickets(salonId));
+        await dispatch(loadTickets(storeId));
         console.log('✅ Tickets loaded into Redux');
 
         // 5. Load appointments into Redux
@@ -287,7 +287,7 @@ function AppShellContent() {
       syncManager.stop();
       console.log('🛑 Sync Manager stopped');
     };
-  }, [dispatch, salonId]);
+  }, [dispatch, storeId]);
 
   // Monitor online/offline status
   useEffect(() => {
@@ -318,7 +318,7 @@ function AppShellContent() {
 
   // Loading fallback for lazy-loaded modules
   const ModuleLoader = () => (
-    <div className="flex-1 flex items-center justify-center bg-gray-50">
+    <div className="flex-1 flex items-center justify-center bg-white">
       <div className="text-center space-y-3">
         <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-sm text-gray-500">Loading...</p>
@@ -397,7 +397,7 @@ function AppShellContent() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+    <div className="h-screen flex flex-col overflow-hidden bg-white">
       {/* License Status Banner */}
       <LicenseBanner />
 

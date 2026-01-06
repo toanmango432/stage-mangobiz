@@ -12,7 +12,7 @@ import { LocalAppointment } from '../types/appointment';
 export const mockStaff: Staff[] = [
   {
     id: '1',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Sophia',
     email: 'sophia@mangosalon.com',
     phone: '(555) 123-4567',
@@ -37,7 +37,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: '2',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Isabella',
     email: 'isabella@mangosalon.com',
     phone: '(555) 234-5678',
@@ -62,7 +62,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: '3',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Mia',
     email: 'mia@mangosalon.com',
     phone: '(555) 345-6789',
@@ -86,7 +86,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: '4',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Olivia',
     email: 'olivia@mangosalon.com',
     phone: '(555) 456-7890',
@@ -118,7 +118,7 @@ export const mockStaff: Staff[] = [
 export const mockAppointments: LocalAppointment[] = [
   {
     id: 'apt-1',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     clientId: 'cust-1',
     clientName: 'Emily Chen',
     clientPhone: '(555) 111-2222',
@@ -147,7 +147,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-2',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     clientId: 'cust-2',
     clientName: 'Sarah Johnson',
     clientPhone: '(555) 222-3333',
@@ -176,7 +176,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-3',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     clientId: 'cust-3',
     clientName: 'Jessica Lee',
     clientPhone: '(555) 333-4444',
@@ -205,7 +205,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-4',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     clientId: 'cust-4',
     clientName: 'Amanda White',
     clientPhone: '(555) 444-5555',
@@ -234,7 +234,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-5',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     clientId: 'cust-5',
     clientName: 'Lisa Brown',
     clientPhone: '(555) 555-6666',
@@ -271,7 +271,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-6',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     clientId: 'cust-6',
     clientName: 'Rachel Green',
     clientPhone: '(555) 666-7777',

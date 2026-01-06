@@ -14,7 +14,7 @@
  *   // Process and create transaction record
  *   const { paymentResult, transactionRecord } = await paymentBridge.processAndRecord({
  *     ticketId: 'ticket-123',
- *     salonId: 'salon-456',
+ *     storeId: 'salon-456',
  *     paymentMethod: 'card',
  *     amount: 50.00,
  *     tip: 10.00,

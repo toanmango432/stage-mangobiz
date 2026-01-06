@@ -2,10 +2,14 @@
  * Data Service
  *
  * LOCAL-FIRST architecture - Phase 4 Implementation
+ * With API-FIRST abstraction layer for backend flexibility
  *
- * All reads come from IndexedDB first (instant response)
- * All writes go to IndexedDB first, then queue for background sync
- * Supabase is used for sync only, never blocks UI
+ * MODES:
+ * - LOCAL-FIRST (default): Reads from IndexedDB, writes queue for background sync
+ * - API (when VITE_USE_API_LAYER=true): All operations go through REST API endpoints
+ *
+ * The API mode provides a clean abstraction that allows easy migration
+ * to any backend provider (Supabase Edge Functions, Firebase, custom API, etc.)
  *
  * This service is the single source of truth for all data operations.
  * Components should use this service instead of directly accessing
@@ -23,10 +27,95 @@ import {
   ticketsDB,
   transactionsDB,
   syncQueueDB,
+  // PR #2: Import missing modules for unified data access
+  patchTestsDB,
+  formResponsesDB,
+  referralsDB,
+  clientReviewsDB,
+  loyaltyRewardsDB,
+  reviewRequestsDB,
+  customSegmentsDB,
 } from '@/db/database';
 
+// API-FIRST: Import API client and endpoints
+import { createAPIClient, endpoints } from '@mango/api-client';
+import type { APIResponse } from '@mango/api-client';
+import type {
+  ListResponse,
+  ItemResponse,
+  CreateResponse,
+  UpdateResponse,
+  DeleteResponse,
+} from '@mango/api-contracts';
+
 // Type imports for compatibility
-import type { Client, Staff, Service, Appointment, Ticket, Transaction } from '@/types';
+import type {
+  Client,
+  Staff,
+  Service,
+  Appointment,
+  Ticket,
+  Transaction,
+  // PR #2: Types for missing modules
+  PatchTest,
+  ClientFormResponse,
+  Referral,
+  ClientReview,
+  LoyaltyReward,
+  ReviewRequest,
+  ReviewRequestStatus,
+  CustomSegment,
+  SegmentFilterGroup,
+} from '@/types';
+
+// ==================== API MODE CONFIGURATION ====================
+
+/**
+ * Feature flag: Enable API-first mode
+ * When true, all data operations go through REST API endpoints
+ * When false (default), uses local-first IndexedDB with background sync
+ */
+const USE_API = import.meta.env.VITE_USE_API_LAYER === 'true';
+
+/**
+ * API Client instance (lazy initialized)
+ */
+let _apiClient: ReturnType<typeof createAPIClient> | null = null;
+
+function getAPIClient() {
+  if (!_apiClient) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    _apiClient = createAPIClient({
+      baseUrl,
+      timeout: 15000,
+      retries: 2,
+      getAuthToken: () => {
+        // Get token from Redux store or localStorage
+        const state = store.getState();
+        return state.auth.token || localStorage.getItem('auth_token');
+      },
+      onUnauthorized: () => {
+        // Handle unauthorized - could dispatch logout action
+        console.warn('[DataService] Unauthorized API request');
+        store.dispatch({ type: 'auth/logout' });
+      },
+    });
+  }
+  return _apiClient;
+}
+
+/**
+ * Extract data from API response, throw on error
+ */
+function extractData<T>(response: APIResponse<T>, fallback: T): T {
+  if (response.success && response.data !== null) {
+    return response.data;
+  }
+  if (response.error) {
+    console.error('[DataService] API Error:', response.error);
+  }
+  return fallback;
+}
 
 // ==================== TYPES ====================
 
@@ -55,7 +144,7 @@ export interface DataResult<T> {
  */
 function getStoreId(): string {
   const state = store.getState();
-  return state.auth.salonId || '';
+  return state.auth.storeId || '';
 }
 
 /**
@@ -151,18 +240,18 @@ export async function executeWriteOperation<T>(
 
 /**
  * Check if local database should be used for the current operation
- * LOCAL-FIRST: Always returns true
+ * Returns true in local-first mode, false in API mode
  */
 export function shouldUseLocalDB(): boolean {
-  return true; // Always local-first
+  return !USE_API;
 }
 
 /**
- * Check if server should be used for the current operation
- * LOCAL-FIRST: Always returns false (server is for sync only)
+ * Check if server/API should be used for the current operation
+ * Returns true in API mode, false in local-first mode
  */
 export function shouldUseServer(): boolean {
-  return false; // Never use server directly, sync in background
+  return USE_API;
 }
 
 /**
@@ -200,35 +289,68 @@ function queueSyncOperation(
 
 /**
  * Get current mode info for debugging/logging
- * LOCAL-FIRST: Mode is always 'local-first'
  */
 export function getModeInfo(): {
-  mode: string;
+  mode: 'local-first' | 'api';
   online: boolean;
   dataSource: DataSourceType;
+  apiEnabled: boolean;
+  apiBaseUrl: string | undefined;
 } {
   return {
-    mode: 'local-first',
+    mode: USE_API ? 'api' : 'local-first',
     online: isOnline(),
     dataSource: getDataSource(),
+    apiEnabled: USE_API,
+    apiBaseUrl: USE_API ? (import.meta.env.VITE_API_BASE_URL || '/api') : undefined,
   };
+}
+
+/**
+ * Check if API mode is enabled
+ */
+export function isAPIMode(): boolean {
+  return USE_API;
 }
 
 // ==================== LOCAL-FIRST ENTITY SERVICES ====================
 // All reads from IndexedDB (instant), writes queue to sync
 
 /**
- * Clients data operations - LOCAL-FIRST
- * Reads from IndexedDB, writes queue for background sync
+ * Clients data operations
+ *
+ * API MODE: REST API calls to Edge Functions
+ * LOCAL-FIRST MODE: IndexedDB reads, writes queue for background sync
  */
 export const clientsService = {
   async getAll(): Promise<Client[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_API) {
+      // API MODE: Fetch from REST endpoint
+      const api = getAPIClient();
+      const response = await api.get<ListResponse<Client>>(
+        endpoints.clients.list(storeId)
+      );
+      return extractData(response, { data: [], pagination: {} as never, timestamp: '' }).data;
+    }
+
+    // LOCAL-FIRST MODE: Read from IndexedDB
     return clientsDB.getAll(storeId);
   },
 
   async getById(id: string): Promise<Client | null> {
+    if (USE_API) {
+      // API MODE: Fetch from REST endpoint
+      const api = getAPIClient();
+      const response = await api.get<ItemResponse<Client>>(
+        endpoints.clients.get(id)
+      );
+      return extractData(response, { data: null as unknown as Client, timestamp: '' }).data || null;
+    }
+
+    // LOCAL-FIRST MODE: Read from IndexedDB
     const client = await clientsDB.getById(id);
     return client || null;
   },
@@ -236,6 +358,17 @@ export const clientsService = {
   async search(query: string): Promise<Client[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_API) {
+      // API MODE: Search via REST endpoint
+      const api = getAPIClient();
+      const response = await api.get<{ data: Client[]; query: string; timestamp: string }>(
+        endpoints.clients.search(storeId, query)
+      );
+      return extractData(response, { data: [], query: '', timestamp: '' }).data;
+    }
+
+    // LOCAL-FIRST MODE: Search IndexedDB
     return clientsDB.search(storeId, query);
   },
 
@@ -243,8 +376,20 @@ export const clientsService = {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
 
-    // Write to IndexedDB first (instant)
-    const created = await clientsDB.create({ ...client, salonId: storeId });
+    if (USE_API) {
+      // API MODE: Create via REST endpoint
+      const api = getAPIClient();
+      const response = await api.post<CreateResponse<Client>>(
+        endpoints.clients.create,
+        { ...client, storeId }
+      );
+      const result = extractData(response, null);
+      if (!result) throw new Error('Failed to create client');
+      return result.data;
+    }
+
+    // LOCAL-FIRST MODE: Write to IndexedDB first (instant)
+    const created = await clientsDB.create({ ...client, storeId: storeId });
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('client', 'create', created.id, created);
@@ -253,7 +398,17 @@ export const clientsService = {
   },
 
   async update(id: string, updates: Partial<Client>): Promise<Client | null> {
-    // Update IndexedDB first (instant)
+    if (USE_API) {
+      // API MODE: Update via REST endpoint
+      const api = getAPIClient();
+      const response = await api.put<UpdateResponse<Client>>(
+        endpoints.clients.update(id),
+        updates
+      );
+      return extractData(response, { data: null as unknown as Client, timestamp: '' }).data || null;
+    }
+
+    // LOCAL-FIRST MODE: Update IndexedDB first (instant)
     const updated = await clientsDB.update(id, updates);
     if (!updated) return null;
 
@@ -264,7 +419,14 @@ export const clientsService = {
   },
 
   async delete(id: string): Promise<void> {
-    // Delete from IndexedDB first (instant)
+    if (USE_API) {
+      // API MODE: Delete via REST endpoint
+      const api = getAPIClient();
+      await api.delete<DeleteResponse>(endpoints.clients.delete(id));
+      return;
+    }
+
+    // LOCAL-FIRST MODE: Delete from IndexedDB first (instant)
     await clientsDB.delete(id);
 
     // Queue for background sync (non-blocking)
@@ -274,6 +436,17 @@ export const clientsService = {
   async getVipClients(): Promise<Client[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_API) {
+      // API MODE: Fetch VIP clients via REST endpoint
+      const api = getAPIClient();
+      const response = await api.get<{ data: Client[]; timestamp: string }>(
+        `${endpoints.clients.list(storeId)}/vip`
+      );
+      return extractData(response, { data: [], timestamp: '' }).data;
+    }
+
+    // LOCAL-FIRST MODE: Query IndexedDB
     return clientsDB.getVips(storeId);
   },
 };
@@ -304,7 +477,7 @@ export const staffService = {
     // Create in IndexedDB first (instant)
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID');
-    const created = await staffDB.create({ ...staffData, salonId: storeId });
+    const created = await staffDB.create({ ...staffData, storeId: storeId });
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('staff', 'create', created.id, created);
@@ -639,7 +812,7 @@ export const transactionsService = {
     if (!storeId) throw new Error('No store ID available');
 
     // Write to IndexedDB first (instant)
-    const created = await transactionsDB.create({ ...transaction, salonId: storeId });
+    const created = await transactionsDB.create({ ...transaction, storeId: storeId });
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('transaction', 'create', created.id, created);
@@ -700,17 +873,400 @@ export const transactionsService = {
   },
 };
 
+// ==================== PR #2: EXTENDED ENTITY SERVICES ====================
+// These services wrap the 7 IndexedDB modules that were previously accessed directly
+
+/**
+ * Patch Tests data operations - LOCAL-FIRST
+ * Tracks patch test results for services (e.g., hair color allergy tests)
+ */
+export const patchTestsService = {
+  async getByClientId(clientId: string): Promise<PatchTest[]> {
+    return patchTestsDB.getByClientId(clientId);
+  },
+
+  async getById(id: string): Promise<PatchTest | null> {
+    const patchTest = await patchTestsDB.getById(id);
+    return patchTest || null;
+  },
+
+  async getValidForService(clientId: string, serviceId: string): Promise<PatchTest | null> {
+    const patchTest = await patchTestsDB.getValidForService(clientId, serviceId);
+    return patchTest || null;
+  },
+
+  async getExpiring(clientId: string, daysAhead: number = 7): Promise<PatchTest[]> {
+    return patchTestsDB.getExpiring(clientId, daysAhead);
+  },
+
+  async create(patchTest: Omit<PatchTest, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<PatchTest> {
+    const created = await patchTestsDB.create(patchTest);
+    // Queue for background sync
+    queueSyncOperation('client', 'create', created.id, { entityType: 'patchTest', ...created });
+    return created;
+  },
+
+  async update(id: string, updates: Partial<PatchTest>): Promise<PatchTest | null> {
+    const updated = await patchTestsDB.update(id, updates);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'patchTest', ...updated });
+    }
+    return updated || null;
+  },
+
+  async delete(id: string): Promise<void> {
+    await patchTestsDB.delete(id);
+    queueSyncOperation('client', 'delete', id, { entityType: 'patchTest', id });
+  },
+};
+
+/**
+ * Form Responses data operations - LOCAL-FIRST
+ * Client-filled forms (intake forms, consent forms, etc.)
+ */
+export const formResponsesService = {
+  async getByClientId(clientId: string, limit: number = 50): Promise<ClientFormResponse[]> {
+    return formResponsesDB.getByClientId(clientId, limit);
+  },
+
+  async getById(id: string): Promise<ClientFormResponse | null> {
+    const response = await formResponsesDB.getById(id);
+    return response || null;
+  },
+
+  async getPending(clientId: string): Promise<ClientFormResponse[]> {
+    return formResponsesDB.getPending(clientId);
+  },
+
+  async getByAppointmentId(appointmentId: string): Promise<ClientFormResponse[]> {
+    return formResponsesDB.getByAppointmentId(appointmentId);
+  },
+
+  async create(response: Omit<ClientFormResponse, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<ClientFormResponse> {
+    const created = await formResponsesDB.create(response);
+    queueSyncOperation('client', 'create', created.id, { entityType: 'formResponse', ...created });
+    return created;
+  },
+
+  async update(id: string, updates: Partial<ClientFormResponse>): Promise<ClientFormResponse | null> {
+    const updated = await formResponsesDB.update(id, updates);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'formResponse', ...updated });
+    }
+    return updated || null;
+  },
+
+  async complete(id: string, responses: Record<string, unknown>, completedBy: string, signatureImage?: string): Promise<ClientFormResponse | null> {
+    const completed = await formResponsesDB.complete(id, responses, completedBy, signatureImage);
+    if (completed) {
+      queueSyncOperation('client', 'update', id, { entityType: 'formResponse', ...completed });
+    }
+    return completed || null;
+  },
+};
+
+/**
+ * Referrals data operations - LOCAL-FIRST
+ * Tracks client referrals and rewards
+ */
+export const referralsService = {
+  async getByReferrerId(clientId: string): Promise<Referral[]> {
+    return referralsDB.getByReferrerId(clientId);
+  },
+
+  async getByReferredId(clientId: string): Promise<Referral | null> {
+    const referral = await referralsDB.getByReferredId(clientId);
+    return referral || null;
+  },
+
+  async getById(id: string): Promise<Referral | null> {
+    const referral = await referralsDB.getById(id);
+    return referral || null;
+  },
+
+  async getByCode(code: string): Promise<Referral | null> {
+    const referral = await referralsDB.getByCode(code);
+    return referral || null;
+  },
+
+  async create(referral: Omit<Referral, 'id' | 'createdAt' | 'syncStatus'>): Promise<Referral> {
+    const created = await referralsDB.create(referral);
+    queueSyncOperation('client', 'create', created.id, { entityType: 'referral', ...created });
+    return created;
+  },
+
+  async update(id: string, updates: Partial<Referral>): Promise<Referral | null> {
+    const updated = await referralsDB.update(id, updates);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'referral', ...updated });
+    }
+    return updated || null;
+  },
+
+  async completeReferral(id: string, appointmentId: string): Promise<Referral | null> {
+    const completed = await referralsDB.completeReferral(id, appointmentId);
+    if (completed) {
+      queueSyncOperation('client', 'update', id, { entityType: 'referral', ...completed });
+    }
+    return completed || null;
+  },
+};
+
+/**
+ * Client Reviews data operations - LOCAL-FIRST
+ * Reviews left by clients for staff/services
+ */
+export const reviewsService = {
+  async getByClientId(clientId: string, limit: number = 50): Promise<ClientReview[]> {
+    return clientReviewsDB.getByClientId(clientId, limit);
+  },
+
+  async getById(id: string): Promise<ClientReview | null> {
+    const review = await clientReviewsDB.getById(id);
+    return review || null;
+  },
+
+  async getByStaffId(staffId: string, limit: number = 100): Promise<ClientReview[]> {
+    return clientReviewsDB.getByStaffId(staffId, limit);
+  },
+
+  async create(review: Omit<ClientReview, 'id' | 'createdAt' | 'syncStatus'>): Promise<ClientReview> {
+    const created = await clientReviewsDB.create(review);
+    queueSyncOperation('client', 'create', created.id, { entityType: 'review', ...created });
+    return created;
+  },
+
+  async addResponse(id: string, response: string): Promise<ClientReview | null> {
+    const updated = await clientReviewsDB.addResponse(id, response);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'review', ...updated });
+    }
+    return updated || null;
+  },
+
+  async update(id: string, updates: Partial<ClientReview>): Promise<ClientReview | null> {
+    const updated = await clientReviewsDB.update(id, updates);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'review', ...updated });
+    }
+    return updated || null;
+  },
+};
+
+/**
+ * Loyalty Rewards data operations - LOCAL-FIRST
+ * Tracks earned and redeemed loyalty rewards
+ */
+export const loyaltyService = {
+  async getByClientId(clientId: string, includeRedeemed: boolean = false): Promise<LoyaltyReward[]> {
+    return loyaltyRewardsDB.getByClientId(clientId, includeRedeemed);
+  },
+
+  async getById(id: string): Promise<LoyaltyReward | null> {
+    const reward = await loyaltyRewardsDB.getById(id);
+    return reward || null;
+  },
+
+  async getAvailable(clientId: string): Promise<LoyaltyReward[]> {
+    return loyaltyRewardsDB.getAvailable(clientId);
+  },
+
+  async create(reward: Omit<LoyaltyReward, 'id' | 'createdAt' | 'syncStatus'>): Promise<LoyaltyReward> {
+    const created = await loyaltyRewardsDB.create(reward);
+    queueSyncOperation('client', 'create', created.id, { entityType: 'loyaltyReward', ...created });
+    return created;
+  },
+
+  async redeem(id: string): Promise<LoyaltyReward | null> {
+    const redeemed = await loyaltyRewardsDB.redeem(id);
+    if (redeemed) {
+      queueSyncOperation('client', 'update', id, { entityType: 'loyaltyReward', ...redeemed });
+    }
+    return redeemed || null;
+  },
+};
+
+/**
+ * Review Requests data operations - LOCAL-FIRST
+ * Tracks requests sent to clients asking for reviews
+ */
+export const reviewRequestsService = {
+  async getById(id: string): Promise<ReviewRequest | null> {
+    const request = await reviewRequestsDB.getById(id);
+    return request || null;
+  },
+
+  async getByClientId(clientId: string, limit: number = 50): Promise<ReviewRequest[]> {
+    return reviewRequestsDB.getByClientId(clientId, limit);
+  },
+
+  async getBySalonId(limit: number = 100): Promise<ReviewRequest[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return reviewRequestsDB.getBySalonId(storeId, limit);
+  },
+
+  async getByStatus(status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return reviewRequestsDB.getByStatus(storeId, status, limit);
+  },
+
+  async getPendingByClient(clientId: string): Promise<ReviewRequest[]> {
+    return reviewRequestsDB.getPendingByClient(clientId);
+  },
+
+  async create(request: Omit<ReviewRequest, 'id' | 'createdAt' | 'syncStatus'>): Promise<ReviewRequest> {
+    const created = await reviewRequestsDB.create(request);
+    queueSyncOperation('client', 'create', created.id, { entityType: 'reviewRequest', ...created });
+    return created;
+  },
+
+  async update(id: string, updates: Partial<ReviewRequest>): Promise<ReviewRequest | null> {
+    const updated = await reviewRequestsDB.update(id, updates);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
+    }
+    return updated || null;
+  },
+
+  async markSent(id: string, sentVia: 'email' | 'sms' | 'both'): Promise<ReviewRequest | null> {
+    const updated = await reviewRequestsDB.markSent(id, sentVia);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
+    }
+    return updated || null;
+  },
+
+  async markOpened(id: string): Promise<ReviewRequest | null> {
+    const updated = await reviewRequestsDB.markOpened(id);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
+    }
+    return updated || null;
+  },
+
+  async markCompleted(id: string, reviewId: string): Promise<ReviewRequest | null> {
+    const updated = await reviewRequestsDB.markCompleted(id, reviewId);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
+    }
+    return updated || null;
+  },
+
+  async markExpired(id: string): Promise<ReviewRequest | null> {
+    const updated = await reviewRequestsDB.markExpired(id);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
+    }
+    return updated || null;
+  },
+
+  async delete(id: string): Promise<void> {
+    await reviewRequestsDB.delete(id);
+    queueSyncOperation('client', 'delete', id, { entityType: 'reviewRequest', id });
+  },
+};
+
+/**
+ * Custom Segments data operations - LOCAL-FIRST
+ * User-defined client groupings based on filters
+ */
+export const segmentsService = {
+  async getById(id: string): Promise<CustomSegment | null> {
+    const segment = await customSegmentsDB.getById(id);
+    return segment || null;
+  },
+
+  async getAll(activeOnly: boolean = true): Promise<CustomSegment[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return customSegmentsDB.getBySalonId(storeId, activeOnly);
+  },
+
+  async getActive(): Promise<CustomSegment[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    return customSegmentsDB.getActive(storeId);
+  },
+
+  async getByName(name: string): Promise<CustomSegment | null> {
+    const storeId = getStoreId();
+    if (!storeId) return null;
+    const segment = await customSegmentsDB.getByName(storeId, name);
+    return segment || null;
+  },
+
+  async create(segment: Omit<CustomSegment, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<CustomSegment> {
+    const created = await customSegmentsDB.create(segment);
+    queueSyncOperation('client', 'create', created.id, { entityType: 'segment', ...created });
+    return created;
+  },
+
+  async update(id: string, updates: Partial<CustomSegment>): Promise<CustomSegment | null> {
+    const updated = await customSegmentsDB.update(id, updates);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
+    }
+    return updated || null;
+  },
+
+  async updateFilters(id: string, filters: SegmentFilterGroup): Promise<CustomSegment | null> {
+    const updated = await customSegmentsDB.updateFilters(id, filters);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
+    }
+    return updated || null;
+  },
+
+  async activate(id: string): Promise<CustomSegment | null> {
+    const updated = await customSegmentsDB.activate(id);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
+    }
+    return updated || null;
+  },
+
+  async deactivate(id: string): Promise<CustomSegment | null> {
+    const updated = await customSegmentsDB.deactivate(id);
+    if (updated) {
+      queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
+    }
+    return updated || null;
+  },
+
+  async delete(id: string): Promise<void> {
+    await customSegmentsDB.delete(id);
+    queueSyncOperation('client', 'delete', id, { entityType: 'segment', id });
+  },
+
+  async duplicate(id: string, newName: string, createdBy: string): Promise<CustomSegment | null> {
+    const duplicated = await customSegmentsDB.duplicate(id, newName, createdBy);
+    if (duplicated) {
+      queueSyncOperation('client', 'create', duplicated.id, { entityType: 'segment', ...duplicated });
+    }
+    return duplicated || null;
+  },
+};
+
 // ==================== EXPORTS ====================
 
 export const dataService = {
+  // Execution helpers
   execute: executeDataOperation,
   write: executeWriteOperation,
+
+  // Mode helpers
   shouldUseLocalDB,
   shouldUseServer,
   shouldSync,
   getModeInfo,
   getDataSource,
   getStoreId,
+  isAPIMode,
+
+  // API Mode: Get configured API client (for advanced usage)
+  getAPIClient: USE_API ? getAPIClient : () => null,
 
   // Entity-specific services
   clients: clientsService,
@@ -719,6 +1275,15 @@ export const dataService = {
   appointments: appointmentsService,
   tickets: ticketsService,
   transactions: transactionsService,
+
+  // PR #2: Extended entity services (previously accessed directly via IndexedDB)
+  patchTests: patchTestsService,
+  formResponses: formResponsesService,
+  referrals: referralsService,
+  reviews: reviewsService,
+  loyalty: loyaltyService,
+  reviewRequests: reviewRequestsService,
+  segments: segmentsService,
 };
 
 export default dataService;

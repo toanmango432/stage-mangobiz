@@ -21,7 +21,7 @@ function generateId(prefix: string): string {
 export function createMockClient(overrides: Partial<Client> = {}): Client {
   return {
     id: generateId('client'),
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     firstName: 'Test',
     lastName: 'Client',
     name: 'Test Client',
@@ -50,7 +50,7 @@ export function createMockClient(overrides: Partial<Client> = {}): Client {
 export function createMockService(overrides: Partial<Service> = {}): Service {
   return {
     id: generateId('service'),
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Test Service',
     category: 'General',
     duration: 30,
@@ -86,7 +86,7 @@ export function createMockAppointmentService(overrides: Partial<AppointmentServi
 export function createMockStaff(overrides: Partial<Staff> = {}): Staff {
   return {
     id: generateId('staff'),
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Test Staff',
     email: 'staff@salon.com',
     phone: '(555) 000-1111',
@@ -114,7 +114,7 @@ export function createMockAppointment(overrides: Partial<LocalAppointment> = {})
 
   return {
     id: generateId('apt'),
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     clientId: 'client-1',
     clientName: 'Test Client',
     clientPhone: '(555) 000-0000',

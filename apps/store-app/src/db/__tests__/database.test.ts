@@ -4,7 +4,7 @@ import { appointmentsDB, ticketsDB, staffDB, clientsDB } from '../database';
 import { seedDatabase, getTestSalonId } from '../seed';
 
 describe('Database Tests', () => {
-  const salonId = getTestSalonId();
+  const storeId = getTestSalonId();
 
   beforeEach(async () => {
     await clearDatabase();
@@ -20,7 +20,7 @@ describe('Database Tests', () => {
   describe('Staff Operations', () => {
     it('should create and retrieve staff', async () => {
       await seedDatabase();
-      const staff = await staffDB.getAll(salonId);
+      const staff = await staffDB.getAll(storeId);
       expect(staff.length).toBeGreaterThan(0);
       expect(staff[0]).toHaveProperty('name');
       expect(staff[0]).toHaveProperty('status');
@@ -28,7 +28,7 @@ describe('Database Tests', () => {
 
     it('should get available staff only', async () => {
       await seedDatabase();
-      const available = await staffDB.getAvailable(salonId);
+      const available = await staffDB.getAvailable(storeId);
       expect(available.every(s => s.status === 'available')).toBe(true);
     });
   });
@@ -36,7 +36,7 @@ describe('Database Tests', () => {
   describe('Client Operations', () => {
     it('should create a new client', async () => {
       const client = await clientsDB.create({
-        salonId,
+        storeId,
         firstName: 'Test',
         lastName: 'Client',
         name: 'Test Client',
@@ -53,7 +53,7 @@ describe('Database Tests', () => {
 
     it('should search clients by name', async () => {
       await seedDatabase();
-      const results = await clientsDB.search(salonId, 'jane');
+      const results = await clientsDB.search(storeId, 'jane');
       expect(results.length).toBeGreaterThan(0);
       expect(results[0]?.name?.toLowerCase()).toContain('jane');
     });
@@ -62,8 +62,8 @@ describe('Database Tests', () => {
   describe('Appointment Operations', () => {
     it('should create an appointment', async () => {
       await seedDatabase();
-      const staff = await staffDB.getAll(salonId);
-      const clients = await clientsDB.getAll(salonId);
+      const staff = await staffDB.getAll(storeId);
+      const clients = await clientsDB.getAll(storeId);
 
       const appointment = await appointmentsDB.create({
         clientId: clients[0].id,
@@ -79,7 +79,7 @@ describe('Database Tests', () => {
         }],
         scheduledStartTime: new Date(),
         source: 'phone',
-      }, 'user-1', salonId);
+      }, 'user-1', storeId);
 
       expect(appointment.id).toBeDefined();
       expect(appointment.status).toBe('scheduled');
@@ -88,8 +88,8 @@ describe('Database Tests', () => {
 
     it('should check in an appointment', async () => {
       await seedDatabase();
-      const staff = await staffDB.getAll(salonId);
-      const clients = await clientsDB.getAll(salonId);
+      const staff = await staffDB.getAll(storeId);
+      const clients = await clientsDB.getAll(storeId);
 
       const appointment = await appointmentsDB.create({
         clientId: clients[0].id,
@@ -105,7 +105,7 @@ describe('Database Tests', () => {
         }],
         scheduledStartTime: new Date(),
         source: 'phone',
-      }, 'user-1', salonId);
+      }, 'user-1', storeId);
 
       const checkedIn = await appointmentsDB.checkIn(appointment.id, 'user-1');
       expect(checkedIn?.status).toBe('checked-in');
@@ -116,8 +116,8 @@ describe('Database Tests', () => {
   describe('Ticket Operations', () => {
     it('should create a ticket', async () => {
       await seedDatabase();
-      const staff = await staffDB.getAll(salonId);
-      const clients = await clientsDB.getAll(salonId);
+      const staff = await staffDB.getAll(storeId);
+      const clients = await clientsDB.getAll(storeId);
 
       const ticket = await ticketsDB.create({
         clientId: clients[0].id,
@@ -133,7 +133,7 @@ describe('Database Tests', () => {
           commission: 22.5,
           startTime: new Date().toISOString(),
         }],
-      }, 'user-1', salonId);
+      }, 'user-1', storeId);
 
       expect(ticket.id).toBeDefined();
       expect(ticket.status).toBe('pending'); // Default status for newly created tickets
@@ -143,8 +143,8 @@ describe('Database Tests', () => {
 
     it('should get active tickets', async () => {
       await seedDatabase();
-      const staff = await staffDB.getAll(salonId);
-      const clients = await clientsDB.getAll(salonId);
+      const staff = await staffDB.getAll(storeId);
+      const clients = await clientsDB.getAll(storeId);
 
       await ticketsDB.create({
         clientId: clients[0].id,
@@ -160,9 +160,9 @@ describe('Database Tests', () => {
           commission: 22.5,
           startTime: new Date().toISOString(),
         }],
-      }, 'user-1', salonId);
+      }, 'user-1', storeId);
 
-      const active = await ticketsDB.getActive(salonId);
+      const active = await ticketsDB.getActive(storeId);
       expect(active.length).toBe(1);
       expect(['in-service', 'pending']).toContain(active[0].status);
     });

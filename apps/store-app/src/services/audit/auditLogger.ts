@@ -622,14 +622,14 @@ export function useAuditContext(): void {
   // Get auth state from Redux
   const store = useSelector((state: any) => state.auth?.store);
   const member = useSelector((state: any) => state.auth?.member);
-  const salonId = useSelector((state: any) => state.auth?.salonId);
+  const storeId = useSelector((state: any) => state.auth?.storeId);
 
   useEffect(() => {
     // Set audit context when auth state changes
-    if (store || member || salonId) {
+    if (store || member || storeId) {
       auditLogger.setContext({
         // Store context
-        storeId: store?.storeId || salonId || undefined,
+        storeId: store?.storeId || storeId || undefined,
         storeName: store?.storeName,
         tenantId: store?.tenantId,
         // User context
@@ -646,7 +646,7 @@ export function useAuditContext(): void {
       // Only clear if we're unmounting due to logout (no auth data)
       // Don't clear on every re-render
     };
-  }, [store, member, salonId]);
+  }, [store, member, storeId]);
 }
 
 /**

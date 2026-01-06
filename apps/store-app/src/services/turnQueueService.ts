@@ -24,11 +24,11 @@ export class TurnQueueService {
    * Find the best available staff member for a service
    */
   async findBestStaff(
-    salonId: string,
+    storeId: string,
     criteria: AssignmentCriteria
   ): Promise<Staff | null> {
     // Get all available staff
-    const availableStaff = await staffDB.getAvailable(salonId);
+    const availableStaff = await staffDB.getAvailable(storeId);
     
     if (availableStaff.length === 0) {
       return null;
@@ -44,7 +44,7 @@ export class TurnQueueService {
 
     // Score each staff member
     const staffScores = await Promise.all(
-      availableStaff.map(staff => this.scoreStaff(staff, criteria, salonId))
+      availableStaff.map(staff => this.scoreStaff(staff, criteria, storeId))
     );
 
     // Sort by score (highest first)
@@ -65,7 +65,7 @@ export class TurnQueueService {
   private async scoreStaff(
     staff: Staff,
     criteria: AssignmentCriteria,
-    salonId: string
+    storeId: string
   ): Promise<StaffScore> {
     let score = 0;
     const reasons: string[] = [];
@@ -82,7 +82,7 @@ export class TurnQueueService {
 
     // 2. Turn Rotation (0-25 points)
     // Staff who haven't had a turn recently get higher score
-    const turnScore = await this.calculateTurnScore(staff, salonId);
+    const turnScore = await this.calculateTurnScore(staff, storeId);
     score += turnScore;
     if (turnScore > 0) {
       reasons.push(`Turn rotation: +${turnScore}`);
@@ -97,7 +97,7 @@ export class TurnQueueService {
 
     // 4. Current Load (0-15 points)
     // Staff with fewer active tickets get priority
-    const loadScore = await this.calculateLoadScore(staff, salonId);
+    const loadScore = await this.calculateLoadScore(staff, storeId);
     score += loadScore;
     if (loadScore > 0) {
       reasons.push(`Low workload: +${loadScore}`);
@@ -138,11 +138,11 @@ export class TurnQueueService {
    * Calculate turn rotation score
    * Staff who haven't had a turn recently get higher score
    */
-  private async calculateTurnScore(staff: Staff, salonId: string): Promise<number> {
+  private async calculateTurnScore(staff: Staff, storeId: string): Promise<number> {
     try {
       // Get staff's recent tickets (last 2 hours)
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-      const allTickets = await ticketsDB.getAll(salonId);
+      const allTickets = await ticketsDB.getAll(storeId);
       
       const staffRecentTickets = allTickets.filter(ticket => {
         const hasStaff = ticket.services.some(s => s.staffId === staff.id);
@@ -164,9 +164,9 @@ export class TurnQueueService {
    * Calculate current workload score
    * Staff with fewer active tickets get higher score
    */
-  private async calculateLoadScore(staff: Staff, salonId: string): Promise<number> {
+  private async calculateLoadScore(staff: Staff, storeId: string): Promise<number> {
     try {
-      const activeTickets = await ticketsDB.getActive(salonId);
+      const activeTickets = await ticketsDB.getActive(storeId);
       
       const staffActiveTickets = activeTickets.filter(ticket =>
         ticket.services.some(s => s.staffId === staff.id)
@@ -185,10 +185,10 @@ export class TurnQueueService {
   /**
    * Get turn queue stats for display
    */
-  async getTurnQueueStats(salonId: string) {
+  async getTurnQueueStats(storeId: string) {
     try {
-      const allStaff = await staffDB.getAll(salonId);
-      const activeTickets = await ticketsDB.getActive(salonId);
+      const allStaff = await staffDB.getAll(storeId);
+      const activeTickets = await ticketsDB.getActive(storeId);
 
       const staffStats = await Promise.all(
         allStaff.map(async (staff) => {
@@ -197,7 +197,7 @@ export class TurnQueueService {
           );
 
           const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-          const allTickets = await ticketsDB.getAll(salonId);
+          const allTickets = await ticketsDB.getAll(storeId);
           const recentTickets = allTickets.filter(ticket => {
             const hasStaff = ticket.services.some(s => s.staffId === staff.id);
             const isRecent = new Date(ticket.createdAt) >= twoHoursAgo;
@@ -210,7 +210,7 @@ export class TurnQueueService {
             status: staff.status,
             activeTickets: staffTickets.length,
             recentTickets: recentTickets.length,
-            turnScore: await this.calculateTurnScore(staff, salonId),
+            turnScore: await this.calculateTurnScore(staff, storeId),
           };
         })
       );
@@ -233,8 +233,8 @@ export class TurnQueueService {
   /**
    * Auto-assign staff to a walk-in client
    */
-  async autoAssignWalkIn(salonId: string, serviceIds: string[], vipClient: boolean = false): Promise<Staff | null> {
-    return this.findBestStaff(salonId, {
+  async autoAssignWalkIn(storeId: string, serviceIds: string[], vipClient: boolean = false): Promise<Staff | null> {
+    return this.findBestStaff(storeId, {
       serviceIds,
       vipClient,
     });
@@ -245,13 +245,13 @@ export class TurnQueueService {
    * Returns top 3 suggestions with reasons
    */
   async suggestStaff(
-    salonId: string,
+    storeId: string,
     criteria: AssignmentCriteria
   ): Promise<StaffScore[]> {
-    const availableStaff = await staffDB.getAvailable(salonId);
+    const availableStaff = await staffDB.getAvailable(storeId);
     
     const staffScores = await Promise.all(
-      availableStaff.map(staff => this.scoreStaff(staff, criteria, salonId))
+      availableStaff.map(staff => this.scoreStaff(staff, criteria, storeId))
     );
 
     // Sort and return top 3

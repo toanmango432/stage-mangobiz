@@ -28,6 +28,8 @@
     "@mango/supabase": "workspace:*",
     "@mango/mqtt": "workspace:*",
     "@mango/ui": "workspace:*",
+    "@mango/api-client": "workspace:*",
+    "@mango/api-contracts": "workspace:*",
     "@hookform/resolvers": "^3.10.0",
     "@reduxjs/toolkit": "^2.9.1",
     "@sentry/react": "^10.32.1",

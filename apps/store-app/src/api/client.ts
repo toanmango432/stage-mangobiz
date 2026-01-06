@@ -26,9 +26,9 @@ apiClient.interceptors.request.use(
       }
 
       // Add salon ID if available
-      const salonId = await settingsDB.get('salon_id');
-      if (salonId && config.headers) {
-        config.headers['X-Salon-ID'] = salonId;
+      const storeId = await settingsDB.get('salon_id');
+      if (storeId && config.headers) {
+        config.headers['X-Salon-ID'] = storeId;
       }
 
       console.log(`🌐 API Request: ${config.method?.toUpperCase()} ${config.url}`);

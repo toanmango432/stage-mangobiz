@@ -55,7 +55,7 @@ async function queueForSync(
     payload: entity,
     priority: SYNC_CONFIG.priority,
     maxAttempts: 10,
-    salonId: storeId, // Using salonId for backwards compatibility with existing sync queue
+    storeId: storeId, // Using storeId for backwards compatibility with existing sync queue
   });
 }
 

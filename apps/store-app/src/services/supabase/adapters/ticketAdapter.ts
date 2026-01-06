@@ -18,7 +18,7 @@ export function toTicket(row: TicketRow): Ticket {
 
   return {
     id: row.id,
-    salonId: row.store_id,
+    storeId: row.store_id,
     appointmentId: row.appointment_id || undefined,
     clientId: row.client_id || '',
     clientName: row.client_name,
@@ -48,7 +48,7 @@ export function toTicketInsert(
   storeId?: string
 ): Omit<TicketInsert, 'store_id'> & { store_id?: string } {
   return {
-    store_id: storeId || ticket.salonId,
+    store_id: storeId || ticket.storeId,
     appointment_id: ticket.appointmentId || null,
     client_id: ticket.clientId || null,
     client_name: ticket.clientName,

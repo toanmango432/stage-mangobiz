@@ -169,7 +169,7 @@ class DataLifecycleService {
 
       // Get old records for this store
       const records = await table
-        .where('salonId')
+        .where('storeId')
         .equals(storeId)
         .toArray();
 
@@ -231,7 +231,7 @@ class DataLifecycleService {
 
         // Get all records and filter for tombstones
         const records = await table
-          .where('salonId')
+          .where('storeId')
           .equals(storeId)
           .toArray();
 
@@ -297,7 +297,7 @@ class DataLifecycleService {
       try {
         const table = db.table(tableName);
         if (table) {
-          const count = await table.where('salonId').equals(storeId).delete();
+          const count = await table.where('storeId').equals(storeId).delete();
           console.log(`[DataLifecycle] Deleted ${count} records from ${tableName}`);
         }
       } catch (error) {

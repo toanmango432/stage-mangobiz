@@ -27,7 +27,7 @@ import type { LoyaltySettings } from '../../types/loyalty';
 // Mock client factory
 const createMockClient = (overrides: Partial<Client> = {}): Client => ({
   id: 'client-1',
-  salonId: 'salon-1',
+  storeId: 'salon-1',
   firstName: 'John',
   lastName: 'Doe',
   phone: '1234567890',

@@ -24,7 +24,7 @@ import type { ReviewRequest, ClientReview, Client } from '../types';
 // @ts-expect-error - Unused but kept for future test scenarios
 const createTestClient = async (overrides: Partial<Client> = {}): Promise<Client> => {
   const client: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'> = {
-    salonId: 'test-salon',
+    storeId: 'test-salon',
     firstName: 'Test',
     lastName: 'Client',
     phone: '555-1234',
@@ -38,7 +38,7 @@ const createTestClient = async (overrides: Partial<Client> = {}): Promise<Client
 // Helper to create a test review request
 const createTestReviewRequest = async (overrides: Partial<ReviewRequest> = {}): Promise<ReviewRequest> => {
   const request: Omit<ReviewRequest, 'id' | 'createdAt' | 'syncStatus'> = {
-    salonId: 'test-salon',
+    storeId: 'test-salon',
     clientId: 'test-client',
     clientName: 'Test Client',
     status: 'pending',
@@ -109,7 +109,7 @@ describe('Review System', () => {
       it('should allow request when under monthly limit', () => {
         const recentRequests: ReviewRequest[] = [{
           id: '1',
-          salonId: 'test',
+          storeId: 'test',
           clientId: 'client-1',
           clientName: 'Test',
           status: 'sent',
@@ -127,7 +127,7 @@ describe('Review System', () => {
         const recentRequests: ReviewRequest[] = [
           {
             id: '1',
-            salonId: 'test',
+            storeId: 'test',
             clientId: 'client-1',
             clientName: 'Test',
             status: 'sent',
@@ -139,7 +139,7 @@ describe('Review System', () => {
           },
           {
             id: '2',
-            salonId: 'test',
+            storeId: 'test',
             clientId: 'client-1',
             clientName: 'Test',
             status: 'completed',

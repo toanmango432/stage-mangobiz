@@ -53,9 +53,9 @@ export const teamStaffSyncMiddleware: Middleware = (storeApi) => (next) => (acti
 
       // Also reload uiStaffSlice to get fresh data from DB
       // This ensures Front Desk display is updated
-      const salonId = 'salon-001'; // TODO: Get from auth state
+      const storeId = 'salon-001'; // TODO: Get from auth state
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      storeApi.dispatch(loadStaff(salonId) as any);
+      storeApi.dispatch(loadStaff(storeId) as any);
     }
   }
 

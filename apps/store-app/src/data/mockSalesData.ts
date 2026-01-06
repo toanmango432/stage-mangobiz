@@ -5,7 +5,7 @@ import type { LocalAppointment } from '../types/appointment';
 export const mockTickets: Ticket[] = [
   {
     id: 'ticket-001',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     appointmentId: 'appt-001',
     clientId: 'client-001',
     clientName: 'Sarah Johnson',
@@ -70,7 +70,7 @@ export const mockTickets: Ticket[] = [
   },
   {
     id: 'ticket-002',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-002',
     clientName: 'Michael Brown',
     clientPhone: '(555) 234-5678',
@@ -106,7 +106,7 @@ export const mockTickets: Ticket[] = [
   },
   {
     id: 'ticket-003',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-003',
     clientName: 'Jessica Lee',
     clientPhone: '(555) 345-6789',
@@ -169,7 +169,7 @@ export const mockTickets: Ticket[] = [
   },
   {
     id: 'ticket-004',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-004',
     clientName: 'Robert Wilson',
     clientPhone: '(555) 456-7890',
@@ -219,7 +219,7 @@ export const mockTickets: Ticket[] = [
   },
   {
     id: 'ticket-005',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-005',
     clientName: 'Amanda Garcia',
     clientPhone: '(555) 567-8901',
@@ -266,7 +266,7 @@ export const mockTickets: Ticket[] = [
   // GROUP TICKET EXAMPLE - Mother and daughter spa day
   {
     id: 'ticket-100',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-100',
     clientName: 'Sarah Johnson',
     clientPhone: '(555) 321-9876',
@@ -362,7 +362,7 @@ export const mockTickets: Ticket[] = [
   // MERGED TICKET EXAMPLE - Client added services later
   {
     id: 'ticket-200',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-200',
     clientName: 'David Martinez',
     clientPhone: '(555) 987-6543',
@@ -445,7 +445,7 @@ export const mockTickets: Ticket[] = [
   // GROUP TICKET EXAMPLE 2 - Couple's spa package
   {
     id: 'ticket-101',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-110',
     clientName: 'Jennifer Lee',
     clientPhone: '(555) 444-5555',
@@ -555,7 +555,7 @@ export const mockTickets: Ticket[] = [
   // GROUP TICKET EXAMPLE 3 - Birthday party (3 friends)
   {
     id: 'ticket-102',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-120',
     clientName: 'Ashley Brown',
     clientPhone: '(555) 777-8888',
@@ -699,7 +699,7 @@ export const mockTickets: Ticket[] = [
   // MERGED TICKET EXAMPLE 2 - Client added product purchase later
   {
     id: 'ticket-210',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-210',
     clientName: 'Rebecca Wilson',
     clientPhone: '(555) 222-3333',
@@ -782,7 +782,7 @@ export const mockTickets: Ticket[] = [
   // GROUP TICKET with PARTIAL PAYMENT
   {
     id: 'ticket-103',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-130',
     clientName: 'Patricia Davis',
     clientPhone: '(555) 666-7777',
@@ -874,7 +874,7 @@ export const mockTickets: Ticket[] = [
 export const mockAppointments: LocalAppointment[] = [
   {
     id: 'appt-101',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-101',
     clientName: 'Jennifer Davis',
     clientPhone: '(555) 678-9012',
@@ -903,7 +903,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'appt-102',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-102',
     clientName: 'Christopher Martinez',
     clientPhone: '(555) 789-0123',
@@ -940,7 +940,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'appt-103',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-103',
     clientName: 'Michelle Anderson',
     clientPhone: '(555) 890-1234',
@@ -971,7 +971,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'appt-104',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-104',
     clientName: 'Daniel Thompson',
     clientPhone: '(555) 901-2345',
@@ -1000,7 +1000,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'appt-105',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-105',
     clientName: 'Karen White',
     clientPhone: '(555) 012-3456',
@@ -1037,7 +1037,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'appt-106',
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: 'client-106',
     clientName: 'Steven Harris',
     clientPhone: '(555) 123-7890',
@@ -1073,7 +1073,7 @@ for (let i = 7; i <= 30; i++) {
 
   mockTickets.push({
     id: `ticket-${String(i).padStart(3, '0')}`,
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: `client-${String(i).padStart(3, '0')}`,
     clientName: `Customer ${i}`,
     clientPhone: `(555) ${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
@@ -1115,7 +1115,7 @@ for (let i = 107; i <= 130; i++) {
 
   mockAppointments.push({
     id: `appt-${i}`,
-    salonId: 'salon_123',
+    storeId: 'salon_123',
     clientId: `client-${i}`,
     clientName: `Client ${i}`,
     clientPhone: `(555) ${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 9000) + 1000)}`,

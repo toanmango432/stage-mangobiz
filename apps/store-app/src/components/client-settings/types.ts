@@ -253,7 +253,7 @@ export interface ClientNote {
 export interface EnhancedClient {
   // Core identification
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Basic info
   firstName: string;

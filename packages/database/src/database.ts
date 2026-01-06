@@ -35,10 +35,10 @@ export { db };
 // ==================== APPOINTMENTS ====================
 
 export const appointmentsDB = {
-  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
+  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
     return await db.appointments
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .offset(offset)
       .limit(limit)
       .toArray();
@@ -48,7 +48,7 @@ export const appointmentsDB = {
     return await db.appointments.get(id);
   },
 
-  async getByDate(salonId: string, date: Date, limit: number = 200): Promise<Appointment[]> {
+  async getByDate(storeId: string, date: Date, limit: number = 200): Promise<Appointment[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
@@ -57,8 +57,8 @@ export const appointmentsDB = {
     const startIso = startOfDay.toISOString();
     const endIso = endOfDay.toISOString();
     return await db.appointments
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(apt =>
         apt.scheduledStartTime >= startIso &&
         apt.scheduledStartTime <= endIso
@@ -67,16 +67,16 @@ export const appointmentsDB = {
       .toArray();
   },
 
-  async getByStatus(salonId: string, status: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
+  async getByStatus(storeId: string, status: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
     return await db.appointments
-      .where('[salonId+status]')
-      .equals([salonId, status])
+      .where('[storeId+status]')
+      .equals([storeId, status])
       .offset(offset)
       .limit(limit)
       .toArray();
   },
 
-  async create(input: CreateAppointmentInput, userId: string, salonId: string): Promise<Appointment> {
+  async create(input: CreateAppointmentInput, userId: string, storeId: string): Promise<Appointment> {
     const now = new Date().toISOString();
     const startTime = typeof input.scheduledStartTime === 'string'
       ? new Date(input.scheduledStartTime)
@@ -87,7 +87,7 @@ export const appointmentsDB = {
     );
     const appointment: Appointment = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       status: 'scheduled',
       scheduledStartTime: startTime.toISOString(),
@@ -134,10 +134,10 @@ export const appointmentsDB = {
 // ==================== TICKETS ====================
 
 export const ticketsDB = {
-  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
+  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
     return await db.tickets
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .offset(offset)
       .limit(limit)
       .toArray();
@@ -147,25 +147,25 @@ export const ticketsDB = {
     return await db.tickets.get(id);
   },
 
-  async getByStatus(salonId: string, status: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
+  async getByStatus(storeId: string, status: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
     return await db.tickets
-      .where('[salonId+status]')
-      .equals([salonId, status])
+      .where('[storeId+status]')
+      .equals([storeId, status])
       .offset(offset)
       .limit(limit)
       .toArray();
   },
 
-  async getActive(salonId: string, limit: number = 100): Promise<Ticket[]> {
+  async getActive(storeId: string, limit: number = 100): Promise<Ticket[]> {
     return await db.tickets
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(ticket => ['in-service', 'pending'].includes(ticket.status))
       .limit(limit)
       .toArray();
   },
 
-  async create(input: CreateTicketInput, userId: string, salonId: string): Promise<Ticket> {
+  async create(input: CreateTicketInput, userId: string, storeId: string): Promise<Ticket> {
     const now = new Date();
     const subtotal = input.services.reduce((sum, s) => sum + s.price, 0) +
                     (input.products?.reduce((sum, p) => sum + p.total, 0) || 0);
@@ -180,7 +180,7 @@ export const ticketsDB = {
 
     const ticket: Ticket = {
       id: uuidv4(),
-      salonId,
+      storeId,
       clientId: input.clientId,
       clientName: input.clientName,
       clientPhone: input.clientPhone,
@@ -252,7 +252,7 @@ export const ticketsDB = {
   async createDraft(
     services: TicketService[],
     userId: string,
-    salonId: string,
+    storeId: string,
     clientInfo?: { clientId: string; clientName: string; clientPhone: string }
   ): Promise<Ticket> {
     const now = new Date();
@@ -261,7 +261,7 @@ export const ticketsDB = {
 
     const ticket: Ticket = {
       id: uuidv4(),
-      salonId,
+      storeId,
       clientId: clientInfo?.clientId || 'walk-in',
       clientName: clientInfo?.clientName || 'Walk-in',
       clientPhone: clientInfo?.clientPhone || '',
@@ -291,10 +291,10 @@ export const ticketsDB = {
   /**
    * Get all draft tickets for a salon.
    */
-  async getDrafts(salonId: string): Promise<Ticket[]> {
+  async getDrafts(storeId: string): Promise<Ticket[]> {
     return await db.tickets
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(ticket => ticket.isDraft === true)
       .toArray();
   },
@@ -302,11 +302,11 @@ export const ticketsDB = {
   /**
    * Delete expired drafts (older than 24 hours by default).
    */
-  async cleanupExpiredDrafts(salonId: string): Promise<number> {
+  async cleanupExpiredDrafts(storeId: string): Promise<number> {
     const now = new Date().toISOString();
     const expiredDrafts = await db.tickets
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(ticket =>
         ticket.isDraft === true &&
         ticket.draftExpiresAt !== undefined &&
@@ -324,10 +324,10 @@ export const ticketsDB = {
 // ==================== TRANSACTIONS ====================
 
 export const transactionsDB = {
-  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Transaction[]> {
+  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Transaction[]> {
     return await db.transactions
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .reverse()
       .offset(offset)
       .limit(limit)
@@ -338,12 +338,12 @@ export const transactionsDB = {
     return await db.transactions.get(id);
   },
 
-  async getByDateRange(salonId: string, startDate: Date, endDate: Date, limit: number = 100): Promise<Transaction[]> {
+  async getByDateRange(storeId: string, startDate: Date, endDate: Date, limit: number = 100): Promise<Transaction[]> {
     const startIso = startDate.toISOString();
     const endIso = endDate.toISOString();
     return await db.transactions
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(txn => txn.createdAt >= startIso && txn.createdAt <= endIso)
       .reverse()
       .limit(limit)
@@ -397,10 +397,10 @@ export const transactionsDB = {
 // ==================== STAFF ====================
 
 export const staffDB = {
-  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Staff[]> {
+  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Staff[]> {
     return await db.staff
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .offset(offset)
       .limit(limit)
       .toArray();
@@ -410,10 +410,10 @@ export const staffDB = {
     return await db.staff.get(id);
   },
 
-  async getAvailable(salonId: string, limit: number = 100): Promise<Staff[]> {
+  async getAvailable(storeId: string, limit: number = 100): Promise<Staff[]> {
     return await db.staff
-      .where('[salonId+status]')
-      .equals([salonId, 'available'])
+      .where('[storeId+status]')
+      .equals([storeId, 'available'])
       .limit(limit)
       .toArray();
   },
@@ -470,10 +470,10 @@ export const staffDB = {
 
 export const clientsDB = {
   // Basic CRUD operations
-  async getAll(salonId: string, limit: number = 100, offset: number = 0): Promise<Client[]> {
+  async getAll(storeId: string, limit: number = 100, offset: number = 0): Promise<Client[]> {
     return await db.clients
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .offset(offset)
       .limit(limit)
       .toArray();
@@ -487,11 +487,11 @@ export const clientsDB = {
     return await db.clients.where('id').anyOf(ids).toArray();
   },
 
-  async search(salonId: string, query: string, limit: number = 50): Promise<Client[]> {
+  async search(storeId: string, query: string, limit: number = 50): Promise<Client[]> {
     const lowerQuery = query.toLowerCase();
     return await db.clients
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(client => {
         const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
         return fullName.includes(lowerQuery) ||
@@ -549,13 +549,13 @@ export const clientsDB = {
 
   // Filtering and sorting
   async getFiltered(
-    salonId: string,
+    storeId: string,
     filters: ClientFilters,
     sort: ClientSortOptions = { field: 'name', order: 'asc' },
     limit: number = 100,
     offset: number = 0
   ): Promise<{ clients: Client[]; total: number }> {
-    let collection = db.clients.where('salonId').equals(salonId);
+    let collection = db.clients.where('storeId').equals(storeId);
 
     // Apply filters
     const filteredClients = await collection.toArray();
@@ -663,10 +663,10 @@ export const clientsDB = {
   },
 
   // Blocking operations (PRD 2.3.2)
-  async getBlocked(salonId: string, limit: number = 100): Promise<Client[]> {
+  async getBlocked(storeId: string, limit: number = 100): Promise<Client[]> {
     return await db.clients
-      .where('[salonId+isBlocked]')
-      .equals([salonId, 1]) // Dexie stores booleans as 1/0
+      .where('[storeId+isBlocked]')
+      .equals([storeId, 1]) // Dexie stores booleans as 1/0
       .limit(limit)
       .toArray();
   },
@@ -717,10 +717,10 @@ export const clientsDB = {
   },
 
   // VIP operations
-  async getVips(salonId: string, limit: number = 100): Promise<Client[]> {
+  async getVips(storeId: string, limit: number = 100): Promise<Client[]> {
     return await db.clients
-      .where('[salonId+isVip]')
-      .equals([salonId, 1])
+      .where('[storeId+isVip]')
+      .equals([storeId, 1])
       .limit(limit)
       .toArray();
   },
@@ -784,17 +784,17 @@ export const clientsDB = {
   },
 
   // Statistics
-  async getCount(salonId: string): Promise<number> {
-    return await db.clients.where('salonId').equals(salonId).count();
+  async getCount(storeId: string): Promise<number> {
+    return await db.clients.where('storeId').equals(storeId).count();
   },
 
-  async getStats(salonId: string): Promise<{
+  async getStats(storeId: string): Promise<{
     total: number;
     blocked: number;
     vip: number;
     newThisMonth: number;
   }> {
-    const clients = await db.clients.where('salonId').equals(salonId).toArray();
+    const clients = await db.clients.where('storeId').equals(storeId).toArray();
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
@@ -810,10 +810,10 @@ export const clientsDB = {
 // ==================== SERVICES ====================
 
 export const servicesDB = {
-  async getAll(salonId: string, limit: number = 200, offset: number = 0): Promise<Service[]> {
+  async getAll(storeId: string, limit: number = 200, offset: number = 0): Promise<Service[]> {
     return await db.services
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .offset(offset)
       .limit(limit)
       .toArray();
@@ -823,10 +823,10 @@ export const servicesDB = {
     return await db.services.get(id);
   },
 
-  async getByCategory(salonId: string, category: string, limit: number = 100): Promise<Service[]> {
+  async getByCategory(storeId: string, category: string, limit: number = 100): Promise<Service[]> {
     return await db.services
-      .where('[salonId+category]')
-      .equals([salonId, category])
+      .where('[storeId+category]')
+      .equals([storeId, category])
       .limit(limit)
       .toArray();
   },
@@ -1304,19 +1304,19 @@ export const reviewRequestsDB = {
       .toArray();
   },
 
-  async getBySalonId(salonId: string, limit: number = 100): Promise<ReviewRequest[]> {
+  async getBySalonId(storeId: string, limit: number = 100): Promise<ReviewRequest[]> {
     return await db.reviewRequests
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .reverse()
       .limit(limit)
       .toArray();
   },
 
-  async getByStatus(salonId: string, status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
+  async getByStatus(storeId: string, status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
     return await db.reviewRequests
-      .where('[salonId+status]')
-      .equals([salonId, status])
+      .where('[storeId+status]')
+      .equals([storeId, status])
       .limit(limit)
       .toArray();
   },
@@ -1417,10 +1417,10 @@ export const reviewRequestsDB = {
   /**
    * Get requests that need reminders sent
    */
-  async getNeedingReminder(salonId: string, maxReminders: number = 1): Promise<ReviewRequest[]> {
+  async getNeedingReminder(storeId: string, maxReminders: number = 1): Promise<ReviewRequest[]> {
     const requests = await db.reviewRequests
-      .where('[salonId+status]')
-      .equals([salonId, 'sent'])
+      .where('[storeId+status]')
+      .equals([storeId, 'sent'])
       .toArray();
 
     return requests.filter(r => r.reminderCount < maxReminders);
@@ -1429,11 +1429,11 @@ export const reviewRequestsDB = {
   /**
    * Get expired requests that need status update
    */
-  async getExpired(salonId: string): Promise<ReviewRequest[]> {
+  async getExpired(storeId: string): Promise<ReviewRequest[]> {
     const now = new Date().toISOString();
     const requests = await db.reviewRequests
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(r => r.status !== 'completed' && r.status !== 'expired' && r.expiresAt < now)
       .toArray();
 
@@ -1462,30 +1462,30 @@ export const customSegmentsDB = {
     return await db.customSegments.get(id);
   },
 
-  async getBySalonId(salonId: string, activeOnly: boolean = true): Promise<CustomSegment[]> {
+  async getBySalonId(storeId: string, activeOnly: boolean = true): Promise<CustomSegment[]> {
     if (activeOnly) {
       return await db.customSegments
-        .where('[salonId+isActive]')
-        .equals([salonId, 1])
+        .where('[storeId+isActive]')
+        .equals([storeId, 1])
         .toArray();
     }
     return await db.customSegments
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .toArray();
   },
 
-  async getActive(salonId: string): Promise<CustomSegment[]> {
+  async getActive(storeId: string): Promise<CustomSegment[]> {
     return await db.customSegments
-      .where('[salonId+isActive]')
-      .equals([salonId, 1])
+      .where('[storeId+isActive]')
+      .equals([storeId, 1])
       .toArray();
   },
 
-  async getByName(salonId: string, name: string): Promise<CustomSegment | undefined> {
+  async getByName(storeId: string, name: string): Promise<CustomSegment | undefined> {
     return await db.customSegments
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(s => s.name.toLowerCase() === name.toLowerCase())
       .first();
   },
@@ -1555,14 +1555,14 @@ export const customSegmentsDB = {
     return newSegment;
   },
 
-  async getCount(salonId: string): Promise<number> {
-    return await db.customSegments.where('salonId').equals(salonId).count();
+  async getCount(storeId: string): Promise<number> {
+    return await db.customSegments.where('storeId').equals(storeId).count();
   },
 
-  async getActiveCount(salonId: string): Promise<number> {
+  async getActiveCount(storeId: string): Promise<number> {
     return await db.customSegments
-      .where('[salonId+isActive]')
-      .equals([salonId, 1])
+      .where('[storeId+isActive]')
+      .equals([storeId, 1])
       .count();
   },
 };

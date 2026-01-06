@@ -120,13 +120,13 @@ const initialState: CheckoutState = {
  */
 export const loadDrafts = createAsyncThunk(
   'checkout/loadDrafts',
-  async (salonId: string, { rejectWithValue }) => {
+  async (storeId: string, { rejectWithValue }) => {
     try {
       // Clean up expired drafts first
-      await ticketsDB.cleanupExpiredDrafts(salonId);
+      await ticketsDB.cleanupExpiredDrafts(storeId);
 
       // Load all drafts for the salon
-      const tickets = await ticketsDB.getDrafts(salonId);
+      const tickets = await ticketsDB.getDrafts(storeId);
 
       // Convert to DraftSale summaries
       const drafts: DraftSale[] = tickets.map(ticket => ({

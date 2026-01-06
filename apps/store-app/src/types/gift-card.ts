@@ -119,7 +119,7 @@ export interface GiftCardTransaction extends BaseSyncableEntity {
  */
 export interface GiftCardDesign {
   id: string;
-  salonId: string;
+  storeId: string;
   name: string;
   description?: string;
   imageUrl: string;

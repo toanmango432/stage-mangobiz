@@ -31,10 +31,10 @@ import type {
 // ==================== SERVICE CATEGORIES ====================
 
 export const serviceCategoriesDB = {
-  async getAll(salonId: string, includeInactive = false): Promise<ServiceCategory[]> {
+  async getAll(storeId: string, includeInactive = false): Promise<ServiceCategory[]> {
     let query = db.serviceCategories
-      .where('salonId')
-      .equals(salonId);
+      .where('storeId')
+      .equals(storeId);
 
     if (!includeInactive) {
       query = query.and(cat => cat.isActive);
@@ -48,11 +48,11 @@ export const serviceCategoriesDB = {
     return await db.serviceCategories.get(id);
   },
 
-  async getWithCounts(salonId: string, includeInactive = false): Promise<CategoryWithCount[]> {
-    const categories = await this.getAll(salonId, includeInactive);
+  async getWithCounts(storeId: string, includeInactive = false): Promise<CategoryWithCount[]> {
+    const categories = await this.getAll(storeId, includeInactive);
     const services = await db.menuServices
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .toArray();
 
     return categories.map(cat => ({
@@ -62,19 +62,19 @@ export const serviceCategoriesDB = {
     }));
   },
 
-  async create(input: CreateCategoryInput, userId: string, salonId: string): Promise<ServiceCategory> {
+  async create(input: CreateCategoryInput, userId: string, storeId: string): Promise<ServiceCategory> {
     const now = new Date().toISOString();
 
     // Get next display order
     const maxOrder = await db.serviceCategories
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .toArray()
       .then(cats => Math.max(0, ...cats.map(c => c.displayOrder)));
 
     const category: ServiceCategory = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
       createdAt: now,
@@ -108,7 +108,7 @@ export const serviceCategoriesDB = {
     await db.serviceCategories.delete(id);
   },
 
-  async reorder(_salonId: string, orderedIds: string[], userId: string): Promise<void> {
+  async reorder(_storeId: string, orderedIds: string[], userId: string): Promise<void> {
     await db.transaction('rw', db.serviceCategories, async () => {
       for (let i = 0; i < orderedIds.length; i++) {
         await db.serviceCategories.update(orderedIds[i], {
@@ -125,10 +125,10 @@ export const serviceCategoriesDB = {
 // ==================== MENU SERVICES ====================
 
 export const menuServicesDB = {
-  async getAll(salonId: string, includeInactive = false): Promise<MenuService[]> {
+  async getAll(storeId: string, includeInactive = false): Promise<MenuService[]> {
     let query = db.menuServices
-      .where('salonId')
-      .equals(salonId);
+      .where('storeId')
+      .equals(storeId);
 
     if (!includeInactive) {
       query = query.and(svc => svc.status === 'active');
@@ -141,10 +141,10 @@ export const menuServicesDB = {
     return await db.menuServices.get(id);
   },
 
-  async getByCategory(salonId: string, categoryId: string, includeInactive = false): Promise<MenuService[]> {
+  async getByCategory(storeId: string, categoryId: string, includeInactive = false): Promise<MenuService[]> {
     let result = await db.menuServices
-      .where('[salonId+categoryId]')
-      .equals([salonId, categoryId])
+      .where('[storeId+categoryId]')
+      .equals([storeId, categoryId])
       .toArray();
 
     if (!includeInactive) {
@@ -167,19 +167,19 @@ export const menuServicesDB = {
     return { ...service, variants };
   },
 
-  async create(input: CreateMenuServiceInput, userId: string, salonId: string): Promise<MenuService> {
+  async create(input: CreateMenuServiceInput, userId: string, storeId: string): Promise<MenuService> {
     const now = new Date().toISOString();
 
     // Get next display order within category
     const maxOrder = await db.menuServices
-      .where('[salonId+categoryId]')
-      .equals([salonId, input.categoryId])
+      .where('[storeId+categoryId]')
+      .equals([storeId, input.categoryId])
       .toArray()
       .then(svcs => Math.max(0, ...svcs.map(s => s.displayOrder)));
 
     const service: MenuService = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
       createdAt: now,
@@ -232,11 +232,11 @@ export const menuServicesDB = {
     });
   },
 
-  async search(salonId: string, query: string, limit = 50): Promise<MenuService[]> {
+  async search(storeId: string, query: string, limit = 50): Promise<MenuService[]> {
     const lowerQuery = query.toLowerCase();
     return await db.menuServices
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(service =>
         service.name.toLowerCase().includes(lowerQuery) ||
         (service.description?.toLowerCase().includes(lowerQuery) ?? false) ||
@@ -266,7 +266,7 @@ export const serviceVariantsDB = {
     return await db.serviceVariants.get(id);
   },
 
-  async create(input: CreateVariantInput, salonId: string): Promise<ServiceVariant> {
+  async create(input: CreateVariantInput, storeId: string): Promise<ServiceVariant> {
     const now = new Date().toISOString();
 
     // Get next display order
@@ -278,7 +278,7 @@ export const serviceVariantsDB = {
 
     const variant: ServiceVariant = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
       createdAt: now,
@@ -327,10 +327,10 @@ export const serviceVariantsDB = {
 // ==================== SERVICE PACKAGES ====================
 
 export const servicePackagesDB = {
-  async getAll(salonId: string, includeInactive = false): Promise<ServicePackage[]> {
+  async getAll(storeId: string, includeInactive = false): Promise<ServicePackage[]> {
     let query = db.servicePackages
-      .where('salonId')
-      .equals(salonId);
+      .where('storeId')
+      .equals(storeId);
 
     if (!includeInactive) {
       query = query.and(pkg => pkg.isActive);
@@ -343,18 +343,18 @@ export const servicePackagesDB = {
     return await db.servicePackages.get(id);
   },
 
-  async create(input: CreatePackageInput, userId: string, salonId: string): Promise<ServicePackage> {
+  async create(input: CreatePackageInput, userId: string, storeId: string): Promise<ServicePackage> {
     const now = new Date().toISOString();
 
     const maxOrder = await db.servicePackages
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .toArray()
       .then(pkgs => Math.max(0, ...pkgs.map(p => p.displayOrder)));
 
     const pkg: ServicePackage = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
       createdAt: now,
@@ -392,10 +392,10 @@ export const servicePackagesDB = {
 // ==================== ADD-ON GROUPS ====================
 
 export const addOnGroupsDB = {
-  async getAll(salonId: string, includeInactive = false): Promise<AddOnGroup[]> {
+  async getAll(storeId: string, includeInactive = false): Promise<AddOnGroup[]> {
     let query = db.addOnGroups
-      .where('salonId')
-      .equals(salonId);
+      .where('storeId')
+      .equals(storeId);
 
     if (!includeInactive) {
       query = query.and(g => g.isActive);
@@ -421,9 +421,9 @@ export const addOnGroupsDB = {
     return { ...group, options };
   },
 
-  async getAllWithOptions(salonId: string, includeInactive = false): Promise<AddOnGroupWithOptions[]> {
-    const groups = await this.getAll(salonId, includeInactive);
-    const allOptions = await db.addOnOptions.where('salonId').equals(salonId).toArray();
+  async getAllWithOptions(storeId: string, includeInactive = false): Promise<AddOnGroupWithOptions[]> {
+    const groups = await this.getAll(storeId, includeInactive);
+    const allOptions = await db.addOnOptions.where('storeId').equals(storeId).toArray();
 
     return groups.map(group => ({
       ...group,
@@ -433,8 +433,8 @@ export const addOnGroupsDB = {
     }));
   },
 
-  async getForService(salonId: string, serviceId: string, categoryId: string): Promise<AddOnGroupWithOptions[]> {
-    const allGroups = await this.getAllWithOptions(salonId, false);
+  async getForService(storeId: string, serviceId: string, categoryId: string): Promise<AddOnGroupWithOptions[]> {
+    const allGroups = await this.getAllWithOptions(storeId, false);
 
     return allGroups.filter(group =>
       group.applicableToAll ||
@@ -443,18 +443,18 @@ export const addOnGroupsDB = {
     );
   },
 
-  async create(input: CreateAddOnGroupInput, salonId: string): Promise<AddOnGroup> {
+  async create(input: CreateAddOnGroupInput, storeId: string): Promise<AddOnGroup> {
     const now = new Date().toISOString();
 
     const maxOrder = await db.addOnGroups
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .toArray()
       .then(groups => Math.max(0, ...groups.map(g => g.displayOrder)));
 
     const group: AddOnGroup = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
       createdAt: now,
@@ -507,7 +507,7 @@ export const addOnOptionsDB = {
     return await db.addOnOptions.get(id);
   },
 
-  async create(input: CreateAddOnOptionInput, salonId: string): Promise<AddOnOption> {
+  async create(input: CreateAddOnOptionInput, storeId: string): Promise<AddOnOption> {
     const now = new Date().toISOString();
 
     const maxOrder = await db.addOnOptions
@@ -518,7 +518,7 @@ export const addOnOptionsDB = {
 
     const option: AddOnOption = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       displayOrder: input.displayOrder ?? maxOrder + 1,
       createdAt: now,
@@ -553,18 +553,18 @@ export const addOnOptionsDB = {
 // ==================== STAFF-SERVICE ASSIGNMENTS ====================
 
 export const staffServiceAssignmentsDB = {
-  async getByStaff(salonId: string, staffId: string): Promise<StaffServiceAssignment[]> {
+  async getByStaff(storeId: string, staffId: string): Promise<StaffServiceAssignment[]> {
     return await db.staffServiceAssignments
-      .where('[salonId+staffId]')
-      .equals([salonId, staffId])
+      .where('[storeId+staffId]')
+      .equals([storeId, staffId])
       .and(a => a.isActive)
       .toArray();
   },
 
-  async getByService(salonId: string, serviceId: string): Promise<StaffServiceAssignment[]> {
+  async getByService(storeId: string, serviceId: string): Promise<StaffServiceAssignment[]> {
     return await db.staffServiceAssignments
-      .where('[salonId+serviceId]')
-      .equals([salonId, serviceId])
+      .where('[storeId+serviceId]')
+      .equals([storeId, serviceId])
       .and(a => a.isActive)
       .toArray();
   },
@@ -580,12 +580,12 @@ export const staffServiceAssignmentsDB = {
       .first();
   },
 
-  async create(input: CreateStaffAssignmentInput, salonId: string): Promise<StaffServiceAssignment> {
+  async create(input: CreateStaffAssignmentInput, storeId: string): Promise<StaffServiceAssignment> {
     const now = new Date().toISOString();
 
     const assignment: StaffServiceAssignment = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ...input,
       createdAt: now,
       updatedAt: now,
@@ -616,7 +616,7 @@ export const staffServiceAssignmentsDB = {
   },
 
   async assignStaffToService(
-    salonId: string,
+    storeId: string,
     staffId: string,
     serviceId: string,
     options?: { customPrice?: number; customDuration?: number; customCommissionRate?: number }
@@ -637,7 +637,7 @@ export const staffServiceAssignmentsDB = {
       serviceId,
       isActive: true,
       ...options,
-    }, salonId);
+    }, storeId);
   },
 
   async removeStaffFromService(staffId: string, serviceId: string): Promise<void> {
@@ -651,23 +651,23 @@ export const staffServiceAssignmentsDB = {
 // ==================== CATALOG SETTINGS ====================
 
 export const catalogSettingsDB = {
-  async get(salonId: string): Promise<CatalogSettings | undefined> {
+  async get(storeId: string): Promise<CatalogSettings | undefined> {
     return await db.catalogSettings
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .first();
   },
 
-  async getOrCreate(salonId: string): Promise<CatalogSettings> {
+  async getOrCreate(storeId: string): Promise<CatalogSettings> {
     // Check for existing settings first
-    const existing = await this.get(salonId);
+    const existing = await this.get(storeId);
     if (existing) return existing;
 
     // Create default settings
     const now = new Date().toISOString();
     const defaults: CatalogSettings = {
       id: uuidv4(),
-      salonId,
+      storeId,
       defaultDuration: 60,
       defaultExtraTime: 0,
       defaultExtraTimeType: 'processing',
@@ -693,15 +693,15 @@ export const catalogSettingsDB = {
     } catch (error) {
       // Race condition: another call might have created it
       // Try to get the existing record
-      const created = await this.get(salonId);
+      const created = await this.get(storeId);
       if (created) return created;
       // If still not found, rethrow the error
       throw error;
     }
   },
 
-  async update(salonId: string, updates: Partial<CatalogSettings>): Promise<CatalogSettings | undefined> {
-    const settings = await this.get(salonId);
+  async update(storeId: string, updates: Partial<CatalogSettings>): Promise<CatalogSettings | undefined> {
+    const settings = await this.get(storeId);
     if (!settings) return undefined;
 
     const updated: CatalogSettings = {

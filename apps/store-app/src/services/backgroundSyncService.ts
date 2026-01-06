@@ -295,7 +295,7 @@ class BackgroundSyncService {
   private async syncClient(action: string, id: string, data: Client): Promise<void> {
     switch (action) {
       case 'create': {
-        const insert = toClientInsert(data, data.salonId);
+        const insert = toClientInsert(data, data.storeId);
         const { error } = await withTimeout(async () =>
           await supabase.from('clients').upsert({ ...insert, id }, { onConflict: 'id' })
         );
@@ -323,7 +323,7 @@ class BackgroundSyncService {
   private async syncAppointment(action: string, id: string, data: Appointment): Promise<void> {
     switch (action) {
       case 'create': {
-        const insert = toAppointmentInsert(data, data.salonId);
+        const insert = toAppointmentInsert(data, data.storeId);
         const { error } = await withTimeout(async () =>
           await supabase.from('appointments').upsert({ ...insert, id }, { onConflict: 'id' })
         );
@@ -351,7 +351,7 @@ class BackgroundSyncService {
   private async syncTicket(action: string, id: string, data: Ticket): Promise<void> {
     switch (action) {
       case 'create': {
-        const insert = toTicketInsert(data, data.salonId);
+        const insert = toTicketInsert(data, data.storeId);
         const { error } = await withTimeout(async () =>
           await supabase.from('tickets').upsert({ ...insert, id }, { onConflict: 'id' })
         );
@@ -379,7 +379,7 @@ class BackgroundSyncService {
   private async syncTransaction(action: string, id: string, data: Transaction): Promise<void> {
     switch (action) {
       case 'create': {
-        const insert = toTransactionInsert(data, data.salonId);
+        const insert = toTransactionInsert(data, data.storeId);
         const { error } = await withTimeout(async () =>
           await supabase.from('transactions').upsert({ ...insert, id }, { onConflict: 'id' })
         );
@@ -531,13 +531,13 @@ class BackgroundSyncService {
     // Use existing adapters for proper conversion
     switch (entity) {
       case 'client':
-        return toClientInsert(payload as Client, (payload as Client).salonId);
+        return toClientInsert(payload as Client, (payload as Client).storeId);
       case 'appointment':
-        return toAppointmentInsert(payload as Appointment, (payload as Appointment).salonId);
+        return toAppointmentInsert(payload as Appointment, (payload as Appointment).storeId);
       case 'ticket':
-        return toTicketInsert(payload as Ticket, (payload as Ticket).salonId);
+        return toTicketInsert(payload as Ticket, (payload as Ticket).storeId);
       case 'transaction':
-        return toTransactionInsert(payload as Transaction, (payload as Transaction).salonId);
+        return toTransactionInsert(payload as Transaction, (payload as Transaction).storeId);
       case 'staff':
         return toStaffUpdate(payload as Staff);
       default:

@@ -48,7 +48,7 @@ describe('authSlice', () => {
 
       expect(state.isAuthenticated).toBe(false);
       expect(state.user).toBeNull();
-      expect(state.salonId).toBeNull();
+      expect(state.storeId).toBeNull();
       expect(state.token).toBeNull();
       expect(state.loading).toBe(false);
       expect(state.error).toBeNull();
@@ -69,7 +69,7 @@ describe('authSlice', () => {
       store.dispatch(
         setAuth({
           user,
-          salonId: 'salon-1',
+          storeId: 'salon-1',
           token: 'test-token',
         })
       );
@@ -78,7 +78,7 @@ describe('authSlice', () => {
 
       expect(state.isAuthenticated).toBe(true);
       expect(state.user).toEqual(user);
-      expect(state.salonId).toBe('salon-1');
+      expect(state.storeId).toBe('salon-1');
       expect(state.token).toBe('test-token');
       expect(state.error).toBeNull();
     });
@@ -90,7 +90,7 @@ describe('authSlice', () => {
       store.dispatch(
         setAuth({
           user: { id: '1', name: 'Test', email: 'test@test.com', role: 'admin' },
-          salonId: 'salon-1',
+          storeId: 'salon-1',
           token: 'token',
         })
       );
@@ -110,7 +110,7 @@ describe('authSlice', () => {
 
       expect(state.isAuthenticated).toBe(false);
       expect(state.user).toBeNull();
-      expect(state.salonId).toBeNull();
+      expect(state.storeId).toBeNull();
       expect(state.token).toBeNull();
       expect(state.device).toBeNull();
       expect(state.storePolicy).toBeNull();
@@ -132,7 +132,7 @@ describe('authSlice', () => {
             // Legacy fields
             isAuthenticated: false,
             user: null,
-            salonId: null,
+            storeId: null,
             token: null,
             loading: false,
             error: 'Some error',
@@ -247,7 +247,7 @@ describe('authSlice', () => {
       store.dispatch(
         setAuth({
           user: { id: 'user-1', name: 'Test', email: 'test@test.com', role: 'staff' },
-          salonId: 'salon-123',
+          storeId: 'salon-123',
           token: 'token-abc',
         })
       );

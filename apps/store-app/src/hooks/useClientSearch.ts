@@ -4,7 +4,7 @@ import { clientsDB } from '../db/database';
 import { Client } from '../types/client';
 
 interface UseClientSearchProps {
-  salonId: string;
+  storeId: string;
   isOpen: boolean;
   maxRecentClients?: number;
 }
@@ -14,7 +14,7 @@ interface UseClientSearchProps {
  * Handles recent clients, search, and debouncing
  */
 export function useClientSearch({
-  salonId,
+  storeId,
   isOpen,
   maxRecentClients = 5
 }: UseClientSearchProps) {
@@ -27,9 +27,9 @@ export function useClientSearch({
 
   // Load recent clients when modal opens
   useEffect(() => {
-    if (!isOpen || !salonId) return;
+    if (!isOpen || !storeId) return;
 
-    clientsDB.getAll(salonId)
+    clientsDB.getAll(storeId)
       .then(allClients => {
         const sorted = allClients
           .sort((a, b) => {
@@ -45,7 +45,7 @@ export function useClientSearch({
         console.error('Error loading recent clients:', error);
         setRecentClients([]);
       });
-  }, [isOpen, salonId, maxRecentClients]);
+  }, [isOpen, storeId, maxRecentClients]);
 
   // Search clients with debouncing
   useEffect(() => {
@@ -56,7 +56,7 @@ export function useClientSearch({
 
     setSearching(true);
 
-    clientsDB.search(salonId, debouncedSearch)
+    clientsDB.search(storeId, debouncedSearch)
       .then(results => {
         setSearchResults(results);
       })
@@ -67,7 +67,7 @@ export function useClientSearch({
       .finally(() => {
         setSearching(false);
       });
-  }, [debouncedSearch, salonId]);
+  }, [debouncedSearch, storeId]);
 
   // Combine recent and search results
   const displayClients = useMemo(() => {

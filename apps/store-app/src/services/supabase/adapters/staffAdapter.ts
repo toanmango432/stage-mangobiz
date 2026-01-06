@@ -16,7 +16,7 @@ export function toStaff(row: StaffRow): Staff {
 
   return {
     id: row.id,
-    salonId: row.store_id,
+    storeId: row.store_id,
     name: row.name,
     email: row.email || '',
     phone: row.phone || '',
@@ -41,7 +41,7 @@ export function toStaffInsert(
   storeId?: string
 ): Omit<StaffInsert, 'store_id'> & { store_id?: string } {
   return {
-    store_id: storeId || staff.salonId,
+    store_id: storeId || staff.storeId,
     name: staff.name,
     email: staff.email || null,
     phone: staff.phone || null,

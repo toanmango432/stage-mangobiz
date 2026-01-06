@@ -83,7 +83,7 @@ export function NewSaleModal({ isOpen, onClose, onSave }: NewSaleModalProps) {
   const handleSave = () => {
     const saleData = {
       id: `ticket-${Date.now()}`,
-      salonId: 'salon_123',
+      storeId: 'salon_123',
       clientId: `client-${Date.now()}`,
       clientName: clients[0].clientName,
       clientPhone: clients[0].clientPhone,

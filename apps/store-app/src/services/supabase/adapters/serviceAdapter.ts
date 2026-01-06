@@ -14,7 +14,7 @@ import type { SyncStatus } from '@/types/common';
 export function toService(row: ServiceRow): Service {
   return {
     id: row.id,
-    salonId: row.store_id,
+    storeId: row.store_id,
     name: row.name,
     category: row.category || '',
     duration: row.duration,
@@ -35,7 +35,7 @@ export function toServiceInsert(
   storeId?: string
 ): Omit<ServiceInsert, 'store_id'> & { store_id?: string } {
   return {
-    store_id: storeId || service.salonId,
+    store_id: storeId || service.storeId,
     name: service.name,
     category: service.category || null,
     duration: service.duration,

@@ -35,7 +35,7 @@ interface AdjustmentModalState {
 // ============================================
 
 export const PayrollModule: React.FC<PayrollModuleProps> = ({ className = '' }) => {
-  const salonId = useSelector(selectSalonId);
+  const storeId = useSelector(selectSalonId);
 
   // Local UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -49,7 +49,7 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({ className = '' }) 
   });
 
   // Get store ID from auth
-  const storeId = salonId || 'default-store';
+  const storeId = storeId || 'default-store';
 
   // Handlers
   const handleSelectPayRun = useCallback((payRun: PayRun) => {

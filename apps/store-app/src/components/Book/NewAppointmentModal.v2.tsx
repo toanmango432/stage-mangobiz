@@ -153,7 +153,7 @@ export function NewAppointmentModalV2({
   const [searching, setSearching] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [justAddedService, setJustAddedService] = useState<string | null>(null);
-  const salonId = getTestSalonId();
+  const storeId = getTestSalonId();
   const debouncedSearch = useDebounce(clientSearch, 300);
   const allStaffFromRedux = useAppSelector(selectAllStaff) || [];
 
@@ -161,7 +161,7 @@ export function NewAppointmentModalV2({
   useEffect(() => {
     if (isOpen && selectedClients.length === 0) {
       // Load recent clients
-      clientsDB.getAll(salonId).then(allClients => {
+      clientsDB.getAll(storeId).then(allClients => {
         // Get 5 most recent clients
         const sorted = allClients
           .sort((a, b) => {
@@ -178,7 +178,7 @@ export function NewAppointmentModalV2({
         })) as any);
       });
     }
-  }, [isOpen, selectedClients.length, salonId]);
+  }, [isOpen, selectedClients.length, storeId]);
 
   // Handle initial client from global search
   useEffect(() => {
@@ -194,7 +194,7 @@ export function NewAppointmentModalV2({
     async function loadServices() {
       try {
         const servicesList = await db.services
-          .where('salonId').equals(salonId)
+          .where('storeId').equals(storeId)
           .and(s => s.isActive)
           .toArray();
         setServices(servicesList.map(s => ({
@@ -211,7 +211,7 @@ export function NewAppointmentModalV2({
     if (isOpen) {
       loadServices();
     }
-  }, [isOpen, salonId]);
+  }, [isOpen, storeId]);
 
   useEffect(() => {
     async function searchClients() {
@@ -221,7 +221,7 @@ export function NewAppointmentModalV2({
       }
       setSearching(true);
       try {
-        const results = await clientsDB.search(salonId, debouncedSearch);
+        const results = await clientsDB.search(storeId, debouncedSearch);
         setClients(results.map(c => ({
           id: c.id,
           name: c.name,
@@ -235,7 +235,7 @@ export function NewAppointmentModalV2({
       }
     }
     searchClients();
-  }, [debouncedSearch, salonId]);
+  }, [debouncedSearch, storeId]);
 
   useEffect(() => {
     if (isOpen && selectedStaffId && selectedStaffName) {
@@ -426,7 +426,7 @@ export function NewAppointmentModalV2({
     try {
       const fullName = `${capitalizeName(newClientFirstName.trim())} ${capitalizeName(newClientLastName.trim())}`;
       const newClient = await clientsDB.create({
-        salonId,
+        storeId,
         firstName: capitalizeName(newClientFirstName.trim()),
         lastName: capitalizeName(newClientLastName.trim()),
         name: fullName,

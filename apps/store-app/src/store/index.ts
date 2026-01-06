@@ -18,7 +18,8 @@ import timesheetReducer from './slices/timesheetSlice';
 import payrollReducer from './slices/payrollSlice';
 import staffPerformanceReducer from './slices/staffPerformanceSlice';
 import settingsReducer from './slices/settingsSlice';
-import { teamStaffSyncMiddleware } from './middleware/teamStaffSyncMiddleware';
+// Note: teamStaffSyncMiddleware was REMOVED - staffSlice now derives from teamSlice directly
+// via team-derived selectors. See: src/store/slices/staffSlice.ts
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
 // See src/hooks/useCatalog.ts
 
@@ -115,7 +116,7 @@ export const store = configureStore({
           'settings.lastSaved',
         ],
       },
-    }).concat(teamStaffSyncMiddleware),
+    }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

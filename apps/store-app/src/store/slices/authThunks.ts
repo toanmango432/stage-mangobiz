@@ -13,7 +13,7 @@ export const loginUser = createAsyncThunk(
       // Save to IndexedDB
       await settingsDB.set('auth_token', response.token);
       await settingsDB.set('refresh_token', response.refreshToken);
-      await settingsDB.set('salon_id', response.user.salonId);
+      await settingsDB.set('salon_id', response.user.storeId);
       await settingsDB.set('user_data', JSON.stringify(response.user));
 
       // Connect socket
@@ -21,7 +21,7 @@ export const loginUser = createAsyncThunk(
 
       return {
         user: response.user,
-        salonId: response.user.salonId,
+        storeId: response.user.storeId,
         token: response.token,
       };
     } catch (error: unknown) {
@@ -35,14 +35,14 @@ export const loginUser = createAsyncThunk(
 // Login with Salon Mode (PIN)
 export const loginSalonMode = createAsyncThunk(
   'auth/loginSalonMode',
-  async ({ salonId, pin }: { salonId: string; pin: string }, { rejectWithValue }) => {
+  async ({ storeId, pin }: { storeId: string; pin: string }, { rejectWithValue }) => {
     try {
-      const response = await authAPI.loginSalonMode(salonId, pin);
+      const response = await authAPI.loginSalonMode(storeId, pin);
       
       // Save to IndexedDB
       await settingsDB.set('auth_token', response.token);
       await settingsDB.set('refresh_token', response.refreshToken);
-      await settingsDB.set('salon_id', salonId);
+      await settingsDB.set('salon_id', storeId);
       await settingsDB.set('user_data', JSON.stringify(response.user));
 
       // Connect socket
@@ -50,7 +50,7 @@ export const loginSalonMode = createAsyncThunk(
 
       return {
         user: response.user,
-        salonId,
+        storeId,
         token: response.token,
       };
     } catch (error: unknown) {
@@ -99,10 +99,10 @@ export const verifyToken = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = await settingsDB.get('auth_token');
-      const salonId = await settingsDB.get('salon_id');
+      const storeId = await settingsDB.get('salon_id');
       const userData = await settingsDB.get('user_data');
 
-      if (!token || !salonId || !userData) {
+      if (!token || !storeId || !userData) {
         return rejectWithValue('No session found');
       }
 
@@ -114,7 +114,7 @@ export const verifyToken = createAsyncThunk(
 
       return {
         user: JSON.parse(userData),
-        salonId,
+        storeId,
         token,
       };
     } catch (error: unknown) {

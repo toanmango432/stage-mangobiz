@@ -14,7 +14,7 @@ import type { TransactionStatus, PaymentMethod, SyncStatus } from '@/types/commo
 export function toTransaction(row: TransactionRow): Transaction {
   return {
     id: row.id,
-    salonId: row.store_id,
+    storeId: row.store_id,
     ticketId: row.ticket_id || '',
     ticketNumber: 0, // Not stored in Supabase row - computed at runtime
     clientId: row.client_id || undefined,
@@ -43,7 +43,7 @@ export function toTransactionInsert(
   storeId?: string
 ): Omit<TransactionInsert, 'store_id'> & { store_id?: string } {
   return {
-    store_id: storeId || transaction.salonId,
+    store_id: storeId || transaction.storeId,
     ticket_id: transaction.ticketId || null,
     client_id: transaction.clientId || null,
     type: 'payment', // Default type

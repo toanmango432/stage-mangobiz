@@ -9,7 +9,7 @@ export interface StaffSchedule {
 
 export interface Staff {
   id: string;
-  salonId: string;
+  storeId: string;
   name: string;
   email: string;
   phone: string;

@@ -41,7 +41,7 @@ interface ClientSettingsProps {
 function clientToEnhanced(client: Client): EnhancedClient {
   return {
     id: client.id,
-    salonId: client.salonId,
+    storeId: client.storeId,
     firstName: client.firstName,
     lastName: client.lastName,
     displayName: client.displayName,
@@ -234,7 +234,7 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
   const handleSaveNewClient = useCallback(async (newClient: EnhancedClient) => {
     try {
       // Create client data - thunk converts to Supabase format internally
-      // Note: salonId/storeId and syncStatus are set automatically by dataService
+      // Note: storeId/storeId and syncStatus are set automatically by dataService
       const clientData = {
         firstName: newClient.firstName,
         lastName: newClient.lastName,
@@ -275,7 +275,7 @@ export const ClientSettings: React.FC<ClientSettingsProps> = ({ onBack }) => {
     for (const clientData of importedClients) {
       try {
         // Create client data - thunk converts to Supabase format internally
-        // Note: salonId/storeId and syncStatus are set automatically by dataService
+        // Note: storeId/storeId and syncStatus are set automatically by dataService
         const newClient = {
           firstName: clientData.firstName || '',
           lastName: clientData.lastName || '',

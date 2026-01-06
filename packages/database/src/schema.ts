@@ -114,24 +114,24 @@ export class MangoPOSDatabase extends Dexie {
 
     // Version 1: Original schema
     this.version(1).stores({
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity'
     });
 
     // Version 2: Add missing compound indexes for common queries
     this.version(2).stores({
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus, [storeId+name], createdAt',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]'
     }).upgrade(() => {
@@ -141,12 +141,12 @@ export class MangoPOSDatabase extends Dexie {
 
     // Version 3: Add Team Settings tables
     this.version(3).stores({
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus, [storeId+name], createdAt',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       // Team Settings - comprehensive team member management
@@ -158,12 +158,12 @@ export class MangoPOSDatabase extends Dexie {
     // Version 4: Update teamMembers with production-ready indexes (BaseSyncableEntity pattern)
     // See: docs/DATA_STORAGE_STRATEGY.md and docs/TECHNICAL_DOCUMENTATION.md
     this.version(4).stores({
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus, [storeId+name], createdAt',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       // Team Members - production-ready with storeId isolation and sync support
@@ -213,40 +213,40 @@ export class MangoPOSDatabase extends Dexie {
     // See: docs/PRD-Catalog-Module.md and docs/IMPLEMENTATION-PLAN-Catalog-Module.md
     this.version(5).stores({
       // Existing tables (unchanged)
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus, [storeId+name], createdAt',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
 
       // Catalog Module tables
       // Service Categories - hierarchical category management
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
 
       // Menu Services - enhanced services with variants support
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
 
       // Service Variants - pricing/duration variations for services
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
 
       // Service Packages/Bundles - grouped service offerings
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
 
       // Add-on Groups - groups of optional add-ons
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
 
       // Add-on Options - individual add-on items within groups
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
 
       // Staff-Service Assignments - which staff can perform which services
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
 
       // Catalog Settings - per-salon catalog configuration
-      catalogSettings: 'id, salonId, syncStatus'
+      catalogSettings: 'id, storeId, syncStatus'
     }).upgrade(() => {
       console.log('✅ Database upgraded to version 5: Added Catalog Module tables');
     });
@@ -255,24 +255,24 @@ export class MangoPOSDatabase extends Dexie {
     // See: tasks/SCHEDULE_MODULE_PRD.md and tasks/SCHEDULE_MODULE_IMPLEMENTATION_PLAN.md
     this.version(6).stores({
       // Existing tables (unchanged)
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus, [storeId+name], createdAt',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
       // Catalog Module tables (unchanged)
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
 
       // Schedule Module tables
       // Time-Off Types - configurable time-off categories
@@ -306,23 +306,23 @@ export class MangoPOSDatabase extends Dexie {
     // See: docs/product/PRD-Opt-In-Offline-Mode.md
     this.version(7).stores({
       // All existing tables unchanged
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, name, syncStatus, [salonId+name], createdAt',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, name, syncStatus, [storeId+name], createdAt',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
       timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
       timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
       blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
@@ -342,24 +342,24 @@ export class MangoPOSDatabase extends Dexie {
     // Version 8: Add Client Module tables (PRD v4.2)
     this.version(8).stores({
       // All existing tables unchanged
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
       // Updated clients with new indexes for blocking, sorting, filtering
-      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
       timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
       timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
       blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
@@ -385,23 +385,23 @@ export class MangoPOSDatabase extends Dexie {
     // See: tasks/PHASE2-TIME-ATTENDANCE-BREAKDOWN.md
     this.version(9).stores({
       // All existing tables unchanged
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
       timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
       timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
       blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
@@ -432,23 +432,23 @@ export class MangoPOSDatabase extends Dexie {
     // See: docs/product/PRD-Team-Module.md Section 6.6
     this.version(10).stores({
       // All existing tables unchanged
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
       timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
       timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
       blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
@@ -479,23 +479,23 @@ export class MangoPOSDatabase extends Dexie {
     // Version 11: Add Review Requests table (Client Module PRD 2.3.9)
     this.version(11).stores({
       // All existing tables unchanged
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
       timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
       timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
       blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
@@ -519,7 +519,7 @@ export class MangoPOSDatabase extends Dexie {
       // - Fetching requests by client
       // - Filtering by status for follow-up
       // - Date-based queries for scheduling
-      reviewRequests: 'id, salonId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [salonId+status], [clientId+status], [salonId+createdAt], [staffId+createdAt]'
+      reviewRequests: 'id, storeId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [storeId+status], [clientId+status], [storeId+createdAt], [staffId+createdAt]'
     }).upgrade(() => {
       console.log('✅ Database upgraded to version 11: Added Review Requests table (Client Module PRD 2.3.9)');
     });
@@ -527,23 +527,23 @@ export class MangoPOSDatabase extends Dexie {
     // Version 12: Add Custom Segments table (Client Module PRD 2.3.10)
     this.version(12).stores({
       // All existing tables unchanged
-      appointments: 'id, salonId, clientId, staffId, status, scheduledStartTime, syncStatus, [salonId+status], [salonId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
-      tickets: 'id, salonId, clientId, status, createdAt, syncStatus, appointmentId, [salonId+status], [salonId+createdAt], [clientId+createdAt]',
-      transactions: 'id, salonId, ticketId, clientId, createdAt, syncStatus, status, [salonId+createdAt], [clientId+createdAt]',
-      staff: 'id, salonId, status, syncStatus, [salonId+status]',
-      clients: 'id, salonId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [salonId+lastName], [salonId+isBlocked], [salonId+isVip], [salonId+createdAt]',
-      services: 'id, salonId, category, syncStatus, [salonId+category]',
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
       settings: 'key',
       syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
       teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
-      serviceCategories: 'id, salonId, parentCategoryId, displayOrder, isActive, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      menuServices: 'id, salonId, categoryId, status, displayOrder, syncStatus, [salonId+categoryId], [salonId+status], [categoryId+displayOrder]',
-      serviceVariants: 'id, salonId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
-      servicePackages: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive], [salonId+displayOrder]',
-      addOnGroups: 'id, salonId, isActive, displayOrder, syncStatus, [salonId+isActive]',
-      addOnOptions: 'id, salonId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
-      staffServiceAssignments: 'id, salonId, staffId, serviceId, isActive, syncStatus, [salonId+staffId], [salonId+serviceId], [staffId+serviceId]',
-      catalogSettings: 'id, salonId, syncStatus',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
       timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
       timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
       blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
@@ -561,14 +561,14 @@ export class MangoPOSDatabase extends Dexie {
       loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
       timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]',
       payRuns: 'id, storeId, periodStart, periodEnd, status, syncStatus, isDeleted, [storeId+periodStart], [storeId+status], [storeId+syncStatus]',
-      reviewRequests: 'id, salonId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [salonId+status], [clientId+status], [salonId+createdAt], [staffId+createdAt]',
+      reviewRequests: 'id, storeId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [storeId+status], [clientId+status], [storeId+createdAt], [staffId+createdAt]',
 
       // Custom Segments table (Client Module PRD 2.3.10)
       // Indexes optimized for:
       // - Fetching segments by salon
       // - Filtering by active status
       // - Sync queue processing
-      customSegments: 'id, salonId, name, isActive, createdAt, syncStatus, [salonId+isActive], [salonId+createdAt]'
+      customSegments: 'id, storeId, name, isActive, createdAt, syncStatus, [storeId+isActive], [storeId+createdAt]'
     }).upgrade(() => {
       console.log('✅ Database upgraded to version 12: Added Custom Segments table (Client Module PRD 2.3.10)');
     });

@@ -59,7 +59,7 @@ class HydrationService {
     // Check if we have any staff data
     try {
       const staffCount = await db.staff
-        .where('salonId')
+        .where('storeId')
         .equals(storeId)
         .count();
 
@@ -383,11 +383,11 @@ class HydrationService {
    */
   async clearLocalData(storeId: string): Promise<void> {
     await Promise.all([
-      db.staff.where('salonId').equals(storeId).delete(),
-      db.services.where('salonId').equals(storeId).delete(),
-      db.clients.where('salonId').equals(storeId).delete(),
-      db.appointments.where('salonId').equals(storeId).delete(),
-      db.tickets.where('salonId').equals(storeId).delete(),
+      db.staff.where('storeId').equals(storeId).delete(),
+      db.services.where('storeId').equals(storeId).delete(),
+      db.clients.where('storeId').equals(storeId).delete(),
+      db.appointments.where('storeId').equals(storeId).delete(),
+      db.tickets.where('storeId').equals(storeId).delete(),
     ]);
     this.clearHydrationStatus(storeId);
     console.log('[Hydration] Cleared local data for store:', storeId);

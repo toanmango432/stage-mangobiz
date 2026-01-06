@@ -15,7 +15,7 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
 
   // Salon Mode login state
-  const [salonId, setSalonId] = useState('');
+  const [storeId, setSalonId] = useState('');
   const [pin, setPin] = useState('');
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -39,7 +39,7 @@ export function LoginScreen() {
     setLoading(true);
 
     try {
-      await dispatch(loginSalonMode({ salonId, pin })).unwrap();
+      await dispatch(loginSalonMode({ storeId, pin })).unwrap();
       // Redirect handled by App.tsx
     } catch (err: any) {
       setError(err || 'Salon login failed');
@@ -103,7 +103,7 @@ export function LoginScreen() {
                 </label>
                 <input
                   type="text"
-                  value={salonId}
+                  value={storeId}
                   onChange={(e) => setSalonId(e.target.value)}
                   placeholder="Enter your salon ID"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"

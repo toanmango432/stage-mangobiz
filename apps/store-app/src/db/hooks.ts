@@ -19,17 +19,17 @@ import {
 
 // ==================== APPOINTMENTS ====================
 
-export function useAppointments(salonId: string) {
+export function useAppointments(storeId: string) {
   return useLiveQuery(
-    () => appointmentsDB.getAll(salonId),
-    [salonId]
+    () => appointmentsDB.getAll(storeId),
+    [storeId]
   );
 }
 
-export function useAppointmentsByDate(salonId: string, date: Date) {
+export function useAppointmentsByDate(storeId: string, date: Date) {
   return useLiveQuery(
-    () => appointmentsDB.getByDate(salonId, date),
-    [salonId, date.toISOString()]
+    () => appointmentsDB.getByDate(storeId, date),
+    [storeId, date.toISOString()]
   );
 }
 
@@ -42,24 +42,24 @@ export function useAppointment(id: string | undefined) {
 
 // ==================== TICKETS ====================
 
-export function useTickets(salonId: string) {
+export function useTickets(storeId: string) {
   return useLiveQuery(
-    () => ticketsDB.getAll(salonId),
-    [salonId]
+    () => ticketsDB.getAll(storeId),
+    [storeId]
   );
 }
 
-export function useActiveTickets(salonId: string) {
+export function useActiveTickets(storeId: string) {
   return useLiveQuery(
-    () => ticketsDB.getActive(salonId),
-    [salonId]
+    () => ticketsDB.getActive(storeId),
+    [storeId]
   );
 }
 
-export function useTicketsByStatus(salonId: string, status: string) {
+export function useTicketsByStatus(storeId: string, status: string) {
   return useLiveQuery(
-    () => ticketsDB.getByStatus(salonId, status),
-    [salonId, status]
+    () => ticketsDB.getByStatus(storeId, status),
+    [storeId, status]
   );
 }
 
@@ -72,17 +72,17 @@ export function useTicket(id: string | undefined) {
 
 // ==================== STAFF ====================
 
-export function useStaff(salonId: string) {
+export function useStaff(storeId: string) {
   return useLiveQuery(
-    () => staffDB.getAll(salonId),
-    [salonId]
+    () => staffDB.getAll(storeId),
+    [storeId]
   );
 }
 
-export function useAvailableStaff(salonId: string) {
+export function useAvailableStaff(storeId: string) {
   return useLiveQuery(
-    () => staffDB.getAvailable(salonId),
-    [salonId]
+    () => staffDB.getAvailable(storeId),
+    [storeId]
   );
 }
 
@@ -95,10 +95,10 @@ export function useStaffMember(id: string | undefined) {
 
 // ==================== CLIENTS ====================
 
-export function useClients(salonId: string) {
+export function useClients(storeId: string) {
   return useLiveQuery(
-    () => clientsDB.getAll(salonId),
-    [salonId]
+    () => clientsDB.getAll(storeId),
+    [storeId]
   );
 }
 
@@ -109,42 +109,42 @@ export function useClient(id: string | undefined) {
   );
 }
 
-export function useClientSearch(salonId: string, query: string) {
+export function useClientSearch(storeId: string, query: string) {
   return useLiveQuery(
-    () => query.length >= 2 ? clientsDB.search(salonId, query) : [],
-    [salonId, query]
+    () => query.length >= 2 ? clientsDB.search(storeId, query) : [],
+    [storeId, query]
   );
 }
 
 // ==================== SERVICES ====================
 
-export function useServices(salonId: string) {
+export function useServices(storeId: string) {
   return useLiveQuery(
-    () => servicesDB.getAll(salonId),
-    [salonId]
+    () => servicesDB.getAll(storeId),
+    [storeId]
   );
 }
 
-export function useServicesByCategory(salonId: string, category: string) {
+export function useServicesByCategory(storeId: string, category: string) {
   return useLiveQuery(
-    () => servicesDB.getByCategory(salonId, category),
-    [salonId, category]
+    () => servicesDB.getByCategory(storeId, category),
+    [storeId, category]
   );
 }
 
 // ==================== TRANSACTIONS ====================
 
-export function useTransactions(salonId: string) {
+export function useTransactions(storeId: string) {
   return useLiveQuery(
-    () => transactionsDB.getAll(salonId),
-    [salonId]
+    () => transactionsDB.getAll(storeId),
+    [storeId]
   );
 }
 
-export function useTransactionsByDateRange(salonId: string, startDate: Date, endDate: Date) {
+export function useTransactionsByDateRange(storeId: string, startDate: Date, endDate: Date) {
   return useLiveQuery(
-    () => transactionsDB.getByDateRange(salonId, startDate, endDate),
-    [salonId, startDate.toISOString(), endDate.toISOString()]
+    () => transactionsDB.getByDateRange(storeId, startDate, endDate),
+    [storeId, startDate.toISOString(), endDate.toISOString()]
   );
 }
 
@@ -157,17 +157,17 @@ export function useTransaction(id: string | undefined) {
 
 // ==================== SERVICE CATEGORIES ====================
 
-export function useServiceCategories(salonId: string, includeInactive = false) {
+export function useServiceCategories(storeId: string, includeInactive = false) {
   return useLiveQuery(
-    () => serviceCategoriesDB.getAll(salonId, includeInactive),
-    [salonId, includeInactive]
+    () => serviceCategoriesDB.getAll(storeId, includeInactive),
+    [storeId, includeInactive]
   );
 }
 
-export function useServiceCategoriesWithCounts(salonId: string, includeInactive = false) {
+export function useServiceCategoriesWithCounts(storeId: string, includeInactive = false) {
   return useLiveQuery(
-    () => serviceCategoriesDB.getWithCounts(salonId, includeInactive),
-    [salonId, includeInactive]
+    () => serviceCategoriesDB.getWithCounts(storeId, includeInactive),
+    [storeId, includeInactive]
   );
 }
 
@@ -180,17 +180,17 @@ export function useServiceCategory(id: string | undefined) {
 
 // ==================== MENU SERVICES (Enhanced) ====================
 
-export function useMenuServices(salonId: string, includeInactive = false) {
+export function useMenuServices(storeId: string, includeInactive = false) {
   return useLiveQuery(
-    () => menuServicesDB.getAll(salonId, includeInactive),
-    [salonId, includeInactive]
+    () => menuServicesDB.getAll(storeId, includeInactive),
+    [storeId, includeInactive]
   );
 }
 
-export function useMenuServicesByCategory(salonId: string, categoryId: string, includeInactive = false) {
+export function useMenuServicesByCategory(storeId: string, categoryId: string, includeInactive = false) {
   return useLiveQuery(
-    () => menuServicesDB.getByCategory(salonId, categoryId, includeInactive),
-    [salonId, categoryId, includeInactive]
+    () => menuServicesDB.getByCategory(storeId, categoryId, includeInactive),
+    [storeId, categoryId, includeInactive]
   );
 }
 
@@ -208,10 +208,10 @@ export function useMenuServiceWithVariants(id: string | undefined) {
   );
 }
 
-export function useMenuServiceSearch(salonId: string, query: string) {
+export function useMenuServiceSearch(storeId: string, query: string) {
   return useLiveQuery(
-    () => query.length >= 2 ? menuServicesDB.search(salonId, query) : [],
-    [salonId, query]
+    () => query.length >= 2 ? menuServicesDB.search(storeId, query) : [],
+    [storeId, query]
   );
 }
 
@@ -233,10 +233,10 @@ export function useServiceVariant(id: string | undefined) {
 
 // ==================== SERVICE PACKAGES ====================
 
-export function useServicePackages(salonId: string, includeInactive = false) {
+export function useServicePackages(storeId: string, includeInactive = false) {
   return useLiveQuery(
-    () => servicePackagesDB.getAll(salonId, includeInactive),
-    [salonId, includeInactive]
+    () => servicePackagesDB.getAll(storeId, includeInactive),
+    [storeId, includeInactive]
   );
 }
 
@@ -249,17 +249,17 @@ export function useServicePackage(id: string | undefined) {
 
 // ==================== ADD-ON GROUPS ====================
 
-export function useAddOnGroups(salonId: string, includeInactive = false) {
+export function useAddOnGroups(storeId: string, includeInactive = false) {
   return useLiveQuery(
-    () => addOnGroupsDB.getAll(salonId, includeInactive),
-    [salonId, includeInactive]
+    () => addOnGroupsDB.getAll(storeId, includeInactive),
+    [storeId, includeInactive]
   );
 }
 
-export function useAddOnGroupsWithOptions(salonId: string, includeInactive = false) {
+export function useAddOnGroupsWithOptions(storeId: string, includeInactive = false) {
   return useLiveQuery(
-    () => addOnGroupsDB.getAllWithOptions(salonId, includeInactive),
-    [salonId, includeInactive]
+    () => addOnGroupsDB.getAllWithOptions(storeId, includeInactive),
+    [storeId, includeInactive]
   );
 }
 
@@ -277,10 +277,10 @@ export function useAddOnGroupWithOptions(id: string | undefined) {
   );
 }
 
-export function useAddOnsForService(salonId: string, serviceId: string, categoryId: string) {
+export function useAddOnsForService(storeId: string, serviceId: string, categoryId: string) {
   return useLiveQuery(
-    () => addOnGroupsDB.getForService(salonId, serviceId, categoryId),
-    [salonId, serviceId, categoryId]
+    () => addOnGroupsDB.getForService(storeId, serviceId, categoryId),
+    [storeId, serviceId, categoryId]
   );
 }
 
@@ -302,25 +302,25 @@ export function useAddOnOption(id: string | undefined) {
 
 // ==================== STAFF-SERVICE ASSIGNMENTS ====================
 
-export function useStaffServiceAssignmentsByStaff(salonId: string, staffId: string) {
+export function useStaffServiceAssignmentsByStaff(storeId: string, staffId: string) {
   return useLiveQuery(
-    () => staffServiceAssignmentsDB.getByStaff(salonId, staffId),
-    [salonId, staffId]
+    () => staffServiceAssignmentsDB.getByStaff(storeId, staffId),
+    [storeId, staffId]
   );
 }
 
-export function useStaffServiceAssignmentsByService(salonId: string, serviceId: string) {
+export function useStaffServiceAssignmentsByService(storeId: string, serviceId: string) {
   return useLiveQuery(
-    () => staffServiceAssignmentsDB.getByService(salonId, serviceId),
-    [salonId, serviceId]
+    () => staffServiceAssignmentsDB.getByService(storeId, serviceId),
+    [storeId, serviceId]
   );
 }
 
 // ==================== CATALOG SETTINGS ====================
 
-export function useCatalogSettings(salonId: string) {
+export function useCatalogSettings(storeId: string) {
   return useLiveQuery(
-    () => catalogSettingsDB.get(salonId),
-    [salonId]
+    () => catalogSettingsDB.get(storeId),
+    [storeId]
   );
 }

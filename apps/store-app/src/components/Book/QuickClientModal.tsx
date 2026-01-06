@@ -30,7 +30,7 @@ interface QuickClientModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectClient: (client: Client) => void;
-  salonId: string;
+  storeId: string;
 }
 
 
@@ -46,7 +46,7 @@ export const QuickClientModal = memo(function QuickClientModal({
   isOpen,
   onClose,
   onSelectClient,
-  salonId,
+  storeId,
 }: QuickClientModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Client[]>([]);
@@ -90,7 +90,7 @@ export const QuickClientModal = memo(function QuickClientModal({
 
     setIsSearching(true);
 
-    clientsDB.search(salonId, debouncedSearch)
+    clientsDB.search(storeId, debouncedSearch)
       .then(results => {
         setSearchResults(results);
         setIsSearching(false);
@@ -106,7 +106,7 @@ export const QuickClientModal = memo(function QuickClientModal({
         console.error('Error searching clients:', error);
         setIsSearching(false);
       });
-  }, [debouncedSearch, salonId]);
+  }, [debouncedSearch, storeId]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -183,7 +183,7 @@ export const QuickClientModal = memo(function QuickClientModal({
     try {
       const fullName = `${capitalizeName(quickAddFirstName.trim())} ${capitalizeName(quickAddLastName.trim())}`;
       const newClient = await clientsDB.create({
-        salonId,
+        storeId,
         firstName: capitalizeName(quickAddFirstName.trim()),
         lastName: capitalizeName(quickAddLastName.trim()),
         name: fullName,

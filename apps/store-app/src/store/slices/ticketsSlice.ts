@@ -289,15 +289,15 @@ export const updateServiceStatusInSupabase = createAsyncThunk(
 
 export const fetchActiveTickets = createAsyncThunk(
   'tickets/fetchActive',
-  async (salonId: string) => {
-    return await ticketsDB.getActive(salonId);
+  async (storeId: string) => {
+    return await ticketsDB.getActive(storeId);
   }
 );
 
 export const fetchTicketsByStatus = createAsyncThunk(
   'tickets/fetchByStatus',
-  async ({ salonId, status }: { salonId: string; status: string }) => {
-    return await ticketsDB.getByStatus(salonId, status);
+  async ({ storeId, status }: { storeId: string; status: string }) => {
+    return await ticketsDB.getByStatus(storeId, status);
   }
 );
 
@@ -306,9 +306,9 @@ export const fetchTicketsByStatus = createAsyncThunk(
  */
 export const fetchTickets = createAsyncThunk(
   'tickets/fetchAll',
-  async (salonId: string) => {
+  async (storeId: string) => {
     console.warn('⚠️ DEPRECATED: fetchTickets is deprecated. Use fetchTicketsByDateFromSupabase instead.');
-    return await ticketsDB.getAll(salonId);
+    return await ticketsDB.getAll(storeId);
   }
 );
 
@@ -318,9 +318,9 @@ export const fetchTickets = createAsyncThunk(
  */
 export const createTicket = createAsyncThunk(
   'tickets/create',
-  async ({ input, userId, salonId }: { input: CreateTicketInput; userId: string; salonId: string }) => {
+  async ({ input, userId, storeId }: { input: CreateTicketInput; userId: string; storeId: string }) => {
     console.warn('⚠️ DEPRECATED: createTicket is deprecated. Use createTicketInSupabase for online-only mode.');
-    const ticket = await ticketsDB.create(input, userId, salonId);
+    const ticket = await ticketsDB.create(input, userId, storeId);
     
     await syncQueueDB.add({
       type: 'create',

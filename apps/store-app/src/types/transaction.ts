@@ -31,7 +31,7 @@ export interface PaymentDetails {
 
 export interface Transaction {
   id: string;
-  salonId: string;
+  storeId: string;
   ticketId: string;
   ticketNumber: number;
 

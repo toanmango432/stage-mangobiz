@@ -15,7 +15,7 @@ export interface AppointmentService {
 
 export interface Appointment {
   id: string;
-  salonId: string;
+  storeId: string;
   clientId: string;
   clientName: string;
   clientPhone: string;

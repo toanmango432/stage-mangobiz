@@ -17,7 +17,7 @@ interface StaffService {
  * Custom hook for service selection and management
  * Handles service loading, filtering, and staff assignment
  */
-export function useServiceSelection(salonId: string, isOpen: boolean) {
+export function useServiceSelection(storeId: string, isOpen: boolean) {
   const [services, setServices] = useState<ServiceWithAnimation[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -28,11 +28,11 @@ export function useServiceSelection(salonId: string, isOpen: boolean) {
 
   // Load services when modal opens
   useEffect(() => {
-    if (!isOpen || !salonId) return;
+    if (!isOpen || !storeId) return;
 
     db.services
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and((service: Service) => service.isActive !== false)
       .toArray()
       .then(setServices)
@@ -40,7 +40,7 @@ export function useServiceSelection(salonId: string, isOpen: boolean) {
         console.error('Error loading services:', error);
         setServices([]);
       });
-  }, [isOpen, salonId]);
+  }, [isOpen, storeId]);
 
   // Categories from services
   const categories = useMemo(() => {

@@ -43,7 +43,7 @@ export function GroupBookingModal({
   selectedTime,
   onSave
 }: GroupBookingModalProps) {
-  const salonId = useSelector((state: RootState) => state.user.activeSalonId);
+  const storeId = useSelector((state: RootState) => state.user.activeSalonId);
   const allStaff = useSelector((state: RootState) => state.staff.staffList);
 
   // Group members state
@@ -77,21 +77,21 @@ export function GroupBookingModal({
 
   // Load services and recent clients
   useEffect(() => {
-    if (isOpen && salonId) {
+    if (isOpen && storeId) {
       loadServices();
       loadRecentClients();
     }
-  }, [isOpen, salonId]);
+  }, [isOpen, storeId]);
 
   const loadServices = async () => {
-    if (!salonId) return;
-    const services = await servicesDB.getAll(salonId);
+    if (!storeId) return;
+    const services = await servicesDB.getAll(storeId);
     setAllServices(services.filter(s => s.isActive !== false));
   };
 
   const loadRecentClients = async () => {
-    if (!salonId) return;
-    const clients = await clientsDB.getAll(salonId);
+    if (!storeId) return;
+    const clients = await clientsDB.getAll(storeId);
     // Sort by last visit if that data exists, or just take first 5
     setRecentClients(clients.slice(0, 5));
   };
@@ -99,21 +99,21 @@ export function GroupBookingModal({
   // Search clients
   useEffect(() => {
     const searchClients = async () => {
-      if (!clientSearch.trim() || !salonId) {
+      if (!clientSearch.trim() || !storeId) {
         setSearchResults([]);
         setIsSearching(false);
         return;
       }
 
       setIsSearching(true);
-      const results = await clientsDB.search(salonId, clientSearch);
+      const results = await clientsDB.search(storeId, clientSearch);
       setSearchResults(results);
       setIsSearching(false);
     };
 
     const debounce = setTimeout(searchClients, 300);
     return () => clearTimeout(debounce);
-  }, [clientSearch, salonId]);
+  }, [clientSearch, storeId]);
 
   // Group by category
   const servicesByCategory = useMemo(() => {

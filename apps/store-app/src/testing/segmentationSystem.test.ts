@@ -27,7 +27,7 @@ import {
 
 const createMockClient = (overrides: Partial<Client> = {}): Client => ({
   id: 'client-1',
-  salonId: 'salon-1',
+  storeId: 'salon-1',
   firstName: 'John',
   lastName: 'Doe',
   phone: '555-1234',
@@ -413,7 +413,7 @@ describe('Custom Segment Filtering', () => {
     it('should filter by single condition', () => {
       const segment: CustomSegment = {
         id: 'high-spenders',
-        salonId: 'salon-1',
+        storeId: 'salon-1',
         name: 'High Spenders',
         color: '#ff0000',
         filters: {
@@ -437,7 +437,7 @@ describe('Custom Segment Filtering', () => {
     it('should filter with AND logic', () => {
       const segment: CustomSegment = {
         id: 'platinum-high-spenders',
-        salonId: 'salon-1',
+        storeId: 'salon-1',
         name: 'Platinum High Spenders',
         color: '#ff0000',
         filters: {
@@ -462,7 +462,7 @@ describe('Custom Segment Filtering', () => {
     it('should filter with OR logic', () => {
       const segment: CustomSegment = {
         id: 'gold-or-platinum',
-        salonId: 'salon-1',
+        storeId: 'salon-1',
         name: 'Gold or Platinum',
         color: '#ff0000',
         filters: {
@@ -486,7 +486,7 @@ describe('Custom Segment Filtering', () => {
     it('should return empty array for inactive segment', () => {
       const segment: CustomSegment = {
         id: 'inactive-segment',
-        salonId: 'salon-1',
+        storeId: 'salon-1',
         name: 'Inactive Segment',
         color: '#ff0000',
         filters: {
@@ -511,7 +511,7 @@ describe('Custom Segment Filtering', () => {
     it('should return correct count', () => {
       const segment: CustomSegment = {
         id: 'all-clients',
-        salonId: 'salon-1',
+        storeId: 'salon-1',
         name: 'All Clients',
         color: '#ff0000',
         filters: {

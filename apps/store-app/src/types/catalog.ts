@@ -26,7 +26,7 @@ export type BundleBookingMode = 'single-session' | 'multiple-visits';
 
 export interface ServiceCategory {
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Core fields
   name: string;
@@ -50,7 +50,7 @@ export interface ServiceCategory {
 }
 
 export type CreateCategoryInput = Omit<ServiceCategory,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
 >;
 
 // ============================================
@@ -59,7 +59,7 @@ export type CreateCategoryInput = Omit<ServiceCategory,
 
 export interface ServiceVariant {
   id: string;
-  salonId: string;
+  storeId: string;
   serviceId: string;
 
   // Core fields
@@ -82,7 +82,7 @@ export interface ServiceVariant {
 }
 
 export type CreateVariantInput = Omit<ServiceVariant,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
 >;
 
 // ============================================
@@ -91,7 +91,7 @@ export type CreateVariantInput = Omit<ServiceVariant,
 
 export interface MenuService {
   id: string;
-  salonId: string;
+  storeId: string;
   categoryId: string;
 
   // Core fields
@@ -158,7 +158,7 @@ export interface MenuService {
 }
 
 export type CreateMenuServiceInput = Omit<MenuService,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
 >;
 
 // ============================================
@@ -167,7 +167,7 @@ export type CreateMenuServiceInput = Omit<MenuService,
 
 export interface ServicePackage {
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Core fields
   name: string;
@@ -221,7 +221,7 @@ export interface PackageServiceItem {
 }
 
 export type CreatePackageInput = Omit<ServicePackage,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus' | 'createdBy' | 'lastModifiedBy'
 >;
 
 // ============================================
@@ -230,7 +230,7 @@ export type CreatePackageInput = Omit<ServicePackage,
 
 export interface AddOnGroup {
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Core fields
   name: string;
@@ -260,7 +260,7 @@ export interface AddOnGroup {
 
 export interface AddOnOption {
   id: string;
-  salonId: string;
+  storeId: string;
   groupId: string;
 
   // Core fields
@@ -282,11 +282,11 @@ export interface AddOnOption {
 }
 
 export type CreateAddOnGroupInput = Omit<AddOnGroup,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
 >;
 
 export type CreateAddOnOptionInput = Omit<AddOnOption,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
 >;
 
 // ============================================
@@ -295,7 +295,7 @@ export type CreateAddOnOptionInput = Omit<AddOnOption,
 
 export interface StaffServiceAssignment {
   id: string;
-  salonId: string;
+  storeId: string;
   staffId: string;
   serviceId: string;
 
@@ -316,7 +316,7 @@ export interface StaffServiceAssignment {
 }
 
 export type CreateStaffAssignmentInput = Omit<StaffServiceAssignment,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
 >;
 
 // ============================================
@@ -325,7 +325,7 @@ export type CreateStaffAssignmentInput = Omit<StaffServiceAssignment,
 
 export interface CatalogSettings {
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Default values
   defaultDuration: number;
@@ -365,7 +365,7 @@ export interface CatalogSettings {
  */
 export interface BookingSequence {
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Ordered list of service IDs
   serviceOrder: string[];
@@ -380,7 +380,7 @@ export interface BookingSequence {
 }
 
 export type CreateBookingSequenceInput = Omit<BookingSequence,
-  'id' | 'salonId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
 >;
 
 // ============================================
@@ -498,10 +498,10 @@ export function toServiceAddOn(group: AddOnGroup, option: AddOnOption): ServiceA
 /**
  * Convert legacy ServiceAddOn to AddOnGroup + AddOnOption
  */
-export function fromServiceAddOn(addOn: ServiceAddOn, salonId: string): { group: Omit<AddOnGroup, 'id' | 'syncStatus'>; option: Omit<AddOnOption, 'id' | 'groupId' | 'syncStatus'> } {
+export function fromServiceAddOn(addOn: ServiceAddOn, storeId: string): { group: Omit<AddOnGroup, 'id' | 'syncStatus'>; option: Omit<AddOnOption, 'id' | 'groupId' | 'syncStatus'> } {
   return {
     group: {
-      salonId,
+      storeId,
       name: addOn.name,
       description: addOn.description,
       selectionMode: 'single',
@@ -518,7 +518,7 @@ export function fromServiceAddOn(addOn: ServiceAddOn, salonId: string): { group:
       updatedAt: addOn.updatedAt,
     },
     option: {
-      salonId,
+      storeId,
       name: addOn.name,
       description: addOn.description,
       price: addOn.price,

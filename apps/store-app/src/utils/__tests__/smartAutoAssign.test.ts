@@ -16,7 +16,7 @@ import { Staff } from '../../types/staff';
 const mockStaff: Staff[] = [
   {
     id: 'staff-1',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Alice',
     email: 'alice@test.com',
     phone: '555-0001',
@@ -34,7 +34,7 @@ const mockStaff: Staff[] = [
   },
   {
     id: 'staff-2',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Bob',
     email: 'bob@test.com',
     phone: '555-0002',
@@ -52,7 +52,7 @@ const mockStaff: Staff[] = [
   },
   {
     id: 'staff-3',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Charlie',
     email: 'charlie@test.com',
     phone: '555-0003',
@@ -70,7 +70,7 @@ const mockStaff: Staff[] = [
   },
   {
     id: 'staff-4',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     name: 'Diana',
     email: 'diana@test.com',
     phone: '555-0004',
@@ -109,7 +109,7 @@ const createTestAppointment = (overrides: Partial<LocalAppointment> = {}): Local
   scheduledEndTime: new Date('2025-01-15T10:30:00.000Z').toISOString(),
   status: 'scheduled',
   source: 'admin-portal',
-  salonId: 'salon-1',
+  storeId: 'salon-1',
   createdAt: new Date('2025-01-01T00:00:00.000Z').toISOString(),
   updatedAt: new Date('2025-01-01T00:00:00.000Z').toISOString(),
   createdBy: 'user-1',

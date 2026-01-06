@@ -1,13 +1,10 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { setUserContext, clearUserContext } from './services/monitoring/sentry';
-
-// Lazy load AdminPortal - it's a separate route with its own dependencies
-const AdminPortal = lazy(() => import('./admin/AdminPortal').then(m => ({ default: m.AdminPortal })));
 import { dataCleanupService } from './services/dataCleanupService';
 import { storeAuthManager, type StoreAuthState } from './services/storeAuthManager';
 import { StoreLoginScreen } from './components/auth/StoreLoginScreen';
@@ -27,26 +24,9 @@ import { ConflictNotificationProvider } from './providers/ConflictNotificationCo
 // }
 
 export function App() {
-  const [isAdminMode, setIsAdminMode] = useState(false);
   const [authState, setAuthState] = useState<StoreAuthState | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isDbInitialized, setIsDbInitialized] = useState(false);
-
-  // Check URL path on mount and listen for changes
-  useEffect(() => {
-    const checkPath = () => {
-      setIsAdminMode(window.location.pathname.startsWith('/admin'));
-    };
-
-    checkPath();
-
-    // Listen for URL changes (for manual navigation)
-    window.addEventListener('popstate', checkPath);
-
-    return () => {
-      window.removeEventListener('popstate', checkPath);
-    };
-  }, []);
 
   // Initialize database FIRST (before any other operations)
   useEffect(() => {
@@ -70,13 +50,8 @@ export function App() {
     initDB();
   }, []);
 
-  // Initialize store auth manager (only for POS mode, AFTER database is ready)
+  // Initialize store auth manager (AFTER database is ready)
   useEffect(() => {
-    // Skip auth check for admin mode
-    if (isAdminMode) {
-      return;
-    }
-
     // Wait for database to be initialized first
     if (!isDbInitialized) {
       return;
@@ -165,7 +140,7 @@ export function App() {
     return () => {
       cleanup?.then((unsubscribe) => unsubscribe?.());
     };
-  }, [isAdminMode, isDbInitialized]);
+  }, [isDbInitialized]);
 
   // Set Sentry user context when auth state changes
   useEffect(() => {
@@ -181,18 +156,17 @@ export function App() {
     }
   }, [authState]);
 
-  // Data cleanup (only for authenticated POS mode)
+  // Data cleanup (only for authenticated mode)
   useEffect(() => {
-    if (isAdminMode) return;
     if (!isAuthChecked || !authState) return;
     if (!storeAuthManager.isOperational()) return;
 
     // Run data cleanup on startup and schedule daily cleanup
     // Use store ID from auth state
-    const salonId = authState.store?.storeId || 'salon_123';
+    const storeId = authState.store?.storeId || 'salon_123';
 
     // Schedule automatic cleanup
-    const cleanupInterval = dataCleanupService.scheduleAutoCleanup(salonId);
+    const cleanupInterval = dataCleanupService.scheduleAutoCleanup(storeId);
 
     // Check database size on startup
     dataCleanupService.checkDatabaseSize().then(sizeInfo => {
@@ -205,9 +179,9 @@ export function App() {
     return () => {
       clearInterval(cleanupInterval);
     };
-  }, [isAdminMode, isAuthChecked, authState]);
+  }, [isAuthChecked, authState]);
 
-  // Toaster configuration (shared between modes)
+  // Toaster configuration
   const toasterConfig = {
     position: 'top-right' as const,
     toastOptions: {
@@ -232,24 +206,7 @@ export function App() {
     },
   };
 
-  // ADMIN MODE: Render AdminPortal without Redux Provider (lazy loaded)
-  if (isAdminMode) {
-    return (
-      <Suspense fallback={
-        <div className="h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-gray-600">Loading Admin Portal...</p>
-          </div>
-        </div>
-      }>
-        <AdminPortal />
-        <Toaster {...toasterConfig} />
-      </Suspense>
-    );
-  }
-
-  // POS MODE: Show loading while checking auth OR database
+  // Show loading while checking auth OR database
   if (!isDbInitialized || !isAuthChecked) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
@@ -264,7 +221,7 @@ export function App() {
     );
   }
 
-  // POS MODE: Show login screen if not authenticated
+  // Show login screen if not authenticated
   if (storeAuthManager.isLoginRequired()) {
     return (
       <Provider store={store}>
@@ -281,7 +238,7 @@ export function App() {
     );
   }
 
-  // POS MODE: Normal app flow
+  // Normal app flow
   return (
     <ErrorBoundary module="app">
       <Provider store={store}>

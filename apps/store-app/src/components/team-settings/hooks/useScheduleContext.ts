@@ -17,22 +17,22 @@ const DEFAULT_DEVICE_ID = 'web-device-001';
  */
 export function useScheduleContext(): ScheduleContext | null {
   const user = useAppSelector(selectCurrentUser);
-  const salonId = useAppSelector(selectSalonId);
+  const storeId = useAppSelector(selectSalonId);
 
   return useMemo(() => {
-    if (!user || !salonId) {
+    if (!user || !storeId) {
       return null;
     }
 
     return {
       userId: user.id,
       userName: user.name,
-      storeId: salonId,
-      tenantId: salonId, // Using salonId as tenantId for now
+      storeId: storeId,
+      tenantId: storeId, // Using storeId as tenantId for now
       deviceId: DEFAULT_DEVICE_ID,
       isManager: user.role === 'owner' || user.role === 'manager',
     };
-  }, [user, salonId]);
+  }, [user, storeId]);
 }
 
 /**

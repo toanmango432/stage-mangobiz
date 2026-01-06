@@ -20,15 +20,15 @@ export class DataCleanupService {
    * Clean old appointments from the database
    * SAFETY: Only deletes records that are synced to cloud
    */
-  async cleanOldAppointments(salonId: string): Promise<{ deleted: number; skipped: number }> {
+  async cleanOldAppointments(storeId: string): Promise<{ deleted: number; skipped: number }> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.APPOINTMENT_RETENTION_DAYS);
     const cutoffIso = cutoffDate.toISOString();
 
     // Get candidates for deletion
     const candidates = await db.appointments
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(apt => apt.scheduledStartTime < cutoffIso)
       .toArray();
 
@@ -54,14 +54,14 @@ export class DataCleanupService {
    * Clean old tickets from the database
    * SAFETY: Only deletes completed tickets that are synced to cloud
    */
-  async cleanOldTickets(salonId: string): Promise<{ deleted: number; skipped: number }> {
+  async cleanOldTickets(storeId: string): Promise<{ deleted: number; skipped: number }> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.TICKET_RETENTION_DAYS);
 
     // Get candidates for deletion (completed tickets only)
     const candidates = await db.tickets
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(ticket => new Date(ticket.createdAt) < cutoffDate && ticket.status === 'completed')
       .toArray();
 
@@ -86,15 +86,15 @@ export class DataCleanupService {
    * Clean old transactions from the database
    * SAFETY: Only deletes transactions that are synced to cloud
    */
-  async cleanOldTransactions(salonId: string): Promise<{ deleted: number; skipped: number }> {
+  async cleanOldTransactions(storeId: string): Promise<{ deleted: number; skipped: number }> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.TRANSACTION_RETENTION_DAYS);
     const cutoffIso = cutoffDate.toISOString();
 
     // Get candidates for deletion
     const candidates = await db.transactions
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(txn => txn.createdAt < cutoffIso)
       .toArray();
 
@@ -146,7 +146,7 @@ export class DataCleanupService {
   /**
    * Run all cleanup tasks
    */
-  async runCleanup(salonId: string): Promise<{
+  async runCleanup(storeId: string): Promise<{
     appointments: number;
     tickets: number;
     transactions: number;
@@ -159,9 +159,9 @@ export class DataCleanupService {
     try {
       // Run all cleanup tasks in parallel
       const [appointmentResult, ticketResult, transactionResult, syncQueue] = await Promise.all([
-        this.cleanOldAppointments(salonId),
-        this.cleanOldTickets(salonId),
-        this.cleanOldTransactions(salonId),
+        this.cleanOldAppointments(storeId),
+        this.cleanOldTickets(storeId),
+        this.cleanOldTransactions(storeId),
         this.cleanSyncQueue(),
       ]);
 
@@ -192,7 +192,7 @@ export class DataCleanupService {
    * Emergency cleanup - more aggressive, for when storage is critical (>90%)
    * Deletes synced data older than 7 days instead of normal retention period
    */
-  async emergencyCleanup(salonId: string): Promise<number> {
+  async emergencyCleanup(storeId: string): Promise<number> {
     console.warn('[Cleanup] Running EMERGENCY cleanup - storage critical!');
 
     const sevenDaysAgo = new Date();
@@ -203,8 +203,8 @@ export class DataCleanupService {
 
     // Emergency cleanup for tickets
     const oldTickets = await db.tickets
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(t => new Date(t.createdAt) < sevenDaysAgo && t.syncStatus === 'synced')
       .toArray();
 
@@ -216,8 +216,8 @@ export class DataCleanupService {
 
     // Emergency cleanup for transactions
     const oldTransactions = await db.transactions
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(t => t.createdAt < cutoffIso && t.syncStatus === 'synced')
       .toArray();
 
@@ -229,8 +229,8 @@ export class DataCleanupService {
 
     // Emergency cleanup for appointments
     const oldAppointments = await db.appointments
-      .where('salonId')
-      .equals(salonId)
+      .where('storeId')
+      .equals(storeId)
       .and(a => a.scheduledStartTime < cutoffIso && a.syncStatus === 'synced')
       .toArray();
 
@@ -290,21 +290,21 @@ export class DataCleanupService {
    * Schedule automatic cleanup to run daily
    * Also starts storage monitoring with emergency cleanup trigger
    */
-  scheduleAutoCleanup(salonId: string): NodeJS.Timeout {
+  scheduleAutoCleanup(storeId: string): NodeJS.Timeout {
     // Run cleanup every 24 hours
     const interval = setInterval(async () => {
       console.log('[Cleanup] Running scheduled cleanup...');
-      await this.runCleanup(salonId);
+      await this.runCleanup(storeId);
 
       // Check if storage is critical after cleanup
       const sizeInfo = await this.checkDatabaseSize();
       if (sizeInfo.critical) {
-        await this.emergencyCleanup(salonId);
+        await this.emergencyCleanup(storeId);
       }
     }, 24 * 60 * 60 * 1000); // 24 hours
 
     // Run immediately on startup
-    this.runCleanupWithStorageCheck(salonId).catch(error => {
+    this.runCleanupWithStorageCheck(storeId).catch(error => {
       console.error('[Cleanup] Initial cleanup failed:', error);
     });
 
@@ -312,7 +312,7 @@ export class DataCleanupService {
     storageMonitorService.startMonitoring(5 * 60 * 1000, async (metrics) => {
       if (metrics.warningLevel === 'critical') {
         console.error('[Cleanup] Storage monitor triggered emergency cleanup!');
-        await this.emergencyCleanup(salonId);
+        await this.emergencyCleanup(storeId);
       }
     });
 
@@ -322,17 +322,17 @@ export class DataCleanupService {
   /**
    * Run cleanup with storage check - triggers emergency cleanup if needed
    */
-  private async runCleanupWithStorageCheck(salonId: string): Promise<void> {
+  private async runCleanupWithStorageCheck(storeId: string): Promise<void> {
     // First check storage
     const sizeInfo = await this.checkDatabaseSize();
 
     // If critical, run emergency cleanup first
     if (sizeInfo.critical) {
-      await this.emergencyCleanup(salonId);
+      await this.emergencyCleanup(storeId);
     }
 
     // Then run normal cleanup
-    await this.runCleanup(salonId);
+    await this.runCleanup(storeId);
 
     // Check storage again after cleanup
     const afterCleanup = await this.checkDatabaseSize();

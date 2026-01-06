@@ -91,7 +91,7 @@ export function AddEditScheduleModal({
 }: AddEditScheduleModalProps) {
   // Auth selectors for database operations
   const currentUser = useSelector(selectCurrentUser);
-  const salonId = useSelector(selectSalonId);
+  const storeId = useSelector(selectSalonId);
   const deviceId = useSelector(selectDeviceId);
 
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialStaffId || "");
@@ -333,7 +333,7 @@ export function AddEditScheduleModal({
 
     try {
       // Save to IndexedDB for both fixed and rotating patterns
-      if (selectedStaff && currentUser?.id && salonId && deviceId) {
+      if (selectedStaff && currentUser?.id && storeId && deviceId) {
         const effectiveFrom = existingDbSchedule?.effectiveFrom || new Date().toISOString().split('T')[0];
         const staffScheduleInput = createStaffScheduleInput(
           selectedStaffId,
@@ -355,8 +355,8 @@ export function AddEditScheduleModal({
           await staffSchedulesDB.create(
             staffScheduleInput,
             currentUser.id,
-            salonId,
-            salonId,
+            storeId,
+            storeId,
             deviceId
           );
         }

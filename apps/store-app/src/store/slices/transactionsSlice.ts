@@ -142,7 +142,7 @@ export const createTransactionInSupabase = createAsyncThunk(
 
       // Build transaction data for insert (dataService returns Transaction directly)
       const transactionData = {
-        salonId: '', // Will be filled by dataService
+        storeId: '', // Will be filled by dataService
         ticketId: input.ticketId,
         ticketNumber: input.ticketNumber,
         clientId: input.clientId,
@@ -313,9 +313,9 @@ export const refundTransactionInSupabase = createAsyncThunk(
  */
 export const fetchTransactions = createAsyncThunk(
   'transactions/fetchAll',
-  async (_salonId: string) => {
+  async (_storeId: string) => {
     console.warn('⚠️ DEPRECATED: fetchTransactions is deprecated. Use fetchTransactionsByDateFromSupabase instead.');
-    return await transactionsDB.getAll(_salonId);
+    return await transactionsDB.getAll(_storeId);
   }
 );
 
@@ -328,7 +328,7 @@ export const createTransaction = createAsyncThunk(
     ticketId,
   }: {
     ticketId: string;
-    _salonId: string;
+    _storeId: string;
     _userId: string
   }) => {
     console.warn('⚠️ DEPRECATED: createTransaction is deprecated. Use createTransactionInSupabase instead.');
@@ -369,7 +369,7 @@ export const createTransaction = createAsyncThunk(
 
     // Create transaction from ticket data
     const transactionData: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'> = {
-      salonId: ticket.salonId,
+      storeId: ticket.storeId,
       ticketId: ticket.id,
       ticketNumber: ticket.number || 0,
       clientId: ticket.clientId,
@@ -412,7 +412,7 @@ export const createTransactionFromPending = createAsyncThunk(
   'transactions/createFromPending',
   async (input: CreateTransactionInput, { getState }) => {
     const state = getState() as RootState;
-    const salonId = state.auth?.user?.salonId || 'default-salon';
+    const storeId = state.auth?.user?.storeId || 'default-salon';
     const userId = state.auth?.user?.id || 'default-user';
 
     // Validate input
@@ -439,7 +439,7 @@ export const createTransactionFromPending = createAsyncThunk(
     // Create transaction object
     const transaction: Transaction = {
       id: uuidv4(),
-      salonId,
+      storeId,
       ticketId: input.ticketId,
       ticketNumber: input.ticketNumber,
       clientId: input.clientId,

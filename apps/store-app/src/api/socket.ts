@@ -9,15 +9,15 @@ class SocketClient {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private salonId: string | null = null;
+  private storeId: string | null = null;
 
   async connect() {
     try {
       // Get auth token and salon ID
       const token = await settingsDB.get('auth_token');
-      this.salonId = await settingsDB.get('salon_id');
+      this.storeId = await settingsDB.get('salon_id');
 
-      if (!token || !this.salonId) {
+      if (!token || !this.storeId) {
         console.warn('⚠️ Socket: No auth token or salon ID found');
         return;
       }
@@ -26,7 +26,7 @@ class SocketClient {
       this.socket = io(SOCKET_URL, {
         auth: {
           token,
-          salonId: this.salonId,
+          storeId: this.storeId,
         },
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -53,8 +53,8 @@ class SocketClient {
       store.dispatch(setOnlineStatus(true));
       
       // Join salon room
-      if (this.salonId) {
-        this.socket?.emit('join:salon', this.salonId);
+      if (this.storeId) {
+        this.socket?.emit('join:salon', this.storeId);
       }
     });
 
@@ -156,16 +156,16 @@ class SocketClient {
   }
 
   // Join salon room
-  joinSalon(salonId: string) {
-    this.salonId = salonId;
-    this.emit('join:salon', salonId);
+  joinSalon(storeId: string) {
+    this.storeId = storeId;
+    this.emit('join:salon', storeId);
   }
 
   // Leave salon room
   leaveSalon() {
-    if (this.salonId) {
-      this.emit('leave:salon', this.salonId);
-      this.salonId = null;
+    if (this.storeId) {
+      this.emit('leave:salon', this.storeId);
+      this.storeId = null;
     }
   }
 

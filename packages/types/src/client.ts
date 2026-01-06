@@ -361,7 +361,7 @@ export type ReviewRequestStatus = 'pending' | 'sent' | 'opened' | 'completed' | 
 /** Review request record - tracks sent review invitations */
 export interface ReviewRequest {
   id: string;
-  salonId: string;
+  storeId: string;
   clientId: string;
   clientName: string;
   clientEmail?: string;
@@ -387,7 +387,7 @@ export interface ReviewRequest {
 /** Loyalty Reward */
 export interface LoyaltyReward {
   id: string;
-  salonId: string;
+  storeId: string;
   clientId: string;
   type: 'amount_discount' | 'percentage_discount' | 'free_service' | 'free_product';
   value: number;
@@ -412,7 +412,7 @@ export interface LoyaltyReward {
 export interface Client {
   // Core identification
   id: string;
-  salonId: string;
+  storeId: string;
 
   // Basic info (PRD 2.3.1)
   firstName: string;
@@ -499,7 +499,7 @@ export interface Client {
  */
 export interface LegacyClient {
   id: string;
-  salonId: string;
+  storeId: string;
   name: string;
   phone: string;
   email?: string;
@@ -521,7 +521,7 @@ export function convertLegacyClient(legacy: LegacyClient): Client {
   const nameParts = legacy.name.split(' ');
   return {
     id: legacy.id,
-    salonId: legacy.salonId,
+    storeId: legacy.storeId,
     firstName: nameParts[0] || '',
     lastName: nameParts.slice(1).join(' ') || '',
     phone: legacy.phone,
@@ -664,7 +664,7 @@ export interface SegmentFilterGroup {
 // Custom segment definition (user-created)
 export interface CustomSegment {
   id: string;
-  salonId: string;
+  storeId: string;
   name: string;
   description?: string;
   color: string;

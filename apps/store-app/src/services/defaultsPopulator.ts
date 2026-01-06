@@ -44,7 +44,7 @@ class DefaultsPopulator {
   /**
    * Apply defaults from control center (first-time setup only)
    */
-  async applyDefaults(salonId: string): Promise<void> {
+  async applyDefaults(storeId: string): Promise<void> {
     // Check if defaults have already been applied
     const alreadyApplied = await secureStorage.hasAppliedDefaults();
     if (alreadyApplied) {
@@ -74,7 +74,7 @@ class DefaultsPopulator {
 
       // Apply items/services
       if (defaults.items && defaults.items.length > 0) {
-        await this.applyItems(salonId, defaults.items);
+        await this.applyItems(storeId, defaults.items);
       }
 
       // Apply employee roles
@@ -134,7 +134,7 @@ class DefaultsPopulator {
   /**
    * Apply items/services to database
    */
-  private async applyItems(salonId: string, items: DefaultsData['items']): Promise<void> {
+  private async applyItems(storeId: string, items: DefaultsData['items']): Promise<void> {
     if (!items) return;
 
     console.log(`📋 Applying ${items.length} services/items...`);
@@ -150,7 +150,7 @@ class DefaultsPopulator {
     const now = new Date().toISOString();
     const services: Service[] = items.map((item) => ({
       id: uuidv4(),
-      salonId,
+      storeId,
       name: item.name,
       category: item.category,
       description: item.description || '',

@@ -100,22 +100,22 @@ const initialState: CatalogState = {
 // Categories
 export const fetchCategories = createAsyncThunk(
   'catalog/fetchCategories',
-  async ({ salonId, includeInactive = false }: { salonId: string; includeInactive?: boolean }) => {
-    return await serviceCategoriesDB.getAll(salonId, includeInactive);
+  async ({ storeId, includeInactive = false }: { storeId: string; includeInactive?: boolean }) => {
+    return await serviceCategoriesDB.getAll(storeId, includeInactive);
   }
 );
 
 export const fetchCategoriesWithCounts = createAsyncThunk(
   'catalog/fetchCategoriesWithCounts',
-  async ({ salonId, includeInactive = false }: { salonId: string; includeInactive?: boolean }) => {
-    return await serviceCategoriesDB.getWithCounts(salonId, includeInactive);
+  async ({ storeId, includeInactive = false }: { storeId: string; includeInactive?: boolean }) => {
+    return await serviceCategoriesDB.getWithCounts(storeId, includeInactive);
   }
 );
 
 export const createCategory = createAsyncThunk(
   'catalog/createCategory',
-  async ({ input, userId, salonId }: { input: CreateCategoryInput; userId: string; salonId: string }) => {
-    return await serviceCategoriesDB.create(input, userId, salonId);
+  async ({ input, userId, storeId }: { input: CreateCategoryInput; userId: string; storeId: string }) => {
+    return await serviceCategoriesDB.create(input, userId, storeId);
   }
 );
 
@@ -136,8 +136,8 @@ export const deleteCategory = createAsyncThunk(
 
 export const reorderCategories = createAsyncThunk(
   'catalog/reorderCategories',
-  async ({ salonId, orderedIds, userId }: { salonId: string; orderedIds: string[]; userId: string }) => {
-    await serviceCategoriesDB.reorder(salonId, orderedIds, userId);
+  async ({ storeId, orderedIds, userId }: { storeId: string; orderedIds: string[]; userId: string }) => {
+    await serviceCategoriesDB.reorder(storeId, orderedIds, userId);
     return orderedIds;
   }
 );
@@ -145,22 +145,22 @@ export const reorderCategories = createAsyncThunk(
 // Services
 export const fetchServices = createAsyncThunk(
   'catalog/fetchServices',
-  async ({ salonId, includeInactive = false }: { salonId: string; includeInactive?: boolean }) => {
-    return await menuServicesDB.getAll(salonId, includeInactive);
+  async ({ storeId, includeInactive = false }: { storeId: string; includeInactive?: boolean }) => {
+    return await menuServicesDB.getAll(storeId, includeInactive);
   }
 );
 
 export const fetchServicesByCategory = createAsyncThunk(
   'catalog/fetchServicesByCategory',
-  async ({ salonId, categoryId, includeInactive = false }: { salonId: string; categoryId: string; includeInactive?: boolean }) => {
-    return await menuServicesDB.getByCategory(salonId, categoryId, includeInactive);
+  async ({ storeId, categoryId, includeInactive = false }: { storeId: string; categoryId: string; includeInactive?: boolean }) => {
+    return await menuServicesDB.getByCategory(storeId, categoryId, includeInactive);
   }
 );
 
 export const createService = createAsyncThunk(
   'catalog/createService',
-  async ({ input, userId, salonId }: { input: CreateMenuServiceInput; userId: string; salonId: string }) => {
-    return await menuServicesDB.create(input, userId, salonId);
+  async ({ input, userId, storeId }: { input: CreateMenuServiceInput; userId: string; storeId: string }) => {
+    return await menuServicesDB.create(input, userId, storeId);
   }
 );
 
@@ -196,8 +196,8 @@ export const fetchVariants = createAsyncThunk(
 
 export const createVariant = createAsyncThunk(
   'catalog/createVariant',
-  async ({ input, salonId }: { input: CreateVariantInput; salonId: string }) => {
-    return await serviceVariantsDB.create(input, salonId);
+  async ({ input, storeId }: { input: CreateVariantInput; storeId: string }) => {
+    return await serviceVariantsDB.create(input, storeId);
   }
 );
 
@@ -219,15 +219,15 @@ export const deleteVariant = createAsyncThunk(
 // Packages
 export const fetchPackages = createAsyncThunk(
   'catalog/fetchPackages',
-  async ({ salonId, includeInactive = false }: { salonId: string; includeInactive?: boolean }) => {
-    return await servicePackagesDB.getAll(salonId, includeInactive);
+  async ({ storeId, includeInactive = false }: { storeId: string; includeInactive?: boolean }) => {
+    return await servicePackagesDB.getAll(storeId, includeInactive);
   }
 );
 
 export const createPackage = createAsyncThunk(
   'catalog/createPackage',
-  async ({ input, userId, salonId }: { input: CreatePackageInput; userId: string; salonId: string }) => {
-    return await servicePackagesDB.create(input, userId, salonId);
+  async ({ input, userId, storeId }: { input: CreatePackageInput; userId: string; storeId: string }) => {
+    return await servicePackagesDB.create(input, userId, storeId);
   }
 );
 
@@ -249,22 +249,22 @@ export const deletePackage = createAsyncThunk(
 // Add-on Groups
 export const fetchAddOnGroups = createAsyncThunk(
   'catalog/fetchAddOnGroups',
-  async ({ salonId, includeInactive = false }: { salonId: string; includeInactive?: boolean }) => {
-    return await addOnGroupsDB.getAll(salonId, includeInactive);
+  async ({ storeId, includeInactive = false }: { storeId: string; includeInactive?: boolean }) => {
+    return await addOnGroupsDB.getAll(storeId, includeInactive);
   }
 );
 
 export const fetchAddOnGroupsWithOptions = createAsyncThunk(
   'catalog/fetchAddOnGroupsWithOptions',
-  async ({ salonId, includeInactive = false }: { salonId: string; includeInactive?: boolean }) => {
-    return await addOnGroupsDB.getAllWithOptions(salonId, includeInactive);
+  async ({ storeId, includeInactive = false }: { storeId: string; includeInactive?: boolean }) => {
+    return await addOnGroupsDB.getAllWithOptions(storeId, includeInactive);
   }
 );
 
 export const createAddOnGroup = createAsyncThunk(
   'catalog/createAddOnGroup',
-  async ({ input, salonId }: { input: CreateAddOnGroupInput; salonId: string }) => {
-    return await addOnGroupsDB.create(input, salonId);
+  async ({ input, storeId }: { input: CreateAddOnGroupInput; storeId: string }) => {
+    return await addOnGroupsDB.create(input, storeId);
   }
 );
 
@@ -286,8 +286,8 @@ export const deleteAddOnGroup = createAsyncThunk(
 // Add-on Options
 export const createAddOnOption = createAsyncThunk(
   'catalog/createAddOnOption',
-  async ({ input, salonId }: { input: CreateAddOnOptionInput; salonId: string }) => {
-    return await addOnOptionsDB.create(input, salonId);
+  async ({ input, storeId }: { input: CreateAddOnOptionInput; storeId: string }) => {
+    return await addOnOptionsDB.create(input, storeId);
   }
 );
 
@@ -309,15 +309,15 @@ export const deleteAddOnOption = createAsyncThunk(
 // Settings
 export const fetchCatalogSettings = createAsyncThunk(
   'catalog/fetchSettings',
-  async (salonId: string) => {
-    return await catalogSettingsDB.getOrCreate(salonId);
+  async (storeId: string) => {
+    return await catalogSettingsDB.getOrCreate(storeId);
   }
 );
 
 export const updateCatalogSettings = createAsyncThunk(
   'catalog/updateSettings',
-  async ({ salonId, updates }: { salonId: string; updates: Partial<CatalogSettings> }) => {
-    return await catalogSettingsDB.update(salonId, updates);
+  async ({ storeId, updates }: { storeId: string; updates: Partial<CatalogSettings> }) => {
+    return await catalogSettingsDB.update(storeId, updates);
   }
 );
 

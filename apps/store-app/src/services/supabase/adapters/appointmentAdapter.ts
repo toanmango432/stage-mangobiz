@@ -22,7 +22,7 @@ export function toAppointment(row: AppointmentRow): Appointment {
 
   return {
     id: row.id,
-    salonId: row.store_id,
+    storeId: row.store_id,
     clientId: row.client_id || '',
     clientName: row.client_name,
     clientPhone: '', // Not stored in Supabase row
@@ -50,7 +50,7 @@ export function toAppointmentInsert(
   storeId?: string
 ): Omit<AppointmentInsert, 'store_id'> & { store_id?: string } {
   return {
-    store_id: storeId || appointment.salonId,
+    store_id: storeId || appointment.storeId,
     client_id: appointment.clientId || null,
     client_name: appointment.clientName,
     staff_id: appointment.staffId || null,

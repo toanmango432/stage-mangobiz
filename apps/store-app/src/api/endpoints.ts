@@ -17,8 +17,8 @@ export const authAPI = {
     return response.data;
   },
 
-  loginSalonMode: async (salonId: string, pin: string) => {
-    const response = await apiClient.post('/auth/salon-mode', { salonId, pin });
+  loginSalonMode: async (storeId: string, pin: string) => {
+    const response = await apiClient.post('/auth/salon-mode', { storeId, pin });
     return response.data;
   },
 
@@ -42,9 +42,9 @@ export const authAPI = {
 // Appointments API
 // ============================================
 export const appointmentsAPI = {
-  getAll: async (salonId: string, date?: string) => {
+  getAll: async (storeId: string, date?: string) => {
     const response = await retryRequest(() =>
-      apiClient.get<Appointment[]>(`/appointments`, { params: { salonId, date } })
+      apiClient.get<Appointment[]>(`/appointments`, { params: { storeId, date } })
     );
     return response.data;
   },
@@ -79,9 +79,9 @@ export const appointmentsAPI = {
 // Tickets API
 // ============================================
 export const ticketsAPI = {
-  getAll: async (salonId: string, status?: string) => {
+  getAll: async (storeId: string, status?: string) => {
     const response = await retryRequest(() =>
-      apiClient.get<Ticket[]>(`/tickets`, { params: { salonId, status } })
+      apiClient.get<Ticket[]>(`/tickets`, { params: { storeId, status } })
     );
     return response.data;
   },
@@ -116,10 +116,10 @@ export const ticketsAPI = {
 // Transactions API
 // ============================================
 export const transactionsAPI = {
-  getAll: async (salonId: string, startDate?: string, endDate?: string) => {
+  getAll: async (storeId: string, startDate?: string, endDate?: string) => {
     const response = await retryRequest(() =>
       apiClient.get<Transaction[]>(`/transactions`, { 
-        params: { salonId, startDate, endDate } 
+        params: { storeId, startDate, endDate } 
       })
     );
     return response.data;
@@ -153,9 +153,9 @@ export const transactionsAPI = {
 // Staff API
 // ============================================
 export const staffAPI = {
-  getAll: async (salonId: string) => {
+  getAll: async (storeId: string) => {
     const response = await retryRequest(() =>
-      apiClient.get<Staff[]>(`/staff`, { params: { salonId } })
+      apiClient.get<Staff[]>(`/staff`, { params: { storeId } })
     );
     return response.data;
   },
@@ -185,9 +185,9 @@ export const staffAPI = {
 // Clients API
 // ============================================
 export const clientsAPI = {
-  search: async (salonId: string, query: string) => {
+  search: async (storeId: string, query: string) => {
     const response = await apiClient.get<Client[]>(`/clients/search`, { 
-      params: { salonId, query } 
+      params: { storeId, query } 
     });
     return response.data;
   },
@@ -212,9 +212,9 @@ export const clientsAPI = {
 // Services API
 // ============================================
 export const servicesAPI = {
-  getAll: async (salonId: string) => {
+  getAll: async (storeId: string) => {
     const response = await retryRequest(() =>
-      apiClient.get<Service[]>(`/services`, { params: { salonId } })
+      apiClient.get<Service[]>(`/services`, { params: { storeId } })
     );
     return response.data;
   },
@@ -234,9 +234,9 @@ export const syncAPI = {
     return response.data;
   },
 
-  pull: async (salonId: string, lastSyncAt?: string) => {
+  pull: async (storeId: string, lastSyncAt?: string) => {
     const response = await apiClient.get('/sync/pull', { 
-      params: { salonId, lastSyncAt } 
+      params: { storeId, lastSyncAt } 
     });
     return response.data;
   },

@@ -604,7 +604,7 @@ function ticketDTOToLocalAppointment(ticket: TicketDTO): LocalAppointment {
   return {
     id: `apt_${ticket.appointmentID}`,
     serverId: ticket.appointmentID,
-    salonId: '0', // Will be set from context
+    storeId: '0', // Will be set from context
     clientId: ticket.customerID.toString(),
     clientName: ticket.customerName,
     clientPhone: ticket.customerPhone || '',

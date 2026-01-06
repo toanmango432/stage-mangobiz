@@ -29,7 +29,7 @@ describe('Referral System Backend Tests', () => {
 
     // Create test referrer client
     testReferrer = await clientsDB.create({
-      salonId: testStoreId,
+      storeId: testStoreId,
       firstName: 'John',
       lastName: 'Referrer',
       name: 'John Referrer',
@@ -49,7 +49,7 @@ describe('Referral System Backend Tests', () => {
 
     // Create test referred client
     testReferred = await clientsDB.create({
-      salonId: testStoreId,
+      storeId: testStoreId,
       firstName: 'Jane',
       lastName: 'Referred',
       name: 'Jane Referred',

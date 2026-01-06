@@ -7,13 +7,13 @@ import { Button, Input, Select, Textarea, Toggle, XIcon } from './SharedComponen
 interface AddClientProps {
   onClose: () => void;
   onSave: (client: EnhancedClient) => void;
-  salonId?: string;
+  storeId?: string;
 }
 
 export const AddClient: React.FC<AddClientProps> = ({
   onClose,
   onSave,
-  salonId = 'salon-1',
+  storeId = 'salon-1',
 }) => {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -74,7 +74,7 @@ export const AddClient: React.FC<AddClientProps> = ({
     const now = new Date().toISOString();
     const newClient: EnhancedClient = {
       id: uuidv4(),
-      salonId,
+      storeId,
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
       displayName: `${formData.firstName.trim()} ${formData.lastName.trim().charAt(0)}.`,

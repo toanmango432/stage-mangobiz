@@ -20,7 +20,7 @@ export function toClient(row: ClientRow): Client {
 
   return {
     id: row.id,
-    salonId: row.store_id,
+    storeId: row.store_id,
     firstName: row.first_name,
     lastName: row.last_name,
     name: `${row.first_name} ${row.last_name}`.trim(),
@@ -47,7 +47,7 @@ export function toClientInsert(
   storeId?: string
 ): Omit<ClientInsert, 'store_id'> & { store_id?: string } {
   return {
-    store_id: storeId || client.salonId,
+    store_id: storeId || client.storeId,
     first_name: client.firstName,
     last_name: client.lastName,
     phone: client.phone,

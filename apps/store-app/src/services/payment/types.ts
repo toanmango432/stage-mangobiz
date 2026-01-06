@@ -65,7 +65,7 @@ export interface TransactionRecord {
   id: string;
   ticketId: string;
   clientId?: string;
-  salonId: string;
+  storeId: string;
   paymentMethod: PaymentMethodType;
   customMethodName?: string;
   amount: number;

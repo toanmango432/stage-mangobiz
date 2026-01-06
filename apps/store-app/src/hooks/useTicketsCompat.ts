@@ -57,13 +57,13 @@ export function useTicketsCompat() {
 
   // Load data on mount
   useEffect(() => {
-    const salonId = 'salon-001'; // TODO: Get from auth
+    const storeId = 'salon-001'; // TODO: Get from auth
     // Use storeId from auth if available, fallback to default-store
     const storeId = authStoreId || 'default-store';
     console.log('[useTicketsCompat] Loading data with storeId:', storeId);
 
     // Load tickets
-    dispatch(loadTickets(salonId));
+    dispatch(loadTickets(storeId));
 
     // First fetch team members from Supabase into Redux, then load staff for UI
     // This ensures state.team.members is populated before loadStaff reads from it

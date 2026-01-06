@@ -174,7 +174,7 @@ export interface ServiceCharge {
 export interface Ticket {
   id: string;
   number?: number;              // Ticket number (for display)
-  salonId: string;
+  storeId: string;
   appointmentId?: string;
 
   // Primary client (for backward compatibility and display)

@@ -101,7 +101,7 @@ export function BookPage() {
   } = useAppointmentCalendar({ filters });
 
   // Get salon ID and staff from Redux
-  const salonId = getTestSalonId();
+  const storeId = getTestSalonId();
   const authStoreId = useAppSelector(selectStoreId);
   const allStaff = useAppSelector(selectAllStaff) || [];
   const pendingBookingClient = useAppSelector(selectPendingBookingClient);
@@ -183,7 +183,7 @@ export function BookPage() {
 
   const handleRefreshClick = async () => {
     try {
-      await appointmentsDB.getByDate(salonId, selectedDate);
+      await appointmentsDB.getByDate(storeId, selectedDate);
       setToast({ message: 'Calendar refreshed', type: 'success' });
     } catch (error) {
       console.error('Failed to refresh appointments:', error);
@@ -576,7 +576,7 @@ export function BookPage() {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       const newClient = await clientsDB.create({
-        salonId,
+        storeId,
         firstName,
         lastName,
         name: name.trim(),
@@ -640,7 +640,7 @@ export function BookPage() {
       const appointment: LocalAppointment = {
         ...appointmentData,
         id: appointmentData.id || `apt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        salonId: appointmentData.salonId || salonId,
+        storeId: appointmentData.storeId || storeId,
         staffId: finalStaffId,
         scheduledStartTime,
         scheduledEndTime,
@@ -698,7 +698,7 @@ export function BookPage() {
   useEffect(() => {
     async function loadAppointments() {
       try {
-        const appointments = await appointmentsDB.getByDate(salonId, selectedDate);
+        const appointments = await appointmentsDB.getByDate(storeId, selectedDate);
         
         // Convert to LocalAppointment format and dispatch to Redux
         const localAppointments: LocalAppointment[] = appointments.map((apt: any) => ({
@@ -723,7 +723,7 @@ export function BookPage() {
     }
     
     loadAppointments();
-  }, [selectedDate, salonId, dispatch]);
+  }, [selectedDate, storeId, dispatch]);
 
   // Auto-select all staff on mount if none selected
   useEffect(() => {

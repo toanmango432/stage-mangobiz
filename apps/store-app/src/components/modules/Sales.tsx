@@ -103,7 +103,7 @@ export function Sales() {
   //   }));
 
   //   // Load tickets
-  //   dispatch(fetchTickets('salon_123')); // TODO: Get salonId from context
+  //   dispatch(fetchTickets('salon_123')); // TODO: Get storeId from context
   // }, [dispatch]);
 
   // Reset to page 1 when filters change

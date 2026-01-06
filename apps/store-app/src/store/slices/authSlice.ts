@@ -48,10 +48,10 @@ interface AuthState {
     name: string;
     email: string;
     role: string;
-    salonId?: string;
+    storeId?: string;
   } | null;
-  salonId: string | null;
-  activeSalonId?: string;  // Alias for salonId
+  storeId: string | null;
+  activeSalonId?: string;  // Alias for storeId
   token: string | null;
   loading: boolean;
   error: string | null;
@@ -71,7 +71,7 @@ const initialState: AuthState = {
   // Legacy fields
   isAuthenticated: false,
   user: null,
-  salonId: null,
+  storeId: null,
   token: null,
   loading: false,
   error: null,
@@ -91,7 +91,7 @@ const authSlice = createSlice({
     setStoreSession: (state, action: PayloadAction<StoreSession>) => {
       state.status = 'store_logged_in';
       state.store = action.payload;
-      state.salonId = action.payload.storeId; // Sync with legacy field
+      state.storeId = action.payload.storeId; // Sync with legacy field
       state.isAuthenticated = false; // Not fully authenticated until member logs in
     },
 
@@ -106,7 +106,7 @@ const authSlice = createSlice({
         name: action.payload.memberName,
         email: action.payload.email,
         role: action.payload.role,
-        salonId: state.salonId || undefined,
+        storeId: state.storeId || undefined,
       };
     },
 
@@ -115,14 +115,14 @@ const authSlice = createSlice({
       state.status = 'active';
       state.store = action.payload.store;
       state.member = action.payload.member;
-      state.salonId = action.payload.store.storeId;
+      state.storeId = action.payload.store.storeId;
       state.isAuthenticated = true;
       state.user = {
         id: action.payload.member.memberId,
         name: action.payload.member.memberName,
         email: action.payload.member.email,
         role: action.payload.member.role,
-        salonId: action.payload.store.storeId,
+        storeId: action.payload.store.storeId,
       };
     },
 
@@ -147,7 +147,7 @@ const authSlice = createSlice({
       state.availableStores = [];
       state.isAuthenticated = false;
       state.user = null;
-      state.salonId = null;
+      state.storeId = null;
       state.token = null;
       state.error = null;
       state.device = null;
@@ -162,15 +162,15 @@ const authSlice = createSlice({
     // Switch to a different store (for multi-store users)
     switchStore: (state, action: PayloadAction<StoreSession>) => {
       state.store = action.payload;
-      state.salonId = action.payload.storeId;
+      state.storeId = action.payload.storeId;
     },
 
     // ==================== LEGACY ACTIONS (for backward compatibility) ====================
 
-    setAuth: (state, action: PayloadAction<{ user: AuthState['user']; salonId: string; token: string }>) => {
+    setAuth: (state, action: PayloadAction<{ user: AuthState['user']; storeId: string; token: string }>) => {
       state.isAuthenticated = true;
       state.user = action.payload.user;
-      state.salonId = action.payload.salonId;
+      state.storeId = action.payload.storeId;
       state.token = action.payload.token;
       state.error = null;
       // Also update new fields
@@ -179,7 +179,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
-      state.salonId = null;
+      state.storeId = null;
       state.token = null;
       state.error = null;
       state.device = null;
@@ -222,7 +222,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.salonId = action.payload.salonId;
+        state.storeId = action.payload.storeId;
         state.token = action.payload.token;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -238,7 +238,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.salonId = action.payload.salonId;
+        state.storeId = action.payload.storeId;
         state.token = action.payload.token;
       })
       .addCase(loginSalonMode.rejected, (state, action) => {
@@ -249,7 +249,7 @@ const authSlice = createSlice({
       .addCase(logoutUser.fulfilled, (state) => {
         state.isAuthenticated = false;
         state.user = null;
-        state.salonId = null;
+        state.storeId = null;
         state.token = null;
         state.error = null;
       })
@@ -261,7 +261,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.salonId = action.payload.salonId;
+        state.storeId = action.payload.storeId;
         state.token = action.payload.token;
       })
       .addCase(verifyToken.rejected, (state) => {
@@ -328,7 +328,7 @@ export const selectIsFullyAuthenticated = (state: RootState): boolean =>
 // Basic auth selectors (kept for backward compatibility)
 export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
 export const selectCurrentUser = (state: RootState) => state.auth.user;
-export const selectSalonId = (state: RootState) => state.auth.salonId;
+export const selectSalonId = (state: RootState) => state.auth.storeId;
 export const selectToken = (state: RootState) => state.auth.token;
 
 // Device selectors

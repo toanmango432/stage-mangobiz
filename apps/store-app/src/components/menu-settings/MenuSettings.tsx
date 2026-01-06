@@ -34,8 +34,8 @@ interface MenuSettingsProps {
 }
 
 export function MenuSettings({ onBack }: MenuSettingsProps) {
-  // Get salonId and userId from Redux auth state
-  const salonId = useSelector(selectSalonId) || '';
+  // Get storeId and userId from Redux auth state
+  const storeId = useSelector(selectSalonId) || '';
   const currentUser = useSelector(selectCurrentUser);
   const userId = currentUser?.id || 'system';
 
@@ -49,9 +49,9 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
   }, []);
 
   // Use the catalog hook for all data and actions
-  // Pass a placeholder salonId if empty to avoid hook order issues
+  // Pass a placeholder storeId if empty to avoid hook order issues
   const catalog = useCatalog({
-    salonId: salonId || 'placeholder',
+    storeId: storeId || 'placeholder',
     userId,
     toast: showToast,
   });
@@ -105,8 +105,8 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
   ], [categories, services, packages, addOnGroupsWithOptions]);
 
-  // Show loading state if salonId is not yet available
-  if (!salonId) {
+  // Show loading state if storeId is not yet available
+  if (!storeId) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-gray-500">Loading menu settings...</p>

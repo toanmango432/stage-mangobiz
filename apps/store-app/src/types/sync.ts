@@ -21,7 +21,7 @@ interface BaseSyncOperation {
   attempts: number;
   maxAttempts: number;
   status: 'pending' | 'syncing' | 'success' | 'failed';
-  salonId?: string; // Store context for filtering
+  storeId?: string; // Store context for filtering
   error?: string;
   lastAttemptAt?: Date;
 }
@@ -70,7 +70,7 @@ export interface SyncOperation {
   attempts: number;
   maxAttempts: number;
   status: 'pending' | 'syncing' | 'success' | 'failed';
-  salonId?: string; // Optional salon context for filtering
+  storeId?: string; // Optional salon context for filtering
   error?: string;
   lastAttemptAt?: Date;
 }

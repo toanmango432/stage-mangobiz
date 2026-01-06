@@ -17,7 +17,7 @@ export function CompleteWorkflowExample() {
   const [staff, setStaff] = useState<Staff[]>([
     {
       id: 'staff_1',
-      salonId: 'salon_1',
+      storeId: 'salon_1',
       name: 'Sarah Johnson',
       email: 'sarah@salon.com',
       phone: '(555) 123-4567',
@@ -34,7 +34,7 @@ export function CompleteWorkflowExample() {
     },
     {
       id: 'staff_2',
-      salonId: 'salon_1',
+      storeId: 'salon_1',
       name: 'Mike Chen',
       email: 'mike@salon.com',
       phone: '(555) 234-5678',
@@ -53,7 +53,7 @@ export function CompleteWorkflowExample() {
 
   const [currentTicket, setCurrentTicket] = useState<Ticket>({
     id: 'ticket_1',
-    salonId: 'salon_1',
+    storeId: 'salon_1',
     clientId: 'client_1',
     clientName: 'Jane Doe',
     clientPhone: '(555) 987-6543',
@@ -115,7 +115,7 @@ export function CompleteWorkflowExample() {
   const handleAddStaff = (newStaff: Partial<Staff>) => {
     const staffMember: Staff = {
       id: `staff_${Date.now()}`,
-      salonId: 'salon_1',
+      storeId: 'salon_1',
       name: newStaff.name || '',
       email: newStaff.email || '',
       phone: newStaff.phone || '',

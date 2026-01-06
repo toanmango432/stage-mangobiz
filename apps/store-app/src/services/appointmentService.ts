@@ -340,7 +340,7 @@ export class AppointmentService {
   ): Promise<LocalAppointment[]> {
     const localAppointments: LocalAppointment[] = appointments.map((apt) => ({
       id: `local_${Date.now()}_${Math.random()}`,
-      salonId: rvcNo.toString(),
+      storeId: rvcNo.toString(),
       clientId: apt.customer.toString(),
       clientName: apt.cusName,
       clientPhone: apt.contactPhone || '',

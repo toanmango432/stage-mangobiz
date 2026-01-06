@@ -207,7 +207,7 @@ const initialState: UITicketsState = {
 // Also merges local-only tickets from IndexedDB that haven't synced yet
 export const loadTickets = createAsyncThunk(
   'uiTickets/loadAll',
-  async (_salonId: string) => {
+  async (_storeId: string) => {
     // Helper function to merge local tickets with remote tickets
     // Local tickets (syncStatus === 'local') take precedence and are added if not already in remote
     const mergeTickets = (remoteTickets: DBTicket[], localTickets: DBTicket[]) => {
@@ -227,9 +227,9 @@ export const loadTickets = createAsyncThunk(
       console.log('📋 Loaded tickets from Supabase:', remoteTickets.length);
 
       // Also load local tickets from IndexedDB to merge unsynced ones
-      // Try multiple possible salonIds for local tickets
+      // Try multiple possible storeIds for local tickets
       const localTicketsDefault = await ticketsDB.getAll('default-salon') as unknown as DBTicket[];
-      const localTicketsSalon = await ticketsDB.getAll(_salonId) as unknown as DBTicket[];
+      const localTicketsSalon = await ticketsDB.getAll(_storeId) as unknown as DBTicket[];
       const localTickets = [...localTicketsDefault, ...localTicketsSalon];
 
       // Filter to only include today's local tickets
@@ -276,9 +276,9 @@ export const loadTickets = createAsyncThunk(
       };
     } catch (error) {
       console.warn('⚠️ Supabase unavailable, falling back to IndexedDB:', error);
-      // Fallback to IndexedDB for offline mode - try multiple salonIds
+      // Fallback to IndexedDB for offline mode - try multiple storeIds
       const localTicketsDefault = await ticketsDB.getAll('default-salon') as unknown as DBTicket[];
-      const localTicketsSalon = await ticketsDB.getAll(_salonId) as unknown as DBTicket[];
+      const localTicketsSalon = await ticketsDB.getAll(_storeId) as unknown as DBTicket[];
       const allTickets = [...localTicketsDefault, ...localTicketsSalon];
 
       // Deduplicate by id
@@ -345,7 +345,7 @@ export const createTicket = createAsyncThunk(
       console.log('✅ Ticket created in Supabase:', createdTicket.id);
 
       // Audit log ticket creation
-      // Note: storeId comes from createdTicket which has salonId from dataService
+      // Note: storeId comes from createdTicket which has storeId from dataService
       auditLogger.log({
         action: 'create',
         entityType: 'ticket',
@@ -358,7 +358,7 @@ export const createTicket = createAsyncThunk(
           clientName: ticketData.clientName,
           service: ticketData.service,
           technician: ticketData.technician,
-          storeId: createdTicket.salonId, // Include for debugging
+          storeId: createdTicket.storeId, // Include for debugging
         },
       }).catch((err) => console.warn('[Audit] createTicket log failed:', err));
 
@@ -387,7 +387,7 @@ export const createTicket = createAsyncThunk(
 
       await ticketsDB.create({
         id: newTicket.id,
-        salonId: 'salon-001',
+        storeId: 'salon-001',
         clientId: null,
         status: 'waiting',
         services: [{ name: newTicket.service, price: 0, duration: parseInt(newTicket.duration || '30') || 30 }],
@@ -973,7 +973,7 @@ export const createCheckoutTicket = createAsyncThunk(
     // Save to IndexedDB using addRaw to preserve all fields including id and status
     await ticketsDB.addRaw({
       id: newTicket.id,
-      salonId: 'default-salon', // TODO: Get from auth state
+      storeId: 'default-salon', // TODO: Get from auth state
       clientId: input.clientId || null,
       clientName: input.clientName || 'Walk-in',
       number: ticketNumber,

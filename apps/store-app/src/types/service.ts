@@ -2,7 +2,7 @@ import { SyncStatus } from './common';
 
 export interface Service {
   id: string;
-  salonId: string;
+  storeId: string;
   name: string;
   category: string;
   description?: string;

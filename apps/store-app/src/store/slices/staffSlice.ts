@@ -1,9 +1,15 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { staffDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
-// toStaff/toStaffList/etc not needed - dataService returns converted types
+import {
+  teamMembersToStaff,
+  getActiveStaffFromTeam,
+  findStaffInTeam,
+  getStaffForService,
+} from '../../services/supabase/adapters/teamStaffAdapter';
 import type { Staff } from '../../types';
 import type { RootState } from '../index';
+import type { TeamMemberSettings } from '../../components/team-settings/types';
 
 interface StaffState {
   items: Staff[];
@@ -103,15 +109,15 @@ export const deleteStaffInSupabase = createAsyncThunk(
 
 export const fetchAllStaff = createAsyncThunk(
   'staff/fetchAll',
-  async (salonId: string) => {
-    return await staffDB.getAll(salonId);
+  async (storeId: string) => {
+    return await staffDB.getAll(storeId);
   }
 );
 
 export const fetchAvailableStaff = createAsyncThunk(
   'staff/fetchAvailable',
-  async (salonId: string) => {
-    return await staffDB.getAvailable(salonId);
+  async (storeId: string) => {
+    return await staffDB.getAvailable(storeId);
   }
 );
 
@@ -282,8 +288,89 @@ const staffSlice = createSlice({
 });
 
 export const { setStaff, setSelectedStaff } = staffSlice.actions;
-export const selectAllStaff = (state: RootState) => state.staff.items;
-export const selectAvailableStaff = (state: RootState) => state.staff.availableStaff;
+
+// ==================== LEGACY SELECTORS (from staffSlice state) ====================
+// These read from state.staff which is populated by the DEPRECATED staff table.
+// Use the team-derived selectors below instead for consistent data.
+
+/** @deprecated Use selectStaffFromTeam instead - reads from deprecated staff table */
+export const selectAllStaffLegacy = (state: RootState) => state.staff.items;
+/** @deprecated Use selectActiveStaffFromTeam instead */
+export const selectAvailableStaffLegacy = (state: RootState) => state.staff.availableStaff;
 export const selectSelectedStaff = (state: RootState) => state.staff.selectedStaff;
+export const selectStaffLoading = (state: RootState) => state.staff.loading;
+export const selectStaffError = (state: RootState) => state.staff.error;
+
+// ==================== TEAM-DERIVED SELECTORS (Single Source of Truth) ====================
+// These derive staff data from teamSlice, ensuring both Front Desk and Book
+// use the same data source (members table via teamSlice).
+
+/**
+ * Base selector to get all team members from teamSlice.
+ * This is the input for all team-derived staff selectors.
+ */
+const selectTeamMembersBase = (state: RootState): TeamMemberSettings[] => {
+  const memberIds = state.team?.memberIds || [];
+  const members = state.team?.members || {};
+  return memberIds.map((id: string) => members[id]).filter(Boolean);
+};
+
+/**
+ * Select all staff derived from team data.
+ * This is the PRIMARY selector for Book module components.
+ * Memoized to prevent unnecessary re-renders.
+ */
+export const selectStaffFromTeam = createSelector(
+  [selectTeamMembersBase],
+  (teamMembers): Staff[] => {
+    console.log('[staffSlice] selectStaffFromTeam - deriving from team, count:', teamMembers.length);
+    return teamMembersToStaff(teamMembers, { includeInactive: true, includeDeleted: false });
+  }
+);
+
+/**
+ * Select active staff only (derived from team).
+ * Use this for staff dropdowns and assignment.
+ */
+export const selectActiveStaffFromTeam = createSelector(
+  [selectTeamMembersBase],
+  (teamMembers): Staff[] => {
+    return getActiveStaffFromTeam(teamMembers);
+  }
+);
+
+/**
+ * Select staff that can perform a specific service.
+ * Used for smart staff assignment in Book module.
+ */
+export const selectStaffForService = (serviceId: string) =>
+  createSelector([selectTeamMembersBase], (teamMembers): Staff[] => {
+    return getStaffForService(teamMembers, serviceId);
+  });
+
+/**
+ * Find a specific staff member by ID from team data.
+ */
+export const selectStaffById = (staffId: string) =>
+  createSelector([selectTeamMembersBase], (teamMembers): Staff | undefined => {
+    return findStaffInTeam(teamMembers, staffId);
+  });
+
+// ==================== BACKWARD COMPATIBILITY EXPORTS ====================
+// These maintain the old API while pointing to team-derived data.
+// Eventually, consumers should migrate to the explicit team-derived selectors.
+
+/**
+ * Primary selector for staff list.
+ * NOW DERIVES FROM TEAM DATA for single source of truth.
+ * Components using this will automatically get team-derived data.
+ */
+export const selectAllStaff = selectStaffFromTeam;
+
+/**
+ * Available staff selector.
+ * NOW DERIVES FROM TEAM DATA.
+ */
+export const selectAvailableStaff = selectActiveStaffFromTeam;
 
 export default staffSlice.reducer;

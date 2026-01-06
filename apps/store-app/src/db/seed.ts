@@ -41,7 +41,7 @@ export async function seedDatabase() {
 
   const staff: Staff[] = staffNames.map((staffInfo, index) => ({
     id: uuidv4(),
-    salonId: SALON_ID,
+    storeId: SALON_ID,
     name: staffInfo.name,
     email: `${staffInfo.name.toLowerCase().replace(' ', '.')}@salon.com`,
     phone: `555-${String(1001 + index).padStart(4, '0')}`,
@@ -93,7 +93,7 @@ export async function seedDatabase() {
 
   const clients: Client[] = clientData.map((c) => ({
     id: uuidv4(),
-    salonId: SALON_ID,
+    storeId: SALON_ID,
     firstName: c.firstName,
     lastName: c.lastName,
     name: `${c.firstName} ${c.lastName}`,
@@ -124,7 +124,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Basic Manicure',
       category: 'Manicure',
       description: 'Filing, shaping, cuticle care, buffing, and regular polish',
@@ -138,7 +138,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Gel Manicure',
       category: 'Manicure',
       description: 'Premium gel polish with long-lasting shine (lasts 2-3 weeks)',
@@ -152,7 +152,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'French Manicure',
       category: 'Manicure',
       description: 'Classic French tips with white and pink polish',
@@ -166,7 +166,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Deluxe Spa Manicure',
       category: 'Manicure',
       description: 'Includes exfoliation, mask, hot towel treatment, and massage',
@@ -180,7 +180,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Shellac Manicure',
       category: 'Manicure',
       description: 'Long-lasting shellac polish with high gloss finish',
@@ -194,7 +194,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Paraffin Wax Manicure',
       category: 'Manicure',
       description: 'Therapeutic paraffin treatment with moisturizing benefits',
@@ -212,7 +212,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Basic Pedicure',
       category: 'Pedicure',
       description: 'Soak, nail trimming, cuticle care, callus removal, and polish',
@@ -226,7 +226,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Gel Pedicure',
       category: 'Pedicure',
       description: 'Premium gel polish pedicure with long-lasting results',
@@ -240,7 +240,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'French Pedicure',
       category: 'Pedicure',
       description: 'Classic French tips on toes',
@@ -254,7 +254,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Deluxe Spa Pedicure',
       category: 'Pedicure',
       description: 'Includes sugar scrub, mud mask, hot stone massage, and paraffin',
@@ -268,7 +268,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Callus Treatment Pedicure',
       category: 'Pedicure',
       description: 'Intensive callus removal and foot smoothing treatment',
@@ -282,7 +282,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Luxury Spa Pedicure',
       category: 'Pedicure',
       description: 'Ultimate pedicure with organic products and extended massage',
@@ -300,7 +300,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Acrylic Full Set',
       category: 'Artificial Nails',
       description: 'Full set of acrylic nail extensions with shaping and polish',
@@ -314,7 +314,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Acrylic Fill',
       category: 'Artificial Nails',
       description: 'Fill in grown-out acrylic nails with new acrylic',
@@ -328,7 +328,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Gel Full Set',
       category: 'Artificial Nails',
       description: 'Hard gel nail extensions for a natural look',
@@ -342,7 +342,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Gel Fill',
       category: 'Artificial Nails',
       description: 'Fill in grown-out gel extensions',
@@ -356,7 +356,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Dip Powder Full Set',
       category: 'Artificial Nails',
       description: 'Long-lasting dip powder nails (SNS)',
@@ -370,7 +370,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Dip Powder Fill',
       category: 'Artificial Nails',
       description: 'Fill in grown-out dip powder nails',
@@ -384,7 +384,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Nail Tips with Gel',
       category: 'Artificial Nails',
       description: 'Tip extensions with gel overlay',
@@ -402,7 +402,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Nail Art - Simple Design',
       category: 'Nail Art',
       description: 'Basic nail art per nail (stripes, dots, simple patterns)',
@@ -416,7 +416,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Nail Art - Complex Design',
       category: 'Nail Art',
       description: 'Detailed nail art per nail (flowers, characters, intricate designs)',
@@ -430,7 +430,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Ombre Nails',
       category: 'Nail Art',
       description: 'Beautiful gradient color blend on all nails',
@@ -444,7 +444,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Chrome Nails',
       category: 'Nail Art',
       description: 'Mirror chrome powder finish',
@@ -458,7 +458,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Rhinestones & Gems',
       category: 'Nail Art',
       description: '3D nail decorations with crystals and gems',
@@ -472,7 +472,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Cat Eye Gel',
       category: 'Nail Art',
       description: 'Magnetic cat eye gel polish effect',
@@ -490,7 +490,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Nail Repair',
       category: 'Nail Care',
       description: 'Fix broken or cracked natural or artificial nail',
@@ -504,7 +504,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Gel Polish Removal',
       category: 'Nail Care',
       description: 'Safe removal of gel or shellac polish',
@@ -518,7 +518,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Acrylic Removal',
       category: 'Nail Care',
       description: 'Complete removal of acrylic nails',
@@ -532,7 +532,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Nail Strengthening Treatment',
       category: 'Nail Care',
       description: 'Protein treatment for weak or damaged nails',
@@ -546,7 +546,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Polish Change',
       category: 'Nail Care',
       description: 'Remove old polish and apply new color',
@@ -560,7 +560,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Cuticle Oil Treatment',
       category: 'Nail Care',
       description: 'Nourishing cuticle care and conditioning',
@@ -578,7 +578,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Kids Manicure',
       category: 'Specialty',
       description: 'Age-appropriate nail service for children under 12',
@@ -592,7 +592,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Kids Pedicure',
       category: 'Specialty',
       description: 'Gentle pedicure for children',
@@ -606,7 +606,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Mens Manicure',
       category: 'Specialty',
       description: 'Grooming service focused on nail and cuticle care',
@@ -620,7 +620,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Mens Pedicure',
       category: 'Specialty',
       description: 'Complete foot care and grooming service',
@@ -638,7 +638,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Nail Extension Per Nail',
       category: 'Add-Ons',
       description: 'Single nail extension replacement',
@@ -652,7 +652,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Extra Length',
       category: 'Add-Ons',
       description: 'Additional charge for extra long nails',
@@ -666,7 +666,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Matte Top Coat',
       category: 'Add-Ons',
       description: 'Matte finish instead of glossy',
@@ -680,7 +680,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Hand Massage',
       category: 'Add-Ons',
       description: '10-minute relaxing hand and arm massage',
@@ -694,7 +694,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Foot Massage',
       category: 'Add-Ons',
       description: '15-minute relaxing foot and leg massage',
@@ -712,7 +712,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Haircut',
       category: 'Hair',
       description: 'Professional haircut and styling',
@@ -726,7 +726,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Color & Highlights',
       category: 'Hair',
       description: 'Hair coloring with highlights',
@@ -740,7 +740,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Balayage & Cut',
       category: 'Hair',
       description: 'Hand-painted balayage highlights with haircut',
@@ -758,7 +758,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Facial',
       category: 'Skincare',
       description: 'Deep cleansing facial treatment',
@@ -772,7 +772,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Hydrating Facial',
       category: 'Skincare',
       description: 'Intense hydration facial for dry skin',
@@ -790,7 +790,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Deep Tissue Massage',
       category: 'Massage',
       description: 'Therapeutic deep tissue massage',
@@ -808,7 +808,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Brazilian Wax',
       category: 'Waxing',
       description: 'Full Brazilian waxing service',
@@ -822,7 +822,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Full Body Waxing',
       category: 'Waxing',
       description: 'Complete body waxing service',
@@ -840,7 +840,7 @@ export async function seedDatabase() {
     // ====================
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Mani-Pedi Combo',
       category: 'Combo',
       description: 'Manicure and pedicure combination service',
@@ -854,7 +854,7 @@ export async function seedDatabase() {
     },
     {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       name: 'Super Deluxe Pedicure',
       category: 'Pedicure',
       description: 'Ultimate pedicure with all premium services included',
@@ -911,7 +911,7 @@ export async function seedDatabase() {
 
     return {
       id: uuidv4(),
-      salonId: SALON_ID,
+      storeId: SALON_ID,
       clientId: client.id,
       clientName: client.name,
       clientPhone: client.phone,

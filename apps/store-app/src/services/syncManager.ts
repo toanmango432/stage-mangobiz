@@ -148,17 +148,17 @@ class SyncManager {
       console.log('🔄 Sync: Starting sync process...');
 
       // Get salon ID
-      const salonId = await settingsDB.get('salon_id');
-      if (!salonId) {
+      const storeId = await settingsDB.get('salon_id');
+      if (!storeId) {
         console.warn('⚠️ Sync: No salon ID found, skipping sync');
         return;
       }
 
       // Step 1: Push local changes
-      await this.pushLocalChanges(salonId);
+      await this.pushLocalChanges(storeId);
 
       // Step 2: Pull remote changes
-      await this.pullRemoteChanges(salonId);
+      await this.pullRemoteChanges(storeId);
 
       // Step 3: Update sync status
       store.dispatch(setSyncComplete());
@@ -177,7 +177,7 @@ class SyncManager {
   /**
    * Push local changes to server
    */
-  private async pushLocalChanges(_salonId: string) {
+  private async pushLocalChanges(_storeId: string) {
     try {
       // Get pending operations from sync queue (sorted by priority)
       const pendingOps = await syncQueueDB.getPending();
@@ -241,7 +241,7 @@ class SyncManager {
   /**
    * Pull remote changes from server
    */
-  private async pullRemoteChanges(salonId: string) {
+  private async pullRemoteChanges(storeId: string) {
     try {
       // Get last sync timestamp
       const lastSyncAt = await settingsDB.get('last_sync_at');
@@ -249,7 +249,7 @@ class SyncManager {
       console.log(`🔄 Sync Pull: Fetching changes since ${lastSyncAt || 'beginning'}`);
 
       // Fetch changes from server
-      const response = await syncAPI.pull(salonId, lastSyncAt);
+      const response = await syncAPI.pull(storeId, lastSyncAt);
 
       if (!response.changes || response.changes.length === 0) {
         console.log('✅ Sync Pull: No remote changes');

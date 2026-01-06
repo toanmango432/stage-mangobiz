@@ -246,13 +246,13 @@ export const deleteClientInSupabase = createAsyncThunk(
 export const fetchClients = createAsyncThunk(
   'clients/fetchClients',
   async ({
-    salonId,
+    storeId,
     filters,
     sort,
     page = 1,
     pageSize = 50,
   }: {
-    salonId: string;
+    storeId: string;
     filters?: ClientFilters;
     sort?: ClientSortOptions;
     page?: number;
@@ -260,7 +260,7 @@ export const fetchClients = createAsyncThunk(
   }) => {
     const offset = (page - 1) * pageSize;
     const result = await clientsDB.getFiltered(
-      salonId,
+      storeId,
       filters || initialFilters,
       sort || initialSort,
       pageSize,
@@ -273,16 +273,16 @@ export const fetchClients = createAsyncThunk(
 // Search clients (quick search)
 export const searchClients = createAsyncThunk(
   'clients/search',
-  async ({ salonId, query }: { salonId: string; query: string }) => {
-    return await clientsDB.search(salonId, query);
+  async ({ storeId, query }: { storeId: string; query: string }) => {
+    return await clientsDB.search(storeId, query);
   }
 );
 
 // Fetch client statistics
 export const fetchClientStats = createAsyncThunk(
   'clients/fetchStats',
-  async (salonId: string) => {
-    return await clientsDB.getStats(salonId);
+  async (storeId: string) => {
+    return await clientsDB.getStats(storeId);
   }
 );
 
@@ -811,7 +811,7 @@ export const completeReferral = createAsyncThunk<
         // Add credit (store as a reward to be redeemed)
         await loyaltyRewardsDB.create({
           clientId: referrer.id,
-          salonId: referrer.salonId,
+          storeId: referrer.storeId,
           type: 'amount_discount',
           description: `$${reward.amount} credit for referring ${referredClient.name}`,
           value: reward.amount,
@@ -877,7 +877,7 @@ export const getReferralDiscount = createAsyncThunk<
 export const createReviewRequest = createAsyncThunk<
   ReviewRequest,
   {
-    salonId: string;
+    storeId: string;
     clientId: string;
     clientName: string;
     clientEmail?: string;
@@ -906,7 +906,7 @@ export const createReviewRequest = createAsyncThunk<
     // Create review request
     const expiresAt = calculateExpirationDate(new Date()).toISOString();
     const request = await reviewRequestsDB.create({
-      salonId: params.salonId,
+      storeId: params.storeId,
       clientId: params.clientId,
       clientName: params.clientName,
       clientEmail: params.clientEmail,
@@ -1047,14 +1047,14 @@ export const sendReviewReminder = createAsyncThunk<
  */
 export const fetchReviewRequests = createAsyncThunk<
   ReviewRequest[],
-  { salonId: string; status?: 'pending' | 'sent' | 'opened' | 'completed' | 'expired' }
+  { storeId: string; status?: 'pending' | 'sent' | 'opened' | 'completed' | 'expired' }
 >(
   'clients/fetchReviewRequests',
-  async ({ salonId, status }) => {
+  async ({ storeId, status }) => {
     if (status) {
-      return await reviewRequestsDB.getByStatus(salonId, status);
+      return await reviewRequestsDB.getByStatus(storeId, status);
     }
-    return await reviewRequestsDB.getBySalonId(salonId);
+    return await reviewRequestsDB.getBySalonId(storeId);
   }
 );
 
@@ -1063,11 +1063,11 @@ export const fetchReviewRequests = createAsyncThunk<
  */
 export const processExpiredReviewRequests = createAsyncThunk<
   number,
-  { salonId: string }
+  { storeId: string }
 >(
   'clients/processExpiredReviewRequests',
-  async ({ salonId }) => {
-    const expired = await reviewRequestsDB.getExpired(salonId);
+  async ({ storeId }) => {
+    const expired = await reviewRequestsDB.getExpired(storeId);
     let count = 0;
 
     for (const request of expired) {
@@ -1086,12 +1086,12 @@ export const processExpiredReviewRequests = createAsyncThunk<
  */
 export const fetchSegmentAnalytics = createAsyncThunk<
   SegmentAnalytics,
-  { salonId: string }
+  { storeId: string }
 >(
   'clients/fetchSegmentAnalytics',
-  async ({ salonId }) => {
-    const clients = await clientsDB.getAll(salonId);
-    const customSegments = await customSegmentsDB.getActive(salonId);
+  async ({ storeId }) => {
+    const clients = await clientsDB.getAll(storeId);
+    const customSegments = await customSegmentsDB.getActive(storeId);
 
     // Get analytics for default segments
     const analytics = getSegmentAnalytics(clients, DEFAULT_SEGMENT_THRESHOLDS);
@@ -1117,11 +1117,11 @@ export const fetchSegmentAnalytics = createAsyncThunk<
  */
 export const fetchClientsBySegment = createAsyncThunk<
   Client[],
-  { salonId: string; segment: ClientSegment }
+  { storeId: string; segment: ClientSegment }
 >(
   'clients/fetchClientsBySegment',
-  async ({ salonId, segment }) => {
-    const clients = await clientsDB.getAll(salonId);
+  async ({ storeId, segment }) => {
+    const clients = await clientsDB.getAll(storeId);
     return filterClientsBySegment(clients, segment, DEFAULT_SEGMENT_THRESHOLDS);
   }
 );
@@ -1131,16 +1131,16 @@ export const fetchClientsBySegment = createAsyncThunk<
  */
 export const fetchClientsByCustomSegment = createAsyncThunk<
   Client[],
-  { salonId: string; segmentId: string }
+  { storeId: string; segmentId: string }
 >(
   'clients/fetchClientsByCustomSegment',
-  async ({ salonId, segmentId }) => {
+  async ({ storeId, segmentId }) => {
     const segment = await customSegmentsDB.getById(segmentId);
     if (!segment) {
       throw new Error('Custom segment not found');
     }
 
-    const clients = await clientsDB.getAll(salonId);
+    const clients = await clientsDB.getAll(storeId);
     return filterClientsByCustomSegment(clients, segment);
   }
 );
@@ -1151,7 +1151,7 @@ export const fetchClientsByCustomSegment = createAsyncThunk<
 export const createCustomSegment = createAsyncThunk<
   CustomSegment,
   {
-    salonId: string;
+    storeId: string;
     name: string;
     description?: string;
     color: string;
@@ -1163,13 +1163,13 @@ export const createCustomSegment = createAsyncThunk<
   'clients/createCustomSegment',
   async (params) => {
     // Check if segment name already exists
-    const existing = await customSegmentsDB.getByName(params.salonId, params.name);
+    const existing = await customSegmentsDB.getByName(params.storeId, params.name);
     if (existing) {
       throw new Error('A segment with this name already exists');
     }
 
     return await customSegmentsDB.create({
-      salonId: params.salonId,
+      storeId: params.storeId,
       name: params.name,
       description: params.description,
       color: params.color,
@@ -1220,11 +1220,11 @@ export const deleteCustomSegment = createAsyncThunk<
  */
 export const fetchCustomSegments = createAsyncThunk<
   CustomSegment[],
-  { salonId: string; activeOnly?: boolean }
+  { storeId: string; activeOnly?: boolean }
 >(
   'clients/fetchCustomSegments',
-  async ({ salonId, activeOnly = true }) => {
-    return await customSegmentsDB.getBySalonId(salonId, activeOnly);
+  async ({ storeId, activeOnly = true }) => {
+    return await customSegmentsDB.getBySalonId(storeId, activeOnly);
   }
 );
 
@@ -1250,11 +1250,11 @@ export const duplicateCustomSegment = createAsyncThunk<
  */
 export const exportSegmentClients = createAsyncThunk<
   string,
-  { salonId: string; segment?: ClientSegment; customSegmentId?: string }
+  { storeId: string; segment?: ClientSegment; customSegmentId?: string }
 >(
   'clients/exportSegmentClients',
-  async ({ salonId, segment, customSegmentId }) => {
-    const allClients = await clientsDB.getAll(salonId);
+  async ({ storeId, segment, customSegmentId }) => {
+    const allClients = await clientsDB.getAll(storeId);
     let clientsToExport: Client[];
 
     if (customSegmentId) {

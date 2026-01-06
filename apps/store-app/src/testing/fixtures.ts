@@ -10,7 +10,7 @@ import { TEST_SALON_ID } from './setup-db';
 export const mockClients: Client[] = [
   {
     id: 'client-1',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'John Doe',
     phone: '(555) 123-4567',
     email: 'john@example.com',
@@ -23,7 +23,7 @@ export const mockClients: Client[] = [
   } as any,
   {
     id: 'client-2',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Jane Smith',
     phone: '(555) 987-6543',
     email: 'jane@example.com',
@@ -36,7 +36,7 @@ export const mockClients: Client[] = [
   } as any,
   {
     id: 'client-3',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Bob Johnson',
     phone: '(555) 555-5555',
     email: 'bob@example.com',
@@ -48,7 +48,7 @@ export const mockClients: Client[] = [
   } as any,
   {
     id: 'client-4',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Sarah Davis',
     phone: '(555) 111-2222',
     email: 'sarah@example.com',
@@ -64,7 +64,7 @@ export const mockClients: Client[] = [
 export const mockServices: Service[] = [
   {
     id: 'service-1',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Haircut',
     category: 'Hair',
     duration: 30,
@@ -78,7 +78,7 @@ export const mockServices: Service[] = [
   },
   {
     id: 'service-2',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Hair Color',
     category: 'Hair',
     duration: 90,
@@ -92,7 +92,7 @@ export const mockServices: Service[] = [
   },
   {
     id: 'service-3',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Manicure',
     category: 'Nails',
     duration: 45,
@@ -106,7 +106,7 @@ export const mockServices: Service[] = [
   },
   {
     id: 'service-4',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Pedicure',
     category: 'Nails',
     duration: 60,
@@ -120,7 +120,7 @@ export const mockServices: Service[] = [
   },
   {
     id: 'service-5',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Facial',
     category: 'Spa',
     duration: 60,
@@ -134,7 +134,7 @@ export const mockServices: Service[] = [
   },
   {
     id: 'service-6',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Massage',
     category: 'Spa',
     duration: 60,
@@ -148,7 +148,7 @@ export const mockServices: Service[] = [
   },
   {
     id: 'service-inactive',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Old Service',
     category: 'Deprecated',
     duration: 30,
@@ -166,7 +166,7 @@ export const mockServices: Service[] = [
 export const mockStaff: Staff[] = [
   {
     id: 'staff-1',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Alice Smith',
     email: 'alice@salon.com',
     phone: '(555) 333-4444',
@@ -185,7 +185,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: 'staff-2',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Bob Johnson',
     email: 'bob@salon.com',
     phone: '(555) 444-5555',
@@ -204,7 +204,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: 'staff-3',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Carol Williams',
     email: 'carol@salon.com',
     phone: '(555) 666-7777',
@@ -223,7 +223,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: 'staff-4',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'David Brown',
     email: 'david@salon.com',
     phone: '(555) 888-9999',
@@ -242,7 +242,7 @@ export const mockStaff: Staff[] = [
   },
   {
     id: '9999',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     name: 'Next Available',
     email: '',
     phone: '',
@@ -264,7 +264,7 @@ export const mockStaff: Staff[] = [
 export const mockAppointments: LocalAppointment[] = [
   {
     id: 'apt-1',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     clientId: 'client-1',
     clientName: 'John Doe',
     clientPhone: '(555) 123-4567',
@@ -291,7 +291,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-2',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     clientId: 'client-2',
     clientName: 'Jane Smith',
     clientPhone: '(555) 987-6543',
@@ -317,7 +317,7 @@ export const mockAppointments: LocalAppointment[] = [
   },
   {
     id: 'apt-3',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     clientId: 'client-3',
     clientName: 'Bob Johnson',
     clientPhone: '(555) 555-5555',
@@ -345,7 +345,7 @@ export const mockAppointments: LocalAppointment[] = [
   // Group booking appointments
   {
     id: 'apt-group-1',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     clientId: 'client-1',
     clientName: 'John Doe',
     clientPhone: '(555) 123-4567',
@@ -371,7 +371,7 @@ export const mockAppointments: LocalAppointment[] = [
   } as LocalAppointment,
   {
     id: 'apt-group-2',
-    salonId: TEST_SALON_ID,
+    storeId: TEST_SALON_ID,
     clientId: 'client-2',
     clientName: 'Jane Smith',
     clientPhone: '(555) 987-6543',

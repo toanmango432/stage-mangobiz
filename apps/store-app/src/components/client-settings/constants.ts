@@ -81,7 +81,7 @@ export const defaultTags: ClientTag[] = [
 export const mockClients: EnhancedClient[] = [
   {
     id: 'client-1',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     firstName: 'Sarah',
     lastName: 'Johnson',
     displayName: 'Sarah J.',
@@ -192,7 +192,7 @@ export const mockClients: EnhancedClient[] = [
   },
   {
     id: 'client-2',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     firstName: 'Michael',
     lastName: 'Chen',
     displayName: 'Mike C.',
@@ -260,7 +260,7 @@ export const mockClients: EnhancedClient[] = [
   },
   {
     id: 'client-3',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     firstName: 'Emily',
     lastName: 'Davis',
     displayName: 'Emily D.',
@@ -385,7 +385,7 @@ export const mockClients: EnhancedClient[] = [
   },
   {
     id: 'client-4',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     firstName: 'Sophia',
     lastName: 'Martinez',
     displayName: 'Sophia M.',
@@ -456,7 +456,7 @@ export const mockClients: EnhancedClient[] = [
   },
   {
     id: 'client-5',
-    salonId: 'salon-1',
+    storeId: 'salon-1',
     firstName: 'James',
     lastName: 'Wilson',
     displayName: 'James W.',
