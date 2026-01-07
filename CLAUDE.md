@@ -32,7 +32,8 @@ Copy `.env.example` to `.env` and configure:
 |----------|-------------|----------|---------|
 | `VITE_SUPABASE_URL` | Supabase project URL | Yes | Hardcoded fallback (remove in prod) |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Yes | Hardcoded fallback (remove in prod) |
-| `VITE_API_BASE_URL` | Legacy API base URL | No | `http://localhost:3000/api` |
+| `VITE_API_BASE_URL` | Override Edge Functions URL | No | `${VITE_SUPABASE_URL}/functions/v1` |
+| `VITE_USE_API_LAYER` | Enable API mode (vs local-first) | No | `false` |
 | `VITE_MQTT_CLOUD_URL` | Cloud MQTT broker URL | No | `mqtts://mqtt.mango.com:8883` |
 | `VITE_CONTROL_CENTER_URL` | License validation server | No | `http://localhost:4000` |
 | `VITE_DEV_MODE` | Enable dev features | No | `true` |
@@ -67,6 +68,8 @@ Copy `.env.example` to `.env` and configure:
 |-------------|-----------|
 | **Any change** | [TECHNICAL_DOCUMENTATION.md](./docs/architecture/TECHNICAL_DOCUMENTATION.md) |
 | **Data/Storage** | [DATA_STORAGE_STRATEGY.md](./docs/architecture/DATA_STORAGE_STRATEGY.md) |
+| **API Layer/Edge Functions** | [API_LAYER.md](./docs/architecture/API_LAYER.md) |
+| **Naming Conventions** | [NAMING_CONVENTIONS.md](./docs/NAMING_CONVENTIONS.md) |
 | **Real-time/Socket** | [REALTIME_COMMUNICATION.md](./docs/architecture/REALTIME_COMMUNICATION.md) |
 | **Monorepo/Apps** | [MONOREPO_ARCHITECTURE.md](./docs/architecture/MONOREPO_ARCHITECTURE.md) |
 | **Device Discovery** | [DEVICE_DISCOVERY.md](./docs/architecture/DEVICE_DISCOVERY.md) |
@@ -409,6 +412,16 @@ const { data } = await supabase
 | Design Tokens | `src/design-system/` (see README.md) |
 | Smart Assignment | `src/utils/smartAutoAssign.ts` |
 | Conflict Detection | `src/utils/conflictDetection.ts` |
+
+### Team Module Services (New)
+
+| Service | Table | Adapters |
+|---------|-------|----------|
+| `dataService.timesheets` | `timesheetsTable.ts` | `timesheetAdapter.ts` |
+| `dataService.payRuns` | `payRunsTable.ts` | `payRunAdapter.ts` |
+| `dataService.turnLogs` | `turnLogsTable.ts` | `turnLogAdapter.ts` |
+| `dataService.timeOffRequests` | `timeOffRequestsTable.ts` | `timeOffRequestAdapter.ts` |
+| `dataService.staffRatings` | `staffRatingsTable.ts` | `staffRatingAdapter.ts` |
 
 ---
 
