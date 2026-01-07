@@ -72,6 +72,7 @@ Copy `.env.example` to `.env` and configure:
 | **Device Discovery** | [DEVICE_DISCOVERY.md](./docs/architecture/DEVICE_DISCOVERY.md) |
 | **Notifications** | [NOTIFICATION_ABSTRACTION.md](./docs/architecture/NOTIFICATION_ABSTRACTION.md) |
 | **Native Platforms** | [PAYMENT_INTEGRATION.md](./docs/architecture/PAYMENT_INTEGRATION.md) |
+| **Multi-Store Clients** | [MULTI_STORE_CLIENT_SPEC.md](./docs/architecture/MULTI_STORE_CLIENT_SPEC.md) |
 | **Book Module** | `docs/modules/book/BOOK_UX_IMPLEMENTATION_GUIDE.md` |
 | **Front Desk** | `docs/modules/frontdesk/` |
 | **Tickets** | `docs/modules/tickets/UNIFIED_TICKET_DESIGN_SYSTEM.md` |
@@ -349,6 +350,48 @@ const appointments = toAppointments(rows);  // Convert to app types
 - Import: `import { brand, colors } from '@/design-system'`
 - Module tokens: `import { bookTokens } from '@/design-system/modules/book'`
 - Follow existing component patterns
+
+### Multi-Store Client Data Flow (Two-Tier Model)
+
+Mango supports two client sharing models:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  TIER 1: MANGO ECOSYSTEM (Cross-Brand)                                      │
+│  - Client-controlled consent                                                │
+│  - Hashed phone/email lookup (no cleartext PII)                            │
+│  - Safety data (allergies, blocks) always shared                           │
+│  - Profile link requests with 24-hour expiry                               │
+│                                                                             │
+│  TIER 2: ORGANIZATION (Same Brand Multi-Location)                          │
+│  - Business-controlled sharing modes: Full | Selective | Isolated          │
+│  - Safety data always synced across locations                              │
+│  - Configurable loyalty/wallet scope (org-wide vs per-location)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Tables:**
+- `mango_identities` - Hashed lookup for ecosystem sharing
+- `linked_stores` - Cross-brand profile links
+- `profile_link_requests` - Pending link approvals
+- `organizations.client_sharing_settings` - Tier 2 config
+
+**Implementation Pattern:**
+```typescript
+// Ecosystem lookup (Tier 1)
+const hashedPhone = await hashIdentifier(phone);  // SHA-256 + salt
+const result = await supabase.functions.invoke('identity/lookup', {
+  body: { hashedPhone }
+});
+
+// Organization client access (Tier 2)
+const { data } = await supabase
+  .from('clients')
+  .select('*')
+  .eq('organization_id', orgId);  // RLS filters by sharing mode
+```
+
+> **Full Documentation:** [MULTI_STORE_CLIENT_SPEC.md](./docs/architecture/MULTI_STORE_CLIENT_SPEC.md)
 
 ---
 

@@ -2,8 +2,8 @@
 
 **Product:** Mango POS
 **Module:** Clients (CRM)
-**Version:** 5.0
-**Last Updated:** December 28, 2025
+**Version:** 6.0
+**Last Updated:** January 6, 2026
 **Status:** Ready for Development
 **Priority:** P0 (Critical Path)
 
@@ -22,6 +22,7 @@
 9. [Success Metrics](#9-success-metrics)
 10. [Risks & Mitigations](#10-risks--mitigations)
 11. [Implementation Plan](#11-implementation-plan)
+12. [Multi-Store Client Handling](#12-multi-store-client-handling)
 
 ---
 
@@ -710,6 +711,433 @@ interface ConsultationForm {
 
 ---
 
+## 12. Multi-Store Client Handling
+
+### 12.1 Overview
+
+Mango supports two distinct client sharing models to address different business relationships:
+
+| Tier | Scenario | Data Sensitivity | Control Model |
+|------|----------|------------------|---------------|
+| **Tier 1** | Cross-brand sharing between unrelated Mango stores | Very High | Client-controlled |
+| **Tier 2** | Multi-location sharing within same brand/organization | Medium | Business-controlled |
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        MANGO CLIENT IDENTITY ECOSYSTEM                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   TIER 1: MANGO ECOSYSTEM (Cross-Brand)                                     │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  Salon A          Salon B           Spa C           Barber D       │   │
+│   │  (Hair)           (Nails)           (Wellness)      (Cuts)         │   │
+│   │     │                │                  │              │           │   │
+│   │     └────────────────┴──────────────────┴──────────────┘           │   │
+│   │                              │                                      │   │
+│   │                    Mango Identity Service                           │   │
+│   │                   (Consent-based lookup)                            │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│   TIER 2: ORGANIZATION (Same Brand)                                         │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  Beauty Brand XYZ                                                   │   │
+│   │  ┌────────────┐  ┌────────────┐  ┌────────────┐                    │   │
+│   │  │ Downtown   │  │ Uptown     │  │ Mall       │                    │   │
+│   │  │ Location   │  │ Location   │  │ Location   │                    │   │
+│   │  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘                    │   │
+│   │        └───────────────┼───────────────┘                            │   │
+│   │                        │                                            │   │
+│   │              Shared Client Database                                 │   │
+│   │           (Business-controlled sharing)                             │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 12.2 Tier 1: Mango Ecosystem Sharing (Cross-Brand)
+
+Enables clients to share their profile across unrelated Mango-powered businesses, with full client control over what data is shared.
+
+#### 12.2.1 Client Consent Model
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| CRM-MS-001 | Client-initiated ecosystem opt-in | P1 | Client explicitly enables cross-store profile during onboarding or settings |
+| CRM-MS-002 | Granular data sharing controls | P1 | Client selects which data categories to share (basic info, preferences, allergies, history) |
+| CRM-MS-003 | Per-store consent management | P1 | Client can approve/deny specific stores requesting their data |
+| CRM-MS-004 | Consent revocation anytime | P0 | Client can disable sharing with immediate effect |
+| CRM-MS-005 | Consent audit trail | P0 | All consent grants/revocations logged with timestamp |
+
+#### 12.2.2 Mango Identity Service
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| CRM-MS-006 | Hashed identifier lookup | P1 | Phone/email hashed before lookup (SHA-256 + salt) |
+| CRM-MS-007 | No cleartext PII transmission | P0 | Lookup queries never contain readable phone/email |
+| CRM-MS-008 | Opt-in required for discoverability | P1 | Client profile only findable if ecosystem sharing enabled |
+| CRM-MS-009 | Profile link request flow | P1 | Staff requests link → Client approves via SMS/email |
+| CRM-MS-010 | 24-hour link request expiry | P1 | Unapproved requests auto-expire |
+
+#### 12.2.3 Shared Data Categories
+
+| Category | Data Included | Default Sharing | Client Can Control |
+|----------|---------------|-----------------|-------------------|
+| **Basic Info** | Name, phone, email, photo | ON (if opted in) | Yes |
+| **Preferences** | Favorite services, communication prefs | ON | Yes |
+| **Safety Data** | Allergies, blocked status | ON (cannot disable) | No |
+| **Visit History** | Dates, services, notes | OFF | Yes |
+| **Loyalty** | Points, tier, rewards | OFF (see 12.2.4) | Yes |
+
+#### 12.2.4 Cross-Store Loyalty (Optional)
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| CRM-MS-011 | Mango Rewards coalition program | P2 | Optional cross-store loyalty pool |
+| CRM-MS-012 | Store opt-in to coalition | P2 | Each store chooses to participate |
+| CRM-MS-013 | Coalition points vs store points | P2 | Clear distinction in UI |
+| CRM-MS-014 | Coalition reward catalog | P2 | Shared rewards redeemable at any member store |
+
+### 12.3 Tier 2: Organization Sharing (Same Brand)
+
+Enables multi-location brands to share client data across their locations, with business-controlled policies.
+
+#### 12.3.1 Sharing Modes
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **Full** | All client data shared automatically | Single-brand, unified experience |
+| **Selective** | Configurable per data category | Franchises with some independence |
+| **Isolated** | No sharing, each location independent | Co-located but separate businesses |
+
+#### 12.3.2 Organization Configuration
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| CRM-MS-015 | Organization sharing mode setting | P1 | Owner/admin sets Full/Selective/Isolated mode |
+| CRM-MS-016 | Per-category sharing toggles (Selective mode) | P1 | Configure: profiles, history, notes, loyalty, wallet |
+| CRM-MS-017 | Location group configuration | P1 | Group locations for selective sharing |
+| CRM-MS-018 | Cross-location booking permission | P1 | Allow/prevent clients booking at other locations |
+| CRM-MS-019 | Shared vs per-location loyalty toggle | P1 | Points/tiers shared or location-specific |
+| CRM-MS-020 | Gift card scope configuration | P1 | Organization-wide or per-location redemption |
+
+#### 12.3.3 Safety Data Propagation
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| CRM-MS-021 | Allergy sync across all locations | P0 | Allergies always shared regardless of mode |
+| CRM-MS-022 | Block status propagation | P0 | Organization-wide block enforcement |
+| CRM-MS-023 | Staff alerts visible at all locations | P0 | Safety alerts transcend location boundaries |
+| CRM-MS-024 | Patch test records shared | P0 | Avoid redundant testing across locations |
+
+#### 12.3.4 Data Ownership
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| CRM-MS-025 | Home location assignment | P1 | Client associated with primary location |
+| CRM-MS-026 | Visit history attributed to location | P1 | Each visit tagged with originating location |
+| CRM-MS-027 | Location-specific notes option | P1 | Notes can be location-only or shared |
+| CRM-MS-028 | Revenue attribution maintained | P0 | Multi-location doesn't affect location reporting |
+
+### 12.4 Business Rules (Multi-Store)
+
+#### 12.4.1 Tier 1 (Ecosystem) Rules
+
+| Rule ID | Rule |
+|---------|------|
+| CRM-BR-028 | Client must explicitly opt-in to ecosystem sharing |
+| CRM-BR-029 | Ecosystem lookup requires hashed identifier (no cleartext PII) |
+| CRM-BR-030 | Safety data (allergies, blocks) always shared if client in ecosystem |
+| CRM-BR-031 | Client can revoke ecosystem sharing at any time |
+| CRM-BR-032 | Profile link requests expire after 24 hours if not approved |
+| CRM-BR-033 | Cross-store reputation (no-show rate) visible to other stores (if client opted in) |
+
+#### 12.4.2 Tier 2 (Organization) Rules
+
+| Rule ID | Rule |
+|---------|------|
+| CRM-BR-034 | Organization mode set by owner; locations inherit |
+| CRM-BR-035 | Safety data (allergies, blocks, alerts) always shared within organization |
+| CRM-BR-036 | Block at one location = blocked at all locations (organization scope) |
+| CRM-BR-037 | Full mode: all client data synchronized automatically |
+| CRM-BR-038 | Selective mode: only enabled categories synchronized |
+| CRM-BR-039 | Isolated mode: no data sharing, duplicate detection only |
+| CRM-BR-040 | Gift card redemption scope follows organization configuration |
+| CRM-BR-041 | Loyalty points scope (shared vs per-location) follows configuration |
+
+### 12.5 UX Specifications (Multi-Store)
+
+#### 12.5.1 Client Portal Sharing Settings
+
+```
++------------------------------------------------------------------+
+| SHARING SETTINGS                                    [Save Changes] |
++------------------------------------------------------------------+
+|                                                                    |
+| MANGO ECOSYSTEM SHARING                                            |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ [🔘 ON] Allow other Mango businesses to find my profile        │ |
+| │                                                                 │ |
+| │ When another salon searches for you, they can request to       │ |
+| │ link your profile. You'll always be asked before sharing.      │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
+| WHAT I SHARE (when approved)                                       |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ ☑ Basic Info (name, phone, email)                              │ |
+| │ ☑ My Preferences (favorite services, communication prefs)      │ |
+| │ ☐ Visit History (past appointments and services)               │ |
+| │ ☐ Loyalty & Rewards (share across participating salons)        │ |
+| │                                                                 │ |
+| │ ⚠️ Safety info (allergies) is always shared for your safety    │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
+| CONNECTED BUSINESSES                                               |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ ✓ Bella's Hair Studio          Sharing since: Jan 2025  [Remove]│ |
+| │ ✓ Zen Nail Spa                 Sharing since: Mar 2025  [Remove]│ |
+| │ ⏳ Luxe Barbershop (pending)   Requested: Today         [Accept]│ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
++------------------------------------------------------------------+
+```
+
+#### 12.5.2 Staff Profile Link Request UI
+
+```
++------------------------------------------------------------------+
+| NEW CLIENT: (555) 123-4567                                        |
++------------------------------------------------------------------+
+|                                                                    |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ 🔍 MANGO PROFILE FOUND                                         │ |
+| │                                                                 │ |
+| │ This number is registered in the Mango ecosystem.              │ |
+| │ Request permission to link their profile?                      │ |
+| │                                                                 │ |
+| │ Benefits:                                                       │ |
+| │ • No duplicate data entry                                       │ |
+| │ • Access to allergies & safety info                            │ |
+| │ • Client preferences pre-filled                                │ |
+| │                                                                 │ |
+| │        [Request Profile Link]     [Create New Profile]         │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
++------------------------------------------------------------------+
+```
+
+#### 12.5.3 Organization Admin Settings
+
+```
++------------------------------------------------------------------+
+| ORGANIZATION SETTINGS: Beauty Brand XYZ              [Save Changes]|
++------------------------------------------------------------------+
+|                                                                    |
+| CLIENT DATA SHARING MODE                                           |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ ○ Full - All client data shared across all locations           │ |
+| │ ● Selective - Choose what to share (configured below)          │ |
+| │ ○ Isolated - No sharing, locations operate independently       │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
+| SHARED DATA (Selective Mode)                                       |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ ☑ Client profiles (name, contact, preferences)                 │ |
+| │ ☑ Safety data (allergies, blocks, alerts) [Always enabled]     │ |
+| │ ☑ Visit history                                                │ |
+| │ ☐ Staff notes                                                  │ |
+| │ ☑ Loyalty points and tiers                                     │ |
+| │ ☐ Wallet balance (gift cards, credits)                         │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
+| LOYALTY & WALLET SCOPE                                             |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ Loyalty Points:  ● Organization-wide  ○ Per-location           │ |
+| │ Gift Cards:      ● Organization-wide  ○ Per-location           │ |
+| │ Memberships:     ○ Organization-wide  ● Per-location           │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
+| CROSS-LOCATION BOOKING                                             |
+| ┌────────────────────────────────────────────────────────────────┐ |
+| │ ☑ Allow clients to book at any location                        │ |
+| │ ☑ Show client's preferred location on booking                  │ |
+| └────────────────────────────────────────────────────────────────┘ |
+|                                                                    |
++------------------------------------------------------------------+
+```
+
+### 12.6 Technical Requirements (Multi-Store)
+
+#### 12.6.1 Data Model Additions
+
+```typescript
+// Mango Identity Service (Tier 1)
+interface MangoIdentity {
+  hashedPhone: string;        // SHA-256 hash of normalized phone
+  hashedEmail?: string;       // SHA-256 hash of lowercase email
+  ecosystemOptIn: boolean;    // Client opted into ecosystem
+  optInDate?: Date;
+  sharingPreferences: {
+    basicInfo: boolean;
+    preferences: boolean;
+    visitHistory: boolean;
+    loyaltyData: boolean;
+    // safetyData always true if ecosystemOptIn
+  };
+  linkedStores: LinkedStore[];
+}
+
+interface LinkedStore {
+  storeId: string;
+  storeName: string;
+  linkedAt: Date;
+  linkedBy: 'client' | 'request_approved';
+  accessLevel: 'full' | 'basic';  // Based on client's sharing prefs
+}
+
+// Organization (Tier 2)
+interface OrganizationClientSettings {
+  sharingMode: 'full' | 'selective' | 'isolated';
+  sharedCategories: {
+    profiles: boolean;
+    safetyData: true;           // Always true, cannot disable
+    visitHistory: boolean;
+    staffNotes: boolean;
+    loyaltyData: boolean;
+    walletData: boolean;
+  };
+  loyaltyScope: 'organization' | 'location';
+  giftCardScope: 'organization' | 'location';
+  membershipScope: 'organization' | 'location';
+  allowCrossLocationBooking: boolean;
+}
+
+// Client extension for multi-store
+interface ClientMultiStore {
+  // Primary location
+  homeLocationId: string;
+
+  // Organization (Tier 2)
+  organizationId?: string;
+  visibleToOrganization: boolean;
+
+  // Ecosystem (Tier 1)
+  mangoIdentityId?: string;
+  ecosystemProfile: boolean;
+}
+```
+
+#### 12.6.2 Database Schema Additions
+
+```sql
+-- Mango Identity Service (central, not per-store)
+CREATE TABLE mango_identities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hashed_phone VARCHAR(64) UNIQUE NOT NULL,
+  hashed_email VARCHAR(64),
+  ecosystem_opt_in BOOLEAN DEFAULT FALSE,
+  opt_in_date TIMESTAMPTZ,
+  sharing_preferences JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE linked_stores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mango_identity_id UUID REFERENCES mango_identities(id),
+  store_id UUID NOT NULL,
+  store_name VARCHAR(255) NOT NULL,
+  linked_at TIMESTAMPTZ DEFAULT NOW(),
+  linked_by VARCHAR(20) NOT NULL,  -- 'client' or 'request_approved'
+  access_level VARCHAR(20) DEFAULT 'basic',
+  UNIQUE(mango_identity_id, store_id)
+);
+
+CREATE TABLE profile_link_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requesting_store_id UUID NOT NULL,
+  mango_identity_id UUID REFERENCES mango_identities(id),
+  status VARCHAR(20) DEFAULT 'pending',  -- pending, approved, denied, expired
+  requested_at TIMESTAMPTZ DEFAULT NOW(),
+  responded_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours'
+);
+
+-- Organization client settings (per organization)
+ALTER TABLE organizations ADD COLUMN client_sharing_settings JSONB DEFAULT '{
+  "sharingMode": "isolated",
+  "sharedCategories": {
+    "profiles": false,
+    "safetyData": true,
+    "visitHistory": false,
+    "staffNotes": false,
+    "loyaltyData": false,
+    "walletData": false
+  },
+  "loyaltyScope": "location",
+  "giftCardScope": "location",
+  "membershipScope": "location",
+  "allowCrossLocationBooking": false
+}';
+
+-- Client table extension
+ALTER TABLE clients ADD COLUMN home_location_id UUID;
+ALTER TABLE clients ADD COLUMN mango_identity_id UUID;
+ALTER TABLE clients ADD COLUMN organization_visible BOOLEAN DEFAULT TRUE;
+```
+
+#### 12.6.3 Privacy & Security
+
+| Requirement | Implementation |
+|-------------|----------------|
+| Phone/email hashing | SHA-256 with organization-wide salt |
+| No cleartext lookup | Hash computed client-side before API call |
+| Consent logging | All consent changes logged with timestamp, IP, user agent |
+| Data minimization | Only requested/approved categories shared |
+| Right to erasure | Ecosystem removal deletes all cross-store links |
+| Audit trail | All profile link requests/approvals logged |
+
+### 12.7 Permissions Matrix (Multi-Store)
+
+| Feature | Owner | Manager | Front Desk | Technician |
+|---------|-------|---------|------------|------------|
+| Configure org sharing mode | ✓ | ✗ | ✗ | ✗ |
+| Configure shared categories | ✓ | ✓ | ✗ | ✗ |
+| Request ecosystem profile link | ✓ | ✓ | ✓ | ✗ |
+| View cross-location history | ✓ | ✓ | ✓ | Own clients |
+| View organization-wide blocks | ✓ | ✓ | ✓ | ✓ |
+| Block client (org-wide) | ✓ | ✓ | ✗ | ✗ |
+| Block client (location only) | ✓ | ✓ | ✓ | ✗ |
+
+### 12.8 Implementation Plan (Multi-Store)
+
+#### Phase 5: Multi-Store Foundation (Q1 2027) — 8 weeks
+
+| Week | Features | Requirements |
+|------|----------|--------------|
+| 1-2 | Organization sharing mode config | CRM-MS-015 to CRM-MS-020 |
+| 3-4 | Safety data propagation | CRM-MS-021 to CRM-MS-024 |
+| 5-6 | Cross-location client visibility | CRM-MS-025 to CRM-MS-028 |
+| 7-8 | Organization loyalty/wallet scope | Integration with existing loyalty |
+
+#### Phase 6: Mango Ecosystem (Q2 2027) — 10 weeks
+
+| Week | Features | Requirements |
+|------|----------|--------------|
+| 1-2 | Mango Identity Service | CRM-MS-006 to CRM-MS-010 |
+| 3-4 | Client consent management | CRM-MS-001 to CRM-MS-005 |
+| 5-6 | Profile link request flow | Staff UI + client approval |
+| 7-8 | Shared data sync | Category-based data sharing |
+| 9-10 | Client portal settings | CRM-MS-002, CRM-MS-004 |
+
+#### Phase 7: Coalition Loyalty (Q3 2027) — 4 weeks
+
+| Week | Features | Requirements |
+|------|----------|--------------|
+| 1-2 | Coalition program setup | CRM-MS-011 to CRM-MS-012 |
+| 3-4 | Coalition rewards catalog | CRM-MS-013 to CRM-MS-014 |
+
+---
+
 ## Appendix
 
 ### A. Related Documents
@@ -749,4 +1177,4 @@ interface ConsultationForm {
 
 ---
 
-*Document Version: 5.0 | Created: December 2025 | Updated: December 28, 2025*
+*Document Version: 6.0 | Created: December 2025 | Updated: January 6, 2026*
