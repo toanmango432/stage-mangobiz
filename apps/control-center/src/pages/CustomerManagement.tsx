@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Search,
   Plus,
@@ -12,7 +12,18 @@ import {
   X,
   Trash2
 } from 'lucide-react';
-import { tenantsDB, licensesDB, storesDB, membersDB } from '@/db/supabaseDatabase';
+import {
+  useTenants,
+  useTenant,
+  useCreateTenant,
+  useUpdateTenant,
+  useDeleteTenant,
+  useSuspendTenant,
+  useActivateTenant,
+  useLicensesByTenant,
+  useStoresByTenant,
+  useMembersByTenant,
+} from '@/hooks/queries';
 import type { Tenant, CreateTenantInput, License, Store as StoreType } from '@/types';
 
 interface TenantWithStats extends Tenant {
@@ -23,69 +34,17 @@ interface TenantWithStats extends Tenant {
 }
 
 export function CustomerManagement() {
-  const [tenants, setTenants] = useState<TenantWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedTenant, setSelectedTenant] = useState<TenantWithStats | null>(null);
-  const [tenantStores, setTenantStores] = useState<StoreType[]>([]);
-  const [tenantLicenses, setTenantLicenses] = useState<License[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
 
-  useEffect(() => {
-    loadTenants();
-  }, []);
+  // React Query hooks
+  const { data: tenants = [], isLoading, refetch } = useTenants();
 
-  async function loadTenants() {
-    setLoading(true);
-    try {
-      const allTenants = await tenantsDB.getAll(100);
-
-      // Load stats for each tenant
-      const tenantsWithStats: TenantWithStats[] = await Promise.all(
-        allTenants.map(async (tenant) => {
-          const [licenses, stores, members] = await Promise.all([
-            licensesDB.getByTenantId(tenant.id),
-            storesDB.getByTenantId(tenant.id),
-            membersDB.getByTenantId(tenant.id),
-          ]);
-
-          const activeLicense = licenses.find(l => l.status === 'active');
-
-          return {
-            ...tenant,
-            licenseCount: licenses.length,
-            storeCount: stores.length,
-            memberCount: members.length,
-            activeLicense,
-          };
-        })
-      );
-
-      setTenants(tenantsWithStats);
-    } catch (error) {
-      console.error('Failed to load tenants:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadTenantDetails(tenant: TenantWithStats) {
-    try {
-      const [licenses, stores] = await Promise.all([
-        licensesDB.getByTenantId(tenant.id),
-        storesDB.getByTenantId(tenant.id),
-      ]);
-      setTenantLicenses(licenses);
-      setTenantStores(stores);
-      setSelectedTenant(tenant);
-    } catch (error) {
-      console.error('Failed to load tenant details:', error);
-    }
-  }
-
+  // Filter tenants
   const filteredTenants = tenants.filter((tenant) => {
     const matchesSearch =
       tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,7 +74,7 @@ export function CustomerManagement() {
     return colors[tier] || 'bg-gray-100 text-gray-700';
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -137,7 +96,7 @@ export function CustomerManagement() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={loadTenants}
+              onClick={() => refetch()}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <RefreshCw className="w-5 h-5" />
@@ -199,9 +158,7 @@ export function CustomerManagement() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tenant</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">License</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usage</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -231,41 +188,14 @@ export function CustomerManagement() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {tenant.activeLicense ? (
-                          <span className={`px-2 py-1 text-xs font-semibold rounded capitalize ${getTierBadge(tenant.activeLicense.tier)}`}>
-                            {tenant.activeLicense.tier}
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-500">
-                            No License
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
                         <span className={`px-2 py-1 text-xs font-semibold rounded capitalize ${getStatusBadge(tenant.status)}`}>
                           {tenant.status}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <div className="flex items-center gap-1">
-                            <Shield className="w-3 h-3 text-blue-500" />
-                            {tenant.licenseCount} license{tenant.licenseCount !== 1 ? 's' : ''}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Store className="w-3 h-3 text-orange-500" />
-                            {tenant.storeCount} store{tenant.storeCount !== 1 ? 's' : ''}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <UserCog className="w-3 h-3 text-purple-500" />
-                            {tenant.memberCount} member{tenant.memberCount !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => loadTenantDetails(tenant)}
+                            onClick={() => setSelectedTenantId(tenant.id)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="View Details"
                           >
@@ -292,27 +222,14 @@ export function CustomerManagement() {
         </div>
 
         {/* Tenant Detail Modal */}
-        {selectedTenant && (
+        {selectedTenantId && (
           <TenantDetailModal
-            tenant={selectedTenant}
-            licenses={tenantLicenses}
-            stores={tenantStores}
-            onClose={() => setSelectedTenant(null)}
-            onEdit={() => {
-              setEditingTenant(selectedTenant);
+            tenantId={selectedTenantId}
+            onClose={() => setSelectedTenantId(null)}
+            onEdit={(tenant) => {
+              setEditingTenant(tenant);
               setShowEditModal(true);
-              setSelectedTenant(null);
-            }}
-            onSuspend={async () => {
-              if (confirm(`${selectedTenant.status === 'suspended' ? 'Activate' : 'Suspend'} ${selectedTenant.name}?`)) {
-                if (selectedTenant.status === 'suspended') {
-                  await tenantsDB.activate(selectedTenant.id);
-                } else {
-                  await tenantsDB.suspend(selectedTenant.id);
-                }
-                setSelectedTenant(null);
-                loadTenants();
-              }
+              setSelectedTenantId(null);
             }}
             getStatusBadge={getStatusBadge}
             getTierBadge={getTierBadge}
@@ -324,11 +241,6 @@ export function CustomerManagement() {
           <TenantFormModal
             title="Create New Tenant"
             onClose={() => setShowCreateModal(false)}
-            onSave={async (data) => {
-              await tenantsDB.create(data);
-              setShowCreateModal(false);
-              loadTenants();
-            }}
           />
         )}
 
@@ -341,20 +253,6 @@ export function CustomerManagement() {
               setShowEditModal(false);
               setEditingTenant(null);
             }}
-            onSave={async (data) => {
-              await tenantsDB.update(editingTenant.id, data);
-              setShowEditModal(false);
-              setEditingTenant(null);
-              loadTenants();
-            }}
-            onDelete={async () => {
-              if (confirm(`Delete ${editingTenant.name}? This cannot be undone.`)) {
-                await tenantsDB.delete(editingTenant.id);
-                setShowEditModal(false);
-                setEditingTenant(null);
-                loadTenants();
-              }
-            }}
           />
         )}
       </div>
@@ -364,26 +262,51 @@ export function CustomerManagement() {
 
 // Tenant Detail Modal Component
 interface TenantDetailModalProps {
-  tenant: TenantWithStats;
-  licenses: License[];
-  stores: StoreType[];
+  tenantId: string;
   onClose: () => void;
-  onEdit: () => void;
-  onSuspend: () => void;
+  onEdit: (tenant: Tenant) => void;
   getStatusBadge: (status: string) => string;
   getTierBadge: (tier?: string) => string;
 }
 
 function TenantDetailModal({
-  tenant,
-  licenses,
-  stores,
+  tenantId,
   onClose,
   onEdit,
-  onSuspend,
   getStatusBadge,
   getTierBadge,
 }: TenantDetailModalProps) {
+  const { data: tenant, isLoading: tenantLoading } = useTenant(tenantId);
+  const { data: licenses = [] } = useLicensesByTenant(tenantId);
+  const { data: stores = [] } = useStoresByTenant(tenantId);
+  const { data: members = [] } = useMembersByTenant(tenantId);
+
+  const suspendTenant = useSuspendTenant();
+  const activateTenant = useActivateTenant();
+
+  const activeLicense = licenses.find(l => l.status === 'active');
+
+  if (tenantLoading || !tenant) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl p-8">
+          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  const handleSuspendToggle = async () => {
+    if (confirm(`${tenant.status === 'suspended' ? 'Activate' : 'Suspend'} ${tenant.name}?`)) {
+      if (tenant.status === 'suspended') {
+        activateTenant.mutate(tenant.id);
+      } else {
+        suspendTenant.mutate(tenant.id);
+      }
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -405,11 +328,36 @@ function TenantDetailModal({
             <span className={`px-3 py-1 text-sm font-semibold rounded capitalize ${getStatusBadge(tenant.status)}`}>
               {tenant.status}
             </span>
-            {tenant.activeLicense && (
-              <span className={`px-3 py-1 text-sm font-semibold rounded capitalize ${getTierBadge(tenant.activeLicense.tier)}`}>
-                {tenant.activeLicense.tier} Plan
+            {activeLicense && (
+              <span className={`px-3 py-1 text-sm font-semibold rounded capitalize ${getTierBadge(activeLicense.tier)}`}>
+                {activeLicense.tier} Plan
               </span>
             )}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-500" />
+                <span className="text-2xl font-bold">{licenses.length}</span>
+              </div>
+              <p className="text-sm text-gray-600">Licenses</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Store className="w-5 h-5 text-orange-500" />
+                <span className="text-2xl font-bold">{stores.length}</span>
+              </div>
+              <p className="text-sm text-gray-600">Stores</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <UserCog className="w-5 h-5 text-purple-500" />
+                <span className="text-2xl font-bold">{members.length}</span>
+              </div>
+              <p className="text-sm text-gray-600">Members</p>
+            </div>
           </div>
 
           {/* Contact Info */}
@@ -516,18 +464,19 @@ function TenantDetailModal({
           {/* Actions */}
           <div className="flex gap-3">
             <button
-              onClick={onEdit}
+              onClick={() => onEdit(tenant)}
               className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium"
             >
               Edit Tenant
             </button>
             <button
-              onClick={onSuspend}
+              onClick={handleSuspendToggle}
+              disabled={suspendTenant.isPending || activateTenant.isPending}
               className={`px-4 py-2 border rounded-lg transition-colors font-medium ${
                 tenant.status === 'suspended'
                   ? 'border-green-300 text-green-600 hover:bg-green-50'
                   : 'border-red-300 text-red-600 hover:bg-red-50'
-              }`}
+              } disabled:opacity-50`}
             >
               {tenant.status === 'suspended' ? 'Activate' : 'Suspend'}
             </button>
@@ -549,11 +498,9 @@ interface TenantFormModalProps {
   title: string;
   tenant?: Tenant;
   onClose: () => void;
-  onSave: (data: CreateTenantInput) => Promise<void>;
-  onDelete?: () => Promise<void>;
 }
 
-function TenantFormModal({ title, tenant, onClose, onSave, onDelete }: TenantFormModalProps) {
+function TenantFormModal({ title, tenant, onClose }: TenantFormModalProps) {
   const [formData, setFormData] = useState<CreateTenantInput>({
     name: tenant?.name || '',
     email: tenant?.email || '',
@@ -562,8 +509,13 @@ function TenantFormModal({ title, tenant, onClose, onSave, onDelete }: TenantFor
     address: tenant?.address || '',
     notes: tenant?.notes || '',
   });
-  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const createTenant = useCreateTenant();
+  const updateTenant = useUpdateTenant();
+  const deleteTenant = useDeleteTenant();
+
+  const saving = createTenant.isPending || updateTenant.isPending;
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -580,14 +532,23 @@ function TenantFormModal({ title, tenant, onClose, onSave, onDelete }: TenantFor
     e.preventDefault();
     if (!validate()) return;
 
-    setSaving(true);
     try {
-      await onSave(formData);
+      if (tenant) {
+        await updateTenant.mutateAsync({ id: tenant.id, data: formData });
+      } else {
+        await createTenant.mutateAsync(formData);
+      }
+      onClose();
     } catch (error) {
       console.error('Failed to save tenant:', error);
-      alert('Failed to save tenant');
-    } finally {
-      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!tenant) return;
+    if (confirm(`Delete ${tenant.name}? This cannot be undone.`)) {
+      await deleteTenant.mutateAsync(tenant.id);
+      onClose();
     }
   };
 
@@ -684,11 +645,12 @@ function TenantFormModal({ title, tenant, onClose, onSave, onDelete }: TenantFor
           </div>
 
           <div className="flex gap-3 mt-6">
-            {onDelete && (
+            {tenant && (
               <button
                 type="button"
-                onClick={onDelete}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                onClick={handleDelete}
+                disabled={deleteTenant.isPending}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                 title="Delete"
               >
                 <Trash2 className="w-5 h-5" />

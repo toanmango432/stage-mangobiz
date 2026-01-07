@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   UserCog,
   Plus,
@@ -16,7 +16,14 @@ import {
   Save
 } from 'lucide-react';
 import { AdminUser, AdminRole, ADMIN_ROLE_PERMISSIONS } from '@/types';
-import { adminUsersDB } from '@/db/supabaseDatabase';
+import {
+  useAdminUsers,
+  useCreateAdminUser,
+  useUpdateAdminUser,
+  useDeleteAdminUser,
+  useActivateAdminUser,
+  useDeactivateAdminUser,
+} from '@/hooks/queries';
 
 interface AdminUserFormData {
   email: string;
@@ -47,8 +54,6 @@ const ROLE_CONFIG: Record<AdminRole, { label: string; icon: typeof Shield; color
 };
 
 export function AdminUserManagement() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -62,7 +67,16 @@ export function AdminUserManagement() {
     role: 'support',
   });
   const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+
+  // React Query hooks
+  const { data: users = [], isLoading, refetch } = useAdminUsers();
+  const createAdminUser = useCreateAdminUser();
+  const updateAdminUser = useUpdateAdminUser();
+  const deleteAdminUser = useDeleteAdminUser();
+  const activateAdminUser = useActivateAdminUser();
+  const deactivateAdminUser = useDeactivateAdminUser();
+
+  const saving = createAdminUser.isPending || updateAdminUser.isPending;
 
   // Get current user ID from session
   const getCurrentUserId = (): string | null => {
@@ -79,30 +93,15 @@ export function AdminUserManagement() {
 
   const currentUserId = getCurrentUserId();
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  // Sort users by role priority, then by name
+  const sortedUsers = [...users].sort((a, b) => {
+    const rolePriority: Record<AdminRole, number> = { super_admin: 1, admin: 2, support: 3 };
+    const priorityDiff = rolePriority[a.role] - rolePriority[b.role];
+    if (priorityDiff !== 0) return priorityDiff;
+    return a.name.localeCompare(b.name);
+  });
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const allUsers = await adminUsersDB.getAll();
-      // Sort by role priority, then by name
-      const rolePriority: Record<AdminRole, number> = { super_admin: 1, admin: 2, support: 3 };
-      allUsers.sort((a, b) => {
-        const priorityDiff = rolePriority[a.role] - rolePriority[b.role];
-        if (priorityDiff !== 0) return priorityDiff;
-        return a.name.localeCompare(b.name);
-      });
-      setUsers(allUsers);
-    } catch (error) {
-      console.error('Failed to load admin users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = sortedUsers.filter(user => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -164,36 +163,35 @@ export function AdminUserManagement() {
     }
 
     // Check for duplicate email
-    const existingUser = await adminUsersDB.getByEmail(formData.email);
+    const existingUser = users.find(u => u.email === formData.email);
     if (existingUser && (!editingUser || existingUser.id !== editingUser.id)) {
       setFormError('An admin with this email already exists');
       return;
     }
 
-    setSaving(true);
     try {
       if (editingUser) {
-        await adminUsersDB.update(editingUser.id, {
-          email: formData.email,
-          name: formData.name,
-          role: formData.role,
-          ...(formData.password ? { password: formData.password } : {}),
+        await updateAdminUser.mutateAsync({
+          id: editingUser.id,
+          data: {
+            email: formData.email,
+            name: formData.name,
+            role: formData.role,
+            ...(formData.password ? { password: formData.password } : {}),
+          },
         });
       } else {
-        await adminUsersDB.create({
+        await createAdminUser.mutateAsync({
           email: formData.email,
           password: formData.password,
           name: formData.name,
           role: formData.role,
         });
       }
-      await loadUsers();
       handleCloseModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save admin user:', error);
-      setFormError('Failed to save user. Please try again.');
-    } finally {
-      setSaving(false);
+      setFormError(error.message || 'Failed to save user. Please try again.');
     }
   };
 
@@ -202,8 +200,11 @@ export function AdminUserManagement() {
       return; // Can't deactivate yourself
     }
     try {
-      await adminUsersDB.update(user.id, { isActive: !user.isActive });
-      await loadUsers();
+      if (user.isActive) {
+        await deactivateAdminUser.mutateAsync(user.id);
+      } else {
+        await activateAdminUser.mutateAsync(user.id);
+      }
     } catch (error) {
       console.error('Failed to toggle user status:', error);
     }
@@ -214,8 +215,7 @@ export function AdminUserManagement() {
       return; // Can't delete yourself
     }
     try {
-      await adminUsersDB.delete(userId);
-      await loadUsers();
+      await deleteAdminUser.mutateAsync(userId);
       setShowDeleteConfirm(null);
     } catch (error) {
       console.error('Failed to delete admin user:', error);
@@ -233,7 +233,7 @@ export function AdminUserManagement() {
     });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8">
         <div className="flex items-center justify-center h-64">
@@ -251,13 +251,21 @@ export function AdminUserManagement() {
           <h1 className="text-3xl font-bold text-gray-900">Admin Users</h1>
           <p className="text-gray-600 mt-1">Manage Control Center access and permissions</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Admin
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => refetch()}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <RefreshCcw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Admin
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -418,7 +426,8 @@ export function AdminUserManagement() {
                           <>
                             <button
                               onClick={() => handleToggleActive(user)}
-                              className={`p-2 rounded-lg transition-colors ${
+                              disabled={activateAdminUser.isPending || deactivateAdminUser.isPending}
+                              className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
                                 user.isActive
                                   ? 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'
                                   : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
@@ -474,7 +483,7 @@ export function AdminUserManagement() {
                 className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm"
               >
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-gray-700">{permission.replace(':', ' › ')}</span>
+                <span className="text-gray-700">{permission.replace(':', ' > ')}</span>
               </div>
             ))}
           </div>
@@ -538,7 +547,7 @@ export function AdminUserManagement() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 pr-12"
-                    placeholder={editingUser ? '••••••••' : 'Enter password'}
+                    placeholder={editingUser ? '........' : 'Enter password'}
                   />
                   <button
                     type="button"
@@ -624,9 +633,10 @@ export function AdminUserManagement() {
                 </button>
                 <button
                   onClick={() => handleDelete(showDeleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  disabled={deleteAdminUser.isPending}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  Delete User
+                  {deleteAdminUser.isPending ? 'Deleting...' : 'Delete User'}
                 </button>
               </div>
             </div>

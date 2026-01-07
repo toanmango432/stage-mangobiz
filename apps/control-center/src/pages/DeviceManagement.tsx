@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Smartphone,
   RefreshCw,
@@ -17,14 +17,18 @@ import {
   Cloud,
   CloudOff
 } from 'lucide-react';
-import { devicesDB, storesDB, licensesDB } from '@/db/supabaseDatabase';
-import type { Device, Store as StoreType, License, DeviceMode } from '@/types';
+import {
+  useDevices,
+  useStores,
+  useLicenses,
+  useBlockDevice,
+  useUnblockDevice,
+  useDeleteDevice,
+  useUpdateDevice,
+} from '@/hooks/queries';
+import type { Device, DeviceMode } from '@/types';
 
 export function DeviceManagement() {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [stores, setStores] = useState<Map<string, StoreType>>(new Map());
-  const [licenses, setLicenses] = useState<Map<string, License>>(new Map());
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterStore, setFilterStore] = useState<string>('all');
@@ -33,84 +37,44 @@ export function DeviceManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // React Query hooks
+  const { data: devices = [], isLoading, refetch } = useDevices();
+  const { data: storesList = [] } = useStores();
+  const { data: licensesList = [] } = useLicenses();
 
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [allDevices, allStores, allLicenses] = await Promise.all([
-        devicesDB.getAll(200),
-        storesDB.getAll(200),
-        licensesDB.getAll(200),
-      ]);
+  const blockDevice = useBlockDevice();
+  const unblockDevice = useUnblockDevice();
+  const deleteDevice = useDeleteDevice();
+  const updateDevice = useUpdateDevice();
 
-      setDevices(allDevices);
-
-      const storeMap = new Map<string, StoreType>();
-      allStores.forEach(s => storeMap.set(s.id, s));
-      setStores(storeMap);
-
-      const licenseMap = new Map<string, License>();
-      allLicenses.forEach(l => licenseMap.set(l.id, l));
-      setLicenses(licenseMap);
-    } catch (error) {
-      console.error('Failed to load devices:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Create lookup maps
+  const stores = new Map(storesList.map(s => [s.id, s]));
+  const licenses = new Map(licensesList.map(l => [l.id, l]));
 
   async function handleBlock(device: Device) {
-    try {
-      await devicesDB.block(device.id);
-      await loadData();
-      setActiveMenu(null);
-    } catch (error) {
-      console.error('Failed to block device:', error);
-    }
+    await blockDevice.mutateAsync(device.id);
+    setActiveMenu(null);
   }
 
   async function handleUnblock(device: Device) {
-    try {
-      await devicesDB.unblock(device.id);
-      await loadData();
-      setActiveMenu(null);
-    } catch (error) {
-      console.error('Failed to unblock device:', error);
-    }
+    await unblockDevice.mutateAsync(device.id);
+    setActiveMenu(null);
   }
 
   async function handleDelete(device: Device) {
-    try {
-      await devicesDB.delete(device.id);
-      await loadData();
-      setShowDeleteConfirm(false);
-      setSelectedDevice(null);
-    } catch (error) {
-      console.error('Failed to delete device:', error);
-    }
+    await deleteDevice.mutateAsync(device.id);
+    setShowDeleteConfirm(false);
+    setSelectedDevice(null);
   }
 
   async function handleEnableOffline(device: Device) {
-    try {
-      await devicesDB.enableOffline(device.id);
-      await loadData();
-      setActiveMenu(null);
-    } catch (error) {
-      console.error('Failed to enable offline mode:', error);
-    }
+    await updateDevice.mutateAsync({ id: device.id, data: { deviceMode: 'offline-enabled' } });
+    setActiveMenu(null);
   }
 
   async function handleDisableOffline(device: Device) {
-    try {
-      await devicesDB.disableOffline(device.id);
-      await loadData();
-      setActiveMenu(null);
-    } catch (error) {
-      console.error('Failed to disable offline mode:', error);
-    }
+    await updateDevice.mutateAsync({ id: device.id, data: { deviceMode: 'online-only' } });
+    setActiveMenu(null);
   }
 
   // Filter devices
@@ -223,7 +187,7 @@ export function DeviceManagement() {
     return platform || 'Unknown';
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -244,11 +208,11 @@ export function DeviceManagement() {
             <p className="text-gray-600">Monitor and manage registered POS devices</p>
           </div>
           <button
-            onClick={loadData}
-            disabled={loading}
+            onClick={() => refetch()}
+            disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
@@ -496,7 +460,8 @@ export function DeviceManagement() {
                                 {device.deviceMode === 'offline-enabled' ? (
                                   <button
                                     onClick={() => handleDisableOffline(device)}
-                                    className="w-full px-4 py-2 text-left text-sm text-sky-600 hover:bg-sky-50 flex items-center gap-2 border-b border-gray-100"
+                                    disabled={updateDevice.isPending}
+                                    className="w-full px-4 py-2 text-left text-sm text-sky-600 hover:bg-sky-50 flex items-center gap-2 border-b border-gray-100 disabled:opacity-50"
                                   >
                                     <Cloud className="w-4 h-4" />
                                     Switch to Online-Only
@@ -504,7 +469,8 @@ export function DeviceManagement() {
                                 ) : (
                                   <button
                                     onClick={() => handleEnableOffline(device)}
-                                    className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2 border-b border-gray-100"
+                                    disabled={updateDevice.isPending}
+                                    className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2 border-b border-gray-100 disabled:opacity-50"
                                   >
                                     <CloudOff className="w-4 h-4" />
                                     Enable Offline Mode
@@ -515,7 +481,8 @@ export function DeviceManagement() {
                                 {device.status === 'blocked' ? (
                                   <button
                                     onClick={() => handleUnblock(device)}
-                                    className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 flex items-center gap-2"
+                                    disabled={unblockDevice.isPending}
+                                    className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 flex items-center gap-2 disabled:opacity-50"
                                   >
                                     <CheckCircle className="w-4 h-4" />
                                     Unblock Device
@@ -523,7 +490,8 @@ export function DeviceManagement() {
                                 ) : (
                                   <button
                                     onClick={() => handleBlock(device)}
-                                    className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+                                    disabled={blockDevice.isPending}
+                                    className="w-full px-4 py-2 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2 disabled:opacity-50"
                                   >
                                     <Ban className="w-4 h-4" />
                                     Block Device
@@ -593,9 +561,10 @@ export function DeviceManagement() {
                   </button>
                   <button
                     onClick={() => handleDelete(selectedDevice)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    disabled={deleteDevice.isPending}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
-                    Delete Device
+                    {deleteDevice.isPending ? 'Deleting...' : 'Delete Device'}
                   </button>
                 </div>
               </div>

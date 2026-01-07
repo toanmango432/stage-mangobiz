@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Package,
   Users,
@@ -15,7 +15,12 @@ import {
   Save,
   CheckCircle
 } from 'lucide-react';
-import { featureFlagsDB, licensesDB } from '@/db/supabaseDatabase';
+import {
+  useFeatureFlags,
+  useUpdateFeatureFlag,
+  useToggleFeatureFlag,
+  useLicenses,
+} from '@/hooks/queries';
 import type { FeatureFlag, FeatureFlagCategory } from '@/types';
 
 // Icon mapping for features
@@ -33,42 +38,31 @@ const featureIcons: Record<string, typeof Package> = {
 };
 
 export function FeatureFlagsManagement() {
-  const [features, setFeatures] = useState<FeatureFlag[]>([]);
-  const [loading, setLoading] = useState(true);
+  // React Query hooks
+  const { data: features = [], isLoading: featuresLoading, refetch } = useFeatureFlags();
+  const { data: licenses = [], isLoading: licensesLoading } = useLicenses(1000);
+
+  // Mutation hooks
+  const updateFeatureFlag = useUpdateFeatureFlag();
+  const toggleFeatureFlag = useToggleFeatureFlag();
+
+  const loading = featuresLoading || licensesLoading;
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [licenseStats, setLicenseStats] = useState({ free: 0, basic: 0, professional: 0, enterprise: 0 });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [allFeatures, allLicenses] = await Promise.all([
-        featureFlagsDB.getAll(),
-        licensesDB.getAll(1000),
-      ]);
-
-      setFeatures(allFeatures);
-
-      // Count licenses by tier
-      const stats = { free: 0, basic: 0, professional: 0, enterprise: 0 };
-      allLicenses.forEach(l => {
-        if (l.tier in stats) {
-          stats[l.tier as keyof typeof stats]++;
-        }
-      });
-      setLicenseStats(stats);
-    } catch (error) {
-      console.error('Failed to load feature flags:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Calculate license stats from fetched licenses
+  const licenseStats = licenses.reduce(
+    (acc, l) => {
+      if (l.tier in acc) {
+        acc[l.tier as keyof typeof acc]++;
+      }
+      return acc;
+    },
+    { free: 0, basic: 0, professional: 0, enterprise: 0 }
+  );
 
   const categories: FeatureFlagCategory[] = [
     'Infrastructure',
@@ -96,31 +90,16 @@ export function FeatureFlagsManagement() {
     const tierKey = `enabledFor${tier.charAt(0).toUpperCase() + tier.slice(1)}` as keyof FeatureFlag;
     const newValue = !feature[tierKey];
 
-    // Optimistically update UI
-    setFeatures(features.map(f => {
-      if (f.id === featureId) {
-        return { ...f, [tierKey]: newValue };
-      }
-      return f;
-    }));
-
-    // Update database
-    await featureFlagsDB.update(featureId, { [tierKey]: newValue } as any);
+    // Update using mutation hook (optimistic updates handled by React Query)
+    await updateFeatureFlag.mutateAsync({
+      id: featureId,
+      data: { [tierKey]: newValue } as Partial<FeatureFlag>,
+    });
   }
 
   async function handleToggleGlobal(featureId: string) {
-    const feature = features.find(f => f.id === featureId);
-    if (!feature) return;
-
-    const newValue = !feature.globallyEnabled;
-
-    // Optimistically update UI
-    setFeatures(features.map(f =>
-      f.id === featureId ? { ...f, globallyEnabled: newValue } : f
-    ));
-
-    // Update database
-    await featureFlagsDB.update(featureId, { globallyEnabled: newValue });
+    // Use the dedicated toggle hook
+    await toggleFeatureFlag.mutateAsync(featureId);
   }
 
   async function handleSaveAll() {
@@ -172,7 +151,7 @@ export function FeatureFlagsManagement() {
             <p className="text-gray-600">Control feature availability across license tiers</p>
           </div>
           <button
-            onClick={loadData}
+            onClick={() => refetch()}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Shield,
   Plus,
@@ -13,7 +13,16 @@ import {
   Trash2,
   AlertTriangle
 } from 'lucide-react';
-import { licensesDB, tenantsDB, storesDB } from '@/db/supabaseDatabase';
+import {
+  useLicenses,
+  useTenants,
+  useStoresByLicense,
+  useCreateLicense,
+  useUpdateLicense,
+  useRevokeLicense,
+  useActivateLicense,
+  useExpiringLicenses,
+} from '@/hooks/queries';
 import type { License, CreateLicenseInput, Tenant, LicenseTier } from '@/types';
 import { LICENSE_TIER_CONFIG } from '../types/license';
 
@@ -23,73 +32,47 @@ interface LicenseWithTenant extends License {
 }
 
 export function LicenseManagement() {
-  const [licenses, setLicenses] = useState<LicenseWithTenant[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterTier, setFilterTier] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingLicense, setEditingLicense] = useState<LicenseWithTenant | null>(null);
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    expired: 0,
-    expiringSoon: 0,
+  const [editingLicense, setEditingLicense] = useState<License | null>(null);
+
+  // React Query hooks
+  const { data: licenses = [], isLoading, refetch } = useLicenses();
+  const { data: tenants = [] } = useTenants();
+  const { data: expiringLicenses = [] } = useExpiringLicenses(30);
+
+  const revokeLicense = useRevokeLicense();
+  const activateLicense = useActivateLicense();
+
+  // Enrich licenses with tenant data
+  const licensesWithTenants: LicenseWithTenant[] = licenses.map((license) => {
+    const tenant = tenants.find((t) => t.id === license.tenantId);
+    // We'll show store count from maxStores since we don't want to query per-license
+    return { ...license, tenant, storeCount: 0 };
   });
 
-  useEffect(() => {
-    loadLicenses();
-  }, []);
-
-  async function loadLicenses() {
-    setLoading(true);
-    try {
-      const [allLicenses, allTenants] = await Promise.all([
-        licensesDB.getAll(100),
-        tenantsDB.getAll(100),
-      ]);
-
-      setTenants(allTenants);
-
-      // Map tenants to licenses and get store counts
-      const licensesWithTenants: LicenseWithTenant[] = await Promise.all(
-        allLicenses.map(async (license) => {
-          const tenant = allTenants.find(t => t.id === license.tenantId);
-          const storeCount = await storesDB.countByLicense(license.id);
-          return { ...license, tenant, storeCount };
-        })
-      );
-
-      setLicenses(licensesWithTenants);
-
-      // Calculate stats
-      const now = new Date();
-      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      setStats({
-        total: licensesWithTenants.length,
-        active: licensesWithTenants.filter(l => l.status === 'active').length,
-        expired: licensesWithTenants.filter(l => l.status === 'expired').length,
-        expiringSoon: licensesWithTenants.filter(l =>
-          l.status === 'active' &&
-          l.expiresAt &&
-          new Date(l.expiresAt) > now &&
-          new Date(l.expiresAt) <= thirtyDaysFromNow
-        ).length,
-      });
-    } catch (error) {
-      console.error('Failed to load licenses:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const filteredLicenses = licenses.filter((license) => {
+  const filteredLicenses = licensesWithTenants.filter((license) => {
     const matchesStatus = filterStatus === 'all' || license.status === filterStatus;
     const matchesTier = filterTier === 'all' || license.tier === filterTier;
     return matchesStatus && matchesTier;
   });
+
+  // Calculate stats
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const stats = {
+    total: licenses.length,
+    active: licenses.filter((l) => l.status === 'active').length,
+    expired: licenses.filter((l) => l.status === 'expired').length,
+    expiringSoon: licenses.filter((l) =>
+      l.status === 'active' &&
+      l.expiresAt &&
+      new Date(l.expiresAt) > now &&
+      new Date(l.expiresAt) <= thirtyDaysFromNow
+    ).length,
+  };
 
   const getTierBadge = (tier: string) => {
     const colors: Record<string, string> = {
@@ -117,7 +100,19 @@ export function LicenseManagement() {
     return days;
   };
 
-  if (loading) {
+  const handleRevoke = async (license: License) => {
+    if (confirm(`Revoke license for ${licensesWithTenants.find(l => l.id === license.id)?.tenant?.name || 'this tenant'}?`)) {
+      await revokeLicense.mutateAsync(license.id);
+    }
+  };
+
+  const handleActivate = async (license: License) => {
+    if (confirm(`Reactivate license for ${licensesWithTenants.find(l => l.id === license.id)?.tenant?.name || 'this tenant'}?`)) {
+      await activateLicense.mutateAsync(license.id);
+    }
+  };
+
+  if (isLoading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -139,7 +134,7 @@ export function LicenseManagement() {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={loadLicenses}
+              onClick={() => refetch()}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <RefreshCw className="w-5 h-5" />
@@ -238,7 +233,7 @@ export function LicenseManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tier</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expiry</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usage</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Max Stores</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -299,7 +294,7 @@ export function LicenseManagement() {
                           <div className="text-sm text-gray-600">
                             <div className="flex items-center gap-1">
                               <Store className="w-3 h-3" />
-                              {license.storeCount}/{license.maxStores} stores
+                              {license.maxStores} stores
                             </div>
                           </div>
                         </td>
@@ -317,13 +312,9 @@ export function LicenseManagement() {
                             </button>
                             {license.status === 'expired' && (
                               <button
-                                onClick={async () => {
-                                  if (confirm(`Reactivate license for ${license.tenant?.name || 'this tenant'}?`)) {
-                                    await licensesDB.activate(license.id);
-                                    loadLicenses();
-                                  }
-                                }}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                onClick={() => handleActivate(license)}
+                                disabled={activateLicense.isPending}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
                                 title="Reactivate"
                               >
                                 <RefreshCw className="w-4 h-4" />
@@ -331,13 +322,9 @@ export function LicenseManagement() {
                             )}
                             {license.status === 'active' && (
                               <button
-                                onClick={async () => {
-                                  if (confirm(`Revoke license for ${license.tenant?.name || 'this tenant'}?`)) {
-                                    await licensesDB.revoke(license.id);
-                                    loadLicenses();
-                                  }
-                                }}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                onClick={() => handleRevoke(license)}
+                                disabled={revokeLicense.isPending}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                 title="Revoke"
                               >
                                 <XCircle className="w-4 h-4" />
@@ -360,11 +347,6 @@ export function LicenseManagement() {
             title="Issue New License"
             tenants={tenants}
             onClose={() => setShowCreateModal(false)}
-            onSave={async (data) => {
-              await licensesDB.create(data);
-              setShowCreateModal(false);
-              loadLicenses();
-            }}
           />
         )}
 
@@ -377,20 +359,6 @@ export function LicenseManagement() {
             onClose={() => {
               setShowEditModal(false);
               setEditingLicense(null);
-            }}
-            onSave={async (data) => {
-              await licensesDB.update(editingLicense.id, data);
-              setShowEditModal(false);
-              setEditingLicense(null);
-              loadLicenses();
-            }}
-            onDelete={async () => {
-              if (confirm(`Delete this license? This cannot be undone.`)) {
-                await licensesDB.delete(editingLicense.id);
-                setShowEditModal(false);
-                setEditingLicense(null);
-                loadLicenses();
-              }
             }}
           />
         )}
@@ -405,11 +373,9 @@ interface LicenseFormModalProps {
   license?: License;
   tenants: Tenant[];
   onClose: () => void;
-  onSave: (data: CreateLicenseInput) => Promise<void>;
-  onDelete?: () => Promise<void>;
 }
 
-function LicenseFormModal({ title, license, tenants, onClose, onSave, onDelete }: LicenseFormModalProps) {
+function LicenseFormModal({ title, license, tenants, onClose }: LicenseFormModalProps) {
   const [formData, setFormData] = useState({
     tenantId: license?.tenantId || '',
     tier: license?.tier || 'basic' as LicenseTier,
@@ -420,8 +386,12 @@ function LicenseFormModal({ title, license, tenants, onClose, onSave, onDelete }
       : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     notes: license?.notes || '',
   });
-  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const createLicense = useCreateLicense();
+  const updateLicense = useUpdateLicense();
+
+  const saving = createLicense.isPending || updateLicense.isPending;
 
   // Update max stores/devices when tier changes
   const handleTierChange = (tier: LicenseTier) => {
@@ -446,10 +416,9 @@ function LicenseFormModal({ title, license, tenants, onClose, onSave, onDelete }
     e.preventDefault();
     if (!validate()) return;
 
-    setSaving(true);
     try {
       const tierConfig = LICENSE_TIER_CONFIG[formData.tier];
-      await onSave({
+      const data: CreateLicenseInput = {
         tenantId: formData.tenantId,
         tier: formData.tier,
         maxStores: formData.maxStores,
@@ -457,12 +426,16 @@ function LicenseFormModal({ title, license, tenants, onClose, onSave, onDelete }
         features: tierConfig.features,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
         notes: formData.notes || undefined,
-      });
+      };
+
+      if (license) {
+        await updateLicense.mutateAsync({ id: license.id, data });
+      } else {
+        await createLicense.mutateAsync(data);
+      }
+      onClose();
     } catch (error) {
       console.error('Failed to save license:', error);
-      alert('Failed to save license');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -614,16 +587,6 @@ function LicenseFormModal({ title, license, tenants, onClose, onSave, onDelete }
           </div>
 
           <div className="flex gap-3 mt-6">
-            {onDelete && (
-              <button
-                type="button"
-                onClick={onDelete}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Delete"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            )}
             <div className="flex-1" />
             <button
               type="button"

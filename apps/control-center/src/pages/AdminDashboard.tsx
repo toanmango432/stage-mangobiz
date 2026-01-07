@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Users,
   Shield,
@@ -9,55 +8,55 @@ import {
   Activity,
   RefreshCw
 } from 'lucide-react';
-import { getAdminDBStats, tenantsDB, licensesDB, storesDB } from '@/db/supabaseDatabase';
-import type { Tenant, License, Store as StoreType } from '@/types';
-
-interface DashboardStats {
-  tenants: number;
-  licenses: {
-    total: number;
-    active: number;
-    expired: number;
-    revoked: number;
-  };
-  stores: number;
-  members: number;
-  devices: number;
-}
+import {
+  useTenants,
+  useLicenses,
+  useStores,
+  useMembers,
+  useDevices,
+  useExpiringLicenses,
+} from '@/hooks/queries';
 
 export function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentTenants, setRecentTenants] = useState<Tenant[]>([]);
-  const [recentStores, setRecentStores] = useState<StoreType[]>([]);
-  const [expiringLicenses, setExpiringLicenses] = useState<License[]>([]);
-  const [loading, setLoading] = useState(true);
+  // React Query hooks for all data
+  const { data: tenants = [], isLoading: tenantsLoading, refetch: refetchTenants } = useTenants();
+  const { data: licenses = [], isLoading: licensesLoading, refetch: refetchLicenses } = useLicenses();
+  const { data: stores = [], isLoading: storesLoading, refetch: refetchStores } = useStores();
+  const { data: members = [], isLoading: membersLoading, refetch: refetchMembers } = useMembers();
+  const { data: devices = [], isLoading: devicesLoading } = useDevices();
+  const { data: expiringLicenses = [] } = useExpiringLicenses(30);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const loading = tenantsLoading || licensesLoading || storesLoading || membersLoading || devicesLoading;
 
-  async function loadDashboardData() {
-    setLoading(true);
-    try {
-      const [dbStats, tenants, stores, expiring] = await Promise.all([
-        getAdminDBStats(),
-        tenantsDB.getAll(5),
-        storesDB.getAll(5),
-        licensesDB.getExpiring(30, 5),
-      ]);
+  const stats = {
+    tenants: tenants.length,
+    licenses: {
+      total: licenses.length,
+      active: licenses.filter(l => l.status === 'active').length,
+      expired: licenses.filter(l => l.status === 'expired').length,
+      revoked: licenses.filter(l => l.status === 'revoked').length,
+    },
+    stores: stores.length,
+    members: members.length,
+    devices: devices.length,
+  };
 
-      setStats(dbStats);
-      setRecentTenants(tenants);
-      setRecentStores(stores);
-      setExpiringLicenses(expiring);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const recentTenants = [...tenants]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
-  if (loading || !stats) {
+  const recentStores = [...stores]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
+  const handleRefresh = () => {
+    refetchTenants();
+    refetchLicenses();
+    refetchStores();
+    refetchMembers();
+  };
+
+  if (loading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -78,7 +77,7 @@ export function AdminDashboard() {
             <p className="text-gray-600">Overview of all Mango POS tenants, stores, and members</p>
           </div>
           <button
-            onClick={loadDashboardData}
+            onClick={handleRefresh}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
@@ -205,7 +204,7 @@ export function AdminDashboard() {
             <div className="p-6">
               {expiringLicenses.length > 0 ? (
                 <div className="space-y-4">
-                  {expiringLicenses.map((license) => {
+                  {expiringLicenses.slice(0, 5).map((license) => {
                     const daysLeft = license.expiresAt
                       ? Math.ceil((new Date(license.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                       : 0;
@@ -303,7 +302,7 @@ export function AdminDashboard() {
             <div className="flex-1">
               <h3 className="font-bold text-green-900">System Status: All Systems Operational</h3>
               <p className="text-sm text-green-700 mt-1">
-                Database: IndexedDB • Mode: Development • Auth: Active
+                Database: Supabase • Mode: {process.env.NODE_ENV || 'development'} • Auth: Active
               </p>
             </div>
             <div className="text-right">

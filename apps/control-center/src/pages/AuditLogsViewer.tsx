@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   FileText,
   RefreshCw,
@@ -18,7 +18,7 @@ import {
   Globe,
   Monitor
 } from 'lucide-react';
-import { auditLogsDB } from '@/db/supabaseDatabase';
+import { useAuditLogs } from '@/hooks/queries';
 import type { AuditLog } from '@/types';
 
 // Action category colors and icons
@@ -108,38 +108,24 @@ const actionLabels: Record<string, string> = {
 };
 
 export function AuditLogsViewer() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const pageSize = 50;
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAction, setFilterAction] = useState<string>('all');
   const [filterEntityType, setFilterEntityType] = useState<string>('all');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 50;
 
-  useEffect(() => {
-    loadLogs();
-  }, [page]);
+  // React Query hook - fetches all logs (pagination can be added to hook if needed)
+  const { data: logs = [], isLoading: loading, refetch } = useAuditLogs(1000);
 
-  async function loadLogs() {
-    setLoading(true);
-    try {
-      const [allLogs, count] = await Promise.all([
-        auditLogsDB.getAll(pageSize, page * pageSize),
-        auditLogsDB.count(),
-      ]);
-      setLogs(allLogs);
-      setTotalCount(count);
-    } catch (error) {
-      console.error('Failed to load audit logs:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Calculate total count from fetched data
+  const totalCount = logs.length;
+
+  // Paginate the logs client-side
+  const paginatedLogs = logs.slice(page * pageSize, (page + 1) * pageSize);
 
   // Filter logs based on search and filters
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = paginatedLogs.filter(log => {
     // Action filter
     if (filterAction !== 'all' && log.action !== filterAction) {
       return false;
@@ -173,6 +159,10 @@ export function AuditLogsViewer() {
   });
 
   const uniqueActions = [...new Set(logs.map(l => l.action))];
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   function formatTimestamp(date: Date) {
     return new Date(date).toLocaleString('en-US', {
@@ -236,7 +226,7 @@ export function AuditLogsViewer() {
             </p>
           </div>
           <button
-            onClick={loadLogs}
+            onClick={handleRefresh}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >

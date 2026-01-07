@@ -11,7 +11,12 @@ import {
   Copy,
   X
 } from 'lucide-react';
-import { tenantsDB, licensesDB, storesDB, membersDB } from '@/db/supabaseDatabase';
+import {
+  useCreateTenant,
+  useCreateLicense,
+  useCreateStore,
+  useCreateMember,
+} from '@/hooks/queries';
 import type { LicenseTier, Tenant, License, Store as StoreType, Member } from '@/types';
 import { LICENSE_TIER_CONFIG } from '../types/license';
 
@@ -54,11 +59,18 @@ interface QuickOnboardProps {
 }
 
 export function QuickOnboard({ onClose, onComplete }: QuickOnboardProps) {
+  // React Query mutation hooks
+  const createTenant = useCreateTenant();
+  const createLicense = useCreateLicense();
+  const createStore = useCreateStore();
+  const createMember = useCreateMember();
+
   const [currentStep, setCurrentStep] = useState(1);
-  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<OnboardingResult | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const saving = createTenant.isPending || createLicense.isPending || createStore.isPending || createMember.isPending;
 
   const [formData, setFormData] = useState<OnboardingState>({
     // Step 1
@@ -154,10 +166,9 @@ export function QuickOnboard({ onClose, onComplete }: QuickOnboardProps) {
   const handleComplete = async () => {
     if (!validateStep(currentStep)) return;
 
-    setSaving(true);
     try {
       // Step 1: Create Tenant
-      const tenant = await tenantsDB.create({
+      const tenant = await createTenant.mutateAsync({
         name: formData.tenantName,
         email: formData.tenantEmail,
         phone: formData.tenantPhone || undefined,
@@ -167,7 +178,7 @@ export function QuickOnboard({ onClose, onComplete }: QuickOnboardProps) {
 
       // Step 2: Create License
       const tierConfig = LICENSE_TIER_CONFIG[formData.licenseTier];
-      const license = await licensesDB.create({
+      const license = await createLicense.mutateAsync({
         tenantId: tenant.id,
         tier: formData.licenseTier,
         maxStores: tierConfig.maxStores,
@@ -177,7 +188,7 @@ export function QuickOnboard({ onClose, onComplete }: QuickOnboardProps) {
       });
 
       // Step 3: Create Store
-      const store = await storesDB.create({
+      const store = await createStore.mutateAsync({
         tenantId: tenant.id,
         licenseId: license.id,
         name: formData.storeName,
@@ -189,7 +200,7 @@ export function QuickOnboard({ onClose, onComplete }: QuickOnboardProps) {
       });
 
       // Step 4: Create Admin Member
-      const member = await membersDB.create({
+      const member = await createMember.mutateAsync({
         tenantId: tenant.id,
         storeIds: [store.id],
         name: formData.memberName,
@@ -204,8 +215,6 @@ export function QuickOnboard({ onClose, onComplete }: QuickOnboardProps) {
     } catch (error) {
       console.error('Onboarding failed:', error);
       alert('Failed to complete onboarding. Please try again.');
-    } finally {
-      setSaving(false);
     }
   };
 

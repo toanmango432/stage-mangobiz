@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Store,
   Plus,
@@ -14,41 +14,32 @@ import {
   Check,
   AlertCircle
 } from 'lucide-react';
-import { storesDB, tenantsDB, licensesDB } from '@/db/supabaseDatabase';
+import {
+  useStores,
+  useTenants,
+  useLicenses,
+  useCreateStore,
+  useUpdateStore,
+  useDeleteStore,
+  useSuspendStore,
+  useActivateStore,
+} from '@/hooks/queries';
 import type { Store as StoreType, CreateStoreInput, Tenant, License } from '@/types';
 
 export function StoreManagement() {
-  const [stores, setStores] = useState<StoreType[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [licenses, setLicenses] = useState<License[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingStore, setEditingStore] = useState<StoreType | null>(null);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
 
-  // Load data
-  useEffect(() => {
-    loadData();
-  }, []);
+  // React Query hooks
+  const { data: stores = [], isLoading, refetch } = useStores();
+  const { data: tenants = [] } = useTenants();
+  const { data: licenses = [] } = useLicenses();
 
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [storesData, tenantsData, licensesData] = await Promise.all([
-        storesDB.getAll(),
-        tenantsDB.getAll(),
-        licensesDB.getAll(),
-      ]);
-      setStores(storesData);
-      setTenants(tenantsData);
-      setLicenses(licensesData);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const deleteStore = useDeleteStore();
+  const suspendStore = useSuspendStore();
+  const activateStore = useActivateStore();
 
   const filteredStores = stores.filter(store =>
     store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -67,16 +58,17 @@ export function StoreManagement() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this store?')) {
-      await storesDB.delete(id);
-      await loadData();
+      await deleteStore.mutateAsync(id);
     }
     setActionMenuOpen(null);
   };
 
   const handleToggleStatus = async (store: StoreType) => {
-    const newStatus = store.status === 'active' ? 'suspended' : 'active';
-    await storesDB.update(store.id, { status: newStatus });
-    await loadData();
+    if (store.status === 'active') {
+      await suspendStore.mutateAsync(store.id);
+    } else {
+      await activateStore.mutateAsync(store.id);
+    }
     setActionMenuOpen(null);
   };
 
@@ -89,13 +81,21 @@ export function StoreManagement() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Store Management</h1>
             <p className="text-gray-600">Manage POS store instances and their login credentials</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Add Store
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => refetch()}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Store
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -155,7 +155,7 @@ export function StoreManagement() {
 
         {/* Stores Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {loading ? (
+          {isLoading ? (
             <div className="p-12 text-center">
               <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
               <p className="text-gray-600">Loading stores...</p>
@@ -265,14 +265,16 @@ export function StoreManagement() {
                             </button>
                             <button
                               onClick={() => handleToggleStatus(store)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              disabled={suspendStore.isPending || activateStore.isPending}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                             >
                               <Power className="w-4 h-4" />
                               {store.status === 'active' ? 'Suspend' : 'Activate'}
                             </button>
                             <button
                               onClick={() => handleDelete(store.id)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                              disabled={deleteStore.isPending}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                             >
                               <Trash2 className="w-4 h-4" />
                               Delete
@@ -299,11 +301,6 @@ export function StoreManagement() {
             setShowCreateModal(false);
             setEditingStore(null);
           }}
-          onSave={async () => {
-            await loadData();
-            setShowCreateModal(false);
-            setEditingStore(null);
-          }}
         />
       )}
     </div>
@@ -316,10 +313,9 @@ interface StoreModalProps {
   tenants: Tenant[];
   licenses: License[];
   onClose: () => void;
-  onSave: () => void;
 }
 
-function StoreModal({ store, tenants, licenses, onClose, onSave }: StoreModalProps) {
+function StoreModal({ store, tenants, licenses, onClose }: StoreModalProps) {
   const [formData, setFormData] = useState({
     name: store?.name || '',
     storeEmail: '',
@@ -331,7 +327,11 @@ function StoreModal({ store, tenants, licenses, onClose, onSave }: StoreModalPro
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+
+  const createStore = useCreateStore();
+  const updateStore = useUpdateStore();
+
+  const saving = createStore.isPending || updateStore.isPending;
 
   const filteredLicenses = formData.tenantId
     ? licenses.filter(l => l.tenantId === formData.tenantId)
@@ -340,27 +340,27 @@ function StoreModal({ store, tenants, licenses, onClose, onSave }: StoreModalPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSaving(true);
 
     try {
       if (store) {
         // Update existing store
-        await storesDB.update(store.id, {
-          name: formData.name,
-          address: formData.address,
-          phone: formData.phone,
-          ...(formData.password ? { password: formData.password } : {}),
+        await updateStore.mutateAsync({
+          id: store.id,
+          data: {
+            name: formData.name,
+            address: formData.address,
+            phone: formData.phone,
+            ...(formData.password ? { password: formData.password } : {}),
+          },
         });
       } else {
         // Create new store
         if (!formData.tenantId || !formData.licenseId) {
           setError('Please select a tenant and license');
-          setSaving(false);
           return;
         }
         if (!formData.password) {
           setError('Password is required for new stores');
-          setSaving(false);
           return;
         }
 
@@ -374,14 +374,12 @@ function StoreModal({ store, tenants, licenses, onClose, onSave }: StoreModalPro
           phone: formData.phone || undefined,
         };
 
-        await storesDB.create(input);
+        await createStore.mutateAsync(input);
       }
 
-      onSave();
+      onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to save store');
-    } finally {
-      setSaving(false);
     }
   };
 

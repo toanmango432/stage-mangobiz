@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   UserCog,
   Plus,
@@ -16,42 +16,36 @@ import {
   Shield,
   Store
 } from 'lucide-react';
-import { membersDB, tenantsDB, storesDB } from '@/db/supabaseDatabase';
+import {
+  useMembers,
+  useCreateMember,
+  useUpdateMember,
+  useDeleteMember,
+  useSuspendMember,
+  useActivateMember,
+  useTenants,
+  useStores,
+} from '@/hooks/queries';
 import type { Member, CreateMemberInput, Tenant, Store as StoreType, MemberRole } from '@/types';
 
 export function MemberManagement() {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [stores, setStores] = useState<StoreType[]>([]);
-  const [loading, setLoading] = useState(true);
+  // React Query hooks
+  const { data: members = [], isLoading: membersLoading, refetch } = useMembers();
+  const { data: tenants = [], isLoading: tenantsLoading } = useTenants();
+  const { data: stores = [], isLoading: storesLoading } = useStores();
+
+  // Mutation hooks
+  const deleteMember = useDeleteMember();
+  const suspendMember = useSuspendMember();
+  const activateMember = useActivateMember();
+
+  const loading = membersLoading || tenantsLoading || storesLoading;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTenant, setFilterTenant] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-
-  // Load data
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [membersData, tenantsData, storesData] = await Promise.all([
-        membersDB.getAll(),
-        tenantsDB.getAll(),
-        storesDB.getAll(),
-      ]);
-      setMembers(membersData);
-      setTenants(tenantsData);
-      setStores(storesData);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const filteredMembers = members.filter(member => {
     const matchesSearch =
@@ -69,19 +63,17 @@ export function MemberManagement() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this member?')) {
-      await membersDB.delete(id);
-      await loadData();
+      await deleteMember.mutateAsync(id);
     }
     setActionMenuOpen(null);
   };
 
   const handleToggleStatus = async (member: Member) => {
     if (member.status === 'active') {
-      await membersDB.suspend(member.id);
+      await suspendMember.mutateAsync(member.id);
     } else {
-      await membersDB.activate(member.id);
+      await activateMember.mutateAsync(member.id);
     }
-    await loadData();
     setActionMenuOpen(null);
   };
 
@@ -343,8 +335,7 @@ export function MemberManagement() {
             setShowCreateModal(false);
             setEditingMember(null);
           }}
-          onSave={async () => {
-            await loadData();
+          onSave={() => {
             setShowCreateModal(false);
             setEditingMember(null);
           }}
@@ -364,6 +355,9 @@ interface MemberModalProps {
 }
 
 function MemberModal({ member, tenants, stores, onClose, onSave }: MemberModalProps) {
+  const createMember = useCreateMember();
+  const updateMember = useUpdateMember();
+
   const [formData, setFormData] = useState({
     name: member?.name || '',
     email: member?.email || '',
@@ -376,7 +370,8 @@ function MemberModal({ member, tenants, stores, onClose, onSave }: MemberModalPr
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+
+  const saving = createMember.isPending || updateMember.isPending;
 
   const filteredStores = formData.tenantId
     ? stores.filter(s => s.tenantId === formData.tenantId)
@@ -394,35 +389,34 @@ function MemberModal({ member, tenants, stores, onClose, onSave }: MemberModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSaving(true);
 
     try {
       if (member) {
         // Update existing member
-        await membersDB.update(member.id, {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || undefined,
-          pin: formData.pin || undefined,
-          role: formData.role,
-          storeIds: formData.storeIds,
-          ...(formData.password ? { password: formData.password } : {}),
+        await updateMember.mutateAsync({
+          id: member.id,
+          data: {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || undefined,
+            pin: formData.pin || undefined,
+            role: formData.role,
+            storeIds: formData.storeIds,
+            ...(formData.password ? { password: formData.password } : {}),
+          },
         });
       } else {
         // Create new member
         if (!formData.tenantId) {
           setError('Please select a tenant');
-          setSaving(false);
           return;
         }
         if (!formData.password) {
           setError('Password is required for new members');
-          setSaving(false);
           return;
         }
         if (formData.storeIds.length === 0) {
           setError('Please select at least one store');
-          setSaving(false);
           return;
         }
 
@@ -437,14 +431,12 @@ function MemberModal({ member, tenants, stores, onClose, onSave }: MemberModalPr
           role: formData.role,
         };
 
-        await membersDB.create(input);
+        await createMember.mutateAsync(input);
       }
 
       onSave();
     } catch (err: any) {
       setError(err.message || 'Failed to save member');
-    } finally {
-      setSaving(false);
     }
   };
 

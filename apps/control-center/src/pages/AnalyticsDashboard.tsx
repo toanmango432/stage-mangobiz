@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -16,7 +16,14 @@ import {
   AlertCircle,
   Download
 } from 'lucide-react';
-import { tenantsDB, licensesDB, storesDB, membersDB, devicesDB, auditLogsDB } from '@/db/supabaseDatabase';
+import {
+  useTenants,
+  useLicenses,
+  useStores,
+  useMembers,
+  useDevices,
+  useAuditLogs,
+} from '@/hooks/queries';
 import type { Tenant, License, AuditLog } from '@/types';
 
 interface AnalyticsData {
@@ -63,105 +70,104 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function AnalyticsDashboard() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [dateRange]);
+  // React Query hooks
+  const { data: tenants = [], isLoading: tenantsLoading, refetch: refetchTenants } = useTenants();
+  const { data: licenses = [], isLoading: licensesLoading, refetch: refetchLicenses } = useLicenses(1000);
+  const { data: stores = [], isLoading: storesLoading, refetch: refetchStores } = useStores();
+  const { data: members = [], isLoading: membersLoading, refetch: refetchMembers } = useMembers();
+  const { data: devices = [], isLoading: devicesLoading, refetch: refetchDevices } = useDevices();
+  const { data: recentLogs = [], isLoading: logsLoading, refetch: refetchLogs } = useAuditLogs(20);
 
-  const loadAnalytics = async () => {
-    setLoading(true);
-    try {
-      // Fetch all data
-      const [tenants, licenses, stores, members, devices, recentLogs] = await Promise.all([
-        tenantsDB.getAll(1000),
-        licensesDB.getAll(1000),
-        storesDB.getAll(1000),
-        membersDB.getAll(1000),
-        devicesDB.getAll(1000),
-        auditLogsDB.getAll(20),
-      ]);
+  const loading = tenantsLoading || licensesLoading || storesLoading || membersLoading || devicesLoading || logsLoading;
 
-      // Calculate date ranges
-      const now = new Date();
-      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-      // License by tier
-      const tierCounts = licenses.reduce((acc, l) => {
-        acc[l.tier] = (acc[l.tier] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const licensesByTier = Object.entries(tierCounts).map(([tier, count]) => ({
-        tier: tier.charAt(0).toUpperCase() + tier.slice(1),
-        count,
-        color: TIER_COLORS[tier] || '#6B7280',
-      }));
-
-      // License by status
-      const statusCounts = licenses.reduce((acc, l) => {
-        acc[l.status] = (acc[l.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const licensesByStatus = Object.entries(statusCounts).map(([status, count]) => ({
-        status: status.charAt(0).toUpperCase() + status.slice(1),
-        count,
-        color: STATUS_COLORS[status] || '#6B7280',
-      }));
-
-      // Tenant by status
-      const tenantStatusCounts = tenants.reduce((acc, t) => {
-        acc[t.status] = (acc[t.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const tenantsByStatus = Object.entries(tenantStatusCounts).map(([status, count]) => ({
-        status: status.charAt(0).toUpperCase() + status.slice(1),
-        count,
-        color: STATUS_COLORS[status] || '#6B7280',
-      }));
-
-      // This month vs last month
-      const tenantsThisMonth = tenants.filter(t => new Date(t.createdAt) >= thisMonthStart).length;
-      const tenantsLastMonth = tenants.filter(t => {
-        const created = new Date(t.createdAt);
-        return created >= lastMonthStart && created <= lastMonthEnd;
-      }).length;
-
-      const licensesThisMonth = licenses.filter(l => new Date(l.createdAt) >= thisMonthStart).length;
-      const licensesLastMonth = licenses.filter(l => {
-        const created = new Date(l.createdAt);
-        return created >= lastMonthStart && created <= lastMonthEnd;
-      }).length;
-
-      setData({
-        totalTenants: tenants.length,
-        totalLicenses: licenses.length,
-        totalStores: stores.length,
-        totalMembers: members.length,
-        totalDevices: devices.length,
-        licensesByTier,
-        licensesByStatus,
-        tenantsByStatus,
-        recentTenants: tenants.slice(0, 5),
-        recentLicenses: licenses.slice(0, 5),
-        recentActivity: recentLogs,
-        tenantsThisMonth,
-        tenantsLastMonth,
-        licensesThisMonth,
-        licensesLastMonth,
-      });
-    } catch (error) {
-      console.error('Failed to load analytics:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadAnalytics = () => {
+    refetchTenants();
+    refetchLicenses();
+    refetchStores();
+    refetchMembers();
+    refetchDevices();
+    refetchLogs();
   };
+
+  // Compute analytics data with useMemo
+  const data = useMemo<AnalyticsData | null>(() => {
+    if (loading) return null;
+
+    // Calculate date ranges
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // License by tier
+    const tierCounts = licenses.reduce((acc, l) => {
+      acc[l.tier] = (acc[l.tier] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const licensesByTier = Object.entries(tierCounts).map(([tier, count]) => ({
+      tier: tier.charAt(0).toUpperCase() + tier.slice(1),
+      count,
+      color: TIER_COLORS[tier] || '#6B7280',
+    }));
+
+    // License by status
+    const statusCounts = licenses.reduce((acc, l) => {
+      acc[l.status] = (acc[l.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const licensesByStatus = Object.entries(statusCounts).map(([status, count]) => ({
+      status: status.charAt(0).toUpperCase() + status.slice(1),
+      count,
+      color: STATUS_COLORS[status] || '#6B7280',
+    }));
+
+    // Tenant by status
+    const tenantStatusCounts = tenants.reduce((acc, t) => {
+      acc[t.status] = (acc[t.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const tenantsByStatus = Object.entries(tenantStatusCounts).map(([status, count]) => ({
+      status: status.charAt(0).toUpperCase() + status.slice(1),
+      count,
+      color: STATUS_COLORS[status] || '#6B7280',
+    }));
+
+    // This month vs last month
+    const tenantsThisMonth = tenants.filter(t => new Date(t.createdAt) >= thisMonthStart).length;
+    const tenantsLastMonth = tenants.filter(t => {
+      const created = new Date(t.createdAt);
+      return created >= lastMonthStart && created <= lastMonthEnd;
+    }).length;
+
+    const licensesThisMonth = licenses.filter(l => new Date(l.createdAt) >= thisMonthStart).length;
+    const licensesLastMonth = licenses.filter(l => {
+      const created = new Date(l.createdAt);
+      return created >= lastMonthStart && created <= lastMonthEnd;
+    }).length;
+
+    return {
+      totalTenants: tenants.length,
+      totalLicenses: licenses.length,
+      totalStores: stores.length,
+      totalMembers: members.length,
+      totalDevices: devices.length,
+      licensesByTier,
+      licensesByStatus,
+      tenantsByStatus,
+      recentTenants: tenants.slice(0, 5),
+      recentLicenses: licenses.slice(0, 5),
+      recentActivity: recentLogs,
+      tenantsThisMonth,
+      tenantsLastMonth,
+      licensesThisMonth,
+      licensesLastMonth,
+    };
+  }, [tenants, licenses, stores, members, devices, recentLogs, loading]);
 
   const calculateGrowth = (current: number, previous: number): { value: number; isPositive: boolean } => {
     if (previous === 0) return { value: current > 0 ? 100 : 0, isPositive: current > 0 };
