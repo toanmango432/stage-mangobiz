@@ -36,6 +36,7 @@ Architecture Decision Records serve as:
 14. [ADR-014: Data Retention and Compliance Strategy](#adr-014-data-retention-and-compliance-strategy)
 15. [ADR-015: Audit Trail on All Mutations](#adr-015-audit-trail-on-all-mutations)
 16. [ADR-016: Offline-First Default](#adr-016-offline-first-default-supersedes-opt-in-proposal)
+17. [ADR-017: Team Module Supabase-First Architecture](#adr-017-team-module-supabase-first-architecture)
 
 ---
 
@@ -960,6 +961,8 @@ Cloud audit logs capture:
 | 013 | Exponential Backoff with Jitter | Accepted |
 | 014 | Data Retention Strategy | Accepted |
 | 015 | Audit Trail on All Mutations | Accepted |
+| 016 | Offline-First Default | Accepted |
+| 017 | Team Module Supabase-First | Accepted |
 
 ---
 
@@ -1074,10 +1077,96 @@ Key principles:
 
 ---
 
+## ADR-017: Team Module Supabase-First Architecture
+
+**Status:** Accepted
+**Date:** January 2026
+**Deciders:** Engineering Team
+
+### Context
+
+The Team Module handles accuracy-critical operations including:
+- Timesheets (clock in/out, break tracking)
+- Payroll (pay runs, commission calculations)
+- Turn tracking (fair walk-in distribution)
+- Time off requests (vacation, sick leave)
+- Staff ratings (customer reviews)
+
+Unlike operational data (appointments, tickets) which benefits from offline-first for business continuity, Team Module data has different requirements:
+
+1. **Payroll Accuracy:** Financial calculations must be consistent across all devices
+2. **Time Verification:** Clock in/out needs server timestamp validation to prevent manipulation
+3. **Approval Workflows:** Manager approvals require online connectivity and central state
+4. **Audit Compliance:** All mutations must have server-side audit trail for payroll disputes
+
+### Decision
+
+**Team Module uses Supabase-first (online-first) architecture, bypassing IndexedDB for primary operations.**
+
+Data flow:
+```
+Component → Redux Thunk → dataService → Supabase → PostgreSQL
+```
+
+This differs from operational data flow:
+```
+Component → Redux Thunk → dataService → IndexedDB → Sync Queue → Supabase
+```
+
+Services implemented:
+| Service | Table | Primary Operations |
+|---------|-------|-------------------|
+| `dataService.timesheets` | `timesheets` | clockIn, clockOut, addBreak, approve |
+| `dataService.payRuns` | `pay_runs` | create, submit, approve, process, void |
+| `dataService.turnLogs` | `turn_logs` | record, void, getDailyTotals |
+| `dataService.timeOffRequests` | `time_off_requests` | create, approve, deny, cancel |
+| `dataService.staffRatings` | `staff_ratings` | create, approve, flag, addResponse |
+
+### Rationale
+
+- **Financial Integrity:** Server timestamp prevents clock manipulation; server-side calculations ensure consistent payroll
+- **Approval State:** Manager approvals must be centralized; can't approve offline
+- **Audit Trail:** Server-side audit logs are authoritative for disputes
+- **Simplicity:** Avoiding sync conflicts for accuracy-critical data
+- **Data Sensitivity:** Payroll data requires stricter access controls
+
+**Why not offline-first for Team Module:**
+1. Payroll calculations done offline could differ across devices
+2. Clock times could be manipulated locally
+3. Approval workflows require synchronous state
+4. Audit requirements favor server-side record
+
+### Consequences
+
+**Positive:**
+- Financial data integrity guaranteed
+- Server timestamps prevent manipulation
+- Clear audit trail for all Team operations
+- Simpler implementation (no conflict resolution needed)
+- Consistent state across all devices
+
+**Negative:**
+- Team operations require internet connectivity
+- Clock in/out fails if offline
+- Timesheet viewing requires connectivity (for now)
+
+**Mitigations:**
+- Clear UI messaging when offline: "Connect to internet to clock in"
+- Future: Add read-only caching for viewing timesheets offline
+- Future: Queue clock-in attempts for retry when connectivity returns
+
+### Related Documents
+- [DATA_STORAGE_STRATEGY.md](./DATA_STORAGE_STRATEGY.md) - Team Module tables
+- [PRD-Team-Module.md](../product/PRD-Team-Module.md) - Feature requirements
+- [TEAM_IMPLEMENTATION_GUIDE.md](../reference/modules/team/TEAM_IMPLEMENTATION_GUIDE.md) - Implementation guide
+
+---
+
 ## Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| 1.3 | Jan 6, 2026 | Engineering | Added ADR-017: Team Module Supabase-First Architecture |
 | 1.2 | Dec 28, 2025 | Engineering | Updated ADR-016: Rejected opt-in, confirmed offline-first default for all devices |
 | 1.1 | Dec 1, 2025 | Engineering | Added ADR-016: Opt-In Offline Mode (proposal) |
 | 1.0 | Nov 30, 2025 | Engineering | Initial ADR compilation |

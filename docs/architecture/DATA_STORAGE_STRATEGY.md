@@ -36,6 +36,13 @@ Client App → Redux Thunk → dataService → Supabase JavaScript Client → Po
 - `tickets` - Service tickets
 - `transactions` - Payment records
 
+**Team Module Tables (New):**
+- `timesheets` - Staff clock in/out and break tracking
+- `pay_runs` - Payroll processing and payments
+- `turn_logs` - Walk-in turn distribution tracking
+- `time_off_requests` - Vacation, sick leave, PTO requests
+- `staff_ratings` - Customer ratings and reviews for staff
+
 ---
 
 ## Table of Contents

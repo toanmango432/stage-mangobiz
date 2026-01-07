@@ -1586,44 +1586,49 @@ PATCH  /turn-logs/{id}/void
 | Online booking settings | ✅ Complete |
 | Offline-first sync | ✅ Complete |
 
-### Phase 2: Time & Attendance ⭐ NEW
-**Priority: High**
+### Phase 2: Time & Attendance
+**Status: Backend Complete (January 2026)**
 
-| Feature | Effort | Dependencies |
-|---------|--------|--------------|
-| Clock in/out system | Medium | None |
-| Break tracking | Medium | Clock in/out |
-| Timesheet dashboard | Medium | Clock in/out |
-| Overtime calculation | Small | Timesheets |
-| Attendance alerts | Small | Timesheets |
-| Manager approval workflow | Medium | Timesheets |
-| Timesheet reports | Medium | Timesheets |
+| Feature | Backend | Frontend | Notes |
+|---------|---------|----------|-------|
+| Clock in/out system | ✅ Complete | Pending | `timesheetsTable.ts` |
+| Break tracking | ✅ Complete | Pending | Paid/unpaid breaks |
+| Timesheet dashboard | ✅ Complete | Pending | dataService ready |
+| Overtime calculation | ✅ Complete | Pending | In adapter |
+| Attendance alerts | Pending | Pending | Needs notification system |
+| Manager approval workflow | ✅ Complete | Pending | approve/dispute methods |
+| Timesheet reports | ✅ Complete | Pending | Query methods ready |
 
-### Phase 3: Payroll & Pay Runs ⭐ NEW
-**Priority: High**
+### Phase 3: Payroll & Pay Runs
+**Status: Backend Complete (January 2026)**
 
-| Feature | Effort | Dependencies |
-|---------|--------|--------------|
-| Pay run creation | Large | Timesheets |
-| Automatic calculations | Large | Pay runs |
-| Manual adjustments | Medium | Pay runs |
-| Review & approval workflow | Medium | Pay runs |
-| Payment processing integration | Large | Approval workflow |
-| 9 payroll reports | Medium | Pay runs |
-| Staff earnings portal | Medium | Pay runs |
+| Feature | Backend | Frontend | Notes |
+|---------|---------|----------|-------|
+| Pay run creation | ✅ Complete | Pending | `payRunsTable.ts` |
+| Automatic calculations | ✅ Complete | Pending | Staff payments array |
+| Manual adjustments | ✅ Complete | Pending | Update methods |
+| Review & approval workflow | ✅ Complete | Pending | submit/approve/reject |
+| Turn tracking | ✅ Complete | Pending | `turnLogsTable.ts` |
+| Time off requests | ✅ Complete | Pending | `timeOffRequestsTable.ts` |
+| Payment processing integration | Pending | Pending | External integration |
+| Payroll reports | ✅ Complete | Pending | Query methods ready |
+| Staff earnings portal | ✅ Complete | Pending | dataService ready |
 
-### Phase 4: Staff Experience ⭐ NEW
-**Priority: Medium**
+### Phase 4: Staff Experience
+**Status: Ratings Backend Complete (January 2026)**
 
-| Feature | Effort | Dependencies |
-|---------|--------|--------------|
-| Staff ratings & reviews | Medium | Online booking |
-| Portfolio gallery | Small | Profile |
-| Performance dashboard | Medium | Analytics |
-| Goal tracking | Medium | Performance |
-| Achievements/badges | Small | Goals |
-| Group booking | Medium | Online booking |
-| Staff mobile app | Large | All features |
+| Feature | Backend | Frontend | Notes |
+|---------|---------|----------|-------|
+| Staff ratings & reviews | ✅ Complete | Pending | `staffRatingsTable.ts` |
+| Rating moderation | ✅ Complete | Pending | approve/flag/hide methods |
+| Staff response to reviews | ✅ Complete | Pending | addResponse method |
+| Rating aggregates | ✅ Complete | Pending | getAggregates method |
+| Portfolio gallery | Pending | Pending | Future enhancement |
+| Performance dashboard | Pending | Pending | Future enhancement |
+| Goal tracking | Pending | Pending | Future enhancement |
+| Achievements/badges | Pending | Pending | Future enhancement |
+| Group booking | Pending | Pending | Future enhancement |
+| Staff mobile app | Pending | Pending | Future enhancement |
 
 ### Phase 5: Advanced Features
 **Priority: Lower**
@@ -1646,9 +1651,9 @@ PATCH  /turn-logs/{id}/void
 | Turn Tracking | ✅ Comprehensive | ❌ None | **Mango** |
 | Offline Mode | ✅ Full | ❌ None | **Mango** |
 | Rotating Schedules | ✅ 1-4 weeks | ❓ Unknown | **Mango** |
-| Real-time Timesheets | 🔄 Phase 2 | ✅ Full | Fresha (for now) |
-| Pay Run Processing | 🔄 Phase 3 | ✅ Team Pay | Fresha (for now) |
-| Staff Ratings | 🔄 Phase 4 | ✅ Yes | Fresha (for now) |
+| Real-time Timesheets | ✅ Backend Complete | ✅ Full | Parity |
+| Pay Run Processing | ✅ Backend Complete | ✅ Team Pay | Parity |
+| Staff Ratings | ✅ Backend Complete | ✅ Yes | Parity |
 | Marketplace | ❌ None | ✅ Yes | Fresha |
 | Role Specialization | ✅ 14 roles | ⚠️ Generic | **Mango** |
 | Granular Permissions | ✅ 15+ flags | ⚠️ Levels | **Mango** |
