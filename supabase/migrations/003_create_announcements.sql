@@ -2,7 +2,7 @@
 -- Supports multi-channel delivery, targeting, and tracking
 
 CREATE TABLE IF NOT EXISTS announcements (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Content
   content JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON announcements(created
 
 -- Announcement interactions table for tracking user engagement
 CREATE TABLE IF NOT EXISTS announcement_interactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
   tenant_id UUID,
   user_id TEXT,

@@ -1,0 +1,116 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440010",
+    "publicId": "550e8400-e29b-41d4-a716-446655440010",
+    "name": "Sarah Chen",
+    "title": "Senior Hair Stylist",
+    "bio": "With over 8 years of experience, Sarah specializes in color and cutting. She's passionate about creating looks that enhance your natural beauty.",
+    "avatar": "/src/assets/team-sarah-chen-URQerpPJ.jpg",
+    "specialties": ["Hair Color", "Balayage", "Haircuts", "Styling"],
+    "services": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"],
+    "isBookableOnline": true,
+    "rating": 4.9,
+    "reviewCount": 127,
+    "experience": 8,
+    "certifications": ["Master Colorist", "Balayage Specialist"],
+    "socialMedia": {
+      "instagram": "https://instagram.com/sarahchenbeauty",
+      "facebook": "https://facebook.com/sarahchenbeauty"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440011",
+    "publicId": "550e8400-e29b-41d4-a716-446655440011",
+    "name": "Emily Rodriguez",
+    "title": "Hair Stylist",
+    "bio": "Emily brings fresh creativity to every cut and style. She loves working with all hair types and creating personalized looks.",
+    "avatar": "/src/assets/team-emily-rodriguez-DTqBpi97.jpg",
+    "specialties": ["Haircuts", "Styling", "Blowouts", "Hair Care"],
+    "services": ["550e8400-e29b-41d4-a716-446655440001"],
+    "isBookableOnline": true,
+    "rating": 4.8,
+    "reviewCount": 89,
+    "experience": 5,
+    "certifications": ["Advanced Cutting", "Hair Care Specialist"],
+    "socialMedia": {
+      "instagram": "https://instagram.com/emilyrodriguezhair"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440012",
+    "publicId": "550e8400-e29b-41d4-a716-446655440012",
+    "name": "Jessica Lee",
+    "title": "Nail Artist",
+    "bio": "Jessica is our nail art expert with a keen eye for detail. She creates stunning designs that last and always exceed expectations.",
+    "avatar": "/src/assets/team-jessica-lee-D-ibEIML.jpg",
+    "specialties": ["Gel Manicures", "Nail Art", "Pedicures", "Nail Care"],
+    "services": ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440004"],
+    "isBookableOnline": true,
+    "rating": 4.9,
+    "reviewCount": 156,
+    "experience": 6,
+    "certifications": ["Gel Specialist", "Nail Art Master"],
+    "socialMedia": {
+      "instagram": "https://instagram.com/jessicaleenails"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440013",
+    "publicId": "550e8400-e29b-41d4-a716-446655440013",
+    "name": "Marcus Williams",
+    "title": "Nail Technician",
+    "bio": "Marcus specializes in classic nail care and modern techniques. He's known for his precision and attention to detail.",
+    "avatar": "/src/assets/team-marcus-williams-BlTij_Pl.jpg",
+    "specialties": ["Manicures", "Pedicures", "Gel Polish", "Nail Repair"],
+    "services": ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440004"],
+    "isBookableOnline": true,
+    "rating": 4.7,
+    "reviewCount": 98,
+    "experience": 4,
+    "certifications": ["Nail Technician", "Gel Polish Specialist"],
+    "socialMedia": {
+      "instagram": "https://instagram.com/marcuswilliamsnails"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440014",
+    "publicId": "550e8400-e29b-41d4-a716-446655440014",
+    "name": "Michael Tan",
+    "title": "Spa Therapist",
+    "bio": "Michael is our facial and spa treatment expert. He's passionate about skincare and helping clients achieve their best skin.",
+    "avatar": "/src/assets/team-michael-tan-BUXpYYbp.jpg",
+    "specialties": ["Facials", "Skincare", "Spa Treatments", "Skin Analysis"],
+    "services": ["550e8400-e29b-41d4-a716-446655440005"],
+    "isBookableOnline": true,
+    "rating": 4.8,
+    "reviewCount": 112,
+    "experience": 7,
+    "certifications": ["Licensed Esthetician", "Advanced Facial Specialist"],
+    "socialMedia": {
+      "instagram": "https://instagram.com/michaeltanspa"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440015",
+    "publicId": "550e8400-e29b-41d4-a716-446655440015",
+    "name": "David Park",
+    "title": "Makeup Artist",
+    "bio": "David is our bridal and special event makeup artist. He creates stunning looks that enhance your natural beauty and last all day.",
+    "avatar": "/src/assets/team-david-park-BBEtCVwm.jpg",
+    "specialties": ["Bridal Makeup", "Special Events", "Eyebrow Shaping", "Lash Extensions"],
+    "services": ["550e8400-e29b-41d4-a716-446655440006", "550e8400-e29b-41d4-a716-446655440007", "550e8400-e29b-41d4-a716-446655440008"],
+    "isBookableOnline": true,
+    "rating": 4.9,
+    "reviewCount": 143,
+    "experience": 9,
+    "certifications": ["Professional Makeup Artist", "Bridal Specialist", "Lash Extension Master"],
+    "socialMedia": {
+      "instagram": "https://instagram.com/davidparkmakeup",
+      "facebook": "https://facebook.com/davidparkmakeup"
+    }
+  }
+]
+
+
+
+

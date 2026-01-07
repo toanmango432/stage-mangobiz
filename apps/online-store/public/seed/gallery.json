@@ -1,0 +1,171 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440090",
+    "publicId": "550e8400-e29b-41d4-a716-446655440090",
+    "title": "Balayage Highlights",
+    "description": "Beautiful hand-painted highlights for a natural sun-kissed look",
+    "image": "/src/assets/work-balayage-CcxDGK12.jpg",
+    "category": "hair",
+    "tags": ["balayage", "highlights", "color"],
+    "featured": true,
+    "order": 1
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440091",
+    "publicId": "550e8400-e29b-41d4-a716-446655440091",
+    "title": "Beach Waves",
+    "description": "Effortless beach waves for a relaxed, summery look",
+    "image": "/src/assets/work-beach-waves-CPGw3b2B.jpg",
+    "category": "hair",
+    "tags": ["beach waves", "styling", "summer"],
+    "featured": true,
+    "order": 2
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440092",
+    "publicId": "550e8400-e29b-41d4-a716-446655440092",
+    "title": "Bob Cut",
+    "description": "Chic and modern bob cut with perfect layers",
+    "image": "/src/assets/work-bob-cut-DjWe7Kt-.jpg",
+    "category": "hair",
+    "tags": ["bob", "cut", "modern"],
+    "featured": true,
+    "order": 3
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440093",
+    "publicId": "550e8400-e29b-41d4-a716-446655440093",
+    "title": "Bridal Makeup",
+    "description": "Elegant bridal makeup for the perfect wedding day look",
+    "image": "/src/assets/work-bridal-makeup-BYKiDmof.jpg",
+    "category": "makeup",
+    "tags": ["bridal", "wedding", "elegant"],
+    "featured": true,
+    "order": 4
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440094",
+    "publicId": "550e8400-e29b-41d4-a716-446655440094",
+    "title": "Crystal Nails",
+    "description": "Stunning crystal nail art with intricate details",
+    "image": "/src/assets/work-crystal-nails-BxDoPSbb.jpg",
+    "category": "nails",
+    "tags": ["crystal", "nail art", "luxury"],
+    "featured": true,
+    "order": 5
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440095",
+    "publicId": "550e8400-e29b-41d4-a716-446655440095",
+    "title": "Dimensional Color",
+    "description": "Rich dimensional hair color with depth and movement",
+    "image": "/src/assets/work-dimensional-color-B5XTKpFm.jpg",
+    "category": "hair",
+    "tags": ["dimensional", "color", "rich"],
+    "featured": false,
+    "order": 6
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440096",
+    "publicId": "550e8400-e29b-41d4-a716-446655440096",
+    "title": "Evening Makeup",
+    "description": "Glamorous evening makeup perfect for special occasions",
+    "image": "/src/assets/work-evening-makeup-DS3-CHc0.jpg",
+    "category": "makeup",
+    "tags": ["evening", "glamorous", "special occasion"],
+    "featured": false,
+    "order": 7
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440097",
+    "publicId": "550e8400-e29b-41d4-a716-446655440097",
+    "title": "Floral Nails",
+    "description": "Delicate floral nail art with hand-painted details",
+    "image": "/src/assets/work-floral-nails-DBuQ6jrG.jpg",
+    "category": "nails",
+    "tags": ["floral", "nail art", "hand-painted"],
+    "featured": false,
+    "order": 8
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440098",
+    "publicId": "550e8400-e29b-41d4-a716-446655440098",
+    "title": "French Manicure",
+    "description": "Classic French manicure with a modern twist",
+    "image": "/src/assets/work-french-manicure-BRMkhUvc.jpg",
+    "category": "nails",
+    "tags": ["french", "classic", "modern"],
+    "featured": false,
+    "order": 9
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440099",
+    "publicId": "550e8400-e29b-41d4-a716-446655440099",
+    "title": "Glowing Facial",
+    "description": "Radiant skin after our signature facial treatment",
+    "image": "/src/assets/work-glowing-facial-Bqteh-u5.jpg",
+    "category": "spa",
+    "tags": ["facial", "glowing", "radiant"],
+    "featured": false,
+    "order": 10
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440100",
+    "publicId": "550e8400-e29b-41d4-a716-446655440100",
+    "title": "Hydrating Treatment",
+    "description": "Deep hydrating facial treatment for plump, moisturized skin",
+    "image": "/src/assets/work-hydrating-treatment-CeKYdB1R.jpg",
+    "category": "spa",
+    "tags": ["hydrating", "facial", "moisturized"],
+    "featured": false,
+    "order": 11
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440101",
+    "publicId": "550e8400-e29b-41d4-a716-446655440101",
+    "title": "Natural Makeup",
+    "description": "Fresh, natural makeup look for everyday beauty",
+    "image": "/src/assets/work-natural-makeup-D_lnq2fn.jpg",
+    "category": "makeup",
+    "tags": ["natural", "fresh", "everyday"],
+    "featured": false,
+    "order": 12
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440102",
+    "publicId": "550e8400-e29b-41d4-a716-446655440102",
+    "title": "Nude Nails",
+    "description": "Elegant nude nail design perfect for any occasion",
+    "image": "/src/assets/work-nude-nails-Qw8BS5hn.jpg",
+    "category": "nails",
+    "tags": ["nude", "elegant", "versatile"],
+    "featured": false,
+    "order": 13
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440103",
+    "publicId": "550e8400-e29b-41d4-a716-446655440103",
+    "title": "Ombre Nails",
+    "description": "Beautiful ombre nail design with gradient colors",
+    "image": "/src/assets/work-ombre-nails-EB4_BCEJ.jpg",
+    "category": "nails",
+    "tags": ["ombre", "gradient", "colorful"],
+    "featured": false,
+    "order": 14
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440104",
+    "publicId": "550e8400-e29b-41d4-a716-446655440104",
+    "title": "Wedding Updo",
+    "description": "Elegant wedding updo with romantic curls and accessories",
+    "image": "/src/assets/work-wedding-updo-CRQt8lpJ.jpg",
+    "category": "hair",
+    "tags": ["wedding", "updo", "romantic"],
+    "featured": false,
+    "order": 15
+  }
+]
+
+
+
+

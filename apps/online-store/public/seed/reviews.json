@@ -1,0 +1,222 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440070",
+    "publicId": "550e8400-e29b-41d4-a716-446655440070",
+    "clientName": "Jennifer M.",
+    "serviceName": "Haircut & Style",
+    "rating": 5,
+    "comment": "Sarah did an amazing job on my haircut! She listened to what I wanted and gave me exactly what I was looking for. The salon is beautiful and the staff is so friendly.",
+    "date": "2025-01-15T14:30:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-bob-cut-DjWe7Kt-.jpg"],
+    "response": {
+      "text": "Thank you so much, Jennifer! I'm thrilled you love your new cut. Can't wait to see you again!",
+      "date": "2025-01-15T16:45:00Z",
+      "author": "Sarah Chen"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440071",
+    "publicId": "550e8400-e29b-41d4-a716-446655440071",
+    "clientName": "Maria S.",
+    "serviceName": "Balayage Highlights",
+    "rating": 5,
+    "comment": "I've been getting my hair done here for 2 years and I'm always impressed. The balayage Sarah did is absolutely gorgeous and looks so natural. Worth every penny!",
+    "date": "2025-01-12T10:15:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-balayage-CcxDGK12.jpg", "/src/assets/work-dimensional-color-B5XTKpFm.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440072",
+    "publicId": "550e8400-e29b-41d4-a716-446655440072",
+    "clientName": "Lisa K.",
+    "serviceName": "Gel Manicure",
+    "rating": 5,
+    "comment": "Jessica is incredible! My gel manicure lasted 3 weeks and looked perfect the entire time. The nail art she did was exactly what I wanted. Highly recommend!",
+    "date": "2025-01-10T16:20:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-french-manicure-BRMkhUvc.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440073",
+    "publicId": "550e8400-e29b-41d4-a716-446655440073",
+    "clientName": "Amanda R.",
+    "serviceName": "Pedicure Spa",
+    "rating": 5,
+    "comment": "The pedicure spa treatment was so relaxing! Marcus was very professional and my feet have never looked better. The salon is clean and the atmosphere is perfect.",
+    "date": "2025-01-08T11:30:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440074",
+    "publicId": "550e8400-e29b-41d4-a716-446655440074",
+    "clientName": "Rachel T.",
+    "serviceName": "Facial Treatment",
+    "rating": 5,
+    "comment": "Michael's facial treatment was amazing! My skin feels so soft and looks glowing. He explained everything he was doing and gave me great skincare advice.",
+    "date": "2025-01-05T15:45:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-glowing-facial-Bqteh-u5.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440075",
+    "publicId": "550e8400-e29b-41d4-a716-446655440075",
+    "clientName": "Stephanie L.",
+    "serviceName": "Bridal Makeup",
+    "rating": 5,
+    "comment": "David did my bridal makeup and I couldn't have been happier! I looked and felt beautiful on my wedding day. The makeup lasted all day and photographed perfectly.",
+    "date": "2025-01-03T09:00:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-bridal-makeup-BYKiDmof.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440076",
+    "publicId": "550e8400-e29b-41d4-a716-446655440076",
+    "clientName": "Nicole W.",
+    "serviceName": "Eyebrow Shaping",
+    "rating": 4,
+    "comment": "Good eyebrow shaping service. David was professional and my brows look great. The only reason I'm giving 4 stars instead of 5 is the wait time was a bit longer than expected.",
+    "date": "2024-12-28T14:15:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440077",
+    "publicId": "550e8400-e29b-41d4-a716-446655440077",
+    "clientName": "Christina M.",
+    "serviceName": "Lash Extensions",
+    "rating": 5,
+    "comment": "I love my lash extensions! David did such a great job and they look so natural. I've been coming back every 3 weeks for fills and I'm always happy with the results.",
+    "date": "2024-12-25T12:30:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440078",
+    "publicId": "550e8400-e29b-41d4-a716-446655440078",
+    "clientName": "Samantha H.",
+    "serviceName": "Haircut & Style",
+    "rating": 5,
+    "comment": "Emily gave me the perfect haircut! She really understood what I wanted and the style suits me so well. The salon is beautiful and the service was excellent.",
+    "date": "2024-12-22T16:45:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-beach-waves-CPGw3b2B.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440079",
+    "publicId": "550e8400-e29b-41d4-a716-446655440079",
+    "clientName": "Ashley P.",
+    "serviceName": "Gel Manicure",
+    "rating": 5,
+    "comment": "Jessica's nail art skills are incredible! She created a beautiful design that I got so many compliments on. The gel lasted perfectly for 3 weeks.",
+    "date": "2024-12-20T13:20:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-ombre-nails-EB4_BCEJ.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440080",
+    "publicId": "550e8400-e29b-41d4-a716-446655440080",
+    "clientName": "Michelle K.",
+    "serviceName": "Facial Treatment",
+    "rating": 5,
+    "comment": "The facial treatment was so relaxing and my skin looks amazing! Michael was very knowledgeable and gave me great advice for my skincare routine.",
+    "date": "2024-12-18T11:00:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-hydrating-treatment-CeKYdB1R.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440081",
+    "publicId": "550e8400-e29b-41d4-a716-446655440081",
+    "clientName": "Tiffany R.",
+    "serviceName": "Pedicure Spa",
+    "rating": 4,
+    "comment": "Great pedicure service! Marcus was very thorough and my feet look and feel amazing. The spa atmosphere was very relaxing.",
+    "date": "2024-12-15T15:30:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440082",
+    "publicId": "550e8400-e29b-41d4-a716-446655440082",
+    "clientName": "Kelly S.",
+    "serviceName": "Balayage Highlights",
+    "rating": 5,
+    "comment": "Sarah's balayage work is absolutely stunning! The color looks so natural and the technique is flawless. I get compliments everywhere I go.",
+    "date": "2024-12-12T10:45:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-balayage-CcxDGK12.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440083",
+    "publicId": "550e8400-e29b-41d4-a716-446655440083",
+    "clientName": "Vanessa L.",
+    "serviceName": "Bridal Makeup",
+    "rating": 5,
+    "comment": "David made me feel like a princess on my wedding day! The makeup was perfect and lasted through all the dancing and tears. Highly recommend for any special occasion.",
+    "date": "2024-12-10T08:30:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-bridal-makeup-BYKiDmof.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440084",
+    "publicId": "550e8400-e29b-41d4-a716-446655440084",
+    "clientName": "Jennifer A.",
+    "serviceName": "Haircut & Style",
+    "rating": 5,
+    "comment": "Emily gave me the best haircut I've had in years! She really listened to what I wanted and the result exceeded my expectations. The salon is beautiful too.",
+    "date": "2024-12-08T14:15:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440085",
+    "publicId": "550e8400-e29b-41d4-a716-446655440085",
+    "clientName": "Melissa C.",
+    "serviceName": "Gel Manicure",
+    "rating": 5,
+    "comment": "Jessica's attention to detail is amazing! My gel manicure looked perfect and lasted for weeks. The nail art she created was exactly what I envisioned.",
+    "date": "2024-12-05T16:00:00Z",
+    "isVerified": true,
+    "images": ["/src/assets/work-french-manicure-BRMkhUvc.jpg"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440086",
+    "publicId": "550e8400-e29b-41d4-a716-446655440086",
+    "clientName": "Diana M.",
+    "serviceName": "Facial Treatment",
+    "rating": 5,
+    "comment": "Michael's facial treatment was incredible! My skin feels so soft and looks radiant. He was very professional and gave me great skincare tips.",
+    "date": "2024-12-03T12:30:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440087",
+    "publicId": "550e8400-e29b-41d4-a716-446655440087",
+    "clientName": "Angela T.",
+    "serviceName": "Lash Extensions",
+    "rating": 5,
+    "comment": "I love my lash extensions! David did such a great job and they look so natural. I've been getting them for 6 months now and I'm always happy with the results.",
+    "date": "2024-11-30T15:45:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440088",
+    "publicId": "550e8400-e29b-41d4-a716-446655440088",
+    "clientName": "Patricia W.",
+    "serviceName": "Pedicure Spa",
+    "rating": 4,
+    "comment": "Good pedicure service. Marcus was professional and my feet look great. The spa atmosphere was relaxing and the service was thorough.",
+    "date": "2024-11-28T13:20:00Z",
+    "isVerified": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440089",
+    "publicId": "550e8400-e29b-41d4-a716-446655440089",
+    "clientName": "Nancy B.",
+    "serviceName": "Eyebrow Shaping",
+    "rating": 5,
+    "comment": "David did an excellent job shaping my eyebrows! They look so much better and more defined. I'll definitely be coming back for regular maintenance.",
+    "date": "2024-11-25T11:15:00Z",
+    "isVerified": true
+  }
+]
+
+
+
+

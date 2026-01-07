@@ -1,0 +1,762 @@
+openapi: 3.1.0
+info:
+  title: Mango Store to AI Service API
+  description: API contract for AI Service integration with Mango Online Store
+  version: 1.0.0
+  contact:
+    name: Mango Development Team
+    email: dev@mango.com
+
+servers:
+  - url: http://localhost:3001/api/v1/ai
+    description: AI Service (Development)
+  - url: https://ai.mango.com/api/v1/ai
+    description: AI Service (Production)
+
+paths:
+  /chat:
+    post:
+      summary: Send chat message to AI
+      description: Send a user message and receive AI response with suggestions and actions
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIChatRequest'
+            examples:
+              basic_message:
+                summary: Basic chat message
+                value:
+                  sessionId: "session_123"
+                  message: "What services do you offer?"
+              contextual_message:
+                summary: Message with context
+                value:
+                  sessionId: "session_123"
+                  message: "I'm interested in hair services"
+                  context:
+                    page: "services"
+                    cart:
+                      itemCount: 2
+                      total: 150.00
+                      items:
+                        - id: "service_1"
+                          name: "Hair Cut"
+                          quantity: 1
+                          price: 75.00
+      responses:
+        '200':
+          description: AI response with suggestions and actions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatResponse'
+              examples:
+                basic_response:
+                  summary: Basic AI response
+                  value:
+                    response: "We offer a wide range of hair, nail, and skincare services. What type of service are you interested in?"
+                    suggestions:
+                      - "Hair services"
+                      - "Nail services"
+                      - "Skincare treatments"
+                    actions:
+                      - type: "navigate"
+                        label: "View Services"
+                        payload:
+                          url: "/shop"
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIError'
+        '500':
+          description: AI service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /recommend:
+    post:
+      summary: Get AI recommendations
+      description: Get personalized recommendations based on context and user behavior
+      operationId: getRecommendations
+      tags:
+        - Recommendations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIRecommendationRequest'
+            examples:
+              homepage_recommendations:
+                summary: Homepage recommendations
+                value:
+                  context: "homepage"
+                  limit: 5
+              cart_recommendations:
+                summary: Cart-based recommendations
+                value:
+                  context: "cart"
+                  items: ["service_1", "product_2"]
+                  limit: 3
+      responses:
+        '200':
+          description: AI recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIRecommendationResponse'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: AI service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /search:
+    post:
+      summary: AI-powered search
+      description: Search for services, products, or content using AI
+      operationId: aiSearch
+      tags:
+        - Search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AISearchRequest'
+            examples:
+              basic_search:
+                summary: Basic search
+                value:
+                  query: "hair cut"
+                  limit: 10
+              filtered_search:
+                summary: Filtered search
+                value:
+                  query: "nail art"
+                  filters:
+                    category: "nails"
+                    priceRange:
+                      min: 50
+                      max: 100
+                  limit: 5
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISearchResponse'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: AI service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /suggestions:
+    get:
+      summary: Get contextual suggestions
+      description: Get quick reply suggestions based on current context
+      operationId: getSuggestions
+      tags:
+        - Suggestions
+      parameters:
+        - name: context
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [homepage, product, service, cart, checkout]
+          description: Current page context
+        - name: currentMessage
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Current user message (for context)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+          description: Maximum number of suggestions to return
+      responses:
+        '200':
+          description: Contextual suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISuggestionsResponse'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: AI service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    AIChatRequest:
+      type: object
+      required:
+        - sessionId
+        - message
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+          example: "session_123"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: User message
+          example: "What services do you offer?"
+        context:
+          $ref: '#/components/schemas/UserContext'
+
+    AIChatResponse:
+      type: object
+      required:
+        - response
+      properties:
+        response:
+          type: string
+          description: AI response message
+          example: "We offer a wide range of hair, nail, and skincare services."
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Suggested follow-up questions or actions
+          example: ["Hair services", "Nail services", "Skincare treatments"]
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIAction'
+          description: Suggested actions user can take
+        metadata:
+          $ref: '#/components/schemas/AIMetadata'
+
+    AIRecommendationRequest:
+      type: object
+      required:
+        - context
+      properties:
+        userId:
+          type: string
+          description: User identifier (optional for personalization)
+          example: "user_123"
+        context:
+          type: string
+          enum: [homepage, cart, product, service, checkout]
+          description: Recommendation context
+          example: "homepage"
+        items:
+          type: array
+          items:
+            type: string
+          description: Item IDs for context
+          example: ["service_1", "product_2"]
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 5
+          description: Maximum number of recommendations
+
+    AIRecommendationResponse:
+      type: object
+      required:
+        - recommendations
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+        metadata:
+          $ref: '#/components/schemas/AIMetadata'
+
+    AISearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Search query
+          example: "hair cut"
+        filters:
+          $ref: '#/components/schemas/SearchFilters'
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+          description: Maximum number of results
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of results to skip
+
+    AISearchResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Search suggestions
+          example: ["Try 'hair cut'", "Try 'nail art'"]
+        metadata:
+          $ref: '#/components/schemas/AISearchMetadata'
+
+    AISuggestionsRequest:
+      type: object
+      required:
+        - context
+      properties:
+        context:
+          type: string
+          enum: [homepage, product, service, cart, checkout]
+          description: Current page context
+        currentMessage:
+          type: string
+          description: Current user message (for context)
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+          description: Maximum number of suggestions
+
+    AISuggestionsResponse:
+      type: object
+      required:
+        - suggestions
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Suggestion'
+        metadata:
+          $ref: '#/components/schemas/AIMetadata'
+
+    UserContext:
+      type: object
+      properties:
+        page:
+          type: string
+          description: Current page
+          example: "services"
+        cart:
+          $ref: '#/components/schemas/CartSummary'
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        previousMessages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+
+    CartSummary:
+      type: object
+      required:
+        - itemCount
+        - total
+        - items
+      properties:
+        itemCount:
+          type: integer
+          description: Number of items in cart
+          example: 2
+        total:
+          type: number
+          description: Total cart value
+          example: 150.00
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "service_1"
+              name:
+                type: string
+                example: "Hair Cut"
+              quantity:
+                type: integer
+                example: 1
+              price:
+                type: number
+                example: 75.00
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "user_123"
+        preferences:
+          type: object
+          properties:
+            theme:
+              type: string
+              example: "light"
+            language:
+              type: string
+              example: "en"
+            notifications:
+              type: boolean
+              example: true
+        history:
+          type: object
+          properties:
+            recentServices:
+              type: array
+              items:
+                type: string
+              example: ["service_1", "service_2"]
+            recentProducts:
+              type: array
+              items:
+                type: string
+              example: ["product_1"]
+            lastVisit:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+
+    ChatMessage:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - timestamp
+      properties:
+        id:
+          type: string
+          example: "msg_123"
+        role:
+          type: string
+          enum: [user, assistant]
+          example: "user"
+        content:
+          type: string
+          example: "What services do you offer?"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        metadata:
+          type: object
+          properties:
+            suggestions:
+              type: array
+              items:
+                type: string
+            actions:
+              type: array
+              items:
+                $ref: '#/components/schemas/AIAction'
+
+    AIAction:
+      type: object
+      required:
+        - type
+        - label
+        - payload
+      properties:
+        type:
+          type: string
+          enum: [navigate, add_to_cart, book_appointment, view_details]
+          example: "navigate"
+        label:
+          type: string
+          example: "View Services"
+        payload:
+          type: object
+          properties:
+            url:
+              type: string
+              example: "/shop"
+            productId:
+              type: string
+              example: "product_1"
+            serviceId:
+              type: string
+              example: "service_1"
+            appointmentData:
+              type: object
+
+    Recommendation:
+      type: object
+      required:
+        - type
+        - id
+        - reason
+        - confidence
+      properties:
+        type:
+          type: string
+          enum: [product, service, membership]
+          example: "service"
+        id:
+          type: string
+          example: "service_1"
+        reason:
+          type: string
+          example: "Popular choice for new clients"
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.9
+        metadata:
+          type: object
+          properties:
+            category:
+              type: string
+              example: "Hair"
+            price:
+              type: number
+              example: 75.00
+            imageUrl:
+              type: string
+              example: "/images/hair-service.jpg"
+
+    SearchFilters:
+      type: object
+      properties:
+        category:
+          type: string
+          example: "hair"
+        priceRange:
+          type: object
+          properties:
+            min:
+              type: number
+              example: 50
+            max:
+              type: number
+              example: 100
+        availability:
+          type: boolean
+          example: true
+
+    SearchResult:
+      type: object
+      required:
+        - type
+        - id
+        - title
+        - description
+        - relevanceScore
+      properties:
+        type:
+          type: string
+          enum: [product, service, content]
+          example: "service"
+        id:
+          type: string
+          example: "service_1"
+        title:
+          type: string
+          example: "Hair Cut & Style"
+        description:
+          type: string
+          example: "Professional haircut and styling service"
+        relevanceScore:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.9
+        metadata:
+          type: object
+          properties:
+            category:
+              type: string
+              example: "Hair"
+            price:
+              type: number
+              example: 75.00
+            imageUrl:
+              type: string
+              example: "/images/hair-cut.jpg"
+            availability:
+              type: boolean
+              example: true
+
+    Suggestion:
+      type: object
+      required:
+        - text
+        - type
+        - confidence
+      properties:
+        text:
+          type: string
+          example: "What services do you offer?"
+        type:
+          type: string
+          enum: [question, action, recommendation]
+          example: "question"
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.9
+
+    AIMetadata:
+      type: object
+      properties:
+        model:
+          type: string
+          example: "gpt-4"
+        tokensUsed:
+          type: integer
+          example: 150
+        processingTime:
+          type: number
+          description: Processing time in milliseconds
+          example: 500
+
+    AISearchMetadata:
+      allOf:
+        - $ref: '#/components/schemas/AIMetadata'
+        - type: object
+          properties:
+            totalResults:
+              type: integer
+              example: 25
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "INVALID_REQUEST"
+            message:
+              type: string
+              example: "Invalid request format"
+            details:
+              type: object
+
+    AIError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum: [RATE_LIMITED, QUOTA_EXCEEDED, MODEL_UNAVAILABLE, INVALID_REQUEST, INTERNAL_ERROR]
+              example: "RATE_LIMITED"
+            message:
+              type: string
+              example: "Rate limit exceeded"
+            details:
+              type: object
+              properties:
+                retryAfter:
+                  type: integer
+                  description: Seconds to wait before retrying
+                  example: 60
+                quotaReset:
+                  type: string
+                  format: date-time
+                  example: "2024-01-15T11:00:00Z"
+                availableModels:
+                  type: array
+                  items:
+                    type: string
+                  example: ["gpt-3.5-turbo", "claude-3-haiku"]
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+tags:
+  - name: Chat
+    description: AI chat functionality
+  - name: Recommendations
+    description: AI-powered recommendations
+  - name: Search
+    description: AI-powered search
+  - name: Suggestions
+    description: Contextual suggestions
+
+
+
+

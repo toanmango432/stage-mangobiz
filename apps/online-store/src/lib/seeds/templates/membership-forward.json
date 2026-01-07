@@ -1,0 +1,74 @@
+{
+  "id": "membership-forward",
+  "name": "Membership Forward",
+  "description": "Drive membership sign-ups and recurring revenue",
+  "flowStyle": "MembershipForward",
+  "sections": [
+    {
+      "id": "hero-1",
+      "kind": "Hero",
+      "order": 1,
+      "props": {
+        "title": "Unlock VIP Benefits",
+        "subtitle": "Save more with our exclusive memberships",
+        "ctaText": "View Plans",
+        "ctaLink": "/memberships"
+      }
+    },
+    {
+      "id": "membership-1",
+      "kind": "MembershipRail",
+      "order": 2,
+      "props": {
+        "title": "Choose Your Plan",
+        "featured": true
+      }
+    },
+    {
+      "id": "services-1",
+      "kind": "ServiceGrid",
+      "order": 3,
+      "props": {
+        "title": "Included Services",
+        "limit": 6
+      }
+    },
+    {
+      "id": "stats-1",
+      "kind": "Stats",
+      "order": 4,
+      "props": {}
+    },
+    {
+      "id": "reviews-1",
+      "kind": "ReviewsShowcase",
+      "order": 5,
+      "props": {
+        "title": "Member Reviews"
+      }
+    },
+    {
+      "id": "products-1",
+      "kind": "ProductGrid",
+      "order": 6,
+      "props": {
+        "title": "Member Exclusive Products",
+        "limit": 4
+      }
+    },
+    {
+      "id": "social-1",
+      "kind": "SocialFeed",
+      "order": 7,
+      "props": {
+        "title": "Join Our Community"
+      }
+    },
+    {
+      "id": "footer-1",
+      "kind": "Footer",
+      "order": 8,
+      "props": {}
+    }
+  ]
+}

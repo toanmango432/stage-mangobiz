@@ -7,8 +7,9 @@
 -- =============================================================================
 
 -- Appointments: Store + date range queries (most common)
+-- Using scheduled_start_time since appointments table doesn't have appointment_date column
 CREATE INDEX IF NOT EXISTS idx_appointments_store_date
-ON appointments(store_id, appointment_date);
+ON appointments(store_id, scheduled_start_time);
 
 -- Appointments: Store + status for filtering
 CREATE INDEX IF NOT EXISTS idx_appointments_store_status
@@ -16,7 +17,7 @@ ON appointments(store_id, status);
 
 -- Appointments: Staff scheduling queries
 CREATE INDEX IF NOT EXISTS idx_appointments_staff_date
-ON appointments(staff_id, appointment_date);
+ON appointments(staff_id, scheduled_start_time);
 
 -- Tickets: Store + status (dashboard views)
 CREATE INDEX IF NOT EXISTS idx_tickets_store_status
@@ -51,17 +52,18 @@ CREATE INDEX IF NOT EXISTS idx_staff_store_active
 ON staff(store_id, is_active);
 
 -- Services: Store + category (menu display)
+-- Note: Using 'category' column (text), not 'category_id'
 CREATE INDEX IF NOT EXISTS idx_services_store_category
-ON services(store_id, category_id);
+ON services(store_id, category);
 
 -- =============================================================================
 -- PARTIAL INDEXES FOR ACTIVE/RECENT DATA
 -- =============================================================================
 
--- Active clients only (most queries filter deleted)
+-- Active clients (non-blocked clients are active)
 CREATE INDEX IF NOT EXISTS idx_clients_active
 ON clients(store_id)
-WHERE is_deleted = false OR is_deleted IS NULL;
+WHERE is_blocked = false OR is_blocked IS NULL;
 
 -- Active staff only
 CREATE INDEX IF NOT EXISTS idx_staff_active_only
@@ -73,10 +75,9 @@ CREATE INDEX IF NOT EXISTS idx_tickets_open
 ON tickets(store_id, created_at DESC)
 WHERE status IN ('waiting', 'in-service', 'completed');
 
--- Today's appointments (most accessed)
-CREATE INDEX IF NOT EXISTS idx_appointments_today
-ON appointments(store_id, start_time)
-WHERE appointment_date = CURRENT_DATE;
+-- Note: "Today's appointments" partial index removed as CURRENT_DATE
+-- in WHERE clause doesn't work for partial indexes (it's evaluated at index creation time).
+-- Use regular composite index idx_appointments_store_date instead.
 
 -- =============================================================================
 -- SYNC-RELATED INDEXES

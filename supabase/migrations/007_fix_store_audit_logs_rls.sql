@@ -16,8 +16,9 @@
 -- FIX 1: RLS POLICY
 -- =============================================================================
 
--- Drop the existing overly restrictive policy
+-- Drop existing policies
 DROP POLICY IF EXISTS "Stores can view own audit logs" ON store_audit_logs;
+DROP POLICY IF EXISTS "Authenticated users can view store audit logs" ON store_audit_logs;
 
 -- Create a more permissive policy that works with anonymous auth
 -- The app filters by store_id in queries, so this is safe

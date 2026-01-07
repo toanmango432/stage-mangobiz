@@ -1079,7 +1079,7 @@ class StoreAuthManager {
 
     try {
       // We need to use a direct update to unrevoke
-      const { supabase } = await import('@/admin/db/supabaseClient');
+      const { supabase } = await import('@/services/supabase/client');
       await supabase
         .from('devices')
         .update({

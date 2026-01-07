@@ -5,7 +5,7 @@
  * Handles device registration, mode toggling, and revocation.
  */
 
-import { supabase } from '@/admin/db/supabaseClient';
+import { supabase } from '@/services/supabase/client';
 import type {
   Device,
   DevicePolicy,

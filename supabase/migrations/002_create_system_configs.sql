@@ -2,7 +2,7 @@
 -- This table stores tax rates, payment methods, tip settings, etc.
 
 CREATE TABLE IF NOT EXISTS system_configs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
 
   -- Business defaults

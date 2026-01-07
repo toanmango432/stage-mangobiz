@@ -78,13 +78,36 @@ import type {
 const USE_API = import.meta.env.VITE_USE_API_LAYER === 'true';
 
 /**
+ * Build the API base URL for Supabase Edge Functions
+ * Pattern: https://<project-ref>.supabase.co/functions/v1
+ */
+function getAPIBaseUrl(): string {
+  // First check for explicit API base URL override
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Build from Supabase URL (default for Edge Functions)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    return `${supabaseUrl}/functions/v1`;
+  }
+
+  // Fallback for development
+  console.warn('[DataService] No VITE_SUPABASE_URL configured, using fallback');
+  return 'https://cpaldkcvdcdyzytosntc.supabase.co/functions/v1';
+}
+
+/**
  * API Client instance (lazy initialized)
  */
 let _apiClient: ReturnType<typeof createAPIClient> | null = null;
 
 function getAPIClient() {
   if (!_apiClient) {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    const baseUrl = getAPIBaseUrl();
+    console.log('[DataService] API Client initialized with baseUrl:', baseUrl);
+
     _apiClient = createAPIClient({
       baseUrl,
       timeout: 15000,
@@ -302,7 +325,7 @@ export function getModeInfo(): {
     online: isOnline(),
     dataSource: getDataSource(),
     apiEnabled: USE_API,
-    apiBaseUrl: USE_API ? (import.meta.env.VITE_API_BASE_URL || '/api') : undefined,
+    apiBaseUrl: USE_API ? getAPIBaseUrl() : undefined,
   };
 }
 
@@ -441,7 +464,7 @@ export const clientsService = {
       // API MODE: Fetch VIP clients via REST endpoint
       const api = getAPIClient();
       const response = await api.get<{ data: Client[]; timestamp: string }>(
-        `${endpoints.clients.list(storeId)}/vip`
+        endpoints.clients.vip(storeId)
       );
       return extractData(response, { data: [], timestamp: '' }).data;
     }

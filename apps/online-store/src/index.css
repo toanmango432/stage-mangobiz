@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* V2 Booking Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes skeleton {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+/* Animation utility classes */
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.6s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-skeleton {
+  animation: skeleton 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+}
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Mango Brand Colors - Warm, Inviting Salon Aesthetic */
+    --background: 28 25% 97%;
+    --foreground: 24 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 15% 15%;
+
+    /* Primary: Warm Peachy-Coral (Mango) */
+    --primary: 18 85% 62%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 18 90% 75%;
+    --primary-dark: 18 75% 52%;
+
+    /* Secondary: Soft Cream */
+    --secondary: 32 30% 92%;
+    --secondary-foreground: 24 15% 15%;
+
+    /* Accent: Deep Plum */
+    --accent: 330 45% 45%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 330 45% 60%;
+
+    --muted: 32 20% 88%;
+    --muted-foreground: 24 10% 45%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 32 20% 88%;
+    --input: 32 20% 90%;
+    --ring: 18 85% 62%;
+    
+    /* Orange accent for service menu */
+    --orange: 25 95% 53%;
+    --orange-dark: 25 90% 48%;
+
+    --radius: 1rem;
+
+    /* Custom Design Tokens */
+    --gradient-hero: linear-gradient(135deg, hsl(18 85% 62%) 0%, hsl(28 90% 70%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(32 30% 98%) 100%);
+    --shadow-soft: 0 2px 12px -2px hsl(18 50% 50% / 0.12);
+    --shadow-card: 0 4px 20px -4px hsl(18 30% 40% / 0.15);
+    --shadow-elevated: 0 8px 32px -8px hsl(18 30% 30% / 0.2);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 24 15% 15%;
+    --sidebar-primary: 18 85% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 32 30% 92%;
+    --sidebar-accent-foreground: 24 15% 15%;
+    --sidebar-border: 32 20% 88%;
+    --sidebar-ring: 18 85% 62%;
+  }
+
+  .dark {
+    --background: 24 20% 8%;
+    --foreground: 32 15% 95%;
+
+    --card: 24 18% 12%;
+    --card-foreground: 32 15% 95%;
+
+    --popover: 24 18% 12%;
+    --popover-foreground: 32 15% 95%;
+
+    --primary: 18 85% 62%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 18 90% 75%;
+    --primary-dark: 18 75% 52%;
+
+    --secondary: 24 15% 18%;
+    --secondary-foreground: 32 15% 95%;
+
+    --accent: 330 45% 55%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 330 45% 70%;
+
+    --muted: 24 15% 18%;
+    --muted-foreground: 32 10% 65%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 15% 18%;
+    --input: 24 15% 18%;
+    --ring: 18 85% 62%;
+    
+    /* Orange accent for service menu */
+    --orange: 25 95% 53%;
+    --orange-dark: 25 90% 48%;
+
+    --sidebar-background: 24 20% 8%;
+    --sidebar-foreground: 32 15% 95%;
+    --sidebar-primary: 18 85% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 24 15% 18%;
+    --sidebar-accent-foreground: 32 15% 95%;
+    --sidebar-border: 24 15% 18%;
+    --sidebar-ring: 18 85% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Confetti Animation */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440040",
+    "publicId": "550e8400-e29b-41d4-a716-446655440040",
+    "amount": 50.00,
+    "isCustomAmount": false,
+    "image": "/src/assets/gift-card-BZwC9-W1.jpg",
+    "isActive": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440041",
+    "publicId": "550e8400-e29b-41d4-a716-446655440041",
+    "amount": 100.00,
+    "isCustomAmount": false,
+    "image": "/src/assets/gift-card-BZwC9-W1.jpg",
+    "isActive": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440042",
+    "publicId": "550e8400-e29b-41d4-a716-446655440042",
+    "amount": 200.00,
+    "isCustomAmount": false,
+    "image": "/src/assets/gift-card-BZwC9-W1.jpg",
+    "isActive": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440043",
+    "publicId": "550e8400-e29b-41d4-a716-446655440043",
+    "amount": 0.00,
+    "isCustomAmount": true,
+    "minAmount": 25.00,
+    "maxAmount": 500.00,
+    "image": "/src/assets/gift-card-BZwC9-W1.jpg",
+    "isActive": true
+  }
+]
+
+
+
+

@@ -1,0 +1,73 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440050",
+    "publicId": "550e8400-e29b-41d4-a716-446655440050",
+    "name": "New Client Special",
+    "description": "20% off your first visit",
+    "code": "WELCOME20",
+    "type": "percentage",
+    "value": 20,
+    "minPurchaseAmount": 50.00,
+    "applicableServices": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440003"],
+    "startsAt": "2025-01-01T00:00:00Z",
+    "endsAt": "2025-12-31T23:59:59Z",
+    "usageLimit": 1000,
+    "usageCount": 0,
+    "isActive": true,
+    "displaySettings": {
+      "showInHero": true,
+      "showInBanner": true,
+      "showInModal": false,
+      "countdown": false,
+      "priority": 8
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440051",
+    "publicId": "550e8400-e29b-41d4-a716-446655440051",
+    "name": "Holiday Special",
+    "description": "Get $25 off any service over $100",
+    "code": "HOLIDAY25",
+    "type": "fixed_amount",
+    "value": 25.00,
+    "minPurchaseAmount": 100.00,
+    "startsAt": "2025-12-01T00:00:00Z",
+    "endsAt": "2025-12-31T23:59:59Z",
+    "usageLimit": 500,
+    "usageCount": 0,
+    "isActive": true,
+    "displaySettings": {
+      "showInHero": false,
+      "showInBanner": true,
+      "showInModal": false,
+      "countdown": true,
+      "priority": 7
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440052",
+    "publicId": "550e8400-e29b-41d4-a716-446655440052",
+    "name": "Referral Bonus",
+    "description": "Bring a friend and both get 15% off",
+    "code": "FRIEND15",
+    "type": "percentage",
+    "value": 15,
+    "applicableServices": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440004"],
+    "startsAt": "2025-01-01T00:00:00Z",
+    "endsAt": "2025-12-31T23:59:59Z",
+    "usageLimit": 200,
+    "usageCount": 0,
+    "isActive": true,
+    "displaySettings": {
+      "showInHero": false,
+      "showInBanner": true,
+      "showInModal": false,
+      "countdown": false,
+      "priority": 6
+    }
+  }
+]
+
+
+
+

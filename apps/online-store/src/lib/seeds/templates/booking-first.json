@@ -1,0 +1,66 @@
+{
+  "id": "booking-first",
+  "name": "Booking First",
+  "description": "Focus on service bookings with clear calls-to-action",
+  "flowStyle": "BookingFirst",
+  "sections": [
+    {
+      "id": "hero-1",
+      "kind": "Hero",
+      "order": 1,
+      "props": {
+        "title": "Your Beauty Destination",
+        "subtitle": "Book your next appointment today",
+        "ctaText": "Book Now",
+        "ctaLink": "/book"
+      }
+    },
+    {
+      "id": "services-1",
+      "kind": "ServiceGrid",
+      "order": 2,
+      "props": {
+        "title": "Our Services",
+        "limit": 6
+      }
+    },
+    {
+      "id": "promo-1",
+      "kind": "PromoBanner",
+      "order": 3,
+      "props": {
+        "text": "New customers get 15% off their first visit"
+      }
+    },
+    {
+      "id": "reviews-1",
+      "kind": "ReviewsShowcase",
+      "order": 4,
+      "props": {
+        "title": "What Our Clients Say"
+      }
+    },
+    {
+      "id": "membership-1",
+      "kind": "MembershipRail",
+      "order": 5,
+      "props": {
+        "title": "Join Our VIP Club"
+      }
+    },
+    {
+      "id": "location-1",
+      "kind": "LocationHours",
+      "order": 6,
+      "props": {
+        "title": "Visit Us"
+      }
+    },
+    {
+      "id": "footer-1",
+      "kind": "Footer",
+      "order": 7,
+      "props": {}
+    }
+  ]
+}

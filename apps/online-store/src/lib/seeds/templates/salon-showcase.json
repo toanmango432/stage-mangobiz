@@ -1,0 +1,95 @@
+{
+  "id": "salon-showcase",
+  "name": "Salon Showcase",
+  "description": "Complete salon website with team, reviews, and gallery - perfect for showcasing your brand",
+  "flowStyle": "BookingFirst",
+  "sections": [
+    {
+      "id": "hero-1",
+      "kind": "Hero",
+      "order": 1,
+      "props": {}
+    },
+    {
+      "id": "about-1",
+      "kind": "AboutSalon",
+      "order": 2,
+      "props": {
+        "title": "Our Story"
+      }
+    },
+    {
+      "id": "services-1",
+      "kind": "ServiceGrid",
+      "order": 3,
+      "props": {
+        "title": "Our Services",
+        "limit": 6
+      }
+    },
+    {
+      "id": "gallery-1",
+      "kind": "WorkGallery",
+      "order": 4,
+      "props": {
+        "title": "Our Work"
+      }
+    },
+    {
+      "id": "team-1",
+      "kind": "TeamGallery",
+      "order": 5,
+      "props": {
+        "title": "Meet Our Team"
+      }
+    },
+    {
+      "id": "reviews-1",
+      "kind": "ReviewsShowcase",
+      "order": 6,
+      "props": {
+        "title": "What Our Clients Say"
+      }
+    },
+    {
+      "id": "stats-1",
+      "kind": "Stats",
+      "order": 7,
+      "props": {}
+    },
+    {
+      "id": "location-1",
+      "kind": "LocationHours",
+      "order": 8,
+      "props": {
+        "title": "Visit Us"
+      }
+    },
+    {
+      "id": "social-1",
+      "kind": "SocialFeed",
+      "order": 9,
+      "props": {
+        "title": "Follow Us on Social",
+        "subtitle": "Stay updated with our latest work and special offers"
+      }
+    },
+    {
+      "id": "cta-1",
+      "kind": "CTA",
+      "order": 10,
+      "props": {
+        "title": "Ready to Book Your Appointment?",
+        "text": "Experience the Mango Salon difference today",
+        "ctaText": "Book Now",
+        "ctaLink": "/book"
+      }
+    },
+    {
+      "id": "footer-1",
+      "kind": "Footer",
+      "order": 11,
+      "props": {}
+    }
+  ]
+}

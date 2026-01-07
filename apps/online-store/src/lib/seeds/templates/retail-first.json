@@ -1,0 +1,77 @@
+{
+  "id": "retail-first",
+  "name": "Retail First",
+  "description": "Showcase products and drive e-commerce sales",
+  "flowStyle": "RetailFirst",
+  "sections": [
+    {
+      "id": "hero-1",
+      "kind": "Hero",
+      "order": 1,
+      "props": {
+        "title": "Shop Premium Beauty",
+        "subtitle": "Discover our curated collection",
+        "ctaText": "Shop Now",
+        "ctaLink": "/shop"
+      }
+    },
+    {
+      "id": "products-1",
+      "kind": "ProductGrid",
+      "order": 2,
+      "props": {
+        "title": "Featured Products",
+        "limit": 8
+      }
+    },
+    {
+      "id": "promo-1",
+      "kind": "PromoBanner",
+      "order": 3,
+      "props": {
+        "text": "Free shipping on orders over $50"
+      }
+    },
+    {
+      "id": "gallery-1",
+      "kind": "WorkGallery",
+      "order": 4,
+      "props": {
+        "title": "See Our Results"
+      }
+    },
+    {
+      "id": "team-1",
+      "kind": "TeamGallery",
+      "order": 5,
+      "props": {
+        "title": "Meet Our Experts"
+      }
+    },
+    {
+      "id": "reviews-1",
+      "kind": "ReviewsShowcase",
+      "order": 6,
+      "props": {
+        "title": "Customer Reviews"
+      }
+    },
+    {
+      "id": "cta-1",
+      "kind": "CTA",
+      "order": 7,
+      "props": {
+        "title": "Join Our Beauty Community",
+        "text": "Get exclusive access to new products and special offers",
+        "ctaText": "Sign Up",
+        "ctaLink": "/login"
+      }
+    },
+    {
+      "id": "footer-1",
+      "kind": "Footer",
+      "order": 8,
+      "props": {}
+    }
+  ]
+}

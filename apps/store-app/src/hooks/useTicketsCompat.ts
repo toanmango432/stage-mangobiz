@@ -57,7 +57,6 @@ export function useTicketsCompat() {
 
   // Load data on mount
   useEffect(() => {
-    const storeId = 'salon-001'; // TODO: Get from auth
     // Use storeId from auth if available, fallback to default-store
     const storeId = authStoreId || 'default-store';
     console.log('[useTicketsCompat] Loading data with storeId:', storeId);

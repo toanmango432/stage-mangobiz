@@ -1,0 +1,67 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440030",
+    "publicId": "550e8400-e29b-41d4-a716-446655440030",
+    "name": "Bronze Membership",
+    "description": "Perfect for occasional beauty treatments",
+    "price": 99.00,
+    "duration": 1,
+    "benefits": [
+      "10% discount on all services",
+      "Priority booking",
+      "Free consultation",
+      "Monthly newsletter"
+    ],
+    "discountPercentage": 10,
+    "maxBookings": 4,
+    "isPopular": false,
+    "isActive": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440031",
+    "publicId": "550e8400-e29b-41d4-a716-446655440031",
+    "name": "Silver Membership",
+    "description": "Great value for regular beauty maintenance",
+    "price": 199.00,
+    "duration": 1,
+    "benefits": [
+      "15% discount on all services",
+      "Priority booking",
+      "Free consultation",
+      "Monthly newsletter",
+      "Free product samples",
+      "Birthday treatment"
+    ],
+    "discountPercentage": 15,
+    "maxBookings": 8,
+    "isPopular": true,
+    "isActive": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440032",
+    "publicId": "550e8400-e29b-41d4-a716-446655440032",
+    "name": "Gold Membership",
+    "description": "Ultimate luxury experience with exclusive benefits",
+    "price": 399.00,
+    "duration": 1,
+    "benefits": [
+      "20% discount on all services",
+      "Priority booking",
+      "Free consultation",
+      "Monthly newsletter",
+      "Free product samples",
+      "Birthday treatment",
+      "Exclusive events",
+      "Personal beauty advisor",
+      "Free touch-ups"
+    ],
+    "discountPercentage": 20,
+    "maxBookings": 12,
+    "isPopular": false,
+    "isActive": true
+  }
+]
+
+
+
+

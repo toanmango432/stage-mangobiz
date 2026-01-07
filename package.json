@@ -21,7 +21,11 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "dev:store": "turbo dev --filter=@mango/store-app",
     "build:store": "turbo build --filter=@mango/store-app",
-    "dev:electron": "turbo dev --filter=@mango/store-app-electron"
+    "dev:electron": "turbo dev --filter=@mango/store-app-electron",
+    "dev:control": "turbo dev --filter=@mango/control-center",
+    "build:control": "turbo build --filter=@mango/control-center",
+    "dev:online": "turbo dev --filter=@mango/online-store",
+    "build:online": "turbo build --filter=@mango/online-store"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

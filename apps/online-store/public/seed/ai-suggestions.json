@@ -1,0 +1,43 @@
+{
+  "chat": [
+    "Welcome to Mango Beauty Studio! How can I help you today?",
+    "I'd be happy to help you find the perfect service for your needs.",
+    "What type of beauty treatment are you interested in?",
+    "I can help you book an appointment or answer any questions about our services.",
+    "Our team of experts is here to help you look and feel your best!"
+  ],
+  "recommendations": [
+    "Based on your preferences, I recommend our Balayage Highlights service.",
+    "For your skin type, our Facial Treatment would be perfect.",
+    "If you're looking for something special, try our Bridal Makeup service.",
+    "Our Gel Manicure is very popular and lasts up to 3 weeks.",
+    "For a complete look, consider our Haircut & Style with a Gel Manicure."
+  ],
+  "copywriting": {
+    "promotions": [
+      "Transform your look with our premium beauty services!",
+      "Discover the perfect style that matches your personality.",
+      "Experience luxury beauty treatments in a relaxing environment.",
+      "Book your appointment today and see the difference!",
+      "Join thousands of satisfied customers who trust our expertise."
+    ],
+    "announcements": [
+      "Exciting news! We're introducing new services this month.",
+      "Don't miss out on our limited-time special offers.",
+      "Book now to secure your spot for our popular services.",
+      "We're here to help you look and feel your absolute best.",
+      "Thank you for choosing Mango Beauty Studio for your beauty needs."
+    ],
+    "services": [
+      "Professional beauty services tailored to your unique style.",
+      "Expert stylists with years of experience and passion for beauty.",
+      "Premium products and techniques for stunning results.",
+      "Relaxing atmosphere where you can unwind and be pampered.",
+      "Personalized consultations to find your perfect look."
+    ]
+  }
+}
+
+
+
+

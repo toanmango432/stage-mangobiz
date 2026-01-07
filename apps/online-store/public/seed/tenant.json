@@ -1,0 +1,71 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Mango Beauty Studio",
+  "slug": "mango-beauty-studio",
+  "description": "Premium beauty services in the heart of the city. Experience luxury treatments with our expert team.",
+  "logo": "/src/assets/hero-salon.jpg",
+  "primaryColor": "#8b5cf6",
+  "secondaryColor": "#f59e0b",
+  "contact": {
+    "email": "hello@mangobeautystudio.com",
+    "phone": "(555) 123-4567",
+    "address": "123 Beauty Lane",
+    "city": "San Francisco",
+    "state": "CA",
+    "zipCode": "94102"
+  },
+  "hours": [
+    {
+      "day": "monday",
+      "open": "09:00",
+      "close": "18:00",
+      "isClosed": false
+    },
+    {
+      "day": "tuesday",
+      "open": "09:00",
+      "close": "18:00",
+      "isClosed": false
+    },
+    {
+      "day": "wednesday",
+      "open": "09:00",
+      "close": "18:00",
+      "isClosed": false
+    },
+    {
+      "day": "thursday",
+      "open": "09:00",
+      "close": "20:00",
+      "isClosed": false
+    },
+    {
+      "day": "friday",
+      "open": "09:00",
+      "close": "20:00",
+      "isClosed": false
+    },
+    {
+      "day": "saturday",
+      "open": "08:00",
+      "close": "17:00",
+      "isClosed": false
+    },
+    {
+      "day": "sunday",
+      "open": "10:00",
+      "close": "16:00",
+      "isClosed": false
+    }
+  ],
+  "socialMedia": {
+    "instagram": "https://instagram.com/mangobeautystudio",
+    "facebook": "https://facebook.com/mangobeautystudio",
+    "twitter": "https://twitter.com/mangobeautystudio",
+    "tiktok": "https://tiktok.com/@mangobeautystudio"
+  }
+}
+
+
+
+

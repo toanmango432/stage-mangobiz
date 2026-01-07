@@ -1,0 +1,156 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "publicId": "550e8400-e29b-41d4-a716-446655440001",
+    "name": "Haircut & Style",
+    "description": "Professional haircut with personalized styling and blow-dry",
+    "category": "hair",
+    "duration": 60,
+    "price": 75.00,
+    "image": "/src/assets/haircut-styling-Ce42DRR0.jpg",
+    "images": [
+      "/src/assets/haircut-styling-Ce42DRR0.jpg",
+      "/src/assets/work-bob-cut-DjWe7Kt-.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Clean hair preferred"],
+    "benefits": ["Expert styling", "Professional consultation", "Quality products"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440010", "550e8400-e29b-41d4-a716-446655440011"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "publicId": "550e8400-e29b-41d4-a716-446655440002",
+    "name": "Balayage Highlights",
+    "description": "Hand-painted highlights for natural, sun-kissed look",
+    "category": "hair",
+    "duration": 180,
+    "price": 200.00,
+    "image": "/src/assets/work-balayage-CcxDGK12.jpg",
+    "images": [
+      "/src/assets/work-balayage-CcxDGK12.jpg",
+      "/src/assets/work-dimensional-color-B5XTKpFm.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Hair consultation required", "Color history needed"],
+    "benefits": ["Custom color placement", "Low maintenance", "Natural grow-out"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440010"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "publicId": "550e8400-e29b-41d4-a716-446655440003",
+    "name": "Gel Manicure",
+    "description": "Long-lasting gel polish manicure with nail art options",
+    "category": "nails",
+    "duration": 75,
+    "price": 45.00,
+    "image": "/src/assets/gel-manicure-process-mcFyg771.jpg",
+    "images": [
+      "/src/assets/gel-manicure-process-mcFyg771.jpg",
+      "/src/assets/work-french-manicure-BRMkhUvc.jpg",
+      "/src/assets/work-ombre-nails-EB4_BCEJ.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Clean nails preferred"],
+    "benefits": ["2-3 week wear", "High shine finish", "Nail art included"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440012", "550e8400-e29b-41d4-a716-446655440013"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "publicId": "550e8400-e29b-41d4-a716-446655440004",
+    "name": "Pedicure Spa",
+    "description": "Relaxing pedicure with exfoliation, massage, and polish",
+    "category": "nails",
+    "duration": 90,
+    "price": 65.00,
+    "image": "/src/assets/pedicure-spa-B0Hu4mLo.jpg",
+    "images": [
+      "/src/assets/pedicure-spa-B0Hu4mLo.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Clean feet preferred"],
+    "benefits": ["Foot massage", "Exfoliation", "Moisturizing treatment"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440012", "550e8400-e29b-41d4-a716-446655440013"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440005",
+    "publicId": "550e8400-e29b-41d4-a716-446655440005",
+    "name": "Facial Treatment",
+    "description": "Deep cleansing facial with extraction and hydrating mask",
+    "category": "spa",
+    "duration": 75,
+    "price": 120.00,
+    "image": "/src/assets/facial-treatment-BfIqRVLV.jpg",
+    "images": [
+      "/src/assets/facial-treatment-BfIqRVLV.jpg",
+      "/src/assets/work-glowing-facial-Bqteh-u5.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Remove makeup before treatment"],
+    "benefits": ["Deep cleansing", "Extraction", "Hydrating mask", "Relaxing massage"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440014"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440006",
+    "publicId": "550e8400-e29b-41d4-a716-446655440006",
+    "name": "Bridal Makeup",
+    "description": "Complete bridal makeup application with trial session",
+    "category": "makeup",
+    "duration": 120,
+    "price": 150.00,
+    "image": "/src/assets/work-bridal-makeup-BYKiDmof.jpg",
+    "images": [
+      "/src/assets/work-bridal-makeup-BYKiDmof.jpg",
+      "/src/assets/work-evening-makeup-DS3-CHc0.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Trial session recommended", "Bring inspiration photos"],
+    "benefits": ["Trial session included", "Long-lasting formula", "Touch-up kit"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440015"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "publicId": "550e8400-e29b-41d4-a716-446655440007",
+    "name": "Eyebrow Shaping",
+    "description": "Professional eyebrow shaping and tinting",
+    "category": "brows",
+    "duration": 45,
+    "price": 35.00,
+    "image": "/src/assets/work-natural-makeup-D_lnq2fn.jpg",
+    "images": [
+      "/src/assets/work-natural-makeup-D_lnq2fn.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["Clean skin preferred"],
+    "benefits": ["Professional shaping", "Tinting included", "Maintenance tips"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440015"]
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440008",
+    "publicId": "550e8400-e29b-41d4-a716-446655440008",
+    "name": "Lash Extensions",
+    "description": "Full set of premium lash extensions for dramatic eyes",
+    "category": "lashes",
+    "duration": 120,
+    "price": 180.00,
+    "image": "/src/assets/work-natural-makeup-D_lnq2fn.jpg",
+    "images": [
+      "/src/assets/work-natural-makeup-D_lnq2fn.jpg"
+    ],
+    "isActive": true,
+    "isBookableOnline": true,
+    "requirements": ["No eye makeup", "Contact lens removal"],
+    "benefits": ["Premium lashes", "2-3 week wear", "Maintenance included"],
+    "staff": ["550e8400-e29b-41d4-a716-446655440015"]
+  }
+]
+
+
+
+

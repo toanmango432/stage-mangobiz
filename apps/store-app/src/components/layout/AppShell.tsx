@@ -201,8 +201,8 @@ function AppShellContent() {
         console.log('✅ Staff loaded into Redux (staffSlice)');
 
         // 4a2. Seed team members if needed (required for uiStaffSlice)
-        const storeId = authState.store?.storeId || 'default-store';
-        console.log('[AppShell] Checking team data for storeId:', storeId);
+        const teamStoreId = authState.store?.storeId || storeId;
+        console.log('[AppShell] Checking team data for storeId:', teamStoreId);
 
         // Check current team member count
         const currentMembers = await teamDB.getAllMembers(storeId);

@@ -228,11 +228,9 @@ export function TopHeaderBar({
 
   return (
     <header className={`
-      bg-gradient-to-b from-white/40 to-white/20
-      backdrop-blur-xl backdrop-saturate-[1.8]
-      border border-white/80
-      rounded-b-2xl md:rounded-b-3xl
-      shadow-[0_8px_32px_rgba(31,38,135,0.12),0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.8),inset_0_-1px_0_rgba(255,255,255,0.3)]
+      bg-white/95 backdrop-blur-xl
+      border-b border-gray-200/60
+      shadow-sm
       h-12 md:h-16 flex items-center px-2.5 md:px-4 fixed top-0 left-0 right-0 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}

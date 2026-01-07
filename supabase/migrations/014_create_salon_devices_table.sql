@@ -64,21 +64,15 @@ CREATE INDEX idx_salon_devices_last_seen
 -- Enable Row Level Security
 ALTER TABLE salon_devices ENABLE ROW LEVEL SECURITY;
 
--- RLS Policy: Users can only access devices belonging to their store
-CREATE POLICY "salon_devices_store_policy" ON salon_devices
+-- RLS Policy: Service role has full access
+CREATE POLICY "salon_devices_service_policy" ON salon_devices
   FOR ALL
-  USING (
-    store_id IN (
-      SELECT store_id FROM store_members
-      WHERE user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    store_id IN (
-      SELECT store_id FROM store_members
-      WHERE user_id = auth.uid()
-    )
-  );
+  USING (auth.role() = 'service_role');
+
+-- RLS Policy: Authenticated users can read devices (app filters by store_id)
+CREATE POLICY "salon_devices_read_policy" ON salon_devices
+  FOR SELECT
+  USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 -- Create updated_at trigger
 CREATE OR REPLACE FUNCTION update_salon_devices_updated_at()

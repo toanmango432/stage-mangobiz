@@ -1,0 +1,96 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440060",
+    "publicId": "550e8400-e29b-41d4-a716-446655440060",
+    "title": "Holiday Hours Update",
+    "content": "We'll be closed December 24-25 for Christmas. We'll reopen on December 26 with regular hours. Book your appointments early!",
+    "type": "urgent",
+    "priority": 10,
+    "isActive": true,
+    "startsAt": "2025-12-20T00:00:00Z",
+    "endsAt": "2025-12-26T23:59:59Z",
+    "displaySettings": {
+      "showInHero": true,
+      "showInBanner": true,
+      "showInModal": false,
+      "dismissible": true
+    },
+    "targetAudience": "all"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440061",
+    "publicId": "550e8400-e29b-41d4-a716-446655440061",
+    "title": "New Service: Brazilian Blowout",
+    "content": "We're excited to announce our new Brazilian Blowout service! Get silky smooth hair that lasts up to 12 weeks. Book your consultation today.",
+    "type": "important",
+    "priority": 8,
+    "isActive": true,
+    "startsAt": "2025-01-15T00:00:00Z",
+    "endsAt": "2025-03-15T23:59:59Z",
+    "displaySettings": {
+      "showInHero": false,
+      "showInBanner": true,
+      "showInModal": false,
+      "dismissible": true
+    },
+    "targetAudience": "all"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440062",
+    "publicId": "550e8400-e29b-41d4-a716-446655440062",
+    "title": "Welcome Our New Stylist",
+    "content": "Please welcome Maria Rodriguez to our team! Maria specializes in color and balayage. Book with her for 20% off your first service.",
+    "type": "normal",
+    "priority": 6,
+    "isActive": true,
+    "startsAt": "2025-01-10T00:00:00Z",
+    "endsAt": "2025-02-10T23:59:59Z",
+    "displaySettings": {
+      "showInHero": false,
+      "showInBanner": true,
+      "showInModal": false,
+      "dismissible": true
+    },
+    "targetAudience": "all"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440063",
+    "publicId": "550e8400-e29b-41d4-a716-446655440063",
+    "title": "Membership Benefits Update",
+    "content": "Gold members now get free touch-ups within 7 days of any service. Contact us to learn more about our membership tiers.",
+    "type": "info",
+    "priority": 4,
+    "isActive": true,
+    "startsAt": "2025-01-01T00:00:00Z",
+    "endsAt": "2025-12-31T23:59:59Z",
+    "displaySettings": {
+      "showInHero": false,
+      "showInBanner": false,
+      "showInModal": false,
+      "dismissible": true
+    },
+    "targetAudience": "existing_clients"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440064",
+    "publicId": "550e8400-e29b-41d4-a716-446655440064",
+    "title": "VIP Client Appreciation Day",
+    "content": "Join us on March 15th for our VIP Client Appreciation Day! Special treatments, refreshments, and exclusive discounts for our valued clients.",
+    "type": "normal",
+    "priority": 7,
+    "isActive": true,
+    "startsAt": "2025-02-15T00:00:00Z",
+    "endsAt": "2025-03-15T23:59:59Z",
+    "displaySettings": {
+      "showInHero": false,
+      "showInBanner": true,
+      "showInModal": true,
+      "dismissible": true
+    },
+    "targetAudience": "existing_clients"
+  }
+]
+
+
+
+

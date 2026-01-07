@@ -49,3 +49,10 @@ electron/mosquitto/bin/linux/arm64/mosquitto
 
 # Mosquitto persistence
 /tmp/mosquitto/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
