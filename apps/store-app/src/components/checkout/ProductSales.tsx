@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -10,19 +10,14 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShoppingBag, Search, Plus, Minus, Check, PackageX } from "lucide-react";
+import { storeAuthManager } from "@/services/storeAuthManager";
+import { useCheckoutProducts, type CheckoutProduct } from "./hooks/useCheckoutProducts";
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  sku: string;
-  inStock: boolean;
-  stockQuantity: number;
-}
+// Re-export for backwards compatibility
+export type Product = CheckoutProduct;
 
 interface CartItem {
-  product: Product;
+  product: CheckoutProduct;
   quantity: number;
 }
 
@@ -31,21 +26,6 @@ interface ProductSalesProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const MOCK_PRODUCTS: Product[] = [
-  { id: "prod-1", name: "Professional Shampoo 16oz", price: 28.00, category: "Hair Care", sku: "SH-001", inStock: true, stockQuantity: 24 },
-  { id: "prod-2", name: "Deep Conditioner 12oz", price: 32.00, category: "Hair Care", sku: "CD-001", inStock: true, stockQuantity: 18 },
-  { id: "prod-3", name: "Styling Gel 8oz", price: 18.00, category: "Styling", sku: "ST-001", inStock: true, stockQuantity: 35 },
-  { id: "prod-4", name: "Heat Protectant Spray", price: 24.00, category: "Styling", sku: "ST-002", inStock: true, stockQuantity: 22 },
-  { id: "prod-5", name: "Hair Oil Treatment", price: 45.00, category: "Treatments", sku: "TR-001", inStock: true, stockQuantity: 12 },
-  { id: "prod-6", name: "Leave-In Conditioner", price: 26.00, category: "Hair Care", sku: "CD-002", inStock: true, stockQuantity: 15 },
-  { id: "prod-7", name: "Volumizing Mousse", price: 22.00, category: "Styling", sku: "ST-003", inStock: true, stockQuantity: 28 },
-  { id: "prod-8", name: "Nail Polish Set", price: 35.00, category: "Nails", sku: "NL-001", inStock: true, stockQuantity: 20 },
-  { id: "prod-9", name: "Cuticle Oil", price: 12.00, category: "Nails", sku: "NL-002", inStock: true, stockQuantity: 42 },
-  { id: "prod-10", name: "Facial Moisturizer", price: 48.00, category: "Skincare", sku: "SK-001", inStock: true, stockQuantity: 16 },
-  { id: "prod-11", name: "Eye Cream", price: 55.00, category: "Skincare", sku: "SK-002", inStock: true, stockQuantity: 10 },
-  { id: "prod-12", name: "Hair Mask Treatment", price: 38.00, category: "Treatments", sku: "TR-002", inStock: false, stockQuantity: 0 },
-];
 
 function ProductSkeletonCard() {
   return (
@@ -120,24 +100,14 @@ export default function ProductSales({
   open,
   onOpenChange,
 }: ProductSalesProps) {
+  // Get storeId from auth state
+  const storeId = storeAuthManager.getState().store?.storeId || '';
+
+  // Load products from catalog database
+  const { products, isLoading } = useCheckoutProducts(storeId);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>([]);
-
-  useEffect(() => {
-    if (open) {
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        setProducts(MOCK_PRODUCTS);
-        setIsLoading(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setProducts([]);
-      setIsLoading(true);
-    }
-  }, [open]);
 
   const filteredProducts = products.filter(
     (product) =>

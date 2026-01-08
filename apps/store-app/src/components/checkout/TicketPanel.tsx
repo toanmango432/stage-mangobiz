@@ -1382,7 +1382,7 @@ export default function TicketPanel({
               {/* Desktop Layout - Resizable Panels */}
               <div className="hidden lg:flex flex-1 min-h-0">
                 {/* Modern Layout: Cart LEFT (resizable), Catalog RIGHT */}
-                <div className="flex-1 flex px-6">
+                <div className="flex-1 flex pl-safe-add pr-safe-add">
                     {/* Close Button Column - Own column on far left (matching Classic) */}
                     <div className="flex-shrink-0 pr-4 pt-1">
                       <button
@@ -1714,7 +1714,7 @@ export default function TicketPanel({
               {/* Mobile Layout - Full screen ticket view */}
               <div className="flex-1 flex flex-col min-h-0 lg:hidden">
                 {/* Mobile Ticket Summary - scrollable */}
-                <div className="flex-1 overflow-y-auto px-3 pb-4">
+                <div className="flex-1 overflow-y-auto pl-safe-add-sm pr-safe-add-sm pb-4">
                   <InteractiveSummary
                     selectedClient={selectedClient}
                     services={services}
@@ -1743,7 +1743,7 @@ export default function TicketPanel({
                 </div>
 
                 {/* Mobile Fixed Bottom Action Bar */}
-                <div className="flex-shrink-0 border-t bg-background px-3 py-3 safe-area-bottom">
+                <div className="flex-shrink-0 border-t bg-background pl-safe-add-sm pr-safe-add-sm py-3 pb-safe">
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -2068,7 +2068,7 @@ export default function TicketPanel({
                 </div>
 
                 {/* Mobile Fixed Bottom Action Bar */}
-                <div className="flex-shrink-0 border-t bg-background px-3 py-3 safe-area-bottom">
+                <div className="flex-shrink-0 border-t bg-background pl-safe-add-sm pr-safe-add-sm py-3 pb-safe">
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -2532,18 +2532,24 @@ export default function TicketPanel({
         onMerge={handleMergeTickets}
       />
 
-      <ServicePackages
-        open={showServicePackages}
-        onOpenChange={setShowServicePackages}
-        staffMembers={staffMembers}
-        onSelectPackage={handleAddPackage}
-      />
+      {/* Conditionally render to prevent useCheckoutPackages hook from running before storeId is available */}
+      {showServicePackages && (
+        <ServicePackages
+          open={showServicePackages}
+          onOpenChange={setShowServicePackages}
+          staffMembers={staffMembers}
+          onSelectPackage={handleAddPackage}
+        />
+      )}
 
-      <ProductSales
-        open={showProductSales}
-        onOpenChange={setShowProductSales}
-        onAddProducts={handleAddProducts}
-      />
+      {/* Conditionally render to prevent useCheckoutProducts hook from running before storeId is available */}
+      {showProductSales && (
+        <ProductSales
+          open={showProductSales}
+          onOpenChange={setShowProductSales}
+          onAddProducts={handleAddProducts}
+        />
+      )}
 
       {selectedClient && (
         <PurchaseHistory

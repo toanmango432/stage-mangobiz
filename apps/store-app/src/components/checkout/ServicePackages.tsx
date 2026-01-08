@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Search, Tag, Clock, Check, Sparkles, PackageX } from "lucide-react";
+import { storeAuthManager } from "@/services/storeAuthManager";
+import { useCheckoutPackages, type CheckoutPackage } from "./hooks/useCheckoutPackages";
 
 interface StaffMember {
   id: string;
@@ -18,19 +20,8 @@ interface StaffMember {
   available?: boolean;
 }
 
-interface ServicePackage {
-  id: string;
-  name: string;
-  description: string;
-  services: {
-    serviceId: string;
-    serviceName: string;
-    originalPrice: number;
-  }[];
-  packagePrice: number;
-  validDays: number;
-  category: string;
-}
+// Re-export for backwards compatibility
+export type ServicePackage = CheckoutPackage;
 
 interface ServicePackagesProps {
   onSelectPackage: (packageData: ServicePackage, staffId: string) => void;
@@ -38,76 +29,6 @@ interface ServicePackagesProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const MOCK_PACKAGES: ServicePackage[] = [
-  {
-    id: "pkg-1",
-    name: "Luxury Spa Day",
-    description: "Full relaxation package with massage, facial, and mani-pedi",
-    services: [
-      { serviceId: "svc-1", serviceName: "Deep Tissue Massage (60 min)", originalPrice: 120 },
-      { serviceId: "svc-2", serviceName: "Hydrating Facial", originalPrice: 95 },
-      { serviceId: "svc-3", serviceName: "Classic Manicure", originalPrice: 35 },
-      { serviceId: "svc-4", serviceName: "Classic Pedicure", originalPrice: 45 },
-    ],
-    packagePrice: 249,
-    validDays: 90,
-    category: "Spa",
-  },
-  {
-    id: "pkg-2",
-    name: "Bridal Beauty",
-    description: "Complete bridal preparation package",
-    services: [
-      { serviceId: "svc-5", serviceName: "Hair Styling & Updo", originalPrice: 150 },
-      { serviceId: "svc-6", serviceName: "Full Makeup Application", originalPrice: 120 },
-      { serviceId: "svc-7", serviceName: "Gel Manicure", originalPrice: 55 },
-      { serviceId: "svc-8", serviceName: "Gel Pedicure", originalPrice: 65 },
-    ],
-    packagePrice: 325,
-    validDays: 30,
-    category: "Special Occasion",
-  },
-  {
-    id: "pkg-3",
-    name: "Monthly Maintenance",
-    description: "Keep your look fresh with monthly essentials",
-    services: [
-      { serviceId: "svc-9", serviceName: "Haircut & Style", originalPrice: 65 },
-      { serviceId: "svc-10", serviceName: "Eyebrow Shaping", originalPrice: 25 },
-      { serviceId: "svc-11", serviceName: "Express Facial", originalPrice: 60 },
-    ],
-    packagePrice: 125,
-    validDays: 45,
-    category: "Hair & Beauty",
-  },
-  {
-    id: "pkg-4",
-    name: "Men's Grooming",
-    description: "Complete men's grooming experience",
-    services: [
-      { serviceId: "svc-12", serviceName: "Men's Haircut", originalPrice: 45 },
-      { serviceId: "svc-13", serviceName: "Beard Trim & Shape", originalPrice: 25 },
-      { serviceId: "svc-14", serviceName: "Hot Towel Treatment", originalPrice: 20 },
-    ],
-    packagePrice: 75,
-    validDays: 30,
-    category: "Men's",
-  },
-  {
-    id: "pkg-5",
-    name: "Color & Care",
-    description: "Full hair color service with treatment",
-    services: [
-      { serviceId: "svc-15", serviceName: "Full Color", originalPrice: 120 },
-      { serviceId: "svc-16", serviceName: "Deep Conditioning Treatment", originalPrice: 45 },
-      { serviceId: "svc-17", serviceName: "Blow Dry & Style", originalPrice: 40 },
-    ],
-    packagePrice: 175,
-    validDays: 60,
-    category: "Hair & Beauty",
-  },
-];
 
 function PackageSkeletonCard() {
   return (
@@ -188,25 +109,15 @@ export default function ServicePackages({
   open,
   onOpenChange,
 }: ServicePackagesProps) {
+  // Get storeId from auth state
+  const storeId = storeAuthManager.getState().store?.storeId || '';
+
+  // Load packages from catalog database
+  const { packages, isLoading } = useCheckoutPackages(storeId);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPackage, setSelectedPackage] = useState<ServicePackage | null>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [packages, setPackages] = useState<ServicePackage[]>([]);
-
-  useEffect(() => {
-    if (open) {
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        setPackages(MOCK_PACKAGES);
-        setIsLoading(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setPackages([]);
-      setIsLoading(true);
-    }
-  }, [open]);
 
   const filteredPackages = packages.filter(
     (pkg) =>

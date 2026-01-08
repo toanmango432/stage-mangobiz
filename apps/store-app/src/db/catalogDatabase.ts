@@ -27,6 +27,7 @@ import type {
   ServiceWithVariants,
   AddOnGroupWithOptions
 } from '../types';
+import type { Product, CreateProductInput } from '../types/inventory';
 
 // ==================== SERVICE CATEGORIES ====================
 
@@ -713,5 +714,181 @@ export const catalogSettingsDB = {
 
     await db.catalogSettings.put(updated);
     return updated;
+  },
+};
+
+// ==================== PRODUCTS (Inventory/Catalog) ====================
+
+/**
+ * Products database operations.
+ * For retail products displayed in checkout and catalog management.
+ * Uses compound indexes - guards required to prevent IDBKeyRange errors.
+ */
+export const productsDB = {
+  /**
+   * Get all products for a store.
+   * @param includeInactive - If true, includes inactive products
+   */
+  async getAll(storeId: string, includeInactive: boolean = false): Promise<Product[]> {
+    if (!storeId) return [];
+
+    if (includeInactive) {
+      return await db.products
+        .where('storeId')
+        .equals(storeId)
+        .toArray();
+    }
+
+    return await db.products
+      .where('[storeId+isActive]')
+      .equals([storeId, true])
+      .toArray();
+  },
+
+  /**
+   * Get retail products only (for checkout ProductSales).
+   * Uses compound index [storeId+isRetail].
+   */
+  async getRetail(storeId: string): Promise<Product[]> {
+    if (!storeId) return [];
+
+    return await db.products
+      .where('[storeId+isRetail]')
+      .equals([storeId, true])
+      .and(p => p.isActive === true)
+      .toArray();
+  },
+
+  /**
+   * Get products by category.
+   * Uses compound index [storeId+category].
+   */
+  async getByCategory(storeId: string, category: string): Promise<Product[]> {
+    if (!storeId) return [];
+
+    return await db.products
+      .where('[storeId+category]')
+      .equals([storeId, category])
+      .and(p => p.isActive === true)
+      .toArray();
+  },
+
+  /**
+   * Get product by SKU.
+   * Uses compound index [storeId+sku].
+   */
+  async getBySku(storeId: string, sku: string): Promise<Product | undefined> {
+    if (!storeId) return undefined;
+
+    return await db.products
+      .where('[storeId+sku]')
+      .equals([storeId, sku])
+      .first();
+  },
+
+  /**
+   * Get product by barcode.
+   */
+  async getByBarcode(storeId: string, barcode: string): Promise<Product | undefined> {
+    if (!storeId) return undefined;
+
+    return await db.products
+      .where('storeId')
+      .equals(storeId)
+      .and(p => p.barcode === barcode)
+      .first();
+  },
+
+  /**
+   * Get product by ID.
+   */
+  async getById(id: string): Promise<Product | undefined> {
+    return await db.products.get(id);
+  },
+
+  /**
+   * Add a new product.
+   */
+  async add(product: Product): Promise<string> {
+    await db.products.add(product);
+    return product.id;
+  },
+
+  /**
+   * Create a new product from input data.
+   */
+  async create(data: CreateProductInput, storeId: string, tenantId: string): Promise<Product> {
+    const now = new Date().toISOString();
+    const product: Product = {
+      id: uuidv4(),
+      storeId,
+      tenantId,
+      ...data,
+      margin: data.retailPrice > 0
+        ? Math.round(((data.retailPrice - data.costPrice) / data.retailPrice) * 100)
+        : 0,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+      isDeleted: false,
+    };
+
+    await db.products.add(product);
+    return product;
+  },
+
+  /**
+   * Update an existing product.
+   */
+  async update(id: string, changes: Partial<Product>): Promise<number> {
+    return await db.products.update(id, {
+      ...changes,
+      updatedAt: new Date().toISOString(),
+    });
+  },
+
+  /**
+   * Delete a product (soft delete by setting isActive = false).
+   */
+  async delete(id: string): Promise<void> {
+    await db.products.update(id, {
+      isActive: false,
+      updatedAt: new Date().toISOString(),
+    });
+  },
+
+  /**
+   * Archive a product (same as soft delete, returns updated product).
+   */
+  async archive(id: string): Promise<Product | undefined> {
+    await db.products.update(id, {
+      isActive: false,
+      updatedAt: new Date().toISOString(),
+    });
+    return await db.products.get(id);
+  },
+
+  /**
+   * Hard delete a product (use with caution).
+   */
+  async hardDelete(id: string): Promise<void> {
+    await db.products.delete(id);
+  },
+
+  /**
+   * Get unique categories for a store.
+   */
+  async getCategories(storeId: string): Promise<string[]> {
+    if (!storeId) return [];
+
+    const products = await db.products
+      .where('storeId')
+      .equals(storeId)
+      .and(p => p.isActive === true)
+      .toArray();
+
+    const categories = new Set(products.map(p => p.category));
+    return Array.from(categories).sort();
   },
 };
