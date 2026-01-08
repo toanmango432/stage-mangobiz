@@ -858,18 +858,15 @@ export async function validateLicense(tenantId: string): Promise<boolean> {
  * For MVP, we use a simple comparison (passwords stored as plain text or simple hash)
  */
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  // For demo/development: simple comparison
-  // In production: Use bcrypt.compare() on server via Supabase Edge Function
-
   // Check if it's a bcrypt hash (starts with $2)
   if (hash.startsWith('$2')) {
-    // For bcrypt hashes, we'd need a server-side function
-    // For now, return true if password matches a known demo pattern
-    console.warn('Bcrypt hash detected - using demo mode');
-    return password === 'demo123' || password === 'password';
+    // Bcrypt hashes require server-side verification via Supabase Edge Function
+    // TODO: Implement edge function for bcrypt.compare()
+    console.error('Bcrypt hash requires server-side verification - not yet implemented');
+    return false;
   }
 
-  // Simple comparison for plain text (dev only)
+  // Simple comparison for plain text passwords (legacy support)
   return password === hash;
 }
 

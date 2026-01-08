@@ -1,56 +1,72 @@
-# Gift Card Module - Ralph Loop Progress
-# Started: 2026-01-08
-# Phase 1 (Database & Operations): COMPLETED
-# Total Tasks: 15
+# Mango POS Store App - Ralph Loop Progress
+# Started: January 8, 2026
+# Mode: HOTL (Human On The Loop) - Supervised
+# Analysis Reports: /docs/analysis/
+
 ---
 
 ---
-Time: 2026-01-08T14:52:58Z
-Task: Redesign SellGiftCardModal with two-mode tabs (Digital/Physical)
+Time: 2026-01-08T16:45:00Z
+Task: MAJOR REFACTOR - Simplified gift card selling flow (REVERTED)
+Phase: 2
+Result: ✗ REJECTED BY USER
+Details: Simplified flow removed too many features. User feedback: "ux/ui is horrible. missed so many functions for selling giftcard"
+---
+
+---
+Time: 2026-01-08T17:30:00Z
+Task: REDESIGN - Progressive Disclosure with Smart Defaults
 Phase: 2
 Result: ✓ PASSED
-Details: Implemented two-mode tabs (Digital/Physical), physical card validation, code preview, updated GiftCardSaleData interface with giftCardCode and isPhysicalCard fields
-Files Changed: apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
----
+Details: Complete UX redesign keeping ALL features while improving usability:
 
----
-Time: 2026-01-08T14:57:04Z
-Task: Simplify GiftCardGrid - move custom amount to modal
-Phase: 2
-Result: ✓ PASSED
-Details: Removed inline custom amount input, simplified grid to show Custom Amount card that opens modal directly. Modal now handles custom amount entry with validation.
-Files Changed: apps/store-app/src/components/checkout/GiftCardGrid.tsx, apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
----
+BEFORE (5-7 clicks):
+  Click Gift → Click amount → Modal → Choose mode → Configure delivery → Enter recipient → Add to Ticket
 
----
-Time: 2026-01-08T15:10:00Z
-Task: Add processGiftCardSales to TicketPanel checkout handler
-Phase: 2
-Result: ✓ PASSED
-Details: CRITICAL FIX - Added processGiftCardSales function that calls giftCardDB.issueGiftCard() when checkout completes. Updated handleAddGiftCard to include giftCardCode and isPhysicalCard in metadata. Gift cards are now actually created in IndexedDB upon sale.
-Files Changed: apps/store-app/src/components/checkout/TicketPanel.tsx
----
+AFTER (2-4 clicks):
+  Quick Print: Click Gift → Click amount → Click "Add" (Print pre-selected) = 2 clicks
+  With Email: Click Gift → Click amount → Click Email → Expand recipient → Add email → Click "Add" = 4 clicks
+  Physical: Click Gift → Click amount → Switch to Physical → Scan barcode → Click "Activate" = 3 clicks
 
----
-Time: 2026-01-08T15:18:00Z
-Task: Update ServiceList to show gift card code in ticket
-Phase: 2
-Result: ✓ PASSED
-Details: Added gift card code display in ServiceList.tsx. Shows GC-XXXX-XXXX-XXXX code with brand colors, plus delivery method indicator (email icon with recipient or print icon). Updated TicketService interface to include giftCardCode and isPhysicalCard in metadata type.
-Files Changed: apps/store-app/src/components/checkout/ServiceList.tsx
----
+Key Improvements:
+  1. Smart Defaults
+     - "Print" delivery pre-selected (most common at POS)
+     - Code auto-generated immediately
 
----
-Time: 2026-01-08T15:35:00Z
-Task: Fix UI issues in SellGiftCardModal
-Phase: 2
-Result: ✓ PASSED
-Details: Fixed UI issues found during manual verification:
-  1. Shortened "Activate Physical Card" to "Physical Card" to prevent tab truncation
-  2. Changed custom amount placeholder from "5 - 500" to "Enter amount" for clarity
-  3. Updated card preview to show "$---" instead of "$0" when no amount entered
-  4. Added whitespace-nowrap and flex-shrink-0 to prevent tab text wrapping
-Files Changed: apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
+  2. Progressive Disclosure (using Radix Collapsible)
+     - Recipient details collapsed by default
+     - Auto-expands when "Email" delivery selected
+     - Personal message collapsed by default
 
-LEARNING: Ralph loop should include UI verification step with screenshot review BEFORE marking UI tasks as passed. Build success != UI correctness.
+  3. Physical Card Improvements
+     - Camera scan as PRIMARY action (big button)
+     - Manual input as secondary option
+     - Flexible format: accepts GC-XXXX-XXXX-XXXX, GCXXXXXXXXXXXX, or just XXXXXXXXXXXX
+     - Auto-normalizes to standard format
+
+  4. Visual Improvements
+     - Compact card preview (reduced height)
+     - Full-width prominent CTA button
+     - Cancel as text link (less visual weight)
+     - Better responsive layout
+
+Files Changed:
+  - apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx (redesigned)
+
+Features Preserved:
+  ✓ Two modes (New Card / Activate Physical)
+  ✓ Three delivery methods (Print, Email, None)
+  ✓ Recipient info (name, email, phone)
+  ✓ Personal message (200 chars)
+  ✓ Physical card activation with validation
+  ✓ Code preview on card visual
+  ✓ Custom amount support
+
+New Features Added:
+  + Camera barcode scanning for physical cards
+  + Flexible card code input format
+  + Collapsible sections for progressive disclosure
+  + Smart default (Print pre-selected)
 ---
+=== Iteration 1 - Thu Jan  8 11:33:56 CST 2026 ===
+✓ PASSED: Task 1 - Remove hardcoded demo passwords from authService.ts

@@ -1,193 +1,286 @@
 {
-  "project": "Gift Card Module - Mango POS Store App",
-  "goal": "Complete gift card sell, redeem, manage, and report features",
+  "project": "Mango POS Store App Improvements",
+  "goal": "Execute security fixes, test generation, performance optimizations, and refactoring",
+  "analysis_reports": "/docs/analysis/",
   "rules": {
     "one_task_at_a_time": true,
     "must_pass_before_commit": true,
     "stop_on_failure": true,
     "append_to_progress": true,
-    "use_mango_designer_for_ui": true
+    "max_iterations": 100
   },
-  "tasks": [
+  "phases": [
     {
       "id": 1,
-      "phase": 2,
-      "name": "Redesign SellGiftCardModal with two-mode tabs (Digital/Physical)",
-      "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
-      "status": "passed",
-      "passes": true,
-      "ui": true,
-      "files": ["apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx"],
-      "notes": "Add tabs: 'New Gift Card' vs 'Activate Physical Card'. See plan.md Task 1."
+      "name": "Security Fixes",
+      "report": "01-SECURITY-AUDIT.md",
+      "completion_gate": "! grep -rq 'demo123\\|btoa\\|atob' src/"
     },
     {
       "id": 2,
-      "phase": 2,
-      "name": "Simplify GiftCardGrid - move custom amount to modal",
-      "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
-      "status": "passed",
-      "passes": true,
-      "ui": true,
-      "files": ["apps/store-app/src/components/checkout/GiftCardGrid.tsx"],
-      "notes": "Remove inline custom amount. Add 'Custom Amount' card. See plan.md Task 2."
+      "name": "Test Generation",
+      "report": "08-TEST-GENERATOR.md",
+      "completion_gate": "pnpm test"
     },
     {
       "id": 3,
-      "phase": 2,
-      "name": "Add processGiftCardSales to TicketPanel checkout handler",
-      "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
-      "status": "passed",
-      "passes": true,
-      "ui": false,
-      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx"],
-      "notes": "CRITICAL: Call giftCardDB.issueGiftCard() on checkout. Implemented processGiftCardSales function."
+      "name": "Performance Optimizations",
+      "report": "02-PERFORMANCE-PROFILER.md",
+      "completion_gate": "test $(grep -r 'console.log' src/ | wc -l) -lt 100"
     },
     {
       "id": 4,
-      "phase": 2,
-      "name": "Update ServiceList to show gift card code in ticket",
-      "priority": "medium",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "name": "Refactoring",
+      "report": "04-REFACTOR-PLANNER.md",
+      "completion_gate": "test -d src/services/dataService && test -f src/services/dataService/index.ts"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "phase": 1,
+      "name": "Remove hardcoded demo passwords from authService.ts",
+      "file": "src/services/supabase/authService.ts",
+      "line": 869,
+      "priority": "critical",
+      "command": "! grep -q 'demo123' src/services/supabase/authService.ts",
       "status": "passed",
       "passes": true,
-      "ui": true,
-      "files": ["apps/store-app/src/components/checkout/ServiceList.tsx"],
-      "notes": "Display gift card code with delivery method icon for gift card line items."
+      "notes": "Removed demo password bypass, now returns false for bcrypt hashes"
+    },
+    {
+      "id": 2,
+      "phase": 1,
+      "name": "Replace base64 with Web Crypto API in secureStorage.ts",
+      "file": "src/services/secureStorage.ts",
+      "line": "24-40",
+      "priority": "critical",
+      "command": "! grep -q 'btoa\\|atob' src/services/secureStorage.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "Replace btoa/atob with crypto.subtle.encrypt/decrypt"
+    },
+    {
+      "id": 3,
+      "phase": 1,
+      "name": "Add DOMPurify sanitization to FormCompletionPortal.tsx",
+      "file": "src/components/forms/FormCompletionPortal.tsx",
+      "line": "186-194",
+      "priority": "critical",
+      "command": "grep -q 'DOMPurify' src/components/forms/FormCompletionPortal.tsx",
+      "status": "pending",
+      "passes": false,
+      "notes": "npm install dompurify @types/dompurify, wrap dangerouslySetInnerHTML content"
+    },
+    {
+      "id": 4,
+      "phase": 1,
+      "name": "Sanitize search inputs in clientsTable.ts",
+      "file": "src/services/supabase/tables/clientsTable.ts",
+      "line": 46,
+      "priority": "high",
+      "command": "grep -q 'sanitizeSearchQuery' src/services/supabase/tables/clientsTable.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "Add sanitizeSearchQuery function, escape special characters"
     },
     {
       "id": 5,
-      "phase": 2,
-      "name": "Verify sell flow - gift card created in IndexedDB",
+      "phase": 1,
+      "name": "Sanitize search inputs in pagination.ts",
+      "file": "src/services/supabase/pagination.ts",
+      "line": 327,
       "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "command": "grep -q 'sanitizeSearchQuery' src/services/supabase/pagination.ts",
       "status": "pending",
       "passes": false,
-      "ui": false,
-      "files": [],
-      "notes": "Manual verification: sell → checkout → check giftCards table in IndexedDB."
+      "notes": "Apply same sanitization as clientsTable.ts"
     },
     {
       "id": 6,
-      "phase": 3,
-      "name": "Add Gift Card payment method to PaymentMethodSelector",
+      "phase": 2,
+      "name": "Write tests for syncService.ts",
+      "file": "src/services/__tests__/syncService.test.ts",
       "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "command": "pnpm test -- src/services/__tests__/syncService.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/checkout/PaymentMethodSelector.tsx"],
-      "notes": "Add 'Gift Card' alongside Cash, Card, etc. See plan.md Task 6."
+      "notes": "Create test file with initialization, syncNow, listener tests"
     },
     {
       "id": 7,
-      "phase": 3,
-      "name": "Create GiftCardRedeemModal for entering/scanning code",
+      "phase": 2,
+      "name": "Write tests for licenseManager.ts",
+      "file": "src/services/__tests__/licenseManager.test.ts",
       "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "command": "pnpm test -- src/services/__tests__/licenseManager.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/checkout/modals/GiftCardRedeemModal.tsx"],
-      "notes": "Code input, balance check, apply amount. See plan.md Task 7."
+      "notes": "Test license validation, expiry, feature checks"
     },
     {
       "id": 8,
-      "phase": 3,
-      "name": "Integrate redeemGiftCard into checkout payment flow",
+      "phase": 2,
+      "name": "Write tests for payrollCalculation.ts",
+      "file": "src/utils/__tests__/payrollCalculation.test.ts",
       "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "command": "pnpm test -- src/utils/__tests__/payrollCalculation.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": false,
-      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx"],
-      "notes": "Call giftCardOperations.redeemGiftCard() on payment. See plan.md Task 8."
+      "notes": "Test commission, overtime, tip share calculations"
     },
     {
       "id": 9,
-      "phase": 3,
-      "name": "Handle partial redemption and remaining balance display",
-      "priority": "medium",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "phase": 2,
+      "name": "Write tests for dateUtils.ts",
+      "file": "src/utils/__tests__/dateUtils.test.ts",
+      "priority": "high",
+      "command": "pnpm test -- src/utils/__tests__/dateUtils.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/checkout/modals/GiftCardRedeemModal.tsx"],
-      "notes": "Show remaining balance after partial use. See plan.md Task 9."
+      "notes": "Test timezone handling, DST transitions, date formatting"
     },
     {
       "id": 10,
-      "phase": 4,
-      "name": "Create GiftCardManagement page/component",
-      "priority": "medium",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "phase": 2,
+      "name": "Write tests for checkoutSlice.ts",
+      "file": "src/store/slices/__tests__/checkoutSlice.test.ts",
+      "priority": "high",
+      "command": "pnpm test -- src/store/slices/__tests__/checkoutSlice.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/giftcards/GiftCardManagement.tsx"],
-      "notes": "List, filter, search gift cards. See plan.md Task 10."
+      "notes": "Test payment flow, discounts, completion"
     },
     {
       "id": 11,
-      "phase": 4,
-      "name": "Add gift card balance check and history view",
-      "priority": "medium",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "phase": 2,
+      "name": "Write tests for ticketsSlice.ts",
+      "file": "src/store/slices/__tests__/ticketsSlice.test.ts",
+      "priority": "high",
+      "command": "pnpm test -- src/store/slices/__tests__/ticketsSlice.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/giftcards/GiftCardDetails.tsx"],
-      "notes": "Transaction history, current balance, status. See plan.md Task 11."
+      "notes": "Test ticket CRUD, status changes"
     },
     {
       "id": 12,
-      "phase": 4,
-      "name": "Implement gift card reload/top-up functionality",
-      "priority": "medium",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "phase": 2,
+      "name": "Write tests for useLicenseGuard.ts",
+      "file": "src/hooks/__tests__/useLicenseGuard.test.ts",
+      "priority": "high",
+      "command": "pnpm test -- src/hooks/__tests__/useLicenseGuard.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/giftcards/GiftCardReload.tsx"],
-      "notes": "Add funds via reloadGiftCard(). See plan.md Task 12."
+      "notes": "Test license validation hook"
     },
     {
       "id": 13,
-      "phase": 5,
-      "name": "Create Gift Card Sales Report component",
-      "priority": "low",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "phase": 2,
+      "name": "Write tests for appointmentAdapter.ts",
+      "file": "src/services/supabase/adapters/__tests__/appointmentAdapter.test.ts",
+      "priority": "high",
+      "command": "pnpm test -- src/services/supabase/adapters/__tests__/appointmentAdapter.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/reports/GiftCardSalesReport.tsx"],
-      "notes": "Use getGiftCardSalesSummary(). See plan.md Task 13."
+      "notes": "Test data transformation"
     },
     {
       "id": 14,
-      "phase": 5,
-      "name": "Create Gift Card Liability Report component",
-      "priority": "low",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "phase": 2,
+      "name": "Write tests for ticketAdapter.ts",
+      "file": "src/services/supabase/adapters/__tests__/ticketAdapter.test.ts",
+      "priority": "high",
+      "command": "pnpm test -- src/services/supabase/adapters/__tests__/ticketAdapter.test.ts --passWithNoTests",
       "status": "pending",
       "passes": false,
-      "ui": true,
-      "files": ["apps/store-app/src/components/reports/GiftCardLiabilityReport.tsx"],
-      "notes": "Use getGiftCardLiability(). See plan.md Task 14."
+      "notes": "Test data transformation"
     },
     {
       "id": 15,
-      "phase": 7,
-      "name": "Final verification - all features working end-to-end",
+      "phase": 2,
+      "name": "Run coverage report and verify improvement",
       "priority": "high",
-      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build && npm run lint",
+      "command": "pnpm test -- --coverage",
       "status": "pending",
       "passes": false,
-      "ui": false,
-      "files": [],
-      "notes": "Test: sell → redeem → manage → report. See plan.md Phase 7."
+      "notes": "Target: 30% coverage (up from 3.5%)"
+    },
+    {
+      "id": 16,
+      "phase": 3,
+      "name": "Install and configure vite-plugin-remove-console",
+      "file": "vite.config.ts",
+      "priority": "high",
+      "command": "grep -q 'removeConsole' vite.config.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "npm install -D vite-plugin-remove-console, add to vite config"
+    },
+    {
+      "id": 17,
+      "phase": 3,
+      "name": "Create memoized selectors for ticketsSlice",
+      "file": "src/store/selectors/ticketSelectors.ts",
+      "priority": "high",
+      "command": "test -f src/store/selectors/ticketSelectors.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "Create createSelector for tickets following appointmentSelectors pattern"
+    },
+    {
+      "id": 18,
+      "phase": 3,
+      "name": "Create memoized selectors for staffSlice",
+      "file": "src/store/selectors/staffSelectors.ts",
+      "priority": "high",
+      "command": "test -f src/store/selectors/staffSelectors.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "Create createSelector for staff following appointmentSelectors pattern"
+    },
+    {
+      "id": 19,
+      "phase": 3,
+      "name": "Lazy load NewAppointmentModal.v2",
+      "file": "src/components/Book/index.tsx",
+      "priority": "medium",
+      "command": "grep -q 'lazy.*NewAppointmentModal' src/",
+      "status": "pending",
+      "passes": false,
+      "notes": "Use React.lazy() and Suspense for modal"
+    },
+    {
+      "id": 20,
+      "phase": 3,
+      "name": "Lazy load PaymentModal",
+      "file": "src/components/checkout/index.tsx",
+      "priority": "medium",
+      "command": "grep -rq 'lazy.*PaymentModal' src/",
+      "status": "pending",
+      "passes": false,
+      "notes": "Use React.lazy() and Suspense for modal"
+    },
+    {
+      "id": 21,
+      "phase": 4,
+      "name": "Split dataService.ts into module structure",
+      "file": "src/services/dataService/index.ts",
+      "priority": "high",
+      "command": "test -d src/services/dataService && test -f src/services/dataService/index.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "Create directory structure, extract core + entity services"
+    },
+    {
+      "id": 22,
+      "phase": 4,
+      "name": "Split useCatalog.ts into module structure",
+      "file": "src/hooks/catalog/index.ts",
+      "priority": "high",
+      "command": "test -d src/hooks/catalog && test -f src/hooks/catalog/index.ts",
+      "status": "pending",
+      "passes": false,
+      "notes": "Create directory structure, extract state + operations hooks"
     }
   ]
 }

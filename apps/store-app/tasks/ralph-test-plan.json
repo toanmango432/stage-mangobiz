@@ -2,7 +2,7 @@
   "project": "Mango POS Store App - Book & FrontDesk TDD",
   "description": "TDD test coverage for Book and FrontDesk modules",
   "created": "2026-01-08",
-  "iteration": 3,
+  "iteration": 11,
   "tasks": [
     {
       "id": "T001",
@@ -170,7 +170,8 @@
       "description": "Test view mode dropdown selection and toggle behavior",
       "files": ["src/components/Book/ViewModeDropdown.tsx"],
       "testFile": "src/components/Book/__tests__/ViewModeDropdown.test.tsx",
-      "status": "pending",
+      "status": "completed",
+      "tests": 36,
       "priority": "medium"
     },
     {
@@ -179,7 +180,8 @@
       "description": "Test Book skeleton loading components",
       "files": ["src/components/Book/skeletons/CalendarSkeleton.tsx", "src/components/Book/skeletons/StaffCardSkeleton.tsx", "src/components/Book/skeletons/AppointmentCardSkeleton.tsx", "src/components/Book/skeletons/Skeleton.tsx"],
       "testFile": "src/components/Book/skeletons/__tests__/BookSkeletons.test.tsx",
-      "status": "pending",
+      "status": "completed",
+      "tests": 73,
       "priority": "low"
     },
     {
@@ -188,7 +190,8 @@
       "description": "Test mobile tab bar navigation and active states",
       "files": ["src/components/frontdesk/MobileTabBar.tsx"],
       "testFile": "src/components/frontdesk/__tests__/MobileTabBar.test.tsx",
-      "status": "pending",
+      "status": "completed",
+      "tests": 47,
       "priority": "medium"
     },
     {
@@ -197,7 +200,8 @@
       "description": "Test metrics display and calculations",
       "files": ["src/components/frontdesk/FrontDeskMetrics.tsx"],
       "testFile": "src/components/frontdesk/__tests__/FrontDeskMetrics.test.tsx",
-      "status": "pending",
+      "status": "completed",
+      "tests": 50,
       "priority": "high"
     },
     {
@@ -206,7 +210,8 @@
       "description": "Test sub-tab navigation and selection",
       "files": ["src/components/frontdesk/FrontDeskSubTabs.tsx"],
       "testFile": "src/components/frontdesk/__tests__/FrontDeskSubTabs.test.tsx",
-      "status": "pending",
+      "status": "completed",
+      "tests": 49,
       "priority": "medium"
     },
     {
@@ -215,7 +220,248 @@
       "description": "Test floating action button variants and click handling",
       "files": ["src/components/frontdesk/FloatingActionButton.tsx"],
       "testFile": "src/components/frontdesk/__tests__/FloatingActionButton.test.tsx",
-      "status": "pending",
+      "status": "completed",
+      "tests": 46,
+      "priority": "medium"
+    },
+    {
+      "id": "T023",
+      "name": "Book EmptyState component",
+      "description": "Test empty state display with type variants (calendar, walkins, search)",
+      "files": ["src/components/Book/EmptyState.tsx"],
+      "testFile": "src/components/Book/__tests__/EmptyState.test.tsx",
+      "status": "completed",
+      "tests": 43,
+      "priority": "medium"
+    },
+    {
+      "id": "T024",
+      "name": "Book DatePickerModal component",
+      "description": "Test date picker calendar navigation and selection",
+      "files": ["src/components/Book/DatePickerModal.tsx"],
+      "testFile": "src/components/Book/__tests__/DatePickerModal.test.tsx",
+      "status": "completed",
+      "tests": 48,
+      "priority": "high"
+    },
+    {
+      "id": "T025",
+      "name": "Book BookErrorBoundary component",
+      "description": "Test error boundary error catching and reset functionality",
+      "files": ["src/components/Book/BookErrorBoundary.tsx"],
+      "testFile": "src/components/Book/__tests__/BookErrorBoundary.test.tsx",
+      "status": "completed",
+      "tests": 37,
+      "priority": "medium"
+    },
+    {
+      "id": "T026",
+      "name": "Book DraggableAppointment component",
+      "description": "Test drag-and-drop functionality, drop zones, batch selection, and undo/redo hook",
+      "files": ["src/components/Book/DraggableAppointment.tsx"],
+      "testFile": "src/components/Book/__tests__/DraggableAppointment.test.tsx",
+      "status": "completed",
+      "tests": 51,
+      "priority": "high"
+    },
+    {
+      "id": "T027",
+      "name": "Book WalkInCard component",
+      "description": "Test walk-in client card display with paper-ticket aesthetic, waiting time colors, and actions",
+      "files": ["src/components/Book/WalkInCard.tsx"],
+      "testFile": "src/components/Book/__tests__/WalkInCard.test.tsx",
+      "status": "completed",
+      "tests": 43,
+      "priority": "medium"
+    },
+    {
+      "id": "T028",
+      "name": "FrontDesk AddNoteModal component",
+      "description": "Test note modal with keyboard shortcuts (Cmd+Enter, Escape), character count, and save behavior",
+      "files": ["src/components/frontdesk/AddNoteModal.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/AddNoteModal.test.tsx",
+      "status": "completed",
+      "tests": 38,
+      "priority": "medium"
+    },
+    {
+      "id": "T029",
+      "name": "Book StaffColumn component",
+      "description": "Test staff schedule column with drag-drop, appointments, and time slots",
+      "files": ["src/components/Book/StaffColumn.tsx"],
+      "testFile": "src/components/Book/__tests__/StaffColumn.test.tsx",
+      "status": "completed",
+      "tests": 30,
+      "priority": "high"
+    },
+    {
+      "id": "T030",
+      "name": "Book CommandPalette component",
+      "description": "Test keyboard command palette with cmdk, visibility, actions, and keyboard shortcuts",
+      "files": ["src/components/Book/CommandPalette.tsx"],
+      "testFile": "src/components/Book/__tests__/CommandPalette.test.tsx",
+      "status": "completed",
+      "tests": 51,
+      "priority": "medium"
+    },
+    {
+      "id": "T031",
+      "name": "FrontDesk SectionErrorBoundary component",
+      "description": "Test section-level error boundaries with pre-configured variants",
+      "files": ["src/components/frontdesk/SectionErrorBoundary.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/SectionErrorBoundary.test.tsx",
+      "status": "completed",
+      "tests": 28,
+      "priority": "medium"
+    },
+    {
+      "id": "T032",
+      "name": "Book WeekView component",
+      "description": "Test 7-day calendar view with appointments, today highlight, and status colors",
+      "files": ["src/components/Book/WeekView.tsx"],
+      "testFile": "src/components/Book/__tests__/WeekView.test.tsx",
+      "status": "completed",
+      "tests": 33,
+      "priority": "high"
+    },
+    {
+      "id": "T033",
+      "name": "Book StaffFilterDropdown component",
+      "description": "Test staff filter dropdown with selection states, close behaviors, and checkmarks",
+      "files": ["src/components/Book/StaffFilterDropdown.tsx"],
+      "testFile": "src/components/Book/__tests__/StaffFilterDropdown.test.tsx",
+      "status": "completed",
+      "tests": 41,
+      "priority": "medium"
+    },
+    {
+      "id": "T034",
+      "name": "Book StaffServicesPanel component",
+      "description": "Test staff and service selection panel with category pills, search, and disabled states",
+      "files": ["src/components/Book/StaffServicesPanel.tsx"],
+      "testFile": "src/components/Book/__tests__/StaffServicesPanel.test.tsx",
+      "status": "completed",
+      "tests": 44,
+      "priority": "medium"
+    },
+    {
+      "id": "T035",
+      "name": "Book MonthView component",
+      "description": "Test monthly calendar grid with appointment dots, date grouping, and status colors",
+      "files": ["src/components/Book/MonthView.tsx"],
+      "testFile": "src/components/Book/__tests__/MonthView.test.tsx",
+      "status": "completed",
+      "tests": 42,
+      "priority": "high"
+    },
+    {
+      "id": "T036",
+      "name": "Book AgendaView component",
+      "description": "Test list-format appointment view with date grouping, time formatting, and services display",
+      "files": ["src/components/Book/AgendaView.tsx"],
+      "testFile": "src/components/Book/__tests__/AgendaView.test.tsx",
+      "status": "completed",
+      "tests": 56,
+      "priority": "high"
+    },
+    {
+      "id": "T037",
+      "name": "Book ClientPreviewPopover component",
+      "description": "Test client preview card with stats, favorites, notes, and quick actions (Call/SMS/Profile)",
+      "files": ["src/components/Book/ClientPreviewPopover.tsx"],
+      "testFile": "src/components/Book/__tests__/ClientPreviewPopover.test.tsx",
+      "status": "completed",
+      "tests": 60,
+      "priority": "medium"
+    },
+    {
+      "id": "T038",
+      "name": "Book QuickBookBar component",
+      "description": "Test floating client search bar with quick booking functionality and keyboard shortcuts",
+      "files": ["src/components/Book/QuickBookBar.tsx"],
+      "testFile": "src/components/Book/__tests__/QuickBookBar.test.tsx",
+      "status": "completed",
+      "tests": 55,
+      "priority": "medium"
+    },
+    {
+      "id": "T039",
+      "name": "FrontDesk MobileTeamSection component",
+      "description": "Test mobile-optimized team view with filters, search, and view mode toggle",
+      "files": ["src/components/frontdesk/MobileTeamSection.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/MobileTeamSection.test.tsx",
+      "status": "completed",
+      "tests": 55,
+      "priority": "medium"
+    },
+    {
+      "id": "T040",
+      "name": "Book OneTapBookingCard component",
+      "description": "Test AI-powered instant booking card with confidence badge, date/time formatting, and toast notifications",
+      "files": ["src/components/Book/OneTapBookingCard.tsx"],
+      "testFile": "src/components/Book/__tests__/OneTapBookingCard.test.tsx",
+      "status": "completed",
+      "tests": 71,
+      "priority": "high"
+    },
+    {
+      "id": "T041",
+      "name": "Book ClientJourneyTimeline component",
+      "description": "Test client visit history timeline with insights, loyalty tiers, churn risk, and predictions",
+      "files": ["src/components/Book/ClientJourneyTimeline.tsx"],
+      "testFile": "src/components/Book/__tests__/ClientJourneyTimeline.test.tsx",
+      "status": "completed",
+      "tests": 68,
+      "priority": "high"
+    },
+    {
+      "id": "T042",
+      "name": "Book RevenueDashboard component",
+      "description": "Test real-time revenue tracking with goals, opportunities, trend indicators, and breakdown",
+      "files": ["src/components/Book/RevenueDashboard.tsx"],
+      "testFile": "src/components/Book/__tests__/RevenueDashboard.test.tsx",
+      "status": "completed",
+      "tests": 63,
+      "priority": "high"
+    },
+    {
+      "id": "T043",
+      "name": "Book HeatmapCalendarView component",
+      "description": "Test visual density calendar with utilization/revenue/appointments color modes and time slots",
+      "files": ["src/components/Book/HeatmapCalendarView.tsx"],
+      "testFile": "src/components/Book/__tests__/HeatmapCalendarView.test.tsx",
+      "status": "completed",
+      "tests": 68,
+      "priority": "high"
+    },
+    {
+      "id": "T044",
+      "name": "Book AppointmentContextMenu component",
+      "description": "Test right-click context menu with status-based actions, click handlers, and keyboard shortcuts",
+      "files": ["src/components/Book/AppointmentContextMenu.tsx"],
+      "testFile": "src/components/Book/__tests__/AppointmentContextMenu.test.tsx",
+      "status": "completed",
+      "tests": 85,
+      "priority": "medium"
+    },
+    {
+      "id": "T045",
+      "name": "Book SmartBookingPanel component",
+      "description": "Test AI-powered booking suggestions with client info, quick booking, and service/staff/time suggestions",
+      "files": ["src/components/Book/SmartBookingPanel.tsx"],
+      "testFile": "src/components/Book/__tests__/SmartBookingPanel.test.tsx",
+      "status": "completed",
+      "tests": 77,
+      "priority": "medium"
+    },
+    {
+      "id": "T046",
+      "name": "Book WalkInSidebar component",
+      "description": "Test draggable walk-in queue panel with collapse states, filtering, and drag-and-drop",
+      "files": ["src/components/Book/WalkInSidebar.tsx"],
+      "testFile": "src/components/Book/__tests__/WalkInSidebar.test.tsx",
+      "status": "completed",
+      "tests": 60,
       "priority": "medium"
     }
   ]
