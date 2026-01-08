@@ -273,3 +273,82 @@ export async function validateTransactionInput(input: {
 
   return await validateForeignKeys(validations);
 }
+
+// =============================================================================
+// Service-Staff Capability Validation (Fix 4.1)
+// =============================================================================
+
+/**
+ * Validate that a staff member can perform a specific service.
+ * Returns valid if:
+ * - Staff member exists AND
+ * - Staff has no specialties defined (can perform all services) OR
+ * - Staff's specialties include the serviceId
+ */
+export async function validateStaffServiceCapability(
+  staffId: string,
+  serviceId: string
+): Promise<ValidationResult> {
+  try {
+    // First validate both entities exist
+    const staffResult = await validateForeignKey('staff', staffId);
+    if (!staffResult.valid) {
+      return staffResult;
+    }
+
+    const serviceResult = await validateForeignKey('service', serviceId);
+    if (!serviceResult.valid) {
+      return serviceResult;
+    }
+
+    // Get staff to check their specialties
+    const staff = await dataService.staff.getById(staffId);
+    if (!staff) {
+      return {
+        valid: false,
+        error: `Staff member "${staffId}" not found`,
+      };
+    }
+
+    // If staff has no specialties defined, they can perform all services
+    if (!staff.specialties || staff.specialties.length === 0) {
+      return { valid: true };
+    }
+
+    // Check if staff can perform this specific service
+    if (!staff.specialties.includes(serviceId)) {
+      // Get service name for better error message
+      const service = await dataService.services.getById(serviceId);
+      const serviceName = service?.name || serviceId;
+      const staffName = staff.name || staffId;
+
+      return {
+        valid: false,
+        error: `Staff "${staffName}" is not certified to perform "${serviceName}"`,
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Error validating staff capability: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+/**
+ * Validate that all services in an assignment can be performed by their assigned staff.
+ * Useful for ticket creation and appointment booking.
+ */
+export async function validateServicesStaffCapabilities(
+  assignments: Array<{ serviceId: string; staffId: string }>
+): Promise<ValidationResult> {
+  for (const assignment of assignments) {
+    const result = await validateStaffServiceCapability(assignment.staffId, assignment.serviceId);
+    if (!result.valid) {
+      return result;
+    }
+  }
+  return { valid: true };
+}

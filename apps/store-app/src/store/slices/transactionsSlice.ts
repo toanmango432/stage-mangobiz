@@ -62,6 +62,189 @@ const canVoidTransaction = (createdAt: Date | string): boolean => {
   return hoursSinceCreation <= 24;
 };
 
+// ==================== INDEXEDDB THUNKS (Offline Fallback) ====================
+
+/**
+ * Fetch transactions from IndexedDB (for offline mode)
+ */
+export const fetchTransactions = createAsyncThunk(
+  'transactions/fetchFromIndexedDB',
+  async (date: Date) => {
+    const transactions = await transactionsDB.getByDate(date);
+    return transactions;
+  }
+);
+
+/**
+ * Create a transaction in IndexedDB
+ */
+export const createTransaction = createAsyncThunk(
+  'transactions/createInIndexedDB',
+  async (input: CreateTransactionInput, { rejectWithValue }) => {
+    try {
+      const subtotal = input.subtotal || 0;
+      const tax = input.tax || 0;
+      const tip = input.tip || 0;
+      const discount = input.discount || 0;
+      const total = subtotal + tax + tip - discount;
+
+      const transaction: Transaction = {
+        id: uuidv4(),
+        storeId: 'default-store',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        clientId: input.clientId,
+        clientName: input.clientName,
+        subtotal,
+        tax,
+        tip,
+        discount,
+        amount: subtotal + tax,
+        total,
+        paymentMethod: input.paymentMethod,
+        paymentDetails: input.paymentDetails,
+        status: 'completed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await transactionsDB.create(transaction);
+      return transaction;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create transaction');
+    }
+  }
+);
+
+/**
+ * Create a transaction from pending payment in IndexedDB (offline fallback)
+ * Used when Supabase is unavailable
+ */
+export const createTransactionFromPending = createAsyncThunk(
+  'transactions/createFromPending',
+  async (input: CreateTransactionInput, { rejectWithValue }) => {
+    try {
+      const subtotal = input.subtotal || 0;
+      const tax = input.tax || 0;
+      const tip = input.tip || 0;
+      const discount = input.discount || 0;
+      const total = subtotal + tax + tip - discount;
+
+      const transaction: Transaction = {
+        id: uuidv4(),
+        storeId: 'default-store',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        clientId: input.clientId,
+        clientName: input.clientName,
+        subtotal,
+        tax,
+        tip,
+        discount,
+        amount: subtotal + tax,
+        total,
+        paymentMethod: input.paymentMethod,
+        paymentDetails: input.paymentDetails,
+        status: 'completed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Save to IndexedDB
+      await transactionsDB.create(transaction);
+
+      // Add to sync queue for later sync to Supabase
+      await syncQueueDB.add({
+        id: uuidv4(),
+        entityType: 'transaction',
+        entityId: transaction.id,
+        operation: 'create',
+        payload: transaction,
+        status: 'pending',
+        retryCount: 0,
+        createdAt: new Date(),
+      });
+
+      // Audit log
+      auditLogger.log({
+        action: 'payment_process',
+        entityType: 'transaction',
+        entityId: transaction.id,
+        description: `Offline payment ${input.paymentMethod}: $${total.toFixed(2)} for ${input.clientName || 'Walk-in'}`,
+        severity: 'high',
+        success: true,
+        metadata: {
+          paymentMethod: input.paymentMethod,
+          amount: total,
+          offline: true,
+        },
+      }).catch(console.warn);
+
+      return transaction;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create transaction from pending');
+    }
+  }
+);
+
+/**
+ * Void a transaction in IndexedDB
+ */
+export const voidTransaction = createAsyncThunk(
+  'transactions/voidInIndexedDB',
+  async ({ id, voidReason }: { id: string; voidReason: string }, { rejectWithValue }) => {
+    try {
+      const transaction = await transactionsDB.getById(id);
+      if (!transaction) {
+        return rejectWithValue('Transaction not found');
+      }
+
+      if (transaction.status === 'voided') {
+        return rejectWithValue('Transaction already voided');
+      }
+
+      if (!canVoidTransaction(transaction.createdAt)) {
+        return rejectWithValue('Cannot void transaction older than 24 hours');
+      }
+
+      const updated = await transactionsDB.update(id, { status: 'voided' });
+      return updated;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to void transaction');
+    }
+  }
+);
+
+/**
+ * Refund a transaction in IndexedDB
+ */
+export const refundTransaction = createAsyncThunk(
+  'transactions/refundInIndexedDB',
+  async ({ id, refundAmount, refundReason }: { id: string; refundAmount: number; refundReason: string }, { rejectWithValue }) => {
+    try {
+      const transaction = await transactionsDB.getById(id);
+      if (!transaction) {
+        return rejectWithValue('Transaction not found');
+      }
+
+      if (transaction.status === 'voided') {
+        return rejectWithValue('Cannot refund voided transaction');
+      }
+
+      const existingRefund = transaction.refundedAmount || 0;
+      if (!validateRefundAmount(refundAmount, transaction.total, existingRefund)) {
+        return rejectWithValue(`Invalid refund amount. Maximum refundable: $${(transaction.total - existingRefund).toFixed(2)}`);
+      }
+
+      const newStatus = refundAmount === transaction.total ? 'refunded' : 'partially-refunded';
+      const updated = await transactionsDB.update(id, { status: newStatus });
+      return updated;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to refund transaction');
+    }
+  }
+);
+
 // ==================== SUPABASE THUNKS (Phase 6) ====================
 
 /**
@@ -302,302 +485,6 @@ export const refundTransactionInSupabase = createAsyncThunk(
   }
 );
 
-// ==================== LEGACY ASYNC THUNKS (IndexedDB) ====================
-// ⚠️ DEPRECATED: These thunks use IndexedDB only and do not sync to Supabase.
-// Use the Supabase versions instead:
-// - fetchTransactions → fetchTransactionsByDateFromSupabase
-// - createTransaction → createTransactionInSupabase
-
-/**
- * @deprecated Use fetchTransactionsByDateFromSupabase instead. This only reads from IndexedDB.
- */
-export const fetchTransactions = createAsyncThunk(
-  'transactions/fetchAll',
-  async (_storeId: string) => {
-    console.warn('⚠️ DEPRECATED: fetchTransactions is deprecated. Use fetchTransactionsByDateFromSupabase instead.');
-    return await transactionsDB.getAll(_storeId);
-  }
-);
-
-/**
- * @deprecated Use createTransactionInSupabase instead. This only saves to IndexedDB and does not sync to Supabase.
- */
-export const createTransaction = createAsyncThunk(
-  'transactions/create',
-  async ({
-    ticketId,
-  }: {
-    ticketId: string;
-    _storeId: string;
-    _userId: string
-  }) => {
-    console.warn('⚠️ DEPRECATED: createTransaction is deprecated. Use createTransactionInSupabase instead.');
-    // Fetch the completed ticket
-    const ticket = await ticketsDB.getById(ticketId);
-    if (!ticket) {
-      throw new Error('Ticket not found');
-    }
-
-    if (ticket.status !== 'completed') {
-      throw new Error('Cannot create transaction for non-completed ticket');
-    }
-
-    // Validate ticket has required financial data
-    if (!ticket.total || ticket.total <= 0) {
-      throw new Error('Invalid ticket total amount');
-    }
-
-    // Validate amounts add up correctly
-    const subtotal = ticket.subtotal || 0;
-    const tip = ticket.tip || 0;
-    const total = ticket.total;
-
-    if (!validateTransactionAmount(subtotal, tip, total)) {
-      throw new Error('Transaction amounts do not match: subtotal + tip != total');
-    }
-
-    // Validate payment method
-    const paymentMethod = (ticket.payments?.[0]?.method || 'cash') as PaymentMethod;
-    const paymentDetails = {
-      cardLast4: ticket.payments?.[0]?.cardLast4,
-      authCode: ticket.payments?.[0]?.transactionId,
-    };
-
-    if (!validatePaymentMethod(paymentMethod, paymentDetails)) {
-      throw new Error('Invalid payment method details');
-    }
-
-    // Create transaction from ticket data
-    const transactionData: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'> = {
-      storeId: ticket.storeId,
-      ticketId: ticket.id,
-      ticketNumber: ticket.number || 0,
-      clientId: ticket.clientId,
-      clientName: ticket.clientName,
-      subtotal: ticket.subtotal,
-      tax: ticket.tax || 0,
-      discount: ticket.discount || 0,
-      amount: ticket.subtotal,
-      tip: ticket.tip,
-      total: ticket.total,
-      paymentMethod: (ticket.payments?.[0]?.method || 'cash') as PaymentMethod,
-      paymentDetails: {
-        cardLast4: ticket.payments?.[0]?.cardLast4,
-        authCode: ticket.payments?.[0]?.transactionId,
-      },
-      status: 'completed',
-      processedAt: new Date().toISOString(),
-    };
-
-    // Create in database
-    const transaction = await transactionsDB.create(transactionData);
-
-    // Add to sync queue with high priority for financial data
-    await syncQueueDB.add({
-      type: 'create',
-      entity: 'transaction',
-      entityId: transaction.id,
-      action: 'CREATE',
-      payload: transaction,
-      priority: 1, // High priority
-      maxAttempts: 10,
-    });
-
-    return transaction;
-  }
-);
-
-// Create transaction from pending ticket (Pending Module workflow)
-export const createTransactionFromPending = createAsyncThunk(
-  'transactions/createFromPending',
-  async (input: CreateTransactionInput, { getState }) => {
-    const state = getState() as RootState;
-    const storeId = state.auth?.user?.storeId || 'default-salon';
-    const userId = state.auth?.user?.id || 'default-user';
-
-    // Validate input
-    if (!input.ticketId || !input.clientName) {
-      throw new Error('Missing required transaction data');
-    }
-
-    // Calculate totals
-    const subtotal = input.subtotal || 0;
-    const tax = input.tax || 0;
-    const tip = input.tip || 0;
-    const discount = input.discount || 0;
-    const total = subtotal + tax + tip - discount;
-
-    // Validate amounts
-    if (total <= 0) {
-      throw new Error('Transaction total must be greater than 0');
-    }
-
-    if (!validatePaymentMethod(input.paymentMethod, input.paymentDetails)) {
-      throw new Error('Invalid payment method details');
-    }
-
-    // Create transaction object
-    const transaction: Transaction = {
-      id: uuidv4(),
-      storeId,
-      ticketId: input.ticketId,
-      ticketNumber: input.ticketNumber,
-      clientId: input.clientId,
-      clientName: input.clientName,
-
-      // Financial breakdown
-      subtotal,
-      tax,
-      tip,
-      discount,
-      amount: subtotal + tax, // Legacy field for compatibility
-      total,
-
-      // Payment info
-      paymentMethod: input.paymentMethod,
-      paymentDetails: input.paymentDetails,
-
-      // Service details
-      services: input.services,
-
-      // Status and timestamps
-      status: 'completed',
-      createdAt: new Date().toISOString(),
-      processedAt: new Date().toISOString(),
-      processedBy: input.processedBy || userId,
-
-      // Additional metadata
-      notes: input.notes,
-
-      // Sync status
-      syncStatus: 'local',
-    };
-
-    // Create in database
-    await transactionsDB.create(transaction);
-
-    // Add to sync queue with high priority for financial data
-    await syncQueueDB.add({
-      type: 'create',
-      entity: 'transaction',
-      entityId: transaction.id,
-      action: 'CREATE',
-      payload: transaction,
-      priority: 1, // High priority
-      maxAttempts: 10,
-    });
-
-    return transaction;
-  }
-);
-
-// Void a transaction
-export const voidTransaction = createAsyncThunk(
-  'transactions/void',
-  async ({
-    id,
-    voidReason,
-    userId
-  }: {
-    id: string;
-    voidReason: string;
-    userId: string
-  }) => {
-    const transaction = await transactionsDB.getById(id);
-
-    if (!transaction) {
-      throw new Error('Transaction not found');
-    }
-
-    if (transaction.status === 'voided') {
-      throw new Error('Transaction already voided');
-    }
-
-    if (transaction.status === 'refunded') {
-      throw new Error('Cannot void a refunded transaction');
-    }
-
-    // Check time window - can only void within 24 hours
-    if (!canVoidTransaction(transaction.createdAt)) {
-      throw new Error('Cannot void transaction older than 24 hours');
-    }
-
-    const voided = await transactionsDB.update(id, {
-      status: 'voided',
-      voidedAt: new Date().toISOString(),
-      voidedBy: userId,
-      voidReason,
-    });
-
-    if (voided) {
-      // Add to sync queue
-      await syncQueueDB.add({
-        type: 'update',
-        entity: 'transaction',
-        entityId: id,
-        action: 'UPDATE',
-        payload: voided,
-        priority: 1,
-        maxAttempts: 10,
-      });
-    }
-
-    return voided;
-  }
-);
-
-// Refund a transaction
-export const refundTransaction = createAsyncThunk(
-  'transactions/refund',
-  async ({
-    id,
-    refundAmount,
-    refundReason,
-  }: {
-    id: string;
-    refundAmount: number;
-    refundReason: string;
-    _userId: string;
-  }) => {
-    const transaction = await transactionsDB.getById(id);
-
-    if (!transaction) {
-      throw new Error('Transaction not found');
-    }
-
-    if (transaction.status === 'voided') {
-      throw new Error('Cannot refund voided transaction');
-    }
-
-    // Validate refund amount
-    const existingRefund = transaction.refundedAmount || 0;
-    if (!validateRefundAmount(refundAmount, transaction.total, existingRefund)) {
-      throw new Error(`Invalid refund amount. Maximum refundable: $${(transaction.total - existingRefund).toFixed(2)}`);
-    }
-
-    const refunded = await transactionsDB.update(id, {
-      status: refundAmount === transaction.total ? 'refunded' : 'partially-refunded',
-      refundedAt: new Date().toISOString(),
-      refundedAmount: existingRefund + refundAmount,
-      refundReason,
-    });
-
-    if (refunded) {
-      // Add to sync queue
-      await syncQueueDB.add({
-        type: 'update',
-        entity: 'transaction',
-        entityId: id,
-        action: 'UPDATE',
-        payload: refunded,
-        priority: 1,
-        maxAttempts: 10,
-      });
-    }
-
-    return refunded;
-  }
-);
 
 const transactionsSlice = createSlice({
   name: 'transactions',

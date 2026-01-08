@@ -36,7 +36,7 @@ interface SyncableData {
 class SyncManager {
   private isSyncing = false;
   private syncInterval: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL = 30000; // 30 seconds
+  private readonly SYNC_INTERVAL = 120000; // 2 minutes (was 30 seconds - reduced to fix performance)
   private readonly MAX_BATCH_SIZE = 50;
 
   constructor() {

@@ -53,3 +53,11 @@ export {
   toTransactionInsert,
   toTransactionUpdate,
 } from './transactionAdapter';
+
+// PayRun adapters
+export {
+  toPayRun,
+  toPayRuns,
+  toPayRunInsert,
+  toPayRunUpdate,
+} from './payRunAdapter';

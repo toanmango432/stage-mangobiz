@@ -4,7 +4,7 @@
  * but uses Redux + IndexedDB under the hood
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   selectWaitlist,
@@ -29,7 +29,7 @@ import {
   resetAllStaffStatus as resetStaffThunk,
   type UIStaff,
 } from '../store/slices/uiStaffSlice';
-import { fetchTeamMembers } from '../store/slices/teamSlice';
+import { fetchTeamMembers, selectTeamLoading, selectTeamMemberIds } from '../store/slices/teamSlice';
 import { selectAllAppointments } from '../store/slices/appointmentsSlice';
 import { selectStoreId } from '../store/slices/authSlice';
 import type { PaymentMethod, PaymentDetails } from '../types';
@@ -111,60 +111,60 @@ export function useTicketsCompat() {
       .sort((a, b) => new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime());
   }, [allAppointments, staff]);
 
-  // API functions (matching old TicketContext interface)
-  const createTicket = (ticketData: Omit<UITicket, 'id' | 'number' | 'status' | 'createdAt' | 'updatedAt'>) => {
+  // PERFORMANCE FIX: Wrap all API functions in useCallback to prevent re-renders
+  const createTicket = useCallback((ticketData: Omit<UITicket, 'id' | 'number' | 'status' | 'createdAt' | 'updatedAt'>) => {
     dispatch(createTicketThunk(ticketData));
-  };
+  }, [dispatch]);
 
-  const assignTicket = (ticketId: string, staffId: string, staffName: string, staffColor: string) => {
+  const assignTicket = useCallback((ticketId: string, staffId: string, staffName: string, staffColor: string) => {
     dispatch(assignTicketThunk({ ticketId, staffId, staffName, staffColor }));
-  };
+  }, [dispatch]);
 
-  const completeTicket = (ticketId: string, completionDetails: CompletionDetails) => {
+  const completeTicket = useCallback((ticketId: string, completionDetails: CompletionDetails) => {
     dispatch(completeTicketThunk({ ticketId, completionDetails }));
-  };
+  }, [dispatch]);
 
-  const cancelTicket = (ticketId: string) => {
+  const cancelTicket = useCallback((ticketId: string) => {
     // TODO: Implement cancel logic
     console.log('Cancel ticket:', ticketId);
-  };
+  }, []);
 
-  const deleteTicket = (ticketId: string, reason: string) => {
+  const deleteTicket = useCallback((ticketId: string, reason: string) => {
     dispatch(deleteTicketThunk({ ticketId, reason }));
-  };
+  }, [dispatch]);
 
-  const resetStaffStatus = () => {
+  const resetStaffStatus = useCallback(() => {
     dispatch(resetStaffThunk());
-  };
+  }, [dispatch]);
 
-  const checkInAppointment = (appointmentId: string) => {
+  const checkInAppointment = useCallback((appointmentId: string) => {
     return dispatch(checkInAppointmentThunk(appointmentId));
-  };
+  }, [dispatch]);
 
-  const createAppointment = (appointmentData: any) => {
+  const createAppointment = useCallback((appointmentData: any) => {
     // TODO: Implement create appointment
     console.log('Create appointment:', appointmentData);
-  };
+  }, []);
 
-  const markTicketAsPaid = (
+  const markTicketAsPaid = useCallback((
     ticketId: string,
     paymentMethod: PaymentMethod,
     paymentDetails: PaymentDetails,
     tip: number
   ) => {
     return dispatch(markTicketAsPaidThunk({ ticketId, paymentMethod, paymentDetails, tip }));
-  };
+  }, [dispatch]);
 
-  const pauseTicket = (ticketId: string) => {
+  const pauseTicket = useCallback((ticketId: string) => {
     dispatch(pauseTicketThunk(ticketId));
-  };
+  }, [dispatch]);
 
-  const resumeTicket = (ticketId: string) => {
+  const resumeTicket = useCallback((ticketId: string) => {
     dispatch(resumeTicketThunk(ticketId));
-  };
+  }, [dispatch]);
 
-  // Return same interface as old TicketContext
-  return {
+  // PERFORMANCE FIX: Memoize return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     // Data
     waitlist,
     inService: serviceTickets,
@@ -188,7 +188,13 @@ export function useTicketsCompat() {
     markTicketAsPaid,
     pauseTicket,
     resumeTicket,
-  };
+  }), [
+    waitlist, serviceTickets, completedTickets, pendingTickets, staff,
+    allAppointments, comingAppointments,
+    createTicket, assignTicket, completeTicket, cancelTicket, deleteTicket,
+    resetStaffStatus, checkInAppointment, createAppointment, markTicketAsPaid,
+    pauseTicket, resumeTicket,
+  ]);
 }
 
 // Also export as useTickets for drop-in replacement

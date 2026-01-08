@@ -99,7 +99,7 @@ class SupabaseSyncService {
   /**
    * Start automatic sync (for offline-enabled devices)
    */
-  startAutoSync(intervalMs: number = 30000): void {
+  startAutoSync(intervalMs: number = 120000): void {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
     }

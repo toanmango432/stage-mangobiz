@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { Clock, Star, Timer, DollarSign, X } from 'lucide-react';
 import { PremiumColors, PremiumMotion } from '@/constants/premiumDesignTokens';
+import { colors } from '@/design-system';
+
+// Semantic color constants (Fix 4.2: Use design system instead of hardcoded)
+const METRIC_COLORS = {
+  waitTime: colors.status.info.main,     // Blue for time-related
+  revenue: colors.status.success.main,    // Green for money
+  waiting: colors.status.warning.main,    // Amber for waiting
+  vip: '#F59E0B',                         // Amber-500 for VIP
+} as const;
 
 export interface MetricData {
   clientsWaiting: number;

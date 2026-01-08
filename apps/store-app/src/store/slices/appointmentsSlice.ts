@@ -96,15 +96,18 @@ const initialState: AppointmentState = {
 };
 
 // ============================================================================
-// ASYNC THUNKS
+// DEPRECATED LEGACY THUNKS - DO NOT USE
+// These use the old appointmentService API. Use Supabase-based thunks below instead.
 // ============================================================================
 
 /**
- * Fetch appointments for a date range
+ * @deprecated Use fetchAppointmentsFromSupabase instead.
+ * This thunk uses the legacy appointmentService API.
  */
 export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAppointments',
   async (params: { customerId?: number; rvcNo: number; startDate: Date; endDate: Date }) => {
+    console.warn('[DEPRECATED] fetchAppointments: Use fetchAppointmentsFromSupabase instead');
     const { customerId, rvcNo } = params;
 
     if (customerId) {
@@ -113,18 +116,19 @@ export const fetchAppointments = createAsyncThunk(
       return appointments;
     } else {
       // Fetch all appointments in date range
-      // TODO: Implement date range API endpoint or fetch from IndexedDB
       return [];
     }
   }
 );
 
 /**
- * Create new appointment(s)
+ * @deprecated Use addLocalAppointment instead for local-first architecture.
+ * This thunk uses the legacy appointmentService API.
  */
 export const createAppointment = createAsyncThunk(
   'appointments/createAppointment',
   async (params: { appointments: AppointmentRequest[]; rvcNo: number }) => {
+    console.warn('[DEPRECATED] createAppointment: Use addLocalAppointment instead');
     const { appointments, rvcNo } = params;
     const result = await appointmentService.bookAppointment(appointments, rvcNo);
     return result;
@@ -132,11 +136,13 @@ export const createAppointment = createAsyncThunk(
 );
 
 /**
- * Update existing appointment
+ * @deprecated Use updateLocalAppointment or updateAppointmentInSupabase instead.
+ * This thunk uses the legacy appointmentService API.
  */
 export const updateAppointment = createAsyncThunk(
   'appointments/updateAppointment',
   async (params: { rvcNo: number; appointmentData: any }) => {
+    console.warn('[DEPRECATED] updateAppointment: Use updateLocalAppointment or updateAppointmentInSupabase');
     const { rvcNo, appointmentData } = params;
     const result = await appointmentService.editAppointment(rvcNo, appointmentData);
     return result;
@@ -144,11 +150,13 @@ export const updateAppointment = createAsyncThunk(
 );
 
 /**
- * Cancel appointment
+ * @deprecated Use cancelAppointmentInSupabase instead.
+ * This thunk uses the legacy appointmentService API.
  */
 export const cancelAppointment = createAsyncThunk(
   'appointments/cancelAppointment',
   async (params: { id: number; reason: string; rvcNo: number }) => {
+    console.warn('[DEPRECATED] cancelAppointment: Use cancelAppointmentInSupabase instead');
     const { id, reason, rvcNo } = params;
     const result = await appointmentService.cancelAppointment(id, reason, rvcNo);
 
@@ -168,11 +176,13 @@ export const cancelAppointment = createAsyncThunk(
 );
 
 /**
- * Get appointment detail for editing
+ * @deprecated No replacement needed - use selectAppointmentById selector instead.
+ * This thunk uses the legacy appointmentService API.
  */
 export const fetchAppointmentDetail = createAsyncThunk(
   'appointments/fetchAppointmentDetail',
   async (params: { id: number; partyId: number; rvcNo: number }) => {
+    console.warn('[DEPRECATED] fetchAppointmentDetail: Use selectAppointmentById selector');
     const { id, partyId, rvcNo } = params;
     const detail = await appointmentService.getAppointmentDetail(id, partyId, rvcNo);
     return detail;
@@ -180,7 +190,7 @@ export const fetchAppointmentDetail = createAsyncThunk(
 );
 
 // ============================================================================
-// SUPABASE-BASED THUNKS (New - for direct Supabase sync)
+// SUPABASE-BASED THUNKS (PREFERRED - for direct Supabase sync)
 // ============================================================================
 
 /**

@@ -78,36 +78,13 @@ import type {
 const USE_API = import.meta.env.VITE_USE_API_LAYER === 'true';
 
 /**
- * Build the API base URL for Supabase Edge Functions
- * Pattern: https://<project-ref>.supabase.co/functions/v1
- */
-function getAPIBaseUrl(): string {
-  // First check for explicit API base URL override
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-
-  // Build from Supabase URL (default for Edge Functions)
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (supabaseUrl) {
-    return `${supabaseUrl}/functions/v1`;
-  }
-
-  // Fallback for development
-  console.warn('[DataService] No VITE_SUPABASE_URL configured, using fallback');
-  return 'https://cpaldkcvdcdyzytosntc.supabase.co/functions/v1';
-}
-
-/**
  * API Client instance (lazy initialized)
  */
 let _apiClient: ReturnType<typeof createAPIClient> | null = null;
 
 function getAPIClient() {
   if (!_apiClient) {
-    const baseUrl = getAPIBaseUrl();
-    console.log('[DataService] API Client initialized with baseUrl:', baseUrl);
-
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
     _apiClient = createAPIClient({
       baseUrl,
       timeout: 15000,
@@ -325,7 +302,7 @@ export function getModeInfo(): {
     online: isOnline(),
     dataSource: getDataSource(),
     apiEnabled: USE_API,
-    apiBaseUrl: USE_API ? getAPIBaseUrl() : undefined,
+    apiBaseUrl: USE_API ? (import.meta.env.VITE_API_BASE_URL || '/api') : undefined,
   };
 }
 
@@ -464,7 +441,7 @@ export const clientsService = {
       // API MODE: Fetch VIP clients via REST endpoint
       const api = getAPIClient();
       const response = await api.get<{ data: Client[]; timestamp: string }>(
-        endpoints.clients.vip(storeId)
+        `${endpoints.clients.list(storeId)}/vip`
       );
       return extractData(response, { data: [], timestamp: '' }).data;
     }
@@ -572,31 +549,6 @@ export const servicesService = {
     if (!storeId) return [];
     return servicesDB.getByCategory(storeId, category);
   },
-
-  async create(service: Omit<Service, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<Service> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-
-    const created = await servicesDB.create({ ...service, storeId });
-    queueSyncOperation('service', 'create', created.id, created);
-    return created;
-  },
-
-  async update(id: string, updates: Partial<Service>): Promise<Service | null> {
-    const updated = await servicesDB.update(id, updates);
-    if (updated) {
-      queueSyncOperation('service', 'update', id, updated);
-    }
-    return updated || null;
-  },
-
-  async delete(id: string): Promise<boolean> {
-    const deleted = await servicesDB.delete(id);
-    if (deleted) {
-      queueSyncOperation('service', 'delete', id, { id });
-    }
-    return deleted;
-  },
 };
 
 /**
@@ -681,16 +633,8 @@ export const ticketsService = {
   async getByDate(date: Date): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
-    // Get all tickets and filter by date
-    const allTickets = await ticketsDB.getAll(storeId, 500);
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-    return allTickets.filter(t => {
-      const createdAt = new Date(t.createdAt);
-      return createdAt >= startOfDay && createdAt <= endOfDay;
-    });
+    // Use optimized IndexedDB query
+    return ticketsDB.getByDate(storeId, date);
   },
 
   async getById(id: string): Promise<Ticket | null> {
@@ -1297,313 +1241,6 @@ export const segmentsService = {
   },
 };
 
-// ==================== TEAM MODULE SERVICES ====================
-// Supabase-first services for Team module (timesheets, payroll, time-off, ratings)
-
-import { timesheetsTable } from './supabase/tables/timesheetsTable';
-import { payRunsTable } from './supabase/tables/payRunsTable';
-import { turnLogsTable } from './supabase/tables/turnLogsTable';
-import { timeOffRequestsTable } from './supabase/tables/timeOffRequestsTable';
-import { staffRatingsTable } from './supabase/tables/staffRatingsTable';
-import {
-  toTimesheet,
-  toTimesheets,
-  toPayRun,
-  toPayRuns,
-  toTurnEntry,
-  toTurnEntries,
-  toTimeOffRequest,
-  toTimeOffRequests,
-  toStaffRating,
-  toStaffRatings,
-} from './supabase/adapters';
-import type { TurnEntry, StaffRating } from './supabase/adapters';
-
-import type { TimesheetEntry } from '@/types/timesheet';
-import type { PayRun } from '@/types/payroll';
-import type { TimeOffRequest } from '@/types/schedule/timeOffRequest';
-
-/**
- * Timesheets data operations - Supabase-first
- * Clock in/out, breaks, timesheet approvals
- */
-export const timesheetsService = {
-  async getByDate(date: string): Promise<TimesheetEntry[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await timesheetsTable.getByStoreAndDate(storeId, date);
-    return toTimesheets(rows);
-  },
-
-  async getByStaffAndDateRange(staffId: string, startDate: string, endDate: string): Promise<TimesheetEntry[]> {
-    const rows = await timesheetsTable.getByStaffAndDateRange(staffId, startDate, endDate);
-    return toTimesheets(rows);
-  },
-
-  async getPending(): Promise<TimesheetEntry[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await timesheetsTable.getPending(storeId);
-    return toTimesheets(rows);
-  },
-
-  async clockIn(
-    staffId: string,
-    date: string,
-    clockInTime: string,
-    location?: { lat: number; lng: number }
-  ): Promise<TimesheetEntry> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    const row = await timesheetsTable.clockIn(storeId, staffId, date, clockInTime, location);
-    return toTimesheet(row);
-  },
-
-  async clockOut(
-    id: string,
-    clockOutTime: string,
-    location?: { lat: number; lng: number }
-  ): Promise<TimesheetEntry> {
-    const row = await timesheetsTable.clockOut(id, clockOutTime, location);
-    return toTimesheet(row);
-  },
-
-  async addBreak(
-    id: string,
-    breakData: { id: string; startTime: string; endTime?: string; type: 'paid' | 'unpaid'; duration: number }
-  ): Promise<TimesheetEntry> {
-    const row = await timesheetsTable.addBreak(id, breakData);
-    return toTimesheet(row);
-  },
-
-  async approve(id: string, approvedBy: string): Promise<TimesheetEntry> {
-    const row = await timesheetsTable.updateStatus(id, 'approved', approvedBy);
-    return toTimesheet(row);
-  },
-
-  async dispute(id: string, reason: string): Promise<TimesheetEntry> {
-    const row = await timesheetsTable.dispute(id, reason);
-    return toTimesheet(row);
-  },
-};
-
-/**
- * Pay Runs data operations - Supabase-first
- * Payroll processing lifecycle
- */
-export const payRunsService = {
-  async getAll(): Promise<PayRun[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await payRunsTable.getAll(storeId);
-    return toPayRuns(rows);
-  },
-
-  async getById(id: string): Promise<PayRun | null> {
-    const row = await payRunsTable.getById(id);
-    return row ? toPayRun(row) : null;
-  },
-
-  async getByDateRange(startDate: string, endDate: string): Promise<PayRun[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await payRunsTable.getByDateRange(storeId, startDate, endDate);
-    return toPayRuns(rows);
-  },
-
-  async getByStatus(status: string): Promise<PayRun[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await payRunsTable.getByStatus(storeId, status as Parameters<typeof payRunsTable.getByStatus>[1]);
-    return toPayRuns(rows);
-  },
-
-  async create(payRun: Parameters<typeof payRunsTable.create>[0]): Promise<PayRun> {
-    const row = await payRunsTable.create(payRun);
-    return toPayRun(row);
-  },
-
-  async submit(id: string, submittedBy: string): Promise<PayRun> {
-    const row = await payRunsTable.submit(id, submittedBy);
-    return toPayRun(row);
-  },
-
-  async approve(id: string, approvedBy: string, notes?: string): Promise<PayRun> {
-    const row = await payRunsTable.approve(id, approvedBy, notes);
-    return toPayRun(row);
-  },
-
-  async reject(id: string, rejectedBy: string, reason: string): Promise<PayRun> {
-    const row = await payRunsTable.reject(id, rejectedBy, reason);
-    return toPayRun(row);
-  },
-
-  async process(id: string, processedBy: string, notes?: string): Promise<PayRun> {
-    const row = await payRunsTable.process(id, processedBy, notes);
-    return toPayRun(row);
-  },
-
-  async void(id: string, voidedBy: string, reason: string): Promise<PayRun> {
-    const row = await payRunsTable.void(id, voidedBy, reason);
-    return toPayRun(row);
-  },
-};
-
-/**
- * Turn Logs data operations - Supabase-first
- * Fair walk-in distribution tracking
- */
-export const turnLogsService = {
-  async getByDate(date: string): Promise<TurnEntry[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await turnLogsTable.getByStoreAndDate(storeId, date);
-    return toTurnEntries(rows);
-  },
-
-  async getByStaff(staffId: string, date: string): Promise<TurnEntry[]> {
-    const rows = await turnLogsTable.getByStaff(staffId, date);
-    return toTurnEntries(rows);
-  },
-
-  async record(
-    staffId: string,
-    turnType: Parameters<typeof turnLogsTable.recordTurn>[2],
-    options?: {
-      clientId?: string;
-      ticketId?: string;
-      serviceValue?: number;
-      requestedById?: string;
-      notes?: string;
-    }
-  ): Promise<TurnEntry> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-    const row = await turnLogsTable.recordTurn(storeId, staffId, turnType, options);
-    return toTurnEntry(row);
-  },
-
-  async void(id: string, reason: string, voidedBy: string): Promise<TurnEntry> {
-    const row = await turnLogsTable.void(id, reason, voidedBy);
-    return toTurnEntry(row);
-  },
-
-  async getDailyTotals(date: string) {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    return turnLogsTable.getDailyTotals(storeId, date);
-  },
-};
-
-/**
- * Time Off Requests data operations - Supabase-first
- * Leave management with approval workflow
- */
-export const timeOffRequestsService = {
-  async getByStaff(staffId: string): Promise<TimeOffRequest[]> {
-    const rows = await timeOffRequestsTable.getByStaff(staffId);
-    return toTimeOffRequests(rows);
-  },
-
-  async getPending(): Promise<TimeOffRequest[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await timeOffRequestsTable.getPending(storeId);
-    return toTimeOffRequests(rows);
-  },
-
-  async getByDateRange(startDate: string, endDate: string): Promise<TimeOffRequest[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await timeOffRequestsTable.getByDateRange(storeId, startDate, endDate);
-    return toTimeOffRequests(rows);
-  },
-
-  async getApprovedForDate(date: string): Promise<TimeOffRequest[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const rows = await timeOffRequestsTable.getApprovedForDate(storeId, date);
-    return toTimeOffRequests(rows);
-  },
-
-  async create(request: Parameters<typeof timeOffRequestsTable.create>[0]): Promise<TimeOffRequest> {
-    const row = await timeOffRequestsTable.create(request);
-    return toTimeOffRequest(row);
-  },
-
-  async approve(id: string, reviewedBy: string, notes?: string): Promise<TimeOffRequest> {
-    const row = await timeOffRequestsTable.approve(id, reviewedBy, notes);
-    return toTimeOffRequest(row);
-  },
-
-  async deny(id: string, reviewedBy: string, notes?: string): Promise<TimeOffRequest> {
-    const row = await timeOffRequestsTable.deny(id, reviewedBy, notes);
-    return toTimeOffRequest(row);
-  },
-
-  async cancel(id: string, cancelledBy: string, reason: string): Promise<TimeOffRequest> {
-    const row = await timeOffRequestsTable.cancel(id, cancelledBy, reason);
-    return toTimeOffRequest(row);
-  },
-};
-
-/**
- * Staff Ratings data operations - Supabase-first
- * Client ratings and reviews for staff
- */
-export const staffRatingsService = {
-  async getByStaff(staffId: string, options?: { limit?: number; includeHidden?: boolean }): Promise<StaffRating[]> {
-    const rows = await staffRatingsTable.getByStaff(staffId, options);
-    return toStaffRatings(rows);
-  },
-
-  async getPublicByStaff(staffId: string, limit?: number): Promise<StaffRating[]> {
-    const rows = await staffRatingsTable.getPublicByStaff(staffId, limit);
-    return toStaffRatings(rows);
-  },
-
-  async getById(id: string): Promise<StaffRating | null> {
-    const row = await staffRatingsTable.getById(id);
-    return row ? toStaffRating(row) : null;
-  },
-
-  async create(rating: Parameters<typeof staffRatingsTable.create>[0]): Promise<StaffRating> {
-    const row = await staffRatingsTable.create(rating);
-    return toStaffRating(row);
-  },
-
-  async approve(id: string, moderatedBy: string): Promise<StaffRating> {
-    // 'active' status means approved and visible
-    const row = await staffRatingsTable.updateStatus(id, 'active', moderatedBy);
-    return toStaffRating(row);
-  },
-
-  async reject(id: string, moderatedBy: string): Promise<StaffRating> {
-    // 'removed' status means rejected/removed from display
-    const row = await staffRatingsTable.updateStatus(id, 'removed', moderatedBy);
-    return toStaffRating(row);
-  },
-
-  async flag(id: string, moderatedBy: string): Promise<StaffRating> {
-    const row = await staffRatingsTable.updateStatus(id, 'flagged', moderatedBy);
-    return toStaffRating(row);
-  },
-
-  async hide(id: string, moderatedBy: string): Promise<StaffRating> {
-    const row = await staffRatingsTable.updateStatus(id, 'hidden', moderatedBy);
-    return toStaffRating(row);
-  },
-
-  async addResponse(id: string, responseText: string, responseBy: string): Promise<StaffRating> {
-    const row = await staffRatingsTable.addResponse(id, responseText, responseBy);
-    return toStaffRating(row);
-  },
-
-  async getAggregates(staffId: string) {
-    return staffRatingsTable.getAggregates(staffId);
-  },
-};
-
 // ==================== EXPORTS ====================
 
 export const dataService = {
@@ -1639,13 +1276,6 @@ export const dataService = {
   loyalty: loyaltyService,
   reviewRequests: reviewRequestsService,
   segments: segmentsService,
-
-  // Team module services (Supabase-first)
-  timesheets: timesheetsService,
-  payRuns: payRunsService,
-  turnLogs: turnLogsService,
-  timeOffRequests: timeOffRequestsService,
-  staffRatings: staffRatingsService,
 };
 
 export default dataService;

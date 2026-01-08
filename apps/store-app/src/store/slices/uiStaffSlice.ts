@@ -109,30 +109,35 @@ export const loadStaff = createAsyncThunk(
 
     const uiStaff = membersToUse.map((m: any) => convertTeamMemberToUIStaff(m));
 
-    // Check timesheet status for each staff member
-    for (const staff of uiStaff) {
-      try {
-        // Use the member's storeId for timesheet lookup
-        const member = membersToUse.find((m: any) => m.id === staff.id);
-        const memberStoreId = member?.storeId || storeId;
-        const shiftStatus = await timesheetDB.getStaffShiftStatus(memberStoreId, staff.id);
-        console.log(`[uiStaffSlice] Staff ${staff.name} (${staff.id}) storeId=${memberStoreId} shift status:`, shiftStatus);
-        if (shiftStatus && shiftStatus.isClockedIn) {
-          staff.status = 'ready';
-          if (shiftStatus.clockInTime) {
-            staff.clockInTime = new Date(shiftStatus.clockInTime).toISOString();
-            staff.time = new Date(shiftStatus.clockInTime).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit'
-            });
-          }
-          console.log(`[uiStaffSlice] Staff ${staff.name} is CLOCKED IN, status set to 'ready'`);
+    // PERFORMANCE FIX: Fetch all shift statuses in parallel instead of sequential N+1 queries
+    // This reduces 10 staff members from ~500ms (50ms x 10) to ~50ms (parallel)
+    const shiftStatusPromises = uiStaff.map((staff) => {
+      const member = membersToUse.find((m: any) => m.id === staff.id);
+      const memberStoreId = member?.storeId || storeId;
+      return timesheetDB.getStaffShiftStatus(memberStoreId, staff.id)
+        .catch((error) => {
+          console.log(`[uiStaffSlice] Error checking shift status for ${staff.name}:`, error);
+          return null; // Return null on error, staff keeps default 'off' status
+        });
+    });
+
+    const shiftStatusResults = await Promise.all(shiftStatusPromises);
+
+    // Apply shift status results to each staff member
+    uiStaff.forEach((staff, index) => {
+      const shiftStatus = shiftStatusResults[index];
+      if (shiftStatus && shiftStatus.isClockedIn) {
+        staff.status = 'ready';
+        if (shiftStatus.clockInTime) {
+          staff.clockInTime = new Date(shiftStatus.clockInTime).toISOString();
+          staff.time = new Date(shiftStatus.clockInTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit'
+          });
         }
-      } catch (error) {
-        console.log(`[uiStaffSlice] Error checking shift status for ${staff.name}:`, error);
-        // Staff not clocked in, keep default 'off' status
+        console.log(`[uiStaffSlice] Staff ${staff.name} is CLOCKED IN, status set to 'ready'`);
       }
-    }
+    });
 
     console.log('[uiStaffSlice] Final staff statuses:', uiStaff.map((s: UIStaff) => ({ name: s.name, status: s.status })));
     return uiStaff;

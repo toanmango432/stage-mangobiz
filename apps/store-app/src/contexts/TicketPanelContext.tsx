@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 
 // Type for ticket data that can be opened in the panel
 export interface TicketData {
@@ -86,8 +86,17 @@ export function TicketPanelProvider({ children }: TicketPanelProviderProps) {
     });
   }, []);
 
+  // PERFORMANCE FIX: Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    isOpen,
+    openTicketPanel,
+    openTicketWithData,
+    closeTicketPanel,
+    toggleTicketPanel,
+  }), [isOpen, openTicketPanel, openTicketWithData, closeTicketPanel, toggleTicketPanel]);
+
   return (
-    <TicketPanelContext.Provider value={{ isOpen, openTicketPanel, openTicketWithData, closeTicketPanel, toggleTicketPanel }}>
+    <TicketPanelContext.Provider value={contextValue}>
       {children}
     </TicketPanelContext.Provider>
   );

@@ -44,7 +44,7 @@ type SyncStateListener = (state: BackgroundSyncState) => void;
 
 // ==================== CONSTANTS ====================
 
-const SYNC_INTERVAL_MS = 30000; // 30 seconds
+const SYNC_INTERVAL_MS = 120000; // 2 minutes (was 30 seconds - reduced to fix performance)
 const BATCH_SIZE = 10;
 const MAX_RETRY_ATTEMPTS = 5;
 

@@ -165,6 +165,25 @@ export const ticketsDB = {
       .toArray();
   },
 
+  async getByDate(storeId: string, date: Date, limit: number = 200): Promise<Ticket[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const startIso = startOfDay.toISOString();
+    const endIso = endOfDay.toISOString();
+    return await db.tickets
+      .where('storeId')
+      .equals(storeId)
+      .and(ticket =>
+        ticket.createdAt >= startIso &&
+        ticket.createdAt <= endIso
+      )
+      .limit(limit)
+      .toArray();
+  },
+
   async create(input: CreateTicketInput, userId: string, storeId: string): Promise<Ticket> {
     const now = new Date();
     const subtotal = input.services.reduce((sum, s) => sum + s.price, 0) +
@@ -829,6 +848,40 @@ export const servicesDB = {
       .equals([storeId, category])
       .limit(limit)
       .toArray();
+  },
+
+  async create(service: Omit<Service, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<Service> {
+    const now = new Date().toISOString();
+    const newService: Service = {
+      id: uuidv4(),
+      ...service,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'local',
+    };
+    await db.services.add(newService);
+    return newService;
+  },
+
+  async update(id: string, updates: Partial<Service>): Promise<Service | undefined> {
+    const service = await db.services.get(id);
+    if (!service) return undefined;
+
+    const updatedService: Service = {
+      ...service,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'local',
+    };
+    await db.services.put(updatedService);
+    return updatedService;
+  },
+
+  async delete(id: string): Promise<boolean> {
+    const service = await db.services.get(id);
+    if (!service) return false;
+    await db.services.delete(id);
+    return true;
   },
 };
 

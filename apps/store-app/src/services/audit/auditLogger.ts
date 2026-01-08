@@ -34,7 +34,8 @@ export type AuditAction =
   | 'settings_change'
   | 'payment_process'
   | 'refund'
-  | 'void';
+  | 'void'
+  | 'staff_assign';  // FIX 4.3: Added for staff assignment audit logging
 
 export type AuditEntityType =
   | 'client'

@@ -53,12 +53,12 @@ class SyncService {
   // ===== AUTO SYNC =====
 
   private startAutoSync() {
-    // Sync every 30 seconds when online
+    // Sync every 2 minutes when online (was 30 seconds - reduced to fix performance)
     this.syncInterval = setInterval(() => {
       if (this.isOnline && !this.isSyncing) {
         this.syncNow();
       }
-    }, 30000);
+    }, 120000);
   }
 
   stopAutoSync() {

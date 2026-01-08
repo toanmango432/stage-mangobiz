@@ -22,7 +22,7 @@ import { getCloudBrokerUrl } from './featureFlags';
 
 const LOCAL_CONNECT_TIMEOUT = 3000; // 3 seconds for local
 const CLOUD_CONNECT_TIMEOUT = 10000; // 10 seconds for cloud
-const LOCAL_CHECK_INTERVAL = 30000; // Check for local every 30 seconds
+const LOCAL_CHECK_INTERVAL = 120000; // Check for local every 2 minutes (was 30 seconds - reduced to fix performance)
 const DISCOVERY_CACHE_TTL = 60000; // Cache discovery for 1 minute
 
 // =============================================================================

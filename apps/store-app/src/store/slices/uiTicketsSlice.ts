@@ -226,19 +226,11 @@ export const loadTickets = createAsyncThunk(
 
       console.log('📋 Loaded tickets from Supabase:', remoteTickets.length);
 
-      // Also load local tickets from IndexedDB to merge unsynced ones
-      // Try multiple possible storeIds for local tickets
-      const localTicketsDefault = await ticketsDB.getAll('default-salon') as unknown as DBTicket[];
-      const localTicketsSalon = await ticketsDB.getAll(_storeId) as unknown as DBTicket[];
-      const localTickets = [...localTicketsDefault, ...localTicketsSalon];
-
-      // Filter to only include today's local tickets
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-      const todayLocalTickets = localTickets.filter(t => {
-        const createdAt = new Date(t.createdAt);
-        return createdAt >= todayStart && createdAt < todayEnd;
-      });
+      // PERFORMANCE FIX: Use getByDate() instead of getAll() + filter
+      // This uses indexed queries instead of loading 500+ tickets
+      const localTicketsDefault = await ticketsDB.getByDate('default-salon', today) as unknown as DBTicket[];
+      const localTicketsSalon = await ticketsDB.getByDate(_storeId, today) as unknown as DBTicket[];
+      const todayLocalTickets = [...localTicketsDefault, ...localTicketsSalon];
 
       console.log('📋 Local unsynced tickets found:', todayLocalTickets.filter(t => t.syncStatus === 'local').length);
 
@@ -276,9 +268,10 @@ export const loadTickets = createAsyncThunk(
       };
     } catch (error) {
       console.warn('⚠️ Supabase unavailable, falling back to IndexedDB:', error);
-      // Fallback to IndexedDB for offline mode - try multiple storeIds
-      const localTicketsDefault = await ticketsDB.getAll('default-salon') as unknown as DBTicket[];
-      const localTicketsSalon = await ticketsDB.getAll(_storeId) as unknown as DBTicket[];
+      // PERFORMANCE FIX: Use getByDate() instead of getAll() for offline mode
+      const today = new Date();
+      const localTicketsDefault = await ticketsDB.getByDate('default-salon', today) as unknown as DBTicket[];
+      const localTicketsSalon = await ticketsDB.getByDate(_storeId, today) as unknown as DBTicket[];
       const allTickets = [...localTicketsDefault, ...localTicketsSalon];
 
       // Deduplicate by id
@@ -776,17 +769,14 @@ export const checkInAppointment = createAsyncThunk(
     try {
       // Use serverId if available, otherwise use local id
       const appointmentServerId = appointment.serverId || appointment.id;
-      
-      // 1. Update appointment status to 'checked-in' in Supabase
-      await dataService.appointments.updateStatus(String(appointmentServerId), 'checked-in');
-      console.log('✅ Appointment checked-in in Supabase:', appointmentServerId);
 
-      // 2. Create ticket from appointment in Supabase with validation
+      // =====================================================
+      // 1. VALIDATION FIRST - Validate foreign keys BEFORE any status update
+      // =====================================================
       const services = appointment.services || [];
       const primaryService = services[0] || {} as any;
       const totalDuration = services.reduce((sum, s) => sum + (s.duration || 30), 0);
 
-      // Validate foreign keys before creating
       const { validateTicketInput } = await import('../../utils/validation');
       const validation = await validateTicketInput({
         clientId: appointment.clientId || null,
@@ -800,6 +790,11 @@ export const checkInAppointment = createAsyncThunk(
       if (!validation.valid) {
         throw new Error(validation.error || 'Validation failed');
       }
+      // =====================================================
+
+      // 2. Update appointment status to 'checked-in' in Supabase (AFTER validation)
+      await dataService.appointments.updateStatus(String(appointmentServerId), 'checked-in');
+      console.log('✅ Appointment checked-in in Supabase:', appointmentServerId);
 
       // Build ticket using CreateTicketInput type
       // Note: scheduledStartTime and scheduledEndTime are now ISO strings

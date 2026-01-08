@@ -597,14 +597,36 @@ export function BookPage() {
 
   const handleSaveAppointment = async (appointmentData: any) => {
     try {
+      // =====================================================
+      // VALIDATION: Validate foreign keys before saving
+      // =====================================================
+      const { validateAppointmentInput } = await import('../utils/validation');
+
+      // Build validation input with proper FK references
+      const validationInput = {
+        clientId: appointmentData.clientId || '',
+        staffId: appointmentData.staffId || appointmentData.services?.[0]?.staffId || '',
+        services: appointmentData.services?.map((s: any) => ({
+          serviceId: s.serviceId || '',
+          staffId: s.staffId || '',
+        })) || [],
+      };
+
+      const validation = await validateAppointmentInput(validationInput);
+      if (!validation.valid) {
+        setToast({ message: validation.error || 'Validation failed', type: 'error' });
+        return;
+      }
+      // =====================================================
+
       // Get existing appointments for auto-assign if needed
       const existingAppointments = filteredAppointments || [];
-      
+
       // Ensure dates are Date objects
-      const scheduledStartTime = appointmentData.scheduledStartTime instanceof Date 
-        ? appointmentData.scheduledStartTime 
+      const scheduledStartTime = appointmentData.scheduledStartTime instanceof Date
+        ? appointmentData.scheduledStartTime
         : new Date(appointmentData.scheduledStartTime);
-      
+
       const scheduledEndTime = appointmentData.scheduledEndTime instanceof Date
         ? appointmentData.scheduledEndTime
         : new Date(appointmentData.scheduledEndTime);

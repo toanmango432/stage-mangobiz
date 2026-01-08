@@ -242,7 +242,7 @@ export function App() {
   return (
     <ErrorBoundary module="app">
       <Provider store={store}>
-        <SupabaseSyncProvider autoSyncInterval={30000} enableRealtime={true}>
+        <SupabaseSyncProvider autoSyncInterval={0} enableRealtime={true}>
           <ConflictNotificationProvider>
             <TooltipProvider>
               <AppShell />

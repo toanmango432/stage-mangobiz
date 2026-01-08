@@ -21,10 +21,10 @@ import {
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   fetchTransactions,
+  voidTransaction,
+  refundTransaction,
   selectAllTransactions,
   selectTransactionStats,
-  voidTransaction,
-  refundTransaction
 } from '../../store/slices/transactionsSlice';
 import type { Transaction } from '../../types';
 
@@ -42,8 +42,8 @@ export function Transactions() {
 
   // Load transactions on mount
   useEffect(() => {
-    // Using hardcoded salon ID for now - should come from auth context
-    dispatch(fetchTransactions('salon_123'));
+    // Load today's transactions
+    dispatch(fetchTransactions(new Date()));
   }, [dispatch]);
 
   // Status tabs
@@ -110,11 +110,9 @@ export function Transactions() {
     }
 
     try {
-      // TODO: Get userId from auth context
       await dispatch(voidTransaction({
         id: transactionId,
         voidReason: 'Manual void from transaction list',
-        userId: 'user_123'
       })).unwrap();
 
       // Show success message
@@ -142,12 +140,10 @@ export function Transactions() {
     const reason = prompt('Enter refund reason:') || 'Customer request';
 
     try {
-      // TODO: Get userId from auth context
       await dispatch(refundTransaction({
         id: transactionId,
         refundAmount: amount,
         refundReason: reason,
-        _userId: 'user_123'
       })).unwrap();
 
       // Show success message
