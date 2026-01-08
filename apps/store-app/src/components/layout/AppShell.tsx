@@ -32,6 +32,7 @@ const ClientSettings = lazy(() => import('../client-settings').then(m => ({ defa
 const StoreSettings = lazy(() => import('../modules/StoreSettings').then(m => ({ default: m.StoreSettings })));
 const SettingsPage = lazy(() => import('../modules/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const StoreAuditViewer = lazy(() => import('../modules/settings/StoreAuditViewer'));
+const GiftCardsPage = lazy(() => import('../giftcards/GiftCardsPage'));
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
 // fetchAllStaff removed - staffSlice.selectAllStaff now derives from teamSlice
@@ -394,6 +395,8 @@ function AppShellContent() {
         return <Suspense fallback={<ModuleLoader />}><FrontDesk showFrontDeskSettings={true} setShowFrontDeskSettings={(show) => {
           if (!show) setActiveModule('more');
         }} /></Suspense>;
+      case 'gift-cards':
+        return <Suspense fallback={<ModuleLoader />}><GiftCardsPage onBack={() => setActiveModule('more')} /></Suspense>;
       // 'devices' case removed - local-first architecture, no device settings needed
       default:
         return <Suspense fallback={<ModuleLoader />}><FrontDesk /></Suspense>;
@@ -417,15 +420,6 @@ function AppShellContent() {
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-white">
-      {/* License Status Banner */}
-      <LicenseBanner />
-
-      {/* System Announcements Banner */}
-      <AnnouncementBanner />
-
-      {/* Network Status Indicator */}
-      <NetworkStatus />
-
       {/* Top Header - Always visible, but navigation hidden on mobile/tablet */}
       <TopHeaderBar
         activeModule={activeModule}
@@ -436,7 +430,17 @@ function AppShellContent() {
 
       {/* Main Content Area - responsive padding for header height (h-12 mobile, h-16 desktop) */}
       <main className={`relative flex-1 flex flex-col min-h-0 pt-12 md:pt-16 bg-white ${showBottomNav ? 'pb-[68px] sm:pb-[72px]' : ''}`}>
-        {renderModule()}
+        {/* Banners - positioned below fixed header */}
+        <div className="flex-shrink-0">
+          <LicenseBanner />
+          <AnnouncementBanner />
+          <NetworkStatus />
+        </div>
+
+        {/* Module Content */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {renderModule()}
+        </div>
       </main>
 
       {/* Bottom Navigation - Only on mobile and tablet */}
