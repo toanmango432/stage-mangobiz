@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import type {
   FormTemplate,
   FormSection,
@@ -184,12 +185,15 @@ export const FormCompletionPortal: React.FC<FormCompletionPortalProps> = ({
             <div
               className="prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{
-                __html: config.content
-                  .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-0 mb-2">$1</h2>')
-                  .replace(/^### (.+)$/gm, '<h3 class="text-md font-medium mt-2 mb-1">$1</h3>')
-                  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\n- /g, '<br/>• ')
-                  .replace(/\n/g, '<br/>')
+                __html: DOMPurify.sanitize(
+                  config.content
+                    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-0 mb-2">$1</h2>')
+                    .replace(/^### (.+)$/gm, '<h3 class="text-md font-medium mt-2 mb-1">$1</h3>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n- /g, '<br/>• ')
+                    .replace(/\n/g, '<br/>'),
+                  { ALLOWED_TAGS: ['h2', 'h3', 'strong', 'br', 'p', 'span'], ALLOWED_ATTR: ['class'] }
+                )
               }}
             />
           </div>

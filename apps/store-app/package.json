@@ -21,22 +21,23 @@
     "electron:dist": "electron-builder"
   },
   "dependencies": {
-    "@mango/types": "workspace:*",
-    "@mango/design-system": "workspace:*",
-    "@mango/utils": "workspace:*",
-    "@mango/database": "workspace:*",
-    "@mango/supabase": "workspace:*",
-    "@mango/mqtt": "workspace:*",
-    "@mango/ui": "workspace:*",
+    "@hookform/resolvers": "^3.10.0",
     "@mango/api-client": "workspace:*",
     "@mango/api-contracts": "workspace:*",
-    "@hookform/resolvers": "^3.10.0",
+    "@mango/database": "workspace:*",
+    "@mango/design-system": "workspace:*",
+    "@mango/mqtt": "workspace:*",
+    "@mango/supabase": "workspace:*",
+    "@mango/types": "workspace:*",
+    "@mango/ui": "workspace:*",
+    "@mango/utils": "workspace:*",
     "@reduxjs/toolkit": "^2.9.1",
     "@sentry/react": "^10.32.1",
     "@tanstack/react-query": "^5.90.11",
     "@tanstack/react-virtual": "^3.13.13",
     "@tippyjs/react": "^4.2.6",
     "axios": "^1.12.2",
+    "dompurify": "^3.3.1",
     "focus-trap-react": "^11.0.1",
     "framer-motion": "^12.23.24",
     "next-themes": "^0.4.6",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "@types/dompurify": "^3.2.0",
     "@types/node": "^20.11.18",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
@@ -88,19 +90,30 @@
     ],
     "mac": {
       "category": "public.app-category.business",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     },
     "extraResources": [
       {
         "from": "electron/mosquitto",
         "to": "mosquitto",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   }
