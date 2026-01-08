@@ -364,6 +364,10 @@ export const selectStaffById = (staffId: string) =>
  * Primary selector for staff list.
  * NOW DERIVES FROM TEAM DATA for single source of truth.
  * Components using this will automatically get team-derived data.
+ *
+ * @deprecated For UI components (Book, FrontDesk, Team), use uiStaffSlice.selectAllStaff instead.
+ * uiStaffSlice provides UI-specific fields (status, turns, revenue) that this selector lacks.
+ * This selector is kept for backward compatibility with non-UI code only.
  */
 export const selectAllStaff = selectStaffFromTeam;
 

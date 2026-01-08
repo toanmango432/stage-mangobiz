@@ -68,15 +68,17 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const isCombinedView = useSelector(selectIsCombinedView);
   const combinedCardViewMode = useSelector(selectCardViewMode);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [minimizedSections, setMinimizedSections] = useState(() => {
-    // Force Coming section to be minimized by default - clear any old localStorage
-    localStorage.removeItem('minimizedSections');
-    return {
-      waitList: false,
-      service: false,
-      comingAppointments: true  // Minimized by default - only show header with metrics
-    };
+  // PERFORMANCE FIX: Use static initial state instead of blocking localStorage in initializer
+  const [minimizedSections, setMinimizedSections] = useState({
+    waitList: false,
+    service: false,
+    comingAppointments: true  // Minimized by default - only show header with metrics
   });
+
+  // PERFORMANCE FIX: Move localStorage cleanup to useEffect (runs after paint)
+  useEffect(() => {
+    localStorage.removeItem('minimizedSections');
+  }, []);
 
   // Use shared device detection hook (replaces 40+ lines of duplicate code)
   const deviceInfo = useDeviceDetection();

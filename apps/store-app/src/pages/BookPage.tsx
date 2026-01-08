@@ -3,13 +3,13 @@
  * Main appointment calendar page
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAppointmentCalendar } from '../hooks/useAppointmentCalendar';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useBookSidebar } from '../hooks/useBookSidebar';
-import { selectAllStaff, loadStaff } from '../store/slices/uiStaffSlice';
-import { fetchTeamMembers } from '../store/slices/teamSlice';
+import { selectAllStaff, loadStaff, selectStaffLoading, selectStaffError } from '../store/slices/uiStaffSlice';
+import { fetchTeamMembers, selectTeamMemberIds, selectTeamLoading, selectTeamError } from '../store/slices/teamSlice';
 import { selectStoreId } from '../store/slices/authSlice';
 import { selectPendingBookingClient, clearPendingBookingClient } from '../store/slices/uiSlice';
 import {
@@ -37,7 +37,7 @@ import { snapToGrid } from '../utils/dragAndDropHelpers';
 import { syncService } from '../services/syncService';
 import { Toast, ToastType } from '../components/Toast';
 import { appointmentsDB, db } from '../db/database';
-import { getTestSalonId } from '../db/seed';
+// Removed: import { getTestSalonId } from '../db/seed'; - now using auth store ID
 import { NEXT_AVAILABLE_STAFF_ID } from '../constants/appointment';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { useClosedPeriodForDate } from '../hooks/useSchedule';
@@ -84,6 +84,9 @@ export function BookPage() {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Track loaded dates to avoid redundant fetches (performance optimization)
+  const [loadedDates, setLoadedDates] = useState<Set<string>>(new Set());
+
   // Clipboard state for copy/paste functionality
   const [_copiedAppointment, setCopiedAppointment] = useState<LocalAppointment | null>(null);
 
@@ -100,24 +103,49 @@ export function BookPage() {
     goToToday,
   } = useAppointmentCalendar({ filters });
 
-  // Get salon ID and staff from Redux
-  const storeId = getTestSalonId();
-  const authStoreId = useAppSelector(selectStoreId);
+  // Get salon ID and staff from Redux (using auth store ID, not hardcoded test ID)
+  const storeId = useAppSelector(selectStoreId) || 'default-store';
   const allStaff = useAppSelector(selectAllStaff) || [];
   const pendingBookingClient = useAppSelector(selectPendingBookingClient);
 
-  // Load staff on mount - must fetch team members first (same pattern as useTicketsCompat)
-  useEffect(() => {
-    const storeId = authStoreId || 'default-store';
-    console.log('[BookPage] Loading staff for storeId:', storeId);
+  // Watch for team data to arrive in Redux (used by loadStaff dependency)
+  const teamMemberIds = useAppSelector(selectTeamMemberIds);
 
-    // First fetch team members from Supabase into Redux, then load staff for UI
-    // This ensures state.team.members is populated before loadStaff reads from it
-    dispatch(fetchTeamMembers(storeId)).then(() => {
-      console.log('[BookPage] Team members fetched, now loading staff...');
+  // Error and loading state selectors for user feedback
+  const teamLoading = useAppSelector(selectTeamLoading);
+  const teamError = useAppSelector(selectTeamError);
+  const staffLoading = useAppSelector(selectStaffLoading);
+  const staffError = useAppSelector(selectStaffError);
+
+  // Effect 1: Fetch team members from Supabase into Redux
+  useEffect(() => {
+    console.log('[BookPage] Fetching team members with storeId:', storeId);
+    dispatch(fetchTeamMembers(storeId));
+  }, [dispatch, storeId]);
+
+  // Effect 2: Load staff ONLY after team data arrives in Redux
+  // This ensures state.team.members is populated before loadStaff reads from it
+  useEffect(() => {
+    if (teamMemberIds.length > 0) {
+      console.log('[BookPage] Team loaded (' + teamMemberIds.length + ' members), now loading staff...');
       dispatch(loadStaff(storeId));
-    });
-  }, [dispatch, authStoreId]);
+    }
+  }, [dispatch, storeId, teamMemberIds.length]);
+
+  // Effect 3: Show error toast if team/staff loading fails
+  useEffect(() => {
+    if (teamError) {
+      setToast({ message: `Failed to load team: ${teamError}`, type: 'error' });
+      console.error('[BookPage] Team loading error:', teamError);
+    }
+  }, [teamError]);
+
+  useEffect(() => {
+    if (staffError) {
+      setToast({ message: `Failed to load staff: ${staffError}`, type: 'error' });
+      console.error('[BookPage] Staff loading error:', staffError);
+    }
+  }, [staffError]);
 
   // Auto-open appointment modal when client is pre-selected from global search
   useEffect(() => {
@@ -130,8 +158,8 @@ export function BookPage() {
   // Debug: Log staff data
   console.log('[BookPage] allStaff from uiStaffSlice:', allStaff.length, allStaff.map(s => s.name));
 
-  // Transform staff data for components (UIStaff from uiStaffSlice uses 'image' not 'avatar')
-  const staffWithCounts = allStaff.map(staff => ({
+  // PERFORMANCE FIX: Memoize staffWithCounts to avoid O(n×m) filtering on every render
+  const staffWithCounts = useMemo(() => allStaff.map(staff => ({
     id: staff.id,
     name: staff.name,
     photo: staff.image, // UIStaff uses 'image' property
@@ -139,12 +167,15 @@ export function BookPage() {
     appointmentCount: filteredAppointments?.filter(
       (apt: LocalAppointment) => apt.staffId === staff.id
     ).length || 0,
-  }));
+  })), [allStaff, filteredAppointments]);
 
-  // Get selected staff for calendar display
-  const selectedStaff = selectedStaffIds?.length > 0
-    ? allStaff.filter(staff => selectedStaffIds.includes(staff.id))
-    : allStaff;
+  // PERFORMANCE FIX: Memoize selectedStaff filter
+  const selectedStaff = useMemo(() =>
+    selectedStaffIds?.length > 0
+      ? allStaff.filter(staff => selectedStaffIds.includes(staff.id))
+      : allStaff,
+    [allStaff, selectedStaffIds]
+  );
 
   // Get business closure for the selected date (if any)
   const selectedDateString = selectedDate.toISOString().split('T')[0];
@@ -716,12 +747,20 @@ export function BookPage() {
     }
   };
 
-  // Load appointments from IndexedDB when date changes
+  // Load appointments from IndexedDB when date changes (with date-based caching)
   useEffect(() => {
+    const dateKey = selectedDate.toISOString().split('T')[0];
+
+    // Skip if already loaded for this date (performance optimization)
+    if (loadedDates.has(dateKey)) {
+      console.log(`[BookPage] Appointments already loaded for ${dateKey}, skipping fetch`);
+      return;
+    }
+
     async function loadAppointments() {
       try {
         const appointments = await appointmentsDB.getByDate(storeId, selectedDate);
-        
+
         // Convert to LocalAppointment format and dispatch to Redux
         const localAppointments: LocalAppointment[] = appointments.map((apt: any) => ({
           ...apt,
@@ -731,21 +770,24 @@ export function BookPage() {
           updatedAt: apt.updatedAt instanceof Date ? apt.updatedAt : new Date(apt.updatedAt),
           syncStatus: apt.syncStatus || 'pending', // Ensure syncStatus is present
         }));
-        
+
         // Dispatch to Redux (this will update the calendar)
         localAppointments.forEach(apt => {
           dispatch(addLocalAppointment(apt));
         });
-        
+
+        // Mark this date as loaded (cache)
+        setLoadedDates(prev => new Set(prev).add(dateKey));
+
         console.log(`✅ Loaded ${localAppointments.length} appointments for ${selectedDate.toDateString()}`);
       } catch (error) {
         console.error('Failed to load appointments:', error);
         setToast({ message: 'Failed to load appointments', type: 'error' });
       }
     }
-    
+
     loadAppointments();
-  }, [selectedDate, storeId, dispatch]);
+  }, [selectedDate, storeId, dispatch, loadedDates]);
 
   // Auto-select all staff on mount if none selected
   useEffect(() => {

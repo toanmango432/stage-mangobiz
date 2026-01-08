@@ -36,6 +36,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
 import { fetchAllStaff } from '../../store/slices/staffSlice';
 import { loadStaff as loadUIStaff } from '../../store/slices/uiStaffSlice';
+import { fetchTeamMembers } from '../../store/slices/teamSlice';
 import { fetchClientsFromSupabase } from '../../store/slices/clientsSlice';
 import { addLocalAppointment } from '../../store/slices/appointmentsSlice';
 import { setOnlineStatus } from '../../store/slices/syncSlice';
@@ -199,6 +200,11 @@ function AppShellContent() {
         // 4a. Load staff into Redux (legacy staffSlice for backwards compatibility)
         await dispatch(fetchAllStaff(storeId));
         console.log('✅ Staff loaded into Redux (staffSlice)');
+
+        // 4a1. Fetch team members from Supabase into teamSlice (NEW: ensures Redux team state is populated)
+        const teamStoreIdForFetch = authState.store?.storeId || storeId;
+        await dispatch(fetchTeamMembers(teamStoreIdForFetch));
+        console.log('✅ Team members fetched into Redux (teamSlice)');
 
         // 4a2. Seed team members if needed (required for uiStaffSlice)
         const teamStoreId = authState.store?.storeId || storeId;

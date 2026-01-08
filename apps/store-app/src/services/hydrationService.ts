@@ -115,63 +115,38 @@ class HydrationService {
     let currentStep = 0;
 
     try {
-      // 1. Staff (priority - needed for UI)
-      currentStep++;
+      // PERFORMANCE FIX: Parallelize hydration in 2 phases instead of 5 sequential awaits
+
+      // Phase 1: Staff + Services in parallel (both independent, needed for UI)
+      currentStep = 2;
       onProgress?.({
         stage: 'staff',
-        current: currentStep,
+        current: 1,
         total: totalSteps,
-        message: 'Loading team members...',
+        message: 'Loading team & services...',
       });
-      await this.hydrateStaff(storeId);
+      await Promise.all([
+        this.hydrateStaff(storeId),
+        this.hydrateServices(storeId),
+      ]);
 
       if (this.abortController?.signal.aborted) throw new Error('Aborted');
 
-      // 2. Services (priority - needed for booking)
-      currentStep++;
-      onProgress?.({
-        stage: 'services',
-        current: currentStep,
-        total: totalSteps,
-        message: 'Loading services...',
-      });
-      await this.hydrateServices(storeId);
-
-      if (this.abortController?.signal.aborted) throw new Error('Aborted');
-
-      // 3. Today's appointments
-      currentStep++;
+      // Phase 2: Appointments + Clients + Tickets in parallel
+      currentStep = 5;
       onProgress?.({
         stage: 'appointments',
-        current: currentStep,
+        current: 3,
         total: totalSteps,
-        message: 'Loading appointments...',
+        message: 'Loading appointments, clients & tickets...',
       });
-      await this.hydrateAppointments(storeId);
+      await Promise.all([
+        this.hydrateAppointments(storeId),
+        this.hydrateClients(storeId),
+        this.hydrateTickets(storeId),
+      ]);
 
       if (this.abortController?.signal.aborted) throw new Error('Aborted');
-
-      // 4. Clients (can be large, paginated)
-      currentStep++;
-      onProgress?.({
-        stage: 'clients',
-        current: currentStep,
-        total: totalSteps,
-        message: 'Loading clients...',
-      });
-      await this.hydrateClients(storeId);
-
-      if (this.abortController?.signal.aborted) throw new Error('Aborted');
-
-      // 5. Recent tickets
-      currentStep++;
-      onProgress?.({
-        stage: 'tickets',
-        current: currentStep,
-        total: totalSteps,
-        message: 'Loading tickets...',
-      });
-      await this.hydrateTickets(storeId);
 
       // Mark complete
       this.markHydrationComplete(storeId);

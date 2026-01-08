@@ -54,23 +54,32 @@ export function useTicketsCompat() {
 
   // Get storeId from auth state (same as Team Settings uses)
   const authStoreId = useAppSelector(selectStoreId);
+  const storeId = authStoreId || 'default-store';
 
-  // Load data on mount
+  // Watch for team data to arrive in Redux (used by loadStaff dependency)
+  const teamMemberIds = useAppSelector(selectTeamMemberIds);
+
+  // Effect 1: Load tickets AND team members in parallel (both independent)
   useEffect(() => {
-    // Use storeId from auth if available, fallback to default-store
-    const storeId = authStoreId || 'default-store';
-    console.log('[useTicketsCompat] Loading data with storeId:', storeId);
+    console.log('[useTicketsCompat] Loading data in parallel for storeId:', storeId);
 
-    // Load tickets
-    dispatch(loadTickets(storeId));
-
-    // First fetch team members from Supabase into Redux, then load staff for UI
-    // This ensures state.team.members is populated before loadStaff reads from it
-    dispatch(fetchTeamMembers(storeId)).then(() => {
-      console.log('[useTicketsCompat] Team members fetched, now loading staff...');
-      dispatch(loadStaff(storeId));
+    // These are independent - run in parallel for performance
+    Promise.all([
+      dispatch(loadTickets(storeId)),
+      dispatch(fetchTeamMembers(storeId)),
+    ]).then(() => {
+      console.log('[useTicketsCompat] Parallel data loading complete');
     });
-  }, [dispatch, authStoreId]);
+  }, [dispatch, storeId]);
+
+  // Effect 2: Load staff ONLY after team data arrives in Redux
+  // This ensures state.team.members is populated before loadStaff reads from it
+  useEffect(() => {
+    if (teamMemberIds.length > 0) {
+      console.log('[useTicketsCompat] Team loaded (' + teamMemberIds.length + ' members), now loading staff...');
+      dispatch(loadStaff(storeId));
+    }
+  }, [dispatch, storeId, teamMemberIds.length]);
 
   // Transform appointments to coming appointments format
   // Filter to show only today's upcoming appointments (not checked in yet)

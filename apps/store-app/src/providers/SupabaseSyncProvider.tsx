@@ -7,7 +7,7 @@
  * - Handles real-time updates from Supabase
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 import { supabaseSyncService, type SyncState, type SyncableEntity } from '@/services/supabase';
 import { storeAuthManager } from '@/services/storeAuthManager';
@@ -314,7 +314,8 @@ export function SupabaseSyncProvider({
     await supabaseSyncService.syncAll();
   }, [isInitialized]);
 
-  const contextValue: SupabaseSyncContextValue = {
+  // PERFORMANCE FIX: Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo<SupabaseSyncContextValue>(() => ({
     syncState,
     isSyncing: syncState.status === 'syncing' || (bgSyncState?.isSyncing ?? false),
     isOnline: syncState.isOnline,
@@ -327,7 +328,7 @@ export function SupabaseSyncProvider({
     hydrationProgress,
     // LOCAL-FIRST: Background sync state
     backgroundSyncState: bgSyncState,
-  };
+  }), [syncState, bgSyncState, syncNow, isHydrating, hydrationProgress]);
 
   return (
     <SupabaseSyncContext.Provider value={contextValue}>

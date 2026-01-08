@@ -154,11 +154,16 @@ export const ServiceSection = memo(function ServiceSection({
       }, 0) / serviceTickets.length)
     : 0;
 
-  // Card scale for zoom (kept separate as it's section-specific)
-  const [cardScale, setCardScale] = useState<number>(() => {
+  // PERFORMANCE FIX: Use static initial value, defer localStorage read to useEffect
+  const [cardScale, setCardScale] = useState<number>(1.0);
+
+  // PERFORMANCE FIX: Load saved cardScale after initial paint (non-blocking)
+  useEffect(() => {
     const saved = localStorage.getItem('serviceCardScale');
-    return saved ? parseFloat(saved) : 1.0;
-  });
+    if (saved) {
+      setCardScale(parseFloat(saved));
+    }
+  }, []);
   // State for dropdown menu
   const [showDropdown, setShowDropdown] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
