@@ -70,10 +70,12 @@ import { ItemTabBar } from "./ItemTabBar";
 import { ProductGrid } from "./ProductGrid";
 import { PackageGrid } from "./PackageGrid";
 import { GiftCardGrid } from "./GiftCardGrid";
+import type { GiftCardSaleData } from "./modals/SellGiftCardModal";
 import { getProductsByCategory } from "@/data/mockProducts";
 import { getPackagesByCategory } from "@/data/mockPackages";
-import { getGiftCardsByDesign } from "@/data/mockGiftCards";
+import { useCatalog } from "@/hooks/useCatalog";
 import { dataService } from "@/services/dataService";
+import { storeAuthManager } from "@/services/storeAuthManager";
 // Import extracted types, reducer, constants, and components
 import type { PanelMode } from "./types";
 import { createInitialState, ticketReducer, ticketActions } from "./reducers/ticketReducer";
@@ -156,6 +158,10 @@ export default function TicketPanel({
     return localStorage.getItem(KEYBOARD_HINTS_DISMISSED_KEY) === "true";
   });
   void keyboardHintsDismissed; // Suppress unused warning - kept for future use
+
+  // Gift card catalog data
+  const catalogStoreId = storeAuthManager.getState().store?.storeId || '';
+  const { giftCardDenominations, giftCardSettings } = useCatalog({ storeId: catalogStoreId });
 
   const handleDismissKeyboardHints = () => {
     setKeyboardHintsDismissed(true);
@@ -631,6 +637,36 @@ export default function TicketPanel({
       description: targetStaffName ? `Assigned to ${targetStaffName}` : "Service added to ticket",
     });
     console.log(`Added ${selectedServices.length} service(s)`, { staffId: targetStaffId, staffName: targetStaffName });
+  };
+
+  // Handler for adding gift cards from the new GiftCardGrid component
+  const handleAddGiftCard = (giftCardData: GiftCardSaleData) => {
+    const giftCardService: TicketService = {
+      id: `gc-${Date.now()}`,
+      serviceId: `giftcard-${giftCardData.amount}`,
+      serviceName: `$${giftCardData.amount} Gift Card`,
+      category: "Gift Card",
+      price: giftCardData.amount,
+      duration: 0,
+      status: "not_started",
+      // Store gift card metadata for later processing
+      metadata: {
+        type: 'gift_card',
+        deliveryMethod: giftCardData.deliveryMethod,
+        recipientName: giftCardData.recipientName,
+        recipientEmail: giftCardData.recipientEmail,
+        recipientPhone: giftCardData.recipientPhone,
+        message: giftCardData.message,
+        denominationId: giftCardData.denominationId,
+      },
+    };
+
+    dispatch(ticketActions.addService([giftCardService]));
+
+    toast({
+      title: "Gift Card Added",
+      description: `$${giftCardData.amount} gift card added to ticket`,
+    });
   };
 
   const handleAddStaff = (staffId: string, staffName: string) => {
@@ -1693,16 +1729,9 @@ export default function TicketPanel({
                           />
                         ) : addItemTab === "giftcards" ? (
                           <GiftCardGrid
-                            giftCards={getGiftCardsByDesign(selectedCategory)}
-                            onSelectGiftCard={(gc) => {
-                              handleAddServices([{
-                                id: `gc-${Date.now()}`,
-                                name: gc.name,
-                                category: "Gift Card",
-                                price: gc.value,
-                                duration: 0,
-                              }]);
-                            }}
+                            denominations={giftCardDenominations || []}
+                            settings={giftCardSettings}
+                            onAddGiftCard={handleAddGiftCard}
                           />
                         ) : null}
                       </div>
@@ -2019,16 +2048,9 @@ export default function TicketPanel({
                         />
                       ) : addItemTab === "giftcards" ? (
                         <GiftCardGrid
-                          giftCards={getGiftCardsByDesign(selectedCategory)}
-                          onSelectGiftCard={(gc) => {
-                            handleAddServices([{
-                              id: `gc-${Date.now()}`,
-                              name: gc.name,
-                              category: "Gift Card",
-                              price: gc.value,
-                              duration: 0,
-                            }]);
-                          }}
+                          denominations={giftCardDenominations || []}
+                          settings={giftCardSettings}
+                          onAddGiftCard={handleAddGiftCard}
                         />
                       ) : null}
                     </div>

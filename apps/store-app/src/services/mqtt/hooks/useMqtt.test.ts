@@ -1,6 +1,7 @@
 /**
  * Tests for useMqtt Hook
  * Part of: MQTT Architecture Implementation (Phase 1)
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, vi } from 'vitest';

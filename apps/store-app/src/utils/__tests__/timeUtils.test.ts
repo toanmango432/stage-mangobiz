@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   timeToSeconds,
   secondsToTime,
@@ -25,6 +25,43 @@ import {
   HEIGHT_PER_15MIN,
   WORKING_HOURS_OFFSET,
 } from '../timeUtils';
+
+// Mock dateUtils to avoid timezone-dependent behavior in tests
+vi.mock('../dateUtils', () => ({
+  formatTime: vi.fn((date: Date, options?: { use24Hour?: boolean }) => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    if (options?.use24Hour) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  }),
+  formatLongDate: vi.fn((date: Date) => date.toDateString()),
+  getStoreTimezone: vi.fn(() => 'America/Los_Angeles'),
+  isToday: vi.fn((date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  }),
+  isPast: vi.fn((date: Date) => date.getTime() < Date.now()),
+  startOfDay: vi.fn((date: Date) => {
+    const result = new Date(date);
+    result.setHours(0, 0, 0, 0);
+    return result;
+  }),
+  endOfDay: vi.fn((date: Date) => {
+    const result = new Date(date);
+    result.setHours(23, 59, 59, 999);
+    return result;
+  }),
+  localTimeToUTC: vi.fn((date: Date, timeString: string) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const result = new Date(date);
+    result.setHours(hours, minutes, 0, 0);
+    return result.toISOString();
+  }),
+}));
 
 describe('timeUtils', () => {
   // ============================================================================

@@ -1,0 +1,162 @@
+{
+  "project": "Mango POS Store App - Book & FrontDesk TDD",
+  "description": "TDD test coverage for Book and FrontDesk modules",
+  "created": "2026-01-08",
+  "iteration": 2,
+  "tasks": [
+    {
+      "id": "T001",
+      "name": "Book utils - timeSlotCalculation",
+      "description": "Test time slot calculation utilities used in booking calendar",
+      "files": ["src/components/Book/utils/timeSlotCalculation.ts"],
+      "testFile": "src/components/Book/utils/__tests__/timeSlotCalculation.test.ts",
+      "status": "skipped",
+      "notes": "No separate utils file exists - logic is inline in components",
+      "priority": "high"
+    },
+    {
+      "id": "T002",
+      "name": "Book AppointmentCard render",
+      "description": "Test AppointmentCard component rendering with different appointment states",
+      "files": ["src/components/Book/AppointmentCard.tsx"],
+      "testFile": "src/components/Book/__tests__/AppointmentCard.test.tsx",
+      "status": "completed",
+      "tests": 40,
+      "priority": "high"
+    },
+    {
+      "id": "T003",
+      "name": "Book StatusBadge component",
+      "description": "Test StatusBadge renders correct colors and text for each status",
+      "files": ["src/components/Book/StatusBadge.tsx"],
+      "testFile": "src/components/Book/__tests__/StatusBadge.test.tsx",
+      "status": "completed",
+      "tests": 33,
+      "priority": "medium"
+    },
+    {
+      "id": "T004",
+      "name": "Book TimeSlot component",
+      "description": "Test TimeSlot component click handling and availability display",
+      "files": ["src/components/Book/TimeSlot.tsx"],
+      "testFile": "src/components/Book/__tests__/TimeSlot.test.tsx",
+      "status": "completed",
+      "tests": 15,
+      "priority": "medium"
+    },
+    {
+      "id": "T005",
+      "name": "Book StaffChip component",
+      "description": "Test StaffChip displays staff info and handles selection",
+      "files": ["src/components/Book/StaffChip.tsx"],
+      "testFile": "src/components/Book/__tests__/StaffChip.test.tsx",
+      "status": "completed",
+      "tests": 28,
+      "priority": "medium"
+    },
+    {
+      "id": "T006",
+      "name": "FrontDesk shared timeUtils",
+      "description": "Test FrontDesk time utilities for wait time calculations",
+      "files": ["src/components/frontdesk/shared/timeUtils.ts"],
+      "testFile": "src/components/frontdesk/shared/__tests__/timeUtils.test.ts",
+      "status": "completed",
+      "tests": 37,
+      "priority": "high"
+    },
+    {
+      "id": "T007",
+      "name": "FrontDesk SearchBar component",
+      "description": "Test SearchBar input handling and search callbacks",
+      "files": ["src/components/frontdesk/SearchBar.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/SearchBar.test.tsx",
+      "status": "completed",
+      "tests": 25,
+      "priority": "medium"
+    },
+    {
+      "id": "T008",
+      "name": "FrontDesk ViewModeToggle",
+      "description": "Test view mode toggle between different display modes",
+      "files": ["src/components/frontdesk/ViewModeToggle.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/ViewModeToggle.test.tsx",
+      "status": "completed",
+      "tests": 22,
+      "priority": "medium"
+    },
+    {
+      "id": "T009",
+      "name": "FrontDesk useTicketModals hook",
+      "description": "Test ticket modal state management hook",
+      "files": ["src/components/frontdesk/hooks/useTicketModals.ts"],
+      "testFile": "src/components/frontdesk/hooks/__tests__/useTicketModals.test.ts",
+      "status": "completed",
+      "tests": 16,
+      "priority": "high"
+    },
+    {
+      "id": "T010",
+      "name": "FrontDesk ErrorBoundary",
+      "description": "Test error boundary catches and displays errors correctly",
+      "files": ["src/components/frontdesk/ErrorBoundary.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/ErrorBoundary.test.tsx",
+      "status": "completed",
+      "tests": 20,
+      "priority": "medium"
+    },
+    {
+      "id": "T011",
+      "name": "Book CalendarHeader component",
+      "description": "Test CalendarHeader navigation, date display, and view controls",
+      "files": ["src/components/Book/CalendarHeader.tsx"],
+      "testFile": "src/components/Book/__tests__/CalendarHeader.test.tsx",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "T012",
+      "name": "Book QuickActionsBar component",
+      "description": "Test quick action buttons and callback handlers",
+      "files": ["src/components/Book/QuickActionsBar.tsx"],
+      "testFile": "src/components/Book/__tests__/QuickActionsBar.test.tsx",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "T013",
+      "name": "Book FilterPanel component",
+      "description": "Test filter controls for status, staff, and services",
+      "files": ["src/components/Book/FilterPanel.tsx"],
+      "testFile": "src/components/Book/__tests__/FilterPanel.test.tsx",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "T014",
+      "name": "FrontDesk FrontDeskHeader component",
+      "description": "Test header with title, actions, and responsive layout",
+      "files": ["src/components/frontdesk/FrontDeskHeader.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/FrontDeskHeader.test.tsx",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "T015",
+      "name": "FrontDesk CreateTicketButton component",
+      "description": "Test create ticket button states and click handling",
+      "files": ["src/components/frontdesk/CreateTicketButton.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/CreateTicketButton.test.tsx",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "T016",
+      "name": "FrontDesk EmptyState and Skeleton",
+      "description": "Test empty state display and skeleton loading components",
+      "files": ["src/components/frontdesk/FrontDeskEmptyState.tsx", "src/components/frontdesk/FrontDeskSkeleton.tsx"],
+      "testFile": "src/components/frontdesk/__tests__/FrontDeskStates.test.tsx",
+      "status": "pending",
+      "priority": "low"
+    }
+  ]
+}

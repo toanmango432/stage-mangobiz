@@ -21,6 +21,9 @@ export type GiftCardStatus = 'active' | 'depleted' | 'expired' | 'voided';
 /** Gift card transaction type */
 export type GiftCardTransactionType = 'purchase' | 'redeem' | 'reload' | 'void' | 'refund';
 
+/** Gift card delivery method */
+export type GiftCardDeliveryMethod = 'email' | 'sms' | 'print' | 'none';
+
 // ============================================
 // GIFT CARD ENTITY
 // ============================================
@@ -74,6 +77,23 @@ export interface GiftCard extends BaseSyncableEntity {
 
   /** Ticket ID from purchase transaction */
   purchaseTicketId?: string;
+
+  // ---- Delivery tracking fields ----
+
+  /** How the gift card should be/was delivered */
+  deliveryMethod?: GiftCardDeliveryMethod;
+
+  /** Scheduled delivery date/time (for future delivery) */
+  scheduledDeliveryAt?: string;
+
+  /** When the gift card was actually delivered */
+  deliveredAt?: string;
+
+  /** Whether this gift card can be reloaded with additional balance */
+  isReloadable?: boolean;
+
+  /** Purchaser's name (denormalized for display) */
+  purchaserName?: string;
 }
 
 // ============================================
@@ -114,20 +134,40 @@ export interface GiftCardTransaction extends BaseSyncableEntity {
 // GIFT CARD DESIGN
 // ============================================
 
+/** Gift card design category */
+export type GiftCardDesignCategory = 'seasonal' | 'birthday' | 'thank-you' | 'general' | 'custom';
+
 /**
  * Gift card design template for visual customization.
+ * Extends BaseSyncableEntity for offline-first sync support.
  */
-export interface GiftCardDesign {
-  id: string;
-  storeId: string;
+export interface GiftCardDesign extends BaseSyncableEntity {
+  /** Design name for internal identification */
   name: string;
+
+  /** Description of the design */
   description?: string;
+
+  /** Full image URL for the gift card design */
   imageUrl: string;
+
+  /** Thumbnail URL for selection UI */
   thumbnailUrl?: string;
-  category: 'seasonal' | 'birthday' | 'thank-you' | 'general' | 'custom';
+
+  /** Design category for filtering */
+  category: GiftCardDesignCategory;
+
+  /** Whether this design is available for selection */
   isActive: boolean;
+
+  /** Whether this is the default design for the store */
   isDefault?: boolean;
-  createdAt: string;
+
+  /** Background color (hex) for text overlay */
+  backgroundColor?: string;
+
+  /** Text color (hex) for amount/message display */
+  textColor?: string;
 }
 
 // ============================================
@@ -138,15 +178,46 @@ export interface GiftCardDesign {
  * Input for issuing a new gift card.
  */
 export interface IssueGiftCardInput {
+  /** Physical or digital gift card */
   type: GiftCardType;
+
+  /** Amount to load on the card */
   amount: number;
+
+  /** Client ID of purchaser (optional) */
   purchaserId?: string;
+
+  /** Purchaser name for display */
+  purchaserName?: string;
+
+  /** Recipient's name */
   recipientName?: string;
+
+  /** Recipient's email for digital delivery */
   recipientEmail?: string;
+
+  /** Recipient's phone for SMS delivery */
   recipientPhone?: string;
+
+  /** Personal message from purchaser */
   message?: string;
+
+  /** Design template ID */
   designId?: string;
+
+  /** Expiration date (ISO string) */
   expiresAt?: string;
+
+  /** Delivery method */
+  deliveryMethod?: GiftCardDeliveryMethod;
+
+  /** Scheduled delivery date/time (ISO string, for future delivery) */
+  scheduledDeliveryAt?: string;
+
+  /** Whether this gift card can be reloaded */
+  isReloadable?: boolean;
+
+  /** @deprecated Use deliveryMethod instead */
   sendEmail?: boolean;
 }
 

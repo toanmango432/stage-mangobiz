@@ -1,0 +1,189 @@
+{
+  "project": "Mango POS Book & FrontDesk Module Tests",
+  "goal": "Achieve 80% test coverage for Book and FrontDesk modules using TDD",
+  "rules": {
+    "one_task_at_a_time": true,
+    "must_pass_before_commit": true,
+    "stop_on_failure": true,
+    "append_to_progress": true
+  },
+  "test_commands": {
+    "all": "cd \"apps/store-app\" && pnpm test",
+    "book": "cd \"apps/store-app\" && pnpm test -- --testPathPattern='Book'",
+    "frontdesk": "cd \"apps/store-app\" && pnpm test -- --testPathPattern='frontdesk'",
+    "coverage": "cd \"apps/store-app\" && pnpm test:coverage"
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "name": "Run existing tests to establish baseline",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run",
+      "status": "pending",
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "name": "Write tests for FrontDesk/FrontDeskHeader component",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='FrontDeskHeader'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: renders header, displays metrics, handles tab switching"
+    },
+    {
+      "id": 3,
+      "name": "Write tests for FrontDesk/FrontDeskMetrics component",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='FrontDeskMetrics'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: displays wait count, in-service count, pending count"
+    },
+    {
+      "id": 4,
+      "name": "Write tests for FrontDesk/FrontDeskSubTabs component",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='FrontDeskSubTabs'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: tab rendering, active tab state, tab click handling"
+    },
+    {
+      "id": 5,
+      "name": "Write tests for FrontDesk/FrontDeskEmptyState component",
+      "priority": "medium",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='FrontDeskEmptyState'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: renders empty message, shows correct icon"
+    },
+    {
+      "id": 6,
+      "name": "Write tests for FrontDesk main component rendering",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='FrontDesk.test'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: component mounts, shows loading state, renders sections"
+    },
+    {
+      "id": 7,
+      "name": "Write tests for useFrontDeskState hook",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='useFrontDeskState'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: initial state, state updates, data fetching"
+    },
+    {
+      "id": 8,
+      "name": "Write tests for Book/BookSidebar component",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='BookSidebar'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: renders sidebar, service selection, client selection"
+    },
+    {
+      "id": 9,
+      "name": "Write tests for Book/QuickBookBar component",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='QuickBookBar'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: quick book input, search functionality, keyboard shortcuts"
+    },
+    {
+      "id": 10,
+      "name": "Write tests for Book/SmartBookingPanel component",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='SmartBookingPanel'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: panel rendering, smart suggestions, slot selection"
+    },
+    {
+      "id": 11,
+      "name": "Write tests for Book/OneTapBookingCard component",
+      "priority": "medium",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='OneTapBookingCard'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: card rendering, one-tap booking action, loading state"
+    },
+    {
+      "id": 12,
+      "name": "Write tests for Book/GroupBookingModal component",
+      "priority": "medium",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='GroupBookingModal'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: modal open/close, group member addition, validation"
+    },
+    {
+      "id": 13,
+      "name": "Write tests for Book/ResponsiveBookModal component",
+      "priority": "medium",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='ResponsiveBookModal'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: responsive behavior, mobile vs desktop layout"
+    },
+    {
+      "id": 14,
+      "name": "Write tests for useBookSidebar hook",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='useBookSidebar'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: sidebar state, toggle functionality, persistence"
+    },
+    {
+      "id": 15,
+      "name": "Write tests for useClientBookingValidation hook",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='useClientBookingValidation'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: validation rules, error messages, edge cases"
+    },
+    {
+      "id": 16,
+      "name": "Write tests for Book/BookErrorBoundary component",
+      "priority": "medium",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='BookErrorBoundary'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: error catching, fallback UI, error reporting"
+    },
+    {
+      "id": 17,
+      "name": "Write integration tests for Book module flow",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='Book.integration'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: complete booking flow from start to confirmation"
+    },
+    {
+      "id": 18,
+      "name": "Write integration tests for FrontDesk module flow",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test -- --run --testPathPattern='FrontDesk.integration'",
+      "status": "pending",
+      "passes": false,
+      "notes": "Test: ticket creation, status updates, checkout flow"
+    },
+    {
+      "id": 19,
+      "name": "Run full test suite and verify coverage >= 70%",
+      "priority": "high",
+      "command": "cd \"apps/store-app\" && pnpm test:coverage -- --run",
+      "status": "pending",
+      "passes": false,
+      "notes": "Final verification of coverage targets"
+    }
+  ]
+}

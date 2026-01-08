@@ -41,6 +41,17 @@ export interface TicketService {
   status: ServiceStatus;
   startTime?: Date;
   notes?: string;
+  /** Metadata for special item types (gift cards, etc.) */
+  metadata?: {
+    type?: 'gift_card' | 'package' | 'product';
+    deliveryMethod?: string;
+    recipientName?: string;
+    recipientEmail?: string;
+    recipientPhone?: string;
+    message?: string;
+    denominationId?: string;
+    [key: string]: unknown;
+  };
 }
 
 export type Specialty = 'neutral' | 'nails' | 'hair' | 'massage' | 'skincare' | 'waxing' | 'combo' | 'support';

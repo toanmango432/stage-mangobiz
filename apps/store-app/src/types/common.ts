@@ -114,7 +114,11 @@ export type EntityType =
   // Timesheet Module entities (Phase 2)
   | 'timesheet'
   // Payroll Module entities (Phase 3)
-  | 'payrun';
+  | 'payrun'
+  // Gift Card Module entities
+  | 'giftcard'
+  | 'giftcard_transaction'
+  | 'giftcard_design';
 
 // ============================================
 // BASE SYNCABLE ENTITY (Production-Ready)

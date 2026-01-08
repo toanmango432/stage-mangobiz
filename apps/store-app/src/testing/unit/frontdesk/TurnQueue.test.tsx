@@ -1,6 +1,7 @@
 /**
  * TurnQueue Component Unit Tests
  * Tests for turn queue logic including manual/auto modes, reordering, and staff management
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

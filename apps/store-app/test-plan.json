@@ -1,0 +1,193 @@
+{
+  "project": "Gift Card Module - Mango POS Store App",
+  "goal": "Complete gift card sell, redeem, manage, and report features",
+  "rules": {
+    "one_task_at_a_time": true,
+    "must_pass_before_commit": true,
+    "stop_on_failure": true,
+    "append_to_progress": true,
+    "use_mango_designer_for_ui": true
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "phase": 2,
+      "name": "Redesign SellGiftCardModal with two-mode tabs (Digital/Physical)",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "passed",
+      "passes": true,
+      "ui": true,
+      "files": ["apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx"],
+      "notes": "Add tabs: 'New Gift Card' vs 'Activate Physical Card'. See plan.md Task 1."
+    },
+    {
+      "id": 2,
+      "phase": 2,
+      "name": "Simplify GiftCardGrid - move custom amount to modal",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/checkout/GiftCardGrid.tsx"],
+      "notes": "Remove inline custom amount. Add 'Custom Amount' card. See plan.md Task 2."
+    },
+    {
+      "id": 3,
+      "phase": 2,
+      "name": "Add processGiftCardSales to TicketPanel checkout handler",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": false,
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx"],
+      "notes": "CRITICAL: Call giftCardOperations.issueGiftCard() on checkout. See plan.md Task 3."
+    },
+    {
+      "id": 4,
+      "phase": 2,
+      "name": "Update ServiceList to show gift card code in ticket",
+      "priority": "medium",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/checkout/ServiceList.tsx"],
+      "notes": "Display GC-XXXX-XXXX-XXXX for gift card line items. See plan.md Task 4."
+    },
+    {
+      "id": 5,
+      "phase": 2,
+      "name": "Verify sell flow - gift card created in IndexedDB",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": false,
+      "files": [],
+      "notes": "Manual verification: sell → checkout → check giftCards table in IndexedDB."
+    },
+    {
+      "id": 6,
+      "phase": 3,
+      "name": "Add Gift Card payment method to PaymentMethodSelector",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/checkout/PaymentMethodSelector.tsx"],
+      "notes": "Add 'Gift Card' alongside Cash, Card, etc. See plan.md Task 6."
+    },
+    {
+      "id": 7,
+      "phase": 3,
+      "name": "Create GiftCardRedeemModal for entering/scanning code",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/checkout/modals/GiftCardRedeemModal.tsx"],
+      "notes": "Code input, balance check, apply amount. See plan.md Task 7."
+    },
+    {
+      "id": 8,
+      "phase": 3,
+      "name": "Integrate redeemGiftCard into checkout payment flow",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": false,
+      "files": ["apps/store-app/src/components/checkout/TicketPanel.tsx"],
+      "notes": "Call giftCardOperations.redeemGiftCard() on payment. See plan.md Task 8."
+    },
+    {
+      "id": 9,
+      "phase": 3,
+      "name": "Handle partial redemption and remaining balance display",
+      "priority": "medium",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/checkout/modals/GiftCardRedeemModal.tsx"],
+      "notes": "Show remaining balance after partial use. See plan.md Task 9."
+    },
+    {
+      "id": 10,
+      "phase": 4,
+      "name": "Create GiftCardManagement page/component",
+      "priority": "medium",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/giftcards/GiftCardManagement.tsx"],
+      "notes": "List, filter, search gift cards. See plan.md Task 10."
+    },
+    {
+      "id": 11,
+      "phase": 4,
+      "name": "Add gift card balance check and history view",
+      "priority": "medium",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/giftcards/GiftCardDetails.tsx"],
+      "notes": "Transaction history, current balance, status. See plan.md Task 11."
+    },
+    {
+      "id": 12,
+      "phase": 4,
+      "name": "Implement gift card reload/top-up functionality",
+      "priority": "medium",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/giftcards/GiftCardReload.tsx"],
+      "notes": "Add funds via reloadGiftCard(). See plan.md Task 12."
+    },
+    {
+      "id": 13,
+      "phase": 5,
+      "name": "Create Gift Card Sales Report component",
+      "priority": "low",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/reports/GiftCardSalesReport.tsx"],
+      "notes": "Use getGiftCardSalesSummary(). See plan.md Task 13."
+    },
+    {
+      "id": 14,
+      "phase": 5,
+      "name": "Create Gift Card Liability Report component",
+      "priority": "low",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
+      "status": "pending",
+      "passes": false,
+      "ui": true,
+      "files": ["apps/store-app/src/components/reports/GiftCardLiabilityReport.tsx"],
+      "notes": "Use getGiftCardLiability(). See plan.md Task 14."
+    },
+    {
+      "id": 15,
+      "phase": 7,
+      "name": "Final verification - all features working end-to-end",
+      "priority": "high",
+      "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build && npm run lint",
+      "status": "pending",
+      "passes": false,
+      "ui": false,
+      "files": [],
+      "notes": "Test: sell → redeem → manage → report. See plan.md Phase 7."
+    }
+  ]
+}

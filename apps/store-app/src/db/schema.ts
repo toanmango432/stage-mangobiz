@@ -18,6 +18,10 @@ import type {
   CatalogSettings,
   GiftCardDenomination,
   GiftCardSettings,
+  // Gift Card types (full gift card support)
+  GiftCard,
+  GiftCardTransaction,
+  GiftCardDesign,
   // Inventory types (Products)
   Product,
   // Client module types
@@ -118,6 +122,11 @@ export class MangoPOSDatabase extends Dexie {
   // Gift Card tables (Catalog Module - PRD-Menu-Settings-Module.md)
   giftCardDenominations!: Table<GiftCardDenomination, string>;
   giftCardSettings!: Table<GiftCardSettings, string>;
+
+  // Gift Card tables (Full Gift Card Module)
+  giftCards!: Table<GiftCard, string>;
+  giftCardTransactions!: Table<GiftCardTransaction, string>;
+  giftCardDesigns!: Table<GiftCardDesign, string>;
 
   constructor() {
     super('mango_biz_store_app');
@@ -693,6 +702,77 @@ export class MangoPOSDatabase extends Dexie {
     }).upgrade(() => {
       console.log('✅ Database upgraded to version 14: Added Gift Card tables (Catalog Module)');
     });
+
+    // Version 15: Full Gift Card Module support
+    // See: docs/product/PRD-Gift-Cards-Module.md (comprehensive gift card module)
+    this.version(15).stores({
+      // All existing tables unchanged
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
+      timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]',
+      payRuns: 'id, storeId, periodStart, periodEnd, status, syncStatus, isDeleted, [storeId+periodStart], [storeId+status], [storeId+syncStatus]',
+      reviewRequests: 'id, storeId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [storeId+status], [clientId+status], [storeId+createdAt], [staffId+createdAt]',
+      customSegments: 'id, storeId, name, isActive, createdAt, syncStatus, [storeId+isActive], [storeId+createdAt]',
+      products: 'id, storeId, sku, barcode, category, isRetail, isBackbar, isActive, syncStatus, [storeId+isActive], [storeId+category], [storeId+isRetail], [storeId+sku]',
+      giftCardDenominations: 'id, storeId, amount, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      giftCardSettings: 'id, storeId, syncStatus',
+
+      // Gift Card tables (Full Gift Card Module)
+      // Gift Cards - issued gift cards with balances
+      // Indexes optimized for:
+      // - Lookup by code (primary redemption flow)
+      // - Filter by status (active, depleted, expired, voided)
+      // - Filter by purchaser/recipient
+      // - Sync queue processing
+      giftCards: 'id, storeId, code, status, currentBalance, purchaserId, recipientEmail, issuedAt, expiresAt, syncStatus, isDeleted, [storeId+status], [storeId+code], [storeId+isDeleted], [purchaserId]',
+
+      // Gift Card Transactions - purchase/redemption/reload history
+      // Indexes optimized for:
+      // - Fetching transactions by gift card
+      // - Date-based queries for reporting
+      // - Ticket-based lookups
+      // - Sync queue processing
+      giftCardTransactions: 'id, storeId, giftCardId, type, amount, ticketId, createdAt, syncStatus, isDeleted, [giftCardId+createdAt], [storeId+createdAt], [storeId+type], [ticketId]',
+
+      // Gift Card Designs - visual templates for digital gift cards
+      // Indexes optimized for:
+      // - Fetching active designs by salon
+      // - Category filtering (seasonal, birthday, etc.)
+      // - Finding default design
+      giftCardDesigns: 'id, storeId, name, category, isActive, isDefault, syncStatus, isDeleted, [storeId+isActive], [storeId+category], [storeId+isDefault]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 15: Added full Gift Card Module tables (giftCards, giftCardTransactions, giftCardDesigns)');
+    });
   }
 }
 
@@ -787,9 +867,13 @@ export async function clearDatabase() {
   await db.customSegments.clear();
   // Products table
   await db.products.clear();
-  // Gift Card tables
+  // Gift Card tables (Catalog Module)
   await db.giftCardDenominations.clear();
   await db.giftCardSettings.clear();
+  // Gift Card tables (Full Gift Card Module)
+  await db.giftCards.clear();
+  await db.giftCardTransactions.clear();
+  await db.giftCardDesigns.clear();
   // Note: deviceSettings is intentionally NOT cleared here
   // It should persist across data clears to maintain device identity
   console.log('🗑️  Database cleared');

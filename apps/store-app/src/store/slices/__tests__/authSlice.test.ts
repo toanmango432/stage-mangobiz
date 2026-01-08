@@ -325,12 +325,14 @@ describe('authSlice', () => {
         store.dispatch(clearDevice());
       });
 
-      it('selectDeviceMode should return null', () => {
-        expect(selectDeviceMode(store.getState() as any)).toBeNull();
+      // LOCAL-FIRST: selectDeviceMode always returns 'offline-enabled' for local-first architecture
+      it('selectDeviceMode should return offline-enabled (local-first)', () => {
+        expect(selectDeviceMode(store.getState() as any)).toBe('offline-enabled');
       });
 
-      it('selectIsOfflineEnabled should return false', () => {
-        expect(selectIsOfflineEnabled(store.getState() as any)).toBe(false);
+      // LOCAL-FIRST: selectIsOfflineEnabled always returns true for local-first architecture
+      it('selectIsOfflineEnabled should return true (local-first)', () => {
+        expect(selectIsOfflineEnabled(store.getState() as any)).toBe(true);
       });
 
       it('selectDeviceId should return null', () => {
