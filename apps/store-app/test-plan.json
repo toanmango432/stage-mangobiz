@@ -51,11 +51,11 @@
       "name": "Update ServiceList to show gift card code in ticket",
       "priority": "medium",
       "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
-      "status": "pending",
-      "passes": false,
+      "status": "passed",
+      "passes": true,
       "ui": true,
       "files": ["apps/store-app/src/components/checkout/ServiceList.tsx"],
-      "notes": "Display GC-XXXX-XXXX-XXXX for gift card line items. See plan.md Task 4."
+      "notes": "Display gift card code with delivery method icon for gift card line items."
     },
     {
       "id": 5,

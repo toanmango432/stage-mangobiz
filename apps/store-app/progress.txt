@@ -30,3 +30,12 @@ Result: ✓ PASSED
 Details: CRITICAL FIX - Added processGiftCardSales function that calls giftCardDB.issueGiftCard() when checkout completes. Updated handleAddGiftCard to include giftCardCode and isPhysicalCard in metadata. Gift cards are now actually created in IndexedDB upon sale.
 Files Changed: apps/store-app/src/components/checkout/TicketPanel.tsx
 ---
+
+---
+Time: 2026-01-08T15:18:00Z
+Task: Update ServiceList to show gift card code in ticket
+Phase: 2
+Result: ✓ PASSED
+Details: Added gift card code display in ServiceList.tsx. Shows GC-XXXX-XXXX-XXXX code with brand colors, plus delivery method indicator (email icon with recipient or print icon). Updated TicketService interface to include giftCardCode and isPhysicalCard in metadata type.
+Files Changed: apps/store-app/src/components/checkout/ServiceList.tsx
+---

@@ -25,6 +25,9 @@ import {
   Pause,
   CheckCircle2,
   Circle,
+  Gift,
+  Mail,
+  Printer,
 } from "lucide-react";
 
 export type ServiceStatus = "not_started" | "in_progress" | "paused" | "completed";
@@ -50,6 +53,8 @@ export interface TicketService {
     recipientPhone?: string;
     message?: string;
     denominationId?: string;
+    giftCardCode?: string; // Gift card code (GC-XXXX-XXXX-XXXX)
+    isPhysicalCard?: boolean; // True if activating a physical card
     [key: string]: unknown;
   };
 }
@@ -182,6 +187,27 @@ export default function ServiceList({
                         )}
                       </div>
                     </div>
+                    {/* Gift Card Code Display */}
+                    {service.metadata?.type === 'gift_card' && service.metadata?.giftCardCode && (
+                      <div className="mt-2 flex items-center gap-2 text-sm">
+                        <Gift className="h-3.5 w-3.5 text-brand-600" />
+                        <span className="font-mono text-brand-700 bg-brand-50 px-2 py-0.5 rounded">
+                          {service.metadata.giftCardCode}
+                        </span>
+                        {service.metadata.deliveryMethod === 'email' && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            <span className="text-xs">{service.metadata.recipientEmail || 'Email'}</span>
+                          </span>
+                        )}
+                        {service.metadata.deliveryMethod === 'print' && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Printer className="h-3 w-3" />
+                            <span className="text-xs">Print</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

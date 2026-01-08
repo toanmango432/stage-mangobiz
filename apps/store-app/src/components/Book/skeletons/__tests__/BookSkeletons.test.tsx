@@ -363,8 +363,14 @@ describe('StaffCardSkeletonList', () => {
 
   it('applies staggered animation delays', () => {
     const { container } = render(<StaffCardSkeletonList count={3} />);
-    const items = container.querySelectorAll('[style*="animationDelay"]');
-    expect(items.length).toBe(3);
+    // Find the root container and its direct children with animation delay
+    const root = container.firstChild as HTMLElement;
+    const children = Array.from(root.children) as HTMLElement[];
+    expect(children.length).toBe(3);
+    // Check that animation delays exist
+    children.forEach((child, index) => {
+      expect(child.style.animationDelay).toBe(`${index * 80}ms`);
+    });
   });
 });
 
@@ -448,7 +454,13 @@ describe('AppointmentCardSkeletonList', () => {
 
   it('applies staggered animation delays', () => {
     const { container } = render(<AppointmentCardSkeletonList count={3} />);
-    const items = container.querySelectorAll('[style*="animationDelay"]');
-    expect(items.length).toBe(3);
+    // Find the root container and its direct children with animation delay
+    const root = container.firstChild as HTMLElement;
+    const children = Array.from(root.children) as HTMLElement[];
+    expect(children.length).toBe(3);
+    // Check that animation delays exist
+    children.forEach((child, index) => {
+      expect(child.style.animationDelay).toBe(`${index * 100}ms`);
+    });
   });
 });
