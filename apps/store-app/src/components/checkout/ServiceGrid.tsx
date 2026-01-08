@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -11,14 +11,11 @@ import {
 } from "@/components/ui/Select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Search, Check, Plus, X } from "lucide-react";
+import { storeAuthManager } from "@/services/storeAuthManager";
+import { useCheckoutServices, type CheckoutService } from "./hooks/useCheckoutServices";
 
-export interface Service {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  duration: number;
-}
+// Re-export for backwards compatibility
+export type Service = CheckoutService;
 
 export interface StaffMember {
   id: string;
@@ -30,48 +27,39 @@ interface ServiceGridProps {
   staffMembers?: StaffMember[];
 }
 
-const SERVICES: Service[] = [
-  { id: "1", name: "Haircut - Women", category: "Hair", price: 65, duration: 60 },
-  { id: "2", name: "Haircut - Men", category: "Hair", price: 45, duration: 45 },
-  { id: "3", name: "Color - Full", category: "Hair", price: 120, duration: 120 },
-  { id: "4", name: "Highlights", category: "Hair", price: 150, duration: 150 },
-  { id: "5", name: "Blowout", category: "Hair", price: 55, duration: 45 },
-  { id: "6", name: "Manicure", category: "Nails", price: 35, duration: 30 },
-  { id: "7", name: "Pedicure", category: "Nails", price: 50, duration: 45 },
-  { id: "8", name: "Gel Manicure", category: "Nails", price: 45, duration: 45 },
-  { id: "9", name: "Acrylic Set", category: "Nails", price: 75, duration: 90 },
-  { id: "10", name: "Facial - Classic", category: "Spa", price: 85, duration: 60 },
-  { id: "11", name: "Massage - 60min", category: "Spa", price: 95, duration: 60 },
-  { id: "12", name: "Massage - 90min", category: "Spa", price: 130, duration: 90 },
-];
-
-const POPULAR_SERVICES = ["1", "2", "6", "7", "10", "11"];
-
-const CATEGORIES = ["All", "Popular", "Hair", "Nails", "Spa"];
-
 export default function ServiceGrid({ onAddServices, staffMembers = [] }: ServiceGridProps) {
+  // Get storeId from auth state
+  const storeId = storeAuthManager.getState().store?.storeId || '';
+
+  // Load services and categories from catalog database
+  const { services, categories, isLoading } = useCheckoutServices(storeId);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const filteredServices = SERVICES.filter((service) => {
-    const matchesSearch =
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    let matchesCategory = false;
-    if (selectedCategory === "All") {
-      matchesCategory = true;
-    } else if (selectedCategory === "Popular") {
-      matchesCategory = POPULAR_SERVICES.includes(service.id);
-    } else {
-      matchesCategory = service.category === selectedCategory;
-    }
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Filter services based on search and category
+  const filteredServices = useMemo(() => {
+    return services.filter((service) => {
+      const matchesSearch =
+        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+      let matchesCategory = false;
+      if (selectedCategory === "All") {
+        matchesCategory = true;
+      } else if (selectedCategory === "Popular") {
+        // For now, show first 6 services as "popular" (can be enhanced later with usage data)
+        matchesCategory = services.indexOf(service) < 6;
+      } else {
+        matchesCategory = service.category === selectedCategory;
+      }
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [services, searchQuery, selectedCategory]);
 
   const toggleService = (service: Service) => {
     const isSelected = selectedServices.some(s => s.id === service.id);
@@ -124,7 +112,7 @@ export default function ServiceGrid({ onAddServices, staffMembers = [] }: Servic
       <div className="flex-shrink-0 mb-3 -mx-4 px-4">
         <ScrollArea className="w-full" type="scroll">
           <div className="flex gap-1 pb-1">
-            {CATEGORIES.map((category) => {
+            {categories.map((category) => {
               const isActive = selectedCategory === category;
               return (
                 <button
@@ -150,7 +138,12 @@ export default function ServiceGrid({ onAddServices, staffMembers = [] }: Servic
 
       {/* Services Grid */}
       <div className="flex-1 overflow-y-auto min-h-0 -mx-4 px-4" ref={scrollRef}>
-        {filteredServices.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-3" />
+            <p className="text-sm text-muted-foreground">Loading services...</p>
+          </div>
+        ) : filteredServices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">

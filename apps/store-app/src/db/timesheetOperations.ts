@@ -136,6 +136,8 @@ export const timesheetDB = {
     storeId: string,
     staffId: string
   ): Promise<TimesheetEntry[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     const timesheets = await db.timesheets
       .where('[storeId+staffId]')
       .equals([storeId, staffId])
@@ -150,6 +152,8 @@ export const timesheetDB = {
     storeId: string,
     date: string
   ): Promise<TimesheetEntry[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     const timesheets = await db.timesheets
       .where('[storeId+date]')
       .equals([storeId, date])
@@ -167,6 +171,8 @@ export const timesheetDB = {
     staffId: string,
     date: string
   ): Promise<TimesheetEntry | undefined> {
+    // Guard: return undefined if staffId is invalid (prevents IDBKeyRange.bound error)
+    if (!staffId) return undefined;
     const timesheets = await db.timesheets
       .where('[staffId+date]')
       .equals([staffId, date])
@@ -222,6 +228,8 @@ export const timesheetDB = {
     storeId: string,
     status: 'pending' | 'approved' | 'disputed'
   ): Promise<TimesheetEntry[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     const timesheets = await db.timesheets
       .where('[storeId+status]')
       .equals([storeId, status])
@@ -240,6 +248,8 @@ export const timesheetDB = {
    * Get timesheets pending sync
    */
   async getTimesheetsPendingSync(storeId: string): Promise<TimesheetEntry[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     const timesheets = await db.timesheets
       .where('[storeId+syncStatus]')
       .equals([storeId, 'pending'])
@@ -693,6 +703,24 @@ export const timesheetDB = {
     periodStart: string,
     periodEnd: string
   ): Promise<TimesheetSummary> {
+    // Guard: return empty summary if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) {
+      return {
+        staffId,
+        staffName,
+        periodStart,
+        periodEnd,
+        totalScheduledHours: 0,
+        totalActualHours: 0,
+        totalRegularHours: 0,
+        totalOvertimeHours: 0,
+        totalBreakMinutes: 0,
+        totalDays: 0,
+        pendingCount: 0,
+        approvedCount: 0,
+        disputedCount: 0,
+      };
+    }
     const timesheets = await db.timesheets
       .where('[storeId+staffId]')
       .equals([storeId, staffId])

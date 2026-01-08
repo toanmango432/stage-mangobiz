@@ -16,6 +16,11 @@ import {
   getFeatureFlag,
 } from '../services/featureFlagService';
 
+interface UseFeatureFlagOptions {
+  /** Default value to use while loading or if flag doesn't exist */
+  defaultValue?: boolean;
+}
+
 interface UseFeatureFlagResult {
   isEnabled: boolean;
   isLoading: boolean;
@@ -34,11 +39,12 @@ interface UseFeatureFlagsResult {
  * Check if a single feature is enabled
  *
  * @param key - The feature flag key (e.g., 'turn-tracker', 'offline-mode')
+ * @param options - Options including defaultValue to use while loading
  * @returns Object with isEnabled boolean, loading state, and refresh function
  *
  * @example
  * function TurnTracker() {
- *   const { isEnabled, isLoading } = useFeatureFlag('turn-tracker');
+ *   const { isEnabled, isLoading } = useFeatureFlag('turn-tracker', { defaultValue: true });
  *
  *   if (isLoading) return <Spinner />;
  *   if (!isEnabled) return null;
@@ -46,9 +52,18 @@ interface UseFeatureFlagsResult {
  *   return <TurnTrackerComponent />;
  * }
  */
-export function useFeatureFlag(key: string): UseFeatureFlagResult {
-  // Start with sync check for instant UI (no flash)
-  const [isEnabled, setIsEnabled] = useState(() => isFeatureEnabledSync(key));
+export function useFeatureFlag(key: string, options?: UseFeatureFlagOptions): UseFeatureFlagResult {
+  const defaultValue = options?.defaultValue ?? false;
+
+  // Start with defaultValue for predictable initial render
+  // Then update based on actual feature flag check
+  const [isEnabled, setIsEnabled] = useState(() => {
+    // Try sync check first - if it returns true, use it
+    const syncResult = isFeatureEnabledSync(key);
+    if (syncResult) return true;
+    // Otherwise use defaultValue (allows showing features while flags load)
+    return defaultValue;
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -60,11 +75,12 @@ export function useFeatureFlag(key: string): UseFeatureFlagResult {
       setIsEnabled(enabled);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to check feature flag'));
-      // Keep previous state on error
+      // On error, keep defaultValue
+      setIsEnabled(defaultValue);
     } finally {
       setIsLoading(false);
     }
-  }, [key]);
+  }, [key, defaultValue]);
 
   useEffect(() => {
     checkFeature();

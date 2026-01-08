@@ -14,6 +14,9 @@ import { storeAuthManager } from '@/services/storeAuthManager';
 import { hydrationService, type HydrationProgress } from '@/services/hydrationService';
 import { backgroundSyncService, type BackgroundSyncState } from '@/services/backgroundSyncService';
 import { searchService } from '@/services/search';
+import { db } from '@/db/schema';
+import { setAppointments } from '@/store/slices/appointmentsSlice';
+import { toAppointments } from '@/services/supabase/adapters';
 // MQTT Integration (Phase 3)
 import { mqttBridge, isMqttEnabled, isMqttFeatureEnabled } from '@/services/mqtt';
 import { deviceManager } from '@/services/deviceManager';
@@ -153,6 +156,18 @@ export function SupabaseSyncProvider({
           setIsHydrating(false);
           if (result.success) {
             console.log('✅ SupabaseSyncProvider: Hydration complete');
+
+            // Dispatch hydrated appointments to Redux for immediate UI access
+            const hydratedAppointments = await db.appointments
+              .where('storeId').equals(storeId)
+              .toArray();
+            if (hydratedAppointments.length > 0) {
+              // Convert IndexedDB format to LocalAppointment format
+              const appointments = toAppointments(hydratedAppointments as any);
+              dispatch(setAppointments(appointments));
+              console.log(`📅 Dispatched ${appointments.length} appointments to Redux`);
+            }
+
             // Build search index after hydration
             console.log('🔍 SupabaseSyncProvider: Building search index...');
             await searchService.initializeSearchIndex(storeId);
@@ -161,7 +176,18 @@ export function SupabaseSyncProvider({
             console.warn('⚠️ SupabaseSyncProvider: Hydration failed:', result.error);
           }
         } else {
-          // No hydration needed, build search index from existing local data
+          // No hydration needed - data already exists locally
+          // Still dispatch appointments to Redux for immediate UI access
+          const existingAppointments = await db.appointments
+            .where('storeId').equals(storeId)
+            .toArray();
+          if (existingAppointments.length > 0) {
+            const appointments = toAppointments(existingAppointments as any);
+            dispatch(setAppointments(appointments));
+            console.log(`📅 Loaded ${appointments.length} existing appointments to Redux`);
+          }
+
+          // Build search index from existing local data
           console.log('🔍 SupabaseSyncProvider: Building search index from local data...');
           await searchService.initializeSearchIndex(storeId);
           console.log('✅ SupabaseSyncProvider: Search index ready');
@@ -253,6 +279,16 @@ export function SupabaseSyncProvider({
 
             setIsHydrating(false);
             if (result.success) {
+              // Dispatch hydrated appointments to Redux for immediate UI access
+              const hydratedAppointments = await db.appointments
+                .where('storeId').equals(storeId)
+                .toArray();
+              if (hydratedAppointments.length > 0) {
+                const appointments = toAppointments(hydratedAppointments as any);
+                dispatch(setAppointments(appointments));
+                console.log(`📅 Auth change: Dispatched ${appointments.length} appointments to Redux`);
+              }
+
               // Build search index after hydration
               console.log('🔍 Auth change: Building search index...');
               await searchService.initializeSearchIndex(storeId);
@@ -261,7 +297,18 @@ export function SupabaseSyncProvider({
               console.warn('⚠️ Auth change: Hydration failed:', result.error);
             }
           } else {
-            // No hydration needed, build search index from existing local data
+            // No hydration needed - data already exists locally
+            // Still dispatch appointments to Redux for immediate UI access
+            const existingAppointments = await db.appointments
+              .where('storeId').equals(storeId)
+              .toArray();
+            if (existingAppointments.length > 0) {
+              const appointments = toAppointments(existingAppointments as any);
+              dispatch(setAppointments(appointments));
+              console.log(`📅 Auth change: Loaded ${appointments.length} existing appointments to Redux`);
+            }
+
+            // Build search index from existing local data
             console.log('🔍 Auth change: Building search index from local data...');
             await searchService.initializeSearchIndex(storeId);
             console.log('✅ Auth change: Search index ready');

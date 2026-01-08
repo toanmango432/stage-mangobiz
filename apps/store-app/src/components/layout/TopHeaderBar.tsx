@@ -231,7 +231,7 @@ export function TopHeaderBar({
       bg-white/95 backdrop-blur-xl
       border-b border-gray-200/60
       shadow-sm
-      h-12 md:h-16 flex items-center px-2.5 md:px-4 fixed top-0 left-0 right-0 z-50
+      h-12 md:h-16 flex items-center px-4 md:px-8 lg:px-10 fixed top-0 left-0 right-0 z-50
       transition-transform duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>

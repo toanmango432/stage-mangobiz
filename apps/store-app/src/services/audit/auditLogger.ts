@@ -145,6 +145,7 @@ const ACTION_SEVERITY: Record<AuditAction, AuditSeverity> = {
   payment_process: 'high',
   refund: 'high',
   void: 'critical',
+  staff_assign: 'low',
 };
 
 // ============================================================================

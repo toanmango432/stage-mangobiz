@@ -7,7 +7,7 @@
 import { supabase } from './supabase/client';
 import { storeAuthManager } from './storeAuthManager';
 
-export type LicenseTier = 'free' | 'basic' | 'professional' | 'enterprise';
+export type LicenseTier = 'free' | 'starter' | 'basic' | 'professional' | 'enterprise';
 
 export interface FeatureFlag {
   id: string;
@@ -112,14 +112,18 @@ function isEnabledForTier(flag: FeatureFlag, tier: LicenseTier): boolean {
   switch (tier) {
     case 'free':
       return flag.enabledForFree;
+    case 'starter':
     case 'basic':
+      // 'starter' tier uses 'basic' feature flags
       return flag.enabledForBasic;
     case 'professional':
       return flag.enabledForProfessional;
     case 'enterprise':
       return flag.enabledForEnterprise;
     default:
-      return false;
+      // Unknown tiers default to basic features
+      console.warn(`Unknown tier "${tier}", defaulting to basic`);
+      return flag.enabledForBasic;
   }
 }
 
@@ -136,7 +140,9 @@ export async function isFeatureEnabled(key: string): Promise<boolean> {
   }
 
   const tier = getCurrentTier();
-  return isEnabledForTier(flag, tier);
+  const result = isEnabledForTier(flag, tier);
+
+  return result;
 }
 
 /**

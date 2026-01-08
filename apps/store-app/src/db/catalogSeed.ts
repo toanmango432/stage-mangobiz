@@ -15,7 +15,7 @@ import type {
   CatalogSettings,
 } from '../types';
 
-const SALON_ID = 'default-salon'; // Default salon ID matching seed.ts and auth fallback
+const DEFAULT_SALON_ID = 'default-salon'; // Default salon ID for fallback
 
 // Category Color Palette (Fresha-inspired)
 const CATEGORY_COLORS = [
@@ -29,8 +29,12 @@ const CATEGORY_COLORS = [
   '#6366F1', // Indigo
 ];
 
-export async function seedCatalog() {
-  console.log('🌱 Seeding catalog data...');
+/**
+ * Seeds the catalog with sample data for a store.
+ * @param storeId - The store ID to seed data for (defaults to 'default-salon' for dev mode)
+ */
+export async function seedCatalog(storeId: string = DEFAULT_SALON_ID) {
+  console.log('🌱 Seeding catalog data for storeId:', storeId);
 
   // Clear existing catalog data
   await db.serviceCategories.clear();
@@ -47,7 +51,7 @@ export async function seedCatalog() {
   const categories: ServiceCategory[] = [
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Hair Services',
       description: 'Haircuts, styling, and treatments',
       color: CATEGORY_COLORS[0],
@@ -62,7 +66,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Hair Color',
       description: 'Coloring, highlights, and balayage',
       color: CATEGORY_COLORS[1],
@@ -77,7 +81,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Nail Services',
       description: 'Manicures, pedicures, and nail art',
       color: CATEGORY_COLORS[2],
@@ -92,7 +96,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Spa & Massage',
       description: 'Relaxation and therapeutic treatments',
       color: CATEGORY_COLORS[3],
@@ -107,7 +111,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Facial & Skincare',
       description: 'Facials, peels, and skin treatments',
       color: CATEGORY_COLORS[4],
@@ -122,7 +126,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Waxing',
       description: 'Body and facial waxing services',
       color: CATEGORY_COLORS[5],
@@ -137,7 +141,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Makeup',
       description: 'Professional makeup services',
       color: CATEGORY_COLORS[6],
@@ -152,7 +156,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Lashes & Brows',
       description: 'Eyelash extensions and brow services',
       color: CATEGORY_COLORS[7],
@@ -180,7 +184,7 @@ export async function seedCatalog() {
   // Women's Haircut - with variants
   const womensHaircut: MenuService = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     categoryId: hairCatId,
     name: "Women's Haircut",
     description: 'Consultation, shampoo, cut, and style',
@@ -206,15 +210,15 @@ export async function seedCatalog() {
   services.push(womensHaircut);
 
   variants.push(
-    { id: uuidv4(), storeId: SALON_ID, serviceId: womensHaircut.id, name: 'Short Hair', duration: 45, price: 65, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: womensHaircut.id, name: 'Medium Hair', duration: 60, price: 75, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: womensHaircut.id, name: 'Long Hair', duration: 75, price: 85, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: womensHaircut.id, name: 'Short Hair', duration: 45, price: 65, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: womensHaircut.id, name: 'Medium Hair', duration: 60, price: 75, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: womensHaircut.id, name: 'Long Hair', duration: 75, price: 85, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   // Men's Haircut - no variants
   services.push({
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     categoryId: hairCatId,
     name: "Men's Haircut",
     description: 'Classic cut with neck cleanup',
@@ -241,7 +245,7 @@ export async function seedCatalog() {
   // Blowout & Style - with variants
   const blowout: MenuService = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     categoryId: hairCatId,
     name: 'Blowout & Style',
     description: 'Shampoo and professional blowdry styling',
@@ -267,15 +271,15 @@ export async function seedCatalog() {
   services.push(blowout);
 
   variants.push(
-    { id: uuidv4(), storeId: SALON_ID, serviceId: blowout.id, name: 'Short/Medium', duration: 45, price: 45, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: blowout.id, name: 'Long Hair', duration: 60, price: 55, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: blowout.id, name: 'Extra Long', duration: 75, price: 65, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: blowout.id, name: 'Short/Medium', duration: 45, price: 45, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: blowout.id, name: 'Long Hair', duration: 60, price: 55, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: blowout.id, name: 'Extra Long', duration: 75, price: 65, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   // Deep Conditioning
   services.push({
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     categoryId: hairCatId,
     name: 'Deep Conditioning Treatment',
     description: 'Intensive hydration and repair treatment',
@@ -306,7 +310,7 @@ export async function seedCatalog() {
 
   const fullColor: MenuService = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     categoryId: colorCatId,
     name: 'Full Color',
     description: 'Single process all-over color',
@@ -335,9 +339,9 @@ export async function seedCatalog() {
   services.push(fullColor);
 
   variants.push(
-    { id: uuidv4(), storeId: SALON_ID, serviceId: fullColor.id, name: 'Short Hair', duration: 90, price: 95, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: fullColor.id, name: 'Medium Hair', duration: 105, price: 115, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: fullColor.id, name: 'Long Hair', duration: 120, price: 135, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: fullColor.id, name: 'Short Hair', duration: 90, price: 95, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: fullColor.id, name: 'Medium Hair', duration: 105, price: 115, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: fullColor.id, name: 'Long Hair', duration: 120, price: 135, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   // Nail Services (Category 2)
@@ -346,7 +350,7 @@ export async function seedCatalog() {
   services.push(
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       categoryId: nailCatId,
       name: 'Classic Manicure',
       description: 'Nail shaping, cuticle care, and polish',
@@ -371,7 +375,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       categoryId: nailCatId,
       name: 'Gel Manicure',
       description: 'Long-lasting gel polish manicure',
@@ -396,7 +400,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       categoryId: nailCatId,
       name: 'Deluxe Pedicure',
       description: 'Full pedicure with extended massage and mask',
@@ -426,7 +430,7 @@ export async function seedCatalog() {
 
   const swedishMassage: MenuService = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     categoryId: spaCatId,
     name: 'Swedish Massage',
     description: 'Classic relaxation massage',
@@ -453,9 +457,9 @@ export async function seedCatalog() {
   services.push(swedishMassage);
 
   variants.push(
-    { id: uuidv4(), storeId: SALON_ID, serviceId: swedishMassage.id, name: '60 Minutes', duration: 60, price: 85, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: swedishMassage.id, name: '90 Minutes', duration: 90, price: 125, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, serviceId: swedishMassage.id, name: '120 Minutes', duration: 120, price: 165, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: swedishMassage.id, name: '60 Minutes', duration: 60, price: 85, isDefault: true, displayOrder: 1, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: swedishMassage.id, name: '90 Minutes', duration: 90, price: 125, isDefault: false, displayOrder: 2, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, serviceId: swedishMassage.id, name: '120 Minutes', duration: 120, price: 165, isDefault: false, displayOrder: 3, isActive: true, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   // Facial (Category 4)
@@ -464,7 +468,7 @@ export async function seedCatalog() {
   services.push(
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       categoryId: facialCatId,
       name: 'Express Facial',
       description: 'Quick refresh facial treatment',
@@ -489,7 +493,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       categoryId: facialCatId,
       name: 'Signature Facial',
       description: 'Full customized facial with extractions',
@@ -525,7 +529,7 @@ export async function seedCatalog() {
   const packages: ServicePackage[] = [
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Bridal Beauty Package',
       description: 'Complete bridal preparation including hair, makeup, and nails',
       services: [
@@ -551,7 +555,7 @@ export async function seedCatalog() {
     },
     {
       id: uuidv4(),
-      storeId: SALON_ID,
+      storeId,
       name: 'Spa Day Escape',
       description: 'Ultimate relaxation with massage and facial',
       services: [
@@ -587,7 +591,7 @@ export async function seedCatalog() {
   // Hair Add-ons Group
   const hairAddOnsGroup: AddOnGroup = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     name: 'Hair Enhancements',
     description: 'Additional treatments for hair services',
     selectionMode: 'multiple',
@@ -607,15 +611,15 @@ export async function seedCatalog() {
   addOnGroups.push(hairAddOnsGroup);
 
   addOnOptions.push(
-    { id: uuidv4(), storeId: SALON_ID, groupId: hairAddOnsGroup.id, name: 'Scalp Massage', description: 'Relaxing scalp massage', price: 15, duration: 10, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, groupId: hairAddOnsGroup.id, name: 'Deep Conditioning', description: 'Intensive treatment', price: 25, duration: 15, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, groupId: hairAddOnsGroup.id, name: 'Gloss Treatment', description: 'High-shine gloss', price: 35, duration: 15, isActive: true, displayOrder: 3, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: hairAddOnsGroup.id, name: 'Scalp Massage', description: 'Relaxing scalp massage', price: 15, duration: 10, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: hairAddOnsGroup.id, name: 'Deep Conditioning', description: 'Intensive treatment', price: 25, duration: 15, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: hairAddOnsGroup.id, name: 'Gloss Treatment', description: 'High-shine gloss', price: 35, duration: 15, isActive: true, displayOrder: 3, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   // Nail Add-ons Group
   const nailAddOnsGroup: AddOnGroup = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     name: 'Nail Extras',
     description: 'Enhance your nail service',
     selectionMode: 'multiple',
@@ -635,15 +639,15 @@ export async function seedCatalog() {
   addOnGroups.push(nailAddOnsGroup);
 
   addOnOptions.push(
-    { id: uuidv4(), storeId: SALON_ID, groupId: nailAddOnsGroup.id, name: 'Paraffin Treatment', description: 'Moisturizing wax', price: 12, duration: 10, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, groupId: nailAddOnsGroup.id, name: 'Nail Art (per nail)', description: 'Custom design', price: 5, duration: 5, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, groupId: nailAddOnsGroup.id, name: 'Gel Removal', description: 'Safe gel polish removal', price: 10, duration: 10, isActive: true, displayOrder: 3, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: nailAddOnsGroup.id, name: 'Paraffin Treatment', description: 'Moisturizing wax', price: 12, duration: 10, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: nailAddOnsGroup.id, name: 'Nail Art (per nail)', description: 'Custom design', price: 5, duration: 5, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: nailAddOnsGroup.id, name: 'Gel Removal', description: 'Safe gel polish removal', price: 10, duration: 10, isActive: true, displayOrder: 3, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   // Massage Add-ons Group
   const massageAddOnsGroup: AddOnGroup = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     name: 'Massage Enhancements',
     description: 'Upgrade your massage experience',
     selectionMode: 'multiple',
@@ -663,8 +667,8 @@ export async function seedCatalog() {
   addOnGroups.push(massageAddOnsGroup);
 
   addOnOptions.push(
-    { id: uuidv4(), storeId: SALON_ID, groupId: massageAddOnsGroup.id, name: 'Hot Stone Enhancement', description: 'Add hot stones', price: 25, duration: 15, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
-    { id: uuidv4(), storeId: SALON_ID, groupId: massageAddOnsGroup.id, name: 'Aromatherapy', description: 'Essential oil upgrade', price: 15, duration: 0, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: massageAddOnsGroup.id, name: 'Hot Stone Enhancement', description: 'Add hot stones', price: 25, duration: 15, isActive: true, displayOrder: 1, createdAt: now, updatedAt: now, syncStatus: 'synced' },
+    { id: uuidv4(), storeId, groupId: massageAddOnsGroup.id, name: 'Aromatherapy', description: 'Essential oil upgrade', price: 15, duration: 0, isActive: true, displayOrder: 2, createdAt: now, updatedAt: now, syncStatus: 'synced' },
   );
 
   await db.addOnGroups.bulkAdd(addOnGroups);
@@ -676,7 +680,7 @@ export async function seedCatalog() {
   // ==================== CATALOG SETTINGS ====================
   const settings: CatalogSettings = {
     id: uuidv4(),
-    storeId: SALON_ID,
+    storeId,
     defaultDuration: 60,
     defaultExtraTime: 0,
     defaultExtraTimeType: 'processing',
@@ -713,7 +717,7 @@ export async function seedCatalog() {
 }
 
 // Check if catalog needs seeding (empty tables)
-export async function needsCatalogSeed(storeId: string = SALON_ID): Promise<boolean> {
+export async function needsCatalogSeed(storeId: string = DEFAULT_SALON_ID): Promise<boolean> {
   const categoryCount = await db.serviceCategories.where('storeId').equals(storeId).count();
   return categoryCount === 0;
 }
@@ -892,11 +896,135 @@ export async function initializeCatalog(
     return { action: 'migrated', details: result };
   }
 
-  // No data exists - optionally seed
+  // No data exists - optionally seed with the correct storeId
   if (seedIfEmpty) {
-    const result = await seedCatalog();
+    const result = await seedCatalog(storeId);
     return { action: 'seeded', details: result };
   }
 
   return { action: 'empty' };
+}
+
+/**
+ * Migrate catalog data from one storeId to another.
+ * Used when catalog was seeded with 'default-salon' but user logs in with a different storeId.
+ *
+ * @param fromStoreId - The original storeId (e.g., 'default-salon')
+ * @param toStoreId - The target storeId (e.g., actual auth storeId)
+ * @returns Migration result with counts
+ */
+export async function migrateCatalogToStore(
+  fromStoreId: string,
+  toStoreId: string
+): Promise<{
+  migrated: boolean;
+  categories: number;
+  services: number;
+  variants: number;
+  packages: number;
+  addOnGroups: number;
+  addOnOptions: number;
+  settings: number;
+}> {
+  console.log(`🔄 Migrating catalog from "${fromStoreId}" to "${toStoreId}"...`);
+
+  // Skip if same storeId
+  if (fromStoreId === toStoreId) {
+    console.log('ℹ️ Source and target storeId are the same, skipping migration');
+    return { migrated: false, categories: 0, services: 0, variants: 0, packages: 0, addOnGroups: 0, addOnOptions: 0, settings: 0 };
+  }
+
+  // Check if target already has data
+  const existingCategoriesInTarget = await db.serviceCategories.where('storeId').equals(toStoreId).count();
+  const existingServicesInTarget = await db.menuServices.where('storeId').equals(toStoreId).count();
+
+  if (existingCategoriesInTarget > 0 || existingServicesInTarget > 0) {
+    console.log(`ℹ️ Target storeId "${toStoreId}" already has catalog data, skipping migration`);
+    return { migrated: false, categories: 0, services: 0, variants: 0, packages: 0, addOnGroups: 0, addOnOptions: 0, settings: 0 };
+  }
+
+  // Fetch all data from source storeId
+  const categories = await db.serviceCategories.where('storeId').equals(fromStoreId).toArray();
+  const services = await db.menuServices.where('storeId').equals(fromStoreId).toArray();
+  const variants = await db.serviceVariants.where('storeId').equals(fromStoreId).toArray();
+  const packages = await db.servicePackages.where('storeId').equals(fromStoreId).toArray();
+  const addOnGroups = await db.addOnGroups.where('storeId').equals(fromStoreId).toArray();
+  const addOnOptions = await db.addOnOptions.where('storeId').equals(fromStoreId).toArray();
+  const settings = await db.catalogSettings.where('storeId').equals(fromStoreId).toArray();
+
+  // Check if source has data
+  if (categories.length === 0 && services.length === 0) {
+    console.log(`ℹ️ No catalog data found in source storeId "${fromStoreId}"`);
+    return { migrated: false, categories: 0, services: 0, variants: 0, packages: 0, addOnGroups: 0, addOnOptions: 0, settings: 0 };
+  }
+
+  console.log(`📦 Found ${categories.length} categories, ${services.length} services to migrate`);
+
+  // Update all records with new storeId
+  const now = new Date().toISOString();
+
+  await db.transaction('rw', [
+    db.serviceCategories,
+    db.menuServices,
+    db.serviceVariants,
+    db.servicePackages,
+    db.addOnGroups,
+    db.addOnOptions,
+    db.catalogSettings,
+  ], async () => {
+    // Migrate categories
+    for (const cat of categories) {
+      await db.serviceCategories.update(cat.id, { storeId: toStoreId, updatedAt: now });
+    }
+
+    // Migrate services
+    for (const svc of services) {
+      await db.menuServices.update(svc.id, { storeId: toStoreId, updatedAt: now });
+    }
+
+    // Migrate variants
+    for (const v of variants) {
+      await db.serviceVariants.update(v.id, { storeId: toStoreId, updatedAt: now });
+    }
+
+    // Migrate packages
+    for (const pkg of packages) {
+      await db.servicePackages.update(pkg.id, { storeId: toStoreId, updatedAt: now });
+    }
+
+    // Migrate add-on groups
+    for (const grp of addOnGroups) {
+      await db.addOnGroups.update(grp.id, { storeId: toStoreId, updatedAt: now });
+    }
+
+    // Migrate add-on options
+    for (const opt of addOnOptions) {
+      await db.addOnOptions.update(opt.id, { storeId: toStoreId, updatedAt: now });
+    }
+
+    // Migrate settings
+    for (const s of settings) {
+      await db.catalogSettings.update(s.id, { storeId: toStoreId, updatedAt: now });
+    }
+  });
+
+  console.log(`✅ Migrated catalog data to storeId "${toStoreId}"`);
+  console.log(`   Categories: ${categories.length}`);
+  console.log(`   Services: ${services.length}`);
+  console.log(`   Variants: ${variants.length}`);
+  console.log(`   Packages: ${packages.length}`);
+  console.log(`   Add-on Groups: ${addOnGroups.length}`);
+  console.log(`   Add-on Options: ${addOnOptions.length}`);
+  console.log(`   Settings: ${settings.length}`);
+
+  return {
+    migrated: true,
+    categories: categories.length,
+    services: services.length,
+    variants: variants.length,
+    packages: packages.length,
+    addOnGroups: addOnGroups.length,
+    addOnOptions: addOnOptions.length,
+    settings: settings.length,
+  };
 }

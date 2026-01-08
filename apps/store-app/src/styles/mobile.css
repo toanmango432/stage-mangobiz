@@ -25,6 +25,72 @@
   padding-right: env(safe-area-inset-right);
 }
 
+/* Additive safe area utilities - adds safe area to existing padding */
+.pl-safe-add {
+  padding-left: calc(env(safe-area-inset-left, 0px) + 1.5rem); /* 24px base + safe area */
+}
+
+.pr-safe-add {
+  padding-right: calc(env(safe-area-inset-right, 0px) + 1.5rem); /* 24px base + safe area */
+}
+
+/* Smaller base padding variants for mobile (12px base) */
+.pl-safe-add-sm {
+  padding-left: calc(env(safe-area-inset-left, 0px) + 0.75rem); /* 12px base + safe area */
+}
+
+.pr-safe-add-sm {
+  padding-right: calc(env(safe-area-inset-right, 0px) + 0.75rem); /* 12px base + safe area */
+}
+
+/* Header safe area utilities - uses max() to ensure minimum 16px (px-4) or 20px (px-5) padding */
+/* These ensure content is never clipped while still respecting safe areas on notched devices */
+.pl-safe-header {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px)); /* At least 16px */
+}
+
+.pr-safe-header {
+  padding-right: max(1rem, env(safe-area-inset-right, 0px)); /* At least 16px */
+}
+
+.pt-safe-header {
+  padding-top: max(0px, env(safe-area-inset-top, 0px)); /* At least 0px, respect notch */
+}
+
+/* Larger padding variant for md+ screens (32px base) */
+@media (min-width: 768px) {
+  .md\:pl-safe-header {
+    padding-left: max(2rem, env(safe-area-inset-left, 0px)); /* At least 32px on md+ */
+  }
+
+  .md\:pr-safe-header {
+    padding-right: max(2rem, env(safe-area-inset-right, 0px)); /* At least 32px on md+ */
+  }
+}
+
+/* Bottom nav safe area utilities - uses max() for minimum padding */
+.pl-safe-nav {
+  padding-left: max(0.375rem, env(safe-area-inset-left, 0px)); /* At least 6px (px-1.5) */
+}
+
+.pr-safe-nav {
+  padding-right: max(0.375rem, env(safe-area-inset-right, 0px)); /* At least 6px (px-1.5) */
+}
+
+.pb-safe-nav {
+  padding-bottom: max(0px, env(safe-area-inset-bottom, 0px)); /* Respect home indicator */
+}
+
+@media (min-width: 640px) {
+  .sm\:pl-safe-nav {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px)); /* At least 12px (px-3) on sm+ */
+  }
+
+  .sm\:pr-safe-nav {
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px)); /* At least 12px (px-3) on sm+ */
+  }
+}
+
 .p-safe {
   padding-top: env(safe-area-inset-top);
   padding-right: env(safe-area-inset-right);

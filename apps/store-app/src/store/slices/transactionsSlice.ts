@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
-import { transactionsDB, ticketsDB, syncQueueDB } from '../../db/database';
+import { transactionsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // toTransaction/toTransactions not needed - dataService returns converted types
@@ -104,11 +104,11 @@ export const createTransaction = createAsyncThunk(
         paymentMethod: input.paymentMethod,
         paymentDetails: input.paymentDetails,
         status: 'completed',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        syncStatus: 'local',
       };
 
-      await transactionsDB.create(transaction);
+      await transactionsDB.addRaw(transaction);
       return transaction;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create transaction');
@@ -146,23 +146,22 @@ export const createTransactionFromPending = createAsyncThunk(
         paymentMethod: input.paymentMethod,
         paymentDetails: input.paymentDetails,
         status: 'completed',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        syncStatus: 'local',
       };
 
       // Save to IndexedDB
-      await transactionsDB.create(transaction);
+      await transactionsDB.addRaw(transaction);
 
       // Add to sync queue for later sync to Supabase
       await syncQueueDB.add({
-        id: uuidv4(),
-        entityType: 'transaction',
+        type: 'create',
+        entity: 'transaction',
         entityId: transaction.id,
-        operation: 'create',
+        action: 'CREATE',
         payload: transaction,
-        status: 'pending',
-        retryCount: 0,
-        createdAt: new Date(),
+        priority: 1,
+        maxAttempts: 10,
       });
 
       // Audit log

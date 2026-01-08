@@ -34,7 +34,7 @@ const SettingsPage = lazy(() => import('../modules/settings/SettingsPage').then(
 const StoreAuditViewer = lazy(() => import('../modules/settings/StoreAuditViewer'));
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectPendingTickets, loadTickets } from '../../store/slices/uiTicketsSlice';
-import { fetchAllStaff } from '../../store/slices/staffSlice';
+// fetchAllStaff removed - staffSlice.selectAllStaff now derives from teamSlice
 import { loadStaff as loadUIStaff } from '../../store/slices/uiStaffSlice';
 import { fetchTeamMembers } from '../../store/slices/teamSlice';
 import { fetchClientsFromSupabase } from '../../store/slices/clientsSlice';
@@ -49,7 +49,7 @@ import {
 import { storeAuthManager } from '../../services/storeAuthManager';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
-import { initializeCatalog } from '../../db/catalogSeed';
+import { initializeCatalog, migrateCatalogToStore } from '../../db/catalogSeed';
 import { syncManager } from '../../services/syncManager';
 import { teamDB } from '../../db/teamOperations';
 import { mockTeamMembers } from '../team-settings/constants';
@@ -131,7 +131,7 @@ function AppShellContent() {
   const pendingCount = pendingTickets.length;
 
   const dispatch = useAppDispatch();
-  const storeId = getTestSalonId();
+  const fallbackStoreId = getTestSalonId(); // Fallback for unauthenticated/development mode
 
   // Initialize database and sync manager on app load
   useEffect(() => {
@@ -147,14 +147,19 @@ function AppShellContent() {
         }
         console.log('✅ Database initialized');
 
-        // 2. Apply defaults from license (first-time setup)
+        // 2. Get auth state FIRST to determine the correct storeId
+        const authState = storeAuthManager.getState();
+        const storeId = authState.store?.storeId || fallbackStoreId;
+        console.log('🔑 Using storeId for initialization:', storeId);
+
+        // 3. Apply defaults from license (first-time setup)
         try {
           await defaultsPopulator.applyDefaults(storeId);
         } catch (error) {
           console.error('⚠️ Failed to apply defaults:', error);
         }
 
-        // 3. Check if we need to seed data (first run or force reseed)
+        // 4. Check if we need to seed data (first run or force reseed)
         const staffCount = await db.staff.count();
         const clientCount = await db.clients.count();
         const forceReseed = localStorage.getItem('force-reseed-db');
@@ -175,7 +180,20 @@ function AppShellContent() {
           console.log(`✅ Database already seeded (${staffCount} staff, ${clientCount} clients)`);
         }
 
-        // 3b. Initialize catalog (migrate legacy services or seed if empty)
+        // 4b. Migrate catalog from default-salon to actual storeId if needed
+        // This handles cases where catalog was seeded before user logged in
+        if (storeId !== fallbackStoreId) {
+          try {
+            const migrationResult = await migrateCatalogToStore(fallbackStoreId, storeId);
+            if (migrationResult.migrated) {
+              console.log(`✅ Catalog migrated from "${fallbackStoreId}" to "${storeId}"`, migrationResult);
+            }
+          } catch (error) {
+            console.error('⚠️ Failed to migrate catalog:', error);
+          }
+        }
+
+        // 4c. Initialize catalog (migrate legacy services or seed if empty)
         try {
           const catalogResult = await initializeCatalog(storeId, true);
           console.log(`✅ Catalog initialized: ${catalogResult.action}`, catalogResult.details);
@@ -183,8 +201,7 @@ function AppShellContent() {
           console.error('⚠️ Failed to initialize catalog:', error);
         }
 
-        // 4. Sync store auth state to Redux FIRST (required for dataService storeId)
-        const authState = storeAuthManager.getState();
+        // 5. Sync store auth state to Redux (required for dataService storeId)
         if (authState.store) {
           dispatch(setStoreSession({
             storeId: authState.store.storeId,
@@ -197,18 +214,13 @@ function AppShellContent() {
           console.log('✅ Store auth synced to Redux:', authState.store.storeName);
         }
 
-        // 4a. Load staff into Redux (legacy staffSlice for backwards compatibility)
-        await dispatch(fetchAllStaff(storeId));
-        console.log('✅ Staff loaded into Redux (staffSlice)');
-
-        // 4a1. Fetch team members from Supabase into teamSlice (NEW: ensures Redux team state is populated)
-        const teamStoreIdForFetch = authState.store?.storeId || storeId;
-        await dispatch(fetchTeamMembers(teamStoreIdForFetch));
+        // 6. Fetch team members from Supabase into teamSlice (single source of truth for staff)
+        // NOTE: fetchAllStaff removed - staffSlice.selectAllStaff now derives from teamSlice
+        await dispatch(fetchTeamMembers(storeId));
         console.log('✅ Team members fetched into Redux (teamSlice)');
 
-        // 4a2. Seed team members if needed (required for uiStaffSlice)
-        const teamStoreId = authState.store?.storeId || storeId;
-        console.log('[AppShell] Checking team data for storeId:', teamStoreId);
+        // 6b. Seed team members if needed (required for uiStaffSlice)
+        console.log('[AppShell] Checking team data for storeId:', storeId);
 
         // Check current team member count
         const currentMembers = await teamDB.getAllMembers(storeId);
@@ -234,11 +246,11 @@ function AppShellContent() {
           console.log('✅ Team data already exists:', currentMembers.length, 'members');
         }
 
-        // 4a3. Load UI staff from teamMembers (uiStaffSlice - used by Book, Team, FrontDesk)
+        // 6c. Load UI staff from teamMembers (uiStaffSlice - used by Book, Team, FrontDesk)
         await dispatch(loadUIStaff(storeId));
         console.log('✅ UI Staff loaded into Redux (uiStaffSlice)');
 
-        // 4b. Load clients into Redux from Supabase (via dataService)
+        // 7. Load clients into Redux from Supabase (via dataService)
         // Note: Only fetches if store is logged in (storeId available)
         if (authState.store) {
           await dispatch(fetchClientsFromSupabase());
@@ -247,11 +259,11 @@ function AppShellContent() {
           console.log('⚠️ No store logged in - skipping Supabase client fetch');
         }
 
-        // 4c. Load tickets into Redux from IndexedDB
+        // 8. Load tickets into Redux from IndexedDB
         await dispatch(loadTickets(storeId));
         console.log('✅ Tickets loaded into Redux');
 
-        // 5. Load appointments into Redux
+        // 9. Load appointments into Redux
         const appointments = await db.appointments.toArray();
         appointments.forEach((apt: any) => {
           dispatch(addLocalAppointment({
@@ -268,15 +280,15 @@ function AppShellContent() {
         console.log(`✅ Loaded ${appointments.length} appointments into Redux`);
 
 
-        // 6. Load front desk settings from IndexedDB (per-user)
+        // 10. Load front desk settings from IndexedDB (per-user)
         await dispatch(loadFrontDeskSettings());
         console.log('✅ Front desk settings loaded');
 
-        // 7. Start sync manager
+        // 11. Start sync manager
         syncManager.start();
         console.log('✅ Sync Manager started');
 
-        // 8. Set initial online status
+        // 12. Set initial online status
         dispatch(setOnlineStatus(navigator.onLine));
 
         setIsInitialized(true);
@@ -293,7 +305,7 @@ function AppShellContent() {
       syncManager.stop();
       console.log('🛑 Sync Manager stopped');
     };
-  }, [dispatch, storeId]);
+  }, [dispatch, fallbackStoreId]);
 
   // Monitor online/offline status
   useEffect(() => {
@@ -357,7 +369,8 @@ function AppShellContent() {
         return <Suspense fallback={<ModuleLoader />}><TodaysSales onBack={() => setActiveModule('more')} /></Suspense>;
       case 'schedule':
         return <Suspense fallback={<ModuleLoader />}><Schedule /></Suspense>;
-      case 'category':
+      case 'catalog':
+      case 'category': // Legacy alias for backward compatibility
         return <Suspense fallback={<ModuleLoader />}><MenuSettings onBack={() => setActiveModule('more')} /></Suspense>;
       case 'clients':
         return <Suspense fallback={<ModuleLoader />}><ClientSettings onBack={() => setActiveModule('more')} /></Suspense>;
@@ -390,7 +403,7 @@ function AppShellContent() {
   // Show loading screen while initializing
   if (!isInitialized) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
+      <div className="h-dvh flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center">
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
@@ -403,7 +416,7 @@ function AppShellContent() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="h-dvh flex flex-col overflow-hidden bg-white">
       {/* License Status Banner */}
       <LicenseBanner />
 

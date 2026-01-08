@@ -59,7 +59,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   const frontDeskSettings = useSelector(selectFrontDeskSettings);
 
   // Check if Turn Tracker feature is enabled for this license tier
-  const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker');
+  // Default to true so it shows while loading or if feature flags haven't loaded yet
+  const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker', { defaultValue: true });
 
   // ISSUE-002: Use memoized selectors instead of duplicate local state
   // These replace useState + useLayoutEffect sync pattern

@@ -88,6 +88,8 @@ export const payrollDB = {
     startDate: string,
     endDate: string
   ): Promise<PayRun[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     const payRuns = await db.payRuns
       .where('[storeId+periodStart]')
       .between([storeId, startDate], [storeId, endDate], true, true)
@@ -102,6 +104,8 @@ export const payrollDB = {
     storeId: string,
     status: PayRunStatus
   ): Promise<PayRun[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     const payRuns = await db.payRuns
       .where('[storeId+status]')
       .equals([storeId, status])
@@ -113,6 +117,8 @@ export const payrollDB = {
    * Get the most recent pay run
    */
   async getLatestPayRun(storeId: string): Promise<PayRun | undefined> {
+    // Guard: return undefined if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return undefined;
     const payRuns = await db.payRuns
       .where('[storeId+periodStart]')
       .between([storeId, ''], [storeId, '\uffff'])

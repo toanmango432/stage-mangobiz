@@ -73,7 +73,7 @@ export function More({ onNavigate }: MoreProps = {}) {
         { id: 'clients', label: 'Clients', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-50' },
         { id: 'team-settings', label: 'Team', icon: UserCog, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'schedule', label: 'Schedule', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        { id: 'category', label: 'Services & Categories', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { id: 'catalog', label: 'Catalog', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
       ]
     },
     {

@@ -68,6 +68,9 @@ export const appointmentsDB = {
   },
 
   async getByStatus(storeId: string, status: string, limit: number = 100, offset: number = 0): Promise<Appointment[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.appointments
       .where('[storeId+status]')
       .equals([storeId, status])
@@ -148,6 +151,9 @@ export const ticketsDB = {
   },
 
   async getByStatus(storeId: string, status: string, limit: number = 100, offset: number = 0): Promise<Ticket[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.tickets
       .where('[storeId+status]')
       .equals([storeId, status])
@@ -369,6 +375,19 @@ export const transactionsDB = {
       .toArray();
   },
 
+  async getByDate(date: Date, limit: number = 200): Promise<Transaction[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    return await db.transactions
+      .where('createdAt')
+      .between(startOfDay.toISOString(), endOfDay.toISOString(), true, true)
+      .reverse()
+      .limit(limit)
+      .toArray();
+  },
+
   async create(transaction: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'>): Promise<Transaction> {
     const newTransaction: Transaction = {
       id: uuidv4(),
@@ -430,6 +449,9 @@ export const staffDB = {
   },
 
   async getAvailable(storeId: string, limit: number = 100): Promise<Staff[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.staff
       .where('[storeId+status]')
       .equals([storeId, 'available'])
@@ -683,6 +705,9 @@ export const clientsDB = {
 
   // Blocking operations (PRD 2.3.2)
   async getBlocked(storeId: string, limit: number = 100): Promise<Client[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.clients
       .where('[storeId+isBlocked]')
       .equals([storeId, 1]) // Dexie stores booleans as 1/0
@@ -737,6 +762,9 @@ export const clientsDB = {
 
   // VIP operations
   async getVips(storeId: string, limit: number = 100): Promise<Client[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.clients
       .where('[storeId+isVip]')
       .equals([storeId, 1])
@@ -843,6 +871,9 @@ export const servicesDB = {
   },
 
   async getByCategory(storeId: string, category: string, limit: number = 100): Promise<Service[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId || !category) return [];
+
     return await db.services
       .where('[storeId+category]')
       .equals([storeId, category])
@@ -962,6 +993,9 @@ export const patchTestsDB = {
   },
 
   async getValidForService(clientId: string, serviceId: string): Promise<PatchTest | undefined> {
+    // Guard: return undefined if clientId or serviceId is invalid (prevents IDBKeyRange.bound error)
+    if (!clientId || !serviceId) return undefined;
+
     const now = new Date().toISOString();
     const tests = await db.patchTests
       .where('[clientId+serviceId]')
@@ -1021,6 +1055,9 @@ export const patchTestsDB = {
 
 export const formTemplatesDB = {
   async getAll(storeId: string, activeOnly: boolean = true): Promise<FormTemplate[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     if (activeOnly) {
       return await db.formTemplates
         .where('[storeId+isActive]')
@@ -1034,6 +1071,9 @@ export const formTemplatesDB = {
   },
 
   async getActiveByStore(storeId: string): Promise<FormTemplate[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.formTemplates
       .where('[storeId+isActive]')
       .equals([storeId, 1])
@@ -1104,6 +1144,9 @@ export const formResponsesDB = {
   },
 
   async getPending(clientId: string): Promise<ClientFormResponse[]> {
+    // Guard: return empty array if clientId is invalid (prevents IDBKeyRange.bound error)
+    if (!clientId) return [];
+
     return await db.formResponses
       .where('[clientId+status]')
       .equals([clientId, 'pending'])
@@ -1367,6 +1410,9 @@ export const reviewRequestsDB = {
   },
 
   async getByStatus(storeId: string, status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     return await db.reviewRequests
       .where('[storeId+status]')
       .equals([storeId, status])
@@ -1375,6 +1421,9 @@ export const reviewRequestsDB = {
   },
 
   async getPendingByClient(clientId: string): Promise<ReviewRequest[]> {
+    // Guard: return empty array if clientId is invalid (prevents IDBKeyRange.bound error)
+    if (!clientId) return [];
+
     return await db.reviewRequests
       .where('[clientId+status]')
       .equals([clientId, 'pending'])
@@ -1471,6 +1520,9 @@ export const reviewRequestsDB = {
    * Get requests that need reminders sent
    */
   async getNeedingReminder(storeId: string, maxReminders: number = 1): Promise<ReviewRequest[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
+
     const requests = await db.reviewRequests
       .where('[storeId+status]')
       .equals([storeId, 'sent'])
@@ -1516,6 +1568,8 @@ export const customSegmentsDB = {
   },
 
   async getBySalonId(storeId: string, activeOnly: boolean = true): Promise<CustomSegment[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     if (activeOnly) {
       return await db.customSegments
         .where('[storeId+isActive]')
@@ -1529,6 +1583,8 @@ export const customSegmentsDB = {
   },
 
   async getActive(storeId: string): Promise<CustomSegment[]> {
+    // Guard: return empty array if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return [];
     return await db.customSegments
       .where('[storeId+isActive]')
       .equals([storeId, 1])
@@ -1613,6 +1669,8 @@ export const customSegmentsDB = {
   },
 
   async getActiveCount(storeId: string): Promise<number> {
+    // Guard: return 0 if storeId is invalid (prevents IDBKeyRange.bound error)
+    if (!storeId) return 0;
     return await db.customSegments
       .where('[storeId+isActive]')
       .equals([storeId, 1])

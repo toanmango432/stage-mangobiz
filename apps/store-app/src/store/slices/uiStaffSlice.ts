@@ -98,21 +98,15 @@ export const loadStaff = createAsyncThunk(
     const teamMembers = Object.values(membersRecord).filter((m: { isActive?: boolean; isDeleted?: boolean }) => m.isActive && !m.isDeleted);
     console.log('[uiStaffSlice] Found team members from Redux:', teamMembers.length);
 
-    // If no members in Redux, try IndexedDB as fallback
-    let membersToUse = teamMembers;
-    if (teamMembers.length === 0) {
-      console.log('[uiStaffSlice] No members in Redux, trying IndexedDB...');
-      const { teamDB } = await import('../../db/teamOperations');
-      membersToUse = await teamDB.getActiveMembers(storeId);
-      console.log('[uiStaffSlice] Found team members from IndexedDB:', membersToUse.length);
-    }
-
-    const uiStaff = membersToUse.map((m: any) => convertTeamMemberToUIStaff(m));
+    // SINGLE SOURCE OF TRUTH: Team data comes ONLY from Redux teamSlice
+    // fetchTeamMembers must be dispatched before loadStaff
+    // This ensures consistent data across Front Desk, Book, and Team modules
+    const uiStaff = teamMembers.map((m: any) => convertTeamMemberToUIStaff(m));
 
     // PERFORMANCE FIX: Fetch all shift statuses in parallel instead of sequential N+1 queries
     // This reduces 10 staff members from ~500ms (50ms x 10) to ~50ms (parallel)
     const shiftStatusPromises = uiStaff.map((staff) => {
-      const member = membersToUse.find((m: any) => m.id === staff.id);
+      const member = teamMembers.find((m: any) => m.id === staff.id);
       const memberStoreId = member?.storeId || storeId;
       return timesheetDB.getStaffShiftStatus(memberStoreId, staff.id)
         .catch((error) => {

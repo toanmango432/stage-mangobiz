@@ -7,7 +7,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Search, Calendar, Clock, User, Plus, ChevronDown, ChevronUp, Trash2, PanelRightClose, Maximize, Check, ArrowDownToLine, LayoutPanelLeft, Lock, Zap, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { clientsDB } from '../../db/database';
+import { clientsDB, menuServicesDB } from '../../db/database';
 import toast from 'react-hot-toast';
 import { db } from '../../db/schema';
 import { getTestSalonId } from '../../db/seed';
@@ -190,17 +190,16 @@ export function NewAppointmentModalV2({
   }, [isOpen, initialClient, selectedClients.length, onInitialClientUsed]);
 
   // LOAD DATA
+  // Read from menuServicesDB (same source as Menu Settings) for consistency
   useEffect(() => {
     async function loadServices() {
       try {
-        const servicesList = await db.services
-          .where('storeId').equals(storeId)
-          .and(s => s.isActive)
-          .toArray();
+        // Use menuServicesDB - the same table that Menu Settings writes to
+        const servicesList = await menuServicesDB.getAll(storeId, false); // false = active only
         setServices(servicesList.map(s => ({
           id: s.id,
           name: s.name,
-          category: s.category,
+          category: s.categoryId, // MenuService uses categoryId
           duration: s.duration,
           price: s.price
         })));

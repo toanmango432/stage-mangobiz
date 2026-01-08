@@ -411,6 +411,11 @@ const appointmentSlice = createSlice({
         deleteAppointment: null,
       };
     },
+
+    // Bulk load appointments (e.g., from hydration)
+    setAppointments: (state, action: PayloadAction<LocalAppointment[]>) => {
+      state.appointments = action.payload;
+    },
   },
   
   extraReducers: (builder) => {
@@ -764,6 +769,7 @@ export const {
   updateSyncStatus,
   clearError,
   clearAllErrors,
+  setAppointments,
 } = appointmentSlice.actions;
 
 export default appointmentSlice.reducer;

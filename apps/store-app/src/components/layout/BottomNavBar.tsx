@@ -51,7 +51,7 @@ export function BottomNavBar({ activeModule, onModuleChange, pendingCount = 0 }:
       role="navigation"
       aria-label="Main navigation"
       className="
-        relative h-[68px] sm:h-[72px] flex items-center justify-around px-1.5 sm:px-3
+        relative h-[68px] sm:h-[72px] flex items-center justify-around pl-safe-nav pr-safe-nav sm:pl-safe-nav sm:pr-safe-nav pb-safe-nav
         bg-gradient-to-t from-white/50 via-orange-50/35 to-white/25
         backdrop-blur-xl backdrop-saturate-[1.8]
         border-t border-white/40
