@@ -34,6 +34,7 @@ export function CategoryModal({
   const [description, setDescription] = useState('');
   const [color, setColor] = useState(CATEGORY_COLORS[0].value);
   const [icon, setIcon] = useState('Sparkles');
+  const [showOnlineBooking, setShowOnlineBooking] = useState(true);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -43,11 +44,13 @@ export function CategoryModal({
         setDescription(category.description || '');
         setColor(category.color);
         setIcon(category.icon || 'Sparkles');
+        setShowOnlineBooking(category.showOnlineBooking ?? true);
       } else {
         setName('');
         setDescription('');
         setColor(CATEGORY_COLORS[0].value);
         setIcon('Sparkles');
+        setShowOnlineBooking(true);
       }
     }
   }, [isOpen, category]);
@@ -61,6 +64,7 @@ export function CategoryModal({
       description: description.trim() || undefined,
       color,
       icon,
+      showOnlineBooking,
     });
   };
 
@@ -148,6 +152,31 @@ export function CategoryModal({
               rows={2}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
             />
+          </div>
+
+          {/* Online Booking Visibility */}
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Show in Online Booking
+              </label>
+              <p className="text-xs text-gray-500">
+                Allow clients to book services in this category online
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowOnlineBooking(!showOnlineBooking)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                showOnlineBooking ? 'bg-orange-500' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showOnlineBooking ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
 
           {/* Color */}

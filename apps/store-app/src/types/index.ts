@@ -61,6 +61,10 @@ export {
   type MenuGeneralSettings,
   toMenuGeneralSettings,
   fromMenuGeneralSettings,
+  // Gift Card Management types (Catalog Module)
+  type GiftCardDenomination,
+  type CreateGiftCardDenominationInput,
+  type GiftCardSettings,
 } from './catalog';
 // Alias for backward compatibility
 export type { MenuService as CatalogService } from './catalog';

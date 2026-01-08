@@ -15,6 +15,8 @@ import {
   FolderOpen,
   Eye,
   EyeOff,
+  ShoppingBag,
+  Gift,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -25,7 +27,9 @@ import { selectSalonId, selectCurrentUser } from '../../store/slices/authSlice';
 import { CategoriesSection } from './sections/CategoriesSection';
 import { ServicesSection } from './sections/ServicesSection';
 import { PackagesSection } from './sections/PackagesSection';
+import { ProductsSection } from './sections/ProductsSection';
 import { AddOnsSection } from './sections/AddOnsSection';
+import { GiftCardsSection } from './sections/GiftCardsSection';
 import { StaffPermissionsSection } from './sections/StaffPermissionsSection';
 import { MenuGeneralSettingsSection } from './sections/MenuGeneralSettingsSection';
 
@@ -63,8 +67,13 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     filteredServices,
     packages,
     filteredPackages,
+    products,
+    filteredProducts,
+    productCategories,
     addOnGroupsWithOptions,
     settings,
+    giftCardDenominations,
+    giftCardSettings,
     // UI State
     ui,
     setActiveTab,
@@ -85,6 +94,11 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     createPackage,
     updatePackage,
     deletePackage,
+    // Product Actions
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    archiveProduct,
     // Add-on Group/Option Actions
     createAddOnGroup,
     updateAddOnGroup,
@@ -93,6 +107,11 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     updateAddOnOption,
     deleteAddOnOption,
     updateSettings,
+    // Gift Card Actions
+    createGiftCardDenomination,
+    updateGiftCardDenomination,
+    deleteGiftCardDenomination,
+    updateGiftCardSettings,
   } = catalog;
 
   // Tab configuration
@@ -100,16 +119,32 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     { id: 'categories', label: 'Categories', icon: <FolderOpen size={18} />, count: categories?.length || 0 },
     { id: 'services', label: 'Services', icon: <Sparkles size={18} />, count: services?.length || 0 },
     { id: 'packages', label: 'Packages', icon: <Package size={18} />, count: packages?.length || 0 },
+    { id: 'products', label: 'Products', icon: <ShoppingBag size={18} />, count: products?.length || 0 },
     { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOnGroupsWithOptions?.length || 0 },
+    { id: 'giftcards', label: 'Gift Cards', icon: <Gift size={18} />, count: giftCardDenominations?.length || 0 },
     { id: 'staff', label: 'Staff Permissions', icon: <Users size={18} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-  ], [categories, services, packages, addOnGroupsWithOptions]);
+  ], [categories, services, packages, products, addOnGroupsWithOptions, giftCardDenominations]);
 
-  // Show loading state if storeId is not yet available
+  // Show error state if storeId is not available (user not logged in properly)
   if (!storeId) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading menu settings...</p>
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <div className="w-16 h-16 mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+          <Settings className="w-8 h-8 text-gray-400" />
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Catalog Unavailable</h2>
+        <p className="text-gray-500 text-center max-w-md">
+          Please log in to a store to access the catalog settings.
+        </p>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Go Back
+          </button>
+        )}
       </div>
     );
   }
@@ -156,6 +191,19 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             onDelete={deletePackage}
           />
         );
+      case 'products':
+        return (
+          <ProductsSection
+            products={filteredProducts || []}
+            productCategories={productCategories || []}
+            viewMode={ui.viewMode}
+            searchQuery={ui.searchQuery}
+            onCreate={createProduct}
+            onUpdate={updateProduct}
+            onDelete={deleteProduct}
+            onArchive={archiveProduct}
+          />
+        );
       case 'addons':
         return (
           <AddOnsSection
@@ -170,6 +218,17 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             onCreateOption={createAddOnOption}
             onUpdateOption={updateAddOnOption}
             onDeleteOption={deleteAddOnOption}
+          />
+        );
+      case 'giftcards':
+        return (
+          <GiftCardsSection
+            denominations={giftCardDenominations || []}
+            settings={giftCardSettings || undefined}
+            onCreateDenomination={createGiftCardDenomination}
+            onUpdateDenomination={updateGiftCardDenomination}
+            onDeleteDenomination={deleteGiftCardDenomination}
+            onUpdateSettings={updateGiftCardSettings}
           />
         );
       case 'staff':
@@ -262,7 +321,7 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
       </div>
 
       {/* Toolbar */}
-      {(ui.activeTab === 'services' || ui.activeTab === 'packages' || ui.activeTab === 'addons') && (
+      {(ui.activeTab === 'services' || ui.activeTab === 'packages' || ui.activeTab === 'products' || ui.activeTab === 'addons') && (
         <div className="bg-white border-b border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Search */}

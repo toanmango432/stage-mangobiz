@@ -39,6 +39,9 @@ export interface ServiceCategory {
   // Hierarchy
   parentCategoryId?: string;
 
+  // Online Booking (MNU-P1-006)
+  showOnlineBooking?: boolean;
+
   // Timestamps & Sync (ISO 8601 strings)
   createdAt: string;
   updatedAt: string;
@@ -132,8 +135,16 @@ export interface MenuService {
   depositAmount?: number;
   depositPercentage?: number;
 
+  // Online booking limits (MNU-P1-017)
+  onlineBookingBufferMinutes?: number;  // Minimum time before booking
+  advanceBookingDaysMin?: number;        // Minimum days in advance
+  advanceBookingDaysMax?: number;        // Maximum days in advance
+
   // Rebook reminder (days after service)
   rebookReminderDays?: number;
+
+  // Turn weight for queue calculations (MNU-P1-019)
+  turnWeight?: number;  // 0.0 - 5.0, default 1.0
 
   // Additional settings
   commissionRate?: number; // percentage
@@ -192,6 +203,9 @@ export interface ServicePackage {
   // Booking settings
   bookingAvailability: BookingAvailability;
   onlineBookingEnabled: boolean;
+
+  // Staff restrictions (MNU-P2-037)
+  restrictedStaffIds?: string[];  // If set, only these staff can perform the package
 
   // Status
   isActive: boolean;
@@ -387,7 +401,7 @@ export type CreateBookingSequenceInput = Omit<BookingSequence,
 // UI STATE TYPES (for Redux slice)
 // ============================================
 
-export type CatalogTab = 'categories' | 'services' | 'packages' | 'addons' | 'staff' | 'settings';
+export type CatalogTab = 'categories' | 'services' | 'packages' | 'products' | 'addons' | 'giftcards' | 'staff' | 'settings';
 export type CatalogViewMode = 'grid' | 'list' | 'compact';
 
 export interface CatalogUIState {
@@ -716,4 +730,59 @@ export function fromMenuGeneralSettings(settings: MenuGeneralSettings): Partial<
     enablePackages: settings.enablePackages,
     enableAddOns: settings.enableAddOns,
   };
+}
+
+// ============================================
+// GIFT CARD MANAGEMENT TYPES
+// ============================================
+
+/**
+ * GiftCardDenomination - Preset gift card amounts for quick sale
+ * Managed in Catalog > Gift Cards tab
+ */
+export interface GiftCardDenomination {
+  id: string;
+  storeId: string;
+
+  // Core fields
+  amount: number;
+  label?: string;  // e.g., "$50 Gift Card", "Holiday Special"
+
+  // Status
+  isActive: boolean;
+  displayOrder: number;
+
+  // Timestamps & Sync
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: SyncStatus;
+}
+
+export type CreateGiftCardDenominationInput = Omit<GiftCardDenomination,
+  'id' | 'storeId' | 'createdAt' | 'updatedAt' | 'syncStatus'
+>;
+
+/**
+ * GiftCardSettings - Per-salon gift card configuration
+ */
+export interface GiftCardSettings {
+  id: string;
+  storeId: string;
+
+  // Custom amount settings
+  allowCustomAmount: boolean;
+  minAmount: number;
+  maxAmount: number;
+
+  // Expiration
+  defaultExpirationDays?: number;  // null/undefined = never expires
+
+  // Online settings
+  onlineEnabled: boolean;
+  emailDeliveryEnabled: boolean;
+
+  // Timestamps & Sync
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: SyncStatus;
 }

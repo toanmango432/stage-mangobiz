@@ -18,6 +18,7 @@ import {
   addOnOptionsDB,
   catalogSettingsDB,
 } from '../db/database';
+import { productsDB } from '../db/catalogDatabase';
 import type {
   ServiceCategory,
   MenuService,
@@ -32,7 +33,10 @@ import type {
   MenuServiceWithEmbeddedVariants,
   CatalogTab,
   CatalogViewMode,
+  GiftCardDenomination,
+  GiftCardSettings,
 } from '../types/catalog';
+import type { Product, CreateProductInput } from '../types/inventory';
 import {
   toServiceAddOn,
   toEmbeddedVariant,
@@ -74,18 +78,26 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   const [error, setError] = useState<string | null>(null);
 
   // ==================== LIVE QUERIES ====================
+  // Helper to check if storeId is valid for queries
+  const isValidStoreId = storeId && storeId !== 'placeholder';
 
   // Categories with counts
   const categoriesWithCounts = useLiveQuery(
     async () => {
-      const cats = await serviceCategoriesDB.getAll(storeId, ui.showInactive);
-      const services = await db.menuServices.where('storeId').equals(storeId).toArray();
+      if (!isValidStoreId) return [];
+      try {
+        const cats = await serviceCategoriesDB.getAll(storeId, ui.showInactive);
+        const services = await db.menuServices.where('storeId').equals(storeId).toArray();
 
-      return cats.map(cat => ({
-        ...cat,
-        servicesCount: services.filter(s => s.categoryId === cat.id).length,
-        activeServicesCount: services.filter(s => s.categoryId === cat.id && s.status === 'active').length,
-      })) as CategoryWithCount[];
+        return cats.map(cat => ({
+          ...cat,
+          servicesCount: services.filter(s => s.categoryId === cat.id).length,
+          activeServicesCount: services.filter(s => s.categoryId === cat.id && s.status === 'active').length,
+        })) as CategoryWithCount[];
+      } catch (err) {
+        console.warn('Failed to load categories:', err);
+        return [];
+      }
     },
     [storeId, ui.showInactive],
     [] as CategoryWithCount[]
@@ -94,18 +106,24 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   // Services with embedded variants
   const servicesWithVariants = useLiveQuery(
     async () => {
-      const services = await menuServicesDB.getAll(storeId, ui.showInactive);
-      const variants = await db.serviceVariants.where('storeId').equals(storeId).toArray();
+      if (!isValidStoreId) return [];
+      try {
+        const services = await menuServicesDB.getAll(storeId, ui.showInactive);
+        const variants = await db.serviceVariants.where('storeId').equals(storeId).toArray();
 
-      return services.map(svc => ({
-        ...svc,
-        variants: variants
-          .filter(v => v.serviceId === svc.id && (ui.showInactive || v.isActive))
-          .sort((a, b) => a.displayOrder - b.displayOrder)
-          .map(toEmbeddedVariant),
-        processingTime: svc.extraTime,
-        assignedStaffIds: [], // Will be populated from assignments if needed
-      })) as MenuServiceWithEmbeddedVariants[];
+        return services.map(svc => ({
+          ...svc,
+          variants: variants
+            .filter(v => v.serviceId === svc.id && (ui.showInactive || v.isActive))
+            .sort((a, b) => a.displayOrder - b.displayOrder)
+            .map(toEmbeddedVariant),
+          processingTime: svc.extraTime,
+          assignedStaffIds: [], // Will be populated from assignments if needed
+        })) as MenuServiceWithEmbeddedVariants[];
+      } catch (err) {
+        console.warn('Failed to load services:', err);
+        return [];
+      }
     },
     [storeId, ui.showInactive],
     [] as MenuServiceWithEmbeddedVariants[]
@@ -113,7 +131,15 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
 
   // Packages
   const packages = useLiveQuery(
-    () => servicePackagesDB.getAll(storeId, ui.showInactive),
+    async () => {
+      if (!isValidStoreId) return [];
+      try {
+        return await servicePackagesDB.getAll(storeId, ui.showInactive);
+      } catch (err) {
+        console.warn('Failed to load packages:', err);
+        return [];
+      }
+    },
     [storeId, ui.showInactive],
     [] as ServicePackage[]
   );
@@ -121,18 +147,24 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   // Add-ons (converted to legacy format for UI compatibility)
   const addOns = useLiveQuery(
     async () => {
-      const groups = await addOnGroupsDB.getAll(storeId, ui.showInactive);
-      const options = await db.addOnOptions.where('storeId').equals(storeId).toArray();
+      if (!isValidStoreId) return [];
+      try {
+        const groups = await addOnGroupsDB.getAll(storeId, ui.showInactive);
+        const options = await db.addOnOptions.where('storeId').equals(storeId).toArray();
 
-      // Convert to flat ServiceAddOn format for UI
-      const result: ServiceAddOn[] = [];
-      for (const group of groups) {
-        const groupOptions = options.filter(o => o.groupId === group.id && (ui.showInactive || o.isActive));
-        for (const option of groupOptions) {
-          result.push(toServiceAddOn(group, option));
+        // Convert to flat ServiceAddOn format for UI
+        const result: ServiceAddOn[] = [];
+        for (const group of groups) {
+          const groupOptions = options.filter(o => o.groupId === group.id && (ui.showInactive || o.isActive));
+          for (const option of groupOptions) {
+            result.push(toServiceAddOn(group, option));
+          }
         }
+        return result.sort((a, b) => a.displayOrder - b.displayOrder);
+      } catch (err) {
+        console.warn('Failed to load add-ons:', err);
+        return [];
       }
-      return result.sort((a, b) => a.displayOrder - b.displayOrder);
     },
     [storeId, ui.showInactive],
     [] as ServiceAddOn[]
@@ -141,46 +173,124 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
   // Add-on Groups with Options (for new grouped UI)
   const addOnGroupsWithOptions = useLiveQuery(
     async () => {
-      const groups = await addOnGroupsDB.getAll(storeId, ui.showInactive);
-      const options = await db.addOnOptions.where('storeId').equals(storeId).toArray();
+      if (!isValidStoreId) return [];
+      try {
+        const groups = await addOnGroupsDB.getAll(storeId, ui.showInactive);
+        const options = await db.addOnOptions.where('storeId').equals(storeId).toArray();
 
-      // Build groups with nested options
-      const result: AddOnGroupWithOptions[] = groups.map(group => ({
-        ...group,
-        options: options
-          .filter(o => o.groupId === group.id && (ui.showInactive || o.isActive))
-          .sort((a, b) => a.displayOrder - b.displayOrder),
-      }));
+        // Build groups with nested options
+        const result: AddOnGroupWithOptions[] = groups.map(group => ({
+          ...group,
+          options: options
+            .filter(o => o.groupId === group.id && (ui.showInactive || o.isActive))
+            .sort((a, b) => a.displayOrder - b.displayOrder),
+        }));
 
-      return result.sort((a, b) => a.displayOrder - b.displayOrder);
+        return result.sort((a, b) => a.displayOrder - b.displayOrder);
+      } catch (err) {
+        console.warn('Failed to load add-on groups:', err);
+        return [];
+      }
     },
     [storeId, ui.showInactive],
     [] as AddOnGroupWithOptions[]
   );
 
+  // Products (retail products for sale)
+  // Guard: only query if storeId is valid to prevent IDBKeyRange errors
+  const products = useLiveQuery(
+    async () => {
+      if (!isValidStoreId) return [];
+      try {
+        return await productsDB.getAll(storeId, ui.showInactive);
+      } catch (err) {
+        console.warn('Failed to load products:', err);
+        return [];
+      }
+    },
+    [storeId, ui.showInactive],
+    [] as Product[]
+  );
+
+  // Product categories (unique from products)
+  const productCategories = useMemo(() => {
+    const uniqueCategories = new Set(products.map(p => p.category));
+    return Array.from(uniqueCategories).sort();
+  }, [products]);
+
   // Settings - use get() for read-only live query, initialize separately if needed
   const catalogSettings = useLiveQuery(
-    () => catalogSettingsDB.get(storeId),
+    async () => {
+      if (!isValidStoreId) return undefined;
+      try {
+        return await catalogSettingsDB.get(storeId);
+      } catch (err) {
+        console.warn('Failed to load catalog settings:', err);
+        return undefined;
+      }
+    },
     [storeId]
   );
-  
+
   // Initialize settings if they don't exist (outside of live query)
   useEffect(() => {
+    if (!isValidStoreId) return;
     if (catalogSettings === undefined) {
       // Check if we need to create default settings
       catalogSettingsDB.get(storeId).then(existing => {
         if (!existing) {
           catalogSettingsDB.getOrCreate(storeId);
         }
+      }).catch(err => {
+        console.warn('Failed to initialize catalog settings:', err);
       });
     }
-  }, [storeId, catalogSettings]);
+  }, [storeId, catalogSettings, isValidStoreId]);
 
   // Convert to MenuGeneralSettings for UI
   const settings = useMemo((): MenuGeneralSettings | null => {
     if (!catalogSettings) return null;
     return toMenuGeneralSettings(catalogSettings);
   }, [catalogSettings]);
+
+  // Gift Card Denominations
+  const giftCardDenominations = useLiveQuery(
+    async () => {
+      if (!storeId || storeId === 'placeholder') return [];
+      try {
+        const items = await db.giftCardDenominations
+          .where('storeId')
+          .equals(storeId)
+          .toArray();
+        return items.sort((a, b) => a.displayOrder - b.displayOrder);
+      } catch (err) {
+        console.warn('Failed to load gift card denominations:', err);
+        return [];
+      }
+    },
+    [storeId],
+    [] as GiftCardDenomination[]
+  );
+
+  // Gift Card Settings
+  const giftCardSettings = useLiveQuery(
+    async () => {
+      if (!storeId || storeId === 'placeholder') return null;
+      try {
+        // Query by storeId field, not by primary key
+        const settings = await db.giftCardSettings
+          .where('storeId')
+          .equals(storeId)
+          .first();
+        return settings || null;
+      } catch (err) {
+        console.warn('Failed to load gift card settings:', err);
+        return null;
+      }
+    },
+    [storeId],
+    null as GiftCardSettings | null
+  );
 
   // ==================== FILTERED DATA ====================
 
@@ -222,6 +332,17 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
       a.description?.toLowerCase().includes(query)
     );
   }, [addOns, ui.searchQuery]);
+
+  const filteredProducts = useMemo(() => {
+    if (!ui.searchQuery) return products;
+    const query = ui.searchQuery.toLowerCase();
+    return products.filter(p =>
+      p.name.toLowerCase().includes(query) ||
+      p.brand?.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query) ||
+      p.sku?.toLowerCase().includes(query)
+    );
+  }, [products, ui.searchQuery]);
 
   // ==================== UI ACTIONS ====================
 
@@ -653,6 +774,45 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     );
   }, [withErrorHandling]);
 
+  // ==================== PRODUCT ACTIONS ====================
+
+  const createProduct = useCallback(async (data: CreateProductInput) => {
+    // Get tenantId from auth (using storeId as fallback)
+    const tenantId = storeId; // TODO: Get actual tenantId from auth context
+    return withErrorHandling(
+      () => productsDB.create(data, storeId, tenantId),
+      'Product created',
+      'Failed to create product'
+    );
+  }, [storeId, withErrorHandling]);
+
+  const updateProduct = useCallback(async (id: string, data: Partial<Product>) => {
+    return withErrorHandling(
+      () => productsDB.update(id, data),
+      'Product updated',
+      'Failed to update product'
+    );
+  }, [withErrorHandling]);
+
+  const deleteProduct = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await productsDB.delete(id);
+        return true;
+      },
+      'Product deleted',
+      'Failed to delete product'
+    );
+  }, [withErrorHandling]);
+
+  const archiveProduct = useCallback(async (id: string) => {
+    return withErrorHandling(
+      () => productsDB.archive(id),
+      'Product archived',
+      'Failed to archive product'
+    );
+  }, [withErrorHandling]);
+
   // ==================== SETTINGS ACTIONS ====================
 
   const updateSettings = useCallback(async (data: Partial<MenuGeneralSettings>) => {
@@ -681,6 +841,106 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     );
   }, [storeId, settings, withErrorHandling]);
 
+  // ==================== GIFT CARD ACTIONS ====================
+
+  const createGiftCardDenomination = useCallback(async (data: Partial<GiftCardDenomination>) => {
+    return withErrorHandling(
+      async () => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const maxOrder = giftCardDenominations.length > 0
+          ? Math.max(...giftCardDenominations.map(d => d.displayOrder)) + 1
+          : 0;
+
+        const denomination: GiftCardDenomination = {
+          id,
+          storeId,
+          amount: data.amount || 50,
+          label: data.label,
+          isActive: data.isActive ?? true,
+          displayOrder: data.displayOrder ?? maxOrder,
+          syncStatus: 'local',
+          createdAt: now,
+          updatedAt: now,
+        };
+        await db.giftCardDenominations.add(denomination);
+        return denomination;
+      },
+      'Denomination created',
+      'Failed to create denomination'
+    );
+  }, [storeId, giftCardDenominations, withErrorHandling]);
+
+  const updateGiftCardDenomination = useCallback(async (id: string, data: Partial<GiftCardDenomination>) => {
+    return withErrorHandling(
+      async () => {
+        await db.giftCardDenominations.update(id, {
+          ...data,
+          updatedAt: new Date().toISOString(),
+          syncStatus: 'pending',
+        });
+        return await db.giftCardDenominations.get(id);
+      },
+      'Denomination updated',
+      'Failed to update denomination'
+    );
+  }, [withErrorHandling]);
+
+  const deleteGiftCardDenomination = useCallback(async (id: string) => {
+    return withErrorHandling(
+      async () => {
+        await db.giftCardDenominations.delete(id);
+        return true;
+      },
+      'Denomination deleted',
+      'Failed to delete denomination'
+    );
+  }, [withErrorHandling]);
+
+  const updateGiftCardSettings = useCallback(async (data: Partial<GiftCardSettings>) => {
+    return withErrorHandling(
+      async () => {
+        // Query by storeId field instead of primary key
+        const existing = await db.giftCardSettings
+          .where('storeId')
+          .equals(storeId)
+          .first();
+        const now = new Date().toISOString();
+
+        if (existing) {
+          // Update using the actual record id
+          await db.giftCardSettings.update(existing.id, {
+            ...data,
+            updatedAt: now,
+            syncStatus: 'pending',
+          });
+        } else {
+          const id = crypto.randomUUID();
+          const settings: GiftCardSettings = {
+            id,
+            storeId,
+            allowCustomAmount: data.allowCustomAmount ?? true,
+            minAmount: data.minAmount ?? 10,
+            maxAmount: data.maxAmount ?? 500,
+            onlineEnabled: data.onlineEnabled ?? true,
+            emailDeliveryEnabled: data.emailDeliveryEnabled ?? true,
+            syncStatus: 'local',
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.giftCardSettings.add(settings);
+        }
+        // Return the updated/created settings
+        return await db.giftCardSettings
+          .where('storeId')
+          .equals(storeId)
+          .first();
+      },
+      'Gift card settings updated',
+      'Failed to update gift card settings'
+    );
+  }, [storeId, withErrorHandling]);
+
   // ==================== RETURN ====================
 
   return {
@@ -693,7 +953,12 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     addOns,
     filteredAddOns,
     addOnGroupsWithOptions,
+    products,
+    filteredProducts,
+    productCategories,
     settings,
+    giftCardDenominations,
+    giftCardSettings,
 
     // UI State
     ui,
@@ -739,8 +1004,20 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     updateAddOnOption,
     deleteAddOnOption,
 
+    // Product Actions
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    archiveProduct,
+
     // Settings Actions
     updateSettings,
+
+    // Gift Card Actions
+    createGiftCardDenomination,
+    updateGiftCardDenomination,
+    deleteGiftCardDenomination,
+    updateGiftCardSettings,
   };
 }
 

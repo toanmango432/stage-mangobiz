@@ -7,7 +7,6 @@ import {
   DollarSign,
   Globe,
   Users,
-  Info,
   GripVertical,
   Star,
   FileText,
@@ -17,6 +16,16 @@ import {
 } from 'lucide-react';
 import type { EmbeddedVariant, ServiceModalProps, ExtraTimeType } from '@/types/catalog';
 import { DURATION_OPTIONS, PROCESSING_TIME_OPTIONS, EXTRA_TIME_TYPES, REBOOK_REMINDER_OPTIONS, formatDuration } from '../constants';
+import { StaffAssignmentEditor } from '../components/StaffAssignmentEditor';
+
+// Staff assignment data shape (matches StaffAssignmentEditor)
+interface StaffAssignmentData {
+  staffId: string;
+  isAssigned: boolean;
+  customPrice?: number;
+  customDuration?: number;
+  customCommissionRate?: number;
+}
 
 export function ServiceModal({
   isOpen,
@@ -54,15 +63,23 @@ export function ServiceModal({
 
   // Staff
   const [allStaffCanPerform, setAllStaffCanPerform] = useState(true);
+  const [staffAssignments, setStaffAssignments] = useState<StaffAssignmentData[]>([]);
 
   // Online Booking
   const [onlineBookingEnabled, setOnlineBookingEnabled] = useState(true);
   const [showPriceOnline, setShowPriceOnline] = useState(true);
   const [requiresDeposit, setRequiresDeposit] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState(20);
+  const [onlineBookingBufferMinutes, setOnlineBookingBufferMinutes] = useState(0);
+  const [advanceBookingDaysMin, setAdvanceBookingDaysMin] = useState(0);
+  const [advanceBookingDaysMax, setAdvanceBookingDaysMax] = useState(90);
 
   // Other
   const [taxable, setTaxable] = useState(true);
+
+  // Turn Queue & Commission (P1 gaps)
+  const [turnWeight, setTurnWeight] = useState(1.0);
+  const [commissionRate, setCommissionRate] = useState<number | undefined>(undefined);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'booking' | 'advanced'>('basic');
@@ -87,11 +104,19 @@ export function ServiceModal({
         setHasVariants(service.hasVariants || false);
         setVariants(service.variants || []);
         setAllStaffCanPerform(service.allStaffCanPerform);
+        // Note: Staff assignments would need to be loaded from useCatalog hook
+        // For now, start with empty assignments (to be populated from staffServiceAssignments)
+        setStaffAssignments([]);
         setOnlineBookingEnabled(service.onlineBookingEnabled);
         setShowPriceOnline(service.showPriceOnline);
         setRequiresDeposit(service.requiresDeposit);
         setDepositPercentage(service.depositPercentage || 20);
+        setOnlineBookingBufferMinutes(service.onlineBookingBufferMinutes ?? 0);
+        setAdvanceBookingDaysMin(service.advanceBookingDaysMin ?? 0);
+        setAdvanceBookingDaysMax(service.advanceBookingDaysMax ?? 90);
         setTaxable(service.taxable);
+        setTurnWeight(service.turnWeight ?? 1.0);
+        setCommissionRate(service.commissionRate);
       } else {
         setName('');
         setDescription('');
@@ -109,11 +134,17 @@ export function ServiceModal({
         setHasVariants(false);
         setVariants([]);
         setAllStaffCanPerform(true);
+        setStaffAssignments([]);
         setOnlineBookingEnabled(true);
         setShowPriceOnline(true);
         setRequiresDeposit(false);
         setDepositPercentage(20);
+        setOnlineBookingBufferMinutes(0);
+        setAdvanceBookingDaysMin(0);
+        setAdvanceBookingDaysMax(90);
         setTaxable(true);
+        setTurnWeight(1.0);
+        setCommissionRate(undefined);
       }
       setActiveTab('basic');
     }
@@ -184,6 +215,11 @@ export function ServiceModal({
       depositPercentage: requiresDeposit ? depositPercentage : undefined,
       taxable,
       bookingAvailability: onlineBookingEnabled ? 'both' : 'in-store',
+      onlineBookingBufferMinutes: onlineBookingEnabled ? onlineBookingBufferMinutes : undefined,
+      advanceBookingDaysMin: onlineBookingEnabled ? advanceBookingDaysMin : undefined,
+      advanceBookingDaysMax: onlineBookingEnabled ? advanceBookingDaysMax : undefined,
+      turnWeight,
+      commissionRate,
     }, hasVariants ? variants : undefined);
   };
 
@@ -593,6 +629,60 @@ export function ServiceModal({
                       )}
                     </div>
                   )}
+
+                  {/* Buffer Time */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Buffer Time Before Booking
+                    </label>
+                    <select
+                      value={onlineBookingBufferMinutes}
+                      onChange={(e) => setOnlineBookingBufferMinutes(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value={0}>No buffer</option>
+                      <option value={15}>15 minutes</option>
+                      <option value={30}>30 minutes</option>
+                      <option value={60}>1 hour</option>
+                      <option value={120}>2 hours</option>
+                      <option value={1440}>24 hours</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      Minimum time before an appointment can be booked online
+                    </p>
+                  </div>
+
+                  {/* Advance Booking Window */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Advance Booking Window
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Min Days in Advance</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={advanceBookingDaysMin}
+                          onChange={(e) => setAdvanceBookingDaysMin(Number(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Max Days in Advance</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={advanceBookingDaysMax}
+                          onChange={(e) => setAdvanceBookingDaysMax(Number(e.target.value) || 90)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      How far in advance clients can book this service online
+                    </p>
+                  </div>
                 </>
               )}
             </div>
@@ -663,12 +753,13 @@ export function ServiceModal({
               </div>
 
               {!allStaffCanPerform && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-                  <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-blue-700">
-                    Staff permissions can be configured in the Staff Permissions tab after saving this service.
-                  </p>
-                </div>
+                <StaffAssignmentEditor
+                  serviceId={service?.id}
+                  defaultPrice={price}
+                  defaultDuration={duration}
+                  assignments={staffAssignments}
+                  onAssignmentsChange={setStaffAssignments}
+                />
               )}
 
               {/* Taxable */}
@@ -689,6 +780,48 @@ export function ServiceModal({
                     }`}
                   />
                 </button>
+              </div>
+
+              {/* Turn Weight & Commission */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Turn Weight
+                    <span
+                      className="ml-1 text-gray-400 cursor-help"
+                      title="Affects turn queue position. 1.0 = standard, 2.0 = double credit"
+                    >
+                      ⓘ
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={5}
+                    step={0.1}
+                    value={turnWeight}
+                    onChange={(e) => setTurnWeight(parseFloat(e.target.value) || 1.0)}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">0.0 - 5.0, default is 1.0</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Commission Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={commissionRate ?? ''}
+                    onChange={(e) => setCommissionRate(e.target.value ? parseFloat(e.target.value) : undefined)}
+                    placeholder="Use default"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Override staff default</p>
+                </div>
               </div>
 
               {/* Patch Test Required */}
