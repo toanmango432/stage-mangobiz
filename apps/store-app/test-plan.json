@@ -80,9 +80,9 @@
       "line": 46,
       "priority": "high",
       "command": "grep -q 'sanitizeSearchQuery' src/services/supabase/tables/clientsTable.ts",
-      "status": "pending",
-      "passes": false,
-      "notes": "Add sanitizeSearchQuery function, escape special characters"
+      "status": "passed",
+      "passes": true,
+      "notes": "Added sanitizeSearchQuery function with SQL char escaping and length limit"
     },
     {
       "id": 5,
@@ -92,9 +92,9 @@
       "line": 327,
       "priority": "high",
       "command": "grep -q 'sanitizeSearchQuery' src/services/supabase/pagination.ts",
-      "status": "pending",
-      "passes": false,
-      "notes": "Apply same sanitization as clientsTable.ts"
+      "status": "passed",
+      "passes": true,
+      "notes": "Added sanitizeSearchQuery function with early return for empty queries"
     },
     {
       "id": 6,

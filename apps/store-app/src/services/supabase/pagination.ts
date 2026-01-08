@@ -14,6 +14,22 @@
 import { supabase } from './client';
 
 // ============================================================================
+// UTILITIES
+// ============================================================================
+
+/**
+ * Sanitize search query to prevent SQL injection via PostgREST filters
+ * Escapes special characters used in PostgREST query syntax
+ */
+function sanitizeSearchQuery(query: string): string {
+  return query
+    .replace(/[\\%_'"(),.]/g, '') // Remove SQL wildcards and special chars
+    .replace(/[<>]/g, '')          // Remove potential XSS chars
+    .trim()
+    .slice(0, 100);                // Limit length to prevent DoS
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -293,9 +309,14 @@ export async function searchClientsPaginated(
 ): Promise<PaginatedResult<any>> {
   const { limit = 50, cursor } = params;
 
+  // Sanitize search query to prevent injection
+  const sanitizedQuery = sanitizeSearchQuery(searchQuery);
+  if (!sanitizedQuery) {
+    return { data: [], nextCursor: null, hasMore: false };
+  }
+
   // Build search query for PostgreSQL full-text search
-  const searchTerms = searchQuery
-    .trim()
+  const searchTerms = sanitizedQuery
     .split(/\s+/)
     .map(term => `${term}:*`)
     .join(' & ');
@@ -324,7 +345,7 @@ export async function searchClientsPaginated(
       .from('clients')
       .select('*')
       .eq('store_id', storeId)
-      .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
+      .or(`first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,email.ilike.%${sanitizedQuery}%,phone.ilike.%${sanitizedQuery}%`)
       .limit(limit + 1);
 
     const fallback = await fallbackQuery;

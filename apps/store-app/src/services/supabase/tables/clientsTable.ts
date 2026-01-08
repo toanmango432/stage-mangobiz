@@ -6,6 +6,18 @@
 import { supabase } from '../client';
 import type { ClientRow, ClientInsert, ClientUpdate } from '../types';
 
+/**
+ * Sanitize search query to prevent SQL injection via PostgREST filters
+ * Escapes special characters used in PostgREST query syntax
+ */
+function sanitizeSearchQuery(query: string): string {
+  return query
+    .replace(/[\\%_'"(),.]/g, '') // Remove SQL wildcards and special chars
+    .replace(/[<>]/g, '')          // Remove potential XSS chars
+    .trim()
+    .slice(0, 100);                // Limit length to prevent DoS
+}
+
 export const clientsTable = {
   /**
    * Get all clients for a store
@@ -39,11 +51,14 @@ export const clientsTable = {
    * Search clients by name or phone
    */
   async search(storeId: string, query: string): Promise<ClientRow[]> {
+    const sanitizedQuery = sanitizeSearchQuery(query);
+    if (!sanitizedQuery) return [];
+
     const { data, error } = await supabase
       .from('clients')
       .select('*')
       .eq('store_id', storeId)
-      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,phone.ilike.%${query}%`)
+      .or(`first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,phone.ilike.%${sanitizedQuery}%`)
       .order('last_name', { ascending: true })
       .limit(50);
 
