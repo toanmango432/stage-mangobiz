@@ -6,7 +6,8 @@ import { auditLogger } from '../../services/audit/auditLogger';
 import type { CreateTicketInput } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
-import { createTransactionFromPending, createTransactionInSupabase } from './transactionsSlice';
+// NOTE: Do NOT import thunks from transactionsSlice directly - causes circular dependency
+// Use dynamic import instead: const { createTransactionInSupabase } = await import('./transactionsSlice');
 import type { PaymentMethod, PaymentDetails, CreateTransactionInput } from '../../types';
 
 // Import TicketStatus for proper typing
@@ -730,6 +731,8 @@ export const markTicketAsPaid = createAsyncThunk(
 
     let transaction;
     try {
+      // Dynamic import to avoid circular dependency
+      const { createTransactionInSupabase } = await import('./transactionsSlice');
       // Try Supabase first
       transaction = await dispatch(createTransactionInSupabase(transactionInput)).unwrap();
 
@@ -738,6 +741,8 @@ export const markTicketAsPaid = createAsyncThunk(
       console.log('✅ Ticket marked as paid in Supabase:', ticketId);
     } catch (error) {
       console.warn('⚠️ Supabase failed, falling back to IndexedDB:', error);
+      // Dynamic import to avoid circular dependency
+      const { createTransactionFromPending } = await import('./transactionsSlice');
       // Fallback to IndexedDB transaction
       transaction = await dispatch(createTransactionFromPending(transactionInput)).unwrap();
     }
