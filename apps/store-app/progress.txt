@@ -39,3 +39,18 @@ Result: ✓ PASSED
 Details: Added gift card code display in ServiceList.tsx. Shows GC-XXXX-XXXX-XXXX code with brand colors, plus delivery method indicator (email icon with recipient or print icon). Updated TicketService interface to include giftCardCode and isPhysicalCard in metadata type.
 Files Changed: apps/store-app/src/components/checkout/ServiceList.tsx
 ---
+
+---
+Time: 2026-01-08T15:35:00Z
+Task: Fix UI issues in SellGiftCardModal
+Phase: 2
+Result: ✓ PASSED
+Details: Fixed UI issues found during manual verification:
+  1. Shortened "Activate Physical Card" to "Physical Card" to prevent tab truncation
+  2. Changed custom amount placeholder from "5 - 500" to "Enter amount" for clarity
+  3. Updated card preview to show "$---" instead of "$0" when no amount entered
+  4. Added whitespace-nowrap and flex-shrink-0 to prevent tab text wrapping
+Files Changed: apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
+
+LEARNING: Ralph loop should include UI verification step with screenshot review BEFORE marking UI tasks as passed. Build success != UI correctness.
+---

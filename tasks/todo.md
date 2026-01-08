@@ -1291,3 +1291,227 @@ Files still exceeding 500 lines (future phases):
 ---
 
 *Completed: January 5, 2026*
+
+---
+
+# Refactoring Plan: dataService.ts and useCatalog.ts
+
+## Date: January 8, 2026
+
+## Executive Summary
+
+Analysis of `dataService.ts` (1,281 lines) and `useCatalog.ts` (1,024 lines) reveals both files significantly exceed the project's recommended 300-line target for maintainability. Both files exhibit the "God Object" anti-pattern, bundling too many responsibilities into single modules.
+
+## Current State
+
+| Metric | dataService.ts | useCatalog.ts | Project Target |
+|--------|---------------|---------------|----------------|
+| **Lines of Code** | 1,281 | 1,024 | 300-500 max |
+| **Entity Services** | 13 | N/A | - |
+| **CRUD Operations** | ~60+ | ~40+ | - |
+| **Consumers** | 17 files | 4 files | - |
+| **Test Coverage** | Basic | None | 70%+ |
+
+### Technical Debt Score: 7/10 (High)
+
+---
+
+## Code Smells Detected
+
+### dataService.ts
+
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| **God Object** | High | Single file handles 13 entity services with 60+ methods |
+| **Large File** | High | 1,281 lines - 4x recommended size |
+| **Mixed Concerns** | Medium | API mode logic mixed with local-first logic |
+| **Repetitive Pattern** | Medium | Each service repeats the same CRUD structure |
+| **No Type Safety on Sync Queue** | Low | `queueSyncOperation` uses `unknown` for payload |
+
+### useCatalog.ts
+
+| Issue | Severity | Description |
+|-------|----------|-------------|
+| **Monolithic Hook** | High | Single hook manages 9+ entity types |
+| **Large File** | High | 1,024 lines - 3x recommended size |
+| **UI State + Data Mixed** | Medium | UI state management mixed with data operations |
+| **Repetitive CRUD Patterns** | Medium | Similar patterns repeated for each entity |
+| **Live Query Duplication** | Low | Multiple live queries with similar patterns |
+
+---
+
+## Proposed Refactoring Plan
+
+### Phase 1: dataService.ts Split (Low Risk)
+
+**Goal:** Split into domain-specific service modules while maintaining backward compatibility.
+
+#### Proposed Structure:
+
+```
+src/services/
+├── dataService.ts              # Barrel export (backward compatible)
+├── dataService/
+│   ├── index.ts                # Re-exports for clean imports
+│   ├── core/
+│   │   ├── apiClient.ts        # API client configuration (~100 lines)
+│   │   ├── helpers.ts          # getStoreId, isOnline, getDataSource (~70 lines)
+│   │   ├── operations.ts       # executeDataOperation, executeWriteOperation (~60 lines)
+│   │   └── syncQueue.ts        # queueSyncOperation logic (~50 lines)
+│   ├── entities/
+│   │   ├── clientsService.ts   # Client CRUD (~100 lines)
+│   │   ├── staffService.ts     # Staff CRUD (~80 lines)
+│   │   ├── servicesService.ts  # Services CRUD (~50 lines)
+│   │   ├── appointmentsService.ts # Appointments CRUD (~100 lines)
+│   │   ├── ticketsService.ts   # Tickets CRUD (~150 lines)
+│   │   ├── transactionsService.ts # Transactions CRUD (~120 lines)
+│   │   └── index.ts            # Barrel export
+│   ├── extended/
+│   │   ├── patchTestsService.ts
+│   │   ├── formResponsesService.ts
+│   │   ├── referralsService.ts
+│   │   ├── reviewsService.ts
+│   │   ├── loyaltyService.ts
+│   │   ├── reviewRequestsService.ts
+│   │   ├── segmentsService.ts
+│   │   └── index.ts
+│   └── types.ts                # DataResult, DataServiceConfig, etc.
+```
+
+#### Steps:
+- [ ] 1.1 Create `src/services/dataService/types.ts` with shared types
+- [ ] 1.2 Create `src/services/dataService/core/helpers.ts` with utility functions
+- [ ] 1.3 Create `src/services/dataService/core/apiClient.ts` with API client logic
+- [ ] 1.4 Create `src/services/dataService/core/operations.ts` with execute functions
+- [ ] 1.5 Create `src/services/dataService/core/syncQueue.ts` with sync logic
+- [ ] 1.6 Extract `clientsService` to separate file
+- [ ] 1.7 Extract `staffService` to separate file
+- [ ] 1.8 Extract `servicesService` to separate file
+- [ ] 1.9 Extract `appointmentsService` to separate file
+- [ ] 1.10 Extract `ticketsService` to separate file
+- [ ] 1.11 Extract `transactionsService` to separate file
+- [ ] 1.12 Extract extended services (patchTests, formResponses, etc.)
+- [ ] 1.13 Update main `dataService.ts` as barrel export
+- [ ] 1.14 Verify all 17 consumer files still work
+- [ ] 1.15 Update tests
+
+**Rollback Plan:** Revert to single file if integration tests fail.
+
+---
+
+### Phase 2: useCatalog.ts Split (Medium Risk)
+
+**Goal:** Split into focused hooks while maintaining the main hook as a facade.
+
+#### Proposed Structure:
+
+```
+src/hooks/
+├── useCatalog.ts               # Main hook (facade, ~150 lines)
+├── catalog/
+│   ├── index.ts                # Barrel exports
+│   ├── types.ts                # CatalogUIState, UseCatalogOptions, etc.
+│   ├── useCatalogUI.ts         # UI state management (~80 lines)
+│   ├── useCatalogQueries.ts    # Live queries for data (~200 lines)
+│   ├── useCatalogCategories.ts # Category CRUD operations (~80 lines)
+│   ├── useCatalogServices.ts   # Service CRUD operations (~150 lines)
+│   ├── useCatalogPackages.ts   # Package CRUD operations (~60 lines)
+│   ├── useCatalogAddOns.ts     # Add-on CRUD operations (~150 lines)
+│   ├── useCatalogProducts.ts   # Product CRUD operations (~80 lines)
+│   ├── useCatalogGiftCards.ts  # Gift card operations (~120 lines)
+│   └── useCatalogSettings.ts   # Settings operations (~50 lines)
+```
+
+#### Steps:
+- [ ] 2.1 Create `src/hooks/catalog/types.ts` with shared types
+- [ ] 2.2 Extract `useCatalogUI` hook for UI state
+- [ ] 2.3 Extract `useCatalogQueries` for live queries
+- [ ] 2.4 Extract `useCatalogCategories` for category CRUD
+- [ ] 2.5 Extract `useCatalogServices` for service CRUD
+- [ ] 2.6 Extract `useCatalogPackages` for package CRUD
+- [ ] 2.7 Extract `useCatalogAddOns` for add-on CRUD
+- [ ] 2.8 Extract `useCatalogProducts` for product CRUD
+- [ ] 2.9 Extract `useCatalogGiftCards` for gift card operations
+- [ ] 2.10 Extract `useCatalogSettings` for settings
+- [ ] 2.11 Refactor main `useCatalog.ts` to compose smaller hooks
+- [ ] 2.12 Verify all 4 consumer files still work
+- [ ] 2.13 Add unit tests for extracted hooks
+
+**Rollback Plan:** Revert if any consumer component breaks.
+
+---
+
+## Dependency Graph
+
+### Before:
+```
+Components (17 files)
+    ↓
+dataService.ts (1,281 lines - 13 services)
+    ↓
+IndexedDB / Supabase
+```
+
+### After:
+```
+Components (17 files)
+    ↓
+dataService.ts (barrel export)
+    ↓
+dataService/entities/ (7 services, ~100 lines each)
+dataService/extended/ (7 services, ~50 lines each)
+dataService/core/ (4 modules, ~70 lines each)
+    ↓
+IndexedDB / Supabase
+```
+
+---
+
+## Breaking Changes
+
+**None** - Both refactorings maintain backward compatibility through barrel exports.
+
+---
+
+## Test Updates Required
+
+| File | Current | Required Updates |
+|------|---------|------------------|
+| `dataService.test.ts` | Basic tests | Add tests for extracted modules |
+| `useCatalog.test.ts` | None | Create tests for composed hooks |
+
+---
+
+## Estimated Effort
+
+| Phase | Files Created | Complexity | Risk | Estimated Time |
+|-------|---------------|------------|------|----------------|
+| 1 (dataService) | 18 | Medium | Low | 4-6 hours |
+| 2 (useCatalog) | 12 | Medium | Medium | 3-4 hours |
+
+---
+
+## Success Metrics
+
+- [ ] All files under 300 lines (or 500 max)
+- [ ] All 17 dataService consumers still work
+- [ ] All 4 useCatalog consumers still work
+- [ ] No new lint errors
+- [ ] Test coverage maintained or improved
+- [ ] No performance regression in data operations
+
+---
+
+## Review Section
+
+**Status:** Plan created, awaiting approval
+
+**Notes:**
+- Both files are legitimate, well-documented code following local-first architecture
+- The refactoring improves maintainability without changing functionality
+- Backward compatibility is maintained via barrel exports
+- Risk is minimized by starting with lower-risk dataService split first
+
+**Recommended Priority:**
+1. Start with Phase 1 (dataService.ts) - more consumers, lower risk
+2. Phase 2 (useCatalog.ts) can be done after Phase 1 is stable

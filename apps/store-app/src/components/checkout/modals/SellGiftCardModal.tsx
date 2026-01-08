@@ -342,11 +342,11 @@ export function SellGiftCardModal({
                 min={minAmount}
                 max={maxAmount}
                 step={1}
-                value={customAmountValue}
+                value={customAmountValue === '' ? '' : customAmountValue}
                 onChange={(e) => handleCustomAmountChange(e.target.value)}
-                placeholder={`${minAmount} - ${maxAmount}`}
+                placeholder="Enter amount"
                 autoFocus
-                className={`w-full pl-10 pr-4 py-4 text-3xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all ${
+                className={`w-full pl-10 pr-4 py-4 text-3xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all placeholder:text-gray-300 placeholder:font-normal ${
                   amountError
                     ? 'border-red-300 bg-red-50 focus:ring-red-500 text-red-700'
                     : 'border-gray-200 focus:ring-emerald-500 text-gray-900'
@@ -368,30 +368,30 @@ export function SellGiftCardModal({
 
         {/* Mode Toggle Tabs */}
         <div className="px-6 pt-4">
-          <div className="flex bg-gray-100 rounded-xl p-1">
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             <button
               type="button"
               onClick={() => setMode('digital')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 mode === 'digital'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Sparkles size={16} />
-              New Gift Card
+              <Sparkles size={16} className="flex-shrink-0" />
+              <span>New Gift Card</span>
             </button>
             <button
               type="button"
               onClick={() => setMode('physical')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 mode === 'physical'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <CreditCard size={16} />
-              Activate Physical Card
+              <CreditCard size={16} className="flex-shrink-0" />
+              <span>Physical Card</span>
             </button>
           </div>
         </div>
@@ -415,7 +415,9 @@ export function SellGiftCardModal({
                 <span className="text-xs font-medium opacity-70 uppercase tracking-wide">Gift Card</span>
               </div>
 
-              <p className="text-4xl font-bold tracking-tight">${amount.toFixed(0)}</p>
+              <p className="text-4xl font-bold tracking-tight">
+                {amount > 0 ? `$${amount.toFixed(0)}` : <span className="opacity-50">$---</span>}
+              </p>
 
               {/* Code Display */}
               <div className="mt-4 pt-4 border-t border-white/20">
