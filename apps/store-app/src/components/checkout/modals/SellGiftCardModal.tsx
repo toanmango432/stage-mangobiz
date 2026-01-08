@@ -34,7 +34,9 @@ interface SellGiftCardModalProps {
   isOpen: boolean;
   onClose: () => void;
   denomination: GiftCardDenomination | null;
-  customAmount?: number;
+  isCustomAmount?: boolean;
+  minAmount?: number;
+  maxAmount?: number;
   onAddToTicket: (giftCardData: GiftCardSaleData) => void;
 }
 
@@ -108,13 +110,16 @@ export function SellGiftCardModal({
   isOpen,
   onClose,
   denomination,
-  customAmount,
+  isCustomAmount = false,
+  minAmount = 5,
+  maxAmount = 500,
   onAddToTicket,
 }: SellGiftCardModalProps) {
   // Mode state
   const [mode, setMode] = useState<CardMode>('digital');
 
   // Form state
+  const [customAmountValue, setCustomAmountValue] = useState<number | ''>('');
   const [deliveryMethod, setDeliveryMethod] = useState<GiftCardDeliveryMethod>('print');
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
@@ -124,6 +129,7 @@ export function SellGiftCardModal({
   const [isAdding, setIsAdding] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [cardCodeError, setCardCodeError] = useState('');
+  const [amountError, setAmountError] = useState('');
 
   // Generate code for digital cards
   const generatedCode = useMemo(() => {
@@ -134,13 +140,16 @@ export function SellGiftCardModal({
   }, [isOpen, mode]);
 
   // Determine the actual amount
-  const amount = customAmount || denomination?.amount || 0;
-  const gradient = getGradientForAmount(amount);
+  const amount = isCustomAmount
+    ? (typeof customAmountValue === 'number' ? customAmountValue : 0)
+    : (denomination?.amount || 0);
+  const gradient = getGradientForAmount(amount || 50); // Default gradient for custom
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setMode('digital');
+      setCustomAmountValue('');
       setDeliveryMethod('print');
       setRecipientName('');
       setRecipientEmail('');
@@ -149,8 +158,29 @@ export function SellGiftCardModal({
       setPhysicalCardCode('');
       setEmailError('');
       setCardCodeError('');
+      setAmountError('');
     }
   }, [isOpen]);
+
+  // Handle custom amount change
+  const handleCustomAmountChange = (value: string) => {
+    const numValue = parseFloat(value);
+    if (value === '') {
+      setCustomAmountValue('');
+      setAmountError('');
+    } else if (isNaN(numValue)) {
+      return;
+    } else {
+      setCustomAmountValue(numValue);
+      if (numValue < minAmount) {
+        setAmountError(`Minimum amount is $${minAmount}`);
+      } else if (numValue > maxAmount) {
+        setAmountError(`Maximum amount is $${maxAmount}`);
+      } else {
+        setAmountError('');
+      }
+    }
+  };
 
   // Validate email
   const validateEmail = useCallback((email: string): boolean => {
@@ -184,6 +214,18 @@ export function SellGiftCardModal({
   };
 
   const handleAddToTicket = async () => {
+    // Validate custom amount
+    if (isCustomAmount) {
+      if (!customAmountValue || customAmountValue <= 0) {
+        setAmountError('Please enter an amount');
+        return;
+      }
+      if (customAmountValue < minAmount || customAmountValue > maxAmount) {
+        setAmountError(`Amount must be between $${minAmount} and $${maxAmount}`);
+        return;
+      }
+    }
+
     if (amount <= 0) return;
 
     // Validate based on mode
@@ -244,7 +286,9 @@ export function SellGiftCardModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, amount, deliveryMethod, recipientEmail, mode, physicalCardCode]);
 
-  if (!isOpen || amount <= 0) return null;
+  // Don't render if closed; for custom amount, we allow amount=0 initially
+  if (!isOpen) return null;
+  if (!isCustomAmount && amount <= 0) return null;
 
   const displayCode = mode === 'digital' ? generatedCode : physicalCardCode || 'GC-XXXX-XXXX-XXXX';
   const isCodeValid = mode === 'digital' || (physicalCardCode.length === 17 && validateCardCode(physicalCardCode));
@@ -270,9 +314,11 @@ export function SellGiftCardModal({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Sell Gift Card
+                {isCustomAmount ? 'Custom Gift Card' : 'Sell Gift Card'}
               </h2>
-              <p className="text-sm text-gray-500">${amount.toFixed(2)} value</p>
+              <p className="text-sm text-gray-500">
+                {isCustomAmount && !amount ? 'Enter amount below' : `$${amount.toFixed(2)} value`}
+              </p>
             </div>
           </div>
           <button
@@ -282,6 +328,43 @@ export function SellGiftCardModal({
             <X size={20} />
           </button>
         </div>
+
+        {/* Custom Amount Input - shown first for custom mode */}
+        {isCustomAmount && (
+          <div className="px-6 pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Gift Card Amount
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-gray-400">$</span>
+              <input
+                type="number"
+                min={minAmount}
+                max={maxAmount}
+                step={1}
+                value={customAmountValue}
+                onChange={(e) => handleCustomAmountChange(e.target.value)}
+                placeholder={`${minAmount} - ${maxAmount}`}
+                autoFocus
+                className={`w-full pl-10 pr-4 py-4 text-3xl font-bold border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all ${
+                  amountError
+                    ? 'border-red-300 bg-red-50 focus:ring-red-500 text-red-700'
+                    : 'border-gray-200 focus:ring-emerald-500 text-gray-900'
+                }`}
+              />
+            </div>
+            {amountError ? (
+              <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                <AlertCircle size={12} />
+                {amountError}
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1.5">
+                Enter any amount between ${minAmount} and ${maxAmount}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Mode Toggle Tabs */}
         <div className="px-6 pt-4">
@@ -528,6 +611,7 @@ export function SellGiftCardModal({
               onClick={handleAddToTicket}
               disabled={
                 isAdding ||
+                (isCustomAmount && (!customAmountValue || !!amountError)) ||
                 (mode === 'digital' && deliveryMethod === 'email' && (!recipientEmail || !!emailError)) ||
                 (mode === 'physical' && (!isCodeValid || physicalCardCode.length < 17))
               }

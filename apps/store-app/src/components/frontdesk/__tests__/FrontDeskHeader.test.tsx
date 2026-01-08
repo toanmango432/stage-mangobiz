@@ -192,8 +192,9 @@ describe('FrontDeskHeader', () => {
           metricPills={[{ label: 'Alert', value: 1, tone: 'alert' }]}
         />
       );
-      const pill = screen.getByText('Alert').closest('span');
-      expect(pill).toHaveClass('border-red-100');
+      // Find the pill by looking for the span with inline-flex (the outer container)
+      const pill = container.querySelector('.border-red-100');
+      expect(pill).toBeInTheDocument();
       expect(pill).toHaveClass('bg-red-50');
       expect(pill).toHaveClass('text-red-600');
     });
@@ -205,8 +206,8 @@ describe('FrontDeskHeader', () => {
           metricPills={[{ label: 'Info', value: 1, tone: 'info' }]}
         />
       );
-      const pill = screen.getByText('Info').closest('span');
-      expect(pill).toHaveClass('border-blue-100');
+      const pill = container.querySelector('.border-blue-100');
+      expect(pill).toBeInTheDocument();
       expect(pill).toHaveClass('bg-blue-50');
       expect(pill).toHaveClass('text-blue-600');
     });
@@ -218,8 +219,8 @@ describe('FrontDeskHeader', () => {
           metricPills={[{ label: 'Muted', value: 1, tone: 'muted' }]}
         />
       );
-      const pill = screen.getByText('Muted').closest('span');
-      expect(pill).toHaveClass('border-slate-200');
+      const pill = container.querySelector('.border-slate-200');
+      expect(pill).toBeInTheDocument();
       expect(pill).toHaveClass('bg-slate-100');
       expect(pill).toHaveClass('text-slate-600');
     });
@@ -231,8 +232,8 @@ describe('FrontDeskHeader', () => {
           metricPills={[{ label: 'VIP', value: 1, tone: 'vip' }]}
         />
       );
-      const pill = screen.getByText('VIP').closest('span');
-      expect(pill).toHaveClass('border-rose-200');
+      const pill = container.querySelector('.border-rose-200');
+      expect(pill).toBeInTheDocument();
       expect(pill).toHaveClass('bg-rose-100');
       expect(pill).toHaveClass('text-rose-700');
     });

@@ -27,8 +27,8 @@
       "name": "Simplify GiftCardGrid - move custom amount to modal",
       "priority": "high",
       "command": "cd '/Users/seannguyen/Winsurf built/Mango POS Offline V2' && npm run build",
-      "status": "pending",
-      "passes": false,
+      "status": "passed",
+      "passes": true,
       "ui": true,
       "files": ["apps/store-app/src/components/checkout/GiftCardGrid.tsx"],
       "notes": "Remove inline custom amount. Add 'Custom Amount' card. See plan.md Task 2."

@@ -12,3 +12,12 @@ Result: ✓ PASSED
 Details: Implemented two-mode tabs (Digital/Physical), physical card validation, code preview, updated GiftCardSaleData interface with giftCardCode and isPhysicalCard fields
 Files Changed: apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
 ---
+
+---
+Time: 2026-01-08T14:57:04Z
+Task: Simplify GiftCardGrid - move custom amount to modal
+Phase: 2
+Result: ✓ PASSED
+Details: Removed inline custom amount input, simplified grid to show Custom Amount card that opens modal directly. Modal now handles custom amount entry with validation.
+Files Changed: apps/store-app/src/components/checkout/GiftCardGrid.tsx, apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
+---

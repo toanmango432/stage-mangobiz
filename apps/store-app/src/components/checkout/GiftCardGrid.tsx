@@ -3,6 +3,8 @@
  *
  * Uses real denomination data from useCatalog hook (IndexedDB)
  * Supports custom amounts if enabled in gift card settings
+ *
+ * Simplified: Custom amount now handled in modal, not inline
  */
 
 import { useState } from 'react';
@@ -41,8 +43,7 @@ export function GiftCardGrid({
 }: GiftCardGridProps) {
   const [selectedDenomination, setSelectedDenomination] = useState<GiftCardDenomination | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [customAmount, setCustomAmount] = useState<number | ''>('');
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [isCustomAmountMode, setIsCustomAmountMode] = useState(false);
 
   // Filter to only show active denominations
   const activeDenominations = denominations
@@ -51,46 +52,20 @@ export function GiftCardGrid({
 
   const handleDenominationClick = (denomination: GiftCardDenomination) => {
     setSelectedDenomination(denomination);
+    setIsCustomAmountMode(false);
     setIsModalOpen(true);
   };
 
   const handleCustomAmountClick = () => {
-    setShowCustomInput(true);
-  };
-
-  const handleCustomAmountSubmit = () => {
-    if (!customAmount || customAmount <= 0) return;
-
-    const minAmount = settings?.minAmount ?? 5;
-    const maxAmount = settings?.maxAmount ?? 500;
-
-    if (customAmount < minAmount || customAmount > maxAmount) {
-      // Could show error toast here
-      return;
-    }
-
-    // Create a temporary denomination for the custom amount
-    const customDenomination: GiftCardDenomination = {
-      id: `custom-${customAmount}`,
-      storeId: '',
-      amount: customAmount,
-      label: `Custom $${customAmount}`,
-      isActive: true,
-      displayOrder: 999,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      syncStatus: 'local',
-    };
-
-    setSelectedDenomination(customDenomination);
+    setSelectedDenomination(null);
+    setIsCustomAmountMode(true);
     setIsModalOpen(true);
-    setShowCustomInput(false);
-    setCustomAmount('');
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedDenomination(null);
+    setIsCustomAmountMode(false);
   };
 
   const handleAddToTicket = (giftCardData: GiftCardSaleData) => {
@@ -139,80 +114,27 @@ export function GiftCardGrid({
           </button>
         ))}
 
-        {/* Custom Amount Card */}
+        {/* Custom Amount Card - Opens modal directly */}
         {allowCustomAmount && (
-          <>
-            {showCustomInput ? (
-              <div className="rounded-2xl p-5 bg-gray-100 border-2 border-dashed border-gray-300">
-                <div className="relative w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-                  <Plus className="w-5 h-5 text-gray-500" />
-                </div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Custom Amount</p>
-                <div className="relative mb-3">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    type="number"
-                    min={minAmount}
-                    max={maxAmount}
-                    step={1}
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(Number(e.target.value) || '')}
-                    placeholder={`${minAmount}-${maxAmount}`}
-                    autoFocus
-                    className="w-full pl-7 pr-3 py-2 text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCustomAmountSubmit();
-                      if (e.key === 'Escape') {
-                        setShowCustomInput(false);
-                        setCustomAmount('');
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowCustomInput(false);
-                      setCustomAmount('');
-                    }}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCustomAmountSubmit}
-                    disabled={!customAmount || customAmount < minAmount || customAmount > maxAmount}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Continue
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  ${minAmount} - ${maxAmount}
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={handleCustomAmountClick}
-                className="group relative rounded-2xl p-5 text-left transition-all duration-200 hover:shadow-md hover:scale-[1.02] bg-gray-100 border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50"
-              >
-                {/* Plus Icon */}
-                <div className="relative w-10 h-10 rounded-full bg-gray-200 group-hover:bg-brand-100 flex items-center justify-center mb-4 transition-colors">
-                  <Plus className="w-5 h-5 text-gray-500 group-hover:text-brand-600 transition-colors" />
-                </div>
+          <button
+            onClick={handleCustomAmountClick}
+            className="group relative rounded-2xl p-5 text-left transition-all duration-200 hover:shadow-md hover:scale-[1.02] bg-gray-100 border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50"
+          >
+            {/* Plus Icon */}
+            <div className="relative w-10 h-10 rounded-full bg-gray-200 group-hover:bg-brand-100 flex items-center justify-center mb-4 transition-colors">
+              <Plus className="w-5 h-5 text-gray-500 group-hover:text-brand-600 transition-colors" />
+            </div>
 
-                {/* Label */}
-                <h3 className="relative font-medium text-gray-600 group-hover:text-brand-700 text-sm mb-1 transition-colors">
-                  Custom
-                </h3>
+            {/* Label */}
+            <h3 className="relative font-medium text-gray-600 group-hover:text-brand-700 text-sm mb-1 transition-colors">
+              Custom Amount
+            </h3>
 
-                {/* Value */}
-                <p className="relative text-xl font-bold text-gray-500 group-hover:text-brand-600 transition-colors">
-                  $___
-                </p>
-              </button>
-            )}
-          </>
+            {/* Value hint */}
+            <p className="relative text-xl font-bold text-gray-400 group-hover:text-brand-500 transition-colors">
+              ${minAmount} - ${maxAmount}
+            </p>
+          </button>
         )}
 
         {/* Empty State */}
@@ -230,6 +152,9 @@ export function GiftCardGrid({
         isOpen={isModalOpen}
         onClose={handleModalClose}
         denomination={selectedDenomination}
+        isCustomAmount={isCustomAmountMode}
+        minAmount={minAmount}
+        maxAmount={maxAmount}
         onAddToTicket={handleAddToTicket}
       />
     </>
