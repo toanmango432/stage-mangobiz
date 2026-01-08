@@ -21,3 +21,12 @@ Result: ✓ PASSED
 Details: Removed inline custom amount input, simplified grid to show Custom Amount card that opens modal directly. Modal now handles custom amount entry with validation.
 Files Changed: apps/store-app/src/components/checkout/GiftCardGrid.tsx, apps/store-app/src/components/checkout/modals/SellGiftCardModal.tsx
 ---
+
+---
+Time: 2026-01-08T15:10:00Z
+Task: Add processGiftCardSales to TicketPanel checkout handler
+Phase: 2
+Result: ✓ PASSED
+Details: CRITICAL FIX - Added processGiftCardSales function that calls giftCardDB.issueGiftCard() when checkout completes. Updated handleAddGiftCard to include giftCardCode and isPhysicalCard in metadata. Gift cards are now actually created in IndexedDB upon sale.
+Files Changed: apps/store-app/src/components/checkout/TicketPanel.tsx
+---

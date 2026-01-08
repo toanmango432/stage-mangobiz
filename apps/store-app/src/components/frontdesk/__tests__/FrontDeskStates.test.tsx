@@ -203,7 +203,7 @@ describe('TicketCardSkeleton', () => {
       const { container } = render(<TicketCardSkeleton viewMode="grid-normal" />);
       const skeleton = container.firstChild;
       expect(skeleton).toHaveClass('flex-col');
-      expect(skeleton).toHaveClass('h-\\[160px\\]');
+      expect(skeleton).toHaveClass('h-[160px]');
     });
 
     it('renders grid-compact view', () => {

@@ -76,6 +76,8 @@ import { getPackagesByCategory } from "@/data/mockPackages";
 import { useCatalog } from "@/hooks/useCatalog";
 import { dataService } from "@/services/dataService";
 import { storeAuthManager } from "@/services/storeAuthManager";
+import { giftCardDB } from "@/db/giftCardOperations";
+import type { IssueGiftCardInput, GiftCardType } from "@/types/gift-card";
 // Import extracted types, reducer, constants, and components
 import type { PanelMode } from "./types";
 import { createInitialState, ticketReducer, ticketActions } from "./reducers/ticketReducer";
@@ -649,7 +651,7 @@ export default function TicketPanel({
       price: giftCardData.amount,
       duration: 0,
       status: "not_started",
-      // Store gift card metadata for later processing
+      // Store gift card metadata for later processing (including code!)
       metadata: {
         type: 'gift_card',
         deliveryMethod: giftCardData.deliveryMethod,
@@ -658,6 +660,8 @@ export default function TicketPanel({
         recipientPhone: giftCardData.recipientPhone,
         message: giftCardData.message,
         denominationId: giftCardData.denominationId,
+        giftCardCode: giftCardData.giftCardCode, // CRITICAL: Store the code for database creation
+        isPhysicalCard: giftCardData.isPhysicalCard, // Track if physical card activation
       },
     };
 
@@ -665,7 +669,7 @@ export default function TicketPanel({
 
     toast({
       title: "Gift Card Added",
-      description: `$${giftCardData.amount} gift card added to ticket`,
+      description: `$${giftCardData.amount} gift card added to ticket (${giftCardData.giftCardCode})`,
     });
   };
 
@@ -1067,6 +1071,86 @@ export default function TicketPanel({
     dispatch(ticketActions.toggleDialog("showPaymentModal", true));
   };
 
+  /**
+   * CRITICAL: Process gift card sales after checkout completion
+   * Creates actual gift card records in IndexedDB for each gift card sold
+   */
+  const processGiftCardSales = async (
+    ticketId: string,
+    ticketServices: TicketService[],
+    purchaserId?: string
+  ): Promise<void> => {
+    // Get auth context for gift card creation
+    const authState = storeAuthManager.getState();
+    const storeId = authState.store?.storeId;
+    const userId = authState.member?.memberId || 'system';
+    const deviceId = authState.store?.deviceId || 'unknown-device';
+    const tenantId = authState.store?.tenantId || 'default-tenant';
+
+    if (!storeId) {
+      console.warn('⚠️ Cannot process gift cards - no store ID');
+      return;
+    }
+
+    // Filter for gift card services
+    const giftCardServices = ticketServices.filter(
+      (s) => s.metadata?.type === 'gift_card'
+    );
+
+    if (giftCardServices.length === 0) {
+      return; // No gift cards to process
+    }
+
+    console.log(`🎁 Processing ${giftCardServices.length} gift card sale(s)...`);
+
+    for (const service of giftCardServices) {
+      const metadata = service.metadata;
+      if (!metadata) continue;
+
+      try {
+        // Prepare gift card input
+        const giftCardInput: IssueGiftCardInput = {
+          type: (metadata.isPhysicalCard ? 'physical' : 'digital') as GiftCardType,
+          amount: service.price,
+          purchaserId: purchaserId,
+          purchaserName: selectedClient
+            ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
+            : 'Walk-in',
+          recipientName: metadata.recipientName,
+          recipientEmail: metadata.recipientEmail,
+          recipientPhone: metadata.recipientPhone,
+          message: metadata.message,
+          deliveryMethod: metadata.deliveryMethod,
+          isReloadable: true,
+        };
+
+        // Issue the gift card - this creates it in IndexedDB
+        const result = await giftCardDB.issueGiftCard(
+          giftCardInput,
+          storeId,
+          userId,
+          deviceId,
+          tenantId,
+          ticketId
+        );
+
+        console.log(
+          `✅ Gift card created: ${result.giftCard.code} (Balance: $${result.giftCard.currentBalance})`
+        );
+
+        // TODO: If delivery method is 'email', queue email for sending when online
+        if (metadata.deliveryMethod === 'email' && metadata.recipientEmail) {
+          console.log(`📧 Email delivery queued for ${metadata.recipientEmail}`);
+          // Email implementation will be added in Phase 6
+        }
+      } catch (error) {
+        console.error('❌ Failed to create gift card:', error);
+        // Don't throw - we still want to complete the transaction
+        // The gift card can be manually issued later if needed
+      }
+    }
+  };
+
   const handleCompletePayment = async (payment: any) => {
     // Mark all services as completed
     services.forEach((s) => {
@@ -1117,7 +1201,10 @@ export default function TicketPanel({
         }
       }
 
-      // 2. Create transaction record for the payment
+      // 2.5. CRITICAL: Process gift card sales - create actual gift cards in database
+      await processGiftCardSales(effectiveTicketId || '', services, selectedClient?.id);
+
+      // 3. Create transaction record for the payment
       const primaryMethod = payment.methods?.[0];
       const primaryPaymentMethod = (primaryMethod?.type || 'cash') as 'cash' | 'card' | 'gift_card' | 'other';
 

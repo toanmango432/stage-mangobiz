@@ -69,3 +69,56 @@ Test files created:
 7. src/components/frontdesk/__tests__/ViewModeToggle.test.tsx (22 tests)
 8. src/components/frontdesk/hooks/__tests__/useTicketModals.test.ts (16 tests)
 9. src/components/frontdesk/__tests__/ErrorBoundary.test.tsx (20 tests)
+
+--- ITERATION 2 ---
+Status: Adding more component tests for Book and FrontDesk modules
+Tasks: 6 new tasks (T011-T016)
+
+Completed: T011 - CalendarHeader component tests
+- Created: src/components/Book/__tests__/CalendarHeader.test.tsx
+- Tests: 47 passed
+- Coverage: navigation controls, date picker toggle, view mode selector, sidebar toggle, action buttons, accessibility, styling
+
+Completed: T012 - QuickActionsBar component tests
+- Created: src/components/Book/__tests__/QuickActionsBar.test.tsx
+- Tests: 54 passed
+- Coverage: new appointment button, search button, refresh button, pending count badge, jump to date, toggle filters, command palette, all icons, accessibility
+
+Completed: T013 - FilterPanel component tests
+- Created: src/components/Book/__tests__/FilterPanel.test.tsx
+- Tests: 41 passed
+- Coverage: dropdown toggle, search input, status filter, service type filter, clear filters, accessibility, icons
+
+Completed: T014 - FrontDeskHeader component tests
+- Created: src/components/frontdesk/__tests__/FrontDeskHeader.test.tsx
+- Tests: 39 passed
+- Coverage: title/icon, count badge, subtitle, variants, left/right actions, metric pills with tones, hideMetricPillsOnMobile, customTheme, HeaderActionButton
+
+Completed: T015 - CreateTicketButton component tests
+- Created: src/components/frontdesk/__tests__/CreateTicketButton.test.tsx
+- Tests: 26 passed
+- Coverage: FAB behavior, click handling, data-id attribute, styling (fixed position, colors, shadow, z-index), icon rotation animation, accessibility
+
+Completed: T016 - FrontDeskStates (EmptyState/Skeleton) tests
+- Created: src/components/frontdesk/__tests__/FrontDeskStates.test.tsx
+- Tests: 57 passed
+- Coverage: FrontDeskEmptyState (5 section types, filter mode, custom content, icons, styling), TicketCardSkeleton (4 viewMode variants, accessibility), TicketCardSkeletonGrid (count, viewMode, className), SectionSkeleton (header, content, viewMode, styling)
+
+--- ITERATION 2 COMPLETE ---
+Tasks completed: 6 (T011-T016)
+New tests in iteration 2: 264 tests
+
+Test files created in iteration 2:
+10. src/components/Book/__tests__/CalendarHeader.test.tsx (47 tests)
+11. src/components/Book/__tests__/QuickActionsBar.test.tsx (54 tests)
+12. src/components/Book/__tests__/FilterPanel.test.tsx (41 tests)
+13. src/components/frontdesk/__tests__/FrontDeskHeader.test.tsx (39 tests)
+14. src/components/frontdesk/__tests__/CreateTicketButton.test.tsx (26 tests)
+15. src/components/frontdesk/__tests__/FrontDeskStates.test.tsx (57 tests)
+
+CUMULATIVE TOTALS (through iteration 2):
+- Total test files for Book/FrontDesk: 15
+- Total tests created by Ralph loop: 500
+- Total tests in project: 1,613
+- Total test files in project: 58
+- All tests passing: YES
