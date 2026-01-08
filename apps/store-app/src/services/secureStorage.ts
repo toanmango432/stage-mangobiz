@@ -5,9 +5,8 @@ import { settingsDB } from '../db/database';
  * Uses Web Crypto API for encryption and IndexedDB for persistence
  */
 
-// Encryption key derived from a combination of browser fingerprint
-// This is not perfect security but provides basic obfuscation for license data
 const STORAGE_KEY_PREFIX = 'secure_';
+const ENCRYPTION_KEY_NAME = 'mango_secure_key';
 
 interface SecureConfig {
   licenseKey?: string;
@@ -18,24 +17,93 @@ interface SecureConfig {
 }
 
 /**
- * Simple encryption using base64 (for obfuscation, not real security)
- * In production, use proper encryption with a server-managed key
+ * Get or create encryption key using Web Crypto API
+ * Key is stored in IndexedDB for persistence across sessions
  */
-function encrypt(data: string): string {
+async function getEncryptionKey(): Promise<CryptoKey> {
+  // Try to get existing key from storage
+  const storedKey = await settingsDB.get(ENCRYPTION_KEY_NAME);
+
+  if (storedKey) {
+    // Import the stored key
+    return await crypto.subtle.importKey(
+      'raw',
+      new Uint8Array(storedKey),
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  // Generate new key
+  const key = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  );
+
+  // Export and store the key
+  const exportedKey = await crypto.subtle.exportKey('raw', key);
+  await settingsDB.set(ENCRYPTION_KEY_NAME, Array.from(new Uint8Array(exportedKey)));
+
+  return key;
+}
+
+/**
+ * Encrypt data using AES-GCM via Web Crypto API
+ */
+async function encrypt(data: string): Promise<string> {
   try {
-    return btoa(encodeURIComponent(data));
+    const key = await getEncryptionKey();
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(data);
+
+    // Generate random IV for each encryption
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      dataBuffer
+    );
+
+    // Combine IV and encrypted data, then convert to hex string
+    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encryptedBuffer), iv.length);
+
+    return Array.from(combined).map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (error) {
     console.error('Encryption error:', error);
-    return data;
+    throw new Error('Failed to encrypt data');
   }
 }
 
-function decrypt(data: string): string {
+/**
+ * Decrypt data using AES-GCM via Web Crypto API
+ */
+async function decrypt(data: string): Promise<string> {
   try {
-    return decodeURIComponent(atob(data));
+    const key = await getEncryptionKey();
+
+    // Convert hex string back to bytes
+    const combined = new Uint8Array(data.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encryptedData = combined.slice(12);
+
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encryptedData
+    );
+
+    const decoder = new TextDecoder();
+    return decoder.decode(decryptedBuffer);
   } catch (error) {
     console.error('Decryption error:', error);
-    return data;
+    throw new Error('Failed to decrypt data');
   }
 }
 
@@ -46,14 +114,14 @@ export const secureStorage = {
   async getLicenseKey(): Promise<string | null> {
     const encrypted = await settingsDB.get(`${STORAGE_KEY_PREFIX}license_key`);
     if (!encrypted) return null;
-    return decrypt(encrypted);
+    return await decrypt(encrypted);
   },
 
   /**
    * Set license key
    */
   async setLicenseKey(key: string): Promise<void> {
-    const encrypted = encrypt(key);
+    const encrypted = await encrypt(key);
     await settingsDB.set(`${STORAGE_KEY_PREFIX}license_key`, encrypted);
   },
 
@@ -63,14 +131,14 @@ export const secureStorage = {
   async getStoreId(): Promise<string | null> {
     const encrypted = await settingsDB.get(`${STORAGE_KEY_PREFIX}store_id`);
     if (!encrypted) return null;
-    return decrypt(encrypted);
+    return await decrypt(encrypted);
   },
 
   /**
    * Set store ID
    */
   async setStoreId(id: string): Promise<void> {
-    const encrypted = encrypt(id);
+    const encrypted = await encrypt(id);
     await settingsDB.set(`${STORAGE_KEY_PREFIX}store_id`, encrypted);
   },
 
