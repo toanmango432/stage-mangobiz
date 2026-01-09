@@ -55,7 +55,8 @@ import ClientSelector, { Client } from "./ClientSelector";
 import ServiceGrid, { Service } from "./ServiceGrid";
 import { TicketService, StaffMember } from "./ServiceList";
 import InteractiveSummary from "./InteractiveSummary";
-import PaymentModal from "./PaymentModal";
+import { Suspense } from 'react';
+import { LazyPaymentModal, ModalLoadingFallback } from './LazyModals'; // lazy load PaymentModal
 import FullPageServiceSelector from "./FullPageServiceSelector";
 import StaffGridView from "./StaffGridView";
 import { ResizablePanel } from "@/components/ui/ResizablePanel";
@@ -2206,20 +2207,25 @@ export default function TicketPanel({
 
       </div>
 
-      <PaymentModal
-        open={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        total={total}
-        onComplete={handleCompletePayment}
-        staffMembers={staffMembers
-          .filter((s) => staffServiceTotals[s.id] > 0) // Only staff who worked on this ticket
-          .map((s) => ({
-            id: s.id,
-            name: s.name,
-            serviceTotal: staffServiceTotals[s.id],
-          }))}
-        ticketId={ticketId || undefined} // Bug #8 fix: Pass actual ticket ID
-      />
+      {/* PaymentModal - Lazy Loaded */}
+      {showPaymentModal && (
+        <Suspense fallback={<ModalLoadingFallback size="lg" />}>
+          <LazyPaymentModal
+            open={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            total={total}
+            onComplete={handleCompletePayment}
+            staffMembers={staffMembers
+              .filter((s) => staffServiceTotals[s.id] > 0) // Only staff who worked on this ticket
+              .map((s) => ({
+                id: s.id,
+                name: s.name,
+                serviceTotal: staffServiceTotals[s.id],
+              }))}
+            ticketId={ticketId || undefined} // Bug #8 fix: Pass actual ticket ID
+          />
+        </Suspense>
+      )}
 
       <Dialog open={showServicesOnMobile} onOpenChange={(open) => {
         setShowServicesOnMobile(open);

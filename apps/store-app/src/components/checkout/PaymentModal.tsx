@@ -75,10 +75,10 @@ function StepIndicator({ currentStep, isFullyPaid }: { currentStep: number; isFu
                 className={`
                   h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center
                   transition-all duration-200 text-sm font-semibold
-                  ${isCompleted
-                    ? "bg-primary text-primary-foreground"
-                    : isActive
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                  ${isCompleted 
+                    ? "bg-primary text-primary-foreground" 
+                    : isActive 
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20" 
                       : "bg-muted text-muted-foreground"
                   }
                 `}
@@ -100,7 +100,7 @@ function StepIndicator({ currentStep, isFullyPaid }: { currentStep: number; isFu
               </div>
             </div>
             {!isLast && (
-              <div
+              <div 
                 className={`h-0.5 w-6 sm:w-12 mt-[-20px] sm:mt-[-24px] ${
                   step.id < currentStep ? "bg-primary" : "bg-muted"
                 }`}
@@ -201,14 +201,6 @@ export default function PaymentModal({
     }
   }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId]);
 
-  // Task 6.1: Auto-open gift card modal when Gift Card payment is selected
-  // Removes one click from the redemption flow - no need to click "Enter Gift Card Code"
-  useEffect(() => {
-    if (currentMethod === 'gift_card' && appliedGiftCards.length === 0) {
-      setShowGiftCardModal(true);
-    }
-  }, [currentMethod, appliedGiftCards.length]);
-
   const handleQuickCash = (amount: number) => {
     setCashTendered(amount.toString());
   };
@@ -281,7 +273,7 @@ export default function PaymentModal({
   const handleComplete = () => {
     if (isFullyPaid) {
       setShowSuccess(true);
-
+      
       setTimeout(() => {
         onComplete({
           methods: paymentMethods,
@@ -313,20 +305,20 @@ export default function PaymentModal({
 
   const handleAutoDistributeTip = () => {
     if (tipAmount <= 0 || staffMembers.length === 0) return;
-
+    
     const totalServiceRevenue = staffMembers.reduce((sum, s) => sum + (s.serviceTotal || 0), 0);
-
+    
     if (totalServiceRevenue === 0) {
       handleEqualSplitTip();
       return;
     }
-
+    
     const distribution = staffMembers.map(staff => ({
       staffId: staff.id,
       staffName: staff.name,
       amount: (tipAmount * (staff.serviceTotal || 0)) / totalServiceRevenue
     }));
-
+    
     setTipDistribution(distribution);
     setShowTipDistribution(true);
   };
@@ -498,7 +490,7 @@ export default function PaymentModal({
                     className="mt-3 h-11"
                     data-testid="input-custom-tip"
                   />
-
+                  
                   {staffMembers.length > 1 && tipAmount > 0 && (
                     <div className="mt-4 space-y-2">
                       <div className="flex gap-2">
@@ -521,7 +513,7 @@ export default function PaymentModal({
                           Split Equally
                         </Button>
                       </div>
-
+                      
                       {showTipDistribution && tipDistribution.length > 0 && (
                         <Card className="p-3 bg-green-500/5 border-green-500/20">
                           <div className="text-xs font-medium text-muted-foreground mb-2">Tip Distribution</div>
@@ -628,9 +620,9 @@ export default function PaymentModal({
                       <label className="text-sm font-medium mb-2 block">Payments applied</label>
                       <div className="flex flex-wrap gap-2">
                         {paymentMethods.map((method, index) => (
-                          <Badge
-                            key={index}
-                            variant="secondary"
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
                             className="px-3 py-2 text-sm gap-2"
                             data-testid={`badge-payment-${index}`}
                           >

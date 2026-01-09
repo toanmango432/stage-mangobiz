@@ -799,6 +799,133 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['salon_devices']['Insert']>;
       };
+
+      // Gift Cards Tables (migration 019)
+      gift_cards: {
+        Row: {
+          id: string;
+          store_id: string;
+          code: string;
+          initial_balance: number;
+          current_balance: number;
+          status: GiftCardStatus;
+          card_type: GiftCardType;
+          purchased_by: string | null;
+          purchased_at: string | null;
+          purchase_amount: number | null;
+          order_id: string | null;
+          recipient_email: string | null;
+          recipient_name: string | null;
+          recipient_phone: string | null;
+          personal_message: string | null;
+          delivery_method: GiftCardDeliveryMethod;
+          delivered_at: string | null;
+          delivery_scheduled_at: string | null;
+          design_template: string;
+          custom_image_url: string | null;
+          expires_at: string | null;
+          is_reloadable: boolean;
+          // Email tracking (migration 027)
+          email_status: GiftCardEmailStatus;
+          email_message_id: string | null;
+          email_sent_at: string | null;
+          email_delivered_at: string | null;
+          email_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          code: string;
+          initial_balance: number;
+          current_balance: number;
+          status?: GiftCardStatus;
+          card_type?: GiftCardType;
+          purchased_by?: string | null;
+          purchased_at?: string | null;
+          purchase_amount?: number | null;
+          order_id?: string | null;
+          recipient_email?: string | null;
+          recipient_name?: string | null;
+          recipient_phone?: string | null;
+          personal_message?: string | null;
+          delivery_method?: GiftCardDeliveryMethod;
+          delivered_at?: string | null;
+          delivery_scheduled_at?: string | null;
+          design_template?: string;
+          custom_image_url?: string | null;
+          expires_at?: string | null;
+          is_reloadable?: boolean;
+          // Email tracking (migration 027)
+          email_status?: GiftCardEmailStatus;
+          email_message_id?: string | null;
+          email_sent_at?: string | null;
+          email_delivered_at?: string | null;
+          email_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['gift_cards']['Insert']>;
+      };
+
+      gift_card_transactions: {
+        Row: {
+          id: string;
+          gift_card_id: string;
+          store_id: string;
+          transaction_type: GiftCardTransactionType;
+          amount: number;
+          balance_before: number;
+          balance_after: number;
+          ticket_id: string | null;
+          order_id: string | null;
+          client_id: string | null;
+          notes: string | null;
+          performed_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          gift_card_id: string;
+          store_id: string;
+          transaction_type: GiftCardTransactionType;
+          amount: number;
+          balance_before: number;
+          balance_after: number;
+          ticket_id?: string | null;
+          order_id?: string | null;
+          client_id?: string | null;
+          notes?: string | null;
+          performed_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['gift_card_transactions']['Insert']>;
+      };
+
+      client_gift_cards: {
+        Row: {
+          id: string;
+          client_id: string;
+          gift_card_id: string;
+          store_id: string;
+          acquisition_type: GiftCardAcquisitionType;
+          nickname: string | null;
+          is_favorite: boolean;
+          added_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          gift_card_id: string;
+          store_id: string;
+          acquisition_type?: GiftCardAcquisitionType;
+          nickname?: string | null;
+          is_favorite?: boolean;
+          added_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['client_gift_cards']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -952,3 +1079,25 @@ export interface DeviceSettings {
   preferLocalBroker?: boolean;
   heartbeatInterval?: number;
 }
+
+// Gift Card Enums (migration 019)
+export type GiftCardStatus = 'active' | 'used' | 'expired' | 'cancelled' | 'pending';
+export type GiftCardType = 'standard' | 'promotional' | 'reward' | 'refund';
+export type GiftCardDeliveryMethod = 'email' | 'sms' | 'print' | 'physical';
+export type GiftCardTransactionType = 'purchase' | 'redemption' | 'reload' | 'refund' | 'adjustment' | 'expiry';
+export type GiftCardAcquisitionType = 'purchased' | 'received' | 'reward' | 'refund';
+// Email tracking (migration 027)
+export type GiftCardEmailStatus = 'pending' | 'scheduled' | 'sent' | 'delivered' | 'failed' | 'bounced';
+
+// Gift Card Table Types
+export type GiftCardRow = Database['public']['Tables']['gift_cards']['Row'];
+export type GiftCardInsert = Database['public']['Tables']['gift_cards']['Insert'];
+export type GiftCardUpdate = Database['public']['Tables']['gift_cards']['Update'];
+
+export type GiftCardTransactionRow = Database['public']['Tables']['gift_card_transactions']['Row'];
+export type GiftCardTransactionInsert = Database['public']['Tables']['gift_card_transactions']['Insert'];
+export type GiftCardTransactionUpdate = Database['public']['Tables']['gift_card_transactions']['Update'];
+
+export type ClientGiftCardRow = Database['public']['Tables']['client_gift_cards']['Row'];
+export type ClientGiftCardInsert = Database['public']['Tables']['client_gift_cards']['Insert'];
+export type ClientGiftCardUpdate = Database['public']['Tables']['client_gift_cards']['Update'];

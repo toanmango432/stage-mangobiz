@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+// NOTE: vite-plugin-remove-console causes parsing issues with certain TypeScript constructs
+// Disabled until a fix is available. Console.log statements will remain in production builds.
+// import removeConsole from 'vite-plugin-remove-console'
 import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // removeConsole plugin disabled due to parsing issues with auditLogger calls
+    // See: https://github.com/nicklin99/vite-plugin-remove-console/issues
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

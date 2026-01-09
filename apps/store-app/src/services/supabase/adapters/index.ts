@@ -61,3 +61,16 @@ export {
   toPayRunInsert,
   toPayRunUpdate,
 } from './payRunAdapter';
+
+// Gift Card adapters
+export {
+  toGiftCard,
+  toGiftCards,
+  toGiftCardInsert,
+  toGiftCardUpdate,
+  toGiftCardTransaction,
+  toGiftCardTransactions,
+  toGiftCardTransactionInsert,
+  isRowRedeemable,
+  getRowStatusDisplay,
+} from './giftCardAdapter';

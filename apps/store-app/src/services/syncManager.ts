@@ -14,7 +14,7 @@ import { selectIsOfflineEnabled, selectDeviceMode } from '../store/slices/authSl
 
 // Type definitions for sync operations
 interface SyncChange {
-  entity: 'appointment' | 'ticket' | 'staff' | 'client' | 'transaction';
+  entity: 'appointment' | 'ticket' | 'staff' | 'client' | 'transaction' | 'giftcard' | 'giftcard_transaction';
   action: 'CREATE' | 'UPDATE' | 'DELETE';
   data: {
     id: string;
@@ -282,7 +282,7 @@ class SyncManager {
       const { entity, action, data } = change;
 
       // Import database functions dynamically
-      const { appointmentsDB, ticketsDB, staffDB, clientsDB, transactionsDB } = await import('../db/database');
+      const { appointmentsDB, ticketsDB, staffDB, clientsDB, transactionsDB, giftCardsDB } = await import('../db/database');
 
       // Helper to safely get date for comparison
       const getDateValue = (value: string | Date | undefined): number => {
@@ -360,6 +360,30 @@ class SyncManager {
           } else if (action === 'DELETE') {
             await transactionsDB.delete(data.id);
           }
+          break;
+
+        case 'giftcard':
+          if (action === 'CREATE' || action === 'UPDATE') {
+            // Gift cards use server-wins strategy (financial data)
+            const existingGiftCard = await giftCardsDB.getById(data.id);
+            const existingGcTime = getDateValue((existingGiftCard as SyncableData | undefined)?.updatedAt);
+            const remoteGcTime = getDateValue(data.updatedAt || data.createdAt);
+            if (existingGiftCard && existingGcTime > remoteGcTime) {
+              console.warn('⚠️ Gift card conflict detected:', data.id, '- Server wins for financial data');
+            }
+            // Always apply server version (server-wins strategy)
+            await giftCardsDB.upsert(createSyncPayload() as Parameters<typeof giftCardsDB.upsert>[0]);
+          } else if (action === 'DELETE') {
+            await giftCardsDB.delete(data.id);
+          }
+          break;
+
+        case 'giftcard_transaction':
+          if (action === 'CREATE' || action === 'UPDATE') {
+            // Gift card transactions use server-wins (financial data, immutable)
+            await giftCardsDB.upsertTransaction(createSyncPayload() as Parameters<typeof giftCardsDB.upsertTransaction>[0]);
+          }
+          // Note: Gift card transactions are immutable, no DELETE case
           break;
 
         default:

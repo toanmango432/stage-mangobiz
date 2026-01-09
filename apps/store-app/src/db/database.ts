@@ -1708,3 +1708,6 @@ export async function getDBStats() {
 
 // Re-export catalog database operations
 export * from './catalogDatabase';
+
+// Re-export gift card database operations (for syncManager)
+export { giftCardDB as giftCardsDB } from './giftCardOperations';

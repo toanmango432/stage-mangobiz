@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, CreditCard, DollarSign, Gift, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Ticket } from '../../types/Ticket';
 import { CheckoutPaymentMethod, TipDistribution, TIP_PERCENTAGES, CHECKOUT_STEPS } from '../../types/checkout';
 import { getTaxRateFromConfig } from '../../constants/checkoutConfig';
 import { ServiceSummary } from './ServiceSummary';
+import GiftCardRedeemModal, { AppliedGiftCard } from './modals/GiftCardRedeemModal';
+import { giftCardDB } from '../../db/giftCardOperations';
+import { useAppSelector } from '../../store/hooks';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -87,6 +90,13 @@ export function CheckoutModal({
   const [showTipDistribution, setShowTipDistribution] = useState(false);
   const [tipDistribution, setTipDistribution] = useState<TipDistribution[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showGiftCardModal, setShowGiftCardModal] = useState(false);
+  const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
+
+  // Get auth context for gift card redemption
+  const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
+  const userId = useAppSelector((state) => state.auth.member?.memberId || state.auth.user?.id);
+  const deviceId = useAppSelector((state) => state.auth.device?.id) || 'web-device';
 
   // Get dynamic tax rate from system config
   const taxRate = getTaxRateFromConfig();
@@ -134,8 +144,37 @@ export function CheckoutModal({
       setCashTendered('');
       setCurrentMethod(null);
       setShowSuccess(false);
+      setShowGiftCardModal(false);
+      setAppliedGiftCards([]);
     }
   }, [isOpen]);
+
+  // Gift card handlers
+  const handleApplyGiftCard = useCallback((giftCard: AppliedGiftCard) => {
+    // Add to applied gift cards list
+    setAppliedGiftCards(prev => [...prev, giftCard]);
+
+    // Add as a payment method
+    const newPayment: CheckoutPaymentMethod = {
+      type: 'gift_card',
+      amount: giftCard.amountUsed,
+      customName: `Gift Card (${giftCard.code})`,
+    };
+    setPaymentMethods(prev => [...prev, newPayment]);
+  }, []);
+
+  const handleRemoveGiftCard = useCallback((code: string) => {
+    // Remove from applied gift cards
+    const removedCard = appliedGiftCards.find(gc => gc.code === code);
+    setAppliedGiftCards(prev => prev.filter(gc => gc.code !== code));
+
+    // Remove from payment methods
+    if (removedCard) {
+      setPaymentMethods(prev =>
+        prev.filter(p => !(p.type === 'gift_card' && p.customName?.includes(code)))
+      );
+    }
+  }, [appliedGiftCards]);
 
   const handleSelectTipPercentage = (percentage: number) => {
     setTipPercentage(percentage);
@@ -229,9 +268,34 @@ export function CheckoutModal({
     setShowTipDistribution(true);
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (isFullyPaid) {
       setShowSuccess(true);
+
+      // Redeem all applied gift cards in the database
+      try {
+        if (storeId && userId) {
+          for (const giftCard of appliedGiftCards) {
+            await giftCardDB.redeemGiftCard(
+              {
+                code: giftCard.code,
+                amount: giftCard.amountUsed,
+                ticketId: ticket.id,
+                staffId: userId,
+              },
+              storeId,
+              userId,
+              deviceId
+            );
+          }
+        } else {
+          console.warn('Missing storeId or userId for gift card redemption');
+        }
+      } catch (error) {
+        console.error('Error redeeming gift cards:', error);
+        // Continue with checkout even if redemption logging fails
+        // The payment has already been recorded
+      }
 
       setTimeout(() => {
         onComplete({
@@ -498,16 +562,44 @@ export function CheckoutModal({
               {currentMethod === 'gift_card' && (
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-700">Gift Card</h4>
-                  <input
-                    type="text"
-                    placeholder="Enter gift card code"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500"
-                  />
+
+                  {/* Show applied gift cards */}
+                  {appliedGiftCards.length > 0 && (
+                    <div className="space-y-2">
+                      {appliedGiftCards.map((gc) => (
+                        <div
+                          key={gc.code}
+                          className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Gift className="w-4 h-4 text-purple-600" />
+                            <div>
+                              <p className="font-mono text-sm font-medium text-purple-900">
+                                {gc.code}
+                              </p>
+                              <p className="text-xs text-purple-600">
+                                -${gc.amountUsed.toFixed(2)} applied
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveGiftCard(gc.code)}
+                            className="p-1 text-purple-400 hover:text-purple-600 hover:bg-purple-100 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <button
-                    onClick={() => handleAddPayment(remaining)}
-                    className="w-full py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600"
+                    onClick={() => setShowGiftCardModal(true)}
+                    disabled={remaining <= 0}
+                    className="w-full py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Apply Gift Card
+                    <Gift className="w-5 h-5" />
+                    {appliedGiftCards.length > 0 ? 'Add Another Gift Card' : 'Enter Gift Card Code'}
                   </button>
                 </div>
               )}
@@ -658,6 +750,16 @@ export function CheckoutModal({
           </div>
         )}
       </div>
+
+      {/* Gift Card Redeem Modal */}
+      <GiftCardRedeemModal
+        open={showGiftCardModal}
+        onOpenChange={setShowGiftCardModal}
+        remainingTotal={remaining}
+        appliedGiftCards={appliedGiftCards}
+        onApplyGiftCard={handleApplyGiftCard}
+        onRemoveGiftCard={handleRemoveGiftCard}
+      />
     </div>
   );
 }

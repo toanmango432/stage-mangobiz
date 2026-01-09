@@ -16,7 +16,6 @@ import {
   Eye,
   EyeOff,
   ShoppingBag,
-  Gift,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -115,16 +114,16 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
   } = catalog;
 
   // Tab configuration
+  // Note: Gift Cards tab removed - now available under More > Gift Cards
   const tabs: { id: CatalogTab; label: string; icon: React.ReactNode; count?: number }[] = useMemo(() => [
     { id: 'categories', label: 'Categories', icon: <FolderOpen size={18} />, count: categories?.length || 0 },
     { id: 'services', label: 'Services', icon: <Sparkles size={18} />, count: services?.length || 0 },
     { id: 'packages', label: 'Packages', icon: <Package size={18} />, count: packages?.length || 0 },
     { id: 'products', label: 'Products', icon: <ShoppingBag size={18} />, count: products?.length || 0 },
     { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOnGroupsWithOptions?.length || 0 },
-    { id: 'giftcards', label: 'Gift Cards', icon: <Gift size={18} />, count: giftCardDenominations?.length || 0 },
     { id: 'staff', label: 'Staff Permissions', icon: <Users size={18} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-  ], [categories, services, packages, products, addOnGroupsWithOptions, giftCardDenominations]);
+  ], [categories, services, packages, products, addOnGroupsWithOptions]);
 
   // Show error state if storeId is not available (user not logged in properly)
   if (!storeId) {

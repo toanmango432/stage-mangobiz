@@ -726,6 +726,41 @@ export const giftCardDB = {
       countRedeemed: transactions.filter((t) => t.type === 'redeem').length,
     };
   },
+
+  // ---- Sync Operations (for syncManager) ----
+
+  /**
+   * Get gift card by ID (alias for getGiftCardById)
+   */
+  async getById(id: string): Promise<GiftCard | undefined> {
+    return this.getGiftCardById(id);
+  },
+
+  /**
+   * Upsert a gift card (for sync from server)
+   */
+  async upsert(giftCard: GiftCard): Promise<void> {
+    await db.giftCards.put(giftCard);
+  },
+
+  /**
+   * Upsert a gift card transaction (for sync from server)
+   */
+  async upsertTransaction(transaction: GiftCardTransaction): Promise<void> {
+    await db.giftCardTransactions.put(transaction);
+  },
+
+  /**
+   * Delete a gift card by ID (hard delete, for sync)
+   */
+  async delete(id: string): Promise<void> {
+    await db.giftCards.delete(id);
+    // Also delete associated transactions
+    await db.giftCardTransactions
+      .where('giftCardId')
+      .equals(id)
+      .delete();
+  },
 };
 
 export default giftCardDB;
