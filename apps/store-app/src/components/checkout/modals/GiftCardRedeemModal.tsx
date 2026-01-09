@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   Calendar,
   Wallet,
+  Camera,
+  Keyboard,
 } from 'lucide-react';
 import {
   Dialog,
@@ -44,7 +46,8 @@ interface GiftCardRedeemModalProps {
   onRemoveGiftCard: (code: string) => void;
 }
 
-type ModalView = 'entry' | 'found' | 'success';
+type ModalView = 'entry' | 'success';
+type InputMode = 'keyboard' | 'scan';
 
 // ============================================================================
 // Helper Functions
@@ -241,11 +244,13 @@ export default function GiftCardRedeemModal({
 }: GiftCardRedeemModalProps) {
   // State
   const [view, setView] = useState<ModalView>('entry');
+  const [inputMode, setInputMode] = useState<InputMode>('keyboard');
   const [code, setCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [foundCard, setFoundCard] = useState<GiftCard | null>(null);
   const [amountToApply, setAmountToApply] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
 
   // Get store context
   const storeId = useAppSelector((state) => state.auth.currentStore?.id);
@@ -263,37 +268,22 @@ export default function GiftCardRedeemModal({
         setError(null);
         setFoundCard(null);
         setAmountToApply('');
+        setInputMode('keyboard');
+        setIsScanning(false);
       }, 200);
     }
   }, [open]);
 
-  // Handle code input
-  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatGiftCardCode(e.target.value);
-    // Limit to full code length: GC-XXXX-XXXX-XXXX = 18 chars
-    if (formatted.length <= 18) {
-      setCode(formatted);
-      setError(null);
-    }
-  };
+  // Auto-lookup when code is complete (18 chars: GC-XXXX-XXXX-XXXX)
+  const lookupGiftCard = useCallback(async (lookupCode: string) => {
+    if (!storeId) return;
 
-  // Check balance
-  const handleCheckBalance = useCallback(async () => {
-    if (!code.trim() || !storeId) {
-      setError('Please enter a gift card code');
-      return;
-    }
-
-    // Validate format
-    const normalizedCode = normalizeCode(code);
-    if (!/^GC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(normalizedCode)) {
-      setError('Invalid format. Use: GC-XXXX-XXXX-XXXX');
-      return;
-    }
+    const normalizedCode = normalizeCode(lookupCode);
 
     // Check if already applied
     if (appliedGiftCards.some((gc) => gc.code === normalizedCode)) {
       setError('This gift card is already applied');
+      setFoundCard(null);
       return;
     }
 
@@ -305,6 +295,7 @@ export default function GiftCardRedeemModal({
 
       if (!giftCard) {
         setError('Gift card not found');
+        setFoundCard(null);
         setIsValidating(false);
         return;
       }
@@ -312,34 +303,67 @@ export default function GiftCardRedeemModal({
       // Check status
       if (giftCard.status === 'voided') {
         setError('This gift card has been voided');
+        setFoundCard(null);
         setIsValidating(false);
         return;
       }
 
       if (giftCard.status === 'expired' || (giftCard.expiresAt && new Date(giftCard.expiresAt) < new Date())) {
         setError('This gift card has expired');
+        setFoundCard(null);
         setIsValidating(false);
         return;
       }
 
       if (giftCard.currentBalance <= 0) {
         setError('This gift card has no remaining balance');
+        setFoundCard(null);
         setIsValidating(false);
         return;
       }
 
-      // Success - show found view
+      // Success - set found card and auto-fill max amount
       setFoundCard(giftCard);
       const maxApplicable = Math.min(giftCard.currentBalance, actualRemaining);
       setAmountToApply(maxApplicable.toFixed(2));
-      setView('found');
+      setError(null);
     } catch (err) {
       console.error('Error checking gift card:', err);
       setError('Unable to verify gift card. Please try again.');
+      setFoundCard(null);
     } finally {
       setIsValidating(false);
     }
-  }, [code, storeId, appliedGiftCards, actualRemaining]);
+  }, [storeId, appliedGiftCards, actualRemaining]);
+
+  // Handle code input with auto-lookup
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatGiftCardCode(e.target.value);
+    // Limit to full code length: GC-XXXX-XXXX-XXXX = 18 chars
+    if (formatted.length <= 18) {
+      setCode(formatted);
+      setError(null);
+      setFoundCard(null);
+
+      // Auto-lookup when code is complete
+      if (formatted.length === 18 && /^GC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(formatted)) {
+        lookupGiftCard(formatted);
+      }
+    }
+  };
+
+  // Handle scan button - opens camera (placeholder for now)
+  const handleScan = async () => {
+    setInputMode('scan');
+    setIsScanning(true);
+    // TODO: Integrate with device camera API
+    // For now, show a message that scanning is coming soon
+    setTimeout(() => {
+      setIsScanning(false);
+      setInputMode('keyboard');
+      setError('Camera scanning coming soon. Please enter code manually.');
+    }, 1500);
+  };
 
   // Handle apply
   const handleApply = useCallback(() => {
@@ -388,16 +412,22 @@ export default function GiftCardRedeemModal({
     }, 1200);
   }, [foundCard, amountToApply, actualRemaining, onApplyGiftCard, onOpenChange]);
 
-  // Handle Enter key
+  // Handle Enter key - apply directly if card is found
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (view === 'entry') {
-        handleCheckBalance();
-      } else if (view === 'found') {
+      if (foundCard && amountToApply) {
         handleApply();
       }
     }
+  };
+
+  // Clear and try another card
+  const handleClear = () => {
+    setCode('');
+    setFoundCard(null);
+    setAmountToApply('');
+    setError(null);
   };
 
   return (
@@ -415,30 +445,8 @@ export default function GiftCardRedeemModal({
         </DialogHeader>
 
         <div className="space-y-5">
-          {/* Remaining balance context */}
-          {view !== 'success' && (
-            <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-amber-600" />
-                <span className="text-sm text-amber-800">Amount to pay</span>
-              </div>
-              <span className="text-lg font-bold text-amber-900">
-                ${actualRemaining.toFixed(2)}
-              </span>
-            </div>
-          )}
-
-          {/* Applied gift cards */}
-          {view === 'entry' && (
-            <AppliedGiftCardsList
-              appliedGiftCards={appliedGiftCards}
-              onRemove={onRemoveGiftCard}
-              disabled={isValidating}
-            />
-          )}
-
           <AnimatePresence mode="wait">
-            {/* Entry View */}
+            {/* Entry View - Streamlined single page */}
             {view === 'entry' && (
               <motion.div
                 key="entry"
@@ -447,157 +455,200 @@ export default function GiftCardRedeemModal({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-4"
               >
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Enter Gift Card Code
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={code}
-                      onChange={handleCodeChange}
-                      onKeyDown={handleKeyDown}
-                      placeholder="GC-XXXX-XXXX-XXXX"
-                      className={`flex-1 h-12 font-mono text-base tracking-wider uppercase bg-white border-gray-200 ${
-                        error ? 'border-red-300 focus-visible:ring-red-200' : ''
-                      }`}
-                      disabled={isValidating}
-                      autoFocus
-                    />
-                    <Button
-                      onClick={handleCheckBalance}
-                      disabled={!code.trim() || isValidating}
-                      className="h-12 px-5 bg-violet-600 hover:bg-violet-700 text-white"
-                    >
-                      {isValidating ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        'Check'
-                      )}
-                    </Button>
+                {/* Remaining balance context */}
+                <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm text-amber-800">Amount to pay</span>
                   </div>
-
-                  {/* Error message */}
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="flex items-center gap-1.5 text-red-600"
-                      >
-                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                        <span className="text-sm">{error}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <span className="text-lg font-bold text-amber-900">
+                    ${actualRemaining.toFixed(2)}
+                  </span>
                 </div>
 
-                {/* Helper text */}
-                <p className="text-xs text-gray-400">
-                  Gift card codes are printed on physical cards or emailed receipts
-                </p>
-              </motion.div>
-            )}
-
-            {/* Found View */}
-            {view === 'found' && foundCard && (
-              <motion.div
-                key="found"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-5"
-              >
-                {/* Gift card visual */}
-                <GiftCardVisual
-                  code={foundCard.code}
-                  balance={foundCard.currentBalance}
-                  status={foundCard.status}
-                  expiresAt={foundCard.expiresAt}
+                {/* Applied gift cards */}
+                <AppliedGiftCardsList
+                  appliedGiftCards={appliedGiftCards}
+                  onRemove={onRemoveGiftCard}
+                  disabled={isValidating}
                 />
 
-                {/* Amount input */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Amount to Apply
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-medium text-gray-400">
-                      $
-                    </span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      max={Math.min(foundCard.currentBalance, actualRemaining)}
-                      value={amountToApply}
-                      onChange={(e) => {
-                        setAmountToApply(e.target.value);
-                        setError(null);
+                {/* Scanning mode */}
+                {isScanning ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center py-8 space-y-4"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-violet-600 animate-pulse" />
+                    </div>
+                    <p className="text-sm text-gray-600">Scanning for gift card...</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsScanning(false);
+                        setInputMode('keyboard');
                       }}
-                      onKeyDown={handleKeyDown}
-                      className="h-14 pl-9 text-2xl font-bold text-gray-900 bg-white border-gray-200"
-                    />
-                  </div>
-
-                  {/* Quick amounts */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setAmountToApply(Math.min(foundCard.currentBalance, actualRemaining).toFixed(2))}
-                      className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                     >
-                      Max ${Math.min(foundCard.currentBalance, actualRemaining).toFixed(2)}
-                    </button>
-                    {actualRemaining < foundCard.currentBalance && (
-                      <button
-                        onClick={() => setAmountToApply(actualRemaining.toFixed(2))}
-                        className="flex-1 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100 transition-colors"
-                      >
-                        Pay Full ${actualRemaining.toFixed(2)}
-                      </button>
-                    )}
-                  </div>
+                      Cancel
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <>
+                    {/* Code input with scan button */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Enter or Scan Gift Card Code
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Input
+                            value={code}
+                            onChange={handleCodeChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder="GC-XXXX-XXXX-XXXX"
+                            className={`h-12 font-mono text-base tracking-wider uppercase bg-white border-gray-200 pr-10 ${
+                              error ? 'border-red-300 focus-visible:ring-red-200' : ''
+                            } ${foundCard ? 'border-green-300 bg-green-50' : ''}`}
+                            disabled={isValidating}
+                            autoFocus
+                          />
+                          {isValidating && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Loader2 className="h-5 w-5 text-violet-600 animate-spin" />
+                            </div>
+                          )}
+                          {foundCard && !isValidating && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Check className="h-5 w-5 text-green-600" />
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          onClick={handleScan}
+                          variant="outline"
+                          className="h-12 px-4 border-gray-200 hover:bg-violet-50 hover:border-violet-200"
+                          title="Scan gift card"
+                        >
+                          <Camera className="h-5 w-5 text-gray-600" />
+                        </Button>
+                        {code && (
+                          <Button
+                            onClick={handleClear}
+                            variant="outline"
+                            className="h-12 px-4 border-gray-200 hover:bg-red-50 hover:border-red-200"
+                            title="Clear"
+                          >
+                            <X className="h-5 w-5 text-gray-600" />
+                          </Button>
+                        )}
+                      </div>
 
-                  {/* Error message */}
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="flex items-center gap-1.5 text-red-600"
-                      >
-                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                        <span className="text-sm">{error}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                      {/* Error message */}
+                      <AnimatePresence>
+                        {error && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex items-center gap-1.5 text-red-600"
+                          >
+                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                            <span className="text-sm">{error}</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
 
-                {/* Actions */}
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setView('entry');
-                      setFoundCard(null);
-                      setAmountToApply('');
-                      setError(null);
-                    }}
-                    className="h-12 flex-1 border-gray-200"
-                  >
-                    <ChevronLeft className="mr-1 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handleApply}
-                    disabled={!amountToApply || parseFloat(amountToApply) <= 0}
-                    className="h-12 flex-[2] bg-violet-600 hover:bg-violet-700 text-white font-semibold"
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Apply ${parseFloat(amountToApply || '0').toFixed(2)}
-                  </Button>
-                </div>
+                    {/* Found card - inline display with apply button */}
+                    <AnimatePresence>
+                      {foundCard && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-4"
+                        >
+                          {/* Compact card visual */}
+                          <div className="rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 p-4 shadow-lg">
+                            <div className="flex items-center justify-between text-white">
+                              <div>
+                                <p className="text-xs text-white/60 mb-1">Available Balance</p>
+                                <p className="text-2xl font-bold">${foundCard.currentBalance.toFixed(2)}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-white/60 mb-1">Card</p>
+                                <p className="font-mono text-sm">{foundCard.code}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Amount to apply - pre-filled with max */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">
+                                Amount to Apply
+                              </label>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setAmountToApply(Math.min(foundCard.currentBalance, actualRemaining).toFixed(2))}
+                                  className="text-xs px-2 py-1 rounded bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors"
+                                >
+                                  Max
+                                </button>
+                                {actualRemaining < foundCard.currentBalance && (
+                                  <button
+                                    onClick={() => setAmountToApply(actualRemaining.toFixed(2))}
+                                    className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                                  >
+                                    Full Payment
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-medium text-gray-400">
+                                $
+                              </span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={Math.min(foundCard.currentBalance, actualRemaining)}
+                                value={amountToApply}
+                                onChange={(e) => {
+                                  setAmountToApply(e.target.value);
+                                  setError(null);
+                                }}
+                                onKeyDown={handleKeyDown}
+                                className="h-14 pl-9 text-2xl font-bold text-gray-900 bg-white border-gray-200"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Apply button */}
+                          <Button
+                            onClick={handleApply}
+                            disabled={!amountToApply || parseFloat(amountToApply) <= 0}
+                            className="w-full h-14 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-lg"
+                          >
+                            <CreditCard className="mr-2 h-5 w-5" />
+                            Apply ${parseFloat(amountToApply || '0').toFixed(2)}
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Helper text - only show if no card found */}
+                    {!foundCard && (
+                      <p className="text-xs text-gray-400 text-center">
+                        Enter the 16-character code from your gift card
+                      </p>
+                    )}
+                  </>
+                )}
               </motion.div>
             )}
 

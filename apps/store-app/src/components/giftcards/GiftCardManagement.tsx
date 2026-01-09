@@ -25,6 +25,7 @@ import {
   Eye,
   Plus,
   ChevronRight,
+  ChevronDown,
   AlertCircle,
   CheckCircle2,
   XCircle,
@@ -36,6 +37,8 @@ import {
   User,
   Calendar,
   ArrowLeft,
+  ArrowUpDown,
+  Check,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { giftCardDB } from '../../db/giftCardOperations';
@@ -84,6 +87,17 @@ const FILTER_TABS: { value: FilterStatus; label: string }[] = [
   { value: 'expired', label: 'Expired' },
 ];
 
+// Sort options
+type SortOption = 'newest' | 'oldest' | 'highestBalance' | 'lowestBalance' | 'highestAmount' | 'lowestAmount';
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'highestBalance', label: 'Highest Balance' },
+  { value: 'lowestBalance', label: 'Lowest Balance' },
+  { value: 'highestAmount', label: 'Highest Amount' },
+  { value: 'lowestAmount', label: 'Lowest Amount' },
+];
+
 interface GiftCardManagementProps {
   onBack?: () => void;
 }
@@ -94,6 +108,8 @@ export default function GiftCardManagement({ onBack }: GiftCardManagementProps) 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [selectedCard, setSelectedCard] = useState<GiftCard | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
@@ -139,11 +155,25 @@ export default function GiftCardManagement({ onBack }: GiftCardManagementProps) 
       );
     }
 
-    // Sort by most recent first
-    return result.sort(
-      (a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()
-    );
-  }, [giftCards, statusFilter, searchQuery]);
+    // Apply sort
+    return result.sort((a, b) => {
+      switch (sortBy) {
+        case 'oldest':
+          return new Date(a.issuedAt).getTime() - new Date(b.issuedAt).getTime();
+        case 'highestBalance':
+          return b.currentBalance - a.currentBalance;
+        case 'lowestBalance':
+          return a.currentBalance - b.currentBalance;
+        case 'highestAmount':
+          return b.originalAmount - a.originalAmount;
+        case 'lowestAmount':
+          return a.originalAmount - b.originalAmount;
+        case 'newest':
+        default:
+          return new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime();
+      }
+    });
+  }, [giftCards, statusFilter, searchQuery, sortBy]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -256,16 +286,69 @@ export default function GiftCardManagement({ onBack }: GiftCardManagementProps) 
             </div>
           </div>
 
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by code, name, email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a5f4a]/20 focus:border-[#1a5f4a] transition-all"
-            />
+          {/* Search and Sort Row */}
+          <div className="flex gap-2 mb-4">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by code, name, email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a5f4a]/20 focus:border-[#1a5f4a] transition-all"
+              />
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                <span className="hidden sm:inline">Sort</span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showSortMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Sort Menu */}
+              <AnimatePresence>
+                {showSortMenu && (
+                  <>
+                    {/* Backdrop to close menu */}
+                    <div
+                      className="fixed inset-0 z-20"
+                      onClick={() => setShowSortMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 z-30 w-48 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden"
+                    >
+                      {SORT_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSortBy(option.value);
+                            setShowSortMenu(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left hover:bg-gray-50 transition-colors ${
+                            sortBy === option.value ? 'text-[#1a5f4a] font-medium bg-[#1a5f4a]/5' : 'text-gray-700'
+                          }`}
+                        >
+                          {option.label}
+                          {sortBy === option.value && (
+                            <Check className="w-4 h-4 text-[#1a5f4a]" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Filter Tabs */}
