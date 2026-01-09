@@ -228,11 +228,13 @@ export function TopHeaderBar({
 
   return (
     <header className={`
-      bg-white/95 backdrop-blur-xl
-      border-b border-gray-200/60
-      shadow-sm
+      bg-gradient-to-b from-amber-100/40 to-white/25
+      backdrop-blur-xl backdrop-saturate-[1.8]
+      border border-white/60
+      rounded-b-2xl md:rounded-b-3xl
+      shadow-[0_8px_32px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.9)]
       h-12 md:h-16 flex items-center px-4 md:px-8 lg:px-10 fixed top-0 left-0 right-0 z-50
-      transition-transform duration-300 ease-out
+      transition-all duration-300 ease-out
       ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}
     `}>
       {/* Left Section - Logo, Clock & Organization (subtle, secondary to nav) */}
