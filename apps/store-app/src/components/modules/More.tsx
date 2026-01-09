@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Store,
   ClipboardList,
+  Gift,
   type LucideIcon
 } from 'lucide-react';
 import { storeAuthManager } from '../../services/storeAuthManager';
@@ -74,6 +75,7 @@ export function More({ onNavigate }: MoreProps = {}) {
         { id: 'team-settings', label: 'Team', icon: UserCog, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'schedule', label: 'Schedule', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
         { id: 'catalog', label: 'Catalog', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { id: 'gift-cards', label: 'Gift Cards', icon: Gift, color: 'text-teal-600', bg: 'bg-teal-50' },
       ]
     },
     {
