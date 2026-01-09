@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -22,6 +22,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { paymentBridge } from "@/services/payment";
+import GiftCardRedeemModal, { AppliedGiftCard } from "./modals/GiftCardRedeemModal";
+import { giftCardDB } from "@/db/giftCardOperations";
+import { useAppSelector } from "@/store/hooks";
 
 export interface PaymentMethod {
   type: "card" | "cash" | "gift_card" | "custom";
@@ -72,10 +75,10 @@ function StepIndicator({ currentStep, isFullyPaid }: { currentStep: number; isFu
                 className={`
                   h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center
                   transition-all duration-200 text-sm font-semibold
-                  ${isCompleted 
-                    ? "bg-primary text-primary-foreground" 
-                    : isActive 
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20" 
+                  ${isCompleted
+                    ? "bg-primary text-primary-foreground"
+                    : isActive
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
                       : "bg-muted text-muted-foreground"
                   }
                 `}
@@ -97,7 +100,7 @@ function StepIndicator({ currentStep, isFullyPaid }: { currentStep: number; isFu
               </div>
             </div>
             {!isLast && (
-              <div 
+              <div
                 className={`h-0.5 w-6 sm:w-12 mt-[-20px] sm:mt-[-24px] ${
                   step.id < currentStep ? "bg-primary" : "bg-muted"
                 }`}
@@ -130,6 +133,13 @@ export default function PaymentModal({
   const [showSuccess, setShowSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [showGiftCardModal, setShowGiftCardModal] = useState(false);
+  const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
+
+  // Get auth context for gift card redemption
+  const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
+  const userId = useAppSelector((state) => state.auth.member?.memberId || state.auth.user?.id);
+  const deviceId = useAppSelector((state) => state.auth.device?.id) || 'web-device';
 
   const tipAmount = tipPercentage
     ? (total * tipPercentage) / 100
@@ -155,6 +165,32 @@ export default function PaymentModal({
       // Bug #12 fix: Auto-trigger completion when advancing to step 3
       // This ensures onComplete is called to close the ticket
       setShowSuccess(true);
+
+      // Redeem gift cards in the database
+      const redeemGiftCards = async () => {
+        if (storeId && userId && appliedGiftCards.length > 0 && ticketId) {
+          for (const giftCard of appliedGiftCards) {
+            try {
+              await giftCardDB.redeemGiftCard(
+                {
+                  code: giftCard.code,
+                  amount: giftCard.amountUsed,
+                  ticketId: ticketId,
+                  staffId: userId,
+                },
+                storeId,
+                userId,
+                deviceId
+              );
+            } catch (error) {
+              console.error('Error redeeming gift card:', error);
+            }
+          }
+        }
+      };
+
+      redeemGiftCards();
+
       setTimeout(() => {
         onComplete({
           methods: paymentMethods,
@@ -163,7 +199,15 @@ export default function PaymentModal({
         });
       }, 800);
     }
-  }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete]);
+  }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId]);
+
+  // Task 6.1: Auto-open gift card modal when Gift Card payment is selected
+  // Removes one click from the redemption flow - no need to click "Enter Gift Card Code"
+  useEffect(() => {
+    if (currentMethod === 'gift_card' && appliedGiftCards.length === 0) {
+      setShowGiftCardModal(true);
+    }
+  }, [currentMethod, appliedGiftCards.length]);
 
   const handleQuickCash = (amount: number) => {
     setCashTendered(amount.toString());
@@ -237,7 +281,7 @@ export default function PaymentModal({
   const handleComplete = () => {
     if (isFullyPaid) {
       setShowSuccess(true);
-      
+
       setTimeout(() => {
         onComplete({
           methods: paymentMethods,
@@ -269,37 +313,65 @@ export default function PaymentModal({
 
   const handleAutoDistributeTip = () => {
     if (tipAmount <= 0 || staffMembers.length === 0) return;
-    
+
     const totalServiceRevenue = staffMembers.reduce((sum, s) => sum + (s.serviceTotal || 0), 0);
-    
+
     if (totalServiceRevenue === 0) {
       handleEqualSplitTip();
       return;
     }
-    
+
     const distribution = staffMembers.map(staff => ({
       staffId: staff.id,
       staffName: staff.name,
       amount: (tipAmount * (staff.serviceTotal || 0)) / totalServiceRevenue
     }));
-    
+
     setTipDistribution(distribution);
     setShowTipDistribution(true);
   };
 
   const handleEqualSplitTip = () => {
     if (tipAmount <= 0 || staffMembers.length === 0) return;
-    
+
     const amountPerStaff = tipAmount / staffMembers.length;
     const distribution = staffMembers.map(staff => ({
       staffId: staff.id,
       staffName: staff.name,
       amount: amountPerStaff
     }));
-    
+
     setTipDistribution(distribution);
     setShowTipDistribution(true);
   };
+
+  // Gift card handlers
+  const handleApplyGiftCard = useCallback((giftCard: AppliedGiftCard) => {
+    // Add to applied gift cards list
+    setAppliedGiftCards(prev => [...prev, giftCard]);
+
+    // Add as a payment method
+    const newPayment: PaymentMethod = {
+      type: 'gift_card',
+      amount: giftCard.amountUsed,
+      customName: `Gift Card (${giftCard.code})`,
+    };
+    setPaymentMethods(prev => [...prev, newPayment]);
+    setShowGiftCardModal(false);
+  }, []);
+
+  const handleRemoveGiftCard = useCallback((code: string) => {
+    // Remove from applied gift cards
+    const removedCard = appliedGiftCards.find(gc => gc.code === code);
+    setAppliedGiftCards(prev => prev.filter(gc => gc.code !== code));
+
+    // Remove from payment methods
+    if (removedCard) {
+      setPaymentMethods(prev =>
+        prev.filter(p => !(p.type === 'gift_card' && p.customName?.includes(code)))
+      );
+    }
+  }, [appliedGiftCards]);
 
   const PAYMENT_METHODS = [
     { id: "card", label: "Credit Card", icon: CreditCard },
@@ -335,6 +407,7 @@ export default function PaymentModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] w-[95vw] max-w-lg sm:max-w-xl md:max-w-2xl flex flex-col p-0 z-[100]">
         <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 flex-shrink-0">
@@ -425,7 +498,7 @@ export default function PaymentModal({
                     className="mt-3 h-11"
                     data-testid="input-custom-tip"
                   />
-                  
+
                   {staffMembers.length > 1 && tipAmount > 0 && (
                     <div className="mt-4 space-y-2">
                       <div className="flex gap-2">
@@ -448,7 +521,7 @@ export default function PaymentModal({
                           Split Equally
                         </Button>
                       </div>
-                      
+
                       {showTipDistribution && tipDistribution.length > 0 && (
                         <Card className="p-3 bg-green-500/5 border-green-500/20">
                           <div className="text-xs font-medium text-muted-foreground mb-2">Tip Distribution</div>
@@ -555,9 +628,9 @@ export default function PaymentModal({
                       <label className="text-sm font-medium mb-2 block">Payments applied</label>
                       <div className="flex flex-wrap gap-2">
                         {paymentMethods.map((method, index) => (
-                          <Badge 
-                            key={index} 
-                            variant="secondary" 
+                          <Badge
+                            key={index}
+                            variant="secondary"
                             className="px-3 py-2 text-sm gap-2"
                             data-testid={`badge-payment-${index}`}
                           >
@@ -694,19 +767,53 @@ export default function PaymentModal({
                         )}
 
                         {currentMethod === "gift_card" && (
-                          <Button
-                            className="w-full h-14 text-base"
-                            onClick={() => handleAddPayment(remaining)}
-                            disabled={isProcessing}
-                            data-testid="button-apply-gift-card"
-                          >
-                            {isProcessing ? (
-                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            ) : (
-                              <Gift className="h-5 w-5 mr-2" />
+                          <div className="space-y-3">
+                            <label className="text-sm font-medium block">Gift Card Payment</label>
+
+                            {/* Show applied gift cards */}
+                            {appliedGiftCards.length > 0 && (
+                              <div className="space-y-2">
+                                {appliedGiftCards.map((gc) => (
+                                  <Card
+                                    key={gc.code}
+                                    className="p-3 bg-purple-500/10 border-purple-500/20"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <Gift className="h-4 w-4 text-purple-600" />
+                                        <div>
+                                          <p className="font-mono text-sm font-medium">
+                                            {gc.code}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            -${gc.amountUsed.toFixed(2)} applied • ${gc.remainingBalance.toFixed(2)} remaining
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() => handleRemoveGiftCard(gc.code)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
                             )}
-                            {isProcessing ? "Processing..." : `Apply $${remaining.toFixed(2)}`}
-                          </Button>
+
+                            <Button
+                              className="w-full h-14 text-base"
+                              onClick={() => setShowGiftCardModal(true)}
+                              disabled={remaining <= 0}
+                              data-testid="button-enter-gift-card"
+                            >
+                              <Gift className="h-5 w-5 mr-2" />
+                              {appliedGiftCards.length > 0 ? 'Add Another Gift Card' : 'Enter Gift Card Code'}
+                            </Button>
+                          </div>
                         )}
 
                         {currentMethod === "custom" && (
@@ -783,5 +890,16 @@ export default function PaymentModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Gift Card Redeem Modal */}
+    <GiftCardRedeemModal
+      open={showGiftCardModal}
+      onOpenChange={setShowGiftCardModal}
+      remainingTotal={remaining}
+      appliedGiftCards={appliedGiftCards}
+      onApplyGiftCard={handleApplyGiftCard}
+      onRemoveGiftCard={handleRemoveGiftCard}
+    />
+    </>
   );
 }
