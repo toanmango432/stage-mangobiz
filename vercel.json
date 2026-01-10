@@ -1,4 +1,5 @@
 {
+  "outputDirectory": "apps/store-app/dist",
   "rewrites": [
     {
       "source": "/(.*)",
