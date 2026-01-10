@@ -1,16 +1,18 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { authReducer, uiReducer, checkinReducer } from './slices';
+import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux';
+import { authReducer, uiReducer, checkinReducer, clientReducer, syncReducer } from './slices';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     ui: uiReducer,
     checkin: checkinReducer,
+    client: clientReducer,
+    sync: syncReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore these action types for serializable check (dates, etc.)
         ignoredActions: ['checkin/setQueueStatus'],
       },
     }),
@@ -20,5 +22,7 @@ export const store = configureStore({
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-// Re-export everything from slices for convenience
+export const useAppDispatch: () => AppDispatch = useDispatch;
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+
 export * from './slices';

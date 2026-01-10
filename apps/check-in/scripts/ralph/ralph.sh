@@ -10,6 +10,18 @@ PRD_FILE="$SCRIPT_DIR/prd.json"
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+NOTIFY_SCRIPT="/Users/seannguyen/scripts/ralph-notify.py"
+PROJECT_NAME="Mango Check-In App"
+
+# Function to send notification
+notify() {
+  local status="$1"
+  local subject="$2"
+  local body="$3"
+  if [ -f "$NOTIFY_SCRIPT" ]; then
+    python3 "$NOTIFY_SCRIPT" "$status" "$subject" "$body" 2>/dev/null || true
+  fi
+}
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
@@ -52,6 +64,7 @@ if [ ! -f "$PROGRESS_FILE" ]; then
 fi
 
 echo "Starting Ralph - Max iterations: $MAX_ITERATIONS"
+notify "info" "$PROJECT_NAME - Ralph Started" "Starting autonomous build with max $MAX_ITERATIONS iterations."
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
@@ -60,13 +73,18 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "═══════════════════════════════════════════════════════"
   
   # Run amp with the ralph prompt
-  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || {
+    echo "Error in iteration $i"
+    notify "error" "$PROJECT_NAME - Error at Iteration $i" "Ralph encountered an error during iteration $i. Check the terminal for details."
+    continue
+  }
   
   # Check for completion signal
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     echo ""
-    echo "Ralph completed all tasks!"
+    echo "🎉 Ralph completed all tasks!"
     echo "Completed at iteration $i of $MAX_ITERATIONS"
+    notify "success" "$PROJECT_NAME - BUILD COMPLETE! 🎉" "All stories completed successfully at iteration $i of $MAX_ITERATIONS. Check progress.txt for details."
     exit 0
   fi
   
@@ -75,6 +93,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 done
 
 echo ""
-echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
+echo "⚠️ Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
 echo "Check $PROGRESS_FILE for status."
+notify "warning" "$PROJECT_NAME - Max Iterations Reached" "Ralph completed $MAX_ITERATIONS iterations but not all stories are done. Check progress.txt for status."
 exit 1

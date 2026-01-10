@@ -1,4 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from './store';
+import { CheckInMqttProvider } from './providers/MqttProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeScreen } from './pages/WelcomeScreen';
 import { QrScanPage } from './pages/QrScanPage';
 import { VerifyPage } from './pages/VerifyPage';
@@ -11,14 +15,11 @@ import { ConfirmPage } from './pages/ConfirmPage';
 import { SuccessPage } from './pages/SuccessPage';
 import { OfflineBanner } from './components/OfflineBanner';
 
-export function App() {
+function AppRoutes() {
   return (
     <BrowserRouter>
-      {/* Global offline indicator */}
       <OfflineBanner />
-
       <Routes>
-        {/* Client Check-In Flow */}
         <Route path="/" element={<WelcomeScreen />} />
         <Route path="/qr-scan" element={<QrScanPage />} />
         <Route path="/verify" element={<VerifyPage />} />
@@ -31,5 +32,17 @@ export function App() {
         <Route path="/success" element={<SuccessPage />} />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+export function App() {
+  return (
+    <ErrorBoundary>
+      <Provider store={store}>
+        <CheckInMqttProvider>
+          <AppRoutes />
+        </CheckInMqttProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }

@@ -1,3 +1,62 @@
 # Ralph Progress Log
-Started: Fri Jan  9 19:57:30 CST 2026
+Started: Fri Jan 10 2026
+Branch: ralph/check-in-production
+Stories: 24 (Phase 0-3: Design, Integration, Features, Quality)
+
+## Codebase Patterns
+
+> Reusable patterns discovered during implementation. Add general learnings here.
+
+- Use dataService for all data operations, never Supabase directly
+- Redux thunks go in src/store/slices/
+- Design tokens in src/design-system/
+- MQTT provider implemented locally in src/providers/MqttProvider.tsx (standalone, not using @mango/mqtt)
+- Components follow pattern: src/components/[ComponentName]/index.tsx
+- Types are in src/types/index.ts
+- Use Zod for form validation with React Hook Form
+- Touch targets must be minimum 44x44px for tablet use
+- All pages are in src/pages/ directory
+- Design documentation lives in docs/design/ directory
+- Mango brand color is #1a5f4a (primary) and #d4a853 (secondary/accent)
+- Background is warm cream #faf9f7, not pure white
+- Typography: Plus Jakarta Sans for headers, Work Sans for body
+
+---
+
+## Sat Jan 10 2026 - US-001
+Thread: https://ampcode.com/threads/T-019ba7ba-f376-753f-8e9f-d06923244948
+- Created comprehensive design system documentation
+- Files changed:
+  - docs/design/design-system.md (color palette, typography, spacing, shadows)
+  - docs/design/component-specs.md (buttons, inputs, cards, modals, icons)
+  - docs/design/tablet-layouts.md (7-10" tablet layouts, screen-by-screen specs)
+  - docs/design/micro-interactions.md (animations, transitions, loading states)
+- **Learnings for future iterations:**
+  - Existing pages already follow Mango design patterns (colors, fonts)
+  - CSS uses inline styles with Tailwind classes, not CSS-in-JS
+  - Animations defined inline with <style> blocks in components
+  - Kiosk mode class prevents text selection and touch callouts
+---
+
+## Sat Jan 10 2026 - US-002
+Thread: https://ampcode.com/threads/T-019ba7c1-9a16-77fe-a801-371a97d6cf39
+- Implemented core architecture foundation
+- Files changed:
+  - src/store/index.ts (Redux store with all reducers + typed hooks)
+  - src/store/slices/clientSlice.ts (NEW: client state + async thunks)
+  - src/store/slices/syncSlice.ts (NEW: offline sync queue state)
+  - src/store/slices/index.ts (exports all slices)
+  - src/services/dataService.ts (NEW: unified data access facade)
+  - src/services/supabase/client.ts (NEW: Supabase client init)
+  - src/services/db/database.ts (NEW: Dexie.js IndexedDB for offline)
+  - src/providers/MqttProvider.tsx (NEW: MQTT context for real-time)
+  - src/components/ErrorBoundary/index.tsx (NEW: error boundary)
+  - src/App.tsx (refactored with Provider, ErrorBoundary, MqttProvider)
+  - package.json (added @supabase/supabase-js, dexie)
+- **Learnings for future iterations:**
+  - The @mango/mqtt package has unresolved dependencies on parent supabase types, so check-in app uses its own lightweight MqttProvider
+  - Supabase client reads from VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY env vars
+  - IndexedDB tables: clients, services, technicians, checkins, syncQueue
+  - All async thunks should return null (not undefined) for not-found cases
+  - Error boundaries need class components (not function components)
 ---

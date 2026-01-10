@@ -20,15 +20,18 @@ importers:
 
   apps/check-in:
     dependencies:
-      '@mango/mqtt':
-        specifier: workspace:*
-        version: link:../../packages/mqtt
       '@reduxjs/toolkit':
         specifier: ^2.11.2
         version: 2.11.2(react-redux@9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
+      '@supabase/supabase-js':
+        specifier: ^2.49.4
+        version: 2.89.0
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dexie:
+        specifier: ^4.0.11
+        version: 4.2.1
       html5-qrcode:
         specifier: ^2.3.8
         version: 2.3.8

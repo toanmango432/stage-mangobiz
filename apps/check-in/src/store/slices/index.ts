@@ -24,3 +24,26 @@ export {
   setCompletedCheckInId,
   resetCheckin,
 } from './checkinSlice';
+
+export {
+  default as clientReducer,
+  setCurrentClient as setClientCurrent,
+  clearPhoneSearch,
+  clearError as clearClientError,
+  resetClient,
+  fetchClientByPhone,
+  createClient,
+} from './clientSlice';
+
+export {
+  default as syncReducer,
+  setOnlineStatus,
+  setSyncStatus,
+  setLastSyncedAt,
+  addToSyncQueue,
+  removeFromSyncQueue,
+  incrementAttempts,
+  clearSyncQueue,
+  setSyncError,
+  resetSync,
+} from './syncSlice';

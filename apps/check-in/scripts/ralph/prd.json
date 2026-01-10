@@ -1,134 +1,448 @@
 {
-  "branchName": "ralph/check-in-mvp",
-  "projectName": "Mango Check-In App",
-  "version": "1.0.0",
-  "description": "Self-service kiosk for salon walk-in check-in",
-  "stories": [
+  "project": "Mango Check-In App",
+  "branchName": "ralph/check-in-production",
+  "description": "Production-ready Check-In App with design system, full integration, testing, security, and performance optimization",
+  "userStories": [
     {
-      "id": "CHECKIN-001",
-      "title": "Setup project structure and core components",
-      "description": "Create base layout, Redux store setup, types, and folder structure. Should include: App.tsx refactor with layout, Redux slices for auth/ui/checkin, TypeScript types for CheckIn/Client/Service data models.",
+      "id": "US-001",
+      "title": "Design System with mango-designer",
+      "description": "As a designer, I want to establish a design system before coding so that all UI components are consistent and professional",
+      "acceptanceCriteria": [
+        "Load mango-designer skill first",
+        "Review existing Check-In pages and components",
+        "Create design-system.md with color palette, typography, spacing (8px grid)",
+        "Create component-specs.md with button, input, card specifications",
+        "Create tablet-layouts.md for 7-10 inch screens",
+        "Document micro-interactions and transitions",
+        "Ensure 4.5:1 color contrast ratio for accessibility",
+        "DO NOT write code - design documentation only",
+        "Typecheck passes"
+      ],
       "priority": 1,
-      "passes": false
+      "passes": true,
+      "notes": "PHASE 0 - Must complete before any coding. Load mango-designer skill."
     },
     {
-      "id": "CHECKIN-002",
-      "title": "Welcome screen with phone input",
-      "description": "Build landing page with welcome message and phone number input field. Should include: numeric keypad, real-time phone formatting (XXX) XXX-XXXX, lookup button, 'Create New' button for new clients.",
+      "id": "US-002",
+      "title": "Redux + DataService + MQTT Foundation",
+      "description": "As a developer, I want the core architecture in place so that all features have a solid foundation",
+      "acceptanceCriteria": [
+        "Redux store configured in src/store/index.ts",
+        "Slices created: checkinSlice, clientSlice, authSlice, uiSlice, syncSlice",
+        "dataService facade created in src/services/dataService.ts",
+        "Supabase client initialized",
+        "MQTT client setup in src/providers/MqttProvider.tsx",
+        "Error boundaries added",
+        "Auth context configured",
+        "TypeScript types in src/types/index.ts for CheckIn, Client, Service",
+        "App.tsx refactored with all providers",
+        "Typecheck passes",
+        "pnpm build succeeds"
+      ],
       "priority": 2,
-      "passes": false
+      "passes": true,
+      "notes": "PHASE 0 - Critical foundation. Load compound-engineering skill."
     },
     {
-      "id": "CHECKIN-003",
-      "title": "Phone lookup and client identification",
-      "description": "Implement phone number lookup against Supabase client database. Should include: call dataService to fetch client by phone, show client name/preferences, handle 'not found' case, display client preferences if returning.",
+      "id": "US-003",
+      "title": "Phone Lookup Integration (Welcome → Verify)",
+      "description": "As a returning client, I want to enter my phone number so that my profile is found automatically",
+      "acceptanceCriteria": [
+        "Redux thunk fetchClientByPhone calls dataService.clients.getByPhone",
+        "Welcome page has phone input with numeric keypad",
+        "Phone formatting (XXX) XXX-XXXX applied",
+        "Verify page shows real client data from Redux",
+        "Not-found case shows Create New option",
+        "Lookup completes in < 2 seconds",
+        "Unit test for fetchClientByPhone thunk",
+        "Integration test for phone lookup flow",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 3,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-004",
-      "title": "New client registration flow",
-      "description": "Create registration form for new clients. Required fields: first name, last name, phone number. Optional: email, zip code. Should include: field validation (inline), phone duplicate check, SMS opt-in checkbox with consent, privacy policy link modal.",
+      "id": "US-004",
+      "title": "New Client Registration",
+      "description": "As a new client, I want to register my information so that I can check in for services",
+      "acceptanceCriteria": [
+        "Registration form with required fields: first name, last name, phone",
+        "Optional fields: email, zip code",
+        "Redux thunk createClient calls dataService.clients.create",
+        "Inline field validation with Zod schema",
+        "Phone duplicate check before submission",
+        "SMS opt-in checkbox with consent text",
+        "Privacy policy modal",
+        "Unit test for createClient thunk",
+        "Integration test for registration flow",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 4,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-005",
-      "title": "Service selection screen",
-      "description": "Build service catalog display. Should include: fetch all active services from Supabase, group by category, show service name/duration/price, multi-select with tap to add/remove, running total of selected services, search/filter capability.",
+      "id": "US-005",
+      "title": "Service Catalog Fetch & Cache",
+      "description": "As a client, I want to see available services so that I can select what I need",
+      "acceptanceCriteria": [
+        "Redux thunk fetchServices calls dataService.services.getAll",
+        "Services grouped by category in UI",
+        "Each service shows name, duration, price",
+        "Multi-select with tap to add/remove",
+        "Running total displayed",
+        "Search/filter by service name",
+        "Services cached in IndexedDB for offline",
+        "Unit test for fetchServices thunk",
+        "Integration test for service selection",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 5,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-006",
-      "title": "Technician selection with 'Anyone Available' default",
-      "description": "Create technician selection screen. Should include: 'Anyone Available' as default option (recommended), list technicians qualified for selected services, show technician photo/name/status, status indicators (Available/With Client/On Break), remember preferred technician.",
+      "id": "US-006",
+      "title": "Technician Status (MQTT Subscribe)",
+      "description": "As a client, I want to see technician availability so that I can choose who serves me",
+      "acceptanceCriteria": [
+        "Subscribe to salon/{id}/staff/status MQTT topic",
+        "Display technicians qualified for selected services",
+        "Anyone Available as default option with recommended badge",
+        "Show technician photo, name, status",
+        "Status indicators: Available, With Client, On Break",
+        "Real-time status updates via MQTT",
+        "Integration test for MQTT subscription",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 6,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-007",
-      "title": "Review and confirmation screen",
-      "description": "Build checkout/review screen showing all check-in details. Should include: client name, selected services, technician choice, unique check-in number generation (A001 format), queue position, estimated wait time, loyalty points display.",
+      "id": "US-007",
+      "title": "Check-In Creation & Publishing",
+      "description": "As a client, I want to submit my check-in so that I join the queue",
+      "acceptanceCriteria": [
+        "Redux thunk createCheckIn builds CheckIn object",
+        "Unique check-in number generated (A001 format)",
+        "Check-in saved via dataService.checkins.create",
+        "Publish to salon/{id}/checkin/new MQTT topic",
+        "Confirmation screen shows check-in details",
+        "Queue position and estimated wait displayed",
+        "Integration test for check-in creation",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 7,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-008",
-      "title": "MQTT integration with Store App",
-      "description": "Connect Check-In App to Store App via MQTT for real-time updates. Should include: publish check-in events to salon/{id}/checkin/new, subscribe to salon/{id}/queue/status for queue updates, handle offline queue display ('Syncing...').",
+      "id": "US-008",
+      "title": "Queue Position Updates (MQTT)",
+      "description": "As a waiting client, I want real-time queue updates so that I know my position",
+      "acceptanceCriteria": [
+        "Subscribe to salon/{id}/queue/status MQTT topic",
+        "Waiting screen shows current queue position",
+        "Estimated wait time with +/- 5 min indicator",
+        "Visual indicator of queue length",
+        "Redux state updated on MQTT message",
+        "Integration test for queue updates",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 8,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-009",
-      "title": "Queue position and wait time display",
-      "description": "Show real-time queue info on confirmation and waiting screens. Should include: current queue position, estimated wait time (±5 min), visual indicator of queue length, refresh updates from Store App, 'Call' event listener.",
+      "id": "US-009",
+      "title": "Client Called Handler (MQTT)",
+      "description": "As a client, I want to be notified when it is my turn so that I can proceed to the service area",
+      "acceptanceCriteria": [
+        "Subscribe to salon/{id}/checkin/called MQTT topic",
+        "Visual and audio notification when called",
+        "Screen transitions to Called state",
+        "Displays which technician/station to go to",
+        "Integration test for called handler",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 9,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-010",
-      "title": "IndexedDB offline storage",
-      "description": "Implement offline-first storage using Dexie.js. Should include: cache service catalog (services, staff), store check-ins locally, sync when connection restored, offline indicator banner.",
+      "id": "US-010",
+      "title": "Offline Mode - IndexedDB Sync",
+      "description": "As a salon, I want the kiosk to work offline so that check-ins continue during outages",
+      "acceptanceCriteria": [
+        "Service catalog cached in IndexedDB via Dexie.js",
+        "Staff list cached in IndexedDB",
+        "Check-ins stored locally when offline",
+        "Sync queue processes when connection restored",
+        "Offline indicator banner displayed",
+        "Redux syncSlice tracks sync status",
+        "Integration test for offline sync",
+        "Typecheck passes"
+      ],
       "priority": 10,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-011",
-      "title": "Guest/party check-in feature",
-      "description": "Allow adding guests to check-in. Should include: 'Add Guest' button after services selected, guest name/phone entry, each guest selects services independently, party preference (serve together/in order), max 6 guests, single confirmation.",
+      "id": "US-011",
+      "title": "Guest Check-In",
+      "description": "As a client with guests, I want to add people to my check-in so that we can be served together",
+      "acceptanceCriteria": [
+        "Add Guest button after services selected",
+        "Guest entry: name (required), phone (optional)",
+        "Each guest selects services independently",
+        "Party preference: serve together or in order",
+        "Maximum 6 guests per check-in",
+        "Single confirmation for entire party",
+        "Apply design specs from US-001",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 11,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-012",
-      "title": "QR code scanning for appointments",
-      "description": "Add QR code scanning capability. Should include: camera access, QR decode library, appointment lookup from QR data, show appointment details for confirmation, one-tap confirm arrival.",
+      "id": "US-012",
+      "title": "QR Code Appointment Lookup",
+      "description": "As a client with an appointment, I want to scan a QR code so that I can quickly confirm my arrival",
+      "acceptanceCriteria": [
+        "Camera access requested and handled gracefully",
+        "QR decode library integrated (e.g., @zxing/browser)",
+        "Appointment lookup from QR data",
+        "Show appointment details for confirmation",
+        "One-tap confirm arrival button",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 12,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-013",
-      "title": "SMS opt-in and notification integration",
-      "description": "Enable SMS notifications for queue status. Should include: SMS opt-in checkbox (pre-checked), link to SMS service, send notification when client is called, unsubscribe handling.",
+      "id": "US-013",
+      "title": "SMS Notifications",
+      "description": "As a client, I want SMS notifications so that I know when it is my turn",
+      "acceptanceCriteria": [
+        "SMS opt-in checkbox on registration (pre-checked)",
+        "SMS service integration endpoint configured",
+        "Notification triggered when client called from queue",
+        "Unsubscribe handling in client profile",
+        "Typecheck passes"
+      ],
       "priority": 13,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-014",
-      "title": "Analytics and event tracking",
-      "description": "Setup event tracking for key metrics. Should include: track checkin_started, phone_entered, services_selected, technician_selected, guest_added, checkin_completed, checkin_abandoned events.",
+      "id": "US-014",
+      "title": "Admin Assistance Mode",
+      "description": "As a client needing help, I want to request staff assistance so that someone can help me",
+      "acceptanceCriteria": [
+        "Help button visible on all screens",
+        "Staff notification sent via MQTT",
+        "Optional admin mode for staff to assist",
+        "PIN or biometric unlock for admin mode",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 14,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-015",
-      "title": "Accessibility improvements",
-      "description": "Ensure accessibility compliance. Should include: large touch targets (44x44px), color contrast (4.5:1), screen reader labels, keyboard navigation, large text mode option, reduced motion option.",
+      "id": "US-015",
+      "title": "Analytics Event Tracking",
+      "description": "As a salon owner, I want to track check-in metrics so that I can optimize the experience",
+      "acceptanceCriteria": [
+        "Track checkin_started event",
+        "Track phone_entered event",
+        "Track services_selected event",
+        "Track technician_selected event",
+        "Track guest_added event",
+        "Track checkin_completed event",
+        "Track checkin_abandoned event",
+        "Analytics service abstraction layer",
+        "Typecheck passes"
+      ],
       "priority": 15,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-016",
-      "title": "Staff assistance and help mode",
-      "description": "Add help/assistance feature for clients. Should include: help button visible on all screens, staff notification to kiosk, optionally open admin mode for staff to assist, accessibility request handling.",
+      "id": "US-016",
+      "title": "Service Upsell Cards",
+      "description": "As a salon, I want to suggest add-on services so that clients discover more offerings",
+      "acceptanceCriteria": [
+        "Upsell cards displayed on service selection page",
+        "Cards show popular add-ons based on selected services",
+        "Quick-add button on each card",
+        "Apply design specs from US-001",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 16,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-017",
-      "title": "Mobile responsive design and styling",
-      "description": "Apply responsive design and Tailwind styling. Should include: works on 7\"-10\" tablets, portrait and landscape modes, touch-friendly spacing, design system tokens, tablet-optimized UI.",
+      "id": "US-017",
+      "title": "Loyalty Points Display",
+      "description": "As a returning client, I want to see my loyalty points so that I know my rewards status",
+      "acceptanceCriteria": [
+        "Loyalty points fetched with client profile",
+        "Points displayed on verify and confirmation screens",
+        "Progress bar toward next reward tier",
+        "Apply design specs from US-001",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 17,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {
-      "id": "CHECKIN-018",
-      "title": "Testing and quality assurance",
-      "description": "Add unit and integration tests. Should include: Redux thunk tests, component tests for key flows, integration tests for dataService calls, E2E test for happy path.",
+      "id": "US-018",
+      "title": "Duration & Price Display",
+      "description": "As a client, I want to see service duration and prices clearly so that I can make informed choices",
+      "acceptanceCriteria": [
+        "Duration shown in minutes for each service",
+        "Price formatted with currency symbol",
+        "Total duration and price shown in summary",
+        "Apply design specs from US-001",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
       "priority": 18,
-      "passes": false
+      "passes": false,
+      "notes": "PHASE 2 - Features. Load test-generator skill."
+    },
+    {
+      "id": "US-019",
+      "title": "Accessibility (WCAG 2.1 AA)",
+      "description": "As a client with accessibility needs, I want the kiosk to be usable so that I can check in independently",
+      "acceptanceCriteria": [
+        "ARIA labels on all interactive elements",
+        "Touch targets minimum 44x44px",
+        "Color contrast ratio 4.5:1 verified",
+        "Keyboard navigation support",
+        "Screen reader compatibility tested",
+        "Large text mode option",
+        "Reduced motion option",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "PHASE 3 - Quality. Load test-generator skill."
+    },
+    {
+      "id": "US-020",
+      "title": "Security Hardening",
+      "description": "As a salon, I want the app to be secure so that client data is protected",
+      "acceptanceCriteria": [
+        "Load security-audit skill",
+        "Input validation on all forms",
+        "Rate limiting on API calls",
+        "CSRF protection verified",
+        "Data sanitization (DOMPurify) applied",
+        "RLS policies audited in Supabase",
+        "No hardcoded credentials",
+        "Security audit report generated",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "PHASE 3 - Quality. Load security-audit skill."
+    },
+    {
+      "id": "US-021",
+      "title": "Unit Tests (70% Coverage)",
+      "description": "As a developer, I want comprehensive unit tests so that the app is reliable",
+      "acceptanceCriteria": [
+        "Unit tests for all Redux thunks",
+        "Unit tests for dataService methods with mocked Supabase",
+        "Unit tests for utility functions",
+        "Unit tests for form validation logic",
+        "Test coverage >= 70%",
+        "pnpm test:coverage generates report",
+        "All tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "PHASE 3 - Quality. Load test-generator skill."
+    },
+    {
+      "id": "US-022",
+      "title": "E2E Tests (Happy Path)",
+      "description": "As a developer, I want E2E tests so that critical user journeys are verified",
+      "acceptanceCriteria": [
+        "Playwright E2E test for returning client flow",
+        "Playwright E2E test for new client registration",
+        "Playwright E2E test for guest addition",
+        "Playwright E2E test for offline sync scenario",
+        "Mock MQTT and Supabase in tests",
+        "pnpm test:e2e passes",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "PHASE 3 - Quality. Load test-generator skill."
+    },
+    {
+      "id": "US-023",
+      "title": "Performance Optimization",
+      "description": "As a user, I want the app to be fast so that check-in is quick and smooth",
+      "acceptanceCriteria": [
+        "Load performance-profiler skill",
+        "Bundle size < 500KB gzipped",
+        "Page load < 2 seconds",
+        "Code splitting implemented",
+        "Images optimized",
+        "Lighthouse score >= 90",
+        "Performance report generated",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "PHASE 3 - Quality. Load performance-profiler skill."
+    },
+    {
+      "id": "US-024",
+      "title": "Final Code Review & Documentation",
+      "description": "As a developer, I want clean code and documentation so that the app is maintainable",
+      "acceptanceCriteria": [
+        "Load code-review skill for audit",
+        "Code quality audit passed",
+        "Best practices followed per CLAUDE.md",
+        "Pattern consistency verified",
+        "No console errors",
+        "Load documentation-generator skill",
+        "API documentation generated",
+        "Architecture docs in docs/check-in/",
+        "Deployment guide created",
+        "All tests pass",
+        "pnpm build succeeds",
+        "No uncommitted changes",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "PHASE 3 - Final. Load code-review and documentation-generator skills."
     }
   ]
 }
