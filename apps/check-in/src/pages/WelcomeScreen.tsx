@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QrCode, Sparkles, Clock, Delete, ChevronRight, Check, X, Gift } from 'lucide-react';
+import { formatPhone } from '../utils';
 
 // ============================================================================
 // STORE CONFIG - Will come from API/Context
@@ -67,13 +68,6 @@ function getGreeting(): string {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
-}
-
-function formatPhone(digits: string): string {
-  if (!digits) return '';
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
 }
 
 export function WelcomeScreen() {
