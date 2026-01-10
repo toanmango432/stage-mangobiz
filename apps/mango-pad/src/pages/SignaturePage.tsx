@@ -1,153 +1,226 @@
-import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PenTool, RotateCcw, Check } from 'lucide-react';
+/**
+ * SignaturePage - Signature Capture Screen
+ * US-005: Allows clients to sign digitally to authorize payment
+ */
+
+import { useRef, useState, useCallback } from 'react';
+import SignatureCanvas from 'react-signature-canvas';
+import { motion } from 'framer-motion';
+import { PenTool, RotateCcw, Check, HelpCircle } from 'lucide-react';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { usePadMqtt } from '@/providers/PadMqttProvider';
+import { setScreen } from '@/store/slices/padSlice';
+import { setSignature } from '@/store/slices/transactionSlice';
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+}
 
 export function SignaturePage() {
-  const navigate = useNavigate();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSignature, setHasSignature] = useState(false);
+  const dispatch = useAppDispatch();
+  const { publishSignature, publishHelpRequested } = usePadMqtt();
+  const transaction = useAppSelector((state) => state.transaction.current);
+  const tip = useAppSelector((state) => state.transaction.tip);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const signatureRef = useRef<SignatureCanvas | null>(null);
+  const [isEmpty, setIsEmpty] = useState(true);
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  if (!transaction) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xl text-gray-500">No transaction data</p>
+      </div>
+    );
+  }
 
-    setIsDrawing(true);
-    setHasSignature(true);
+  const tipAmount = tip?.tipAmount ?? 0;
+  const finalTotal = transaction.total + tipAmount;
 
-    const rect = canvas.getBoundingClientRect();
-    let x, y;
+  const handleClear = useCallback(() => {
+    signatureRef.current?.clear();
+    setIsEmpty(true);
+  }, []);
 
-    if ('touches' in e) {
-      x = e.touches[0].clientX - rect.left;
-      y = e.touches[0].clientY - rect.top;
-    } else {
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
+  const handleBegin = useCallback(() => {
+    setIsEmpty(false);
+  }, []);
+
+  const handleEnd = useCallback(() => {
+    if (signatureRef.current) {
+      setIsEmpty(signatureRef.current.isEmpty());
+    }
+  }, []);
+
+  const handleComplete = async () => {
+    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+      return;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
+    const signatureBase64 = signatureRef.current.toDataURL('image/png');
+    const agreedAt = new Date().toISOString();
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
+    dispatch(
+      setSignature({
+        signatureBase64,
+        agreedAt,
+      })
+    );
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    let x, y;
-
-    if ('touches' in e) {
-      e.preventDefault();
-      x = e.touches[0].clientX - rect.left;
-      y = e.touches[0].clientY - rect.top;
-    } else {
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
+    try {
+      await publishSignature({
+        signatureBase64,
+        agreedAt,
+      });
+    } catch (error) {
+      console.error('Failed to publish signature:', error);
     }
 
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#1f2937';
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    dispatch(setScreen('payment'));
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasSignature(false);
-  };
-
-  const handleComplete = () => {
-    // In real implementation, save signature and send back to POS
-    navigate('/');
+  const handleNeedHelp = async () => {
+    try {
+      await publishHelpRequested('signature');
+    } catch (error) {
+      console.error('Failed to publish help request:', error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-center">
-          <PenTool className="w-6 h-6 text-orange-500 mr-2" />
-          <h1 className="text-xl font-semibold text-gray-800">Sign Below</h1>
-        </div>
-      </div>
+      <header className="p-6 bg-white border-b border-gray-100 shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <PenTool className="w-7 h-7 text-indigo-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Sign to Agree</h1>
+          </div>
+          <p className="text-lg text-gray-500">
+            Please sign below to authorize payment
+          </p>
+        </motion.div>
+      </header>
 
       {/* Content */}
-      <div className="flex-1 p-6 flex flex-col">
-        <div className="flex-1 max-w-2xl mx-auto w-full">
-          {/* Instructions */}
-          <p className="text-gray-600 text-center mb-4">
-            Please sign in the box below to complete your transaction
-          </p>
+      <main className="flex-1 overflow-auto p-6 flex flex-col">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="max-w-2xl mx-auto w-full flex-1 flex flex-col"
+        >
+          {/* Total Display */}
+          <div className="bg-indigo-50 rounded-2xl p-6 mb-6">
+            <div className="text-center">
+              <p className="text-lg text-indigo-600 font-medium mb-1">Total Amount</p>
+              <p className="text-4xl font-bold text-indigo-900">{formatCurrency(finalTotal)}</p>
+              {tipAmount > 0 && (
+                <p className="text-base text-indigo-500 mt-2">
+                  (includes {formatCurrency(tipAmount)} tip)
+                </p>
+              )}
+            </div>
+          </div>
 
-          {/* Signature Canvas */}
-          <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 relative overflow-hidden">
-            <canvas
-              ref={canvasRef}
-              width={600}
-              height={300}
-              className="w-full touch-none cursor-crosshair"
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
-            />
+          {/* Signature Canvas Container */}
+          <div className="flex-1 min-h-[200px] mb-6">
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-300 relative overflow-hidden h-full min-h-[200px] shadow-sm">
+              <SignatureCanvas
+                ref={signatureRef}
+                canvasProps={{
+                  className: 'w-full h-full min-h-[200px] touch-none cursor-crosshair',
+                  style: { width: '100%', height: '100%', minHeight: '200px' },
+                }}
+                penColor="#1f2937"
+                backgroundColor="rgba(255, 255, 255, 0)"
+                dotSize={2}
+                minWidth={2}
+                maxWidth={4}
+                throttle={16}
+                onBegin={handleBegin}
+                onEnd={handleEnd}
+              />
 
-            {/* Signature line */}
-            <div className="absolute bottom-8 left-8 right-8 border-b border-gray-300" />
-            <div className="absolute bottom-4 left-8 text-xs text-gray-400">
-              Sign here
+              {/* Signature line */}
+              <div className="absolute bottom-12 left-6 right-6 border-b-2 border-gray-300 pointer-events-none" />
+              <div className="absolute bottom-6 left-6 text-sm text-gray-400 pointer-events-none">
+                Sign above this line
+              </div>
+
+              {/* Empty state hint */}
+              {isEmpty && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <p className="text-xl text-gray-300 font-medium">
+                    Draw your signature here
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Clear Button */}
-          <button
-            onClick={clearSignature}
-            className="mt-4 flex items-center justify-center text-gray-600 hover:text-gray-800 mx-auto"
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleClear}
+            disabled={isEmpty}
+            className={`min-h-[56px] rounded-xl flex items-center justify-center gap-2 mb-4 transition-all ${
+              isEmpty
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-[0.98]'
+            }`}
           >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Clear Signature
-          </button>
-        </div>
-      </div>
+            <RotateCcw className="w-5 h-5" />
+            <span className="text-lg font-medium">Clear Signature</span>
+          </motion.button>
 
-      {/* Complete Button */}
-      <div className="p-6 bg-white border-t">
-        <button
-          onClick={handleComplete}
-          disabled={!hasSignature}
-          className={`w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center transition-colors ${
-            hasSignature
-              ? 'bg-green-500 text-white hover:bg-green-600'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
+          {/* Agreement Text */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <p className="text-center text-base text-gray-600 leading-relaxed">
+              By signing above, I agree to pay the total shown and authorize this transaction.
+            </p>
+          </div>
+        </motion.div>
+      </main>
+
+      {/* Footer Actions */}
+      <footer className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex flex-col gap-4"
         >
-          <Check className="w-5 h-5 mr-2" />
-          Complete Transaction
-        </button>
-      </div>
+          {/* Complete Button */}
+          <button
+            onClick={handleComplete}
+            disabled={isEmpty}
+            className={`w-full min-h-[64px] text-xl font-semibold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 ${
+              isEmpty
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 active:scale-[0.98]'
+            }`}
+          >
+            <Check className="w-6 h-6" />
+            <span>Done</span>
+          </button>
+
+          {/* Need Help */}
+          <button
+            onClick={handleNeedHelp}
+            className="w-full min-h-[56px] bg-orange-50 text-orange-700 text-lg font-medium rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <HelpCircle className="w-5 h-5" />
+            <span>Need Help</span>
+          </button>
+        </motion.div>
+      </footer>
     </div>
   );
 }
