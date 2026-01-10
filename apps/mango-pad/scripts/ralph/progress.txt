@@ -313,3 +313,21 @@ Thread: https://ampcode.com/threads/T-019ba7f6-90fe-70f8-8d54-5e0a69d91a60
   - uiSlice has offlineSince, offlineAlertTriggered, queuedMessageCount state
   - QueuedMessage persists to localStorage so queued messages survive page reload
 ---
+
+## [2026-01-10] - US-013
+Thread: https://ampcode.com/threads/T-019ba7fb-11bf-740b-b354-e48dddbeef23
+- Verified Cancel/Abort Flow already fully implemented
+- MQTT cancel subscription in PadMqttProvider lines 180-183
+- Cancel handler calls clearTransaction() and resetToIdle()
+- Need Help button present on all required screens:
+  - OrderReviewPage (line 203-209)
+  - TipPage (line 410-416)
+  - SignaturePage (line 226-233)
+  - PaymentPage (line 378-385)
+- All publishHelpRequested calls include current screen name
+- No code changes needed - all acceptance criteria already met
+- **Learnings for future iterations:**
+  - Cancel/Abort flow was implemented as part of US-001 MQTT foundation
+  - Need Help buttons were added with each screen implementation
+  - Always check if features already exist before implementing
+---
