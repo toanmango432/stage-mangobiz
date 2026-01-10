@@ -1,0 +1,444 @@
+{
+  "branchName": "ralph/check-in-production",
+  "projectName": "Mango Check-In App (Production Ready)",
+  "version": "2.0",
+  "description": "Self-service kiosk for salon walk-in check-in with full backend integration",
+  "executionPlan": {
+    "phase1": {
+      "name": "Foundation Setup (Do with Amp, NOT Ralph)",
+      "duration": "~1 day",
+      "status": "not-started",
+      "description": "Setup Redux, DataService, MQTT, authentication context. Must be done before Ralph can be effective.",
+      "notes": [
+        "This is critical path. App won't work without it.",
+        "Do with Amp in single iteration to establish foundation.",
+        "Then proceed to Ralph Phase 2."
+      ]
+    },
+    "phase2": {
+      "name": "Ralph Execution (18 Stories across 4 Tiers)",
+      "duration": "~3-4 weeks",
+      "status": "not-started",
+      "tiers": [
+        {
+          "tierName": "Tier 1: Integration (Wire UI to Backend)",
+          "duration": "~1 week",
+          "stories": 5,
+          "description": "Connect existing UI pages to Supabase via dataService and Redux thunks"
+        },
+        {
+          "tierName": "Tier 2: Real-time (MQTT + Offline)",
+          "duration": "~1 week",
+          "stories": 3,
+          "description": "Setup MQTT for Store App communication and IndexedDB for offline sync"
+        },
+        {
+          "tierName": "Tier 3: Features (Guests, QR, SMS, Admin)",
+          "duration": "~1 week",
+          "stories": 5,
+          "description": "Complete remaining feature requirements"
+        },
+        {
+          "tierName": "Tier 4: Quality (Testing, Security, Performance)",
+          "duration": "~1 week",
+          "stories": 5,
+          "description": "Achieve production standards: 70% test coverage, security audit, performance optimization"
+        }
+      ]
+    }
+  },
+  "stories": [
+    {
+      "id": "SETUP-001",
+      "title": "Foundation: Redux + DataService + MQTT Setup",
+      "description": "Setup Redux store with slices (checkin, client, auth, ui, sync), create dataService facade, initialize Supabase client, setup MQTT client, add error boundaries and auth context",
+      "priority": 0,
+      "notes": "DO THIS WITH AMP FIRST. This is foundation that Ralph needs to work effectively.",
+      "passes": false,
+      "phase": 1
+    },
+    {
+      "id": "CHECKIN-301",
+      "title": "Wire Welcome/Verify Pages to DataService (Phone Lookup)",
+      "description": "Connect Welcome screen phone input → Redux thunk → dataService.clients.getByPhone() → Supabase. Display real client data on Verify page. Handle not-found case.",
+      "priority": 1,
+      "passes": false,
+      "phase": 2,
+      "tier": 1,
+      "acceptanceCriteria": [
+        "Phone lookup calls Supabase via dataService (not direct)",
+        "Result stored in Redux checkin slice",
+        "Verify page displays real client name/preferences",
+        "Not-found shows 'Create New' option",
+        "< 2 second lookup latency"
+      ]
+    },
+    {
+      "id": "CHECKIN-302",
+      "title": "Wire Signup Page to DataService (New Client Creation)",
+      "description": "Connect form submission → Redux thunk → dataService.clients.create() → Supabase. Validate phone duplicate, hash for ecosystem lookup, store SMS consent.",
+      "priority": 2,
+      "passes": false,
+      "phase": 2,
+      "tier": 1,
+      "acceptanceCriteria": [
+        "New client created in Supabase via dataService",
+        "Phone number checked for duplicates",
+        "SMS consent stored correctly",
+        "Error handling for duplicate phone",
+        "Redux state updated on success",
+        "Navigation to services page after creation"
+      ]
+    },
+    {
+      "id": "CHECKIN-303",
+      "title": "Wire Services Page to DataService (Fetch & Cache Service Catalog)",
+      "description": "Fetch all active services from Supabase on app load. Cache in Redux and IndexedDB for offline. Display with real data. Support filter/search.",
+      "priority": 3,
+      "passes": false,
+      "phase": 2,
+      "tier": 1,
+      "acceptanceCriteria": [
+        "Services fetched from Supabase via dataService",
+        "Cached in Redux + IndexedDB",
+        "Offline fallback uses IndexedDB cache",
+        "Multi-select works with Redux state",
+        "Running total updates in real-time",
+        "Search/filter functional"
+      ]
+    },
+    {
+      "id": "CHECKIN-304",
+      "title": "Wire Technician Page to DataService & MQTT (Staff Status)",
+      "description": "Fetch technicians from Supabase. Subscribe to MQTT salon/{id}/staff/status for real-time availability. Update status indicators (Available/With Client/On Break).",
+      "priority": 4,
+      "passes": false,
+      "phase": 2,
+      "tier": 1,
+      "acceptanceCriteria": [
+        "Technicians fetched from Supabase via dataService",
+        "MQTT subscription to salon/{id}/staff/status working",
+        "Status indicators update in real-time",
+        "Available/With Client/On Break show correctly",
+        "Filtered by services selected",
+        "Estimated wait time shows per technician"
+      ]
+    },
+    {
+      "id": "CHECKIN-305",
+      "title": "Wire Confirm Page to DataService & MQTT (Check-In Creation & Publishing)",
+      "description": "On confirmation, create CheckIn in Supabase via dataService. Generate check-in number (A001 format). Publish to MQTT salon/{id}/checkin/new. Store in Redux.",
+      "priority": 5,
+      "passes": false,
+      "phase": 2,
+      "tier": 1,
+      "acceptanceCriteria": [
+        "CheckIn created in Supabase via dataService",
+        "Check-in number generated (A001 format)",
+        "Published to MQTT salon/{id}/checkin/new",
+        "Redux checkin state persisted",
+        "Success page navigated to",
+        "Loyalty points displayed (if applicable)"
+      ]
+    },
+    {
+      "id": "CHECKIN-306",
+      "title": "Queue Position & Wait Time (MQTT Subscribe for Real-time Updates)",
+      "description": "Subscribe to MQTT salon/{id}/queue/status from Store App. Update queue position and estimated wait time in real-time. Show on success page + waiting screen.",
+      "priority": 6,
+      "passes": false,
+      "phase": 2,
+      "tier": 2,
+      "acceptanceCriteria": [
+        "MQTT subscription to queue/status working",
+        "Queue position updates in real-time",
+        "Estimated wait time accurate (±5 min)",
+        "Visual indicator of queue length",
+        "Success page shows real queue position",
+        "Persisted to Redux + IndexedDB",
+        "Offline shows 'Syncing...' state"
+      ]
+    },
+    {
+      "id": "CHECKIN-307",
+      "title": "Client Called Handler (MQTT Listen for Technician Availability)",
+      "description": "Subscribe to MQTT salon/{id}/checkin/called with client ID. Trigger navigation to notification screen when called. Play sound/vibration notification.",
+      "priority": 7,
+      "passes": false,
+      "phase": 2,
+      "tier": 2,
+      "acceptanceCriteria": [
+        "MQTT subscription to checkin/called working",
+        "Called event triggers notification screen",
+        "Sound/vibration plays (if device supports)",
+        "Can dismiss and return to queue view",
+        "Works even if screen was idle",
+        "Offline mode shows pending notification on sync"
+      ]
+    },
+    {
+      "id": "CHECKIN-308",
+      "title": "Offline Mode - IndexedDB Sync Queue",
+      "description": "Setup Dexie.js for offline storage. Queue check-ins when offline. Sync when connection restored. Handle conflicts (last-write-wins). Show offline banner.",
+      "priority": 8,
+      "passes": false,
+      "phase": 2,
+      "tier": 2,
+      "acceptanceCriteria": [
+        "Check-ins saved to IndexedDB when offline",
+        "Sync queue processes on reconnect",
+        "Conflict resolution (last-write-wins)",
+        "Offline banner shows when disconnected",
+        "Service catalog cached for offline",
+        "No data loss on offline check-in",
+        "Redux stays in sync with IndexedDB"
+      ]
+    },
+    {
+      "id": "CHECKIN-309",
+      "title": "Guest Check-In with MQTT Publishing",
+      "description": "Wire Guests page to create guest entries in Supabase. Publish guest updates to MQTT salon/{id}/checkin/update. Support party preference (serve together/sequence).",
+      "priority": 9,
+      "passes": false,
+      "phase": 2,
+      "tier": 3,
+      "acceptanceCriteria": [
+        "Guest entries created in Supabase",
+        "Each guest selects own services",
+        "Party preference (together/sequence) stored",
+        "Published to MQTT checkin/update",
+        "Max 6 guests enforced",
+        "Single confirmation for entire party",
+        "Guest list shown on confirm page"
+      ]
+    },
+    {
+      "id": "CHECKIN-310",
+      "title": "QR Code Appointment Lookup (Decode & Pre-fill)",
+      "description": "Decode QR code → lookup appointment in Supabase → pre-fill client, services, technician. Show confirmation before check-in. Support appointment status (upcoming/past/no-show).",
+      "priority": 10,
+      "passes": false,
+      "phase": 2,
+      "tier": 3,
+      "acceptanceCriteria": [
+        "QR decode returns appointment ID",
+        "Appointment fetched from Supabase",
+        "Client/services/technician pre-filled",
+        "Appointment details shown for confirmation",
+        "Handle past appointments (show re-check-in option)",
+        "Handle no-shows (prompt walk-in instead)",
+        "One-tap confirm to proceed"
+      ]
+    },
+    {
+      "id": "CHECKIN-311",
+      "title": "SMS Opt-In & Notification Integration",
+      "description": "Capture SMS consent in signup. Integrate with SMS service (Twilio/etc) to send queue notifications. Allow SMS opt-out. Track opt-in rate.",
+      "priority": 11,
+      "passes": false,
+      "phase": 2,
+      "tier": 3,
+      "acceptanceCriteria": [
+        "SMS checkbox in signup (pre-checked, consent required)",
+        "Consent stored in client record",
+        "SMS service integration working",
+        "Queue notification sent when client called",
+        "Unsubscribe link in SMS",
+        "Opt-out updates Supabase",
+        "Analytics tracks opt-in rate"
+      ]
+    },
+    {
+      "id": "CHECKIN-312",
+      "title": "Admin Mode for Staff Assistance",
+      "description": "Add staff login to app. Allow manual override of check-in. Lock admin mode with password. Notify staff to assist at kiosk. Log all admin actions.",
+      "priority": 12,
+      "passes": false,
+      "phase": 2,
+      "tier": 3,
+      "acceptanceCriteria": [
+        "Staff login with password (via Store App auth)",
+        "Admin mode accessible from all screens",
+        "Manual check-in creation allowed",
+        "Manual queue position adjustment",
+        "All actions logged with timestamp/staff ID",
+        "Audit trail in Supabase",
+        "Client can request assistance button"
+      ]
+    },
+    {
+      "id": "CHECKIN-313",
+      "title": "Analytics & Event Tracking",
+      "description": "Track key events: checkin_started, phone_entered, services_selected, technician_selected, guest_added, checkin_completed, abandoned. Send to analytics service (Posthog/etc).",
+      "priority": 13,
+      "passes": false,
+      "phase": 2,
+      "tier": 3,
+      "acceptanceCriteria": [
+        "All event types tracked with timing",
+        "Funnel analytics working (started → completed)",
+        "Abandon rate tracked by screen",
+        "QR usage rate tracked",
+        "SMS opt-in rate tracked",
+        "Guest addition frequency tracked",
+        "Events sent to external analytics service",
+        "Dashboard metrics visible"
+      ]
+    },
+    {
+      "id": "CHECKIN-314",
+      "title": "Accessibility (WCAG 2.1 AA Compliance)",
+      "description": "Add ARIA labels, semantic HTML, keyboard navigation. Large text mode. Screen reader support. Color contrast ≥ 4.5:1. Reduced motion support.",
+      "priority": 14,
+      "passes": false,
+      "phase": 2,
+      "tier": 4,
+      "acceptanceCriteria": [
+        "All interactive elements have ARIA labels",
+        "Touch targets ≥ 44x44px",
+        "Color contrast ≥ 4.5:1 on text",
+        "Keyboard navigation works (Tab, Enter, Escape)",
+        "Large text mode available",
+        "Screen reader tested (NVDA/JAWS)",
+        "Reduced motion option",
+        "High contrast mode option",
+        "Axe audit: 0 violations"
+      ]
+    },
+    {
+      "id": "CHECKIN-315",
+      "title": "Security Hardening",
+      "description": "Input validation at all boundaries. Rate limiting (max 10 check-ins/min per IP). CSRF tokens. Data sanitization. Password hashing. API rate limiting in Supabase.",
+      "priority": 15,
+      "passes": false,
+      "phase": 2,
+      "tier": 4,
+      "acceptanceCriteria": [
+        "Phone number validated (format + duplicate)",
+        "Email validated (format check)",
+        "Rate limiting: max 10 check-ins/min per IP",
+        "CSRF tokens on forms",
+        "XSS protection (sanitize user input)",
+        "SQL injection protection (via Supabase RLS)",
+        "Passwords hashed (if admin mode)",
+        "Sensitive data not in Redux DevTools",
+        "Security audit passed"
+      ]
+    },
+    {
+      "id": "CHECKIN-316",
+      "title": "Unit Tests (70% Coverage Target)",
+      "description": "Write tests for: Redux reducers/thunks, dataService, utilities, form validation. Test happy path + error cases.",
+      "priority": 16,
+      "passes": false,
+      "phase": 2,
+      "tier": 4,
+      "acceptanceCriteria": [
+        "Redux thunks tested (phone lookup, check-in create)",
+        "DataService mocked for unit tests",
+        "Form validation tested",
+        "Utility functions tested",
+        "Error states tested",
+        "Coverage ≥ 70%",
+        "Tests in src/**/*.test.ts",
+        "CI/CD runs tests on commit"
+      ]
+    },
+    {
+      "id": "CHECKIN-317",
+      "title": "E2E Tests (Happy Path + Edge Cases)",
+      "description": "Write Playwright tests for: returning client check-in, new client registration, guest addition, offline sync, QR appointment check-in.",
+      "priority": 17,
+      "passes": false,
+      "phase": 2,
+      "tier": 4,
+      "acceptanceCriteria": [
+        "E2E test: returning client check-in (< 45 sec)",
+        "E2E test: new client registration (< 90 sec)",
+        "E2E test: guest addition",
+        "E2E test: offline check-in + sync",
+        "E2E test: QR appointment lookup",
+        "Tests mock MQTT + Supabase",
+        "Tests in e2e/",
+        "CI/CD runs E2E on PR"
+      ]
+    },
+    {
+      "id": "CHECKIN-318",
+      "title": "Performance & Bundle Optimization",
+      "description": "Analyze bundle size. Code split by route. Lazy load images. Remove unused dependencies. Target < 500KB gzipped. Page load < 2 seconds.",
+      "priority": 18,
+      "passes": false,
+      "phase": 2,
+      "tier": 4,
+      "acceptanceCriteria": [
+        "Bundle size < 500KB gzipped",
+        "Page load < 2 seconds (LCP)",
+        "TTFB < 300ms",
+        "Code split by route",
+        "Images lazy loaded",
+        "No unused dependencies",
+        "Lighthouse score ≥ 90",
+        "Performance budget in CI/CD"
+      ]
+    }
+  ],
+  "productionChecklist": {
+    "security": [
+      "Supabase credentials in env vars (not hardcoded)",
+      "Input validation at all API boundaries",
+      "Rate limiting on check-in endpoint",
+      "CSRF tokens for state-changing requests",
+      "No sensitive data in Redux DevTools",
+      "RLS policies enforce data access"
+    ],
+    "dataAndSync": [
+      "IndexedDB sync queue tested",
+      "Offline mode tested (wifi disabled)",
+      "Conflict resolution tested (dual check-ins)",
+      "Data consistency with Store App verified",
+      "MQTT fallback to cloud broker working",
+      "Audit trail for all check-ins"
+    ],
+    "performance": [
+      "Bundle size < 500KB gzipped",
+      "Page load < 2 seconds",
+      "Check-in submit < 500ms",
+      "MQTT message latency < 200ms",
+      "No memory leaks (Chrome DevTools)",
+      "Smooth animations (60fps)"
+    ],
+    "reliability": [
+      "Error boundaries catch all crashes",
+      "Graceful degradation when APIs fail",
+      "Automatic retry with exponential backoff",
+      "Error logging to Sentry/Datadog",
+      "Health check endpoint",
+      "Database connection pooling"
+    ],
+    "testing": [
+      "Unit test coverage ≥ 70%",
+      "Integration tests for dataService",
+      "E2E tests for critical paths",
+      "Accessibility audit (WCAG 2.1 AA)",
+      "Cross-device testing (7\", 10\" tablets)",
+      "Network throttling tests"
+    ],
+    "monitoring": [
+      "Event tracking in place",
+      "Error logging configured",
+      "Performance monitoring setup",
+      "Queue depth metrics",
+      "Check-in funnel analytics",
+      "Device uptime tracking"
+    ],
+    "operations": [
+      "Deployment pipeline (GitHub Actions)",
+      "Rollback procedure documented",
+      "Feature flags for gradual rollout",
+      "Admin dashboard for monitoring",
+      "Configuration management",
+      "User documentation + training"
+    ]
+  }
+}

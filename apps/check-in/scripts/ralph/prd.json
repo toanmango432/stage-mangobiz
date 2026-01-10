@@ -1,0 +1,134 @@
+{
+  "branchName": "ralph/check-in-mvp",
+  "projectName": "Mango Check-In App",
+  "version": "1.0.0",
+  "description": "Self-service kiosk for salon walk-in check-in",
+  "stories": [
+    {
+      "id": "CHECKIN-001",
+      "title": "Setup project structure and core components",
+      "description": "Create base layout, Redux store setup, types, and folder structure. Should include: App.tsx refactor with layout, Redux slices for auth/ui/checkin, TypeScript types for CheckIn/Client/Service data models.",
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-002",
+      "title": "Welcome screen with phone input",
+      "description": "Build landing page with welcome message and phone number input field. Should include: numeric keypad, real-time phone formatting (XXX) XXX-XXXX, lookup button, 'Create New' button for new clients.",
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-003",
+      "title": "Phone lookup and client identification",
+      "description": "Implement phone number lookup against Supabase client database. Should include: call dataService to fetch client by phone, show client name/preferences, handle 'not found' case, display client preferences if returning.",
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-004",
+      "title": "New client registration flow",
+      "description": "Create registration form for new clients. Required fields: first name, last name, phone number. Optional: email, zip code. Should include: field validation (inline), phone duplicate check, SMS opt-in checkbox with consent, privacy policy link modal.",
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-005",
+      "title": "Service selection screen",
+      "description": "Build service catalog display. Should include: fetch all active services from Supabase, group by category, show service name/duration/price, multi-select with tap to add/remove, running total of selected services, search/filter capability.",
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-006",
+      "title": "Technician selection with 'Anyone Available' default",
+      "description": "Create technician selection screen. Should include: 'Anyone Available' as default option (recommended), list technicians qualified for selected services, show technician photo/name/status, status indicators (Available/With Client/On Break), remember preferred technician.",
+      "priority": 6,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-007",
+      "title": "Review and confirmation screen",
+      "description": "Build checkout/review screen showing all check-in details. Should include: client name, selected services, technician choice, unique check-in number generation (A001 format), queue position, estimated wait time, loyalty points display.",
+      "priority": 7,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-008",
+      "title": "MQTT integration with Store App",
+      "description": "Connect Check-In App to Store App via MQTT for real-time updates. Should include: publish check-in events to salon/{id}/checkin/new, subscribe to salon/{id}/queue/status for queue updates, handle offline queue display ('Syncing...').",
+      "priority": 8,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-009",
+      "title": "Queue position and wait time display",
+      "description": "Show real-time queue info on confirmation and waiting screens. Should include: current queue position, estimated wait time (±5 min), visual indicator of queue length, refresh updates from Store App, 'Call' event listener.",
+      "priority": 9,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-010",
+      "title": "IndexedDB offline storage",
+      "description": "Implement offline-first storage using Dexie.js. Should include: cache service catalog (services, staff), store check-ins locally, sync when connection restored, offline indicator banner.",
+      "priority": 10,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-011",
+      "title": "Guest/party check-in feature",
+      "description": "Allow adding guests to check-in. Should include: 'Add Guest' button after services selected, guest name/phone entry, each guest selects services independently, party preference (serve together/in order), max 6 guests, single confirmation.",
+      "priority": 11,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-012",
+      "title": "QR code scanning for appointments",
+      "description": "Add QR code scanning capability. Should include: camera access, QR decode library, appointment lookup from QR data, show appointment details for confirmation, one-tap confirm arrival.",
+      "priority": 12,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-013",
+      "title": "SMS opt-in and notification integration",
+      "description": "Enable SMS notifications for queue status. Should include: SMS opt-in checkbox (pre-checked), link to SMS service, send notification when client is called, unsubscribe handling.",
+      "priority": 13,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-014",
+      "title": "Analytics and event tracking",
+      "description": "Setup event tracking for key metrics. Should include: track checkin_started, phone_entered, services_selected, technician_selected, guest_added, checkin_completed, checkin_abandoned events.",
+      "priority": 14,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-015",
+      "title": "Accessibility improvements",
+      "description": "Ensure accessibility compliance. Should include: large touch targets (44x44px), color contrast (4.5:1), screen reader labels, keyboard navigation, large text mode option, reduced motion option.",
+      "priority": 15,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-016",
+      "title": "Staff assistance and help mode",
+      "description": "Add help/assistance feature for clients. Should include: help button visible on all screens, staff notification to kiosk, optionally open admin mode for staff to assist, accessibility request handling.",
+      "priority": 16,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-017",
+      "title": "Mobile responsive design and styling",
+      "description": "Apply responsive design and Tailwind styling. Should include: works on 7\"-10\" tablets, portrait and landscape modes, touch-friendly spacing, design system tokens, tablet-optimized UI.",
+      "priority": 17,
+      "passes": false
+    },
+    {
+      "id": "CHECKIN-018",
+      "title": "Testing and quality assurance",
+      "description": "Add unit and integration tests. Should include: Redux thunk tests, component tests for key flows, integration tests for dataService calls, E2E test for happy path.",
+      "priority": 18,
+      "passes": false
+    }
+  ]
+}
