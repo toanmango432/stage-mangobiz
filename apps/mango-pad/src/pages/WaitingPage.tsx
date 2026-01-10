@@ -1,6 +1,16 @@
-import { Smartphone } from 'lucide-react';
+import { Smartphone, Wifi, WifiOff } from 'lucide-react';
+import { useEffect } from 'react';
+import { usePadMqtt, usePosConnection } from '../providers/PadMqttProvider';
 
 export function WaitingPage() {
+  const { setCurrentScreen } = usePadMqtt();
+  const posConnection = usePosConnection();
+
+  // Update current screen for heartbeat
+  useEffect(() => {
+    setCurrentScreen('waiting');
+  }, [setCurrentScreen]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col items-center justify-center p-8">
       {/* Logo/Brand */}
@@ -27,13 +37,33 @@ export function WaitingPage() {
 
       {/* Status text */}
       <p className="text-gray-500 text-sm mt-8">
-        Waiting for receipt from POS...
+        {posConnection.isConnected
+          ? 'Waiting for receipt from POS...'
+          : 'Waiting for POS connection...'}
       </p>
 
       {/* Connection status */}
-      <div className="absolute bottom-8 flex items-center text-sm text-gray-400">
-        <div className="w-2 h-2 bg-green-400 rounded-full mr-2" />
-        Connected to Store
+      <div className="absolute bottom-8 flex items-center text-sm">
+        {posConnection.isConnected ? (
+          <>
+            <Wifi className="w-4 h-4 text-green-500 mr-2" />
+            <span className="text-green-600 font-medium">
+              POS Connected
+            </span>
+            {posConnection.storeName && (
+              <span className="text-gray-400 ml-1">
+                • {posConnection.storeName}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <WifiOff className="w-4 h-4 text-gray-400 mr-2" />
+            <span className="text-gray-500">
+              POS Offline
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

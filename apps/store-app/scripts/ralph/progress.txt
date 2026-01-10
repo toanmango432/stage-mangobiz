@@ -32,6 +32,13 @@ Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
 - Signature data stored in Ticket type via signatureBase64 and signatureTimestamp fields
 - SignatureDisplay component in src/components/common/ for displaying signature images
 - When adding fields to Ticket, also update UITicket, PendingTicket, DBTicket and their converter functions
+- **Mango Pad patterns:**
+  - PadMqttProvider wraps app with MQTT connection and heartbeat publishing
+  - usePadMqtt() provides current screen, POS connection status, salonId, deviceId
+  - usePosConnection() hook returns POS connection state (isConnected, lastHeartbeat, storeName)
+  - Device ID persisted in localStorage as 'mango_pad_device_id'
+  - Salon ID configured via VITE_SALON_ID env var
+  - MQTT broker URL configured via VITE_MQTT_BROKER_URL env var
 
 ---
 
@@ -231,5 +238,55 @@ Thread: https://ampcode.com/threads/T-019ba885-4568-75e7-8a4c-d3e4d5b9551b
   - POS heartbeat uses QoS 0 (already configured in QOS_BY_TOPIC)
   - selectStoreName selector provides store name from authSlice
   - APP_VERSION hardcoded for now; should pull from package.json in production
+
+---
+
+## 2026-01-10 - US-012
+Thread: https://ampcode.com/threads/T-019ba888-ee67-7189-adc2-65fd20aa4bf2
+- Created MangoPadSettings component in src/components/modules/settings/categories/
+- Shows MQTT status (enabled/disabled), broker URL, and Store ID for topic routing
+- Lists all connected Pad devices with status, screen state, and last seen time
+- Implemented Test Connection button that publishes a test heartbeat message
+- Added info about changing broker URL (requires restart via env var)
+- Integrated MangoPadSettings into DeviceManagerSettings as first section
+- Exported from categories index for potential standalone use
+- **Files changed:** 
+  - src/components/modules/settings/categories/MangoPadSettings.tsx (new)
+  - src/components/modules/settings/categories/DeviceManagerSettings.tsx
+  - src/components/modules/settings/categories/index.ts
+- **Learnings:**
+  - Use TOPIC_PATTERNS not TOPICS when importing from mqtt/topics.ts
+  - buildTopic requires an object: buildTopic(pattern, { storeId }) not buildTopic(pattern, storeId)
+  - Settings sections use the SettingsSection local component pattern for consistency
+  - formatDistanceToNow from date-fns with addSuffix: true shows "X ago" format
+
+---
+
+## 2026-01-10 - US-013
+Thread: https://ampcode.com/threads/T-019ba8a2-b544-7158-93a7-80b2cc36272c
+- Added heartbeat publishing to Mango Pad (every 15 seconds)
+- Created PadMqttProvider with MQTT connection, heartbeat, and POS connection tracking
+- Created usePosConnection hook for POS heartbeat detection
+- Updated WaitingPage to show POS connection status with Wifi/WifiOff icons
+- Added PAD_HEARTBEAT and POS_HEARTBEAT topics to shared @mango/mqtt package
+- Added PadHeartbeatPayload and PosHeartbeatPayload types
+- Device marked offline after 30 seconds without heartbeat
+- **Files changed:** 
+  - apps/mango-pad/src/providers/PadMqttProvider.tsx (new)
+  - apps/mango-pad/src/constants/config.ts (new)
+  - apps/mango-pad/src/types/index.ts (new)
+  - apps/mango-pad/src/pages/WaitingPage.tsx
+  - apps/mango-pad/src/App.tsx
+  - apps/mango-pad/package.json
+  - apps/mango-pad/tsconfig.json
+  - packages/mqtt/src/topics.ts
+  - packages/mqtt/src/types.ts
+  - packages/mqtt/src/index.ts
+- **Learnings:**
+  - Mango Pad uses mqtt npm package directly instead of @mango/mqtt to avoid pre-existing issues in mqttBridge.ts
+  - PAD topics use 'salon/{salonId}/pad/*' format (matching Store App)
+  - Use localStorage to persist deviceId across sessions
+  - Heartbeat payload includes 'screen' field to report current Pad screen state
+  - POS offline detection runs on 10s interval to check for stale connections
 
 ---

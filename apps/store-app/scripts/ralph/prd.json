@@ -226,7 +226,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Configuration UI for managing Pad connections."
     },
     {
@@ -244,7 +244,7 @@
         "pnpm exec tsc --noEmit passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "This story modifies Mango Pad app to complete bidirectional awareness."
     },
     {

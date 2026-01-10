@@ -41,6 +41,9 @@ export type {
   MqttMessageHandler,
   // Events
   MqttEventType,
+  // Device Types
+  SalonDeviceType,
+  DeviceCapabilities,
   // Device Presence
   DevicePresence,
   DeviceHeartbeat,
@@ -51,6 +54,9 @@ export type {
   PadReceiptReadyPayload,
   CheckinWalkinPayload,
   CheckinStaffPayload,
+  // Heartbeat Payloads
+  PadHeartbeatPayload,
+  PosHeartbeatPayload,
   // Context
   MqttContextValue,
 } from './types';

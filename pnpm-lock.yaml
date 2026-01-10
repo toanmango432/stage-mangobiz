@@ -229,15 +229,15 @@ importers:
 
   apps/mango-pad:
     dependencies:
-      '@mango/mqtt':
-        specifier: workspace:*
-        version: link:../../packages/mqtt
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
       lucide-react:
         specifier: ^0.462.0
         version: 0.462.0(react@18.3.1)
+      mqtt:
+        specifier: ^5.3.0
+        version: 5.14.1
       react:
         specifier: ^18.3.1
         version: 18.3.1
