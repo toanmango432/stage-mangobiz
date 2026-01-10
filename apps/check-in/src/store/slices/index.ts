@@ -47,3 +47,9 @@ export {
   setSyncError,
   resetSync,
 } from './syncSlice';
+
+export {
+  default as servicesReducer,
+  fetchServices,
+  clearServicesError,
+} from './servicesSlice';

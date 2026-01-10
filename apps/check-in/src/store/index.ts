@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux';
-import { authReducer, uiReducer, checkinReducer, clientReducer, syncReducer } from './slices';
+import { authReducer, uiReducer, checkinReducer, clientReducer, syncReducer, servicesReducer } from './slices';
 
 export const store = configureStore({
   reducer: {
@@ -9,6 +9,7 @@ export const store = configureStore({
     checkin: checkinReducer,
     client: clientReducer,
     sync: syncReducer,
+    services: servicesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
