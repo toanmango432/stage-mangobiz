@@ -1,17 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, AlertCircle, RefreshCw, Calendar } from 'lucide-react';
+import { useAppDispatch } from '../store';
+import { fetchAppointmentByQrCode } from '../store/slices';
 
 type ScanStatus = 'requesting' | 'scanning' | 'processing' | 'error' | 'denied';
+type QrType = 'client' | 'appointment' | 'unknown';
 
 export function QrScanPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [status, setStatus] = useState<ScanStatus>('requesting');
   const [errorMessage, setErrorMessage] = useState('');
+  const [qrType, setQrType] = useState<QrType>('unknown');
 
   useEffect(() => {
     let mounted = true;
@@ -83,23 +88,45 @@ export function QrScanPage() {
       }
     }
 
-    // Parse QR code - expecting format: "mango:client:{clientId}" or just a phone number
+    // Parse QR code - expecting formats:
+    // - "mango:appointment:{appointmentId}" for appointment check-in
+    // - "mango:client:{clientId}" for client lookup
+    // - Phone number for client lookup
+
+    if (qrData.startsWith('mango:appointment:')) {
+      setQrType('appointment');
+      const appointmentId = qrData.replace('mango:appointment:', '');
+      
+      try {
+        const result = await dispatch(fetchAppointmentByQrCode(appointmentId));
+        if (fetchAppointmentByQrCode.fulfilled.match(result) && result.payload) {
+          navigate('/appointment');
+        } else {
+          setStatus('error');
+          setErrorMessage('Appointment not found. Please check your QR code or see the front desk.');
+        }
+      } catch {
+        setStatus('error');
+        setErrorMessage('Failed to lookup appointment. Please try again.');
+      }
+      return;
+    }
+
+    // Handle client QR codes
+    setQrType('client');
     let clientId = '';
     let phone = '';
 
     if (qrData.startsWith('mango:client:')) {
       clientId = qrData.replace('mango:client:', '');
     } else if (/^\d{10}$/.test(qrData.replace(/\D/g, ''))) {
-      // It's a phone number
       phone = qrData.replace(/\D/g, '');
     } else {
-      // Invalid QR code
       setStatus('error');
       setErrorMessage('Invalid QR code. Please try again or use your phone number.');
       return;
     }
 
-    // Navigate to verify page
     if (clientId) {
       navigate(`/verify?clientId=${clientId}`);
     } else if (phone) {
@@ -209,13 +236,17 @@ export function QrScanPage() {
             {status === 'processing' && (
               <div className="text-center">
                 <div className="w-24 h-24 bg-[#e8f5f0] rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <QrCode className="w-12 h-12 text-[#1a5f4a]" />
+                  {qrType === 'appointment' ? (
+                    <Calendar className="w-12 h-12 text-[#1a5f4a]" />
+                  ) : (
+                    <QrCode className="w-12 h-12 text-[#1a5f4a]" />
+                  )}
                 </div>
                 <h2 className="font-['Plus_Jakarta_Sans'] text-2xl font-bold text-[#1f2937] mb-3">
                   QR Code Detected!
                 </h2>
                 <p className="font-['Work_Sans'] text-[#6b7280] mb-6">
-                  Looking you up...
+                  {qrType === 'appointment' ? 'Finding your appointment...' : 'Looking you up...'}
                 </p>
                 <div className="w-8 h-8 border-3 border-[#1a5f4a]/20 border-t-[#1a5f4a] rounded-full animate-spin mx-auto" />
               </div>

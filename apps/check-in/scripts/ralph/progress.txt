@@ -236,3 +236,24 @@ Thread: https://ampcode.com/threads/T-019ba818-5622-751c-b5d7-ffb80ba46ccb
   - All 170 tests pass
   - Build produces 1030KB bundle (301KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-012
+Thread: https://ampcode.com/threads/T-019ba821-07fb-74ac-ba33-80238e037302
+- Implemented QR Code Appointment Lookup feature
+- Files changed:
+  - src/store/slices/appointmentSlice.ts (NEW: Redux slice for appointment state)
+  - src/store/slices/appointmentSlice.test.ts (NEW: 10 unit tests)
+  - src/store/slices/index.ts (added appointmentReducer export)
+  - src/store/index.ts (added appointment slice to store)
+  - src/pages/QrScanPage.tsx (added appointment QR format handling mango:appointment:{id})
+  - src/pages/AppointmentConfirmPage.tsx (refactored to use Redux state instead of mock data)
+  - src/utils/index.ts (added formatDate, formatTime utilities)
+- **Learnings for future iterations:**
+  - QR codes follow format: mango:appointment:{appointmentId} for appointments, mango:client:{clientId} for clients
+  - appointmentSlice has fetchAppointmentByQrCode and confirmAppointmentArrival async thunks
+  - AppointmentConfirmPage redirects to / if no appointment in Redux state
+  - formatDate shows "Today", "Tomorrow", or "Mon, Jan 10" format
+  - formatTime shows "2:30 PM" format using toLocaleTimeString
+  - All 180 tests pass (10 new appointmentSlice tests)
+  - Build produces 1032KB bundle (302KB gzipped)
+---

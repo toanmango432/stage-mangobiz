@@ -120,3 +120,45 @@ export function formatPrice(price: number): string {
 export function generateId(): string {
   return crypto.randomUUID();
 }
+
+/**
+ * Formats a date for display
+ * @param date - Date object or ISO string
+ * @returns Formatted date (e.g., "Today", "Tomorrow", or "Mon, Jan 10")
+ */
+export function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const targetDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  
+  if (targetDate.getTime() === today.getTime()) {
+    return 'Today';
+  }
+  if (targetDate.getTime() === tomorrow.getTime()) {
+    return 'Tomorrow';
+  }
+  
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Formats a time for display
+ * @param date - Date object or ISO string
+ * @returns Formatted time (e.g., "2:30 PM")
+ */
+export function formatTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}

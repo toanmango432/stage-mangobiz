@@ -62,3 +62,11 @@ export {
   clearTechniciansError,
 } from './technicianSlice';
 export type { StaffStatusUpdate } from './technicianSlice';
+
+export {
+  default as appointmentReducer,
+  fetchAppointmentByQrCode,
+  confirmAppointmentArrival,
+  resetAppointment,
+  setAppointment,
+} from './appointmentSlice';
