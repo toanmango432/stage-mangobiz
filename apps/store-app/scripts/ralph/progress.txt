@@ -17,6 +17,10 @@ Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
 - PAD topics use 'salon' prefix (not 'mango') to match Mango Pad app
 - New Pad topic patterns: PAD_READY_TO_PAY, PAD_PAYMENT_RESULT, PAD_CANCEL, PAD_TIP_SELECTED, PAD_SIGNATURE_CAPTURED, PAD_RECEIPT_PREFERENCE, PAD_TRANSACTION_COMPLETE, PAD_HELP_REQUESTED, PAD_HEARTBEAT, POS_HEARTBEAT
 - Heartbeat topics use QoS 0, all other Pad topics use QoS 1
+- Pad event handlers are in src/services/mangoPadHandlers.ts
+- PadTransactionState stores Pad-specific data (signature, receipt preference) that doesn't fit in Ticket type
+- Use uiSlice addNotification for user notifications (type: 'success' | 'error' | 'warning' | 'info')
+- Mock store module in tests: vi.mock('../../store', () => ({ store: { dispatch: vi.fn() } }))
 
 ---
 
@@ -50,5 +54,25 @@ Thread: https://ampcode.com/threads/T-019ba852-14f5-7273-9f27-203dfeba677f
   - MangoPadService requires storeId to be set via setStoreId() before use
   - CancelTransaction uses ticketId and transactionId (not just transactionId)
   - Re-export PadTransactionItem type for consumers of the service
+
+---
+
+## 2026-01-10 - US-003
+Thread: https://ampcode.com/threads/T-019ba854-f8fe-769a-b9c0-5f013e36a23c
+- Created src/services/mangoPadHandlers.ts with all event handlers
+- Implemented handleTipSelected - dispatches setTip to checkoutSlice
+- Implemented handleSignatureCaptured - stores signature in PadTransactionState
+- Implemented handleReceiptPreference - stores receipt preference in PadTransactionState
+- Implemented handleTransactionComplete - updates ticket status to 'paid', dispatches setCheckoutStep('complete')
+- Implemented handleHelpRequested - dispatches warning notification to staff
+- Created PadTransactionState interface for storing Pad-specific data (signature, receipt preference)
+- Added padMessageHandlers dispatch table for topic routing
+- Created unit tests in src/services/__tests__/mangoPadHandlers.test.ts
+- **Files changed:** src/services/mangoPadHandlers.ts (new), src/services/__tests__/mangoPadHandlers.test.ts (new)
+- **Learnings:**
+  - Ticket type doesn't have signatureData/receiptPreference fields - use separate PadTransactionState store
+  - Handlers use uiSlice addNotification for user feedback
+  - Store dispatches use setTip, setCheckoutStep from checkoutSlice, updateTicketInSupabase from ticketsSlice
+  - Test environment has pre-existing @testing-library/jest-dom missing dependency issue
 
 ---

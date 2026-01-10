@@ -62,7 +62,7 @@
         "pnpm exec tsc --noEmit passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Event handlers process incoming Pad messages and update app state."
     },
     {
