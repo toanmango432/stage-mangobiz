@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Clock, DollarSign, User, Users, Scissors } from 'lucide-react';
+import { ArrowLeft, Check, Clock, DollarSign, User, Users, Scissors, Sparkles } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createCheckIn } from '../store/slices/checkinSlice';
 import { useMqtt } from '../providers/MqttProvider';
@@ -36,6 +36,10 @@ export function ConfirmPage() {
       : technicians.find((t) => t.id === technicianPreference);
 
   const technicianName = selectedTechnician?.displayName || 'Next Available';
+
+  const loyaltyPoints = currentClient?.loyaltyPoints ?? 0;
+  const loyaltyPointsToNextReward = currentClient?.loyaltyPointsToNextReward ?? 100;
+  const progressPercentage = Math.min(100, (loyaltyPoints / (loyaltyPoints + loyaltyPointsToNextReward)) * 100);
 
   useEffect(() => {
     if (!currentClient || selectedServices.length === 0) {
@@ -269,7 +273,7 @@ export function ConfirmPage() {
             </p>
 
             {/* Summary */}
-            <div className="bg-white/10 rounded-2xl p-5 mb-8">
+            <div className="bg-white/10 rounded-2xl p-5 mb-6">
               <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/20">
                 <div className="flex items-center gap-2 text-white/80">
                   <Clock className="w-4 h-4" />
@@ -290,6 +294,30 @@ export function ConfirmPage() {
                 </span>
               </div>
             </div>
+
+            {/* Loyalty Points */}
+            {!isNewClient && (
+              <div className="bg-gradient-to-r from-[#d4a853]/20 to-[#c49a4a]/20 rounded-2xl p-4 mb-8 border border-[#d4a853]/30">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-white">
+                    <Sparkles className="w-4 h-4 text-[#d4a853]" />
+                    <span className="font-['Work_Sans'] text-sm">Loyalty Points</span>
+                  </div>
+                  <span className="font-['Plus_Jakarta_Sans'] font-bold text-[#d4a853]">
+                    {loyaltyPoints} pts
+                  </span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-[#d4a853] h-2 rounded-full transition-all"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+                <p className="font-['Work_Sans'] text-xs text-white/70 text-center">
+                  {loyaltyPointsToNextReward} pts to next reward
+                </p>
+              </div>
+            )}
 
             {/* Confirm Button */}
             <button

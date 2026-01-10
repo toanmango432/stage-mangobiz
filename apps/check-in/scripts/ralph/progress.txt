@@ -27,6 +27,7 @@ Stories: 24 (Phase 0-3: Design, Integration, Features, Quality)
 - MQTT subscription hooks: useXxxMqtt pattern (e.g., useTechnicianMqtt) - subscribe in useEffect, dispatch to Redux
 - Global UI components (HelpButton, modals) go inside BrowserRouter but outside Routes in App.tsx
 - Fixed position z-index: z-40 for floating buttons, z-50 for modals
+- Analytics: use analyticsService for tracking, useAnalytics hook for React components
 
 ---
 
@@ -299,4 +300,46 @@ Thread: https://ampcode.com/threads/T-019ba836-fa81-72dd-8efd-24964e3bcc95
   - Supabase client needs placeholder values to allow app rendering during development
   - All 180 tests pass
   - Build produces 1047KB bundle (305KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-015
+Thread: https://ampcode.com/threads/T-019ba840-fcf9-74d8-9a98-94b465eaebd2
+- Implemented Analytics Event Tracking feature
+- Files changed:
+  - src/services/analyticsService.ts (NEW: Analytics service abstraction with queuing for offline)
+  - src/hooks/useAnalytics.ts (NEW: React hook for analytics with auto-init)
+  - src/hooks/index.ts (added useAnalytics export)
+  - src/services/index.ts (added analyticsService export)
+  - src/pages/WelcomeScreen.tsx (track checkin_started, checkin_abandoned on timeout)
+  - src/pages/VerifyPage.tsx (track phone_entered with lookup duration)
+  - src/pages/ServicesPage.tsx (track services_selected with search usage)
+  - src/pages/TechnicianPage.tsx (track technician_selected)
+  - src/pages/GuestsPage.tsx (track guest_added with party preference)
+  - src/pages/ConfirmPage.tsx (track checkin_completed with flow duration)
+- **Learnings for future iterations:**
+  - Analytics events queue to localStorage when offline, sent when online
+  - Session tracking uses sessionStorage with 30-minute expiry
+  - Use `as unknown as Record<string, unknown>` for conditional type properties in TypeScript
+  - useAnalytics hook must handle undefined auth state for test compatibility
+  - Flow duration measured from session start (first page load)
+- All 180 tests pass
+- Build produces 1051KB bundle (306KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-016
+Thread: https://ampcode.com/threads/T-019ba8a2-1798-77bd-869d-fb87ac6a9e99
+- Implemented Service Upsell Cards feature
+- Files changed:
+  - src/components/UpsellCard/index.tsx (NEW: upsell card component with Sparkles icon, quick-add button)
+  - src/services/dataService.ts (added upsells.getForServices method with scoring algorithm)
+  - src/pages/ServicesPage.tsx (integrated upsell cards section, handleUpsellAdd handler)
+  - src/pages/ServicesPage.test.tsx (added mock for dataService.upsells)
+- **Learnings for future iterations:**
+  - Upsell logic uses scoring: same-category (+3), short duration <=30min (+2), lower price <=30 (+2) or <=50 (+1)
+  - UpsellCards section only shown when services are selected and no search query active
+  - Cards use gold/amber accent color (#d4a853) to differentiate from regular service cards
+  - Quick-add button immediately adds service via Redux dispatch
+  - Top 4 upsell suggestions returned by scoring algorithm
+- All 180 tests pass
+- Build produces 1053KB bundle (306KB gzipped)
 ---
