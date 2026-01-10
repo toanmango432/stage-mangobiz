@@ -16,7 +16,9 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - MQTT topics are defined in src/constants/mqttTopics.ts
 - Tip calculations go in src/utils/tipCalculations.ts
 - Split payment math goes in src/utils/splitCalculations.ts
-- Use Framer Motion for page transitions
+- Use Framer Motion v11 for page transitions (v12 has TS type issues)
+- App uses Redux screen state + AnimatePresence for smooth transitions (no react-router)
+- Import framer-motion from 'framer-motion' not 'motion/react'
 - Touch targets must be minimum 48x48px
 - Fonts must be minimum 18px body, 24px+ headers
 - Local mqttClient.ts is used instead of @mango/mqtt (shared package has broken dependencies)
@@ -46,4 +48,26 @@ Thread: https://ampcode.com/threads/T-019ba7bb-e559-76ea-9418-be8413fc73dc
   - The shared @mango/mqtt package has broken dependencies; use local mqttClient.ts instead
   - configSlice auto-persists to localStorage on every change
   - mqtt.js requires `pnpm add mqtt uuid @types/uuid`
+---
+
+## [2026-01-10] - US-002
+Thread: https://ampcode.com/threads/T-019ba7c2-dba7-760b-b981-57b0ff28c81c
+- Implemented IdlePage with digital signage features
+- Full-screen display with configurable salon logo
+- Live date/time that updates every minute
+- Promotional carousel with multiple slide types (promotion, announcement, staff-spotlight, testimonial, social-qr)
+- Configurable slide duration from config store (default 8 seconds)
+- Smooth fade/slide transitions using Framer Motion
+- Animated gradient background using Framer Motion
+- MQTT connection status indicator in bottom-right corner
+- Updated App.tsx to use Redux-based screen navigation with AnimatePresence
+- Files changed:
+  - src/pages/IdlePage.tsx (new)
+  - src/App.tsx (rewrote to use ScreenRouter pattern)
+  - package.json (added framer-motion v11)
+- **Learnings for future iterations:**
+  - Framer Motion v12 has TypeScript type issues; use v11 instead
+  - App uses ScreenRouter component with AnimatePresence for smooth transitions
+  - PromoSlide types already defined in configSlice; use them directly
+  - ConnectionStatusIndicator pattern can be reused across screens
 ---

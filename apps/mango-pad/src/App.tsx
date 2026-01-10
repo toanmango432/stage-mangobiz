@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PadMqttProvider } from '@/providers/PadMqttProvider';
 import { useAppSelector } from '@/store/hooks';
 import { IdlePage } from '@/pages/IdlePage';
+import { OrderReviewPage } from '@/pages/OrderReviewPage';
 import { ReceiptPage } from '@/pages/ReceiptPage';
 import { TipPage } from '@/pages/TipPage';
 import { SignaturePage } from '@/pages/SignaturePage';
@@ -32,7 +33,7 @@ function ScreenRouter() {
       case 'idle':
         return <IdlePage />;
       case 'order-review':
-        return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-2xl">Order Review (Coming Soon)</div>;
+        return <OrderReviewPage />;
       case 'tip':
         return <TipPage />;
       case 'signature':
