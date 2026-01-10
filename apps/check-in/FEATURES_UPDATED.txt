@@ -1,0 +1,113 @@
+================================================================================
+CHECK-IN APP: 3 NEW FEATURES ADDED (Smart UX, Zero Friction)
+================================================================================
+
+FEATURES ADDED:
+
+1. UPSELL CARDS (CHECKIN-319) - Priority 14
+   ────────────────────────────────────────
+   What: Show add-on suggestions (Gel +$15, Art +$10) as sidebar
+   Where: Services selection page
+   How: Single tap to toggle (no new screens)
+   Impact: +15% AOV from add-ons
+   Time: +0 seconds (info display only)
+   Effort: 6-8 hours
+
+2. LOYALTY DISPLAY (CHECKIN-320) - Priority 15
+   ────────────────────────────────────────────
+   What: Show loyalty balance, points earned, progress to reward
+   Where: Confirmation page
+   How: Info-only display with progress bar
+   Impact: +20% repeat visit rate
+   Time: +0 seconds (no interaction)
+   Effort: 4-6 hours
+
+3. DURATION & PRICE (CHECKIN-321) - Priority 16
+   ─────────────────────────────────────────────
+   What: Show duration + price per service, running total
+   Where: Services page + confirmation page
+   How: Inline display with estimated completion time
+   Impact: -checkout surprises, better expectations
+   Time: +0 seconds (replaces current info)
+   Effort: 6-8 hours
+
+================================================================================
+DESIGN PRINCIPLE: "MINIMIZE FRICTION"
+
+During peak hours, every second counts. These features ADD VALUE without 
+adding TIME:
+
+✅ Single-tap features (no extra screens)
+✅ Auto-calculated/pre-filled (no client input)
+✅ Non-blocking (client can skip or ignore)
+✅ Information-only (no decisions required)
+❌ No new screens between selection and confirmation
+❌ No forms requiring input
+❌ No blocking interactions
+
+Target: Returning client <45s, New client <90s ← UNCHANGED
+
+================================================================================
+SCHEMA CHANGES NEEDED:
+
+1. Loyalty tier configuration
+   - loyalty_tiers table (point_multiplier, benefits)
+   - Update clients table (loyalty_points, loyalty_tier)
+
+2. Service upsells
+   - service_upsells table (service_id, upsell_id, price_delta, emoji)
+
+3. Service metadata
+   - services table (duration_minutes, price fields)
+
+================================================================================
+UPDATED RALPH PRD:
+
+- Now 21 stories (was 18)
+- Added 3 stories to Tier 3 (Features) - Priority 14-16
+- Priorities for remaining stories renumbered
+- All acceptance criteria documented
+
+File: prd-revised.json (updated)
+Detailed docs: FEATURE_ADDITIONS.md
+
+================================================================================
+KEY CONSTRAINT FROM YOU:
+
+"During busy hours, we don't want clients lingering at kiosk"
+
+✅ Design respects this:
+   - No new screens
+   - No mandatory interactions
+   - All info display (client can scan and go)
+   - Upsells are "nice to have" sidebars
+   - Loyalty is "FYI" info
+   - Price/duration set expectations upfront (saves time later)
+
+Result: FASTER check-ins, not slower
+
+================================================================================
+BUSINESS IMPACT SUMMARY:
+
+Feature              | Business Value     | Implementation
+─────────────────────┼────────────────────┼─────────────────
+Upsell Cards         | +15% AOV           | 6-8 hours
+Loyalty Display      | +20% repeat visits | 4-6 hours  
+Duration/Price       | -surprises, +trust | 6-8 hours
+TOTAL                | +35% revenue       | 16-22 hours
+
+Note: All three features add ZERO TIME to check-in process
+
+================================================================================
+NEXT STEPS:
+
+1. ✅ Review FEATURE_ADDITIONS.md (detailed specs)
+2. ✅ Review prd-revised.json (updated 21-story PRD)
+3. ⏳ Approve Phase 1 (Foundation)
+4. ⏳ Approve Phase 2 (Ralph with new features)
+5. ⏳ Execute Phase 1 with Amp (Redis + DataService)
+6. ⏳ Run Ralph with new prd-revised.json
+
+Timeline: 4-5 weeks to production (Foundation + 21 stories)
+
+================================================================================
