@@ -23,6 +23,7 @@ import {
   MoreVertical,
   Zap
 } from 'lucide-react';
+import { MangoPadSettings } from './MangoPadSettings';
 import type { AppDispatch } from '@/store';
 import {
   selectPaymentTerminals,
@@ -180,6 +181,9 @@ export function DeviceManagerSettings() {
 
   return (
     <div>
+      {/* Mango Pad Settings */}
+      <MangoPadSettings />
+
       {/* Registered POS Devices */}
       <SettingsSection 
         title="Registered POS Devices" 
