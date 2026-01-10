@@ -343,3 +343,22 @@ Thread: https://ampcode.com/threads/T-019ba8a2-1798-77bd-869d-fb87ac6a9e99
 - All 180 tests pass
 - Build produces 1053KB bundle (306KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-017
+Thread: https://ampcode.com/threads/T-019ba8a6-6d0b-72ce-8429-dede8442bd05
+- Implemented Loyalty Points Display on all client-facing screens
+- Files changed:
+  - src/pages/ConfirmPage.tsx (added loyalty points section with progress bar for returning clients)
+- Already existing implementation verified:
+  - src/pages/VerifyPage.tsx (lines 193-219) - already has loyalty points display with progress bar
+  - src/pages/SuccessPage.tsx (lines 305-345) - already has full loyalty card with points and progress
+  - src/types/index.ts - Client type already has loyaltyPoints and loyaltyPointsToNextReward
+- **Learnings for future iterations:**
+  - Loyalty points already exist in Client type: loyaltyPoints and loyaltyPointsToNextReward
+  - VerifyPage and SuccessPage already had loyalty display from previous work
+  - ConfirmPage only shows loyalty points for returning clients (!isNewClient)
+  - Progress bar calculation: loyaltyPoints / (loyaltyPoints + loyaltyPointsToNextReward) * 100
+  - Gold/amber color (#d4a853) used consistently for loyalty/rewards branding
+- All 180 tests pass
+- Build produces 1055KB bundle (307KB gzipped)
+---
