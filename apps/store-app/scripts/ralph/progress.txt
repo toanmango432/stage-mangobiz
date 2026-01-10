@@ -24,6 +24,8 @@ Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
 - Pad device registry uses padDevicesSlice with handleHeartbeat action for incoming heartbeats
 - usePadHeartbeat hook subscribes to salon/{storeId}/pad/heartbeat and runs checkOfflineDevices every 10s
 - selectStoreId from authSlice provides current store ID for topic building
+- Header status indicators use Popover from @/components/ui/popover for dropdowns
+- PadConnectionIndicator displays device status using getConnectedPads, selectHasConnectedPad selectors
 
 ---
 
@@ -95,5 +97,43 @@ Thread: https://ampcode.com/threads/T-019ba85c-388b-7514-ac47-7cca94cc81c9
   - Use selectStoreId from authSlice for current store ID
   - handleHeartbeat action handles both new device creation and updates
   - checkOfflineDevices is called via setInterval, not on each heartbeat
+
+---
+
+## 2026-01-10 - US-005
+Thread: https://ampcode.com/threads/T-019ba860-cbfe-75cd-bd8d-8aaa172f180d
+- Created PadConnectionIndicator component in src/components/layout/PadConnectionIndicator.tsx
+- Shows green dot + 'Pad Connected' when connected, gray dot + 'No Pad' when disconnected
+- Uses Popover from Radix UI for dropdown showing list of all Pad devices
+- Dropdown shows: device name, online/offline status, screen state, and last seen time
+- Uses usePadHeartbeat hook to subscribe to heartbeat messages
+- Uses date-fns formatDistanceToNow for human-readable last seen times
+- Integrated into TopHeaderBar between notifications and store profile buttons
+- Uses design-system tokens for styling (green-50, green-600 for connected state)
+- **Files changed:** src/components/layout/PadConnectionIndicator.tsx (new), src/components/layout/TopHeaderBar.tsx
+- **Learnings:**
+  - Use Popover from @/components/ui/popover for dropdown menus in header
+  - Use formatDistanceToNow from date-fns with addSuffix: true for "X ago" format
+  - Component forces re-render every 10s via setTick state to update relative times
+
+---
+
+## 2026-01-10 - US-006
+Thread: https://ampcode.com/threads/T-019ba866-026d-76da-a483-5e9c227e2108
+- Created SendToPadButton component in src/components/checkout/SendToPadButton.tsx
+- Button sends checkout transaction to Mango Pad via mangoPadService.sendReadyToPay()
+- Uses selectHasConnectedPad selector to enable/disable based on Pad connection
+- Shows Tooltip with "No Pad connected" when disabled
+- Displays loading spinner while sending (isSending state)
+- Dispatches success/error notifications via addNotification from uiSlice
+- Integrated into PaymentModal in step 2 (payment section) as "Customer-facing checkout" option
+- Added new props to PaymentModal: subtotal, tax, discount, clientId, clientName, clientEmail, clientPhone, items, onSentToPad
+- Button uses green accent color to distinguish from regular payment methods
+- **Files changed:** src/components/checkout/SendToPadButton.tsx (new), src/components/checkout/PaymentModal.tsx
+- **Learnings:**
+  - PadTransactionItem type requires 'id' and 'price' fields (not unitPrice/total)
+  - Use TooltipProvider wrapper for Radix Tooltip components
+  - Export TicketItem interface from PaymentModal for consumers to use
+  - sendToPadTransactionId state tracks if transaction was sent to avoid duplicate sends
 
 ---

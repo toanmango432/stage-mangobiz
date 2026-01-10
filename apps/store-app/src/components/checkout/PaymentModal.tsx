@@ -25,6 +25,7 @@ import { paymentBridge } from "@/services/payment";
 import GiftCardRedeemModal, { AppliedGiftCard } from "./modals/GiftCardRedeemModal";
 import { giftCardDB } from "@/db/giftCardOperations";
 import { useAppSelector } from "@/store/hooks";
+import SendToPadButton from "./SendToPadButton";
 
 export interface PaymentMethod {
   type: "card" | "cash" | "gift_card" | "custom";
@@ -39,17 +40,33 @@ export interface TipDistribution {
   amount: number;
 }
 
+export interface TicketItem {
+  name: string;
+  quantity: number;
+  price: number;
+  staffName?: string;
+}
+
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   total: number;
+  subtotal?: number;
+  tax?: number;
+  discount?: number;
   onComplete: (payment: {
     methods: PaymentMethod[];
     tip: number;
     tipDistribution?: TipDistribution[];
   }) => void;
   staffMembers?: { id: string; name: string; serviceTotal?: number }[];
-  ticketId?: string; // Bug #8 fix: Pass actual ticket ID for transaction linking
+  ticketId?: string;
+  clientId?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  items?: TicketItem[];
+  onSentToPad?: (transactionId: string) => void;
 }
 
 const TIP_PERCENTAGES = [15, 18, 20, 25];
@@ -117,9 +134,18 @@ export default function PaymentModal({
   open,
   onClose,
   total,
+  subtotal,
+  tax = 0,
+  discount = 0,
   onComplete,
   staffMembers = [],
   ticketId,
+  clientId,
+  clientName,
+  clientEmail,
+  clientPhone,
+  items = [],
+  onSentToPad,
 }: PaymentModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [tipPercentage, setTipPercentage] = useState<number | null>(20);
@@ -135,6 +161,7 @@ export default function PaymentModal({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [showGiftCardModal, setShowGiftCardModal] = useState(false);
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
+  const [sentToPadTransactionId, setSentToPadTransactionId] = useState<string | null>(null);
 
   // Get auth context for gift card redemption
   const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
@@ -377,6 +404,13 @@ export default function PaymentModal({
     // Ensure we're on step 2 when selecting a payment method
     setCurrentStep(2);
   };
+
+  const handleSentToPad = useCallback((transactionId: string) => {
+    setSentToPadTransactionId(transactionId);
+    onSentToPad?.(transactionId);
+  }, [onSentToPad]);
+
+  const effectiveSubtotal = subtotal ?? total;
 
   const quickCashAmounts = [
     Math.ceil(remaining),
@@ -665,8 +699,33 @@ export default function PaymentModal({
 
                 {remaining > 0.01 && (
                   <>
+                    {/* Send to Pad option */}
+                    {!sentToPadTransactionId && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground block">Customer-facing checkout</label>
+                        <SendToPadButton
+                          ticketId={ticketId || 'unknown'}
+                          clientId={clientId}
+                          clientName={clientName}
+                          clientEmail={clientEmail}
+                          clientPhone={clientPhone}
+                          staffName={staffMembers[0]?.name}
+                          items={items}
+                          subtotal={effectiveSubtotal}
+                          tax={tax}
+                          discount={discount}
+                          total={totalWithTip}
+                          suggestedTips={TIP_PERCENTAGES}
+                          onSent={handleSentToPad}
+                        />
+                        <Separator className="my-4" />
+                      </div>
+                    )}
+
                     <div>
-                      <label className="text-sm font-medium mb-3 block">Choose payment method</label>
+                      <label className="text-sm font-medium mb-3 block">
+                        {sentToPadTransactionId ? 'Or pay here' : 'Choose payment method'}
+                      </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {PAYMENT_METHODS.map((method) => {
                           const Icon = method.icon;

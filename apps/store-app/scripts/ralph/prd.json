@@ -99,7 +99,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Visual indicator helps staff know system status."
     },
     {
@@ -119,7 +119,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Primary action to initiate Pad checkout flow."
     },
     {
