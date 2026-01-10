@@ -28,6 +28,9 @@ Stories: 24 (Phase 0-3: Design, Integration, Features, Quality)
 - Global UI components (HelpButton, modals) go inside BrowserRouter but outside Routes in App.tsx
 - Fixed position z-index: z-40 for floating buttons, z-50 for modals
 - Analytics: use analyticsService for tracking, useAnalytics hook for React components
+- Accessibility: accessibilitySlice persists to localStorage, useAccessibility hook, AccessibilityButton in bottom-left
+- CSS accessibility modes: .large-text-mode, .reduced-motion-mode, .high-contrast-mode on html element
+- Skip link pattern for screen readers: hidden at top:-60px, visible on focus at top:0
 
 ---
 
@@ -381,4 +384,30 @@ Thread: https://ampcode.com/threads/T-019ba8a8-ec9e-7229-9212-143efa336555
   - Tests must be updated when changing display format - check for hardcoded $XX or XX min patterns
 - All 180 tests pass
 - Build produces 1055KB bundle (307KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-019
+Thread: https://ampcode.com/threads/T-019ba8ad-ce7a-71c9-92ad-538f719cc731
+- Implemented Accessibility (WCAG 2.1 AA) features
+- Files changed:
+  - src/store/slices/accessibilitySlice.ts (NEW: Redux slice for accessibility settings with localStorage persistence)
+  - src/store/slices/index.ts (added accessibilityReducer export)
+  - src/store/index.ts (added accessibility slice to store)
+  - src/hooks/useAccessibility.ts (NEW: hook for accessibility state and toggles)
+  - src/hooks/index.ts (added useAccessibility export)
+  - src/components/AccessibilityButton/index.tsx (NEW: floating button to open accessibility menu)
+  - src/components/AccessibilityMenu/index.tsx (NEW: modal with Large Text, Reduced Motion, High Contrast toggles)
+  - src/providers/AccessibilityProvider.tsx (NEW: applies CSS classes to html element based on settings)
+  - src/App.tsx (added AccessibilityButton, AccessibilityProvider, skip link, main role)
+  - src/index.css (added accessibility mode CSS: large-text-mode, reduced-motion-mode, high-contrast-mode, skip-link, sr-only, touch targets)
+- **Learnings for future iterations:**
+  - Accessibility settings persist in localStorage with key 'mango-checkin-accessibility'
+  - CSS class modes: .large-text-mode, .reduced-motion-mode, .high-contrast-mode applied to html element
+  - Skip link pattern: hidden at top:-60px, visible at top:0 on focus
+  - Button minimum touch target size enforced via CSS: min-height/min-width 44px
+  - @media (prefers-reduced-motion: reduce) also disables animations for system-level preference
+  - @media (prefers-contrast: more) enhances contrast for system-level preference
+  - AccessibilityButton positioned fixed bottom-6 left-6 z-40 (opposite corner from HelpButton)
+- All 180 tests pass
+- Build produces 1064KB bundle (309KB gzipped)
 ---
