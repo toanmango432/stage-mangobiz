@@ -18,6 +18,7 @@ import timesheetReducer from './slices/timesheetSlice';
 import payrollReducer from './slices/payrollSlice';
 import staffPerformanceReducer from './slices/staffPerformanceSlice';
 import settingsReducer from './slices/settingsSlice';
+import padDevicesReducer from './slices/padDevicesSlice';
 // Note: teamStaffSyncMiddleware was REMOVED - staffSlice now derives from teamSlice directly
 // via team-derived selectors. See: src/store/slices/staffSlice.ts
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
@@ -45,6 +46,7 @@ export const store = configureStore({
     payroll: payrollReducer,
     staffPerformance: staffPerformanceReducer,
     settings: settingsReducer,
+    padDevices: padDevicesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -114,6 +116,8 @@ export const store = configureStore({
           'settings.paymentTerminals',
           'settings.hardwareDevices',
           'settings.lastSaved',
+          // Pad devices module
+          'padDevices.devices',
         ],
       },
     }),
