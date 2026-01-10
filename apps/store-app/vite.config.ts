@@ -48,6 +48,7 @@ export default defineConfig({
           'vendor-supabase': ['@supabase/supabase-js'],
 
           // UI components - Radix (large library)
+          // Only include packages that are direct dependencies in package.json
           'vendor-radix': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
@@ -55,10 +56,8 @@ export default defineConfig({
             '@radix-ui/react-select',
             '@radix-ui/react-tabs',
             '@radix-ui/react-tooltip',
-            '@radix-ui/react-accordion',
             '@radix-ui/react-checkbox',
             '@radix-ui/react-switch',
-            '@radix-ui/react-slider',
             '@radix-ui/react-scroll-area',
           ],
 
