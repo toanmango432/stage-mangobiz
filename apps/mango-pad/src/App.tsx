@@ -13,6 +13,7 @@ import { TipPage } from '@/pages/TipPage';
 import { SignaturePage } from '@/pages/SignaturePage';
 import { PaymentPage } from '@/pages/PaymentPage';
 import { ResultPage } from '@/pages/ResultPage';
+import { ThankYouPage } from '@/pages/ThankYouPage';
 import type { PadScreen } from '@/types';
 
 const pageVariants = {
@@ -47,7 +48,7 @@ function ScreenRouter() {
       case 'receipt':
         return <ReceiptPage />;
       case 'thank-you':
-        return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-2xl">Thank You (Coming Soon)</div>;
+        return <ThankYouPage />;
       case 'split-selection':
         return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-2xl">Split Selection (Coming Soon)</div>;
       case 'split-status':

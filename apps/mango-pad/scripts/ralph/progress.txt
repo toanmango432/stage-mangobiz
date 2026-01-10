@@ -172,3 +172,44 @@ Thread: https://ampcode.com/threads/T-019ba7e3-2550-74b8-ac5f-d823fb120019
   - Use ?? for nullish coalescing instead of || for numbers (thankYouDelay)
   - setPaymentResult(null as never) to clear payment result (type workaround)
 ---
+
+## [2026-01-10] - US-008
+Thread: https://ampcode.com/threads/T-019ba7e5-db98-75c1-8606-234aab602242
+- Implemented ReceiptPage for receipt preference selection
+- Four options: Email, Text/SMS, Print, No Receipt
+- Email option shows client email with edit button (modal input)
+- SMS option shows client phone with edit button (modal input)
+- EditModal component for inline email/phone editing
+- ReceiptOption component for consistent option button styling
+- Publishes receipt preference to MQTT via usePadMqtt().publishReceiptPreference
+- Stores selection in Redux via setReceiptSelection
+- Continue button disabled until preference is selected
+- Files changed:
+  - src/pages/ReceiptPage.tsx (complete rewrite from old react-router version)
+- **Learnings for future iterations:**
+  - Old ReceiptPage used react-router - all pages now use Redux screen state
+  - EditModal pattern reusable for inline edits (email, phone, etc.)
+  - ReceiptOption component pattern for selection button grids
+  - transaction.clientEmail and transaction.clientPhone may be undefined
+---
+
+## [2026-01-10] - US-009
+Thread: https://ampcode.com/threads/T-019ba7e8-285c-73d1-bfe2-d58afc03d488
+- Implemented ThankYouPage component for pleasant transaction closing experience
+- Displays "Thank You, [Client Name]!" with animated heart icon
+- Shows loyalty points earned prominently if applicable (amber/yellow card)
+- Shows promotional message from first promo slide if configured
+- Auto-returns to idle after configurable thankYouDelay (default 5 seconds)
+- Animated progress bar shows countdown to auto-return
+- Manual "Done" button for immediate return
+- Publishes transaction_complete to MQTT via usePadMqtt hook (once only using useRef)
+- Decorative floating elements (Sparkles, Star, Heart, Gift) for visual appeal
+- Files changed:
+  - src/pages/ThankYouPage.tsx (new)
+  - src/App.tsx (added ThankYouPage import and case)
+- **Learnings for future iterations:**
+  - PromoSlide type uses 'title' and 'subtitle' properties, not 'content'
+  - Use useRef to track if MQTT publish has already happened (avoid double-publish)
+  - thankYouDelay is in seconds, multiply by 1000 for setTimeout
+  - clearTransaction and resetToIdle should both be called when returning to idle
+---
