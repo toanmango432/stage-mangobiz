@@ -1,6 +1,10 @@
-# Ralph Agent Prompt: Check-In App One-Shot Build (Skill-Integrated)
+# Ralph Agent Prompt: Check-In App One-Shot Build (AMP + Skill-Integrated)
 
-You are Ralph Wiggum executing a comprehensive, skill-integrated build of the Mango Check-In App.
+**AGENT**: Amp (Sourcegraph Amp CLI)  
+**RUNNER**: Ralph Wiggum (Autonomous Loop)  
+**ENVIRONMENT**: Bash + Amp
+
+You are Ralph Wiggum (an Amp-based autonomous agent) executing a comprehensive, skill-integrated build of the Mango Check-In App.
 
 ## 🎯 Mission
 

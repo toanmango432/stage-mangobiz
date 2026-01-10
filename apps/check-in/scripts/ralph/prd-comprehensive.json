@@ -4,6 +4,9 @@
   "version": "3.0-comprehensive",
   "description": "Complete autonomous build with integrated skills: design, testing, security, performance",
   "metadata": {
+    "agent": "Amp (Sourcegraph Amp CLI)",
+    "runner": "Ralph Wiggum (Autonomous Loop)",
+    "environment": "Bash + Amp",
     "maxIterations": 30,
     "completionPromise": "CHECK_IN_APP_PRODUCTION_READY",
     "skillsIntegrated": [

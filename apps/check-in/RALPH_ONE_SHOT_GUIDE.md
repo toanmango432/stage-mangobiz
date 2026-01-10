@@ -1,5 +1,8 @@
 # Ralph One-Shot Build: Check-In App with Integrated Skills
 
+**Agent**: Amp (Sourcegraph Amp CLI)  
+**Runner**: Ralph Wiggum (Autonomous Loop)  
+**Environment**: Bash + Amp CLI  
 **Goal**: Complete autonomous build with all skills integrated  
 **Stories**: 24 (including foundation)  
 **Duration**: ~5 days  

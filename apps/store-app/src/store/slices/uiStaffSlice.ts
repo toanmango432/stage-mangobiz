@@ -148,25 +148,9 @@ export const updateStaffStatus = createAsyncThunk(
   }
 );
 
-// Clock in staff
-export const clockInStaff = createAsyncThunk(
-  'uiStaff/clockIn',
-  async (staffId: string) => {
-    // Clock in is handled by timesheet system
-    // This just updates the UI status
-    return staffId;
-  }
-);
-
-// Clock out staff
-export const clockOutStaff = createAsyncThunk(
-  'uiStaff/clockOut',
-  async (staffId: string) => {
-    // Clock out is handled by timesheet system
-    // This just updates the UI status
-    return staffId;
-  }
-);
+// NOTE: Clock in/out is handled by timesheetSlice
+// uiStaffSlice listens to 'timesheet/clockIn/fulfilled' and 'timesheet/clockOut/fulfilled'
+// to update staff status - see extraReducers addMatcher below
 
 // Helper function to convert TeamMemberSettings to UIStaff
 function convertTeamMemberToUIStaff(member: TeamMemberSettings): UIStaff {
@@ -375,20 +359,7 @@ const uiStaffSlice = createSlice({
           staff.status = status;
         }
       })
-      // Clock in
-      .addCase(clockInStaff.fulfilled, (state, action) => {
-        const staff = state.staff.find(s => s.id === action.payload);
-        if (staff) {
-          staff.status = 'ready';
-        }
-      })
-      // Clock out
-      .addCase(clockOutStaff.fulfilled, (state, action) => {
-        const staff = state.staff.find(s => s.id === action.payload);
-        if (staff) {
-          staff.status = 'off';
-        }
-      })
+      // NOTE: Clock in/out is handled by matchers listening to timesheet actions below
       // Listen to ticket assignment - update staff status and active tickets
       .addMatcher(
         (action) => action.type === 'uiTickets/assign/fulfilled',

@@ -23,6 +23,9 @@ importers:
       '@mango/mqtt':
         specifier: workspace:*
         version: link:../../packages/mqtt
+      '@reduxjs/toolkit':
+        specifier: ^2.11.2
+        version: 2.11.2(react-redux@9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -38,6 +41,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      react-redux:
+        specifier: ^9.2.0
+        version: 9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1)
       react-router-dom:
         specifier: ^7.9.6
         version: 7.11.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

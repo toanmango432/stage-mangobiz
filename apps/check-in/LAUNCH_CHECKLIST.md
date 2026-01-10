@@ -1,8 +1,9 @@
-# Ralph One-Shot Build: Launch Checklist
+# Ralph One-Shot Build: Launch Checklist (AMP-Based)
 
+**Agent**: Amp (Sourcegraph Amp CLI)  
 **Ready to run Ralph autonomously to build the Check-In App?**
 
-Use this checklist to ensure everything is set up correctly.
+Use this checklist to ensure everything is set up correctly for AMP + Ralph.
 
 ---
 
