@@ -111,3 +111,46 @@ Thread: https://ampcode.com/threads/T-019ba7cc-2c83-76a8-9053-b1506aceedf9
   - TipButton component pattern reusable for grid selection UIs
   - formatCurrency helper duplicated from OrderReviewPage - consider extracting to utils/
 ---
+
+## [2026-01-10] - US-005
+Thread: https://ampcode.com/threads/T-019ba7d0-1068-7398-a929-ea4d536a4552
+- Implemented SignaturePage with react-signature-canvas library
+- Full-width signature canvas that works with finger touch and stylus
+- Clear button resets the signature canvas
+- Shows agreement text: "By signing above, I agree to pay the total shown and authorize this transaction"
+- Shows final total including tip prominently in header
+- Done button to proceed (disabled when signature is empty)
+- Signature captured as base64 PNG via toDataURL('image/png')
+- Minimum validation: button disabled when canvas isEmpty()
+- Publishes signature to MQTT salon/{id}/pad/signature via usePadMqtt hook
+- Files changed:
+  - src/pages/SignaturePage.tsx (complete rewrite)
+  - package.json (added react-signature-canvas, @types/react-signature-canvas)
+- **Learnings for future iterations:**
+  - react-signature-canvas provides onBegin/onEnd callbacks to track if signature is empty
+  - SignatureCanvas ref has isEmpty() and toDataURL() methods
+  - penColor, dotSize, minWidth, maxWidth control signature appearance
+  - Use pointer-events-none on overlay elements to not interfere with canvas
+---
+
+## [2026-01-10] - US-006
+Thread: https://ampcode.com/threads/T-019ba7d3-5ca2-7148-910f-05f5ab04cf1e
+- Implemented PaymentPage for payment instruction display
+- Large clear "Please Insert or Tap Card" text with animated card visual
+- CardAnimation component with NFC wave effects and bouncing card icon
+- TerminalIcon component shows terminal-specific icons (PAX, Dejavoo, Clover, generic)
+- PulsingLoader for processing indicator
+- Amount to charge displayed prominently including tip
+- Cancel/Help button publishes help_requested via MQTT
+- Timeout handling: after configurable paymentTimeout seconds, shows timeout message with retry option
+- Listens for payment_result via Redux/MQTT and auto-navigates to result screen
+- Connection status indicator in footer
+- Files changed:
+  - src/pages/PaymentPage.tsx (new)
+  - src/App.tsx (added PaymentPage import and case)
+- **Learnings for future iterations:**
+  - Use useRef for timeout management to properly clean up on unmount
+  - config.paymentTimeout (in seconds) controls timeout duration
+  - Payment result is received via PadMqttProvider which dispatches to transactionSlice
+  - Terminal type icons can be customized per brand (PAX, Dejavoo, Clover, or generic)
+---
