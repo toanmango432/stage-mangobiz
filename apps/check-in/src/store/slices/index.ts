@@ -53,3 +53,12 @@ export {
   fetchServices,
   clearServicesError,
 } from './servicesSlice';
+
+export {
+  default as technicianReducer,
+  fetchTechnicians,
+  updateTechnicianStatus,
+  updateTechnicianStatuses,
+  clearTechniciansError,
+} from './technicianSlice';
+export type { StaffStatusUpdate } from './technicianSlice';

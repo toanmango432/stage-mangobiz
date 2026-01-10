@@ -22,6 +22,9 @@ Stories: 24 (Phase 0-3: Design, Integration, Features, Quality)
 - Typography: Plus Jakarta Sans for headers, Work Sans for body
 - Testing: Vitest + @testing-library/react for unit/integration tests, setup in src/testing/setup.ts
 - Utility functions: phone formatting, validation, etc. in src/utils/index.ts
+- For async thunks that fetch lists, create dedicated slice (e.g., servicesSlice) not just in checkinSlice
+- Selected items stored in checkinSlice, catalog data in dedicated slices (servicesSlice, etc.)
+- MQTT subscription hooks: useXxxMqtt pattern (e.g., useTechnicianMqtt) - subscribe in useEffect, dispatch to Redux
 
 ---
 
@@ -80,4 +83,61 @@ Thread: https://ampcode.com/threads/T-019ba7ca-7a3e-7797-b4db-91456bd25518
   - Use `as never` type assertion for async thunk dispatch in tests to avoid TS errors
   - Tests pass with 21 total assertions (9 unit + 12 integration)
   - Build produces 909KB bundle - code splitting should be addressed in US-023
+---
+
+## Sat Jan 10 2026 - US-004
+Thread: https://ampcode.com/threads/T-019ba7e3-232b-750e-9cef-b089af584472
+- Verified existing New Client Registration (SignupPage) implementation
+- Files changed:
+  - src/store/hooks.ts (NEW: re-exports typed hooks for modular imports)
+  - src/pages/SignupPage.test.tsx (NEW: 19 integration tests for registration flow)
+  - src/pages/SignupPage.tsx (updated imports to use store/hooks)
+- **Learnings for future iterations:**
+  - SignupPage was already fully implemented with all acceptance criteria
+  - React Hook Form mode: 'onChange' doesn't trigger errors on empty field blur
+  - Store hooks can be re-exported via src/store/hooks.ts for cleaner imports
+  - All 40 tests pass (9 clientSlice + 12 VerifyPage + 19 SignupPage)
+  - Bundle size is now ~1000KB gzipped (295KB) - still needs code splitting
+---
+
+## Sat Jan 10 2026 - US-005
+Thread: https://ampcode.com/threads/T-019ba7e6-287d-773a-b26e-1553821075c1
+- Implemented Service Catalog Fetch & Cache
+- Files changed:
+  - src/store/slices/servicesSlice.ts (NEW: fetchServices async thunk)
+  - src/store/slices/servicesSlice.test.ts (NEW: 9 unit tests for services thunk)
+  - src/store/slices/index.ts (added servicesReducer export)
+  - src/store/index.ts (added services slice to store)
+  - src/pages/ServicesPage.tsx (refactored to use Redux state, added search/filter)
+  - src/pages/ServicesPage.test.tsx (NEW: 21 integration tests)
+- **Learnings for future iterations:**
+  - Services are fetched via dataService.services.getByCategory() which returns ServiceCategory[]
+  - dataService already handles IndexedDB caching in services.getAll() - bulkPut to cache
+  - Selected services stored in checkin slice (addSelectedService, removeSelectedService)
+  - Search filters across all categories when query entered
+  - All 69 tests pass (9 clientSlice + 12 VerifyPage + 19 SignupPage + 9 servicesSlice + 21 ServicesPage)
+  - Build produces 1002KB bundle (295KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-006
+Thread: https://ampcode.com/threads/T-019ba7eb-e2bf-72db-afa1-66983b81f5b4
+- Implemented Technician Status with MQTT Subscribe
+- Files changed:
+  - src/store/slices/technicianSlice.ts (NEW: fetchTechnicians thunk + MQTT status update reducers)
+  - src/store/slices/technicianSlice.test.ts (NEW: 9 unit tests for technician slice)
+  - src/store/slices/index.ts (added technicianReducer export)
+  - src/store/index.ts (added technicians slice to store)
+  - src/hooks/useTechnicianMqtt.ts (NEW: MQTT subscription hook for staff status)
+  - src/hooks/index.ts (added useTechnicianMqtt export)
+  - src/pages/TechnicianPage.tsx (refactored to use Redux + MQTT, added service filtering)
+  - src/pages/TechnicianPage.test.tsx (NEW: 16 integration tests)
+- **Learnings for future iterations:**
+  - Create dedicated slice for entities fetched async (technicianSlice similar to servicesSlice)
+  - MQTT subscriptions use useTechnicianMqtt hook pattern - subscribe in useEffect, dispatch to Redux
+  - TechnicianPage filters by serviceIds from URL params or Redux selectedServices
+  - Technicians sorted by status: available first, then with_client, on_break, unavailable
+  - "Anyone Available" is default (technicianPreference: 'anyone') with recommended badge
+  - Status badges use consistent color scheme: green=available, amber=with_client, gray=on_break, red=unavailable
+  - All 95 tests pass (9 clientSlice + 12 VerifyPage + 19 SignupPage + 9 servicesSlice + 21 ServicesPage + 9 technicianSlice + 16 TechnicianPage)
+  - Build produces 1006KB bundle (297KB gzipped)
 ---
