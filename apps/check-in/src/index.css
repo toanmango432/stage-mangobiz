@@ -73,3 +73,157 @@ button {
     background-position: -200% 0;
   }
 }
+
+/* ============================================================================
+   ACCESSIBILITY MODES
+   ============================================================================ */
+
+/* Large Text Mode - Increase base font sizes by 25% */
+.large-text-mode {
+  font-size: 125%;
+}
+
+.large-text-mode h1 {
+  font-size: 2.5rem !important;
+}
+
+.large-text-mode h2 {
+  font-size: 2rem !important;
+}
+
+.large-text-mode p,
+.large-text-mode span,
+.large-text-mode label {
+  font-size: 1.125rem !important;
+}
+
+.large-text-mode button {
+  font-size: 1.125rem !important;
+  min-height: 52px !important;
+}
+
+.large-text-mode input {
+  font-size: 1.25rem !important;
+  min-height: 52px !important;
+}
+
+/* Reduced Motion Mode - Disable animations */
+.reduced-motion-mode,
+.reduced-motion-mode * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High Contrast Mode - Increase contrast */
+.high-contrast-mode {
+  --text-primary: #000000;
+  --text-secondary: #1f2937;
+  --bg-primary: #ffffff;
+  --border-color: #000000;
+}
+
+.high-contrast-mode button {
+  border: 2px solid #000000 !important;
+}
+
+.high-contrast-mode a {
+  text-decoration: underline !important;
+}
+
+.high-contrast-mode .text-gray-600,
+.high-contrast-mode .text-gray-500,
+.high-contrast-mode .text-gray-400,
+.high-contrast-mode .text-\[\#6b7280\],
+.high-contrast-mode .text-\[\#9ca3af\] {
+  color: #1f2937 !important;
+}
+
+.high-contrast-mode input {
+  border: 2px solid #000000 !important;
+}
+
+.high-contrast-mode input:focus {
+  outline: 3px solid #1a5f4a !important;
+  outline-offset: 2px !important;
+}
+
+/* ============================================================================
+   SKIP LINK - Screen Reader Support
+   ============================================================================ */
+
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 0;
+  background: #1a5f4a;
+  color: white;
+  padding: 12px 24px;
+  z-index: 100;
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  border-radius: 0 0 8px 0;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ============================================================================
+   TOUCH TARGET SIZES - Minimum 44x44px
+   ============================================================================ */
+
+/* Ensure all interactive elements have minimum touch target size */
+button,
+[role="button"],
+[role="switch"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ============================================================================
+   SCREEN READER ONLY UTILITY
+   ============================================================================ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================================================
+   RESPECT USER PREFERENCES
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --text-primary: #000000;
+    --text-secondary: #1f2937;
+  }
+  
+  .text-gray-600,
+  .text-gray-500,
+  .text-gray-400 {
+    color: #1f2937 !important;
+  }
+}

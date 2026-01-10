@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux';
-import { authReducer, uiReducer, checkinReducer, clientReducer, syncReducer, servicesReducer, technicianReducer, appointmentReducer, adminReducer } from './slices';
+import { authReducer, uiReducer, checkinReducer, clientReducer, syncReducer, servicesReducer, technicianReducer, appointmentReducer, adminReducer, accessibilityReducer } from './slices';
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +13,7 @@ export const store = configureStore({
     technicians: technicianReducer,
     appointment: appointmentReducer,
     admin: adminReducer,
+    accessibility: accessibilityReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

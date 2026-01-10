@@ -82,3 +82,18 @@ export {
   deactivateAdminMode,
   resetAdmin,
 } from './adminSlice';
+
+export {
+  default as accessibilityReducer,
+  toggleLargeTextMode,
+  toggleReducedMotionMode,
+  toggleHighContrastMode,
+  setLargeTextMode,
+  setReducedMotionMode,
+  setHighContrastMode,
+  openAccessibilityMenu,
+  closeAccessibilityMenu,
+  toggleAccessibilityMenu,
+  resetAccessibilitySettings,
+} from './accessibilitySlice';
+export type { AccessibilityState, AccessibilitySettings } from './accessibilitySlice';
