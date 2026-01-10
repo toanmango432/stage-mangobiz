@@ -26,6 +26,9 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - PadMqttProvider wraps app and auto-subscribes to ready_to_pay, payment_result, and cancel topics
 - NumericKeypadModal pattern for custom amount entry (see TipPage.tsx)
 - formatCurrency helper using Intl.NumberFormat for currency display
+- For split payments: check isSplitPayment, splitPayments, currentSplitIndex from transactionSlice
+- SplitCard component pattern for displaying payment status cards with icons
+- Use adjustLastSplit() to handle rounding in custom split amounts
 
 ---
 
@@ -212,4 +215,37 @@ Thread: https://ampcode.com/threads/T-019ba7e8-285c-73d1-bfe2-d58afc03d488
   - Use useRef to track if MQTT publish has already happened (avoid double-publish)
   - thankYouDelay is in seconds, multiply by 1000 for setTimeout
   - clearTransaction and resetToIdle should both be called when returning to idle
+---
+
+## [2026-01-10] - US-010
+Thread: https://ampcode.com/threads/T-019ba7ea-911e-765e-a65e-7b831cd8ba3b
+- Implemented complete Split Payment Flow
+- Created SplitSelectionPage with Equal (2/3/4-way) and Custom amount modes
+- Created SplitStatusPage showing payment progress with visual indicators
+- Created src/utils/splitCalculations.ts utility for split math
+- Updated TipPage, SignaturePage, PaymentPage, ResultPage to show split info in headers
+- All screens display "Payment X of Y" badge when in split mode
+- Split amounts properly calculated with rounding handled for first split
+- Custom amounts have real-time validation (amounts must equal total)
+- Progress bar shows completed/pending payments
+- Cancel split option returns to Order Review
+- After each successful split, returns to split-status screen
+- When all splits complete, auto-redirects to receipt/thank-you
+- Publishes split_payment to MQTT via usePadMqtt hook
+- Files changed:
+  - src/pages/SplitSelectionPage.tsx (new)
+  - src/pages/SplitStatusPage.tsx (new)
+  - src/utils/splitCalculations.ts (new)
+  - src/App.tsx (added split screen imports and routes)
+  - src/pages/TipPage.tsx (split mode awareness)
+  - src/pages/SignaturePage.tsx (split mode awareness)
+  - src/pages/PaymentPage.tsx (split mode awareness)
+  - src/pages/ResultPage.tsx (split mode navigation)
+- **Learnings for future iterations:**
+  - transactionSlice already has initializeSplitPayment, updateSplitPayment actions ready
+  - currentSplitIndex tracks which split is being processed
+  - isSplitPayment flag determines flow routing
+  - Use adjustLastSplit() to handle rounding when custom amounts don't quite equal total
+  - config.maxSplits controls max splits (default 4)
+  - SplitCard component reusable for displaying split payment status
 ---

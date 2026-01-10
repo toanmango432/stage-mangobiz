@@ -3,10 +3,11 @@
  * US-002: Displays promotional content, salon logo, date/time while waiting for transactions
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { setScreen } from '@/store/slices/padSlice';
 import type { PromoSlide } from '@/types';
 
 const DEFAULT_SLIDE: PromoSlide = {
@@ -155,12 +156,19 @@ function PromoSlideDisplay({ slide }: PromoSlideDisplayProps) {
   );
 }
 
+const SETTINGS_HOLD_DURATION = 2000;
+const SETTINGS_TOUCH_COUNT = 4;
+
 export function IdlePage() {
+  const dispatch = useAppDispatch();
   const config = useAppSelector((state) => state.config.config);
   const { logoUrl, promoSlides, slideDuration, brandColors } = config;
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [settingsHoldProgress, setSettingsHoldProgress] = useState(0);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const slides = promoSlides.length > 0 ? promoSlides : [DEFAULT_SLIDE];
   const currentSlide = slides[currentSlideIndex];
@@ -184,12 +192,57 @@ export function IdlePage() {
     return () => clearInterval(timer);
   }, [slides.length, slideDuration, advanceSlide]);
 
+  const clearHoldTimers = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setSettingsHoldProgress(0);
+  }, []);
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length >= SETTINGS_TOUCH_COUNT) {
+        const startTime = Date.now();
+
+        progressIntervalRef.current = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min((elapsed / SETTINGS_HOLD_DURATION) * 100, 100);
+          setSettingsHoldProgress(progress);
+        }, 50);
+
+        holdTimerRef.current = setTimeout(() => {
+          clearHoldTimers();
+          dispatch(setScreen('settings'));
+        }, SETTINGS_HOLD_DURATION);
+      }
+    },
+    [dispatch, clearHoldTimers]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    clearHoldTimers();
+  }, [clearHoldTimers]);
+
+  useEffect(() => {
+    return () => {
+      clearHoldTimers();
+    };
+  }, [clearHoldTimers]);
+
   return (
     <div
       className="min-h-screen relative overflow-hidden flex flex-col"
       style={{
         background: `linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.secondary} 100%)`,
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       {/* Animated gradient overlay */}
       <motion.div
@@ -259,6 +312,45 @@ export function IdlePage() {
           ))}
         </div>
       )}
+
+      {/* Settings Hold Progress Indicator */}
+      <AnimatePresence>
+        {settingsHoldProgress > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
+          >
+            <div className="flex flex-col items-center gap-4 bg-black/40 backdrop-blur-sm px-8 py-6 rounded-2xl">
+              <div className="w-20 h-20 relative">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="36"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth="6"
+                    fill="none"
+                  />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="36"
+                    stroke="white"
+                    strokeWidth="6"
+                    fill="none"
+                    strokeDasharray={226}
+                    strokeDashoffset={226 - (226 * settingsHoldProgress) / 100}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+              <p className="text-white text-lg font-medium">Opening Settings...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Connection Status Indicator */}
       <ConnectionStatusIndicator />

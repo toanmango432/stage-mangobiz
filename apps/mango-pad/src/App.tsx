@@ -16,6 +16,7 @@ import { ResultPage } from '@/pages/ResultPage';
 import { ThankYouPage } from '@/pages/ThankYouPage';
 import { SplitSelectionPage } from '@/pages/SplitSelectionPage';
 import { SplitStatusPage } from '@/pages/SplitStatusPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import type { PadScreen } from '@/types';
 
 const pageVariants = {
@@ -56,7 +57,7 @@ function ScreenRouter() {
       case 'split-status':
         return <SplitStatusPage />;
       case 'settings':
-        return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-2xl">Settings (Coming Soon)</div>;
+        return <SettingsPage />;
       default:
         return <IdlePage />;
     }
