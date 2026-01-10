@@ -290,3 +290,21 @@ Thread: https://ampcode.com/threads/T-019ba8a2-b544-7158-93a7-80b2cc36272c
   - POS offline detection runs on 10s interval to check for stale connections
 
 ---
+
+## 2026-01-10 - US-014
+Thread: https://ampcode.com/threads/T-019ba8a2-b544-7158-93a7-80b2cc36272c
+- Created comprehensive integration tests for Pad checkout flow
+- Test suite covers: happy path, cancel flow, failure/retry, help requests, device status
+- MockMqttService simulates MQTT publish/subscribe for testing
+- Tests use isolated configureStore with only Pad-related slices
+- All tests use actual Redux slice exports for realistic testing
+- **Files changed:**
+  - apps/store-app/src/testing/integration/pad/padCheckoutFlow.test.ts (new)
+- **Learnings:**
+  - Integration tests should create isolated stores with only required slices
+  - PadHeartbeatPayload.screen values are: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete'
+  - padDevicesSlice stores devices as Record<string, PadDevice> (use Object.values for arrays)
+  - Pre-existing test infrastructure missing @testing-library/jest-dom dependency
+  - Tests can type-check even if test runner fails due to missing dependencies
+
+---
