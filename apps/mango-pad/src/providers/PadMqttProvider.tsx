@@ -9,13 +9,20 @@ import {
   useEffect,
   useCallback,
   useState,
+  useRef,
   type ReactNode,
 } from 'react';
 import { mqttService, type MqttMessage } from '@/services/mqttClient';
+import { syncQueueService } from '@/services/syncQueue';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setMqttConnectionStatus, setScreen, resetToIdle } from '@/store/slices/padSlice';
 import { setTransaction, setPaymentResult, clearTransaction } from '@/store/slices/transactionSlice';
-import { setShowReconnecting } from '@/store/slices/uiSlice';
+import {
+  setShowReconnecting,
+  setOfflineSince,
+  setOfflineAlertTriggered,
+  setQueuedMessageCount,
+} from '@/store/slices/uiSlice';
 import { buildPadTopic, PAD_TOPICS } from '@/constants/mqttTopics';
 import type {
   MqttConnectionStatus,
@@ -55,6 +62,7 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const config = useAppSelector((state) => state.config.config);
   const transactionId = useAppSelector((state) => state.transaction.current?.transactionId);
   const [connectionStatus, setConnectionStatus] = useState<MqttConnectionStatus>('disconnected');
+  const offlineAlertSentRef = useRef(false);
 
   const salonId = config.salonId;
   const brokerUrl = config.mqttBrokerUrl;
@@ -63,12 +71,41 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     const unsubscribeState = mqttService.onStateChange((status) => {
       setConnectionStatus(status);
       dispatch(setMqttConnectionStatus(status));
-      dispatch(setShowReconnecting(status === 'reconnecting'));
+
+      if (status === 'disconnected' || status === 'reconnecting') {
+        dispatch(setShowReconnecting(true));
+        if (status === 'disconnected') {
+          dispatch(setOfflineSince(new Date().toISOString()));
+        }
+      } else if (status === 'connected') {
+        dispatch(setShowReconnecting(false));
+        dispatch(setOfflineSince(null));
+        dispatch(setOfflineAlertTriggered(false));
+        offlineAlertSentRef.current = false;
+      }
     });
 
     return () => {
       unsubscribeState();
     };
+  }, [dispatch]);
+
+  useEffect(() => {
+    syncQueueService.setOfflineAlertCallback((durationMs) => {
+      if (!offlineAlertSentRef.current) {
+        offlineAlertSentRef.current = true;
+        dispatch(setOfflineAlertTriggered(true));
+        console.warn(`[PadMqttProvider] Offline for ${Math.round(durationMs / 1000)}s - alerting staff`);
+      }
+    });
+  }, [dispatch]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch(setQueuedMessageCount(syncQueueService.getQueueSize()));
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, [dispatch]);
 
   useEffect(() => {

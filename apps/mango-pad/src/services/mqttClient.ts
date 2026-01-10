@@ -1,11 +1,13 @@
 /**
  * MQTT Client Service for Mango Pad
  * Handles connection to MQTT broker and message handling
+ * Supports offline queuing via syncQueueService
  */
 
 import mqtt, { type MqttClient as MqttClientType, type IClientOptions } from 'mqtt';
 import { v4 as uuidv4 } from 'uuid';
 import type { MqttConnectionStatus } from '@/types';
+import { syncQueueService, type QueuedMessage } from './syncQueue';
 
 export interface MqttMessage<T = unknown> {
   id: string;
@@ -16,17 +18,48 @@ export interface MqttMessage<T = unknown> {
 export type MessageHandler<T = unknown> = (topic: string, message: MqttMessage<T>) => void;
 
 type ConnectionStateCallback = (status: MqttConnectionStatus) => void;
+type ReconnectCallback = () => void;
 
 class MqttService {
   private client: MqttClientType | null = null;
   private subscriptions: Map<string, Set<MessageHandler>> = new Map();
   private connectionState: MqttConnectionStatus = 'disconnected';
   private stateCallbacks: Set<ConnectionStateCallback> = new Set();
+  private reconnectCallbacks: Set<ReconnectCallback> = new Set();
   private deviceId: string;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private queueEnabled = true;
 
   constructor() {
     this.deviceId = `mango-pad-${uuidv4().slice(0, 8)}`;
+    this.setupSyncQueueReplayHandler();
+  }
+
+  private setupSyncQueueReplayHandler(): void {
+    syncQueueService.setReplayHandler(async (message: QueuedMessage) => {
+      if (!this.client?.connected) return false;
+      
+      try {
+        const mqttMessage: MqttMessage = {
+          id: message.id,
+          timestamp: message.timestamp,
+          payload: message.payload,
+        };
+
+        return new Promise((resolve) => {
+          this.client!.publish(
+            message.topic,
+            JSON.stringify(mqttMessage),
+            { qos: 1 },
+            (error) => {
+              resolve(!error);
+            }
+          );
+        });
+      } catch {
+        return false;
+      }
+    });
   }
 
   getConnectionState(): MqttConnectionStatus {
@@ -41,9 +74,40 @@ class MqttService {
     };
   }
 
+  onReconnect(callback: ReconnectCallback): () => void {
+    this.reconnectCallbacks.add(callback);
+    return () => {
+      this.reconnectCallbacks.delete(callback);
+    };
+  }
+
+  setQueueEnabled(enabled: boolean): void {
+    this.queueEnabled = enabled;
+  }
+
   private setConnectionState(state: MqttConnectionStatus): void {
+    const wasDisconnected = this.connectionState === 'disconnected' || this.connectionState === 'reconnecting';
     this.connectionState = state;
     this.stateCallbacks.forEach((cb) => cb(state));
+
+    if (state === 'connected' && wasDisconnected) {
+      this.onReconnected();
+    }
+
+    if (state === 'disconnected') {
+      syncQueueService.startOfflineTracking();
+    } else if (state === 'connected') {
+      syncQueueService.stopOfflineTracking();
+    }
+  }
+
+  private async onReconnected(): Promise<void> {
+    this.reconnectCallbacks.forEach((cb) => cb());
+    
+    const result = await syncQueueService.replayQueue();
+    if (result.success > 0 || result.failed > 0) {
+      console.log(`[MqttService] Replayed queue: ${result.success} success, ${result.failed} failed`);
+    }
   }
 
   async connect(brokerUrl: string): Promise<void> {
@@ -142,17 +206,22 @@ class MqttService {
   async publish<T>(
     topic: string,
     payload: T,
-    options?: { qos?: 0 | 1 | 2; retain?: boolean }
+    options?: { qos?: 0 | 1 | 2; retain?: boolean; skipQueue?: boolean }
   ): Promise<void> {
-    if (!this.client?.connected) {
-      throw new Error('MQTT not connected');
-    }
-
     const message: MqttMessage<T> = {
       id: uuidv4(),
       timestamp: new Date().toISOString(),
       payload,
     };
+
+    if (!this.client?.connected) {
+      if (this.queueEnabled && !options?.skipQueue) {
+        syncQueueService.enqueue(topic, payload, options?.qos ?? 1);
+        console.log(`[MqttService] Message queued for topic: ${topic}`);
+        return;
+      }
+      throw new Error('MQTT not connected');
+    }
 
     return new Promise((resolve, reject) => {
       this.client!.publish(
@@ -172,6 +241,18 @@ class MqttService {
 
   isConnected(): boolean {
     return this.client?.connected ?? false;
+  }
+
+  getQueuedMessageCount(): number {
+    return syncQueueService.getQueueSize();
+  }
+
+  getOfflineDuration(): number {
+    return syncQueueService.getOfflineDuration();
+  }
+
+  isOfflineAlertThresholdReached(): boolean {
+    return syncQueueService.isOfflineAlertThresholdReached();
   }
 
   private handleMessage<T>(topic: string, message: MqttMessage<T>): void {

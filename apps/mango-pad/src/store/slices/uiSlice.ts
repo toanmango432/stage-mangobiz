@@ -12,6 +12,10 @@ interface UiState {
   successMessage: string | null;
   showReconnecting: boolean;
   paymentTimeoutReached: boolean;
+  offlineSince: string | null;
+  offlineAlertTriggered: boolean;
+  queuedMessageCount: number;
+  isActiveTransaction: boolean;
 }
 
 const initialState: UiState = {
@@ -21,6 +25,10 @@ const initialState: UiState = {
   successMessage: null,
   showReconnecting: false,
   paymentTimeoutReached: false,
+  offlineSince: null,
+  offlineAlertTriggered: false,
+  queuedMessageCount: 0,
+  isActiveTransaction: false,
 };
 
 export const uiSlice = createSlice({
@@ -55,11 +63,24 @@ export const uiSlice = createSlice({
     setPaymentTimeoutReached: (state, action: PayloadAction<boolean>) => {
       state.paymentTimeoutReached = action.payload;
     },
+    setOfflineSince: (state, action: PayloadAction<string | null>) => {
+      state.offlineSince = action.payload;
+    },
+    setOfflineAlertTriggered: (state, action: PayloadAction<boolean>) => {
+      state.offlineAlertTriggered = action.payload;
+    },
+    setQueuedMessageCount: (state, action: PayloadAction<number>) => {
+      state.queuedMessageCount = action.payload;
+    },
+    setIsActiveTransaction: (state, action: PayloadAction<boolean>) => {
+      state.isActiveTransaction = action.payload;
+    },
     resetUi: (state) => {
       state.isNumericKeypadOpen = false;
       state.errorMessage = null;
       state.successMessage = null;
       state.paymentTimeoutReached = false;
+      state.offlineAlertTriggered = false;
     },
   },
 });
@@ -74,6 +95,10 @@ export const {
   clearMessages,
   setShowReconnecting,
   setPaymentTimeoutReached,
+  setOfflineSince,
+  setOfflineAlertTriggered,
+  setQueuedMessageCount,
+  setIsActiveTransaction,
   resetUi,
 } = uiSlice.actions;
 

@@ -17,6 +17,7 @@ import { ThankYouPage } from '@/pages/ThankYouPage';
 import { SplitSelectionPage } from '@/pages/SplitSelectionPage';
 import { SplitStatusPage } from '@/pages/SplitStatusPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ReconnectingOverlay } from '@/components/ReconnectingOverlay';
 import type { PadScreen } from '@/types';
 
 const pageVariants = {
@@ -84,6 +85,7 @@ export function App() {
   return (
     <PadMqttProvider>
       <ScreenRouter />
+      <ReconnectingOverlay />
     </PadMqttProvider>
   );
 }

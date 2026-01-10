@@ -29,6 +29,14 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - For split payments: check isSplitPayment, splitPayments, currentSplitIndex from transactionSlice
 - SplitCard component pattern for displaying payment status cards with icons
 - Use adjustLastSplit() to handle rounding in custom split amounts
+- Settings accessed via 4-finger long press on IdlePage (2 second hold)
+- SettingsPage has tab-based navigation: connection, payment, idle, display, split, advanced
+- Export/Import JSON settings for multi-device setup
+- syncQueueService handles offline message queuing and replay with localStorage persistence
+- mqttService.publish() auto-queues when disconnected (use skipQueue option to bypass)
+- ReconnectingOverlay shows overlay during disconnection with duration and queue info
+- 30-second offline threshold triggers offlineAlertCallback for staff notification
+- uiSlice tracks: offlineSince, offlineAlertTriggered, queuedMessageCount
 
 ---
 
@@ -248,4 +256,60 @@ Thread: https://ampcode.com/threads/T-019ba7ea-911e-765e-a65e-7b831cd8ba3b
   - Use adjustLastSplit() to handle rounding when custom amounts don't quite equal total
   - config.maxSplits controls max splits (default 4)
   - SplitCard component reusable for displaying split payment status
+---
+
+## [2026-01-10] - US-011
+Thread: https://ampcode.com/threads/T-019ba7f0-cd5a-77bc-aff8-1b68591b80b9
+- Implemented comprehensive SettingsPage with 6 configuration tabs
+- Connection Settings: salon ID, MQTT broker URL, test connection button
+- Payment Flow Settings: tip toggle, tip type (% or $), tip values editor, signature toggle, receipt options toggle, payment timeout
+- Idle Screen Settings: logo URL, slide duration, brand colors (primary/secondary with color pickers), promo slide editor
+- Display Settings: thank you delay, high contrast mode, large text mode
+- Split Payment Settings: enable/disable, max splits (2-4)
+- Advanced Settings: Export/Import settings as JSON, Reset to defaults with confirmation
+- Added hidden gesture (4-finger long press for 2 seconds) on IdlePage to access settings
+- Visual progress indicator during settings access gesture
+- All settings persisted to localStorage via configSlice
+- Files changed:
+  - src/pages/SettingsPage.tsx (new - comprehensive settings UI with 900+ lines)
+  - src/pages/IdlePage.tsx (added 4-finger long press gesture detection)
+  - src/App.tsx (integrated SettingsPage into router)
+- **Learnings for future iterations:**
+  - Settings tabs pattern: sidebar navigation with animated content switching
+  - ToggleSwitch, NumberInput, TextInput, ColorPicker components are reusable
+  - TipValuesEditor pattern for editing arrays of values inline
+  - SlideEditor pattern for managing array items with add/remove
+  - 4-finger long press detection using touchStart/touchEnd with timer
+  - SVG circular progress indicator for hold-to-activate gestures
+  - Export JSON via data URI + temporary anchor element download
+  - Import JSON via hidden file input + FileReader API
+---
+
+## [2026-01-10] - US-012
+Thread: https://ampcode.com/threads/T-019ba7f6-90fe-70f8-8d54-5e0a69d91a60
+- Implemented complete Offline Mode and Sync Queue functionality
+- Created syncQueueService with message queuing, replay, and localStorage persistence
+- Updated mqttService to auto-queue messages when disconnected
+- Added offline tracking with 30-second threshold for staff alerts
+- Created ReconnectingOverlay component showing connection status
+- Different overlay messages for brief disconnection vs extended offline
+- Shows "Please wait, reconnecting..." during active transactions
+- Queue size and offline duration displayed in overlay
+- Auto-replay queued messages in order when reconnected
+- Updated uiSlice with offline-related state (offlineSince, offlineAlertTriggered, queuedMessageCount)
+- Updated PadMqttProvider to handle offline state tracking and alert callbacks
+- Files changed:
+  - src/services/syncQueue.ts (new)
+  - src/services/mqttClient.ts (added queue support)
+  - src/components/ReconnectingOverlay.tsx (new)
+  - src/store/slices/uiSlice.ts (added offline state)
+  - src/providers/PadMqttProvider.tsx (added offline tracking)
+  - src/App.tsx (added ReconnectingOverlay)
+- **Learnings for future iterations:**
+  - syncQueueService handles offline message queuing and replay
+  - mqttService.publish() auto-queues when disconnected (queueEnabled flag)
+  - ReconnectingOverlay shows different UI based on offline duration and active transaction
+  - 30-second offline threshold triggers staff alert callback
+  - uiSlice has offlineSince, offlineAlertTriggered, queuedMessageCount state
+  - QueuedMessage persists to localStorage so queued messages survive page reload
 ---

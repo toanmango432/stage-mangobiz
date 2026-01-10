@@ -229,7 +229,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 4 - Configuration. Extensive customization options."
     },
     {
@@ -246,7 +246,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 4 - Reliability."
     },
     {
