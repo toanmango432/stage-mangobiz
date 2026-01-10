@@ -12,3 +12,4 @@
 export { dataService } from './dataService';
 export { supabase } from './supabase';
 export { db } from './db';
+export { smsService } from './smsService';

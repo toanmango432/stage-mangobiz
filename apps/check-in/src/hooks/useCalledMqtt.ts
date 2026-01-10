@@ -4,16 +4,22 @@
  * Subscribes to salon/{id}/checkin/called MQTT topic for client called notifications.
  * Updates Redux state when the current client is called from the queue.
  * Plays audio notification when called.
+ * Triggers SMS notification for clients who have opted in.
  */
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useMqtt } from '../providers/MqttProvider';
 import { useAppDispatch, useAppSelector } from '../store';
 import { setClientCalled, type CalledInfo } from '../store/slices/checkinSlice';
+import { smsService } from '../services/smsService';
 
 interface CalledPayload {
   checkInId: string;
   checkInNumber: string;
+  clientId?: string;
+  clientName?: string;
+  clientPhone?: string;
+  smsOptIn?: boolean;
   technicianId?: string;
   technicianName?: string;
   station?: string;
@@ -48,8 +54,10 @@ export function useCalledMqtt() {
     }
   }, []);
 
+  const smsSentRef = useRef<Set<string>>(new Set());
+
   const handleCalledUpdate = useCallback(
-    (_topic: string, payload: unknown) => {
+    async (_topic: string, payload: unknown) => {
       try {
         const data = payload as CalledPayload;
         if (!data || typeof data !== 'object') return;
@@ -68,6 +76,28 @@ export function useCalledMqtt() {
 
           dispatch(setClientCalled(calledInfo));
           playNotificationSound();
+        }
+
+        if (
+          data.smsOptIn &&
+          data.clientPhone &&
+          data.clientName &&
+          !smsSentRef.current.has(data.checkInId)
+        ) {
+          smsSentRef.current.add(data.checkInId);
+          
+          const result = await smsService.sendQueueCalledNotification({
+            phone: data.clientPhone,
+            clientName: data.clientName,
+            checkInNumber: data.checkInNumber,
+            technicianName: data.technicianName,
+            station: data.station,
+            smsOptIn: true,
+          });
+
+          if (!result.success) {
+            console.warn('[useCalledMqtt] SMS notification failed:', result.error);
+          }
         }
       } catch (error) {
         console.error('[useCalledMqtt] Error parsing called update:', error);

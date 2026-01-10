@@ -257,3 +257,21 @@ Thread: https://ampcode.com/threads/T-019ba821-07fb-74ac-ba33-80238e037302
   - All 180 tests pass (10 new appointmentSlice tests)
   - Build produces 1032KB bundle (302KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-013
+Thread: https://ampcode.com/threads/T-019ba82d-2a25-7619-b388-44bf4317a096
+- Implemented SMS Notifications feature
+- Files changed:
+  - src/services/smsService.ts (NEW: SMS service abstraction layer with Supabase Edge Function integration)
+  - src/services/index.ts (added smsService export)
+  - src/hooks/useCalledMqtt.ts (added SMS notification trigger when client is called)
+- **Learnings for future iterations:**
+  - SMS service uses Supabase Edge Functions (send-sms) for actual delivery
+  - SMS opt-in is stored in client's sms_opt_in field (already in types and dataService)
+  - useCalledMqtt receives CalledPayload with clientPhone, clientName, smsOptIn for SMS triggering
+  - smsSentRef.current tracks sent SMS by checkInId to prevent duplicates
+  - smsService.updateOptInStatus can be used for unsubscribe handling from client profile
+  - E.164 phone format (+1XXXXXXXXXX) used for SMS providers
+- All 180 tests pass
+- Build produces 1035KB bundle (303KB gzipped)
+---
