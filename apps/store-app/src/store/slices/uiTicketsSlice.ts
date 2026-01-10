@@ -57,6 +57,9 @@ interface DBTicket {
   syncStatus?: string;
   lastVisitDate?: Date | null;
   checkoutServices?: unknown[];
+  // Signature capture (from Mango Pad)
+  signatureBase64?: string;
+  signatureTimestamp?: string;
 }
 
 // Service status for individual services within a ticket
@@ -96,6 +99,9 @@ export interface UITicket {
   // Checkout panel edits - saved by auto-save
   checkoutServices?: CheckoutTicketService[];
   clientId?: string;
+  // Signature capture (from Mango Pad)
+  signatureBase64?: string;
+  signatureTimestamp?: string;
 }
 
 export interface PendingTicket {
@@ -130,6 +136,9 @@ export interface PendingTicket {
   checkoutServices?: CheckoutTicketService[];
   // Client ID for editing
   clientId?: string;
+  // Signature capture (from Mango Pad)
+  signatureBase64?: string;
+  signatureTimestamp?: string;
 }
 
 export interface CompletionDetails {
@@ -1198,6 +1207,8 @@ function convertToUITicket(dbTicket: DBTicket): UITicket {
     createdAt,
     updatedAt,
     lastVisitDate: dbTicket.lastVisitDate || null,
+    signatureBase64: dbTicket.signatureBase64,
+    signatureTimestamp: dbTicket.signatureTimestamp,
   };
 }
 
@@ -1225,6 +1236,8 @@ function convertToPendingTicket(dbTicket: DBTicket): PendingTicket {
     techId: dbTicket.techId || services[0]?.staffId,
     assignedStaff: dbTicket.assignedStaff,
     lastVisitDate: dbTicket.lastVisitDate || null,
+    signatureBase64: dbTicket.signatureBase64,
+    signatureTimestamp: dbTicket.signatureTimestamp,
   };
 }
 

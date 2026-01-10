@@ -1,5 +1,6 @@
 import { X, User, Tag, Clock, Timer, Calendar, Info, Edit2, Trash2 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTicketsCompat';
+import { SignatureDisplay } from '@/components/common/SignatureDisplay';
 interface TicketDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -164,6 +165,14 @@ export function TicketDetailsModal({
                     <p className="text-sm text-gray-700">{ticket.notes}</p>
                   </div>
                 </div>}
+              {/* Customer signature (if captured via Mango Pad) */}
+              {ticket.signatureBase64 && (
+                <SignatureDisplay
+                  signatureBase64={ticket.signatureBase64}
+                  signatureTimestamp={ticket.signatureTimestamp}
+                  size="md"
+                />
+              )}
               {/* Ticket history */}
               <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <div className="flex items-center mb-3">

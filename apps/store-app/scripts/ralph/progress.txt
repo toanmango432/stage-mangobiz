@@ -160,3 +160,21 @@ Thread: https://ampcode.com/threads/T-019ba86c-5d56-7512-8c08-d89ed7b67f9c
   - Progress step indicators use getProgressSteps() helper to determine completed/active states
 
 ---
+
+## 2026-01-10 - US-008
+Thread: https://ampcode.com/threads/T-019ba873-319a-7343-b744-c5e9d215d712
+- Created CancelOnPadButton component with AlertDialog confirmation
+- Button only shown during active Pad transactions (not complete/failed/cancelled)
+- Uses mangoPadService.sendCancel() to send cancel message to Pad
+- Dispatches setTransactionCancelled to update padTransactionSlice
+- Shows info notification on successful cancel, error on failure
+- Integrated into PadTransactionStatus component via onCancelled prop
+- PaymentModal clears sentToPadTransactionId when cancelled
+- **Files changed:** src/components/checkout/CancelOnPadButton.tsx (new), src/components/checkout/PadTransactionStatus.tsx, src/components/checkout/PaymentModal.tsx
+- **Learnings:**
+  - AlertDialog from @radix-ui/react-alert-dialog is already available in ui/alert-dialog.tsx
+  - Use e.preventDefault() in AlertDialogAction onClick to prevent dialog closing before async action completes
+  - padTransactionSlice already has setTransactionCancelled action ready to use
+  - CancelOnPadButton hides itself when transaction is complete/failed/cancelled
+
+---

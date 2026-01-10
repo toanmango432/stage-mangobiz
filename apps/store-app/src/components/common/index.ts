@@ -21,3 +21,6 @@ export type {
 export { VirtualList, VirtualGrid } from './VirtualList';
 
 export { ErrorBoundary } from './ErrorBoundary';
+
+export { SignatureDisplay } from './SignatureDisplay';
+export type { SignatureDisplayProps } from './SignatureDisplay';

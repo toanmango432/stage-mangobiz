@@ -85,7 +85,7 @@ export function handleTipSelected(payload: PadTipPayload): PadHandlerResult {
 
 /**
  * Handle signature capture from Mango Pad
- * Stores the signature base64 data in the Pad transaction state
+ * Stores the signature base64 data in the Pad transaction state and persists to ticket
  */
 export function handleSignatureCaptured(payload: PadSignaturePayload): PadHandlerResult {
   try {
@@ -96,6 +96,14 @@ export function handleSignatureCaptured(payload: PadSignaturePayload): PadHandle
       signatureData,
       signatureTimestamp: signedAt,
     });
+
+    store.dispatch(updateTicketInSupabase({
+      id: ticketId,
+      updates: {
+        signatureBase64: signatureData,
+        signatureTimestamp: signedAt,
+      },
+    }));
 
     store.dispatch(addNotification({
       type: 'info',
@@ -162,7 +170,7 @@ export function handleReceiptPreference(payload: PadReceiptPreferencePayload): P
 
 /**
  * Handle transaction complete from Mango Pad
- * Marks the ticket as paid and updates all final transaction data
+ * Marks the ticket as paid and updates all final transaction data including signature
  */
 export function handleTransactionComplete(payload: PadTransactionCompletePayload): PadHandlerResult {
   try {
@@ -183,6 +191,10 @@ export function handleTransactionComplete(payload: PadTransactionCompletePayload
         tip: tipAmount,
         total,
         completedAt,
+        ...(signatureData && {
+          signatureBase64: signatureData,
+          signatureTimestamp: completedAt,
+        }),
       },
     }));
 
