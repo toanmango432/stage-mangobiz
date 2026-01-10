@@ -34,3 +34,21 @@ Thread: https://ampcode.com/threads/T-019ba84c-308e-7658-b070-c048c2d9147e
   - Heartbeats should use QoS 0 for performance
 
 ---
+
+## 2026-01-10 - US-002
+Thread: https://ampcode.com/threads/T-019ba852-14f5-7273-9f27-203dfeba677f
+- Created dedicated Mango Pad service layer at src/services/mangoPadService.ts
+- Implemented sendReadyToPay(transaction: PadTransaction) method
+- Implemented sendPaymentResult(result: PaymentResult) method
+- Implemented sendCancel(cancel: CancelTransaction) method
+- Defined PadTransaction, PaymentResult, and CancelTransaction interfaces
+- Service uses getMqttClient() singleton and buildTopic() helper
+- Service validates MQTT enabled state and connection before publishing
+- Exported as singleton via getMangoPadService()
+- **Files changed:** src/services/mangoPadService.ts (new)
+- **Learnings:**
+  - MangoPadService requires storeId to be set via setStoreId() before use
+  - CancelTransaction uses ticketId and transactionId (not just transactionId)
+  - Re-export PadTransactionItem type for consumers of the service
+
+---

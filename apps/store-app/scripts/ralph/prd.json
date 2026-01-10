@@ -42,7 +42,7 @@
         "pnpm exec tsc --noEmit passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Service layer abstracts MQTT publishing for Pad communication."
     },
     {
