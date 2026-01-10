@@ -413,7 +413,9 @@ describe('ServicesPage Integration', () => {
 
       await user.click(screen.getByRole('button', { name: /back/i }));
 
-      expect(screen.getByTestId('verify-page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('verify-page')).toBeInTheDocument();
+      });
     });
 
     it('should navigate back to signup for new clients', async () => {
@@ -427,7 +429,9 @@ describe('ServicesPage Integration', () => {
 
       await user.click(screen.getByRole('button', { name: /back/i }));
 
-      expect(screen.getByTestId('signup-page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('signup-page')).toBeInTheDocument();
+      });
     });
   });
 
