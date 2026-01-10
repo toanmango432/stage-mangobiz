@@ -23,8 +23,10 @@ export function ConfirmPage() {
   const { storeId, deviceId } = useAppSelector((state) => state.auth);
   const technicians = useAppSelector((state) => state.technicians.technicians);
 
-  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
-  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
+  const guestDuration = guests.reduce((sum, g) => sum + g.services.reduce((s, svc) => s + svc.durationMinutes, 0), 0);
+  const guestPrice = guests.reduce((sum, g) => sum + g.services.reduce((s, svc) => s + svc.price, 0), 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0) + guestDuration;
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0) + guestPrice;
 
   const selectedTechnician =
     technicianPreference === 'anyone'
@@ -181,18 +183,59 @@ export function ConfirmPage() {
             {/* Guests Card */}
             {guests.length > 0 && (
               <div className="bg-white rounded-2xl border border-[#e5e7eb] p-5 shadow-sm">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-[#fdf8eb] rounded-xl flex items-center justify-center">
                     <Users className="w-5 h-5 text-[#d4a853]" />
                   </div>
                   <div>
                     <h3 className="font-['Plus_Jakarta_Sans'] font-semibold text-[#1f2937]">
-                      Guests
+                      Guests ({guests.length})
                     </h3>
-                    <p className="font-['Work_Sans'] text-[#6b7280]">
-                      {guests.length} additional {guests.length === 1 ? 'person' : 'people'}
+                    <p className="font-['Work_Sans'] text-sm text-[#6b7280]">
+                      Additional {guests.length === 1 ? 'person' : 'people'} in your party
                     </p>
                   </div>
+                </div>
+
+                <div className="space-y-3">
+                  {guests.map((guest, index) => (
+                    <div
+                      key={guest.id}
+                      className="flex items-start gap-3 py-3 border-b border-[#f3f4f6] last:border-0 last:pb-0"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-br from-[#d4a853] to-[#c49a4a] rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-sm font-bold font-['Plus_Jakarta_Sans']">
+                          {index + 1}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-['Work_Sans'] font-medium text-[#1f2937]">
+                          {guest.name}
+                        </p>
+                        {guest.services.length > 0 ? (
+                          <div className="mt-1 space-y-1">
+                            {guest.services.map((svc) => (
+                              <div
+                                key={svc.serviceId}
+                                className="flex items-center justify-between text-sm"
+                              >
+                                <span className="font-['Work_Sans'] text-[#6b7280]">
+                                  {svc.serviceName}
+                                </span>
+                                <span className="font-['Work_Sans'] text-[#1f2937]">
+                                  ${svc.price}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="font-['Work_Sans'] text-sm text-[#9ca3af] italic">
+                            No services selected
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

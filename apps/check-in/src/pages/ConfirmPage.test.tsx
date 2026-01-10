@@ -222,7 +222,7 @@ describe('ConfirmPage', () => {
         },
       };
       renderWithProviders(<ConfirmPage />, stateWithGuests);
-      expect(screen.getByText('2 additional people')).toBeInTheDocument();
+      expect(screen.getByText('Additional people in your party')).toBeInTheDocument();
     });
 
     it('should show "New Client" label for new clients', () => {

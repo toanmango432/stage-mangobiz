@@ -193,7 +193,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
@@ -212,7 +212,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 2 - Features. Load test-generator skill."
     },
     {

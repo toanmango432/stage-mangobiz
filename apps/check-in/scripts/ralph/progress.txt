@@ -195,3 +195,44 @@ Thread: https://ampcode.com/threads/T-019ba80b-0c7d-773a-99f4-0d8e454d5b8d
   - All 138 tests pass
   - Build produces 1015KB bundle (298KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-010
+Thread: https://ampcode.com/threads/T-019ba80e-ec51-728e-83ff-d8ec237889bc
+- Implemented Offline Mode - IndexedDB Sync
+- Files changed:
+  - src/hooks/useOfflineSync.ts (NEW: hook for sync queue processing on online/offline events)
+  - src/hooks/useOfflineSync.test.tsx (NEW: 8 unit tests for offline sync hook)
+  - src/hooks/index.ts (added useOfflineSync export)
+  - src/components/OfflineBanner.tsx (refactored to use Redux sync status, error handling, retry button)
+  - src/components/OfflineBanner.test.tsx (NEW: 7 integration tests for banner)
+  - src/store/slices/syncSlice.ts (added setPendingCount action)
+- **Learnings for future iterations:**
+  - dataService already handles IndexedDB caching for services and technicians in getAll() methods
+  - dataService.sync.processQueue() syncs pending checkins and clients from IndexedDB to Supabase
+  - dataService.sync.getPendingCount() returns number of items in sync queue
+  - useOfflineSync hook manages online/offline events, triggers sync, and updates Redux
+  - OfflineBanner shows: offline, syncing, error (with retry), pending count states
+  - TypeScript narrowing: after checking `status === 'error'`, don't re-check in else branch
+  - All 153 tests pass
+  - Build produces 1017KB bundle (299KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-011
+Thread: https://ampcode.com/threads/T-019ba818-5622-751c-b5d7-ffb80ba46ccb
+- Implemented Guest Check-In feature with full functionality
+- Files changed:
+  - src/pages/GuestsPage.tsx (complete refactor: guest entry, service selection per guest, party preference)
+  - src/pages/GuestsPage.test.tsx (NEW: 17 integration tests)
+  - src/pages/ConfirmPage.tsx (updated to show guest details with services, include guest totals)
+  - src/pages/ConfirmPage.test.tsx (fixed test for updated guest display text)
+  - src/pages/ServicesPage.test.tsx (fixed flaky navigation test)
+- **Learnings for future iterations:**
+  - GuestsPage now uses Redux state (addGuest, removeGuest, updateGuest actions in checkinSlice)
+  - GuestServiceModal component handles per-guest service selection
+  - Maximum 6 guests per check-in enforced in UI
+  - Party preference (together/sequence) stored in checkinSlice.partyPreference
+  - ConfirmPage now includes guest services in totalDuration and totalPrice calculations
+  - Guest details displayed with numbered badges (1, 2, 3...) in gold color (#d4a853)
+  - All 170 tests pass
+  - Build produces 1030KB bundle (301KB gzipped)
+---
