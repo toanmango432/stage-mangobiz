@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { addGuest, removeGuest, updateGuest, setPartyPreference } from '../store/slices/checkinSlice';
+import { useAnalytics } from '../hooks/useAnalytics';
 import type { CheckInGuest, CheckInService, PartyPreference, ServiceCategory } from '../types';
 
 const MAX_GUESTS = 6;
@@ -193,6 +194,7 @@ function GuestServiceModal({ isOpen, onClose, guest, categories, onSave }: Guest
 export function GuestsPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { trackGuestAdded } = useAnalytics();
 
   const { guests, partyPreference, selectedServices: mainClientServices, currentClient } = useAppSelector((state) => state.checkin);
   const { categories } = useAppSelector((state) => state.services);
@@ -242,6 +244,14 @@ export function GuestsPage() {
   };
 
   const handleContinue = () => {
+    if (guests.length > 0) {
+      const guestServiceCount = guests.reduce((sum, g) => sum + g.services.length, 0);
+      trackGuestAdded({
+        guestCount: guests.length,
+        partyPreference,
+        guestServiceCount,
+      });
+    }
     navigate('/confirm');
   };
 

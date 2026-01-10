@@ -1,15 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Calendar, Sparkles, ArrowRight } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchClientByPhone, clearPhoneSearch } from '../store/slices/clientSlice';
 import { formatPhone } from '../utils';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export function VerifyPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const phone = searchParams.get('phone') || '';
+  const { trackPhoneEntered } = useAnalytics();
+  const lookupStartRef = useRef<number>(Date.now());
+  const trackedRef = useRef(false);
 
   const { phoneSearchResult, currentClient } = useAppSelector((state) => state.client);
   const { status, client } = phoneSearchResult;
@@ -20,12 +24,24 @@ export function VerifyPage() {
       return;
     }
 
+    lookupStartRef.current = Date.now();
     dispatch(fetchClientByPhone(phone));
 
     return () => {
       dispatch(clearPhoneSearch());
     };
   }, [phone, navigate, dispatch]);
+
+  useEffect(() => {
+    if ((status === 'found' || status === 'not_found') && !trackedRef.current) {
+      trackedRef.current = true;
+      const lookupDurationMs = Date.now() - lookupStartRef.current;
+      trackPhoneEntered({
+        isReturningClient: status === 'found',
+        lookupDurationMs,
+      });
+    }
+  }, [status, trackPhoneEntered]);
 
   const handleNewClient = () => {
     navigate(`/signup?phone=${phone}`);

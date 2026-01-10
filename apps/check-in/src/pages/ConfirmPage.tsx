@@ -4,11 +4,13 @@ import { ArrowLeft, Check, Clock, DollarSign, User, Users, Scissors } from 'luci
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createCheckIn } from '../store/slices/checkinSlice';
 import { useMqtt } from '../providers/MqttProvider';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export function ConfirmPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { publish } = useMqtt();
+  const { trackCheckinCompleted, getFlowDuration } = useAnalytics();
 
   const {
     currentClient,
@@ -51,6 +53,16 @@ export function ConfirmPage() {
 
     if (createCheckIn.fulfilled.match(result)) {
       const checkIn = result.payload;
+
+      trackCheckinCompleted({
+        checkInId: checkIn.id,
+        checkInNumber: checkIn.checkInNumber,
+        isNewClient: isNewClient,
+        serviceCount: checkIn.services.length,
+        totalPrice,
+        guestCount: checkIn.guests.length,
+        flowDurationMs: getFlowDuration(),
+      });
 
       await publish(`salon/${storeId}/checkin/new`, {
         checkInId: checkIn.id,

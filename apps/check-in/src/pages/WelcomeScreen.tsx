@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QrCode, Sparkles, Clock, Delete, ChevronRight, Check, X, Gift } from 'lucide-react';
 import { formatPhone } from '../utils';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 // ============================================================================
 // STORE CONFIG - Will come from API/Context
@@ -72,6 +73,7 @@ function getGreeting(): string {
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
+  const { trackCheckinStarted, trackCheckinAbandoned, getFlowDuration, resetSession } = useAnalytics();
   const [phone, setPhone] = useState('');
   const [greeting] = useState(getGreeting());
   const [showIdleWarning, setShowIdleWarning] = useState(false);
@@ -80,6 +82,10 @@ export function WelcomeScreen() {
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(true); // Auto-selected
   const [showAgreement, setShowAgreement] = useState(false);
+
+  useEffect(() => {
+    resetSession();
+  }, [resetSession]);
 
   const isComplete = phone.length === 10 && agreedToTerms;
 
@@ -93,16 +99,24 @@ export function WelcomeScreen() {
     const interval = setInterval(() => {
       const idle = Date.now() - lastActivity;
       if (idle >= IDLE_TIMEOUT_MS) {
+        if (phone.length > 0) {
+          trackCheckinAbandoned({
+            step: 'welcome',
+            reason: 'timeout',
+            flowDurationMs: getFlowDuration(),
+          });
+        }
         setPhone('');
         setAgreedToTerms(true);
         setShowIdleWarning(false);
         setLastActivity(Date.now());
+        resetSession();
       } else if (idle >= IDLE_WARNING_MS && phone.length > 0) {
         setShowIdleWarning(true);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [lastActivity, phone.length]);
+  }, [lastActivity, phone.length, trackCheckinAbandoned, getFlowDuration, resetSession]);
 
   // Activity listeners
   useEffect(() => {
@@ -130,11 +144,13 @@ export function WelcomeScreen() {
   const handleContinue = () => {
     if (!isComplete) return;
     setIsLoading(true);
+    trackCheckinStarted({ source: 'phone' });
     navigate(`/verify?phone=${phone}`);
   };
 
   const handleQR = () => {
     resetActivity();
+    trackCheckinStarted({ source: 'qr_code' });
     navigate('/qr-scan');
   };
 

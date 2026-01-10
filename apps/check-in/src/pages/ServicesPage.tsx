@@ -1,15 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Sparkles, Clock, DollarSign, Search, Loader2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchServices } from '../store/slices';
 import { addSelectedService, removeSelectedService } from '../store/slices/checkinSlice';
+import { useAnalytics } from '../hooks/useAnalytics';
 import type { Service, CheckInService } from '../types';
 
 export function ServicesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
+  const { trackServicesSelected } = useAnalytics();
+  const usedSearchRef = useRef(false);
   const clientId = searchParams.get('clientId') || '';
   const phone = searchParams.get('phone') || '';
   const isNewClient = searchParams.get('new') === 'true';
@@ -61,6 +64,17 @@ export function ServicesPage() {
   const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
 
   const handleContinue = () => {
+    trackServicesSelected({
+      serviceCount: selectedServices.length,
+      services: selectedServices.map((s) => ({
+        serviceId: s.serviceId,
+        serviceName: s.serviceName,
+        price: s.price,
+      })),
+      totalPrice,
+      totalDuration,
+      usedSearch: usedSearchRef.current,
+    });
     const servicesParam = selectedServices.map((s) => s.serviceId).join(',');
     navigate(
       `/technician?clientId=${clientId}&phone=${phone}&services=${servicesParam}${isNewClient ? '&new=true' : ''}`
@@ -142,7 +156,12 @@ export function ServicesPage() {
                   type="text"
                   placeholder="Search services..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.length > 0) {
+                      usedSearchRef.current = true;
+                    }
+                  }}
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#e5e7eb] font-['Work_Sans'] text-sm focus:outline-none focus:ring-2 focus:ring-[#1a5f4a]/20 focus:border-[#1a5f4a]"
                 />
               </div>

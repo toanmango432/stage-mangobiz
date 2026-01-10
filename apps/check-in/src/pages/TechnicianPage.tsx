@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { fetchTechnicians } from '../store/slices/technicianSlice';
 import { setTechnicianPreference } from '../store/slices/checkinSlice';
 import { useTechnicianMqtt } from '../hooks/useTechnicianMqtt';
+import { useAnalytics } from '../hooks/useAnalytics';
 import type { Technician, TechnicianStatus } from '../types';
 
 const STATUS_CONFIG: Record<TechnicianStatus, { label: string; color: string; bgColor: string; dotColor: string }> = {
@@ -18,6 +19,7 @@ export function TechnicianPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
+  const { trackTechnicianSelected } = useAnalytics();
   const clientId = searchParams.get('clientId') || '';
   const phone = searchParams.get('phone') || '';
   const services = searchParams.get('services') || '';
@@ -69,7 +71,14 @@ export function TechnicianPage() {
     dispatch(setTechnicianPreference('anyone'));
   };
 
+  const selectedTechnician = technicians.find((t) => t.id === technicianPreference);
+
   const handleContinue = () => {
+    trackTechnicianSelected({
+      technicianPreference,
+      technicianId: technicianPreference === 'anyone' ? undefined : technicianPreference,
+      technicianName: selectedTechnician?.displayName,
+    });
     const techParam = technicianPreference === 'anyone' ? 'any' : technicianPreference;
     navigate(`/guests?clientId=${clientId}&phone=${phone}&services=${services}&technician=${techParam}${isNewClient ? '&new=true' : ''}`);
   };
@@ -79,7 +88,6 @@ export function TechnicianPage() {
   };
 
   const isNoPreference = technicianPreference === 'anyone';
-  const selectedTechnician = technicians.find((t) => t.id === technicianPreference);
   const isValid = technicianPreference !== '';
 
   const renderTechnicianCard = (tech: Technician) => {
