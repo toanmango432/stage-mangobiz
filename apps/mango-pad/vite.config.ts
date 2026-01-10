@@ -15,6 +15,21 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    sourcemap: true
-  }
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks - separate large dependencies
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-mqtt': ['mqtt'],
+          // Settings page is large (~900 lines) - separate chunk
+          'settings': ['./src/pages/SettingsPage.tsx'],
+        },
+      },
+    },
+    // Increase chunk size warning limit (we're optimizing with code splitting)
+    chunkSizeWarningLimit: 300,
+  },
 });

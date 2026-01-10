@@ -53,6 +53,11 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - Testing: Use vi.resetModules() before importing singletons in tests
 - Testing: Use toBeCloseTo() for floating point comparisons
 - Testing: Coverage configured to include store, services, utils, hooks, constants, types
+- E2E: Playwright config in playwright.config.ts, E2E tests in e2e/ directory
+- E2E: window.__REDUX_STORE__ exposes Redux store for E2E testing (dev/test mode only)
+- E2E: Use waitForStoreReady() before dispatching actions in E2E tests
+- E2E: setMqttConnected() helper prevents ReconnectingOverlay from blocking UI
+- E2E: Use .first() for locators that might match multiple elements to satisfy strict mode
 
 ---
 
@@ -455,4 +460,40 @@ Thread: https://ampcode.com/threads/T-019ba80b-27e4-745a-b244-cd63db9522a1
   - Use toBeCloseTo() for floating point comparisons instead of toBe()
   - Coverage exclude UI components (pages) for realistic thresholds
   - Test types separately from component tests for cleaner coverage
+---
+
+## [2026-01-10] - US-017
+Thread: https://ampcode.com/threads/T-019ba815-a580-732f-9332-0ab694e5c363
+- Implemented comprehensive E2E test suite using Playwright
+- Created 26 E2E tests covering all acceptance criteria:
+  - Complete payment flow (Idle -> Review -> Tip -> Sign -> Pay -> Result -> Receipt -> Thank You)
+  - Split payment flow (2-way equal split)
+  - Cancel flow from all screens
+  - Payment failure and retry scenarios
+- Created test helpers for mocking Redux state and MQTT messages
+- Added Redux store exposure via window.__REDUX_STORE__ for testing
+- Created vite-env.d.ts for Vite type definitions
+- Updated .gitignore to allow e2e/ and playwright.config.ts
+- All 26 E2E tests pass with `pnpm test:e2e`
+- All 194 unit tests continue to pass
+- Typecheck and build pass
+- Files changed:
+  - playwright.config.ts (new)
+  - e2e/helpers.ts (new - test utilities)
+  - e2e/payment-flow.spec.ts (new - 11 tests)
+  - e2e/split-payment.spec.ts (new - 4 tests)
+  - e2e/cancel-flow.spec.ts (new - 6 tests)
+  - e2e/payment-failure.spec.ts (new - 7 tests)
+  - src/main.tsx (exposed Redux store for testing)
+  - src/vite-env.d.ts (new - Vite types)
+  - package.json (added playwright, test:e2e scripts)
+  - .gitignore (enabled e2e/ tracking)
+- **Learnings for future iterations:**
+  - Use window.__REDUX_STORE__ to access Redux store in E2E tests
+  - waitForStoreReady() helper ensures store is initialized before dispatching
+  - setMqttConnected() helper prevents ReconnectingOverlay from blocking UI
+  - Use .first() for locators that might match multiple elements
+  - Use page.locator('button:has-text("Done")') for more specific matching
+  - Playwright strict mode requires unique element selection
+  - E2E tests run against dev server started by playwright config
 ---

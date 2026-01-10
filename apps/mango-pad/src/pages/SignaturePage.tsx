@@ -142,14 +142,20 @@ export function SignaturePage() {
             </div>
           </div>
 
-          {/* Signature Canvas Container */}
+          {/* Signature Canvas Container - Optimized for 60fps with will-change */}
           <div className="flex-1 min-h-[200px] mb-6">
             <div className="bg-white rounded-2xl border-2 border-dashed border-gray-300 relative overflow-hidden h-full min-h-[200px] shadow-sm">
               <SignatureCanvas
                 ref={signatureRef}
                 canvasProps={{
                   className: 'w-full h-full min-h-[200px] touch-none cursor-crosshair',
-                  style: { width: '100%', height: '100%', minHeight: '200px' },
+                  style: {
+                    width: '100%',
+                    height: '100%',
+                    minHeight: '200px',
+                    willChange: 'auto',
+                    touchAction: 'none',
+                  },
                 }}
                 penColor="#1f2937"
                 backgroundColor="rgba(255, 255, 255, 0)"
