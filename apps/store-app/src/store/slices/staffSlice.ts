@@ -121,19 +121,8 @@ export const fetchAvailableStaff = createAsyncThunk(
   }
 );
 
-export const clockInStaff = createAsyncThunk(
-  'staff/clockIn',
-  async (id: string) => {
-    return await staffDB.clockIn(id);
-  }
-);
-
-export const clockOutStaff = createAsyncThunk(
-  'staff/clockOut',
-  async (id: string) => {
-    return await staffDB.clockOut(id);
-  }
-);
+// NOTE: Clock in/out is now handled by timesheetSlice
+// See timesheetSlice.clockIn and timesheetSlice.clockOut for the active implementation
 
 export const updateStaffSpecialties = createAsyncThunk(
   'staff/updateSpecialties',
@@ -165,18 +154,7 @@ const staffSlice = createSlice({
       .addCase(fetchAvailableStaff.fulfilled, (state, action) => {
         state.availableStaff = action.payload;
       })
-      .addCase(clockInStaff.fulfilled, (state, action) => {
-        if (action.payload) {
-          const index = state.items.findIndex(s => s.id === action.payload!.id);
-          if (index !== -1) state.items[index] = action.payload;
-        }
-      })
-      .addCase(clockOutStaff.fulfilled, (state, action) => {
-        if (action.payload) {
-          const index = state.items.findIndex(s => s.id === action.payload!.id);
-          if (index !== -1) state.items[index] = action.payload;
-        }
-      })
+      // NOTE: Clock in/out handlers removed - now handled by timesheetSlice
       .addCase(updateStaffSpecialties.fulfilled, (state, action) => {
         if (action.payload) {
           const index = state.items.findIndex(s => s.id === action.payload!.id);
