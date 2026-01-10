@@ -154,3 +154,21 @@ Thread: https://ampcode.com/threads/T-019ba7d3-5ca2-7148-910f-05f5ab04cf1e
   - Payment result is received via PadMqttProvider which dispatches to transactionSlice
   - Terminal type icons can be customized per brand (PAX, Dejavoo, Clover, or generic)
 ---
+
+## [2026-01-10] - US-007
+Thread: https://ampcode.com/threads/T-019ba7e3-2550-74b8-ac5f-d823fb120019
+- Implemented ResultPage for payment success/failure display
+- Large green checkmark with "Payment Successful!" for success state
+- Red X icon with "Payment Failed" and failure reason for failure state
+- Shows card last 4 digits and authorization code on success
+- Try Again button on failure returns to payment screen
+- Auto-proceeds to receipt or thank-you after configurable delay
+- Animated progress bar shows countdown to auto-advance
+- Files changed:
+  - src/pages/ResultPage.tsx (new)
+  - src/App.tsx (added ResultPage import and case)
+- **Learnings for future iterations:**
+  - Config is accessed via state.config.config (nested structure)
+  - Use ?? for nullish coalescing instead of || for numbers (thankYouDelay)
+  - setPaymentResult(null as never) to clear payment result (type workaround)
+---
