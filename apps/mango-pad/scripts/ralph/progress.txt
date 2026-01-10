@@ -48,6 +48,11 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - safe-area-all class handles iOS notch/home indicator spacing
 - Landscape orientation detected via useOrientation hook or data-orientation attribute
 - Responsive breakpoints in tailwind.config.ts: tablet-sm (600px), tablet (768px), tablet-lg (1024px)
+- Testing: Vitest framework with vitest.config.ts, test files use *.test.ts pattern
+- Testing: src/test/setup.ts provides localStorage and matchMedia mocks
+- Testing: Use vi.resetModules() before importing singletons in tests
+- Testing: Use toBeCloseTo() for floating point comparisons
+- Testing: Coverage configured to include store, services, utils, hooks, constants, types
 
 ---
 
@@ -408,4 +413,46 @@ Thread: https://ampcode.com/threads/T-019ba803-7a7c-75be-82b5-653c42eb6280
   - Landscape mode can use side-by-side layouts for better space usage
   - useResponsive hook provides isShortScreen for compact layouts on small Android tablets
   - data-orientation attribute on containers helps CSS-only orientation styling
+---
+
+## [2026-01-10] - US-016
+Thread: https://ampcode.com/threads/T-019ba80b-27e4-745a-b244-cd63db9522a1
+- Implemented comprehensive unit test suite with 70%+ coverage
+- Set up Vitest testing framework with vitest.config.ts
+- Created src/test/setup.ts with localStorage mock and matchMedia mock
+- Added test scripts to package.json: test, test:watch, test:coverage
+- Created tipCalculations utility (src/utils/tipCalculations.ts) with tests
+- Unit tests for all Redux slices (padSlice, transactionSlice, configSlice, uiSlice)
+- Unit tests for MQTT topic utilities (mqttTopics.ts)
+- Unit tests for tip calculation functions (calculateTipAmount, calculateTipPercent, formatCurrency)
+- Unit tests for split payment calculations (calculateEqualSplits, validateSplitAmounts, adjustLastSplit)
+- Unit tests for syncQueue service (enqueue, replay, offline tracking)
+- Unit tests for mqttClient service (connection state, subscribe, publish)
+- Unit tests for useResponsive hook (device detection, orientation, screen sizes)
+- Unit tests for Redux store integration
+- Final coverage: 78.59% lines, 84.09% functions, 65.21% branches
+- Files changed:
+  - vitest.config.ts (new)
+  - src/test/setup.ts (new)
+  - src/utils/tipCalculations.ts (new)
+  - src/utils/tipCalculations.test.ts (new)
+  - src/utils/splitCalculations.test.ts (new)
+  - src/store/slices/padSlice.test.ts (new)
+  - src/store/slices/transactionSlice.test.ts (new)
+  - src/store/slices/configSlice.test.ts (new)
+  - src/store/slices/uiSlice.test.ts (new)
+  - src/store/index.test.ts (new)
+  - src/services/syncQueue.test.ts (new)
+  - src/services/mqttClient.test.ts (new)
+  - src/hooks/useResponsive.test.ts (new)
+  - src/constants/mqttTopics.test.ts (new)
+  - package.json (test scripts, Vitest dependencies)
+  - .gitignore (coverage folder)
+- **Learnings for future iterations:**
+  - Vitest globals: true allows describe/it/expect without imports
+  - Use vi.resetModules() for services with singleton patterns
+  - Mock localStorage in setup.ts for tests that need persistence
+  - Use toBeCloseTo() for floating point comparisons instead of toBe()
+  - Coverage exclude UI components (pages) for realistic thresholds
+  - Test types separately from component tests for cleaner coverage
 ---
