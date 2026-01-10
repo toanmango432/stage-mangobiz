@@ -19,5 +19,31 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - Use Framer Motion for page transitions
 - Touch targets must be minimum 48x48px
 - Fonts must be minimum 18px body, 24px+ headers
+- Local mqttClient.ts is used instead of @mango/mqtt (shared package has broken dependencies)
+- mqttService singleton handles connection state, subscriptions, and publishing
+- PadMqttProvider wraps app and auto-subscribes to ready_to_pay, payment_result, and cancel topics
 
+---
+
+## [2026-01-10] - US-001
+Thread: https://ampcode.com/threads/T-019ba7bb-e559-76ea-9418-be8413fc73dc
+- Implemented Redux Toolkit store with padSlice, transactionSlice, configSlice, uiSlice
+- Created TypeScript types for all MQTT payloads and app state
+- Created local MQTT client service using mqtt.js library
+- Created PadMqttProvider that subscribes to ready_to_pay, payment_result, cancel topics
+- Added publish functions for tip_selected, signature, receipt_preference, transaction_complete, help_requested, split_payment
+- Connection status tracked in Redux (connected/disconnected/reconnecting)
+- Files changed:
+  - src/store/index.ts, src/store/hooks.ts
+  - src/store/slices/padSlice.ts, transactionSlice.ts, configSlice.ts, uiSlice.ts
+  - src/types/index.ts
+  - src/services/mqttClient.ts
+  - src/providers/PadMqttProvider.tsx
+  - src/constants/mqttTopics.ts
+  - src/main.tsx, src/App.tsx
+  - package.json (added redux, mqtt, uuid dependencies)
+- **Learnings for future iterations:**
+  - The shared @mango/mqtt package has broken dependencies; use local mqttClient.ts instead
+  - configSlice auto-persists to localStorage on every change
+  - mqtt.js requires `pnpm add mqtt uuid @types/uuid`
 ---
