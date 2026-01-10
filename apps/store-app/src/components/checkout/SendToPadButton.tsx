@@ -18,6 +18,7 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectHasConnectedPad } from '@/store/slices/padDevicesSlice';
 import { selectStoreId } from '@/store/slices/authSlice';
 import { addNotification } from '@/store/slices/uiSlice';
+import { startPadTransaction } from '@/store/slices/padTransactionSlice';
 import {
   getMangoPadService,
   type PadTransaction,
@@ -114,6 +115,8 @@ export default function SendToPadButton({
       };
 
       await mangoPadService.sendReadyToPay(transaction);
+
+      dispatch(startPadTransaction({ transactionId, ticketId }));
 
       dispatch(
         addNotification({

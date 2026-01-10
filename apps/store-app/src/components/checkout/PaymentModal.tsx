@@ -26,6 +26,7 @@ import GiftCardRedeemModal, { AppliedGiftCard } from "./modals/GiftCardRedeemMod
 import { giftCardDB } from "@/db/giftCardOperations";
 import { useAppSelector } from "@/store/hooks";
 import SendToPadButton from "./SendToPadButton";
+import PadTransactionStatus from "./PadTransactionStatus";
 
 export interface PaymentMethod {
   type: "card" | "cash" | "gift_card" | "custom";
@@ -717,6 +718,18 @@ export default function PaymentModal({
                           total={totalWithTip}
                           suggestedTips={TIP_PERCENTAGES}
                           onSent={handleSentToPad}
+                        />
+                        <Separator className="my-4" />
+                      </div>
+                    )}
+
+                    {/* Show Pad transaction status when sent */}
+                    {sentToPadTransactionId && ticketId && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground block">Mango Pad Status</label>
+                        <PadTransactionStatus
+                          ticketId={ticketId}
+                          onRetry={() => setSentToPadTransactionId(null)}
                         />
                         <Separator className="my-4" />
                       </div>
