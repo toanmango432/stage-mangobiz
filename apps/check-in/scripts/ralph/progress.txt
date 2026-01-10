@@ -178,3 +178,20 @@ Thread: https://ampcode.com/threads/T-019ba7ff-37ac-71d6-8bd9-c07d4e5d708f
   - All 132 tests pass (10 SuccessPage + previous 122)
   - Build produces 1010KB bundle (298KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-009
+Thread: https://ampcode.com/threads/T-019ba80b-0c7d-773a-99f4-0d8e454d5b8d
+- Verified and marked US-009 Client Called Handler (MQTT) as complete
+- Implementation already exists from previous work:
+  - src/hooks/useCalledMqtt.ts - MQTT subscription hook with audio notification
+  - src/store/slices/checkinSlice.ts - CalledInfo type, isCalled/calledInfo state, setClientCalled reducer
+  - src/pages/SuccessPage.tsx - Called state view with technician/station display
+  - src/pages/SuccessPage.test.tsx - 6 integration tests for Called state
+- Fixed flaky test in ServicesPage.test.tsx (added waitFor on navigation assertions)
+- **Learnings for future iterations:**
+  - Always update prd.json passes:true when committing story completion
+  - useCalledMqtt uses HTML Audio element for notification sound (/sounds/notification.mp3)
+  - CalledInfo fields: technicianId, technicianName, station, calledAt (all nullable except calledAt)
+  - All 138 tests pass
+  - Build produces 1015KB bundle (298KB gzipped)
+---
