@@ -1,6 +1,7 @@
 /**
  * IdlePage - Idle/Standby Screen with Digital Signage
  * US-002: Displays promotional content, salon logo, date/time while waiting for transactions
+ * US-015: Responsive design for iPad, Android tablets, and desktop displays
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -8,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { setScreen } from '@/store/slices/padSlice';
+import { useResponsive } from '@/hooks/useResponsive';
 import type { PromoSlide } from '@/types';
 
 const DEFAULT_SLIDE: PromoSlide = {
@@ -82,61 +84,61 @@ function PromoSlideDisplay({ slide }: PromoSlideDisplayProps) {
     switch (slide.type) {
       case 'promotion':
         return (
-          <div className="text-center">
+          <div className="text-center px-4">
             {slide.imageUrl && (
               <img
                 src={slide.imageUrl}
                 alt={slide.title || 'Promotion'}
-                className="w-64 h-64 object-cover rounded-2xl mx-auto mb-6 shadow-xl"
+                className="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 object-cover rounded-2xl mx-auto mb-4 md:mb-6 shadow-xl"
               />
             )}
-            <h2 className="text-4xl font-bold text-white mb-3">{slide.title}</h2>
-            <p className="text-xl text-white/80">{slide.subtitle}</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-3">{slide.title}</h2>
+            <p className="text-lg sm:text-xl md:text-2xl text-white/80">{slide.subtitle}</p>
           </div>
         );
       case 'staff-spotlight':
         return (
-          <div className="text-center">
+          <div className="text-center px-4">
             {slide.imageUrl && (
               <img
                 src={slide.imageUrl}
                 alt={slide.title || 'Staff'}
-                className="w-48 h-48 object-cover rounded-full mx-auto mb-6 shadow-xl border-4 border-white/30"
+                className="w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 object-cover rounded-full mx-auto mb-4 md:mb-6 shadow-xl border-4 border-white/30"
               />
             )}
-            <p className="text-lg text-white/60 mb-2">Staff Spotlight</p>
-            <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-xl text-white/80">{slide.subtitle}</p>
+            <p className="text-base md:text-lg text-white/60 mb-2">Staff Spotlight</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">{slide.title}</h2>
+            <p className="text-lg sm:text-xl text-white/80">{slide.subtitle}</p>
           </div>
         );
       case 'testimonial':
         return (
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="text-6xl text-white/40 mb-4">"</div>
-            <p className="text-2xl text-white italic mb-6">{slide.subtitle}</p>
-            <p className="text-lg text-white/80">— {slide.title}</p>
+          <div className="text-center max-w-2xl mx-auto px-4">
+            <div className="text-4xl md:text-6xl text-white/40 mb-2 md:mb-4">"</div>
+            <p className="text-xl sm:text-2xl md:text-3xl text-white italic mb-4 md:mb-6">{slide.subtitle}</p>
+            <p className="text-base md:text-lg text-white/80">— {slide.title}</p>
           </div>
         );
       case 'social-qr':
         return (
-          <div className="text-center">
+          <div className="text-center px-4">
             {slide.imageUrl && (
               <img
                 src={slide.imageUrl}
                 alt="QR Code"
-                className="w-48 h-48 mx-auto mb-6 rounded-xl bg-white p-4"
+                className="w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 mx-auto mb-4 md:mb-6 rounded-xl bg-white p-3 md:p-4"
               />
             )}
-            <h2 className="text-3xl font-bold text-white mb-2">{slide.title}</h2>
-            <p className="text-xl text-white/80">{slide.subtitle}</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">{slide.title}</h2>
+            <p className="text-lg sm:text-xl text-white/80">{slide.subtitle}</p>
           </div>
         );
       case 'announcement':
       default:
         return (
-          <div className="text-center">
-            <h2 className="text-5xl font-bold text-white mb-4">{slide.title}</h2>
-            <p className="text-2xl text-white/80">{slide.subtitle}</p>
+          <div className="text-center px-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4">{slide.title}</h2>
+            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/80">{slide.subtitle}</p>
           </div>
         );
     }
@@ -148,7 +150,7 @@ function PromoSlideDisplay({ slide }: PromoSlideDisplayProps) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
       transition={{ duration: 0.5, ease: 'easeInOut' }}
-      className="flex items-center justify-center min-h-[300px]"
+      className="flex items-center justify-center min-h-[200px] sm:min-h-[250px] md:min-h-[300px] w-full"
       style={slide.backgroundColor ? { backgroundColor: slide.backgroundColor } : undefined}
     >
       {renderSlideContent()}
@@ -163,6 +165,7 @@ export function IdlePage() {
   const dispatch = useAppDispatch();
   const config = useAppSelector((state) => state.config.config);
   const { logoUrl, promoSlides, slideDuration, brandColors } = config;
+  const { orientation, isShortScreen } = useResponsive();
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -236,13 +239,14 @@ export function IdlePage() {
 
   return (
     <div
-      className="min-h-screen relative overflow-hidden flex flex-col"
+      className="min-h-screen min-h-[100dvh] relative overflow-hidden flex flex-col"
       style={{
         background: `linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.secondary} 100%)`,
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
+      data-orientation={orientation}
     >
       {/* Animated gradient overlay */}
       <motion.div
@@ -263,29 +267,29 @@ export function IdlePage() {
       />
 
       {/* Header: Logo and Date/Time */}
-      <header className="relative z-10 p-6 flex justify-between items-start">
-        <div className="flex items-center gap-4">
+      <header className={`relative z-10 p-4 sm:p-5 md:p-6 flex justify-between items-start ${isShortScreen ? 'py-2' : ''}`}>
+        <div className="flex items-center gap-2 md:gap-4">
           {logoUrl ? (
             <img
               src={logoUrl}
               alt="Salon Logo"
-              className="h-16 w-auto object-contain rounded-lg"
+              className="h-10 sm:h-12 md:h-16 w-auto object-contain rounded-lg"
             />
           ) : (
-            <div className="h-16 w-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <span className="text-2xl font-bold text-white">M</span>
+            <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">M</span>
             </div>
           )}
         </div>
 
         <div className="text-right text-white">
-          <p className="text-3xl font-light">{formatTime(currentTime)}</p>
-          <p className="text-lg text-white/70">{formatDate(currentTime)}</p>
+          <p className="text-xl sm:text-2xl md:text-3xl font-light">{formatTime(currentTime)}</p>
+          <p className="text-sm sm:text-base md:text-lg text-white/70">{formatDate(currentTime)}</p>
         </div>
       </header>
 
       {/* Main Content: Promo Carousel */}
-      <main className="flex-1 relative z-10 flex items-center justify-center px-8">
+      <main className="flex-1 relative z-10 flex items-center justify-center px-4 sm:px-6 md:px-8">
         <AnimatePresence mode="wait">
           <PromoSlideDisplay key={currentSlide.id} slide={currentSlide} />
         </AnimatePresence>

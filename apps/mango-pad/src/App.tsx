@@ -2,6 +2,7 @@
  * Mango Pad App
  * Screen-based navigation with smooth transitions
  * US-014: WCAG 2.1 AA Accessibility compliance
+ * US-015: Responsive design for multi-device support
  */
 
 import { useEffect } from 'react';
@@ -20,6 +21,7 @@ import { SplitSelectionPage } from '@/pages/SplitSelectionPage';
 import { SplitStatusPage } from '@/pages/SplitStatusPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ReconnectingOverlay } from '@/components/ReconnectingOverlay';
+import { useOrientation } from '@/hooks/useResponsive';
 import type { PadScreen } from '@/types';
 
 const pageVariants = {
@@ -36,6 +38,7 @@ const pageTransition = {
 
 function ScreenRouter() {
   const currentScreen = useAppSelector((state) => state.pad.currentScreen);
+  const orientation = useOrientation();
 
   const renderScreen = (screen: PadScreen) => {
     switch (screen) {
@@ -75,7 +78,8 @@ function ScreenRouter() {
         animate="animate"
         exit="exit"
         transition={pageTransition}
-        className="min-h-screen"
+        className="min-h-screen min-h-[100dvh] safe-area-all"
+        data-orientation={orientation}
       >
         {renderScreen(currentScreen)}
       </motion.div>

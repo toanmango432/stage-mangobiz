@@ -37,6 +37,11 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - ReconnectingOverlay shows overlay during disconnection with duration and queue info
 - 30-second offline threshold triggers offlineAlertCallback for staff notification
 - uiSlice tracks: offlineSince, offlineAlertTriggered, queuedMessageCount
+- Accessibility CSS in src/styles/accessibility.css with high-contrast and large-text modes
+- AccessibilityProvider in App.tsx applies html class based on config settings
+- All buttons should have aria-label, icons should have aria-hidden="true"
+- Use role="main" id="main-content" on main content wrapper, role="banner" on headers
+- @import must come before @tailwind directives in CSS
 
 ---
 
@@ -330,4 +335,39 @@ Thread: https://ampcode.com/threads/T-019ba7fb-11bf-740b-b354-e48dddbeef23
   - Cancel/Abort flow was implemented as part of US-001 MQTT foundation
   - Need Help buttons were added with each screen implementation
   - Always check if features already exist before implementing
+---
+
+## [2026-01-10] - US-014
+Thread: https://ampcode.com/threads/T-019ba7fc-a31b-75bf-a65d-7696d5792f59
+- Implemented WCAG 2.1 AA accessibility compliance across all screens
+- Created src/styles/accessibility.css with focus indicators, high-contrast mode, and large-text mode
+- Updated index.css with minimum 18px body font size
+- Created AccessibilityProvider in App.tsx that applies high-contrast and large-text classes based on config
+- Added skip-to-content link for screen reader users
+- Added role="main" and id="main-content" to all page wrappers
+- Added role="banner" to all header sections
+- Added aria-label to all interactive buttons across all pages
+- Added aria-hidden="true" to decorative icons
+- Added aria-pressed to toggle buttons (tip selection, no tip)
+- Added aria-live regions for dynamic content (payment result, connection status)
+- Added role="dialog" and aria-modal to NumericKeypadModal
+- Added role="group" and aria-label to button groups
+- Touch targets already minimum 48x48px (min-h-[56px], min-h-[64px])
+- High contrast mode: black backgrounds, yellow accents, white text
+- Large text mode: scales all text sizes by 1.25x
+- Reduced motion support via prefers-reduced-motion media query
+- Files changed:
+  - src/styles/accessibility.css (new)
+  - src/index.css (import and body font)
+  - src/App.tsx (AccessibilityProvider, skip-link)
+  - src/pages/OrderReviewPage.tsx (ARIA labels)
+  - src/pages/TipPage.tsx (ARIA labels, dialog)
+  - src/pages/SignaturePage.tsx (ARIA labels)
+  - src/pages/PaymentPage.tsx (ARIA labels, live regions)
+  - src/pages/ResultPage.tsx (ARIA labels, live regions)
+- **Learnings for future iterations:**
+  - @import statements must come before @tailwind directives in CSS
+  - AccessibilityProvider pattern uses useEffect to add/remove classes on html element
+  - Config already has highContrastMode and largeTextMode - just needed to apply them
+  - Use aria-live="polite" for non-urgent status updates
 ---
