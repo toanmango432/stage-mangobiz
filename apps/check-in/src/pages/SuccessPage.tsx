@@ -1,43 +1,57 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Check, Clock, Sparkles, Gift, Home } from 'lucide-react';
-
-const TECHNICIAN_MAP: Record<string, string> = {
-  t1: 'Lisa',
-  t2: 'Mike',
-  t3: 'Sarah',
-  t4: 'Jenny',
-  t5: 'Kevin',
-  t6: 'Amy',
-  any: 'Next Available Technician',
-};
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { resetCheckin } from '../store/slices/checkinSlice';
 
 export function SuccessPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const technician = searchParams.get('technician') || 'any';
-  const guests = parseInt(searchParams.get('guests') || '0', 10);
+  const dispatch = useAppDispatch();
+
+  const {
+    lastCheckIn,
+    checkInNumber,
+    queuePosition,
+    estimatedWaitMinutes,
+    technicianPreference,
+    guests,
+    isNewClient,
+    currentClient,
+  } = useAppSelector((state) => state.checkin);
+
+  const technicians = useAppSelector((state) => state.technicians.technicians);
 
   const [showConfetti, setShowConfetti] = useState(true);
 
-  // Mock data - in real app, would come from API response
-  const checkInNumber = Math.floor(Math.random() * 900) + 100; // 3-digit number
-  const queuePosition = Math.floor(Math.random() * 5) + 1;
-  const estimatedWait = queuePosition * 8; // ~8 min per person
-  const loyaltyPoints = 450;
-  const pointsToNextReward = 50;
-  const technicianName = TECHNICIAN_MAP[technician] || 'Next Available Technician';
+  const selectedTechnician =
+    technicianPreference === 'anyone'
+      ? null
+      : technicians.find((t) => t.id === technicianPreference);
 
-  // Auto-redirect after 30 seconds
+  const technicianName = selectedTechnician?.displayName || 'Next Available Technician';
+
+  const loyaltyPoints = currentClient?.loyaltyPoints ?? 0;
+  const loyaltyPointsToNextReward = currentClient?.loyaltyPointsToNextReward ?? 100;
+
+  const displayCheckInNumber = checkInNumber || lastCheckIn?.checkInNumber || '---';
+  const displayQueuePosition = queuePosition ?? lastCheckIn?.queuePosition ?? 1;
+  const displayEstimatedWait = estimatedWaitMinutes ?? lastCheckIn?.estimatedWaitMinutes ?? 0;
+  const calculatedWait = displayEstimatedWait > 0 ? displayEstimatedWait : displayQueuePosition * 8;
+
   useEffect(() => {
+    if (!lastCheckIn && !checkInNumber) {
+      navigate('/');
+      return;
+    }
+
     const timer = setTimeout(() => {
+      dispatch(resetCheckin());
       navigate('/');
     }, 30000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, dispatch, lastCheckIn, checkInNumber]);
 
-  // Hide confetti after animation
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowConfetti(false);
@@ -46,6 +60,7 @@ export function SuccessPage() {
   }, []);
 
   const handleDone = () => {
+    dispatch(resetCheckin());
     navigate('/');
   };
 
@@ -67,7 +82,9 @@ export function SuccessPage() {
               <div
                 className="w-3 h-3 rounded-sm"
                 style={{
-                  backgroundColor: ['#1a5f4a', '#d4a853', '#22c55e', '#f59e0b'][Math.floor(Math.random() * 4)],
+                  backgroundColor: ['#1a5f4a', '#d4a853', '#22c55e', '#f59e0b'][
+                    Math.floor(Math.random() * 4)
+                  ],
                   transform: `rotate(${Math.random() * 360}deg)`,
                 }}
               />
@@ -97,20 +114,19 @@ export function SuccessPage() {
           </div>
 
           <h1 className="font-['Plus_Jakarta_Sans'] text-4xl font-bold text-[#1f2937] mb-3 text-center">
-            You're Checked In! 🎉
+            You're Checked In!
           </h1>
           <p className="font-['Work_Sans'] text-lg text-[#6b7280] text-center mb-8">
-            {guests > 0
-              ? `Welcome! You and your ${guests} guest${guests > 1 ? 's' : ''} are all set.`
-              : 'Please have a seat. We\'ll call you shortly!'
-            }
+            {guests.length > 0
+              ? `Welcome! You and your ${guests.length} guest${guests.length > 1 ? 's' : ''} are all set.`
+              : "Please have a seat. We'll call you shortly!"}
           </p>
 
           {/* Check-in Number */}
           <div className="bg-white rounded-3xl border-2 border-[#1a5f4a] p-8 shadow-lg mb-8 text-center">
             <p className="font-['Work_Sans'] text-sm text-[#6b7280] mb-2">Your Check-In Number</p>
             <p className="font-['Plus_Jakarta_Sans'] text-6xl font-bold text-[#1a5f4a]">
-              #{checkInNumber}
+              {displayCheckInNumber}
             </p>
           </div>
 
@@ -122,7 +138,7 @@ export function SuccessPage() {
                 <span className="font-['Work_Sans'] text-sm text-[#6b7280]">Est. Wait</span>
               </div>
               <p className="font-['Plus_Jakarta_Sans'] text-2xl font-bold text-[#1f2937]">
-                ~{estimatedWait} min
+                ~{calculatedWait} min
               </p>
             </div>
 
@@ -131,7 +147,7 @@ export function SuccessPage() {
             <div className="text-center">
               <p className="font-['Work_Sans'] text-sm text-[#6b7280] mb-1">Queue Position</p>
               <p className="font-['Plus_Jakarta_Sans'] text-2xl font-bold text-[#1f2937]">
-                #{queuePosition}
+                #{displayQueuePosition}
               </p>
             </div>
 
@@ -159,9 +175,7 @@ export function SuccessPage() {
                   <h3 className="font-['Plus_Jakarta_Sans'] font-bold text-white text-lg">
                     Loyalty Rewards
                   </h3>
-                  <p className="font-['Work_Sans'] text-white/80 text-sm">
-                    Keep earning points!
-                  </p>
+                  <p className="font-['Work_Sans'] text-white/80 text-sm">Keep earning points!</p>
                 </div>
               </div>
 
@@ -182,25 +196,26 @@ export function SuccessPage() {
                 </div>
 
                 <p className="font-['Work_Sans'] text-white/80 text-sm text-center">
-                  <span className="font-semibold text-white">{pointsToNextReward}</span> points to next reward!
+                  <span className="font-semibold text-white">{loyaltyPointsToNextReward}</span>{' '}
+                  points to next reward!
                 </p>
               </div>
 
               <div className="flex items-center gap-2 text-white/80">
                 <Sparkles className="w-4 h-4" />
-                <span className="font-['Work_Sans'] text-sm">
-                  Earn 10 points per $1 spent
-                </span>
+                <span className="font-['Work_Sans'] text-sm">Earn 10 points per $1 spent</span>
               </div>
             </div>
 
             {/* Thank You Message */}
             <div className="text-center mb-8">
               <h2 className="font-['Plus_Jakarta_Sans'] text-2xl font-bold text-white mb-2">
-                Thank You! 💖
+                {isNewClient ? 'Welcome!' : 'Thank You!'}
               </h2>
               <p className="font-['Work_Sans'] text-white/80">
-                We appreciate you choosing us. Enjoy your visit!
+                {isNewClient
+                  ? "We're excited to have you. Enjoy your first visit!"
+                  : 'We appreciate you choosing us. Enjoy your visit!'}
               </p>
             </div>
 
@@ -208,6 +223,7 @@ export function SuccessPage() {
             <button
               onClick={handleDone}
               className="w-full py-5 rounded-2xl bg-white text-[#1a5f4a] font-['Plus_Jakarta_Sans'] text-lg font-bold shadow-xl hover:bg-[#f9fafb] transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+              aria-label="Done"
             >
               <Home className="w-5 h-5" />
               Done

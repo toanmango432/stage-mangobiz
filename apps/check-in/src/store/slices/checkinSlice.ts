@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   Client,
   Service,
@@ -9,7 +9,54 @@ import type {
   TechnicianPreference,
   PartyPreference,
   QueueStatus,
+  CheckIn,
 } from '../../types';
+import { dataService } from '../../services/dataService';
+import type { RootState } from '../index';
+
+// ============================================================================
+// ASYNC THUNKS
+// ============================================================================
+
+export interface CreateCheckInParams {
+  storeId: string;
+  deviceId: string;
+}
+
+export const createCheckIn = createAsyncThunk<
+  CheckIn,
+  CreateCheckInParams,
+  { state: RootState; rejectValue: string }
+>('checkin/createCheckIn', async (params, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const { currentClient, selectedServices, technicianPreference, guests, partyPreference } = state.checkin;
+
+    if (!currentClient) {
+      return rejectWithValue('No client selected');
+    }
+
+    if (selectedServices.length === 0) {
+      return rejectWithValue('No services selected');
+    }
+
+    const checkIn = await dataService.checkins.create({
+      storeId: params.storeId,
+      clientId: currentClient.id,
+      clientName: `${currentClient.firstName} ${currentClient.lastName}`,
+      clientPhone: currentClient.phone,
+      services: selectedServices,
+      technicianPreference,
+      guests,
+      partyPreference,
+      deviceId: params.deviceId,
+    });
+
+    return checkIn;
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Failed to create check-in');
+  }
+});
 
 interface CheckinState {
   // Client data
@@ -41,6 +88,13 @@ interface CheckinState {
 
   // Check-in ID after completion
   completedCheckInId: string | null;
+
+  // Last completed check-in (for success screen)
+  lastCheckIn: CheckIn | null;
+
+  // Check-in submission status
+  checkInStatus: 'idle' | 'submitting' | 'success' | 'error';
+  checkInError: string | null;
 }
 
 const initialState: CheckinState = {
@@ -60,6 +114,9 @@ const initialState: CheckinState = {
   phoneNumber: '',
   lookupStatus: 'idle',
   completedCheckInId: null,
+  lastCheckIn: null,
+  checkInStatus: 'idle',
+  checkInError: null,
 };
 
 const checkinSlice = createSlice({
@@ -152,6 +209,25 @@ const checkinSlice = createSlice({
 
     // Reset entire flow
     resetCheckin: () => initialState,
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(createCheckIn.pending, (state) => {
+        state.checkInStatus = 'submitting';
+        state.checkInError = null;
+      })
+      .addCase(createCheckIn.fulfilled, (state, action) => {
+        state.checkInStatus = 'success';
+        state.lastCheckIn = action.payload;
+        state.completedCheckInId = action.payload.id;
+        state.checkInNumber = action.payload.checkInNumber;
+        state.queuePosition = action.payload.queuePosition;
+        state.estimatedWaitMinutes = action.payload.estimatedWaitMinutes;
+      })
+      .addCase(createCheckIn.rejected, (state, action) => {
+        state.checkInStatus = 'error';
+        state.checkInError = action.payload ?? 'Failed to create check-in';
+      });
   },
 });
 

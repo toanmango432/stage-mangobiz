@@ -222,6 +222,9 @@ describe('TechnicianPage', () => {
           phoneNumber: '',
           lookupStatus: 'idle',
           completedCheckInId: null,
+          lastCheckIn: null,
+          checkInStatus: 'idle',
+          checkInError: null,
         },
       });
 
@@ -290,7 +293,9 @@ describe('TechnicianPage', () => {
 
       await user.click(screen.getByRole('button', { name: /go back to services/i }));
 
-      expect(screen.getByText('Services Page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Services Page')).toBeInTheDocument();
+      });
     });
 
     it('should navigate to guests page on continue with Anyone Available', async () => {
@@ -302,7 +307,9 @@ describe('TechnicianPage', () => {
 
       await user.click(screen.getByRole('button', { name: /continue to next step/i }));
 
-      expect(screen.getByText('Guests Page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Guests Page')).toBeInTheDocument();
+      });
     });
 
     it('should navigate to guests page on continue with selected technician', async () => {
@@ -315,7 +322,9 @@ describe('TechnicianPage', () => {
       await user.click(screen.getByRole('button', { name: /select lisa s/i }));
       await user.click(screen.getByRole('button', { name: /continue to next step/i }));
 
-      expect(screen.getByText('Guests Page')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Guests Page')).toBeInTheDocument();
+      });
     });
 
     it('should disable continue button when no selection', async () => {
@@ -337,6 +346,9 @@ describe('TechnicianPage', () => {
           phoneNumber: '',
           lookupStatus: 'idle',
           completedCheckInId: null,
+          lastCheckIn: null,
+          checkInStatus: 'idle',
+          checkInError: null,
         },
       });
 
