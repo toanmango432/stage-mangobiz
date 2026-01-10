@@ -12,4 +12,5 @@ export {
 } from './useMqttSubscription';
 export { useMqttPublish, useTopicPublish } from './useMqttPublish';
 export { usePadHeartbeat } from './usePadHeartbeat';
+export { usePosHeartbeat } from './usePosHeartbeat';
 export { usePadTransactionEvents } from './usePadTransactionEvents';

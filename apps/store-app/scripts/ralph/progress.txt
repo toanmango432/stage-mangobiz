@@ -199,3 +199,37 @@ Thread: https://ampcode.com/threads/T-019ba877-9a1a-7223-b46f-df60fb3c0396
   - TicketDetailsModal uses useTickets hook which provides UITicket objects - need to pass signature through converter functions
 
 ---
+
+## 2026-01-10 - US-010
+Thread: https://ampcode.com/threads/T-019ba87f-f00e-744d-8260-297d2596264e
+- Created helpRequestsSlice for persistent help request tracking with acknowledge workflow
+- Created HelpRequestNotification component with prominent orange/red gradient styling
+- Component shows device name and customer name, with Acknowledge button
+- Notification plays sound when new request arrives (if browser allows)
+- Updated handleHelpRequested to dispatch both addHelpRequest and addNotification
+- Integrated HelpRequestNotification into AppShell (renders as fixed overlay)
+- **Files changed:** src/store/slices/helpRequestsSlice.ts (new), src/components/common/HelpRequestNotification.tsx (new), src/components/common/index.ts, src/services/mangoPadHandlers.ts, src/store/index.ts, src/components/layout/AppShell.tsx
+- **Learnings:**
+  - Use separate slice for persistent notifications that require acknowledgment vs. toast notifications
+  - Button import is case-sensitive: use '@/components/ui/Button' (capital B)
+  - Help request notifications use fixed positioning with z-[100] to overlay all content
+  - Audio playback may be blocked by browser autoplay policies - handle with .catch()
+
+---
+
+## 2026-01-10 - US-011
+Thread: https://ampcode.com/threads/T-019ba885-4568-75e7-8a4c-d3e4d5b9551b
+- Created usePosHeartbeat hook for publishing POS heartbeats every 15 seconds
+- Heartbeat payload includes: storeId, storeName, timestamp, version
+- Hook publishes immediately on MQTT connect, then every 15 seconds
+- Cleanup on beforeunload/unload ensures no zombie intervals
+- Integrated into PadConnectionIndicator component (alongside usePadHeartbeat)
+- Uses isPublishingRef to prevent overlapping publish calls
+- **Files changed:** src/services/mqtt/hooks/usePosHeartbeat.ts (new), src/services/mqtt/hooks/index.ts, src/components/layout/PadConnectionIndicator.tsx
+- **Learnings:**
+  - usePosHeartbeat follows same pattern as usePadHeartbeat but publishes instead of subscribes
+  - POS heartbeat uses QoS 0 (already configured in QOS_BY_TOPIC)
+  - selectStoreName selector provides store name from authSlice
+  - APP_VERSION hardcoded for now; should pull from package.json in production
+
+---

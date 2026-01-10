@@ -13,7 +13,7 @@ import {
   selectAllPadDevices,
   selectHasConnectedPad,
 } from '@/store/slices/padDevicesSlice';
-import { usePadHeartbeat } from '@/services/mqtt/hooks';
+import { usePadHeartbeat, usePosHeartbeat } from '@/services/mqtt/hooks';
 import {
   Popover,
   PopoverContent,
@@ -22,7 +22,10 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 
 export function PadConnectionIndicator() {
+  // Subscribe to incoming Pad heartbeats
   usePadHeartbeat();
+  // Publish POS heartbeats so Pad knows we're connected
+  usePosHeartbeat();
   
   const hasConnectedPad = useAppSelector(selectHasConnectedPad);
   const connectedPads = useAppSelector(getConnectedPads);

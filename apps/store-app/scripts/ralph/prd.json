@@ -191,7 +191,7 @@
         "pnpm exec tsc --noEmit passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Ensures staff responds to customer assistance requests."
     },
     {
@@ -207,7 +207,7 @@
         "pnpm exec tsc --noEmit passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Bidirectional heartbeat ensures both devices know connection status."
     },
     {
