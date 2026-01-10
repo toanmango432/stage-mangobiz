@@ -4,6 +4,9 @@
  * Common helper functions used across the Check-In app.
  */
 
+// Re-export security utilities
+export * from './security';
+
 /**
  * Formats a 10-digit phone number for display
  * @param digits - Raw digits (e.g., "5551234567")

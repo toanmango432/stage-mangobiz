@@ -5,10 +5,20 @@
  * All Redux thunks should use dataService instead of direct database access.
  *
  * Pattern: Component → Redux Thunk → dataService → Supabase/IndexedDB
+ * 
+ * Security: Input sanitization, rate limiting, and validation applied.
  */
 
 import { supabase } from './supabase';
 import { db } from './db';
+import { 
+  sanitizePhone, 
+  sanitizeName, 
+  sanitizeEmail, 
+  sanitizeZipCode,
+  isRateLimited,
+  RATE_LIMITS,
+} from '../utils/security';
 import type {
   Client,
   NewClientInput,
@@ -106,7 +116,17 @@ const toTechnician = (row: SupabaseTechnicianRow): Technician => ({
 export const dataService = {
   clients: {
     async getByPhone(phone: string): Promise<Client | null> {
-      const normalizedPhone = phone.replace(/\D/g, '');
+      // Rate limiting
+      if (isRateLimited('phone_lookup', RATE_LIMITS.PHONE_LOOKUP)) {
+        throw new Error('Too many phone lookup requests. Please wait a moment.');
+      }
+      
+      // Sanitize input
+      const normalizedPhone = sanitizePhone(phone);
+      
+      if (normalizedPhone.length !== 10) {
+        return null; // Invalid phone number
+      }
 
       if (isOnline()) {
         const { data, error } = await supabase
@@ -132,17 +152,32 @@ export const dataService = {
     },
 
     async create(input: NewClientInput): Promise<Client> {
-      const normalizedPhone = input.phone.replace(/\D/g, '');
+      // Rate limiting
+      if (isRateLimited('client_create', RATE_LIMITS.CLIENT_CREATE)) {
+        throw new Error('Too many registration attempts. Please wait a moment.');
+      }
+      
+      // Sanitize all input fields
+      const normalizedPhone = sanitizePhone(input.phone);
+      const firstName = sanitizeName(input.firstName);
+      const lastName = sanitizeName(input.lastName);
+      const email = input.email ? sanitizeEmail(input.email) : undefined;
+      const zipCode = input.zipCode ? sanitizeZipCode(input.zipCode) : undefined;
+      
+      // Validate required fields
+      if (!firstName || !lastName || normalizedPhone.length !== 10) {
+        throw new Error('Invalid input: first name, last name, and valid phone are required.');
+      }
 
       if (isOnline()) {
         const { data, error } = await supabase
           .from('clients')
           .insert({
-            first_name: input.firstName,
-            last_name: input.lastName,
+            first_name: firstName,
+            last_name: lastName,
             phone: normalizedPhone,
-            email: input.email ?? null,
-            zip_code: input.zipCode ?? null,
+            email: email ?? null,
+            zip_code: zipCode ?? null,
             sms_opt_in: input.smsOptIn,
             loyalty_points: 0,
             loyalty_points_to_next_reward: 100,
@@ -160,11 +195,11 @@ export const dataService = {
 
       const client: Client = {
         id: crypto.randomUUID(),
-        firstName: input.firstName,
-        lastName: input.lastName,
+        firstName,
+        lastName,
         phone: normalizedPhone,
-        email: input.email,
-        zipCode: input.zipCode,
+        email,
+        zipCode,
         smsOptIn: input.smsOptIn,
         loyaltyPoints: 0,
         loyaltyPointsToNextReward: 100,
@@ -282,6 +317,24 @@ export const dataService = {
       partyPreference?: PartyPreference;
       deviceId: string;
     }): Promise<CheckIn> {
+      // Rate limiting
+      if (isRateLimited('checkin_create', RATE_LIMITS.CHECKIN_CREATE)) {
+        throw new Error('Too many check-in attempts. Please wait a moment.');
+      }
+      
+      // Validate required fields
+      if (!params.storeId || !params.clientId || !params.deviceId) {
+        throw new Error('Invalid check-in: missing required fields.');
+      }
+      
+      if (!params.services || params.services.length === 0) {
+        throw new Error('At least one service must be selected.');
+      }
+      
+      // Sanitize client info
+      const clientName = sanitizeName(params.clientName);
+      const clientPhone = sanitizePhone(params.clientPhone);
+      
       const checkInNumber = this.generateCheckInNumber();
 
       const checkin: CheckIn = {
@@ -289,8 +342,8 @@ export const dataService = {
         checkInNumber,
         storeId: params.storeId,
         clientId: params.clientId,
-        clientName: params.clientName,
-        clientPhone: params.clientPhone,
+        clientName: clientName || params.clientName,
+        clientPhone: clientPhone || params.clientPhone,
         services: params.services,
         technicianPreference: params.technicianPreference,
         guests: params.guests ?? [],
