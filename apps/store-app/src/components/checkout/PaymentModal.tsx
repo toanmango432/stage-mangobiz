@@ -730,6 +730,7 @@ export default function PaymentModal({
                         <PadTransactionStatus
                           ticketId={ticketId}
                           onRetry={() => setSentToPadTransactionId(null)}
+                          onCancelled={() => setSentToPadTransactionId(null)}
                         />
                         <Separator className="my-4" />
                       </div>

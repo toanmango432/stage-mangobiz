@@ -14,6 +14,7 @@ import {
 import { usePadTransactionEvents } from '@/services/mqtt/hooks';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import CancelOnPadButton from './CancelOnPadButton';
 import {
   Tablet,
   Loader2,
@@ -30,6 +31,7 @@ import { cn } from '@/lib/utils';
 interface PadTransactionStatusProps {
   ticketId: string;
   onRetry?: () => void;
+  onCancelled?: () => void;
   className?: string;
 }
 
@@ -136,6 +138,7 @@ function getProgressSteps(status: PadStatus): { label: string; completed: boolea
 export default function PadTransactionStatus({
   ticketId,
   onRetry,
+  onCancelled,
   className,
 }: PadTransactionStatusProps) {
   const dispatch = useAppDispatch();
@@ -226,6 +229,12 @@ export default function PadTransactionStatus({
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {!['complete', 'failed', 'cancelled'].includes(transaction.status) && (
+        <div className="mt-4 flex justify-end">
+          <CancelOnPadButton onCancelled={onCancelled} />
         </div>
       )}
 

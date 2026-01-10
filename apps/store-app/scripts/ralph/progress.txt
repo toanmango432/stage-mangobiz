@@ -26,6 +26,9 @@ Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
 - selectStoreId from authSlice provides current store ID for topic building
 - Header status indicators use Popover from @/components/ui/popover for dropdowns
 - PadConnectionIndicator displays device status using getConnectedPads, selectHasConnectedPad selectors
+- padTransactionSlice tracks active Pad transaction status (waiting, tip_selected, signature, receipt, processing, complete, failed, cancelled)
+- usePadTransactionEvents hook subscribes to all Pad event topics and updates padTransactionSlice
+- PadTransactionStatus component shows real-time progress with visual step indicators
 
 ---
 
@@ -135,5 +138,25 @@ Thread: https://ampcode.com/threads/T-019ba866-026d-76da-a483-5e9c227e2108
   - Use TooltipProvider wrapper for Radix Tooltip components
   - Export TicketItem interface from PaymentModal for consumers to use
   - sendToPadTransactionId state tracks if transaction was sent to avoid duplicate sends
+
+---
+
+## 2026-01-10 - US-007
+Thread: https://ampcode.com/threads/T-019ba86c-5d56-7512-8c08-d89ed7b67f9c
+- Created padTransactionSlice for tracking active Pad transaction status
+- Created PadTransactionStatus component showing real-time checkout progress
+- Created usePadTransactionEvents hook subscribing to tip_selected, signature, receipt_preference, transaction_complete topics
+- Status states: idle, waiting, tip_selected, signature, receipt, processing, complete, failed, cancelled
+- Progress step indicator shows: Sent → Tip → Signature → Complete
+- Component displays appropriate message for each state with icons and colors
+- Retry button on failed state allows resending to Pad
+- Integrated into PaymentModal step 2 when sentToPadTransactionId is set
+- Updated SendToPadButton to dispatch startPadTransaction action on success
+- **Files changed:** src/store/slices/padTransactionSlice.ts (new), src/components/checkout/PadTransactionStatus.tsx (new), src/services/mqtt/hooks/usePadTransactionEvents.ts (new), src/components/checkout/PaymentModal.tsx, src/components/checkout/SendToPadButton.tsx, src/store/index.ts, src/services/mqtt/hooks/index.ts
+- **Learnings:**
+  - padTransactionSlice is separate from checkoutSlice to cleanly track Pad-specific state
+  - usePadTransactionEvents dispatches both padTransactionSlice actions AND checkoutSlice/ticketsSlice actions
+  - PadTransactionStatus uses cn() utility for conditional className logic
+  - Progress step indicators use getProgressSteps() helper to determine completed/active states
 
 ---
