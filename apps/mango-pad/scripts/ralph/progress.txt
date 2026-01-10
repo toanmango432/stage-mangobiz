@@ -42,6 +42,12 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - All buttons should have aria-label, icons should have aria-hidden="true"
 - Use role="main" id="main-content" on main content wrapper, role="banner" on headers
 - @import must come before @tailwind directives in CSS
+- Responsive design: useResponsive hook in src/hooks/useResponsive.ts provides device info
+- Use responsive Tailwind classes: text-base sm:text-lg md:text-xl for scaling
+- Use min-h-[100dvh] for mobile browser viewport (dynamic vh)
+- safe-area-all class handles iOS notch/home indicator spacing
+- Landscape orientation detected via useOrientation hook or data-orientation attribute
+- Responsive breakpoints in tailwind.config.ts: tablet-sm (600px), tablet (768px), tablet-lg (1024px)
 
 ---
 
@@ -370,4 +376,36 @@ Thread: https://ampcode.com/threads/T-019ba7fc-a31b-75bf-a65d-7696d5792f59
   - AccessibilityProvider pattern uses useEffect to add/remove classes on html element
   - Config already has highContrastMode and largeTextMode - just needed to apply them
   - Use aria-live="polite" for non-urgent status updates
+---
+
+## [2026-01-10] - US-015
+Thread: https://ampcode.com/threads/T-019ba803-7a7c-75be-82b5-653c42eb6280
+- Implemented comprehensive responsive design for all device sizes
+- Updated tailwind.config.ts with tablet breakpoints: xs (320px), tablet-sm (600px), ipad (834px), ipad-pro (1024px)
+- Added orientation media queries: portrait, landscape, touch, tall, short
+- Created src/styles/responsive.css with safe-area support, touch-friendly spacing, orientation utilities
+- Created src/hooks/useResponsive.ts hook for device detection (type, orientation, touch, screen size)
+- Updated index.html with iOS/Android web app meta tags, viewport-fit=cover, touch handling
+- Updated index.css with responsive base font sizing using clamp() and 100dvh support
+- Updated App.tsx with useOrientation hook and safe-area-all class on screen container
+- Updated IdlePage with responsive text sizing (text-2xl to text-6xl based on screen)
+- Updated OrderReviewPage with landscape side-by-side layout and responsive padding
+- All interactive elements scale appropriately for 7-inch to 12.9-inch screens
+- Typecheck passes, pnpm build succeeds
+- Files changed:
+  - tailwind.config.ts (tablet breakpoints, safe-area spacing, responsive font sizes)
+  - src/styles/responsive.css (new - orientation, touch, and device utilities)
+  - src/hooks/useResponsive.ts (new - device detection hook)
+  - index.html (viewport meta, web app capability)
+  - src/index.css (responsive base styles)
+  - src/App.tsx (orientation, safe-area support)
+  - src/pages/IdlePage.tsx (responsive classes)
+  - src/pages/OrderReviewPage.tsx (responsive layout, landscape mode)
+- **Learnings for future iterations:**
+  - Use min-h-[100dvh] instead of min-h-screen for proper mobile browser height
+  - safe-area-all class handles iOS notch/home indicator padding
+  - Use clamp(min, preferred, max) for fluid font sizing
+  - Landscape mode can use side-by-side layouts for better space usage
+  - useResponsive hook provides isShortScreen for compact layouts on small Android tablets
+  - data-orientation attribute on containers helps CSS-only orientation styling
 ---
