@@ -1,6 +1,7 @@
 /**
  * SignaturePage - Signature Capture Screen
  * US-005: Allows clients to sign digitally to authorize payment
+ * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
 import { useRef, useState, useCallback } from 'react';
@@ -95,9 +96,9 @@ export function SignaturePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" role="main" id="main-content">
       {/* Header */}
-      <header className="p-6 bg-white border-b border-gray-100 shadow-sm">
+      <header className="p-6 bg-white border-b border-gray-100 shadow-sm" role="banner">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -182,13 +183,14 @@ export function SignaturePage() {
             whileTap={{ scale: 0.95 }}
             onClick={handleClear}
             disabled={isEmpty}
+            aria-label="Clear signature and start over"
             className={`min-h-[56px] rounded-xl flex items-center justify-center gap-2 mb-4 transition-all ${
               isEmpty
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-[0.98]'
             }`}
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-5 h-5" aria-hidden="true" />
             <span className="text-lg font-medium">Clear Signature</span>
           </motion.button>
 
@@ -213,22 +215,25 @@ export function SignaturePage() {
           <button
             onClick={handleComplete}
             disabled={isEmpty}
+            aria-label={isEmpty ? 'Please sign above to continue' : `Complete signature and authorize payment of ${formatCurrency(finalTotal)}`}
+            aria-disabled={isEmpty}
             className={`w-full min-h-[64px] text-xl font-semibold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 ${
               isEmpty
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 active:scale-[0.98]'
             }`}
           >
-            <Check className="w-6 h-6" />
+            <Check className="w-6 h-6" aria-hidden="true" />
             <span>Done</span>
           </button>
 
           {/* Need Help */}
           <button
             onClick={handleNeedHelp}
+            aria-label="Request assistance from staff"
             className="w-full min-h-[56px] bg-orange-50 text-orange-700 text-lg font-medium rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <HelpCircle className="w-5 h-5" />
+            <HelpCircle className="w-5 h-5" aria-hidden="true" />
             <span>Need Help</span>
           </button>
         </motion.div>

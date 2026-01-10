@@ -1,6 +1,7 @@
 /**
  * OrderReviewPage - Order Review Screen
  * US-003: Displays transaction details for client verification before payment
+ * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
 import { motion } from 'framer-motion';
@@ -109,9 +110,9 @@ export function OrderReviewPage() {
   const productItems = transaction.items.filter((item) => item.type === 'product');
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" role="main" id="main-content">
       {/* Header */}
-      <header className="p-6 bg-white border-b border-gray-100 shadow-sm">
+      <header className="p-6 bg-white border-b border-gray-100 shadow-sm" role="banner">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -183,28 +184,31 @@ export function OrderReviewPage() {
           {/* Main Action */}
           <button
             onClick={handleConfirm}
+            aria-label={`Confirm order total of ${formatCurrency(transaction.total)}`}
             className="w-full min-h-[64px] bg-gradient-to-r from-indigo-600 to-indigo-700 text-white text-xl font-semibold rounded-2xl shadow-lg hover:from-indigo-700 hover:to-indigo-800 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
           >
             <span>Looks Good</span>
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-6 h-6" aria-hidden="true" />
           </button>
 
           {/* Secondary Actions */}
-          <div className="flex gap-4">
+          <div className="flex gap-4" role="group" aria-label="Additional payment options">
             {config.splitPaymentEnabled && (
               <button
                 onClick={handleSplitPayment}
+                aria-label="Split payment between multiple people"
                 className="flex-1 min-h-[56px] bg-gray-100 text-gray-700 text-lg font-medium rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
-                <SplitSquareVertical className="w-5 h-5" />
+                <SplitSquareVertical className="w-5 h-5" aria-hidden="true" />
                 <span>Split Payment</span>
               </button>
             )}
             <button
               onClick={handleNeedHelp}
+              aria-label="Request assistance from staff"
               className="flex-1 min-h-[56px] bg-orange-50 text-orange-700 text-lg font-medium rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
-              <HelpCircle className="w-5 h-5" />
+              <HelpCircle className="w-5 h-5" aria-hidden="true" />
               <span>Need Help</span>
             </button>
           </div>

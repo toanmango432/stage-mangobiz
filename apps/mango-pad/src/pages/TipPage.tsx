@@ -1,6 +1,7 @@
 /**
  * TipPage - Tip Selection Screen
  * US-004: Allows clients to select a tip amount before payment
+ * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
 import { useState, useCallback } from 'react';
@@ -82,15 +83,19 @@ function NumericKeypadModal({ isOpen, onClose, onConfirm, maxValue = 999.99 }: N
             transition={{ type: 'spring', damping: 25 }}
             className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="keypad-title"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">Enter Custom Tip</h3>
+              <h3 id="keypad-title" className="text-xl font-semibold text-gray-900">Enter Custom Tip</h3>
               <button
                 onClick={handleClose}
-                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                aria-label="Close keypad"
+                className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <X className="w-5 h-5 text-gray-600" aria-hidden="true" />
               </button>
             </div>
 
@@ -102,28 +107,31 @@ function NumericKeypadModal({ isOpen, onClose, onConfirm, maxValue = 999.99 }: N
             </div>
 
             {/* Keypad */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-6" role="group" aria-label="Numeric keypad">
               {keys.map((key) => (
                 <button
                   key={key}
                   onClick={() => handleKeyPress(key)}
+                  aria-label={key === 'backspace' ? 'Delete last digit' : key === '.' ? 'Decimal point' : `Number ${key}`}
                   className="min-h-[64px] rounded-xl bg-gray-100 text-2xl font-semibold text-gray-800 hover:bg-gray-200 active:scale-95 transition-all flex items-center justify-center"
                 >
-                  {key === 'backspace' ? <Delete className="w-6 h-6" /> : key}
+                  {key === 'backspace' ? <Delete className="w-6 h-6" aria-hidden="true" /> : key}
                 </button>
               ))}
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex gap-3" role="group" aria-label="Keypad actions">
               <button
                 onClick={handleClose}
+                aria-label="Cancel and close keypad"
                 className="flex-1 min-h-[56px] bg-gray-100 text-gray-700 text-lg font-medium rounded-xl hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
+                aria-label={`Confirm tip of ${inputValue || '0'} dollars`}
                 className="flex-1 min-h-[56px] bg-indigo-600 text-white text-lg font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
               >
                 Confirm
@@ -148,6 +156,8 @@ function TipButton({ label, subLabel, isSelected, onClick }: TipButtonProps) {
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
+      aria-label={`Select ${label} tip, which is ${subLabel}`}
+      aria-pressed={isSelected}
       className={`min-h-[100px] rounded-2xl border-2 transition-all flex flex-col items-center justify-center p-4 ${
         isSelected
           ? 'border-indigo-600 bg-indigo-50 shadow-md'
@@ -290,9 +300,9 @@ export function TipPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col" role="main" id="main-content">
       {/* Header */}
-      <header className="p-6 bg-white border-b border-gray-100 shadow-sm">
+      <header className="p-6 bg-white border-b border-gray-100 shadow-sm" role="banner">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -324,7 +334,7 @@ export function TipPage() {
           className="max-w-lg mx-auto"
         >
           {/* Tip Options Grid */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 mb-6" role="group" aria-label="Tip selection options">
             {tipSuggestions.map((suggestion, index) => (
               <TipButton
                 key={index}
@@ -340,6 +350,8 @@ export function TipPage() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={handleCustomTip}
+            aria-label={customTipAmount !== null ? `Custom tip of ${formatCurrency(customTipAmount)} selected. Press to change` : 'Enter a custom tip amount'}
+            aria-pressed={customTipAmount !== null}
             className={`w-full min-h-[64px] rounded-2xl border-2 mb-4 text-lg font-medium transition-all flex items-center justify-center ${
               customTipAmount !== null
                 ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
@@ -355,6 +367,8 @@ export function TipPage() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={handleNoTip}
+            aria-label="Select no tip"
+            aria-pressed={isNoTip}
             className={`w-full min-h-[56px] rounded-xl border-2 text-base font-medium transition-all ${
               isNoTip
                 ? 'border-gray-400 bg-gray-100 text-gray-700'
@@ -400,18 +414,20 @@ export function TipPage() {
           {/* Continue Button */}
           <button
             onClick={handleContinue}
+            aria-label={`Continue with ${formatCurrency(currentTipAmount)} tip, total ${formatCurrency(runningTotal)}`}
             className="w-full min-h-[64px] bg-gradient-to-r from-indigo-600 to-indigo-700 text-white text-xl font-semibold rounded-2xl shadow-lg hover:from-indigo-700 hover:to-indigo-800 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
           >
             <span>Continue</span>
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-6 h-6" aria-hidden="true" />
           </button>
 
           {/* Need Help */}
           <button
             onClick={handleNeedHelp}
+            aria-label="Request assistance from staff"
             className="w-full min-h-[56px] bg-orange-50 text-orange-700 text-lg font-medium rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <HelpCircle className="w-5 h-5" />
+            <HelpCircle className="w-5 h-5" aria-hidden="true" />
             <span>Need Help</span>
           </button>
         </motion.div>

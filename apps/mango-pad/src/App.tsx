@@ -1,8 +1,10 @@
 /**
  * Mango Pad App
  * Screen-based navigation with smooth transitions
+ * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PadMqttProvider } from '@/providers/PadMqttProvider';
 import { useAppSelector } from '@/store/hooks';
@@ -81,11 +83,38 @@ function ScreenRouter() {
   );
 }
 
+function AccessibilityProvider({ children }: { children: React.ReactNode }) {
+  const config = useAppSelector((state) => state.config.config);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    
+    if (config.highContrastMode) {
+      html.classList.add('high-contrast');
+    } else {
+      html.classList.remove('high-contrast');
+    }
+
+    if (config.largeTextMode) {
+      html.classList.add('large-text');
+    } else {
+      html.classList.remove('large-text');
+    }
+  }, [config.highContrastMode, config.largeTextMode]);
+
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <PadMqttProvider>
-      <ScreenRouter />
-      <ReconnectingOverlay />
+      <AccessibilityProvider>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <ScreenRouter />
+        <ReconnectingOverlay />
+      </AccessibilityProvider>
     </PadMqttProvider>
   );
 }

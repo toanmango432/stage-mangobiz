@@ -1,6 +1,7 @@
 /**
  * ResultPage - Payment Result Screen
  * US-007: Displays success or failure state after payment processing
+ * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -89,6 +90,9 @@ export function ResultPage() {
           ? 'bg-gradient-to-b from-green-50 to-white'
           : 'bg-gradient-to-b from-red-50 to-white'
       }`}
+      role="main"
+      id="main-content"
+      aria-live="polite"
     >
       {/* Split payment indicator */}
       {isSplitPayment && currentSplit && (
@@ -113,6 +117,7 @@ export function ResultPage() {
             animate={{ scale: 1 }}
             transition={{ type: 'spring', delay: 0.1, duration: 0.5 }}
             className="mb-6"
+            aria-hidden="true"
           >
             {isSuccess ? (
               <CheckCircle className="w-32 h-32 text-green-500 mx-auto" />
@@ -213,6 +218,7 @@ export function ResultPage() {
           {isSuccess ? (
             <button
               onClick={handleContinue}
+              aria-label="Continue to receipt options"
               className="w-full min-h-[64px] text-xl font-semibold rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:from-green-600 hover:to-green-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
             >
               Continue
@@ -220,9 +226,10 @@ export function ResultPage() {
           ) : (
             <button
               onClick={handleRetry}
+              aria-label="Retry payment"
               className="w-full min-h-[64px] text-xl font-semibold rounded-2xl bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg hover:from-indigo-600 hover:to-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
             >
-              <RefreshCw className="w-6 h-6" />
+              <RefreshCw className="w-6 h-6" aria-hidden="true" />
               <span>Try Again</span>
             </button>
           )}

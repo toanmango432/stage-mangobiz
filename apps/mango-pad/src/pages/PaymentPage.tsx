@@ -1,6 +1,7 @@
 /**
  * PaymentPage - Payment Instruction Screen
  * US-006: Displays payment instructions while waiting for terminal result
+ * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -238,9 +239,9 @@ export function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex flex-col" role="main" id="main-content">
       {/* Header */}
-      <header className="p-6 bg-white border-b border-gray-100 shadow-sm">
+      <header className="p-6 bg-white border-b border-gray-100 shadow-sm" role="banner">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -281,18 +282,20 @@ export function PaymentPage() {
                 Please ensure your card is inserted or tapped on the terminal.
                 If you need assistance, tap the button below.
               </p>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4" role="group" aria-label="Payment timeout options">
                 <button
                   onClick={handleRetry}
+                  aria-label="Retry payment"
                   className="w-full min-h-[56px] bg-indigo-600 text-white text-lg font-semibold rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={handleNeedHelp}
+                  aria-label="Request assistance from staff"
                   className="w-full min-h-[56px] bg-orange-50 text-orange-700 text-lg font-medium rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
-                  <HelpCircle className="w-5 h-5" />
+                  <HelpCircle className="w-5 h-5" aria-hidden="true" />
                   <span>Need Help</span>
                 </button>
               </div>
@@ -378,20 +381,22 @@ export function PaymentPage() {
           {!isTimedOut && (
             <button
               onClick={handleNeedHelp}
+              aria-label="Request assistance from staff"
               className="w-full min-h-[56px] bg-orange-50 text-orange-700 text-lg font-medium rounded-xl hover:bg-orange-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
-              <HelpCircle className="w-5 h-5" />
+              <HelpCircle className="w-5 h-5" aria-hidden="true" />
               <span>Need Help</span>
             </button>
           )}
         </motion.div>
 
         {/* Connection status indicator */}
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-4 flex items-center justify-center gap-2" role="status" aria-live="polite">
           <div
             className={`w-2 h-2 rounded-full ${
               isConnected ? 'bg-green-500' : 'bg-red-500'
             }`}
+            aria-hidden="true"
           />
           <span className="text-sm text-gray-400">
             {isConnected ? 'Connected' : 'Disconnected'}
