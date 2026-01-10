@@ -69,6 +69,9 @@ const syncSlice = createSlice({
       state.syncQueue = [];
       state.pendingCount = 0;
     },
+    setPendingCount: (state, action: PayloadAction<number>) => {
+      state.pendingCount = action.payload;
+    },
     setSyncError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
       if (action.payload) {
@@ -87,6 +90,7 @@ export const {
   removeFromSyncQueue,
   incrementAttempts,
   clearSyncQueue,
+  setPendingCount,
   setSyncError,
   resetSync,
 } = syncSlice.actions;
