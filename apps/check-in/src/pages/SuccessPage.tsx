@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Clock, Sparkles, Gift, Home } from 'lucide-react';
+import { Check, Clock, Sparkles, Gift, Home, Users } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { resetCheckin } from '../store/slices/checkinSlice';
+import { useQueueMqtt } from '../hooks/useQueueMqtt';
 
 export function SuccessPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
+  useQueueMqtt();
 
   const {
     lastCheckIn,
@@ -17,6 +20,7 @@ export function SuccessPage() {
     guests,
     isNewClient,
     currentClient,
+    queueStatus,
   } = useAppSelector((state) => state.checkin);
 
   const technicians = useAppSelector((state) => state.technicians.technicians);
@@ -37,6 +41,7 @@ export function SuccessPage() {
   const displayQueuePosition = queuePosition ?? lastCheckIn?.queuePosition ?? 1;
   const displayEstimatedWait = estimatedWaitMinutes ?? lastCheckIn?.estimatedWaitMinutes ?? 0;
   const calculatedWait = displayEstimatedWait > 0 ? displayEstimatedWait : displayQueuePosition * 8;
+  const totalInQueue = queueStatus?.totalInQueue ?? displayQueuePosition;
 
   useEffect(() => {
     if (!lastCheckIn && !checkInNumber) {
@@ -130,6 +135,39 @@ export function SuccessPage() {
             </p>
           </div>
 
+          {/* Queue Visual Indicator */}
+          {totalInQueue > 0 && (
+            <div className="mb-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#6b7280]" />
+                  <span className="font-['Work_Sans'] text-sm text-[#6b7280]">Queue Status</span>
+                </div>
+                <span className="font-['Work_Sans'] text-sm text-[#6b7280]">
+                  {totalInQueue} waiting
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(totalInQueue, 10) }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`flex-1 h-2 rounded-full transition-colors ${
+                      i < displayQueuePosition
+                        ? 'bg-[#1a5f4a]'
+                        : i === displayQueuePosition - 1
+                          ? 'bg-[#d4a853] animate-pulse'
+                          : 'bg-[#e5e7eb]'
+                    }`}
+                    aria-label={i === displayQueuePosition - 1 ? 'Your position' : undefined}
+                  />
+                ))}
+                {totalInQueue > 10 && (
+                  <span className="font-['Work_Sans'] text-xs text-[#6b7280] ml-1">+{totalInQueue - 10}</span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Queue Info */}
           <div className="flex items-center gap-6">
             <div className="text-center">
@@ -138,7 +176,8 @@ export function SuccessPage() {
                 <span className="font-['Work_Sans'] text-sm text-[#6b7280]">Est. Wait</span>
               </div>
               <p className="font-['Plus_Jakarta_Sans'] text-2xl font-bold text-[#1f2937]">
-                ~{calculatedWait} min
+                ~{calculatedWait}
+                <span className="text-lg font-normal text-[#9ca3af]"> ±5 min</span>
               </p>
             </div>
 

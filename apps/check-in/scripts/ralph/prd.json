@@ -140,7 +140,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {
@@ -158,7 +158,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "PHASE 1 - Integration. Load test-generator skill."
     },
     {

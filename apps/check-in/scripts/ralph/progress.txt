@@ -141,3 +141,40 @@ Thread: https://ampcode.com/threads/T-019ba7eb-e2bf-72db-afa1-66983b81f5b4
   - All 95 tests pass (9 clientSlice + 12 VerifyPage + 19 SignupPage + 9 servicesSlice + 21 ServicesPage + 9 technicianSlice + 16 TechnicianPage)
   - Build produces 1006KB bundle (297KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-007
+Thread: https://ampcode.com/threads/T-019ba7f3-9bfe-7339-9993-8ef1876c1875
+- Implemented Check-In Creation & Publishing
+- Files changed:
+  - src/store/slices/checkinSlice.ts (added createCheckIn async thunk, lastCheckIn state, checkInStatus, checkInError, extraReducers)
+  - src/store/slices/checkinSlice.test.ts (NEW: 7 unit tests for createCheckIn thunk)
+  - src/pages/ConfirmPage.tsx (refactored to use Redux state and createCheckIn thunk, publishes to MQTT)
+  - src/pages/ConfirmPage.test.tsx (NEW: 17 integration tests for confirm page)
+  - src/pages/SuccessPage.tsx (refactored to use Redux state for check-in number, queue position, wait time)
+  - src/pages/TechnicianPage.test.tsx (fixed 2 flaky tests with waitFor on navigation)
+- **Learnings for future iterations:**
+  - createCheckIn thunk reads from state.checkin (currentClient, selectedServices, technicianPreference, guests, partyPreference)
+  - dataService.checkins.create handles unique check-in number generation (A001 format) internally
+  - MQTT publish is done in the component after thunk completes via useMqtt().publish()
+  - ConfirmPage redirects to /success after successful check-in
+  - SuccessPage auto-resets via resetCheckin after 30 seconds
+  - All 119 tests pass (7 checkinSlice + 17 ConfirmPage + previous 95)
+  - Build produces 1008KB bundle (297KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-008
+Thread: https://ampcode.com/threads/T-019ba7ff-37ac-71d6-8bd9-c07d4e5d708f
+- Implemented Queue Position Updates (MQTT)
+- Files changed:
+  - src/hooks/useQueueMqtt.ts (NEW: MQTT subscription hook for queue status updates)
+  - src/hooks/index.ts (added useQueueMqtt export)
+  - src/pages/SuccessPage.tsx (integrated useQueueMqtt, added visual queue indicator, +/- 5 min display)
+  - src/pages/SuccessPage.test.tsx (NEW: 10 integration tests for queue updates)
+- **Learnings for future iterations:**
+  - useQueueMqtt follows same pattern as useTechnicianMqtt - subscribe in useEffect, dispatch to Redux
+  - Queue visual indicator shows up to 10 segments with current position highlighted
+  - Estimated wait shows "~X ±5 min" format for clarity
+  - checkinSlice already has setQueueStatus, setQueuePosition, setEstimatedWaitMinutes reducers
+  - All 132 tests pass (10 SuccessPage + previous 122)
+  - Build produces 1010KB bundle (298KB gzipped)
+---
