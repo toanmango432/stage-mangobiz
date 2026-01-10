@@ -14,10 +14,14 @@ import { GuestsPage } from './pages/GuestsPage';
 import { ConfirmPage } from './pages/ConfirmPage';
 import { SuccessPage } from './pages/SuccessPage';
 import { OfflineBanner } from './components/OfflineBanner';
+import { HelpButton } from './components/HelpButton';
+import { AdminPinModal } from './components/AdminPinModal';
+import { AdminModeBar } from './components/AdminModeBar';
 
 function AppRoutes() {
   return (
     <BrowserRouter>
+      <AdminModeBar />
       <OfflineBanner />
       <Routes>
         <Route path="/" element={<WelcomeScreen />} />
@@ -31,6 +35,8 @@ function AppRoutes() {
         <Route path="/confirm" element={<ConfirmPage />} />
         <Route path="/success" element={<SuccessPage />} />
       </Routes>
+      <HelpButton />
+      <AdminPinModal />
     </BrowserRouter>
   );
 }

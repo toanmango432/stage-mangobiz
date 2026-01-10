@@ -70,3 +70,15 @@ export {
   resetAppointment,
   setAppointment,
 } from './appointmentSlice';
+
+export {
+  default as adminReducer,
+  requestHelp,
+  cancelHelpRequest,
+  showPinModal,
+  hidePinModal,
+  setPinError,
+  activateAdminMode,
+  deactivateAdminMode,
+  resetAdmin,
+} from './adminSlice';

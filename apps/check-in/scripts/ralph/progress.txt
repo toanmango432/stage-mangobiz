@@ -25,6 +25,8 @@ Stories: 24 (Phase 0-3: Design, Integration, Features, Quality)
 - For async thunks that fetch lists, create dedicated slice (e.g., servicesSlice) not just in checkinSlice
 - Selected items stored in checkinSlice, catalog data in dedicated slices (servicesSlice, etc.)
 - MQTT subscription hooks: useXxxMqtt pattern (e.g., useTechnicianMqtt) - subscribe in useEffect, dispatch to Redux
+- Global UI components (HelpButton, modals) go inside BrowserRouter but outside Routes in App.tsx
+- Fixed position z-index: z-40 for floating buttons, z-50 for modals
 
 ---
 
@@ -274,4 +276,27 @@ Thread: https://ampcode.com/threads/T-019ba82d-2a25-7619-b388-44bf4317a096
   - E.164 phone format (+1XXXXXXXXXX) used for SMS providers
 - All 180 tests pass
 - Build produces 1035KB bundle (303KB gzipped)
+---
+
+## Sat Jan 10 2026 - US-014
+Thread: https://ampcode.com/threads/T-019ba836-fa81-72dd-8efd-24964e3bcc95
+- Implemented Admin Assistance Mode feature
+- Files changed:
+  - src/store/slices/adminSlice.ts (NEW: Redux slice for admin state, help requests, PIN modal)
+  - src/store/slices/index.ts (added adminReducer export)
+  - src/store/index.ts (added admin slice to store)
+  - src/components/HelpButton/index.tsx (NEW: floating help button, MQTT publish for help requests)
+  - src/components/AdminPinModal/index.tsx (NEW: PIN unlock modal with 4-digit input)
+  - src/components/AdminModeBar/index.tsx (NEW: top bar when admin mode active)
+  - src/App.tsx (added HelpButton, AdminPinModal, AdminModeBar components)
+  - src/services/supabase/client.ts (added placeholder fallbacks for development)
+- **Learnings for future iterations:**
+  - Global UI components (HelpButton, AdminModeBar) go inside BrowserRouter but outside Routes
+  - Fixed position components use z-40 for buttons, z-50 for modals to layer correctly
+  - Admin PIN default is 1234 (should be configurable in production)
+  - MQTT topics for help: salon/{id}/help/request and salon/{id}/help/cancel
+  - Admin slice manages: isAdminModeActive, isHelpRequested, showPinModal, pinError
+  - Supabase client needs placeholder values to allow app rendering during development
+  - All 180 tests pass
+  - Build produces 1047KB bundle (305KB gzipped)
 ---
