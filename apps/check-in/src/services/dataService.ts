@@ -406,6 +406,64 @@ export const dataService = {
     },
   },
 
+  upsells: {
+    /**
+     * Get popular add-on services based on selected services.
+     * Returns services that complement the selected ones, sorted by popularity.
+     */
+    async getForServices(selectedServiceIds: string[]): Promise<Service[]> {
+      if (selectedServiceIds.length === 0) return [];
+
+      // Get all services
+      const allServices = await dataService.services.getAll();
+      
+      // Filter out already selected services
+      const availableServices = allServices.filter(
+        (s) => !selectedServiceIds.includes(s.id)
+      );
+
+      // Get category IDs of selected services
+      const selectedCategories = new Set(
+        allServices
+          .filter((s) => selectedServiceIds.includes(s.id))
+          .map((s) => s.categoryId)
+      );
+
+      // Upsell logic: prioritize same-category add-ons and quick add-ons (short duration, lower price)
+      const scored = availableServices.map((service) => {
+        let score = 0;
+        
+        // Same category gets higher score
+        if (selectedCategories.has(service.categoryId)) {
+          score += 3;
+        }
+        
+        // Quick add-ons (under 30 min) score higher
+        if (service.durationMinutes <= 30) {
+          score += 2;
+        }
+        
+        // Lower price add-ons are more likely to be added
+        if (service.price <= 30) {
+          score += 2;
+        } else if (service.price <= 50) {
+          score += 1;
+        }
+
+        return { service, score };
+      });
+
+      // Sort by score descending, then by price ascending
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.service.price - b.service.price;
+      });
+
+      // Return top 4 upsell suggestions
+      return scored.slice(0, 4).map((s) => s.service);
+    },
+  },
+
   sync: {
     async processQueue(): Promise<number> {
       if (!isOnline()) return 0;

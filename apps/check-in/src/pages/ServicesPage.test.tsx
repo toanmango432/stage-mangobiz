@@ -15,6 +15,9 @@ vi.mock('../services/dataService', () => ({
     services: {
       getByCategory: vi.fn(),
     },
+    upsells: {
+      getForServices: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

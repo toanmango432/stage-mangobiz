@@ -5,6 +5,8 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchServices } from '../store/slices';
 import { addSelectedService, removeSelectedService } from '../store/slices/checkinSlice';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { dataService } from '../services/dataService';
+import { UpsellCard } from '../components/UpsellCard';
 import type { Service, CheckInService } from '../types';
 
 export function ServicesPage() {
@@ -22,6 +24,7 @@ export function ServicesPage() {
 
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [upsellServices, setUpsellServices] = useState<Service[]>([]);
 
   useEffect(() => {
     dispatch(fetchServices());
@@ -32,6 +35,19 @@ export function ServicesPage() {
       setActiveCategory(categories[0].id);
     }
   }, [categories, activeCategory]);
+
+  useEffect(() => {
+    const fetchUpsells = async () => {
+      if (selectedServices.length > 0) {
+        const serviceIds = selectedServices.map((s) => s.serviceId);
+        const upsells = await dataService.upsells.getForServices(serviceIds);
+        setUpsellServices(upsells);
+      } else {
+        setUpsellServices([]);
+      }
+    };
+    fetchUpsells();
+  }, [selectedServices]);
 
   const currentCategory = categories.find((c) => c.id === activeCategory) || categories[0];
 
@@ -58,6 +74,16 @@ export function ServicesPage() {
       };
       dispatch(addSelectedService(checkInService));
     }
+  };
+
+  const handleUpsellAdd = (service: Service) => {
+    const checkInService: CheckInService = {
+      serviceId: service.id,
+      serviceName: service.name,
+      price: service.price,
+      durationMinutes: service.durationMinutes,
+    };
+    dispatch(addSelectedService(checkInService));
   };
 
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -247,6 +273,27 @@ export function ServicesPage() {
                 );
               })}
             </div>
+
+            {/* Upsell Cards Section */}
+            {upsellServices.length > 0 && !searchQuery && (
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-[#d4a853]" />
+                  <h3 className="font-['Plus_Jakarta_Sans'] font-bold text-[#1f2937]">
+                    Popular Add-Ons
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {upsellServices.map((service) => (
+                    <UpsellCard
+                      key={service.id}
+                      service={service}
+                      onAdd={handleUpsellAdd}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right - Summary */}
