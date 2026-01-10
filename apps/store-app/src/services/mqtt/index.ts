@@ -45,10 +45,19 @@ export type {
   DevicePresence,
   DeviceHeartbeat,
   DevicePresencePayload,
-  // Payloads
-  PadSignaturePayload,
+  // Mango Pad Payloads
+  PadTransactionItem,
+  PadReadyToPayPayload,
+  PadPaymentResultPayload,
+  PadCancelPayload,
   PadTipPayload,
-  PadReceiptReadyPayload,
+  PadSignaturePayload,
+  PadReceiptPreferencePayload,
+  PadTransactionCompletePayload,
+  PadHelpRequestedPayload,
+  PadHeartbeatPayload,
+  PosHeartbeatPayload,
+  // Check-in Payloads
   CheckinWalkinPayload,
   CheckinStaffPayload,
   // Context

@@ -1,0 +1,36 @@
+# Ralph Progress Log
+Started: Sat Jan 10 2026
+Branch: ralph/mango-pad-integration
+Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
+
+## Codebase Patterns
+
+> Reusable patterns discovered during implementation. Add general learnings here.
+
+- MQTT topics are defined in src/services/mqtt/topics.ts
+- Use buildTopic() helper to create topics with storeId substitution
+- MQTT feature flag: isMqttEnabled() from featureFlags.ts
+- Redux slices go in src/store/slices/
+- Checkout components are in src/components/checkout/
+- Use design-system tokens for all styling
+- MQTT broker URL configured via VITE_MQTT_CLOUD_URL env var
+- PAD topics use 'salon' prefix (not 'mango') to match Mango Pad app
+- New Pad topic patterns: PAD_READY_TO_PAY, PAD_PAYMENT_RESULT, PAD_CANCEL, PAD_TIP_SELECTED, PAD_SIGNATURE_CAPTURED, PAD_RECEIPT_PREFERENCE, PAD_TRANSACTION_COMPLETE, PAD_HELP_REQUESTED, PAD_HEARTBEAT, POS_HEARTBEAT
+- Heartbeat topics use QoS 0, all other Pad topics use QoS 1
+
+---
+
+## 2026-01-10 - US-001
+Thread: https://ampcode.com/threads/T-019ba84c-308e-7658-b070-c048c2d9147e
+- Added new MQTT topic patterns aligned with Mango Pad format
+- Updated from 'mango/{storeId}/pad/*' to 'salon/{storeId}/pad/*' for Pad topics
+- Added payload types: PadReadyToPayPayload, PadPaymentResultPayload, PadCancelPayload, PadTipPayload, PadSignaturePayload, PadReceiptPreferencePayload, PadTransactionCompletePayload, PadHelpRequestedPayload, PadHeartbeatPayload, PosHeartbeatPayload
+- Updated QOS_BY_TOPIC with new Pad topics
+- Updated exports in index.ts
+- Fixed test file to use new topic names
+- **Files changed:** src/services/mqtt/topics.ts, src/services/mqtt/types.ts, src/services/mqtt/index.ts, src/services/mqtt/topics.test.ts
+- **Learnings:**
+  - Pad topics use 'salon' prefix to match Mango Pad app convention
+  - Heartbeats should use QoS 0 for performance
+
+---
