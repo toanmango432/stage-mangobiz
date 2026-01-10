@@ -58,6 +58,13 @@ export const createCheckIn = createAsyncThunk<
   }
 });
 
+export interface CalledInfo {
+  technicianId: string | null;
+  technicianName: string | null;
+  station: string | null;
+  calledAt: string;
+}
+
 interface CheckinState {
   // Client data
   currentClient: Client | null;
@@ -95,6 +102,10 @@ interface CheckinState {
   // Check-in submission status
   checkInStatus: 'idle' | 'submitting' | 'success' | 'error';
   checkInError: string | null;
+
+  // Called status (when client is called from queue)
+  isCalled: boolean;
+  calledInfo: CalledInfo | null;
 }
 
 const initialState: CheckinState = {
@@ -117,6 +128,8 @@ const initialState: CheckinState = {
   lastCheckIn: null,
   checkInStatus: 'idle',
   checkInError: null,
+  isCalled: false,
+  calledInfo: null,
 };
 
 const checkinSlice = createSlice({
@@ -207,6 +220,16 @@ const checkinSlice = createSlice({
       state.completedCheckInId = action.payload;
     },
 
+    // Called from queue
+    setClientCalled: (state, action: PayloadAction<CalledInfo>) => {
+      state.isCalled = true;
+      state.calledInfo = action.payload;
+    },
+    clearCalledStatus: (state) => {
+      state.isCalled = false;
+      state.calledInfo = null;
+    },
+
     // Reset entire flow
     resetCheckin: () => initialState,
   },
@@ -252,6 +275,8 @@ export const {
   setQueuePosition,
   setEstimatedWaitMinutes,
   setCompletedCheckInId,
+  setClientCalled,
+  clearCalledStatus,
   resetCheckin,
 } = checkinSlice.actions;
 

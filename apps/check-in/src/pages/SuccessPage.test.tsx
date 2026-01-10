@@ -21,6 +21,10 @@ vi.mock('../hooks/useQueueMqtt', () => ({
   useQueueMqtt: () => ({ isConnected: true }),
 }));
 
+vi.mock('../hooks/useCalledMqtt', () => ({
+  useCalledMqtt: () => ({ isConnected: true }),
+}));
+
 const mockCheckIn: CheckIn = {
   id: 'checkin-1',
   checkInNumber: 'A042',
@@ -118,6 +122,8 @@ const defaultState: Partial<TestState> = {
     lastCheckIn: mockCheckIn,
     checkInStatus: 'success',
     checkInError: null,
+    isCalled: false,
+    calledInfo: null,
   },
   auth: {
     storeId: 'store-1',
@@ -263,6 +269,8 @@ describe('SuccessPage', () => {
           lastCheckIn: null,
           checkInStatus: 'idle',
           checkInError: null,
+          isCalled: false,
+          calledInfo: null,
         },
         auth: {
           storeId: 'store-1',
@@ -304,6 +312,74 @@ describe('SuccessPage', () => {
     it('shows thank you message for returning clients', () => {
       renderWithProviders(<SuccessPage />, defaultState);
       expect(screen.getByText('Thank You!')).toBeInTheDocument();
+    });
+  });
+
+  describe('Client Called State', () => {
+    const calledState: Partial<TestState> = {
+      ...defaultState,
+      checkin: {
+        ...defaultState.checkin!,
+        isCalled: true,
+        calledInfo: {
+          technicianId: 'tech-1',
+          technicianName: 'Alice Smith',
+          station: 'Station 3',
+          calledAt: new Date().toISOString(),
+        },
+      },
+    };
+
+    it('displays "It\'s Your Turn!" when client is called', () => {
+      renderWithProviders(<SuccessPage />, calledState);
+      expect(screen.getByText("It's Your Turn!")).toBeInTheDocument();
+    });
+
+    it('displays check-in number on called screen', () => {
+      renderWithProviders(<SuccessPage />, calledState);
+      expect(screen.getByText('A042')).toBeInTheDocument();
+    });
+
+    it('displays technician name when provided', () => {
+      renderWithProviders(<SuccessPage />, calledState);
+      expect(screen.getByText('Your Technician')).toBeInTheDocument();
+      expect(screen.getByText('Alice Smith')).toBeInTheDocument();
+    });
+
+    it('displays station info when provided', () => {
+      renderWithProviders(<SuccessPage />, calledState);
+      expect(screen.getByText('Go To')).toBeInTheDocument();
+      expect(screen.getByText('Station 3')).toBeInTheDocument();
+    });
+
+    it('shows fallback message when no technician or station info', () => {
+      const calledNoInfoState: Partial<TestState> = {
+        ...defaultState,
+        checkin: {
+          ...defaultState.checkin!,
+          isCalled: true,
+          calledInfo: {
+            technicianId: null,
+            technicianName: null,
+            station: null,
+            calledAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      renderWithProviders(<SuccessPage />, calledNoInfoState);
+      expect(screen.getByText('Please proceed to the front desk')).toBeInTheDocument();
+    });
+
+    it('navigates home when Done is clicked on called screen', async () => {
+      const { user } = renderWithProviders(<SuccessPage />, calledState);
+
+      const doneButton = screen.getByRole('button', { name: /done/i });
+      await user.click(doneButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Welcome Page')).toBeInTheDocument();
+      });
     });
   });
 });

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Clock, Sparkles, Gift, Home, Users } from 'lucide-react';
+import { Check, Clock, Sparkles, Gift, Home, Users, Bell, MapPin, User } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { resetCheckin } from '../store/slices/checkinSlice';
 import { useQueueMqtt } from '../hooks/useQueueMqtt';
+import { useCalledMqtt } from '../hooks/useCalledMqtt';
 
 export function SuccessPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   useQueueMqtt();
+  useCalledMqtt();
 
   const {
     lastCheckIn,
@@ -21,6 +23,8 @@ export function SuccessPage() {
     isNewClient,
     currentClient,
     queueStatus,
+    isCalled,
+    calledInfo,
   } = useAppSelector((state) => state.checkin);
 
   const technicians = useAppSelector((state) => state.technicians.technicians);
@@ -68,6 +72,100 @@ export function SuccessPage() {
     dispatch(resetCheckin());
     navigate('/');
   };
+
+  if (isCalled) {
+    return (
+      <div className="kiosk-mode min-h-screen bg-gradient-to-br from-[#1a5f4a] to-[#154d3c] relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full bg-white/5" />
+          <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-white/5" />
+        </div>
+
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-8">
+          <div className="w-32 h-32 bg-[#d4a853] rounded-full flex items-center justify-center shadow-2xl mb-8 animate-pulse-ring">
+            <Bell className="w-16 h-16 text-white" />
+          </div>
+
+          <h1 className="font-['Plus_Jakarta_Sans'] text-5xl font-bold text-white mb-4 text-center">
+            It's Your Turn!
+          </h1>
+
+          <p className="font-['Work_Sans'] text-2xl text-white/80 mb-12 text-center">
+            Please proceed to the service area
+          </p>
+
+          <div className="bg-white rounded-3xl p-8 shadow-2xl mb-8 text-center min-w-[400px]">
+            <p className="font-['Work_Sans'] text-sm text-[#6b7280] mb-2">Your Check-In Number</p>
+            <p className="font-['Plus_Jakarta_Sans'] text-7xl font-bold text-[#1a5f4a] mb-6">
+              {displayCheckInNumber}
+            </p>
+
+            <div className="border-t border-[#e5e7eb] pt-6 space-y-4">
+              {calledInfo?.technicianName && (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-10 h-10 bg-[#1a5f4a]/10 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-[#1a5f4a]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-['Work_Sans'] text-sm text-[#6b7280]">Your Technician</p>
+                    <p className="font-['Plus_Jakarta_Sans'] text-lg font-semibold text-[#1f2937]">
+                      {calledInfo.technicianName}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {calledInfo?.station && (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-10 h-10 bg-[#d4a853]/10 rounded-full flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-[#d4a853]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-['Work_Sans'] text-sm text-[#6b7280]">Go To</p>
+                    <p className="font-['Plus_Jakarta_Sans'] text-lg font-semibold text-[#1f2937]">
+                      {calledInfo.station}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!calledInfo?.technicianName && !calledInfo?.station && (
+                <p className="font-['Work_Sans'] text-[#6b7280]">
+                  Please proceed to the front desk
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleDone}
+            className="py-5 px-12 rounded-2xl bg-white text-[#1a5f4a] font-['Plus_Jakarta_Sans'] text-lg font-bold shadow-xl hover:bg-[#f9fafb] transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+            aria-label="Done"
+          >
+            <Home className="w-5 h-5" />
+            Done
+          </button>
+        </div>
+
+        <style>{`
+          @keyframes pulse-ring {
+            0% {
+              box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.7);
+            }
+            70% {
+              box-shadow: 0 0 0 30px rgba(212, 168, 83, 0);
+            }
+            100% {
+              box-shadow: 0 0 0 0 rgba(212, 168, 83, 0);
+            }
+          }
+          .animate-pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="kiosk-mode min-h-screen bg-[#faf9f7] relative overflow-hidden">

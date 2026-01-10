@@ -132,6 +132,8 @@ const defaultState: Partial<TestState> = {
     lastCheckIn: null,
     checkInStatus: 'idle',
     checkInError: null,
+    isCalled: false,
+    calledInfo: null,
   },
   auth: {
     storeId: 'store-123',
