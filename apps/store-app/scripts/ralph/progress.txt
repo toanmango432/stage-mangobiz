@@ -21,6 +21,9 @@ Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
 - PadTransactionState stores Pad-specific data (signature, receipt preference) that doesn't fit in Ticket type
 - Use uiSlice addNotification for user notifications (type: 'success' | 'error' | 'warning' | 'info')
 - Mock store module in tests: vi.mock('../../store', () => ({ store: { dispatch: vi.fn() } }))
+- Pad device registry uses padDevicesSlice with handleHeartbeat action for incoming heartbeats
+- usePadHeartbeat hook subscribes to salon/{storeId}/pad/heartbeat and runs checkOfflineDevices every 10s
+- selectStoreId from authSlice provides current store ID for topic building
 
 ---
 
@@ -74,5 +77,23 @@ Thread: https://ampcode.com/threads/T-019ba854-f8fe-769a-b9c0-5f013e36a23c
   - Handlers use uiSlice addNotification for user feedback
   - Store dispatches use setTip, setCheckoutStep from checkoutSlice, updateTicketInSupabase from ticketsSlice
   - Test environment has pre-existing @testing-library/jest-dom missing dependency issue
+
+---
+
+## 2026-01-10 - US-004
+Thread: https://ampcode.com/threads/T-019ba85c-388b-7514-ac47-7cca94cc81c9
+- Created src/store/slices/padDevicesSlice.ts for Pad device registry
+- Implemented PadDevice interface with: id, name, status (online/offline), lastSeen, screen, salonId
+- Added reducers: addDevice, removeDevice, updateDeviceStatus, handleHeartbeat, checkOfflineDevices
+- Device marked offline after 30 seconds without heartbeat (OFFLINE_TIMEOUT_MS = 30000)
+- Added selectors: selectAllPadDevices, getConnectedPads, selectHasConnectedPad, selectOfflinePads
+- Created usePadHeartbeat hook for subscribing to salon/{storeId}/pad/heartbeat
+- Hook runs checkOfflineDevices every 10 seconds to detect stale connections
+- Registered padDevicesSlice in store/index.ts with serializable check ignore
+- **Files changed:** src/store/slices/padDevicesSlice.ts (new), src/services/mqtt/hooks/usePadHeartbeat.ts (new), src/services/mqtt/hooks/index.ts, src/store/index.ts
+- **Learnings:**
+  - Use selectStoreId from authSlice for current store ID
+  - handleHeartbeat action handles both new device creation and updates
+  - checkOfflineDevices is called via setInterval, not on each heartbeat
 
 ---

@@ -80,7 +80,7 @@
         "pnpm exec tsc --noEmit passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Device registry enables showing connection status in UI."
     },
     {
