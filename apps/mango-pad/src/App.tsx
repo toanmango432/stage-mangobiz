@@ -11,6 +11,7 @@ import { OrderReviewPage } from '@/pages/OrderReviewPage';
 import { ReceiptPage } from '@/pages/ReceiptPage';
 import { TipPage } from '@/pages/TipPage';
 import { SignaturePage } from '@/pages/SignaturePage';
+import { PaymentPage } from '@/pages/PaymentPage';
 import type { PadScreen } from '@/types';
 
 const pageVariants = {
@@ -39,7 +40,7 @@ function ScreenRouter() {
       case 'signature':
         return <SignaturePage />;
       case 'payment':
-        return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-2xl">Payment (Coming Soon)</div>;
+        return <PaymentPage />;
       case 'result':
         return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-2xl">Result (Coming Soon)</div>;
       case 'receipt':
