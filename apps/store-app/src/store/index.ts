@@ -20,6 +20,7 @@ import staffPerformanceReducer from './slices/staffPerformanceSlice';
 import settingsReducer from './slices/settingsSlice';
 import padDevicesReducer from './slices/padDevicesSlice';
 import padTransactionReducer from './slices/padTransactionSlice';
+import helpRequestsReducer from './slices/helpRequestsSlice';
 // Note: teamStaffSyncMiddleware was REMOVED - staffSlice now derives from teamSlice directly
 // via team-derived selectors. See: src/store/slices/staffSlice.ts
 // Note: Catalog module uses useCatalog hook with Dexie live queries directly (no Redux)
@@ -49,6 +50,7 @@ export const store = configureStore({
     settings: settingsReducer,
     padDevices: padDevicesReducer,
     padTransaction: padTransactionReducer,
+    helpRequests: helpRequestsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

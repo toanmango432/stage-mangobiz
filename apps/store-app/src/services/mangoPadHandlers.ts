@@ -14,6 +14,7 @@ import { store } from '../store';
 import { setTip, setCheckoutStep } from '../store/slices/checkoutSlice';
 import { updateTicketInSupabase } from '../store/slices/ticketsSlice';
 import { addNotification } from '../store/slices/uiSlice';
+import { addHelpRequest } from '../store/slices/helpRequestsSlice';
 import type {
   PadTipPayload,
   PadSignaturePayload,
@@ -219,17 +220,25 @@ export function handleTransactionComplete(payload: PadTransactionCompletePayload
 
 /**
  * Handle help request from Mango Pad
- * Shows a prominent notification to staff that customer needs assistance
+ * Shows a prominent, persistent notification to staff that customer needs assistance.
+ * Notification persists until staff acknowledges it.
  */
 export function handleHelpRequested(payload: PadHelpRequestedPayload): PadHandlerResult {
   try {
-    const { deviceName, clientName, requestedAt, ticketId } = payload;
+    const { transactionId, ticketId, deviceId, deviceName, clientName, requestedAt } = payload;
 
-    const customerInfo = clientName || 'Customer';
+    store.dispatch(addHelpRequest({
+      transactionId,
+      ticketId,
+      deviceId,
+      deviceName,
+      clientName,
+      requestedAt,
+    }));
 
     store.dispatch(addNotification({
       type: 'warning',
-      message: `🆘 ${customerInfo} needs help at ${deviceName}`,
+      message: `🆘 ${clientName || 'Customer'} needs help at ${deviceName}`,
     }));
 
     console.log(`[MangoPadHandler] Help requested at ${deviceName} for ticket ${ticketId} at ${requestedAt}`);

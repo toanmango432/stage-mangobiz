@@ -57,6 +57,7 @@ import { mockTeamMembers } from '../team-settings/constants';
 import { NetworkStatus } from '../NetworkStatus';
 import { LicenseBanner } from '../licensing/LicenseBanner';
 import { AnnouncementBanner } from '../AnnouncementBanner';
+import { HelpRequestNotification } from '../common/HelpRequestNotification';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 
@@ -460,6 +461,9 @@ function AppShellContent() {
           staffMembers={staffMembers}
         />
       </Suspense>
+
+      {/* Help Request Notifications - Persistent until acknowledged */}
+      <HelpRequestNotification />
     </div>
   );
 }
