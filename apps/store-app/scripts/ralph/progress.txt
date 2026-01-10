@@ -29,6 +29,9 @@ Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
 - padTransactionSlice tracks active Pad transaction status (waiting, tip_selected, signature, receipt, processing, complete, failed, cancelled)
 - usePadTransactionEvents hook subscribes to all Pad event topics and updates padTransactionSlice
 - PadTransactionStatus component shows real-time progress with visual step indicators
+- Signature data stored in Ticket type via signatureBase64 and signatureTimestamp fields
+- SignatureDisplay component in src/components/common/ for displaying signature images
+- When adding fields to Ticket, also update UITicket, PendingTicket, DBTicket and their converter functions
 
 ---
 
@@ -176,5 +179,23 @@ Thread: https://ampcode.com/threads/T-019ba873-319a-7343-b744-c5e9d215d712
   - Use e.preventDefault() in AlertDialogAction onClick to prevent dialog closing before async action completes
   - padTransactionSlice already has setTransactionCancelled action ready to use
   - CancelOnPadButton hides itself when transaction is complete/failed/cancelled
+
+---
+
+## 2026-01-10 - US-009
+Thread: https://ampcode.com/threads/T-019ba877-9a1a-7223-b46f-df60fb3c0396
+- Added signatureBase64 and signatureTimestamp fields to Ticket type
+- Updated handleSignatureCaptured to persist signature to ticket via updateTicketInSupabase
+- Updated handleTransactionComplete to include signature data if present in payload
+- Created SignatureDisplay component with configurable sizes (sm/md/lg)
+- Component validates base64 image data and displays with formatted timestamp
+- Integrated SignatureDisplay into TicketDetailsModal (shows after notes section)
+- Added signature fields to UITicket, PendingTicket, and DBTicket interfaces
+- Updated convertToUITicket and convertToPendingTicket to include signature fields
+- **Files changed:** src/types/Ticket.ts, src/services/mangoPadHandlers.ts, src/components/common/SignatureDisplay.tsx (new), src/components/common/index.ts, src/components/tickets/TicketDetailsModal.tsx, src/store/slices/uiTicketsSlice.ts
+- **Learnings:**
+  - Signature display requires updating multiple interfaces: Ticket, UITicket, PendingTicket, DBTicket
+  - SignatureDisplay handles both data:image/... prefix and raw base64 formats
+  - TicketDetailsModal uses useTickets hook which provides UITicket objects - need to pass signature through converter functions
 
 ---
