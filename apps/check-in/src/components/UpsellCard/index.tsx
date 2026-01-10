@@ -1,4 +1,5 @@
 import { Plus, Clock, DollarSign, Sparkles } from 'lucide-react';
+import { formatPrice, formatDuration } from '../../utils';
 import type { Service } from '../../types';
 
 interface UpsellCardProps {
@@ -30,11 +31,11 @@ export function UpsellCard({ service, onAdd }: UpsellCardProps) {
       <div className="flex items-center gap-3 text-xs font-['Work_Sans'] text-[#6b7280] mb-3">
         <div className="flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" />
-          <span>{service.durationMinutes} min</span>
+          <span>{formatDuration(service.durationMinutes)}</span>
         </div>
         <div className="flex items-center gap-1">
           <DollarSign className="w-3.5 h-3.5" />
-          <span>${service.price}</span>
+          <span>{formatPrice(service.price)}</span>
         </div>
       </div>
 

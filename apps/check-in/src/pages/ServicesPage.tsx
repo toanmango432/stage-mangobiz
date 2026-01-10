@@ -7,6 +7,7 @@ import { addSelectedService, removeSelectedService } from '../store/slices/check
 import { useAnalytics } from '../hooks/useAnalytics';
 import { dataService } from '../services/dataService';
 import { UpsellCard } from '../components/UpsellCard';
+import { formatPrice, formatDuration } from '../utils';
 import type { Service, CheckInService } from '../types';
 
 export function ServicesPage() {
@@ -262,11 +263,11 @@ export function ServicesPage() {
                     <div className="flex items-center gap-4 text-sm font-['Work_Sans'] text-[#6b7280]">
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        <span>{service.durationMinutes} min</span>
+                        <span>{formatDuration(service.durationMinutes)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <DollarSign className="w-4 h-4" />
-                        <span>${service.price}</span>
+                        <span>{formatPrice(service.price)}</span>
                       </div>
                     </div>
                   </button>
@@ -314,9 +315,9 @@ export function ServicesPage() {
                     <div key={service.serviceId} className="flex items-center justify-between p-3 bg-[#f9fafb] rounded-xl">
                       <div>
                         <p className="font-['Work_Sans'] font-medium text-[#1f2937] text-sm">{service.serviceName}</p>
-                        <p className="font-['Work_Sans'] text-xs text-[#6b7280]">{service.durationMinutes} min</p>
+                        <p className="font-['Work_Sans'] text-xs text-[#6b7280]">{formatDuration(service.durationMinutes)}</p>
                       </div>
-                      <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[#1f2937]">${service.price}</span>
+                      <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[#1f2937]">{formatPrice(service.price)}</span>
                     </div>
                   ))}
                 </div>
@@ -324,11 +325,11 @@ export function ServicesPage() {
                 <div className="border-t border-[#e5e7eb] pt-4 mt-4">
                   <div className="flex justify-between mb-2 font-['Work_Sans'] text-sm">
                     <span className="text-[#6b7280]">Est. Duration</span>
-                    <span className="text-[#1f2937] font-medium">{totalDuration} min</span>
+                    <span className="text-[#1f2937] font-medium">{formatDuration(totalDuration)}</span>
                   </div>
                   <div className="flex justify-between font-['Work_Sans']">
                     <span className="text-[#6b7280]">Est. Total</span>
-                    <span className="text-[#1f2937] font-bold text-lg">${totalPrice}</span>
+                    <span className="text-[#1f2937] font-bold text-lg">{formatPrice(totalPrice)}</span>
                   </div>
                 </div>
               </>

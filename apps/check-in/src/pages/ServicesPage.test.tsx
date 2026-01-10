@@ -227,8 +227,8 @@ describe('ServicesPage Integration', () => {
         expect(screen.getByText('Classic Manicure')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('30 min')).toBeInTheDocument();
-      expect(screen.getByText('$25')).toBeInTheDocument();
+      expect(screen.getByText('30m')).toBeInTheDocument();
+      expect(screen.getByText('$25.00')).toBeInTheDocument();
     });
   });
 
@@ -296,8 +296,8 @@ describe('ServicesPage Integration', () => {
       await user.click(screen.getByText('Classic Manicure').closest('button')!);
       await user.click(screen.getByText('Gel Manicure').closest('button')!);
 
-      expect(screen.getByText('$65')).toBeInTheDocument();
-      expect(screen.getByText('75 min')).toBeInTheDocument();
+      expect(screen.getByText('$65.00')).toBeInTheDocument();
+      expect(screen.getByText('1h 15m')).toBeInTheDocument();
     });
   });
 

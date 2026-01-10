@@ -16,6 +16,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { addGuest, removeGuest, updateGuest, setPartyPreference } from '../store/slices/checkinSlice';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { formatPrice, formatDuration } from '../utils';
 import type { CheckInGuest, CheckInService, PartyPreference, ServiceCategory } from '../types';
 
 const MAX_GUESTS = 6;
@@ -105,11 +106,11 @@ function GuestServiceModal({ isOpen, onClose, guest, categories, onSave }: Guest
                         <div className="flex items-center gap-3 mt-1 text-sm text-[#6b7280]">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
-                            {service.durationMinutes} min
+                            {formatDuration(service.durationMinutes)}
                           </span>
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3.5 h-3.5" />
-                            ${service.price}
+                            {formatPrice(service.price)}
                           </span>
                         </div>
                       </div>
@@ -165,9 +166,9 @@ function GuestServiceModal({ isOpen, onClose, guest, categories, onSave }: Guest
           {selectedServices.length > 0 && (
             <div className="flex justify-between mb-4 font-['Work_Sans'] text-sm">
               <span className="text-[#6b7280]">
-                {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} • {totalDuration} min
+                {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} • {formatDuration(totalDuration)}
               </span>
-              <span className="font-semibold text-[#1f2937]">${totalPrice}</span>
+              <span className="font-semibold text-[#1f2937]">{formatPrice(totalPrice)}</span>
             </div>
           )}
           <button
@@ -356,7 +357,7 @@ export function GuestsPage() {
                       </h3>
                       {guest.services.length > 0 ? (
                         <p className="font-['Work_Sans'] text-sm text-[#6b7280]">
-                          {guest.services.length} service{guest.services.length !== 1 ? 's' : ''} • ${guest.services.reduce((sum, s) => sum + s.price, 0)}
+                          {guest.services.length} service{guest.services.length !== 1 ? 's' : ''} • {formatPrice(guest.services.reduce((sum, s) => sum + s.price, 0))}
                         </p>
                       ) : (
                         <button
@@ -566,7 +567,7 @@ export function GuestsPage() {
               <div className="flex items-center justify-between mb-4">
                 <span className="font-['Work_Sans'] text-[#6b7280]">Est. Total</span>
                 <span className="font-['Plus_Jakarta_Sans'] font-bold text-xl text-[#1f2937]">
-                  ${totalPrice}
+                  {formatPrice(totalPrice)}
                 </span>
               </div>
 

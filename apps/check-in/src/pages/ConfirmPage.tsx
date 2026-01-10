@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createCheckIn } from '../store/slices/checkinSlice';
 import { useMqtt } from '../providers/MqttProvider';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { formatPrice, formatDuration } from '../utils';
 
 export function ConfirmPage() {
   const navigate = useNavigate();
@@ -170,11 +171,11 @@ export function ConfirmPage() {
                         {service.serviceName}
                       </p>
                       <p className="font-['Work_Sans'] text-sm text-[#6b7280]">
-                        {service.durationMinutes} min
+                        {formatDuration(service.durationMinutes)}
                       </p>
                     </div>
                     <span className="font-['Plus_Jakarta_Sans'] font-semibold text-[#1f2937]">
-                      ${service.price}
+                      {formatPrice(service.price)}
                     </span>
                   </div>
                 ))}
@@ -236,10 +237,10 @@ export function ConfirmPage() {
                                 className="flex items-center justify-between text-sm"
                               >
                                 <span className="font-['Work_Sans'] text-[#6b7280]">
-                                  {svc.serviceName}
+                                  {svc.serviceName} ({formatDuration(svc.durationMinutes)})
                                 </span>
                                 <span className="font-['Work_Sans'] text-[#1f2937]">
-                                  ${svc.price}
+                                  {formatPrice(svc.price)}
                                 </span>
                               </div>
                             ))}
@@ -280,7 +281,7 @@ export function ConfirmPage() {
                   <span className="font-['Work_Sans'] text-sm">Est. Duration</span>
                 </div>
                 <span className="font-['Plus_Jakarta_Sans'] font-semibold text-white">
-                  {totalDuration} min
+                  {formatDuration(totalDuration)}
                 </span>
               </div>
 
@@ -290,7 +291,7 @@ export function ConfirmPage() {
                   <span className="font-['Work_Sans'] text-sm">Est. Total</span>
                 </div>
                 <span className="font-['Plus_Jakarta_Sans'] font-bold text-2xl text-white">
-                  ${totalPrice}
+                  {formatPrice(totalPrice)}
                 </span>
               </div>
             </div>

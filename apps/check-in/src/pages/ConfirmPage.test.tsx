@@ -168,14 +168,14 @@ describe('ConfirmPage', () => {
 
     it('should display service prices', () => {
       renderWithProviders(<ConfirmPage />, defaultState);
-      expect(screen.getByText('$25')).toBeInTheDocument();
-      expect(screen.getByText('$55')).toBeInTheDocument();
+      expect(screen.getByText('$25.00')).toBeInTheDocument();
+      expect(screen.getByText('$55.00')).toBeInTheDocument();
     });
 
     it('should display total price and duration', () => {
       renderWithProviders(<ConfirmPage />, defaultState);
-      expect(screen.getByText('$80')).toBeInTheDocument();
-      expect(screen.getByText('90 min')).toBeInTheDocument();
+      expect(screen.getByText('$80.00')).toBeInTheDocument();
+      expect(screen.getByText('1h 30m')).toBeInTheDocument();
     });
 
     it('should display technician preference', () => {

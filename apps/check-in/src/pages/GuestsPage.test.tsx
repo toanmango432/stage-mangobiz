@@ -332,7 +332,7 @@ describe('GuestsPage', () => {
       expect(screen.queryByText('Services for Jane Smith')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('1 service • $35')).toBeInTheDocument();
+    expect(screen.getByText('1 service • $35.00')).toBeInTheDocument();
   });
 
   it('shows party summary with correct totals', async () => {
@@ -342,7 +342,7 @@ describe('GuestsPage', () => {
 
     expect(screen.getByText('Party Summary')).toBeInTheDocument();
     expect(screen.getByText('1 person')).toBeInTheDocument();
-    expect(screen.getAllByText('$35').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('$35.00').length).toBeGreaterThan(0);
 
     await user.click(screen.getByText('Add Guest'));
     await user.type(screen.getByPlaceholderText("Guest's name"), 'Jane Smith');
@@ -361,7 +361,7 @@ describe('GuestsPage', () => {
       expect(screen.getByText('2 people')).toBeInTheDocument();
     });
     
-    expect(screen.getAllByText('$70').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('$70.00').length).toBeGreaterThan(0);
   });
 
   it('can toggle party preference', async () => {
