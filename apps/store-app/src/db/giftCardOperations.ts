@@ -7,7 +7,6 @@ import type {
   GiftCardTransactionType,
   GiftCardStatus,
   GiftCardDesign,
-  GiftCardDesignCategory,
   IssueGiftCardInput,
   RedeemGiftCardInput,
   ReloadGiftCardInput,

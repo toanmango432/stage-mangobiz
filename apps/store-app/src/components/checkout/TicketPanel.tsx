@@ -2223,6 +2223,10 @@ export default function TicketPanel({
                 serviceTotal: staffServiceTotals[s.id],
               }))}
             ticketId={ticketId || undefined} // Bug #8 fix: Pass actual ticket ID
+            onShowReceipt={() => {
+              setShowPaymentModal(false);
+              setShowReceiptPreview(true);
+            }}
           />
         </Suspense>
       )}
