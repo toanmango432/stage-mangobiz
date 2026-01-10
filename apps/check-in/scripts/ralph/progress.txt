@@ -20,6 +20,8 @@ Stories: 24 (Phase 0-3: Design, Integration, Features, Quality)
 - Mango brand color is #1a5f4a (primary) and #d4a853 (secondary/accent)
 - Background is warm cream #faf9f7, not pure white
 - Typography: Plus Jakarta Sans for headers, Work Sans for body
+- Testing: Vitest + @testing-library/react for unit/integration tests, setup in src/testing/setup.ts
+- Utility functions: phone formatting, validation, etc. in src/utils/index.ts
 
 ---
 
@@ -59,4 +61,23 @@ Thread: https://ampcode.com/threads/T-019ba7c1-9a16-77fe-a801-371a97d6cf39
   - IndexedDB tables: clients, services, technicians, checkins, syncQueue
   - All async thunks should return null (not undefined) for not-found cases
   - Error boundaries need class components (not function components)
+---
+
+## Sat Jan 10 2026 - US-003
+Thread: https://ampcode.com/threads/T-019ba7ca-7a3e-7797-b4db-91456bd25518
+- Implemented Phone Lookup Integration (Welcome → Verify)
+- Files changed:
+  - src/pages/WelcomeScreen.tsx (use formatPhone from utils instead of local)
+  - src/pages/VerifyPage.tsx (replaced mock lookupClient with Redux thunk)
+  - src/store/slices/clientSlice.test.ts (NEW: unit tests for thunks)
+  - src/pages/VerifyPage.test.tsx (NEW: integration tests for phone lookup)
+  - src/testing/setup.ts (NEW: Vitest setup with mocks)
+  - vitest.config.ts (NEW: Vitest configuration)
+  - package.json (added testing dependencies: vitest, @testing-library/*)
+- **Learnings for future iterations:**
+  - Phone formatting uses (XXX) XXX-XXXX format via src/utils/index.ts formatPhone()
+  - VerifyPage handles 4 states: loading, found, not_found, error
+  - Use `as never` type assertion for async thunk dispatch in tests to avoid TS errors
+  - Tests pass with 21 total assertions (9 unit + 12 integration)
+  - Build produces 909KB bundle - code splitting should be addressed in US-023
 ---

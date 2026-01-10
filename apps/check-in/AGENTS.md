@@ -179,7 +179,18 @@ npx cap open android  # Open in Android Studio
 > This section is updated by Ralph during autonomous builds.
 > Add reusable patterns discovered during implementation.
 
-<!-- Ralph will append patterns here -->
+### Testing (US-003)
+- **Framework**: Vitest + @testing-library/react + @testing-library/user-event
+- **Config**: `vitest.config.ts` at app root
+- **Setup**: `src/testing/setup.ts` (mocks for Supabase, IndexedDB, window APIs)
+- **Unit tests**: `*.test.ts` alongside source files
+- **Integration tests**: `*.test.tsx` in same directory as components
+- **Run**: `pnpm test` or `pnpm test:watch`
+
+### Phone Formatting (US-003)
+- Use `formatPhone()` from `src/utils/index.ts` for consistent (XXX) XXX-XXXX format
+- Normalize to 10 digits before API calls: `phone.replace(/\D/g, '')`
+- VerifyPage handles 4 states: loading, found, not_found, error
 
 ---
 
