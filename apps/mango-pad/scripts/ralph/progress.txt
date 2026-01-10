@@ -24,6 +24,8 @@ Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quali
 - Local mqttClient.ts is used instead of @mango/mqtt (shared package has broken dependencies)
 - mqttService singleton handles connection state, subscriptions, and publishing
 - PadMqttProvider wraps app and auto-subscribes to ready_to_pay, payment_result, and cancel topics
+- NumericKeypadModal pattern for custom amount entry (see TipPage.tsx)
+- formatCurrency helper using Intl.NumberFormat for currency display
 
 ---
 
@@ -70,4 +72,42 @@ Thread: https://ampcode.com/threads/T-019ba7c2-dba7-760b-b981-57b0ff28c81c
   - App uses ScreenRouter component with AnimatePresence for smooth transitions
   - PromoSlide types already defined in configSlice; use them directly
   - ConnectionStatusIndicator pattern can be reused across screens
+---
+
+## [2026-01-10] - US-003
+Thread: https://ampcode.com/threads/T-019ba7c8-33e8-76af-bf42-dce8420b1ff2
+- Implemented OrderReviewPage with complete transaction display
+- Header shows client name prominently with staff name
+- Services and products listed separately with icons (Scissors for services, ShoppingBag for products)
+- Summary shows subtotal, tax, discount (if applicable), and total
+- "Looks Good" button proceeds to next screen (tip, signature, or payment based on config)
+- Split Payment button when enabled in settings
+- Need Help button publishes help_requested via MQTT
+- Files changed:
+  - src/pages/OrderReviewPage.tsx (new)
+  - src/App.tsx (added OrderReviewPage import and case)
+- **Learnings for future iterations:**
+  - Use usePadMqtt() hook from PadMqttProvider to publish MQTT messages
+  - config.tipEnabled and config.signatureRequired control screen flow
+  - formatCurrency helper using Intl.NumberFormat for consistent currency display
+  - lucide-react icons: Scissors (services), ShoppingBag (products), HelpCircle (help)
+---
+
+## [2026-01-10] - US-004
+Thread: https://ampcode.com/threads/T-019ba7cc-2c83-76a8-9053-b1506aceedf9
+- Implemented TipPage with full tip selection functionality
+- Supports configurable tip type: percentage-based OR dollar-based from config
+- Suggested tip buttons display calculated amounts clearly
+- NumericKeypadModal component for custom tip entry with full numeric keypad
+- No Tip option as smaller button
+- Running total updates dynamically as tip is selected
+- Selected tip visually highlighted with distinct indigo style
+- Continue button proceeds to signature or payment based on config.signatureRequired
+- Publishes tip to MQTT salon/{id}/pad/tip_selected via usePadMqtt hook
+- Files changed:
+  - src/pages/TipPage.tsx (complete rewrite - removed react-router, now uses Redux)
+- **Learnings for future iterations:**
+  - NumericKeypadModal is reusable - can be extracted to components/ if needed elsewhere
+  - TipButton component pattern reusable for grid selection UIs
+  - formatCurrency helper duplicated from OrderReviewPage - consider extracting to utils/
 ---
