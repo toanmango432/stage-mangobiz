@@ -362,3 +362,23 @@ Thread: https://ampcode.com/threads/T-019ba8a6-6d0b-72ce-8429-dede8442bd05
 - All 180 tests pass
 - Build produces 1055KB bundle (307KB gzipped)
 ---
+
+## Sat Jan 10 2026 - US-018
+Thread: https://ampcode.com/threads/T-019ba8a8-ec9e-7229-9212-143efa336555
+- Implemented consistent Duration & Price Display using formatPrice() and formatDuration() utilities
+- Files changed:
+  - src/pages/ServicesPage.tsx (use formatPrice and formatDuration for all prices/durations)
+  - src/pages/ConfirmPage.tsx (use formatPrice and formatDuration for service list and totals)
+  - src/pages/GuestsPage.tsx (use formatPrice and formatDuration in modal and summary)
+  - src/components/UpsellCard/index.tsx (use formatPrice and formatDuration)
+  - src/pages/ServicesPage.test.tsx (updated test expectations for new format)
+  - src/pages/ConfirmPage.test.tsx (updated test expectations for new format)
+  - src/pages/GuestsPage.test.tsx (updated test expectations for new format)
+- **Learnings for future iterations:**
+  - formatPrice() uses Intl.NumberFormat for proper currency formatting ($25.00 instead of $25)
+  - formatDuration() shows human-readable duration (1h 30m instead of 90 min, 30m instead of 30 min)
+  - Both utilities are in src/utils/index.ts and should be used for consistent display
+  - Tests must be updated when changing display format - check for hardcoded $XX or XX min patterns
+- All 180 tests pass
+- Build produces 1055KB bundle (307KB gzipped)
+---
