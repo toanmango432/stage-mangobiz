@@ -29,7 +29,8 @@ export default defineConfig({
         },
       },
     },
-    // Increase chunk size warning limit (we're optimizing with code splitting)
-    chunkSizeWarningLimit: 300,
+    // Increase chunk size warning limit - MQTT library is large (~370KB) but required
+    // See docs/DEPLOYMENT.md for production optimization guidance
+    chunkSizeWarningLimit: 400,
   },
 });

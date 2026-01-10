@@ -354,7 +354,7 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 5 - Quality. Load performance-profiler skill."
     },
     {
@@ -373,7 +373,7 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 5 - Final. Load documentation-generator skill."
     }
   ]
