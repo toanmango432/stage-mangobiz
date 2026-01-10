@@ -1,0 +1,23 @@
+# Ralph Progress Log
+Started: Fri Jan 10 2026
+Branch: ralph/mango-pad-full
+Stories: 19 (Phase 1-5: Foundation, Core Flow, Post-Payment, Split/Config, Quality)
+
+## Codebase Patterns
+
+> Reusable patterns discovered during implementation. Add general learnings here.
+
+- MQTT client is initialized in MqttProvider context
+- All screens are in src/pages/ directory
+- Redux slices are in src/store/slices/
+- Use padSlice for screen navigation state
+- Use transactionSlice for current transaction data
+- Use configSlice for settings (persisted to localStorage)
+- MQTT topics are defined in src/constants/mqttTopics.ts
+- Tip calculations go in src/utils/tipCalculations.ts
+- Split payment math goes in src/utils/splitCalculations.ts
+- Use Framer Motion for page transitions
+- Touch targets must be minimum 48x48px
+- Fonts must be minimum 18px body, 24px+ headers
+
+---
