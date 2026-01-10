@@ -169,6 +169,9 @@ export function TipPage() {
   const { publishTipSelected, publishHelpRequested } = usePadMqtt();
   const transaction = useAppSelector((state) => state.transaction.current);
   const config = useAppSelector((state) => state.config.config);
+  const isSplitPayment = useAppSelector((state) => state.transaction.isSplitPayment);
+  const splitPayments = useAppSelector((state) => state.transaction.splitPayments);
+  const currentSplitIndex = useAppSelector((state) => state.transaction.currentSplitIndex);
 
   const [selectedTipIndex, setSelectedTipIndex] = useState<number | null>(1);
   const [customTipAmount, setCustomTipAmount] = useState<number | null>(null);
@@ -183,7 +186,8 @@ export function TipPage() {
     );
   }
 
-  const baseAmount = transaction.total;
+  const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
+  const baseAmount = currentSplit ? currentSplit.amount : transaction.total;
   const tipSuggestions = config.tipSuggestions;
   const tipType = config.tipType;
 
@@ -294,6 +298,13 @@ export function TipPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
+          {isSplitPayment && currentSplit && (
+            <div className="mb-2">
+              <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                Payment {currentSplit.splitIndex + 1} of {currentSplit.totalSplits}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-2 mb-2">
             <Heart className="w-7 h-7 text-pink-500" />
             <h1 className="text-2xl font-bold text-gray-900">Add a Tip</h1>

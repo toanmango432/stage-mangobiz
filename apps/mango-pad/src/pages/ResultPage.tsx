@@ -23,11 +23,16 @@ export function ResultPage() {
   const paymentResult = useAppSelector((state) => state.transaction.paymentResult);
   const tip = useAppSelector((state) => state.transaction.tip);
   const config = useAppSelector((state) => state.config.config);
+  const isSplitPayment = useAppSelector((state) => state.transaction.isSplitPayment);
+  const splitPayments = useAppSelector((state) => state.transaction.splitPayments);
+  const currentSplitIndex = useAppSelector((state) => state.transaction.currentSplitIndex);
 
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
+  const baseAmount = currentSplit ? currentSplit.amount : (transaction?.total ?? 0);
   const tipAmount = tip?.tipAmount ?? 0;
-  const finalTotal = transaction ? transaction.total + tipAmount : 0;
+  const finalTotal = baseAmount + tipAmount;
 
   const handleRetry = useCallback(() => {
     dispatch(setPaymentResult(null as never));
@@ -35,12 +40,14 @@ export function ResultPage() {
   }, [dispatch]);
 
   const handleContinue = useCallback(() => {
-    if (config.showReceiptOptions) {
+    if (isSplitPayment) {
+      dispatch(setScreen('split-status'));
+    } else if (config.showReceiptOptions) {
       dispatch(setScreen('receipt'));
     } else {
       dispatch(setScreen('thank-you'));
     }
-  }, [dispatch, config.showReceiptOptions]);
+  }, [dispatch, config.showReceiptOptions, isSplitPayment]);
 
   useEffect(() => {
     if (paymentResult?.success) {
@@ -83,6 +90,15 @@ export function ResultPage() {
           : 'bg-gradient-to-b from-red-50 to-white'
       }`}
     >
+      {/* Split payment indicator */}
+      {isSplitPayment && currentSplit && (
+        <div className="px-6 pt-4 text-center">
+          <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+            Payment {currentSplit.splitIndex + 1} of {currentSplit.totalSplits}
+          </span>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-6">
         <motion.div

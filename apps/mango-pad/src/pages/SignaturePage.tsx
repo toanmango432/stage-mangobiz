@@ -24,6 +24,9 @@ export function SignaturePage() {
   const { publishSignature, publishHelpRequested } = usePadMqtt();
   const transaction = useAppSelector((state) => state.transaction.current);
   const tip = useAppSelector((state) => state.transaction.tip);
+  const isSplitPayment = useAppSelector((state) => state.transaction.isSplitPayment);
+  const splitPayments = useAppSelector((state) => state.transaction.splitPayments);
+  const currentSplitIndex = useAppSelector((state) => state.transaction.currentSplitIndex);
 
   const signatureRef = useRef<SignatureCanvas | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
@@ -36,8 +39,10 @@ export function SignaturePage() {
     );
   }
 
+  const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
+  const baseAmount = currentSplit ? currentSplit.amount : transaction.total;
   const tipAmount = tip?.tipAmount ?? 0;
-  const finalTotal = transaction.total + tipAmount;
+  const finalTotal = baseAmount + tipAmount;
 
   const handleClear = useCallback(() => {
     signatureRef.current?.clear();
@@ -98,6 +103,13 @@ export function SignaturePage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
+          {isSplitPayment && currentSplit && (
+            <div className="mb-2">
+              <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                Payment {currentSplit.splitIndex + 1} of {currentSplit.totalSplits}
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-2 mb-2">
             <PenTool className="w-7 h-7 text-indigo-600" />
             <h1 className="text-2xl font-bold text-gray-900">Sign to Agree</h1>

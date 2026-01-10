@@ -181,11 +181,16 @@ export function PaymentPage() {
   const tip = useAppSelector((state) => state.transaction.tip);
   const paymentResult = useAppSelector((state) => state.transaction.paymentResult);
   const config = useAppSelector((state) => state.config.config);
+  const isSplitPayment = useAppSelector((state) => state.transaction.isSplitPayment);
+  const splitPayments = useAppSelector((state) => state.transaction.splitPayments);
+  const currentSplitIndex = useAppSelector((state) => state.transaction.currentSplitIndex);
 
   const [isTimedOut, setIsTimedOut] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const totalWithTip = (transaction?.total ?? 0) + (tip?.tipAmount ?? 0);
+  const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
+  const baseAmount = currentSplit ? currentSplit.amount : (transaction?.total ?? 0);
+  const totalWithTip = baseAmount + (tip?.tipAmount ?? 0);
   const terminalType = transaction?.terminalType;
   const paymentTimeout = config.paymentTimeout * 1000;
 
@@ -241,6 +246,13 @@ export function PaymentPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
+          {isSplitPayment && currentSplit && (
+            <div className="mb-2">
+              <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                Payment {currentSplit.splitIndex + 1} of {currentSplit.totalSplits}
+              </span>
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-gray-900">Complete Payment</h1>
           <p className="text-lg text-gray-500 mt-1">
             Follow the instructions below
