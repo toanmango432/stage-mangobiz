@@ -125,4 +125,28 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-005: Mango Pad welcome screen on first launch
+
+**Summary:**
+- Created WelcomePage component with orange gradient design matching app theme
+- Tablet icon in rounded orange square as logo
+- "Welcome to Mango Pad" heading with description
+- "Pair with Store" primary button (orange, large) navigates to /pair
+- "Try Demo Mode" secondary button (outlined) sets demo flag and goes to WaitingPage
+- isPaired() helper checks localStorage 'mango_pad_pairing' key
+- RootRoute component handles conditional routing based on pairing/demo status
+
+**Files changed:**
+- `apps/mango-pad/src/pages/WelcomePage.tsx` (new)
+- `apps/mango-pad/src/App.tsx` (updated routing with RootRoute, added /welcome route)
+
+**Learnings:**
+- Mango Pad uses port 5176 (defined in package.json dev script)
+- Mango Pad doesn't have typecheck script, use `npx tsc --noEmit` directly
+- react-router-dom Navigate component with `replace` prop for redirects
+- Demo mode flag stored in localStorage as 'mango_pad_demo_mode'
+- RootRoute pattern useful for conditional rendering based on app state
+
+---
+
 

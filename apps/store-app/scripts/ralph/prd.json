@@ -90,8 +90,8 @@
         "Verify in browser"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "Entry point for Mango Pad. Does not require backend connection."
+      "passes": true,
+      "notes": "WelcomePage created with orange gradient design. RootRoute in App.tsx handles pairing/demo mode logic."
     },
     {
       "id": "US-006",
