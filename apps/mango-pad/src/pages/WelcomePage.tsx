@@ -9,12 +9,10 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Tablet, Link, Play } from 'lucide-react';
+import { isPaired } from '../services/pairingService';
 
-// Check if device is already paired
-export function isPaired(): boolean {
-  const pairingData = localStorage.getItem('mango_pad_pairing');
-  return pairingData !== null;
-}
+// Re-export isPaired for use in App.tsx routing
+export { isPaired };
 
 export function WelcomePage() {
   const navigate = useNavigate();

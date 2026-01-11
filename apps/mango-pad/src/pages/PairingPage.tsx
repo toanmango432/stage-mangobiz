@@ -4,12 +4,13 @@
  * Screen for entering a pairing code to connect Mango Pad with a Store App station.
  * Auto-uppercases input and formats with dash for display.
  *
- * Part of: Device Pairing System (US-006)
+ * Part of: Device Pairing System (US-006, US-007)
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Link, Loader2 } from 'lucide-react';
+import { verifyPairingCode } from '../services/pairingService';
 
 // Parse input: remove dashes/spaces, uppercase, limit to 6 chars
 function parseCode(input: string): string {
@@ -67,18 +68,34 @@ export function PairingPage() {
     setError(null);
 
     try {
-      // TODO: US-007 will implement actual verification via pairingService
-      // For now, just simulate a brief delay and show error
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const result = await verifyPairingCode(code);
 
-      // Placeholder - verification will be implemented in US-007
-      setError('Verification not yet implemented. Coming in US-007.');
+      if (result.success) {
+        // Success! Navigate to waiting page
+        // Clear demo mode flag if it was set
+        localStorage.removeItem('mango_pad_demo_mode');
+        navigate('/');
+      } else {
+        // Handle specific error types
+        switch (result.error) {
+          case 'invalid_code':
+            setError('Invalid pairing code. Please check and try again.');
+            break;
+          case 'not_configured':
+            setError('Pairing service not available. Please try again later.');
+            break;
+          case 'network_error':
+          default:
+            setError('Connection failed. Please check your internet.');
+            break;
+        }
+      }
     } catch {
       setError('Connection failed. Please check your internet.');
     } finally {
       setIsVerifying(false);
     }
-  }, [code, isVerifying]);
+  }, [code, isVerifying, navigate]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
