@@ -18,8 +18,10 @@ export interface PadDevice {
   name: string;
   status: 'online' | 'offline';
   lastSeen: string;
-  screen?: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete';
+  screen?: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete' | 'waiting';
   salonId?: string;
+  /** Device ID of the Store App station this Pad is paired to (US-010) */
+  pairedTo?: string;
 }
 
 interface PadDevicesState {
@@ -65,7 +67,7 @@ const padDevicesSlice = createSlice({
     },
 
     handleHeartbeat: (state, action: PayloadAction<PadHeartbeatPayload>) => {
-      const { deviceId, deviceName, salonId, timestamp, screen } = action.payload;
+      const { deviceId, deviceName, salonId, pairedTo, timestamp, screen } = action.payload;
       const existingDevice = state.devices[deviceId];
 
       if (existingDevice) {
@@ -74,6 +76,7 @@ const padDevicesSlice = createSlice({
         existingDevice.screen = screen;
         if (deviceName) existingDevice.name = deviceName;
         if (salonId) existingDevice.salonId = salonId;
+        if (pairedTo) existingDevice.pairedTo = pairedTo;
       } else {
         state.devices[deviceId] = {
           id: deviceId,
@@ -82,6 +85,7 @@ const padDevicesSlice = createSlice({
           lastSeen: timestamp,
           screen,
           salonId,
+          pairedTo,
         };
       }
     },

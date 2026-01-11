@@ -277,8 +277,10 @@ export interface PadHeartbeatPayload {
   deviceId: string;
   deviceName: string;
   salonId: string;
+  /** Device ID of the Store App station this Pad is paired to (US-010) */
+  pairedTo?: string;
   timestamp: string;
-  screen: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete';
+  screen: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete' | 'waiting';
 }
 
 export interface PosHeartbeatPayload {

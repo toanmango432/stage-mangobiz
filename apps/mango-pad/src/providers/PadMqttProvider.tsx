@@ -13,12 +13,13 @@ import {
   type ReactNode,
 } from 'react';
 import mqtt, { type MqttClient as MqttClientType } from 'mqtt';
-import { 
-  PAD_CONFIG, 
-  getSalonId, 
-  getDeviceId, 
-  getMqttBrokerUrl 
+import {
+  PAD_CONFIG,
+  getSalonId,
+  getDeviceId,
+  getMqttBrokerUrl
 } from '../constants/config';
+import { getPairingInfo } from '../services/pairingService';
 import type { PadScreen, PosConnectionState } from '../types';
 
 // =============================================================================
@@ -46,6 +47,8 @@ interface PadHeartbeatPayload {
   deviceId: string;
   deviceName: string;
   salonId: string;
+  /** Device ID of the Store App station this Pad is paired to (US-010) */
+  pairedTo?: string;
   timestamp: string;
   screen: PadScreen;
 }
@@ -114,11 +117,15 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const publishHeartbeat = useCallback(() => {
     if (!clientRef.current?.connected) return;
 
+    // Get pairing info to include pairedTo in heartbeat (US-010)
+    const pairingInfo = getPairingInfo();
+
     const topic = buildTopic(TOPICS.PAD_HEARTBEAT, { salonId });
     const payload: PadHeartbeatPayload = {
       deviceId,
       deviceName: PAD_CONFIG.DEVICE_NAME,
       salonId,
+      pairedTo: pairingInfo?.stationId,
       timestamp: new Date().toISOString(),
       screen: currentScreenRef.current,
     };
