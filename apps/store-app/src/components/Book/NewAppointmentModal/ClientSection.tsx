@@ -94,9 +94,9 @@ export function ClientSection({
         />
       </div>
 
-      {/* Full-Height Dropdown */}
+      {/* Client Selection Dropdown */}
       {(selectedClients.length === 0 || isAddingAnotherClient) && !showAddNewForm && (
-        <div className="absolute top-[140px] left-0 right-0 bottom-0 bg-white border-r border-gray-100 z-40 flex flex-col overflow-hidden shadow-lg">
+        <div className="mt-4 bg-white rounded-lg border border-gray-100 shadow-sm max-h-[400px] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 space-y-3">
             {/* Add New Client Button */}
             <button
@@ -171,26 +171,25 @@ export function ClientSection({
 
       {/* Add New Client Form */}
       {showAddNewForm && (
-        <div className="absolute top-[140px] left-0 right-0 bottom-0 bg-white border-r border-gray-100 z-40 p-6 overflow-y-auto">
-          <div className="bg-white border-2 border-brand-500 rounded-lg p-4 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">New Client</h3>
-              <button
-                onClick={() => {
-                  onShowAddNewForm(false);
-                  onNewClientFirstNameChange('');
-                  onNewClientLastNameChange('');
-                  onNewClientPhoneChange('');
-                  onNewClientEmailChange('');
-                  onValidationErrorsChange({});
-                }}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="mt-4 bg-white rounded-xl border-2 border-brand-500 p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">New Client</h3>
+            <button
+              onClick={() => {
+                onShowAddNewForm(false);
+                onNewClientFirstNameChange('');
+                onNewClientLastNameChange('');
+                onNewClientPhoneChange('');
+                onNewClientEmailChange('');
+                onValidationErrorsChange({});
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-            <div className="space-y-3">
+          <div className="space-y-3">
               {/* First Name */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -352,7 +351,6 @@ export function ClientSection({
                 )}
               </button>
             </div>
-          </div>
         </div>
       )}
     </>

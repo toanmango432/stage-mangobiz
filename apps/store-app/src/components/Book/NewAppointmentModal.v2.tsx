@@ -433,7 +433,7 @@ export function NewAppointmentModalV2({
             )}
 
             {/* Client Search & Selection */}
-            <div className="relative z-30 p-6 border-b border-gray-100 bg-gradient-to-br from-brand-50/30 via-white to-white">
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-br from-brand-50/30 via-white to-white">
               <ClientSection
                 clientSearch={formState.clientSearch}
                 onClientSearchChange={formState.setClientSearch}

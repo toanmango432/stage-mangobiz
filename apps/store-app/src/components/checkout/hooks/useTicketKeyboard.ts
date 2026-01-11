@@ -10,8 +10,6 @@
  */
 
 import { useEffect } from "react";
-import type { AppDispatch } from "@/store";
-import { ticketActions } from "@/store/slices/ticketSlice";
 
 interface UseTicketKeyboardParams {
   isOpen: boolean;
@@ -19,7 +17,9 @@ interface UseTicketKeyboardParams {
   showPaymentModal: boolean;
   canCheckout: boolean;
   onClose: () => void;
-  dispatch: AppDispatch;
+  onShowKeyboardShortcuts: (show: boolean) => void;
+  onShowPaymentModal: (show: boolean) => void;
+  onSetFullPageTab: (tab: "services" | "staff") => void;
   handleCheckout: () => void;
 }
 
@@ -29,7 +29,9 @@ export function useTicketKeyboard({
   showPaymentModal,
   canCheckout,
   onClose,
-  dispatch,
+  onShowKeyboardShortcuts,
+  onShowPaymentModal,
+  onSetFullPageTab,
   handleCheckout,
 }: UseTicketKeyboardParams): void {
   useEffect(() => {
@@ -41,15 +43,15 @@ export function useTicketKeyboard({
 
       if (e.key === "?" && !e.shiftKey) {
         e.preventDefault();
-        dispatch(ticketActions.toggleDialog("showKeyboardShortcuts", true));
+        onShowKeyboardShortcuts(true);
         return;
       }
 
       if (e.key === "Escape") {
         if (showKeyboardShortcuts) {
-          dispatch(ticketActions.toggleDialog("showKeyboardShortcuts", false));
+          onShowKeyboardShortcuts(false);
         } else if (showPaymentModal) {
-          dispatch(ticketActions.toggleDialog("showPaymentModal", false));
+          onShowPaymentModal(false);
         } else {
           onClose();
         }
@@ -65,7 +67,7 @@ export function useTicketKeyboard({
 
       if (modifier && e.key === "k") {
         e.preventDefault();
-        dispatch(ticketActions.setFullPageTab("services"));
+        onSetFullPageTab("services");
         setTimeout(() => {
           const searchInput = document.querySelector(
             '[data-testid="input-search-service-full"]'
@@ -107,7 +109,9 @@ export function useTicketKeyboard({
     showPaymentModal,
     canCheckout,
     onClose,
-    dispatch,
+    onShowKeyboardShortcuts,
+    onShowPaymentModal,
+    onSetFullPageTab,
     handleCheckout,
   ]);
 }
