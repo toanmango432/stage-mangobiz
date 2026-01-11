@@ -29,6 +29,8 @@ import type { PadScreen, PosConnectionState } from '../types';
 const TOPICS = {
   PAD_HEARTBEAT: 'salon/{salonId}/pad/heartbeat',
   POS_HEARTBEAT: 'salon/{salonId}/pos/heartbeat',
+  // Device pairing notifications (US-012, US-013)
+  PAD_UNPAIRED: 'salon/{salonId}/pad/{deviceId}/unpaired',
 };
 
 function buildTopic(pattern: string, params: Record<string, string>): string {
@@ -77,6 +79,10 @@ interface PadMqttContextValue {
   salonId: string;
   /** Device ID */
   deviceId: string;
+  /** Unpair event received from Store App (US-013) */
+  unpairReceived: boolean;
+  /** Clear unpair received flag after handling */
+  clearUnpairReceived: () => void;
 }
 
 const PadMqttContext = createContext<PadMqttContextValue | null>(null);
@@ -102,6 +108,8 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     storeId: null,
     storeName: null,
   });
+  // Unpair event state (US-013)
+  const [unpairReceived, setUnpairReceived] = useState(false);
 
   const clientRef = useRef<MqttClientType | null>(null);
   const heartbeatIntervalRef = useRef<number | null>(null);
@@ -155,9 +163,19 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
       const posHeartbeatTopic = buildTopic(TOPICS.POS_HEARTBEAT, { salonId });
       client.subscribe(posHeartbeatTopic, { qos: 0 }, (err) => {
         if (err) {
-          console.error('[PadMqtt] Failed to subscribe:', err);
+          console.error('[PadMqtt] Failed to subscribe to POS heartbeat:', err);
         } else {
           console.log('[PadMqtt] Subscribed to:', posHeartbeatTopic);
+        }
+      });
+
+      // Subscribe to unpair notifications (US-013)
+      const unpairTopic = buildTopic(TOPICS.PAD_UNPAIRED, { salonId, deviceId });
+      client.subscribe(unpairTopic, { qos: 1 }, (err) => {
+        if (err) {
+          console.error('[PadMqtt] Failed to subscribe to unpair topic:', err);
+        } else {
+          console.log('[PadMqtt] Subscribed to:', unpairTopic);
         }
       });
 
@@ -181,7 +199,7 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     client.on('message', (topic, message) => {
       try {
         const payload = JSON.parse(message.toString());
-        
+
         if (topic.includes('/pos/heartbeat')) {
           const posPayload = payload as PosHeartbeatPayload;
           setPosConnection({
@@ -190,6 +208,15 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
             storeId: posPayload.storeId,
             storeName: posPayload.storeName,
           });
+        }
+
+        // Handle unpair notification (US-013)
+        if (topic.includes('/unpaired')) {
+          console.log('[PadMqtt] Received unpair notification:', payload);
+          // Clear the pairing info from localStorage
+          localStorage.removeItem('mango_pad_pairing');
+          // Set flag to trigger navigation in components
+          setUnpairReceived(true);
         }
       } catch (error) {
         console.error('[PadMqtt] Failed to parse message:', error);
@@ -234,6 +261,11 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     };
   }, []);
 
+  // Clear unpair received flag (US-013)
+  const clearUnpairReceived = useCallback(() => {
+    setUnpairReceived(false);
+  }, []);
+
   const contextValue: PadMqttContextValue = {
     isConnected,
     currentScreen,
@@ -241,6 +273,8 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     posConnection,
     salonId,
     deviceId,
+    unpairReceived,
+    clearUnpairReceived,
   };
 
   return (
@@ -265,4 +299,13 @@ export function usePadMqtt(): PadMqttContextValue {
 export function usePosConnection(): PosConnectionState {
   const { posConnection } = usePadMqtt();
   return posConnection;
+}
+
+/**
+ * Hook to use unpair event state (US-013)
+ * Use this in components to detect when unpair has been received
+ */
+export function useUnpairEvent() {
+  const { unpairReceived, clearUnpairReceived } = usePadMqtt();
+  return { unpairReceived, clearUnpairReceived };
 }

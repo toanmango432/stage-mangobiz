@@ -6,6 +6,7 @@ import { TipPage } from './pages/TipPage';
 import { SignaturePage } from './pages/SignaturePage';
 import { WelcomePage, isPaired } from './pages/WelcomePage';
 import { PairingPage } from './pages/PairingPage';
+import { UnpairHandler } from './components/UnpairHandler';
 
 /**
  * Root route component that redirects based on pairing status.
@@ -29,6 +30,8 @@ export function App() {
   return (
     <PadMqttProvider>
       <BrowserRouter>
+        {/* UnpairHandler listens for unpair events and handles navigation (US-013) */}
+        <UnpairHandler />
         <Routes>
           <Route path="/" element={<RootRoute />} />
           <Route path="/welcome" element={<WelcomePage />} />
