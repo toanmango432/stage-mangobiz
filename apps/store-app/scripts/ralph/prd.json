@@ -180,8 +180,8 @@
         "npm run typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "Extends existing heartbeat system with pairing awareness"
+      "passes": true,
+      "notes": "Implemented pairedTo field in heartbeats and 60-second Supabase batch sync"
     },
     {
       "id": "US-011",
@@ -196,8 +196,8 @@
         "Verify in browser"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "Depends on US-010 (heartbeats must work)"
+      "passes": true,
+      "notes": "Merged Supabase data with Redux heartbeats for real-time status updates"
     },
     {
       "id": "US-012",
@@ -213,8 +213,8 @@
         "Verify in browser"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "Depends on US-008 (paired devices list must exist)"
+      "passes": true,
+      "notes": "Added Unpair button with confirmation dialog. Updates Supabase, sends MQTT notification to Pad, removes from list immediately."
     },
     {
       "id": "US-013",

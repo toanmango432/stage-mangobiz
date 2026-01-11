@@ -185,15 +185,18 @@ export async function registerDevice(storeId: string): Promise<DeviceRegistratio
           .eq('id', existingDevice.id);
       }
 
+      // At this point pairingCode is guaranteed to be a string (either from DB or generated)
+      const finalPairingCode = pairingCode as string;
+
       // Store the pairing code locally
-      storePairingCode(pairingCode);
+      storePairingCode(finalPairingCode);
 
       console.log('[DeviceRegistration] Updated existing device:', existingDevice.id);
 
       return {
         success: true,
         deviceId,
-        pairingCode,
+        pairingCode: finalPairingCode,
         stationName: existingDevice.station_name || DEFAULT_STATION_NAME,
       };
     }
@@ -376,5 +379,38 @@ export async function getPairedDevices(storeId: string): Promise<SalonDeviceRow[
   } catch (error) {
     console.error('[DeviceRegistration] Failed to get paired devices:', error);
     return [];
+  }
+}
+
+/**
+ * Unpair a device from this station (US-012)
+ * Sets paired_to_device_id = null in Supabase
+ */
+export async function unpairDevice(
+  storeId: string,
+  padDeviceFingerprint: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('salon_devices')
+      .update({
+        paired_to_device_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('store_id', storeId)
+      .eq('device_fingerprint', padDeviceFingerprint);
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('[DeviceRegistration] Unpaired device:', padDeviceFingerprint);
+    return { success: true };
+  } catch (error) {
+    console.error('[DeviceRegistration] Failed to unpair device:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }

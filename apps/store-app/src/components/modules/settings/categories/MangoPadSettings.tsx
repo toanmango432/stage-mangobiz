@@ -25,6 +25,7 @@ import {
   Monitor,
   Maximize2,
   X,
+  Unlink,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { selectStoreId, selectStoreName } from '@/store/slices/authSlice';
@@ -33,6 +34,7 @@ import {
   formatPairingCode,
   getOrCreateDeviceId,
   getPairedDevices,
+  unpairDevice,
   type DeviceRegistrationResult,
 } from '@/services/deviceRegistration';
 import type { SalonDeviceRow } from '@/services/supabase/types';
@@ -140,6 +142,10 @@ export function MangoPadSettings() {
   // Paired devices state (US-008, US-011)
   const [pairedDevices, setPairedDevices] = useState<SalonDeviceRow[]>([]);
   const [pairedDevicesLoading, setPairedDevicesLoading] = useState(false);
+
+  // Unpair confirmation modal state (US-012)
+  const [deviceToUnpair, setDeviceToUnpair] = useState<SalonDeviceRow | null>(null);
+  const [unpairLoading, setUnpairLoading] = useState(false);
 
   // Merge Supabase paired devices with real-time Redux heartbeat status (US-011)
   const pairedDevicesWithRealTimeStatus = useMemo(() => {
@@ -297,6 +303,55 @@ export function MangoPadSettings() {
         return 'Unknown';
     }
   };
+
+  // Handle unpair device (US-012)
+  const handleUnpair = useCallback(async () => {
+    if (!deviceToUnpair || !storeId) return;
+
+    setUnpairLoading(true);
+
+    try {
+      // 1. Update Supabase to remove pairing
+      const result = await unpairDevice(storeId, deviceToUnpair.device_fingerprint);
+
+      if (!result.success) {
+        console.error('[MangoPadSettings] Failed to unpair device:', result.error);
+        return;
+      }
+
+      // 2. Send MQTT notification to the Pad
+      try {
+        const client = getMqttClient();
+        if (client.isConnected()) {
+          const unpairTopic = buildTopic(TOPIC_PATTERNS.PAD_UNPAIRED, {
+            storeId,
+            deviceId: deviceToUnpair.device_fingerprint,
+          });
+          await client.publish(unpairTopic, {
+            stationId: deviceRegistration?.deviceId,
+            timestamp: new Date().toISOString(),
+            message: 'Device unpaired by store',
+          });
+          console.log('[MangoPadSettings] Sent unpair notification to Pad');
+        }
+      } catch (mqttError) {
+        // Log but don't fail - MQTT notification is best-effort
+        console.warn('[MangoPadSettings] Failed to send unpair notification:', mqttError);
+      }
+
+      // 3. Remove device from local state immediately
+      setPairedDevices((prev) =>
+        prev.filter((d) => d.device_fingerprint !== deviceToUnpair.device_fingerprint)
+      );
+
+      console.log('[MangoPadSettings] Successfully unpaired device:', deviceToUnpair.device_fingerprint);
+    } catch (error) {
+      console.error('[MangoPadSettings] Error unpairing device:', error);
+    } finally {
+      setUnpairLoading(false);
+      setDeviceToUnpair(null);
+    }
+  }, [deviceToUnpair, storeId, deviceRegistration?.deviceId]);
 
   return (
     <div>
@@ -524,7 +579,18 @@ export function MangoPadSettings() {
                       </div>
                     </div>
                   </div>
-                  <StatusBadge status={isOnline ? 'online' : 'offline'} />
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={isOnline ? 'online' : 'offline'} />
+                    {/* Unpair button (US-012) */}
+                    <button
+                      onClick={() => setDeviceToUnpair(device)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors"
+                      title="Unpair this device"
+                    >
+                      <Unlink className="w-4 h-4" />
+                      Unpair
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -795,6 +861,81 @@ export function MangoPadSettings() {
                   ? formatPairingCode(deviceRegistration.pairingCode)
                   : '---'}
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unpair Confirmation Modal (US-012) */}
+      {deviceToUnpair && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => !unpairLoading && setDeviceToUnpair(null)}
+        >
+          <div
+            className="relative bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Unpair {deviceToUnpair.device_name || 'Mango Pad'}?
+              </h2>
+              <p className="text-sm text-gray-500 mt-2">
+                The device will need to be paired again using the pairing code.
+              </p>
+            </div>
+
+            {/* Device Info */}
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
+                  <Tablet className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {deviceToUnpair.device_name || 'Mango Pad'}
+                  </p>
+                  <p className="text-xs text-gray-500 font-mono">
+                    ID: ...{deviceToUnpair.device_fingerprint.slice(-8)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeviceToUnpair(null)}
+                disabled={unpairLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUnpair}
+                disabled={unpairLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {unpairLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Unpairing...
+                  </>
+                ) : (
+                  <>
+                    <Unlink className="w-4 h-4" />
+                    Unpair Device
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

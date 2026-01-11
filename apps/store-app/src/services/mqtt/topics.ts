@@ -56,6 +56,8 @@ export const TOPIC_PATTERNS = {
   // Heartbeats for connection awareness
   PAD_HEARTBEAT: 'salon/{storeId}/pad/heartbeat',
   POS_HEARTBEAT: 'salon/{storeId}/pos/heartbeat',
+  // Device pairing notifications (US-012, US-013)
+  PAD_UNPAIRED: 'salon/{storeId}/pad/{deviceId}/unpaired',
 
   // Check-In App
   CHECKIN_ALL: 'mango/{storeId}/checkin/#',
@@ -251,6 +253,7 @@ export const QOS_BY_TOPIC: Record<string, MqttQoS> = {
   [TOPIC_PATTERNS.PAD_HELP_REQUESTED]: 1,
   [TOPIC_PATTERNS.PAD_HEARTBEAT]: 0,
   [TOPIC_PATTERNS.POS_HEARTBEAT]: 0,
+  [TOPIC_PATTERNS.PAD_UNPAIRED]: 1, // Guaranteed delivery for unpair notification
   [TOPIC_PATTERNS.CHECKIN_WALKIN]: 1,
   [TOPIC_PATTERNS.CHECKIN_STAFF]: 1,
   [TOPIC_PATTERNS.BOOKING_CREATED]: 1,

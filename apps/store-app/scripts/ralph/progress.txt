@@ -251,3 +251,73 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-010: MQTT heartbeat for paired devices
+
+**Summary:**
+- Added `pairedTo` field to PadHeartbeatPayload in Store App types
+- Updated PadDevice interface in padDevicesSlice to include pairedTo
+- Updated handleHeartbeat reducer to track pairedTo from incoming heartbeats
+- Mango Pad heartbeat now includes pairingInfo.stationId as pairedTo
+- Added 60-second interval in usePadHeartbeat to sync device status to Supabase
+- syncToSupabase function batch updates is_online and last_seen_at for all tracked pads
+
+**Files changed:**
+- `apps/store-app/src/services/mqtt/types.ts` (added pairedTo to PadHeartbeatPayload)
+- `apps/store-app/src/store/slices/padDevicesSlice.ts` (added pairedTo to PadDevice, updated handleHeartbeat)
+- `apps/store-app/src/services/mqtt/hooks/usePadHeartbeat.ts` (added Supabase batch sync every 60s)
+- `apps/mango-pad/src/providers/PadMqttProvider.tsx` (include pairedTo in heartbeat payload)
+
+**Learnings:**
+- Use useRef to access Redux state in setInterval callbacks without causing re-renders
+- padDevicesRef.current pattern allows interval to read latest devices without dependency on padDevices
+- Supabase updates use device_fingerprint column (not device_id) to match salon_devices schema
+- Batch updates iterate through devices sequentially - could optimize with Promise.all for larger lists
+
+---
+
+## 2025-01-11 - US-011: Store App shows online/offline status for paired Pads
+
+**Summary:**
+- Created `pairedDevicesWithRealTimeStatus` useMemo to merge Supabase data with Redux heartbeat data
+- Matches devices by device_fingerprint (Supabase) = id (Redux)
+- Shows green/gray status dot indicator on device icon
+- Display "X/Y Online" count in section header badge
+- Shows "Connected now" for online devices, "Last seen: X minutes ago" for offline
+- Shows current screen (Ready, Checkout, Tip, etc.) for online devices
+- Status updates automatically as heartbeats arrive via Redux
+
+**Files changed:**
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added useMemo for merged data, updated UI)
+
+**Learnings:**
+- Use useMemo to merge data sources (Supabase + Redux) for real-time updates
+- `_reduxScreen` pattern to pass additional data without modifying base type
+- TypeScript type assertion needed for custom properties added at runtime
+- Green dot = online (< 30s since heartbeat), gray dot = offline (> 30s)
+
+---
+
+
+## 2025-01-11 - US-012: Store App unpair device functionality
+
+**Summary:**
+- Added `unpairDevice` function to deviceRegistration.ts
+- Added `PAD_UNPAIRED` topic pattern to topics.ts with QoS 1
+- Added Unpair button next to each paired device in MangoPadSettings
+- Added confirmation dialog modal with device info display
+- handleUnpair function: updates Supabase, sends MQTT notification, removes from local state
+- Fixed TypeScript error with pairingCode type assertion in deviceRegistration.ts
+
+**Files changed:**
+- `apps/store-app/src/services/deviceRegistration.ts` (added unpairDevice function, fixed type assertion)
+- `apps/store-app/src/services/mqtt/topics.ts` (added PAD_UNPAIRED topic and QoS mapping)
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added Unpair button, confirmation modal, handleUnpair callback)
+- `apps/store-app/scripts/ralph/prd.json` (marked US-012 as passes: true)
+
+**Learnings:**
+- Use `as string` type assertion when TypeScript can't infer string guarantee through control flow
+- Confirmation modals should show device info to help user confirm correct action
+- MQTT notifications for unpair are best-effort (wrapped in try/catch, don't fail the main operation)
+- Modal should be disabled during loading to prevent double-clicks
+
+---
