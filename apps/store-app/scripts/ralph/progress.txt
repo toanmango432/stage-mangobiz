@@ -1,310 +1,59 @@
 # Ralph Progress Log
-Started: Sat Jan 10 2026
+Started: 2025-01-11
 Branch: ralph/mango-pad-integration
-Stories: 14 (MQTT Integration, Device Status, Checkout UI, Settings)
+Stories: 17 (Device Pairing System)
 
 ## Codebase Patterns
 
-> Reusable patterns discovered during implementation. Add general learnings here.
+> Reusable patterns discovered during implementation.
 
+**From Previous Work (Checkout Integration):**
 - MQTT topics are defined in src/services/mqtt/topics.ts
 - Use buildTopic() helper to create topics with storeId substitution
 - MQTT feature flag: isMqttEnabled() from featureFlags.ts
 - Redux slices go in src/store/slices/
-- Checkout components are in src/components/checkout/
-- Use design-system tokens for all styling
-- MQTT broker URL configured via VITE_MQTT_CLOUD_URL env var
+- Settings pages are in src/components/modules/settings/categories/
 - PAD topics use 'salon' prefix (not 'mango') to match Mango Pad app
-- New Pad topic patterns: PAD_READY_TO_PAY, PAD_PAYMENT_RESULT, PAD_CANCEL, PAD_TIP_SELECTED, PAD_SIGNATURE_CAPTURED, PAD_RECEIPT_PREFERENCE, PAD_TRANSACTION_COMPLETE, PAD_HELP_REQUESTED, PAD_HEARTBEAT, POS_HEARTBEAT
 - Heartbeat topics use QoS 0, all other Pad topics use QoS 1
-- Pad event handlers are in src/services/mangoPadHandlers.ts
-- PadTransactionState stores Pad-specific data (signature, receipt preference) that doesn't fit in Ticket type
-- Use uiSlice addNotification for user notifications (type: 'success' | 'error' | 'warning' | 'info')
-- Mock store module in tests: vi.mock('../../store', () => ({ store: { dispatch: vi.fn() } }))
-- Pad device registry uses padDevicesSlice with handleHeartbeat action for incoming heartbeats
-- usePadHeartbeat hook subscribes to salon/{storeId}/pad/heartbeat and runs checkOfflineDevices every 10s
-- selectStoreId from authSlice provides current store ID for topic building
-- Header status indicators use Popover from @/components/ui/popover for dropdowns
-- PadConnectionIndicator displays device status using getConnectedPads, selectHasConnectedPad selectors
-- padTransactionSlice tracks active Pad transaction status (waiting, tip_selected, signature, receipt, processing, complete, failed, cancelled)
-- usePadTransactionEvents hook subscribes to all Pad event topics and updates padTransactionSlice
-- PadTransactionStatus component shows real-time progress with visual step indicators
-- Signature data stored in Ticket type via signatureBase64 and signatureTimestamp fields
-- SignatureDisplay component in src/components/common/ for displaying signature images
-- When adding fields to Ticket, also update UITicket, PendingTicket, DBTicket and their converter functions
-- **Mango Pad patterns:**
-  - PadMqttProvider wraps app with MQTT connection and heartbeat publishing
-  - usePadMqtt() provides current screen, POS connection status, salonId, deviceId
-  - usePosConnection() hook returns POS connection state (isConnected, lastHeartbeat, storeName)
-  - Device ID persisted in localStorage as 'mango_pad_device_id'
-  - Salon ID configured via VITE_SALON_ID env var
-  - MQTT broker URL configured via VITE_MQTT_BROKER_URL env var
+- Device goes offline after 30 seconds without heartbeat
+- Use design-system tokens for all styling
+- Use Popover from @/components/ui/popover for dropdown menus
+- Use formatDistanceToNow from date-fns with addSuffix: true for "X ago" format
+- Mango Pad deviceId persisted in localStorage as 'mango_pad_device_id'
+- Mango Pad salonId from VITE_SALON_ID env var
+
+**Device Pairing Patterns (to be discovered):**
+- [TBD as we implement]
 
 ---
 
-## 2026-01-10 - US-001
-Thread: https://ampcode.com/threads/T-019ba84c-308e-7658-b070-c048c2d9147e
-- Added new MQTT topic patterns aligned with Mango Pad format
-- Updated from 'mango/{storeId}/pad/*' to 'salon/{storeId}/pad/*' for Pad topics
-- Added payload types: PadReadyToPayPayload, PadPaymentResultPayload, PadCancelPayload, PadTipPayload, PadSignaturePayload, PadReceiptPreferencePayload, PadTransactionCompletePayload, PadHelpRequestedPayload, PadHeartbeatPayload, PosHeartbeatPayload
-- Updated QOS_BY_TOPIC with new Pad topics
-- Updated exports in index.ts
-- Fixed test file to use new topic names
-- **Files changed:** src/services/mqtt/topics.ts, src/services/mqtt/types.ts, src/services/mqtt/index.ts, src/services/mqtt/topics.test.ts
-- **Learnings:**
-  - Pad topics use 'salon' prefix to match Mango Pad app convention
-  - Heartbeats should use QoS 0 for performance
+## Previous Work (Archived)
+
+The checkout integration (US-001 through US-014) was completed in a previous Ralph run.
+Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
-## 2026-01-10 - US-002
-Thread: https://ampcode.com/threads/T-019ba852-14f5-7273-9f27-203dfeba677f
-- Created dedicated Mango Pad service layer at src/services/mangoPadService.ts
-- Implemented sendReadyToPay(transaction: PadTransaction) method
-- Implemented sendPaymentResult(result: PaymentResult) method
-- Implemented sendCancel(cancel: CancelTransaction) method
-- Defined PadTransaction, PaymentResult, and CancelTransaction interfaces
-- Service uses getMqttClient() singleton and buildTopic() helper
-- Service validates MQTT enabled state and connection before publishing
-- Exported as singleton via getMangoPadService()
-- **Files changed:** src/services/mangoPadService.ts (new)
-- **Learnings:**
-  - MangoPadService requires storeId to be set via setStoreId() before use
-  - CancelTransaction uses ticketId and transactionId (not just transactionId)
-  - Re-export PadTransactionItem type for consumers of the service
+## 2025-01-11 - US-001: Create salon_devices table in Supabase
+
+**Summary:**
+- Created migration `028_add_device_pairing_columns.sql` to extend salon_devices table
+- Added `device_role` column with CHECK constraint for 'store-app', 'mango-pad', 'check-in', 'display'
+- Added `station_name`, `pairing_code`, `paired_to_device_id` columns
+- Created indexes on pairing_code and paired_to_device_id
+- Added RLS policies for authenticated insert/update
+
+**Files changed:**
+- `supabase/migrations/028_add_device_pairing_columns.sql` (new)
+- `apps/store-app/src/services/supabase/types.ts` (updated SalonDeviceRow with new columns, added SalonDeviceRole type)
+- `apps/mango-pad/src/types/index.ts` (added SalonDevice, SalonDeviceRole, PairingInfo, PairingQRPayload types)
+
+**Learnings:**
+- Existing salon_devices table uses `store_id` and `device_fingerprint` (not `salon_id` and `device_id`)
+- `device_type` is for platform (ios/android/web/desktop), `device_role` is for app role (store-app/mango-pad/etc)
+- Use ALTER TABLE ADD COLUMN IF NOT EXISTS for safe migrations
+- TypeScript types in mango-pad use simple interfaces (not Database type pattern) for simplicity
 
 ---
 
-## 2026-01-10 - US-003
-Thread: https://ampcode.com/threads/T-019ba854-f8fe-769a-b9c0-5f013e36a23c
-- Created src/services/mangoPadHandlers.ts with all event handlers
-- Implemented handleTipSelected - dispatches setTip to checkoutSlice
-- Implemented handleSignatureCaptured - stores signature in PadTransactionState
-- Implemented handleReceiptPreference - stores receipt preference in PadTransactionState
-- Implemented handleTransactionComplete - updates ticket status to 'paid', dispatches setCheckoutStep('complete')
-- Implemented handleHelpRequested - dispatches warning notification to staff
-- Created PadTransactionState interface for storing Pad-specific data (signature, receipt preference)
-- Added padMessageHandlers dispatch table for topic routing
-- Created unit tests in src/services/__tests__/mangoPadHandlers.test.ts
-- **Files changed:** src/services/mangoPadHandlers.ts (new), src/services/__tests__/mangoPadHandlers.test.ts (new)
-- **Learnings:**
-  - Ticket type doesn't have signatureData/receiptPreference fields - use separate PadTransactionState store
-  - Handlers use uiSlice addNotification for user feedback
-  - Store dispatches use setTip, setCheckoutStep from checkoutSlice, updateTicketInSupabase from ticketsSlice
-  - Test environment has pre-existing @testing-library/jest-dom missing dependency issue
 
----
-
-## 2026-01-10 - US-004
-Thread: https://ampcode.com/threads/T-019ba85c-388b-7514-ac47-7cca94cc81c9
-- Created src/store/slices/padDevicesSlice.ts for Pad device registry
-- Implemented PadDevice interface with: id, name, status (online/offline), lastSeen, screen, salonId
-- Added reducers: addDevice, removeDevice, updateDeviceStatus, handleHeartbeat, checkOfflineDevices
-- Device marked offline after 30 seconds without heartbeat (OFFLINE_TIMEOUT_MS = 30000)
-- Added selectors: selectAllPadDevices, getConnectedPads, selectHasConnectedPad, selectOfflinePads
-- Created usePadHeartbeat hook for subscribing to salon/{storeId}/pad/heartbeat
-- Hook runs checkOfflineDevices every 10 seconds to detect stale connections
-- Registered padDevicesSlice in store/index.ts with serializable check ignore
-- **Files changed:** src/store/slices/padDevicesSlice.ts (new), src/services/mqtt/hooks/usePadHeartbeat.ts (new), src/services/mqtt/hooks/index.ts, src/store/index.ts
-- **Learnings:**
-  - Use selectStoreId from authSlice for current store ID
-  - handleHeartbeat action handles both new device creation and updates
-  - checkOfflineDevices is called via setInterval, not on each heartbeat
-
----
-
-## 2026-01-10 - US-005
-Thread: https://ampcode.com/threads/T-019ba860-cbfe-75cd-bd8d-8aaa172f180d
-- Created PadConnectionIndicator component in src/components/layout/PadConnectionIndicator.tsx
-- Shows green dot + 'Pad Connected' when connected, gray dot + 'No Pad' when disconnected
-- Uses Popover from Radix UI for dropdown showing list of all Pad devices
-- Dropdown shows: device name, online/offline status, screen state, and last seen time
-- Uses usePadHeartbeat hook to subscribe to heartbeat messages
-- Uses date-fns formatDistanceToNow for human-readable last seen times
-- Integrated into TopHeaderBar between notifications and store profile buttons
-- Uses design-system tokens for styling (green-50, green-600 for connected state)
-- **Files changed:** src/components/layout/PadConnectionIndicator.tsx (new), src/components/layout/TopHeaderBar.tsx
-- **Learnings:**
-  - Use Popover from @/components/ui/popover for dropdown menus in header
-  - Use formatDistanceToNow from date-fns with addSuffix: true for "X ago" format
-  - Component forces re-render every 10s via setTick state to update relative times
-
----
-
-## 2026-01-10 - US-006
-Thread: https://ampcode.com/threads/T-019ba866-026d-76da-a483-5e9c227e2108
-- Created SendToPadButton component in src/components/checkout/SendToPadButton.tsx
-- Button sends checkout transaction to Mango Pad via mangoPadService.sendReadyToPay()
-- Uses selectHasConnectedPad selector to enable/disable based on Pad connection
-- Shows Tooltip with "No Pad connected" when disabled
-- Displays loading spinner while sending (isSending state)
-- Dispatches success/error notifications via addNotification from uiSlice
-- Integrated into PaymentModal in step 2 (payment section) as "Customer-facing checkout" option
-- Added new props to PaymentModal: subtotal, tax, discount, clientId, clientName, clientEmail, clientPhone, items, onSentToPad
-- Button uses green accent color to distinguish from regular payment methods
-- **Files changed:** src/components/checkout/SendToPadButton.tsx (new), src/components/checkout/PaymentModal.tsx
-- **Learnings:**
-  - PadTransactionItem type requires 'id' and 'price' fields (not unitPrice/total)
-  - Use TooltipProvider wrapper for Radix Tooltip components
-  - Export TicketItem interface from PaymentModal for consumers to use
-  - sendToPadTransactionId state tracks if transaction was sent to avoid duplicate sends
-
----
-
-## 2026-01-10 - US-007
-Thread: https://ampcode.com/threads/T-019ba86c-5d56-7512-8c08-d89ed7b67f9c
-- Created padTransactionSlice for tracking active Pad transaction status
-- Created PadTransactionStatus component showing real-time checkout progress
-- Created usePadTransactionEvents hook subscribing to tip_selected, signature, receipt_preference, transaction_complete topics
-- Status states: idle, waiting, tip_selected, signature, receipt, processing, complete, failed, cancelled
-- Progress step indicator shows: Sent → Tip → Signature → Complete
-- Component displays appropriate message for each state with icons and colors
-- Retry button on failed state allows resending to Pad
-- Integrated into PaymentModal step 2 when sentToPadTransactionId is set
-- Updated SendToPadButton to dispatch startPadTransaction action on success
-- **Files changed:** src/store/slices/padTransactionSlice.ts (new), src/components/checkout/PadTransactionStatus.tsx (new), src/services/mqtt/hooks/usePadTransactionEvents.ts (new), src/components/checkout/PaymentModal.tsx, src/components/checkout/SendToPadButton.tsx, src/store/index.ts, src/services/mqtt/hooks/index.ts
-- **Learnings:**
-  - padTransactionSlice is separate from checkoutSlice to cleanly track Pad-specific state
-  - usePadTransactionEvents dispatches both padTransactionSlice actions AND checkoutSlice/ticketsSlice actions
-  - PadTransactionStatus uses cn() utility for conditional className logic
-  - Progress step indicators use getProgressSteps() helper to determine completed/active states
-
----
-
-## 2026-01-10 - US-008
-Thread: https://ampcode.com/threads/T-019ba873-319a-7343-b744-c5e9d215d712
-- Created CancelOnPadButton component with AlertDialog confirmation
-- Button only shown during active Pad transactions (not complete/failed/cancelled)
-- Uses mangoPadService.sendCancel() to send cancel message to Pad
-- Dispatches setTransactionCancelled to update padTransactionSlice
-- Shows info notification on successful cancel, error on failure
-- Integrated into PadTransactionStatus component via onCancelled prop
-- PaymentModal clears sentToPadTransactionId when cancelled
-- **Files changed:** src/components/checkout/CancelOnPadButton.tsx (new), src/components/checkout/PadTransactionStatus.tsx, src/components/checkout/PaymentModal.tsx
-- **Learnings:**
-  - AlertDialog from @radix-ui/react-alert-dialog is already available in ui/alert-dialog.tsx
-  - Use e.preventDefault() in AlertDialogAction onClick to prevent dialog closing before async action completes
-  - padTransactionSlice already has setTransactionCancelled action ready to use
-  - CancelOnPadButton hides itself when transaction is complete/failed/cancelled
-
----
-
-## 2026-01-10 - US-009
-Thread: https://ampcode.com/threads/T-019ba877-9a1a-7223-b46f-df60fb3c0396
-- Added signatureBase64 and signatureTimestamp fields to Ticket type
-- Updated handleSignatureCaptured to persist signature to ticket via updateTicketInSupabase
-- Updated handleTransactionComplete to include signature data if present in payload
-- Created SignatureDisplay component with configurable sizes (sm/md/lg)
-- Component validates base64 image data and displays with formatted timestamp
-- Integrated SignatureDisplay into TicketDetailsModal (shows after notes section)
-- Added signature fields to UITicket, PendingTicket, and DBTicket interfaces
-- Updated convertToUITicket and convertToPendingTicket to include signature fields
-- **Files changed:** src/types/Ticket.ts, src/services/mangoPadHandlers.ts, src/components/common/SignatureDisplay.tsx (new), src/components/common/index.ts, src/components/tickets/TicketDetailsModal.tsx, src/store/slices/uiTicketsSlice.ts
-- **Learnings:**
-  - Signature display requires updating multiple interfaces: Ticket, UITicket, PendingTicket, DBTicket
-  - SignatureDisplay handles both data:image/... prefix and raw base64 formats
-  - TicketDetailsModal uses useTickets hook which provides UITicket objects - need to pass signature through converter functions
-
----
-
-## 2026-01-10 - US-010
-Thread: https://ampcode.com/threads/T-019ba87f-f00e-744d-8260-297d2596264e
-- Created helpRequestsSlice for persistent help request tracking with acknowledge workflow
-- Created HelpRequestNotification component with prominent orange/red gradient styling
-- Component shows device name and customer name, with Acknowledge button
-- Notification plays sound when new request arrives (if browser allows)
-- Updated handleHelpRequested to dispatch both addHelpRequest and addNotification
-- Integrated HelpRequestNotification into AppShell (renders as fixed overlay)
-- **Files changed:** src/store/slices/helpRequestsSlice.ts (new), src/components/common/HelpRequestNotification.tsx (new), src/components/common/index.ts, src/services/mangoPadHandlers.ts, src/store/index.ts, src/components/layout/AppShell.tsx
-- **Learnings:**
-  - Use separate slice for persistent notifications that require acknowledgment vs. toast notifications
-  - Button import is case-sensitive: use '@/components/ui/Button' (capital B)
-  - Help request notifications use fixed positioning with z-[100] to overlay all content
-  - Audio playback may be blocked by browser autoplay policies - handle with .catch()
-
----
-
-## 2026-01-10 - US-011
-Thread: https://ampcode.com/threads/T-019ba885-4568-75e7-8a4c-d3e4d5b9551b
-- Created usePosHeartbeat hook for publishing POS heartbeats every 15 seconds
-- Heartbeat payload includes: storeId, storeName, timestamp, version
-- Hook publishes immediately on MQTT connect, then every 15 seconds
-- Cleanup on beforeunload/unload ensures no zombie intervals
-- Integrated into PadConnectionIndicator component (alongside usePadHeartbeat)
-- Uses isPublishingRef to prevent overlapping publish calls
-- **Files changed:** src/services/mqtt/hooks/usePosHeartbeat.ts (new), src/services/mqtt/hooks/index.ts, src/components/layout/PadConnectionIndicator.tsx
-- **Learnings:**
-  - usePosHeartbeat follows same pattern as usePadHeartbeat but publishes instead of subscribes
-  - POS heartbeat uses QoS 0 (already configured in QOS_BY_TOPIC)
-  - selectStoreName selector provides store name from authSlice
-  - APP_VERSION hardcoded for now; should pull from package.json in production
-
----
-
-## 2026-01-10 - US-012
-Thread: https://ampcode.com/threads/T-019ba888-ee67-7189-adc2-65fd20aa4bf2
-- Created MangoPadSettings component in src/components/modules/settings/categories/
-- Shows MQTT status (enabled/disabled), broker URL, and Store ID for topic routing
-- Lists all connected Pad devices with status, screen state, and last seen time
-- Implemented Test Connection button that publishes a test heartbeat message
-- Added info about changing broker URL (requires restart via env var)
-- Integrated MangoPadSettings into DeviceManagerSettings as first section
-- Exported from categories index for potential standalone use
-- **Files changed:** 
-  - src/components/modules/settings/categories/MangoPadSettings.tsx (new)
-  - src/components/modules/settings/categories/DeviceManagerSettings.tsx
-  - src/components/modules/settings/categories/index.ts
-- **Learnings:**
-  - Use TOPIC_PATTERNS not TOPICS when importing from mqtt/topics.ts
-  - buildTopic requires an object: buildTopic(pattern, { storeId }) not buildTopic(pattern, storeId)
-  - Settings sections use the SettingsSection local component pattern for consistency
-  - formatDistanceToNow from date-fns with addSuffix: true shows "X ago" format
-
----
-
-## 2026-01-10 - US-013
-Thread: https://ampcode.com/threads/T-019ba8a2-b544-7158-93a7-80b2cc36272c
-- Added heartbeat publishing to Mango Pad (every 15 seconds)
-- Created PadMqttProvider with MQTT connection, heartbeat, and POS connection tracking
-- Created usePosConnection hook for POS heartbeat detection
-- Updated WaitingPage to show POS connection status with Wifi/WifiOff icons
-- Added PAD_HEARTBEAT and POS_HEARTBEAT topics to shared @mango/mqtt package
-- Added PadHeartbeatPayload and PosHeartbeatPayload types
-- Device marked offline after 30 seconds without heartbeat
-- **Files changed:** 
-  - apps/mango-pad/src/providers/PadMqttProvider.tsx (new)
-  - apps/mango-pad/src/constants/config.ts (new)
-  - apps/mango-pad/src/types/index.ts (new)
-  - apps/mango-pad/src/pages/WaitingPage.tsx
-  - apps/mango-pad/src/App.tsx
-  - apps/mango-pad/package.json
-  - apps/mango-pad/tsconfig.json
-  - packages/mqtt/src/topics.ts
-  - packages/mqtt/src/types.ts
-  - packages/mqtt/src/index.ts
-- **Learnings:**
-  - Mango Pad uses mqtt npm package directly instead of @mango/mqtt to avoid pre-existing issues in mqttBridge.ts
-  - PAD topics use 'salon/{salonId}/pad/*' format (matching Store App)
-  - Use localStorage to persist deviceId across sessions
-  - Heartbeat payload includes 'screen' field to report current Pad screen state
-  - POS offline detection runs on 10s interval to check for stale connections
-
----
-
-## 2026-01-10 - US-014
-Thread: https://ampcode.com/threads/T-019ba8a2-b544-7158-93a7-80b2cc36272c
-- Created comprehensive integration tests for Pad checkout flow
-- Test suite covers: happy path, cancel flow, failure/retry, help requests, device status
-- MockMqttService simulates MQTT publish/subscribe for testing
-- Tests use isolated configureStore with only Pad-related slices
-- All tests use actual Redux slice exports for realistic testing
-- **Files changed:**
-  - apps/store-app/src/testing/integration/pad/padCheckoutFlow.test.ts (new)
-- **Learnings:**
-  - Integration tests should create isolated stores with only required slices
-  - PadHeartbeatPayload.screen values are: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete'
-  - padDevicesSlice stores devices as Record<string, PadDevice> (use Object.values for arrays)
-  - Pre-existing test infrastructure missing @testing-library/jest-dom dependency
-  - Tests can type-check even if test runner fails due to missing dependencies
-
----

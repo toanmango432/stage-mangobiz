@@ -761,7 +761,7 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['staff_ratings']['Insert']>;
       };
 
-      // MQTT Device Discovery (migration 014)
+      // MQTT Device Discovery (migration 014) + Device Pairing (migration 028)
       salon_devices: {
         Row: {
           id: string;
@@ -777,6 +777,11 @@ export interface Database {
           last_seen_at: string;
           capabilities: Json;
           settings: Json;
+          // Device Pairing columns (migration 028)
+          device_role: SalonDeviceRole | null;
+          station_name: string | null;
+          pairing_code: string | null;
+          paired_to_device_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -794,6 +799,11 @@ export interface Database {
           last_seen_at?: string;
           capabilities?: Json;
           settings?: Json;
+          // Device Pairing columns (migration 028)
+          device_role?: SalonDeviceRole | null;
+          station_name?: string | null;
+          pairing_code?: string | null;
+          paired_to_device_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1059,6 +1069,11 @@ export type StaffRatingUpdate = Database['public']['Tables']['staff_ratings']['U
 
 // MQTT Device Discovery Types (migration 014)
 export type SalonDeviceType = 'ios' | 'android' | 'web' | 'desktop';
+
+// Device Pairing Types (migration 028)
+// device_role identifies what the device does (app role)
+// device_type identifies the platform (ios, android, web, desktop)
+export type SalonDeviceRole = 'store-app' | 'mango-pad' | 'check-in' | 'display';
 
 export type SalonDeviceRow = Database['public']['Tables']['salon_devices']['Row'];
 export type SalonDeviceInsert = Database['public']['Tables']['salon_devices']['Insert'];
