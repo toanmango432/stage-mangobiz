@@ -137,9 +137,30 @@ export function MangoPadSettings() {
   // QR code fullscreen modal state (US-004)
   const [showQrFullscreen, setShowQrFullscreen] = useState(false);
 
-  // Paired devices state (US-008)
+  // Paired devices state (US-008, US-011)
   const [pairedDevices, setPairedDevices] = useState<SalonDeviceRow[]>([]);
   const [pairedDevicesLoading, setPairedDevicesLoading] = useState(false);
+
+  // Merge Supabase paired devices with real-time Redux heartbeat status (US-011)
+  const pairedDevicesWithRealTimeStatus = useMemo(() => {
+    return pairedDevices.map((device) => {
+      // Find matching device in Redux state by device_fingerprint (which matches deviceId from heartbeats)
+      const reduxDevice = allPadDevices.find((d) => d.id === device.device_fingerprint);
+
+      if (reduxDevice) {
+        // Use real-time status from Redux (heartbeats)
+        return {
+          ...device,
+          is_online: reduxDevice.status === 'online',
+          last_seen_at: reduxDevice.lastSeen,
+          _reduxScreen: reduxDevice.screen, // Add screen info from real-time data
+        };
+      }
+
+      // No heartbeat received yet - use Supabase data as-is
+      return device;
+    });
+  }, [pairedDevices, allPadDevices]);
 
   const mqttEnabled = isMqttEnabled();
   const brokerUrl = getCloudBrokerUrl();
@@ -417,20 +438,21 @@ export function MangoPadSettings() {
         )}
       </SettingsSection>
 
-      {/* Paired Devices Section (US-008) */}
+      {/* Paired Devices Section (US-008, US-011) */}
       <SettingsSection
         title="Paired Devices"
         icon={<Tablet className="w-5 h-5" />}
         action={
           pairedDevices.length > 0 ? (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-              {pairedDevices.length} Paired
+              {pairedDevicesWithRealTimeStatus.filter((d) => d.is_online).length}/{pairedDevices.length} Online
             </span>
           ) : null
         }
       >
         <p className="text-sm text-gray-500 mb-4">
           Mango Pad devices that have been paired to this station via pairing code.
+          Status updates in real-time via heartbeats.
         </p>
 
         {pairedDevicesLoading ? (
@@ -447,38 +469,65 @@ export function MangoPadSettings() {
           </div>
         ) : (
           <div className="space-y-3">
-            {pairedDevices.map((device) => (
-              <div
-                key={device.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={cn(
-                      'w-12 h-12 rounded-lg flex items-center justify-center',
-                      device.is_online
-                        ? 'bg-green-100 text-green-600'
-                        : 'bg-gray-100 text-gray-400'
-                    )}
-                  >
-                    <Tablet className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {device.device_name || 'Mango Pad'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      ID: ...{device.device_fingerprint.slice(-8)}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                      <Clock className="w-3 h-3" />
-                      Last seen: {formatLastSeen(device.last_seen_at)}
+            {pairedDevicesWithRealTimeStatus.map((device) => {
+              const isOnline = device.is_online;
+              const screen = '_reduxScreen' in device ? (device as { _reduxScreen?: string })._reduxScreen : undefined;
+              return (
+                <div
+                  key={device.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Device Icon with status indicator dot (US-011) */}
+                    <div className="relative">
+                      <div
+                        className={cn(
+                          'w-12 h-12 rounded-lg flex items-center justify-center',
+                          isOnline
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-gray-100 text-gray-400'
+                        )}
+                      >
+                        <Tablet className="w-6 h-6" />
+                      </div>
+                      {/* Status dot indicator - green for online, gray for offline */}
+                      <span
+                        className={cn(
+                          'absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white',
+                          isOnline ? 'bg-green-500' : 'bg-gray-400'
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900">
+                          {device.device_name || 'Mango Pad'}
+                        </p>
+                        {/* Show current screen if online (US-011) */}
+                        {screen && isOnline && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                            {getScreenLabel(screen)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        ID: ...{device.device_fingerprint.slice(-8)}
+                      </p>
+                      {/* Show "Last seen: X minutes ago" for offline devices (US-011) */}
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                        <Clock className="w-3 h-3" />
+                        {isOnline ? (
+                          <span className="text-green-600">Connected now</span>
+                        ) : (
+                          <span>Last seen: {formatLastSeen(device.last_seen_at)}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <StatusBadge status={isOnline ? 'online' : 'offline'} />
                 </div>
-                <StatusBadge status={device.is_online ? 'online' : 'offline'} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </SettingsSection>
