@@ -247,8 +247,8 @@
         "Verify in browser"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "Self-unpair from Pad side"
+      "passes": true,
+      "notes": "Created SettingsPage with pairing info display and unpair confirmation dialog. Settings gear icon added to WaitingPage top-left. Self-unpair calls existing unpairDevice() function."
     },
     {
       "id": "US-015",

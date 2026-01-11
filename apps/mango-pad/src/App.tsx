@@ -6,6 +6,7 @@ import { TipPage } from './pages/TipPage';
 import { SignaturePage } from './pages/SignaturePage';
 import { WelcomePage, isPaired } from './pages/WelcomePage';
 import { PairingPage } from './pages/PairingPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { UnpairHandler } from './components/UnpairHandler';
 
 /**
@@ -36,6 +37,7 @@ export function App() {
           <Route path="/" element={<RootRoute />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/pair" element={<PairingPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/receipt" element={<ReceiptPage />} />
           <Route path="/tip" element={<TipPage />} />
           <Route path="/signature" element={<SignaturePage />} />
