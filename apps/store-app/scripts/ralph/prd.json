@@ -164,8 +164,8 @@
         "Verify in browser"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "Visual indicator. Uses existing MQTT connection status."
+      "passes": true,
+      "notes": "ConnectionIndicator uses usePadMqtt hook for isConnected and posConnection status. Added setCurrentScreen to all pages for heartbeat tracking."
     },
     {
       "id": "US-010",

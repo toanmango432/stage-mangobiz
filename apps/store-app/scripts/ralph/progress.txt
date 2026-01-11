@@ -226,3 +226,28 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-009: Mango Pad connection status indicator
+
+**Summary:**
+- Created ConnectionIndicator component at apps/mango-pad/src/components/
+- Uses usePadMqtt hook for isConnected (MQTT) and posConnection (POS heartbeats)
+- Green pill with pulse animation when connected, red when offline
+- Tooltip shows station name from pairing info or POS connection
+- Added to WaitingPage, ReceiptPage, TipPage, SignaturePage in top-right corner
+- Added setCurrentScreen to all pages for heartbeat screen tracking
+
+**Files changed:**
+- `apps/mango-pad/src/components/ConnectionIndicator.tsx` (new)
+- `apps/mango-pad/src/pages/WaitingPage.tsx` (added ConnectionIndicator)
+- `apps/mango-pad/src/pages/ReceiptPage.tsx` (added ConnectionIndicator + setCurrentScreen)
+- `apps/mango-pad/src/pages/TipPage.tsx` (added ConnectionIndicator + setCurrentScreen)
+- `apps/mango-pad/src/pages/SignaturePage.tsx` (added ConnectionIndicator + setCurrentScreen)
+
+**Learnings:**
+- PadMqttProvider already tracks MQTT connection (isConnected) and POS heartbeats (posConnection)
+- usePadMqtt hook provides all needed context values
+- setCurrentScreen updates heartbeat payload with current screen (waiting, receipt, tip, signature)
+- getPairingInfo from pairingService provides station name for tooltip
+
+---
+
