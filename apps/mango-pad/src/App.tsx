@@ -5,6 +5,7 @@ import { ReceiptPage } from './pages/ReceiptPage';
 import { TipPage } from './pages/TipPage';
 import { SignaturePage } from './pages/SignaturePage';
 import { WelcomePage, isPaired } from './pages/WelcomePage';
+import { PairingPage } from './pages/PairingPage';
 
 /**
  * Root route component that redirects based on pairing status.
@@ -31,6 +32,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<RootRoute />} />
           <Route path="/welcome" element={<WelcomePage />} />
+          <Route path="/pair" element={<PairingPage />} />
           <Route path="/receipt" element={<ReceiptPage />} />
           <Route path="/tip" element={<TipPage />} />
           <Route path="/signature" element={<SignaturePage />} />
