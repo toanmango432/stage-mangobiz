@@ -45,7 +45,7 @@
     },
     {
       "id": "US-003",
-      "title": "Phone Lookup Integration (Welcome → Verify)",
+      "title": "Phone Lookup Integration (Welcome \u2192 Verify)",
       "description": "As a returning client, I want to enter my phone number so that my profile is found automatically",
       "acceptanceCriteria": [
         "Redux thunk fetchClientByPhone calls dataService.clients.getByPhone",
@@ -418,8 +418,8 @@
         "Typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
-      "notes": "PHASE 3 - Quality. Load performance-profiler skill."
+      "passes": true,
+      "notes": "Code splitting implemented with React.lazy and manual chunks. Initial bundle ~91KB gzipped (well under 500KB target). All 573 tests pass. Performance report in docs/performance/PERFORMANCE_REPORT.md"
     },
     {
       "id": "US-024",

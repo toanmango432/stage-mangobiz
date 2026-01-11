@@ -15,6 +15,25 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React + Redux (essential for app shell)
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
+          // Form handling
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          // Database and API (can load async)
+          'vendor-data': ['@supabase/supabase-js', 'dexie'],
+          // UI utilities
+          'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge'],
+          // QR code (only needed on scan page)
+          'vendor-qr': ['html5-qrcode'],
+          // Security
+          'vendor-security': ['dompurify'],
+        },
+      },
+    },
   }
 });

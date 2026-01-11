@@ -65,9 +65,12 @@ export function useAccessibility() {
   }, [largeTextMode, reducedMotionMode, highContrastMode]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     
-    if (prefersReducedMotion.matches && !reducedMotionMode) {
+    if (prefersReducedMotion?.matches && !reducedMotionMode) {
       dispatch(toggleReducedMotionMode());
     }
   }, [dispatch, reducedMotionMode]);
