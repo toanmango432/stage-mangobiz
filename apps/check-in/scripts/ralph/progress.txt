@@ -478,3 +478,25 @@ Thread: https://ampcode.com/threads/T-019bad4e-8550-76e9-ab3f-60897d1e3964
   - Use _topic prefix for unused handler parameters to satisfy TS6133
   - Barrel exports (index.ts re-exports) don't count toward coverage
 ---
+
+## Sat Jan 11 2026 - US-022
+Thread: https://ampcode.com/threads/T-019bad7a-0e79-722f-9735-eb2bdceabb6e
+- Verified and marked US-022 E2E Tests (Happy Path) as complete
+- Implementation already exists from previous work:
+  - e2e/fixtures.ts - Test fixtures with mock Supabase routes and data
+  - e2e/returning-client.spec.ts - 5 tests for returning client flow
+  - e2e/new-client-registration.spec.ts - 4 tests for registration flow
+  - e2e/guest-addition.spec.ts - 3 tests for guest addition
+  - e2e/offline-sync.spec.ts - 4 tests for offline sync scenarios
+- Added ESLint v9 configuration:
+  - eslint.config.js - Modern flat config with React, TypeScript, and React Hooks plugins
+  - Strict React Hooks rules configured as warnings to allow existing patterns
+- All 16 E2E tests pass
+- **Learnings for future iterations:**
+  - ESLint v9 requires eslint.config.js (not .eslintrc)
+  - Use typescript-eslint, @eslint/js for flat config
+  - e2e/ should be in ignores for eslint to avoid rules-of-hooks false positives
+  - react-hooks/set-state-in-effect, immutability, purity rules should be warnings for existing code patterns
+  - Playwright mocks use page.route() to intercept Supabase REST calls
+  - context.setOffline(true) simulates offline mode in E2E tests
+---
