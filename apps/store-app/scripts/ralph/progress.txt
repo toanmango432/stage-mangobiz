@@ -56,4 +56,25 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-002: Store App generates device ID and pairing code
+
+**Summary:**
+- Created `deviceRegistration.ts` service with device registration logic
+- Generates UUID device_id on first launch, persists in localStorage
+- Generates 6-char alphanumeric pairing code (uppercase, excludes confusing chars like 0/O/1/I)
+- Upserts device to salon_devices via Supabase on app startup
+- Helper functions: formatPairingCode(), parsePairingCode(), regeneratePairingCode()
+- Includes getPairedDevices() and markDeviceOffline() for lifecycle management
+
+**Files changed:**
+- `apps/store-app/src/services/deviceRegistration.ts` (new)
+
+**Learnings:**
+- Use PGRST116 error code to detect "no rows found" in Supabase single() queries
+- Exclude confusing characters (0, O, 1, I) from pairing codes for readability
+- Desktop detection via 'electronAPI' in window object
+- Mobile detection via 'Capacitor' in window object
+
+---
+
 
