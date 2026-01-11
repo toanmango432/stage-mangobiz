@@ -3,10 +3,10 @@
  * Configuration UI for managing Mango Pad connections
  *
  * Part of: Mango Pad Integration (US-012)
- * Updated: Device Pairing System (US-003)
+ * Updated: Device Pairing System (US-003, US-004)
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Tablet,
@@ -23,7 +23,10 @@ import {
   QrCode,
   Copy,
   Monitor,
+  Maximize2,
+  X,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { selectStoreId, selectStoreName } from '@/store/slices/authSlice';
 import {
   registerDevice,
@@ -129,8 +132,23 @@ export function MangoPadSettings() {
   const [registrationLoading, setRegistrationLoading] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
+  // QR code fullscreen modal state (US-004)
+  const [showQrFullscreen, setShowQrFullscreen] = useState(false);
+
   const mqttEnabled = isMqttEnabled();
   const brokerUrl = getCloudBrokerUrl();
+
+  // Generate QR code payload (US-004)
+  const qrPayload = useMemo(() => {
+    if (!deviceRegistration?.success || !storeId) return null;
+    return JSON.stringify({
+      type: 'mango-pad-pairing',
+      stationId: deviceRegistration.deviceId,
+      pairingCode: deviceRegistration.pairingCode,
+      salonId: storeId,
+      brokerUrl: brokerUrl,
+    });
+  }, [deviceRegistration, storeId, brokerUrl]);
 
   // Register this station on mount (US-003)
   useEffect(() => {
@@ -317,6 +335,40 @@ export function MangoPadSettings() {
                 Enter this code on Mango Pad to pair with this station
               </p>
             </div>
+
+            {/* QR Code Section (US-004) */}
+            {qrPayload && (
+              <div className="p-6 bg-white rounded-xl border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-gray-600" />
+                    <span className="font-medium text-gray-900">QR Code</span>
+                  </div>
+                  <button
+                    onClick={() => setShowQrFullscreen(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                    Full Screen
+                  </button>
+                </div>
+                <div className="flex justify-center py-4">
+                  <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <QRCodeSVG
+                      value={qrPayload}
+                      size={180}
+                      level="M"
+                      includeMargin={false}
+                      bgColor="#FFFFFF"
+                      fgColor="#1F2937"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 text-center">
+                  Scan this QR code with Mango Pad for quick pairing
+                </p>
+              </div>
+            )}
 
             {/* Device ID */}
             <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -554,6 +606,61 @@ export function MangoPadSettings() {
           </p>
         </div>
       </SettingsSection>
+
+      {/* QR Code Fullscreen Modal (US-004) */}
+      {showQrFullscreen && qrPayload && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setShowQrFullscreen(false)}
+        >
+          <div
+            className="relative bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowQrFullscreen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Scan to Pair</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Point your Mango Pad camera at this QR code
+              </p>
+            </div>
+
+            {/* Large QR Code */}
+            <div className="flex justify-center py-6">
+              <div className="p-6 bg-white rounded-xl border-2 border-gray-200 shadow-inner">
+                <QRCodeSVG
+                  value={qrPayload}
+                  size={280}
+                  level="H"
+                  includeMargin={false}
+                  bgColor="#FFFFFF"
+                  fgColor="#1F2937"
+                />
+              </div>
+            </div>
+
+            {/* Pairing Code Fallback */}
+            <div className="text-center mt-4 pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500 mb-2">
+                Or enter this code manually:
+              </p>
+              <span className="text-2xl font-mono font-bold text-amber-700 tracking-wider">
+                {deviceRegistration?.pairingCode
+                  ? formatPairingCode(deviceRegistration.pairingCode)
+                  : '---'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
