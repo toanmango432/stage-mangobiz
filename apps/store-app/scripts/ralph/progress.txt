@@ -99,4 +99,30 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-004: Store App generates and displays QR code
+
+**Summary:**
+- Installed qrcode.react package for QR code generation
+- Added QR code section below pairing code in Device Settings
+- QR payload contains JSON: { type, stationId, pairingCode, salonId, brokerUrl }
+- "Full Screen" button opens modal with larger QR code for easy scanning
+- Fullscreen modal includes close button and manual code fallback
+- QR code auto-updates via useMemo when pairing code changes
+- Uses error correction level "H" (high) in fullscreen for better scanning
+
+**Files changed:**
+- `apps/store-app/package.json` (added qrcode.react dependency)
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added QR code section and fullscreen modal)
+- `pnpm-lock.yaml` (updated lockfile)
+
+**Learnings:**
+- qrcode.react exports QRCodeSVG (preferred) and QRCodeCanvas components
+- SVG QR codes scale better for responsive displays
+- Error correction levels: L (7%), M (15%), Q (25%), H (30%) - higher = more scannable but larger
+- Fullscreen modal uses fixed positioning with z-50 for proper stacking
+- stopPropagation() on inner div prevents click-outside-to-close from firing when clicking inside modal
+- QR code only renders when deviceRegistration?.success is true (requires DB migration to be applied)
+
+---
+
 

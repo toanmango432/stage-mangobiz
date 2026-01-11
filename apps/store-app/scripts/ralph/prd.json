@@ -71,8 +71,8 @@
         "Verify in browser"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Depends on US-003 (settings page must exist)"
+      "passes": true,
+      "notes": "QR code with fullscreen modal implemented. QR displays when device registration succeeds (migration 028 must be applied to DB)."
     },
     {
       "id": "US-005",
