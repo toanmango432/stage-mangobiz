@@ -267,8 +267,8 @@
         "Verify in browser"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": "Alternative to manual code entry"
+      "passes": true,
+      "notes": "Added html5-qrcode package. Scan QR Code button opens camera viewfinder. Parses QR JSON payload and validates type === 'mango-pad-pairing'. Auto-submits pairing. Handles camera permission denied errors."
     },
     {
       "id": "US-016",
