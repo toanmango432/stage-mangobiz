@@ -1,6 +1,7 @@
 import { Smartphone, Wifi, WifiOff } from 'lucide-react';
 import { useEffect } from 'react';
 import { usePadMqtt, usePosConnection } from '../providers/PadMqttProvider';
+import { ConnectionIndicator } from '../components/ConnectionIndicator';
 
 export function WaitingPage() {
   const { setCurrentScreen } = usePadMqtt();
@@ -12,7 +13,9 @@ export function WaitingPage() {
   }, [setCurrentScreen]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col items-center justify-center p-8 relative">
+      {/* Connection status indicator - top right */}
+      <ConnectionIndicator className="absolute top-4 right-4" />
       {/* Logo/Brand */}
       <div className="mb-8">
         <div className="w-24 h-24 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg">

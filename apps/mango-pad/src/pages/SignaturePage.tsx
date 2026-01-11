@@ -1,12 +1,20 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PenTool, RotateCcw, Check } from 'lucide-react';
+import { ConnectionIndicator } from '../components/ConnectionIndicator';
+import { usePadMqtt } from '../providers/PadMqttProvider';
 
 export function SignaturePage() {
   const navigate = useNavigate();
+  const { setCurrentScreen } = usePadMqtt();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+
+  // Update current screen for heartbeat
+  useEffect(() => {
+    setCurrentScreen('signature');
+  }, [setCurrentScreen]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -84,11 +92,13 @@ export function SignaturePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-white border-b px-6 py-4 relative">
         <div className="flex items-center justify-center">
           <PenTool className="w-6 h-6 text-orange-500 mr-2" />
           <h1 className="text-xl font-semibold text-gray-800">Sign Below</h1>
         </div>
+        {/* Connection status indicator - top right */}
+        <ConnectionIndicator className="absolute top-3 right-4" />
       </div>
 
       {/* Content */}

@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, ArrowRight } from 'lucide-react';
+import { ConnectionIndicator } from '../components/ConnectionIndicator';
+import { usePadMqtt } from '../providers/PadMqttProvider';
 
 const TIP_OPTIONS = [
   { label: '15%', value: 0.15 },
@@ -11,9 +13,15 @@ const TIP_OPTIONS = [
 
 export function TipPage() {
   const navigate = useNavigate();
+  const { setCurrentScreen } = usePadMqtt();
   const [selectedTip, setSelectedTip] = useState<number | null>(0.20);
   const [customTip, setCustomTip] = useState<string>('');
   const [isCustom, setIsCustom] = useState(false);
+
+  // Update current screen for heartbeat
+  useEffect(() => {
+    setCurrentScreen('tip');
+  }, [setCurrentScreen]);
 
   // Placeholder total
   const subtotal = 92.23;
@@ -55,11 +63,13 @@ export function TipPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-white border-b px-6 py-4 relative">
         <div className="flex items-center justify-center">
           <Heart className="w-6 h-6 text-orange-500 mr-2" />
           <h1 className="text-xl font-semibold text-gray-800">Add a Tip</h1>
         </div>
+        {/* Connection status indicator - top right */}
+        <ConnectionIndicator className="absolute top-3 right-4" />
       </div>
 
       {/* Content */}
