@@ -32,8 +32,10 @@ import {
   registerDevice,
   formatPairingCode,
   getOrCreateDeviceId,
+  getPairedDevices,
   type DeviceRegistrationResult,
 } from '@/services/deviceRegistration';
+import type { SalonDeviceRow } from '@/services/supabase/types';
 import {
   selectAllPadDevices,
   selectHasConnectedPad,
@@ -135,6 +137,10 @@ export function MangoPadSettings() {
   // QR code fullscreen modal state (US-004)
   const [showQrFullscreen, setShowQrFullscreen] = useState(false);
 
+  // Paired devices state (US-008)
+  const [pairedDevices, setPairedDevices] = useState<SalonDeviceRow[]>([]);
+  const [pairedDevicesLoading, setPairedDevicesLoading] = useState(false);
+
   const mqttEnabled = isMqttEnabled();
   const brokerUrl = getCloudBrokerUrl();
 
@@ -169,6 +175,23 @@ export function MangoPadSettings() {
         });
     }
   }, [storeId, deviceRegistration]);
+
+  // Fetch paired devices on mount/storeId change (US-008)
+  useEffect(() => {
+    if (storeId) {
+      setPairedDevicesLoading(true);
+      getPairedDevices(storeId)
+        .then((devices) => {
+          setPairedDevices(devices);
+        })
+        .catch((error) => {
+          console.error('[MangoPadSettings] Failed to fetch paired devices:', error);
+        })
+        .finally(() => {
+          setPairedDevicesLoading(false);
+        });
+    }
+  }, [storeId]);
 
   // Copy pairing code to clipboard
   const handleCopyCode = useCallback(async () => {
@@ -390,6 +413,72 @@ export function MangoPadSettings() {
             <p className="text-sm mt-1">
               {deviceRegistration?.error || 'Unable to register this station'}
             </p>
+          </div>
+        )}
+      </SettingsSection>
+
+      {/* Paired Devices Section (US-008) */}
+      <SettingsSection
+        title="Paired Devices"
+        icon={<Tablet className="w-5 h-5" />}
+        action={
+          pairedDevices.length > 0 ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+              {pairedDevices.length} Paired
+            </span>
+          ) : null
+        }
+      >
+        <p className="text-sm text-gray-500 mb-4">
+          Mango Pad devices that have been paired to this station via pairing code.
+        </p>
+
+        {pairedDevicesLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
+          </div>
+        ) : pairedDevices.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Tablet className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="font-medium">No devices paired yet</p>
+            <p className="text-sm mt-1">
+              Use the pairing code or QR code above to pair Mango Pad devices
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {pairedDevices.map((device) => (
+              <div
+                key={device.id}
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-lg flex items-center justify-center',
+                      device.is_online
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-gray-100 text-gray-400'
+                    )}
+                  >
+                    <Tablet className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {device.device_name || 'Mango Pad'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      ID: ...{device.device_fingerprint.slice(-8)}
+                    </p>
+                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                      <Clock className="w-3 h-3" />
+                      Last seen: {formatLastSeen(device.last_seen_at)}
+                    </div>
+                  </div>
+                </div>
+                <StatusBadge status={device.is_online ? 'online' : 'offline'} />
+              </div>
+            ))}
           </div>
         )}
       </SettingsSection>
