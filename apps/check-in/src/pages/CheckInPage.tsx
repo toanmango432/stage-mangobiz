@@ -21,12 +21,13 @@ export function CheckInPage() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Search */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="client-search" className="block text-sm font-medium text-gray-700 mb-2">
             Search for existing client
           </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
+              id="client-search"
               type="text"
               placeholder="Search by name or phone number..."
               value={searchQuery}

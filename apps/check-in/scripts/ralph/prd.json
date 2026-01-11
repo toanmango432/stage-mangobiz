@@ -1,0 +1,98 @@
+{
+  "projectName": "Mango Check-In App - Final Phase",
+  "branchName": "ralph/check-in-production",
+  "description": "Complete the final 4 user stories for production readiness: Unit Tests, E2E Tests, Performance Optimization, and Documentation.",
+  "workingDirectory": "/Users/seannguyen/Winsurf built/Mango POS Offline V2/apps/check-in",
+  "completionSignal": "<promise>COMPLETE</promise>",
+  "commands": {
+    "build": "pnpm build",
+    "test": "pnpm test",
+    "testCoverage": "pnpm test --coverage",
+    "lint": "pnpm lint"
+  },
+  "userStories": [
+    {
+      "id": "US-021",
+      "title": "Unit Tests (70% Coverage)",
+      "description": "Add comprehensive unit tests to achieve 70%+ code coverage. Focus on: Redux slices, hooks, utility functions, and component logic.",
+      "acceptanceCriteria": [
+        "Install vitest and @testing-library/react if not present",
+        "Create tests for all Redux slices (store/slices/*.ts)",
+        "Create tests for all custom hooks (hooks/*.ts)",
+        "Create tests for utility functions (utils/*.ts)",
+        "Create tests for key components (pages, components)",
+        "Achieve 70%+ overall code coverage",
+        "All tests pass with pnpm test"
+      ],
+      "passes": true,
+      "priority": 1
+    },
+    {
+      "id": "US-022",
+      "title": "E2E Tests (Happy Path)",
+      "description": "Create Playwright E2E tests covering the main user flows: phone lookup, new client registration, service selection, technician selection, and check-in confirmation.",
+      "acceptanceCriteria": [
+        "Install Playwright if not present",
+        "Create E2E test for returning client flow (phone lookup -> services -> technician -> confirm)",
+        "Create E2E test for new client flow (registration -> services -> technician -> confirm)",
+        "Create E2E test for guest check-in flow",
+        "All E2E tests pass"
+      ],
+      "passes": false,
+      "priority": 2
+    },
+    {
+      "id": "US-023",
+      "title": "Performance Optimization",
+      "description": "Optimize the app for production: lazy loading, code splitting, bundle analysis, and performance improvements.",
+      "acceptanceCriteria": [
+        "Implement React.lazy for route-based code splitting",
+        "Add Suspense boundaries with loading states",
+        "Optimize images and assets",
+        "Ensure bundle size is under 500KB gzipped",
+        "Add performance monitoring hooks if needed",
+        "Build succeeds with optimizations"
+      ],
+      "passes": false,
+      "priority": 3
+    },
+    {
+      "id": "US-024",
+      "title": "Final Code Review & Documentation",
+      "description": "Complete code review, fix any issues, and create production documentation including README, CHANGELOG, and deployment guide.",
+      "acceptanceCriteria": [
+        "Run linter and fix all warnings/errors",
+        "Ensure all TypeScript strict mode passes",
+        "Create/update README.md with setup and usage instructions",
+        "Create CHANGELOG.md documenting all features",
+        "Create docs/DEPLOYMENT.md with deployment instructions",
+        "Verify all features work in production build",
+        "Output <promise>COMPLETE</promise> when done"
+      ],
+      "passes": false,
+      "priority": 4
+    }
+  ],
+  "globalContext": {
+    "techStack": "React 18 + TypeScript + Vite + Tailwind CSS + Redux Toolkit",
+    "existingFeatures": [
+      "Phone lookup for returning clients",
+      "New client registration",
+      "Service selection with categories",
+      "Technician selection",
+      "Queue position display",
+      "Guest check-in",
+      "QR code appointment lookup",
+      "SMS notifications",
+      "Admin assistance mode",
+      "Analytics event tracking",
+      "Service upsells",
+      "Loyalty points display",
+      "Duration & price formatting",
+      "Accessibility (WCAG 2.1 AA)",
+      "Security hardening"
+    ],
+    "completedStories": "US-001 to US-020 (20 stories completed)",
+    "remainingStories": "US-021 to US-024 (4 stories remaining)"
+  }
+}
