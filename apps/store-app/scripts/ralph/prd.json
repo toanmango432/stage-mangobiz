@@ -304,8 +304,8 @@
         "Verify in browser"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": "Nice-to-have. Low priority."
+      "passes": true,
+      "notes": "Added Pencil icon with inline edit mode. Input has maxLength=50 and validation error for empty. Save/Cancel buttons with loading state. Success toast shows for 3 seconds."
     }
   ]
 }

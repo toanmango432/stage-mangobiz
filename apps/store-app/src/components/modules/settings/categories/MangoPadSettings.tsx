@@ -26,6 +26,8 @@ import {
   Maximize2,
   X,
   Unlink,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { selectStoreId, selectStoreName } from '@/store/slices/authSlice';
@@ -35,6 +37,7 @@ import {
   getOrCreateDeviceId,
   getPairedDevices,
   unpairDevice,
+  updateStationName,
   type DeviceRegistrationResult,
 } from '@/services/deviceRegistration';
 import type { SalonDeviceRow } from '@/services/supabase/types';
@@ -146,6 +149,12 @@ export function MangoPadSettings() {
   // Unpair confirmation modal state (US-012)
   const [deviceToUnpair, setDeviceToUnpair] = useState<SalonDeviceRow | null>(null);
   const [unpairLoading, setUnpairLoading] = useState(false);
+
+  // Editable station name state (US-017)
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [nameUpdateLoading, setNameUpdateLoading] = useState(false);
+  const [nameUpdateSuccess, setNameUpdateSuccess] = useState(false);
 
   // Merge Supabase paired devices with real-time Redux heartbeat status (US-011)
   const pairedDevicesWithRealTimeStatus = useMemo(() => {
@@ -353,6 +362,59 @@ export function MangoPadSettings() {
     }
   }, [deviceToUnpair, storeId, deviceRegistration?.deviceId]);
 
+  // Start editing station name (US-017)
+  const handleStartEditName = useCallback(() => {
+    setEditedName(deviceRegistration?.stationName || '');
+    setIsEditingName(true);
+  }, [deviceRegistration?.stationName]);
+
+  // Cancel editing station name (US-017)
+  const handleCancelEditName = useCallback(() => {
+    setIsEditingName(false);
+    setEditedName('');
+  }, []);
+
+  // Save station name (US-017)
+  const handleSaveStationName = useCallback(async () => {
+    if (!storeId) return;
+
+    // Validation: required and max 50 characters
+    const trimmedName = editedName.trim();
+    if (!trimmedName) {
+      return; // Name is required
+    }
+    if (trimmedName.length > 50) {
+      return; // Max 50 characters
+    }
+
+    setNameUpdateLoading(true);
+
+    try {
+      const result = await updateStationName(storeId, trimmedName);
+
+      if (result.success) {
+        // Update local state
+        setDeviceRegistration((prev) =>
+          prev ? { ...prev, stationName: trimmedName } : prev
+        );
+        setIsEditingName(false);
+        setEditedName('');
+
+        // Show success toast
+        setNameUpdateSuccess(true);
+        setTimeout(() => setNameUpdateSuccess(false), 3000);
+
+        console.log('[MangoPadSettings] Station name updated to:', trimmedName);
+      } else {
+        console.error('[MangoPadSettings] Failed to update station name:', result.error);
+      }
+    } catch (error) {
+      console.error('[MangoPadSettings] Error updating station name:', error);
+    } finally {
+      setNameUpdateLoading(false);
+    }
+  }, [storeId, editedName]);
+
   return (
     <div>
       {/* Station Pairing Info (US-003) */}
@@ -383,18 +445,93 @@ export function MangoPadSettings() {
           </div>
         ) : deviceRegistration?.success ? (
           <div className="space-y-6">
-            {/* Station Name */}
+            {/* Station Name (US-017 - Editable) */}
             <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600">
                 <Monitor className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">Station Name</p>
-                <p className="text-sm text-gray-700 mt-1">
-                  {deviceRegistration.stationName}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-gray-900">Station Name</p>
+                  {!isEditingName && (
+                    <button
+                      onClick={handleStartEditName}
+                      className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors"
+                      title="Edit station name"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {isEditingName ? (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      placeholder="Enter station name"
+                      maxLength={50}
+                      className={cn(
+                        'w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent',
+                        editedName.trim() === '' ? 'border-red-300' : 'border-gray-300'
+                      )}
+                      autoFocus
+                      disabled={nameUpdateLoading}
+                    />
+                    {editedName.trim() === '' && (
+                      <p className="text-xs text-red-500 mt-1">Station name is required</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
+                      {editedName.length}/50 characters
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={handleSaveStationName}
+                        disabled={nameUpdateLoading || editedName.trim() === '' || editedName.length > 50}
+                        className={cn(
+                          'flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                          nameUpdateLoading || editedName.trim() === '' || editedName.length > 50
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-amber-500 text-white hover:bg-amber-600'
+                        )}
+                      >
+                        {nameUpdateLoading ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Save
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleCancelEditName}
+                        disabled={nameUpdateLoading}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-700 mt-1">
+                    {deviceRegistration.stationName}
+                  </p>
+                )}
               </div>
             </div>
+
+            {/* Success Toast (US-017) */}
+            {nameUpdateSuccess && (
+              <div className="flex items-center gap-2 p-3 bg-green-100 text-green-800 rounded-lg border border-green-200">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Station name updated</span>
+              </div>
+            )}
 
             {/* Pairing Code - Large and Prominent */}
             <div className="p-6 bg-amber-50 rounded-xl border-2 border-amber-200">
