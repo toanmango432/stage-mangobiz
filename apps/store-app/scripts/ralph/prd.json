@@ -146,8 +146,8 @@
         "Verify in browser"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "Read-only list. Online status and unpair added later."
+      "passes": true,
+      "notes": "Added Paired Devices section with loading/empty/populated states. Uses existing getPairedDevices() function. Shows truncated device ID, last seen time, and online/offline badge."
     },
     {
       "id": "US-009",

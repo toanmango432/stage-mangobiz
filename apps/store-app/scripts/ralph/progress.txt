@@ -205,3 +205,24 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 ---
 
 
+## 2025-01-11 - US-008: Store App shows list of paired Mango Pads
+
+**Summary:**
+- Added "Paired Devices" section to MangoPadSettings component
+- Uses existing getPairedDevices() function from deviceRegistration service
+- Displays loading spinner, empty state, or list of paired devices
+- Each device shows: name, truncated device_fingerprint, last_seen time, online/offline badge
+- Uses SalonDeviceRow type from Supabase types
+
+**Files changed:**
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added Paired Devices section)
+
+**Learnings:**
+- getPairedDevices() already existed in deviceRegistration.ts from US-002
+- SalonDeviceRow type has `device_fingerprint` not `device_id` for the unique identifier
+- formatLastSeen helper already existed in component for formatting dates
+- StatusBadge component already existed for online/offline status display
+- Pre-existing typecheck errors in test files are unrelated to component changes
+
+---
+
