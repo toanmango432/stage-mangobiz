@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '../test/utils';
+import { render, screen } from '../test/utils';
 import userEvent from '@testing-library/user-event';
 import { CheckInPage } from './CheckInPage';
 

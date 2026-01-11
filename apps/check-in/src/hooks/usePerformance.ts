@@ -14,7 +14,9 @@ export function usePerformance(componentName: string): void {
   const mountTimeRef = useRef<number>(0);
   const renderCountRef = useRef<number>(0);
 
-  renderCountRef.current += 1;
+  useEffect(() => {
+    renderCountRef.current += 1;
+  });
 
   useEffect(() => {
     const startTime = performance.now();
