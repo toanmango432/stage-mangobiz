@@ -77,4 +77,26 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-003: Store App Device Settings page - Basic UI
+
+**Summary:**
+- Added "This Station" section to MangoPadSettings component
+- Displays station name (read-only), pairing code in large font, device ID in smaller text
+- Pairing code has copy-to-clipboard button with visual feedback
+- Shows loading state while registering device
+- Shows error state with message when registration fails
+- Integrates with deviceRegistration service from US-002
+
+**Files changed:**
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (updated)
+
+**Learnings:**
+- Settings categories are in src/components/modules/settings/categories/
+- MangoPadSettings is rendered inside DeviceManagerSettings via import
+- Device registration happens on component mount via useEffect
+- Use amber-50/amber-200 colors for prominent pairing code display
+- Registration fails in dev because migration 028 not applied to DB - this is expected
+
+---
+
 

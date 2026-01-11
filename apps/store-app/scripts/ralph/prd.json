@@ -54,8 +54,8 @@
         "Verify in browser"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Basic settings page. QR code and paired devices list added in later stories."
+      "passes": true,
+      "notes": "Added This Station section to MangoPadSettings with pairing code display. Registration fails in dev because migration 028 not applied to DB yet."
     },
     {
       "id": "US-004",
