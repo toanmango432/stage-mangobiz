@@ -149,4 +149,59 @@ Archived to: `archive/2025-01-10-checkout-integration/`
 
 ---
 
+## 2025-01-11 - US-006: Mango Pad pairing screen with code entry
+
+**Summary:**
+- Created PairingPage component for code entry
+- Large centered input field with auto-uppercase and alphanumeric filtering
+- parseCode() helper strips dashes/spaces, uppercases, limits to 6 chars
+- formatCode() displays as 'ABC-123' with dash after 3rd character
+- Connect button disabled until exactly 6 characters entered
+- Loading state with spinner placeholder for verification (US-007)
+- Back button returns to /welcome
+- Added /pair route to App.tsx
+
+**Files changed:**
+- `apps/mango-pad/src/pages/PairingPage.tsx` (new)
+- `apps/mango-pad/src/App.tsx` (added /pair route and PairingPage import)
+
+**Learnings:**
+- Input maxLength should be 7 (6 chars + dash) for formatted display
+- Use e.target.value with parseCode() on every change to keep state clean
+- handleKeyDown for Enter key submission
+- autoCapitalize="characters" for mobile keyboard uppercase hint
+- useRef with inputRef.current?.focus() in useEffect for auto-focus on mount
+
+---
+
+## 2025-01-11 - US-007: Pairing code verification and persistence
+
+**Summary:**
+- Added @supabase/supabase-js package to mango-pad
+- Created simple Supabase client at apps/mango-pad/src/services/supabase.ts
+- Created pairingService with verifyPairingCode() function
+- verifyPairingCode queries salon_devices by pairing_code (ILIKE for case-insensitive)
+- On valid code: creates Mango Pad device record with paired_to_device_id
+- Saves PairingInfo to localStorage after successful pairing
+- Error handling: invalid_code, network_error, not_configured
+- Updated PairingPage to use verifyPairingCode instead of placeholder
+- Updated WelcomePage to re-export isPaired from pairingService
+
+**Files changed:**
+- `apps/mango-pad/package.json` (added @supabase/supabase-js)
+- `apps/mango-pad/src/services/supabase.ts` (new)
+- `apps/mango-pad/src/services/pairingService.ts` (new)
+- `apps/mango-pad/src/pages/PairingPage.tsx` (integrated verifyPairingCode)
+- `apps/mango-pad/src/pages/WelcomePage.tsx` (use isPaired from pairingService)
+- `pnpm-lock.yaml`
+
+**Learnings:**
+- Mango Pad Supabase client doesn't need auth sessions (persistSession: false)
+- Use ILIKE for case-insensitive pairing code matching in Supabase
+- PGRST116 error code indicates "no rows found" - maps to invalid_code
+- Device type detection: /iPad|iPhone|iPod/.test(ua) for iOS
+- onConflict: 'store_id,device_fingerprint' for upsert on composite key
+
+---
+
 

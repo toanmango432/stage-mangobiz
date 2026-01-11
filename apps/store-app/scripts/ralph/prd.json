@@ -110,8 +110,8 @@
         "Verify in browser"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "UI only. Verification logic in separate story."
+      "passes": true,
+      "notes": "PairingPage created with parseCode/formatCode helpers for dash formatting. Connect button shows loading state placeholder. Verified in browser at localhost:5176/pair."
     },
     {
       "id": "US-007",
@@ -129,8 +129,8 @@
         "npm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "Connects PairingPage to Supabase backend"
+      "passes": true,
+      "notes": "Created pairingService with verifyPairingCode(), added Supabase client to mango-pad. Error messages display correctly. Full functionality requires migration 028 to be applied to DB."
     },
     {
       "id": "US-008",
