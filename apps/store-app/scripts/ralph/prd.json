@@ -286,8 +286,8 @@
         "Verify in browser"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": "Standalone demo. Can be done independently of pairing."
+      "passes": true,
+      "notes": "Created DemoBanner component with Exit Demo button. Added DEMO MODE banner to WaitingPage, ReceiptPage, TipPage, SignaturePage. Demo mode uses mock receipt data. Start Demo button on WaitingPage. Skips MQTT heartbeats in demo mode."
     },
     {
       "id": "US-017",

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, ArrowRight } from 'lucide-react';
 import { ConnectionIndicator } from '../components/ConnectionIndicator';
+import { DemoBanner, isDemoMode } from '../components/DemoBanner';
 import { usePadMqtt } from '../providers/PadMqttProvider';
+import { DEMO_RECEIPT } from '../constants/demoData';
 
 const TIP_OPTIONS = [
   { label: '15%', value: 0.15 },
@@ -14,17 +16,20 @@ const TIP_OPTIONS = [
 export function TipPage() {
   const navigate = useNavigate();
   const { setCurrentScreen } = usePadMqtt();
+  const [isDemo] = useState(() => isDemoMode());
   const [selectedTip, setSelectedTip] = useState<number | null>(0.20);
   const [customTip, setCustomTip] = useState<string>('');
   const [isCustom, setIsCustom] = useState(false);
 
-  // Update current screen for heartbeat
+  // Update current screen for heartbeat (skip in demo mode)
   useEffect(() => {
-    setCurrentScreen('tip');
-  }, [setCurrentScreen]);
+    if (!isDemo) {
+      setCurrentScreen('tip');
+    }
+  }, [setCurrentScreen, isDemo]);
 
-  // Placeholder total
-  const subtotal = 92.23;
+  // Use demo total in demo mode
+  const subtotal = isDemo ? DEMO_RECEIPT.total : 92.23;
 
   const calculateTipAmount = () => {
     if (isCustom && customTip) {
@@ -62,14 +67,17 @@ export function TipPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Demo banner (US-016) */}
+      <DemoBanner />
+
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 relative">
         <div className="flex items-center justify-center">
           <Heart className="w-6 h-6 text-orange-500 mr-2" />
           <h1 className="text-xl font-semibold text-gray-800">Add a Tip</h1>
         </div>
-        {/* Connection status indicator - top right */}
-        <ConnectionIndicator className="absolute top-3 right-4" />
+        {/* Connection status indicator - top right - hide in demo mode */}
+        {!isDemo && <ConnectionIndicator className="absolute top-3 right-4" />}
       </div>
 
       {/* Content */}

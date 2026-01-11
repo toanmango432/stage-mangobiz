@@ -1,32 +1,50 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Receipt, ArrowRight } from 'lucide-react';
 import { ConnectionIndicator } from '../components/ConnectionIndicator';
+import { DemoBanner, isDemoMode } from '../components/DemoBanner';
 import { usePadMqtt } from '../providers/PadMqttProvider';
+import { DEMO_RECEIPT } from '../constants/demoData';
 
 export function ReceiptPage() {
   const navigate = useNavigate();
   const { setCurrentScreen } = usePadMqtt();
+  const [isDemo] = useState(() => isDemoMode());
 
-  // Update current screen for heartbeat
+  // Update current screen for heartbeat (skip in demo mode)
   useEffect(() => {
-    setCurrentScreen('receipt');
-  }, [setCurrentScreen]);
+    if (!isDemo) {
+      setCurrentScreen('receipt');
+    }
+  }, [setCurrentScreen, isDemo]);
 
-  // Placeholder receipt data
-  const receiptData = {
-    storeName: 'Mango Salon & Spa',
-    date: new Date().toLocaleDateString(),
-    time: new Date().toLocaleTimeString(),
-    items: [
-      { name: 'Haircut', price: 45.00 },
-      { name: 'Deep Conditioning', price: 25.00 },
-      { name: 'Blow Dry', price: 15.00 },
-    ],
-    subtotal: 85.00,
-    tax: 7.23,
-    total: 92.23,
-  };
+  // Use demo receipt data in demo mode, or placeholder otherwise
+  const receiptData = isDemo
+    ? {
+        storeName: DEMO_RECEIPT.storeName,
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        items: DEMO_RECEIPT.items.map((item) => ({
+          name: `${item.name}${item.quantity > 1 ? ` (x${item.quantity})` : ''}`,
+          price: item.price * item.quantity,
+        })),
+        subtotal: DEMO_RECEIPT.subtotal,
+        tax: DEMO_RECEIPT.tax,
+        total: DEMO_RECEIPT.total,
+      }
+    : {
+        storeName: 'Mango Salon & Spa',
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        items: [
+          { name: 'Haircut', price: 45.0 },
+          { name: 'Deep Conditioning', price: 25.0 },
+          { name: 'Blow Dry', price: 15.0 },
+        ],
+        subtotal: 85.0,
+        tax: 7.23,
+        total: 92.23,
+      };
 
   const handleContinue = () => {
     navigate('/tip');
@@ -34,14 +52,17 @@ export function ReceiptPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Demo banner (US-016) */}
+      <DemoBanner />
+
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 relative">
         <div className="flex items-center justify-center">
           <Receipt className="w-6 h-6 text-orange-500 mr-2" />
           <h1 className="text-xl font-semibold text-gray-800">Your Receipt</h1>
         </div>
-        {/* Connection status indicator - top right */}
-        <ConnectionIndicator className="absolute top-3 right-4" />
+        {/* Connection status indicator - top right - hide in demo mode */}
+        {!isDemo && <ConnectionIndicator className="absolute top-3 right-4" />}
       </div>
 
       {/* Receipt Content */}

@@ -2,19 +2,23 @@ import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PenTool, RotateCcw, Check } from 'lucide-react';
 import { ConnectionIndicator } from '../components/ConnectionIndicator';
+import { DemoBanner, isDemoMode } from '../components/DemoBanner';
 import { usePadMqtt } from '../providers/PadMqttProvider';
 
 export function SignaturePage() {
   const navigate = useNavigate();
   const { setCurrentScreen } = usePadMqtt();
+  const [isDemo] = useState(() => isDemoMode());
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
-  // Update current screen for heartbeat
+  // Update current screen for heartbeat (skip in demo mode)
   useEffect(() => {
-    setCurrentScreen('signature');
-  }, [setCurrentScreen]);
+    if (!isDemo) {
+      setCurrentScreen('signature');
+    }
+  }, [setCurrentScreen, isDemo]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -91,14 +95,17 @@ export function SignaturePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Demo banner (US-016) */}
+      <DemoBanner />
+
       {/* Header */}
       <div className="bg-white border-b px-6 py-4 relative">
         <div className="flex items-center justify-center">
           <PenTool className="w-6 h-6 text-orange-500 mr-2" />
           <h1 className="text-xl font-semibold text-gray-800">Sign Below</h1>
         </div>
-        {/* Connection status indicator - top right */}
-        <ConnectionIndicator className="absolute top-3 right-4" />
+        {/* Connection status indicator - top right - hide in demo mode */}
+        {!isDemo && <ConnectionIndicator className="absolute top-3 right-4" />}
       </div>
 
       {/* Content */}
