@@ -1,11 +1,12 @@
 /**
  * Mango Pad Settings
  * Configuration UI for managing Mango Pad connections
- * 
+ *
  * Part of: Mango Pad Integration (US-012)
+ * Updated: Device Pairing System (US-003)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Tablet,
@@ -19,8 +20,17 @@ import {
   Server,
   Hash,
   Clock,
+  QrCode,
+  Copy,
+  Monitor,
 } from 'lucide-react';
 import { selectStoreId, selectStoreName } from '@/store/slices/authSlice';
+import {
+  registerDevice,
+  formatPairingCode,
+  getOrCreateDeviceId,
+  type DeviceRegistrationResult,
+} from '@/services/deviceRegistration';
 import {
   selectAllPadDevices,
   selectHasConnectedPad,
@@ -114,8 +124,46 @@ export function MangoPadSettings() {
   >('idle');
   const [testMessage, setTestMessage] = useState<string>('');
 
+  // Device registration state (US-003)
+  const [deviceRegistration, setDeviceRegistration] = useState<DeviceRegistrationResult | null>(null);
+  const [registrationLoading, setRegistrationLoading] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+
   const mqttEnabled = isMqttEnabled();
   const brokerUrl = getCloudBrokerUrl();
+
+  // Register this station on mount (US-003)
+  useEffect(() => {
+    if (storeId && !deviceRegistration) {
+      setRegistrationLoading(true);
+      registerDevice(storeId)
+        .then((result) => {
+          setDeviceRegistration(result);
+          if (!result.success) {
+            console.error('[MangoPadSettings] Device registration failed:', result.error);
+          }
+        })
+        .catch((error) => {
+          console.error('[MangoPadSettings] Device registration error:', error);
+        })
+        .finally(() => {
+          setRegistrationLoading(false);
+        });
+    }
+  }, [storeId, deviceRegistration]);
+
+  // Copy pairing code to clipboard
+  const handleCopyCode = useCallback(async () => {
+    if (!deviceRegistration?.pairingCode) return;
+
+    try {
+      await navigator.clipboard.writeText(deviceRegistration.pairingCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (error) {
+      console.error('[MangoPadSettings] Failed to copy code:', error);
+    }
+  }, [deviceRegistration?.pairingCode]);
 
   const handleTestConnection = useCallback(async () => {
     if (!storeId) {
@@ -190,6 +238,110 @@ export function MangoPadSettings() {
 
   return (
     <div>
+      {/* Station Pairing Info (US-003) */}
+      <SettingsSection
+        title="This Station"
+        icon={<Monitor className="w-5 h-5" />}
+        action={
+          deviceRegistration?.success ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+              <CheckCircle className="w-3 h-3" />
+              Registered
+            </span>
+          ) : registrationLoading ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Registering...
+            </span>
+          ) : null
+        }
+      >
+        <p className="text-sm text-gray-500 mb-6">
+          Your station's pairing code for connecting Mango Pad devices.
+        </p>
+
+        {registrationLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
+          </div>
+        ) : deviceRegistration?.success ? (
+          <div className="space-y-6">
+            {/* Station Name */}
+            <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600">
+                <Monitor className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900">Station Name</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  {deviceRegistration.stationName}
+                </p>
+              </div>
+            </div>
+
+            {/* Pairing Code - Large and Prominent */}
+            <div className="p-6 bg-amber-50 rounded-xl border-2 border-amber-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-amber-600" />
+                  <span className="font-medium text-amber-900">Pairing Code</span>
+                </div>
+                <button
+                  onClick={handleCopyCode}
+                  className={cn(
+                    'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                    codeCopied
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-white text-amber-700 hover:bg-amber-100 border border-amber-300'
+                  )}
+                >
+                  {codeCopied ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="text-center py-4">
+                <span className="text-5xl font-mono font-bold text-amber-800 tracking-wider">
+                  {formatPairingCode(deviceRegistration.pairingCode)}
+                </span>
+              </div>
+              <p className="text-sm text-amber-700 text-center">
+                Enter this code on Mango Pad to pair with this station
+              </p>
+            </div>
+
+            {/* Device ID */}
+            <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-100 text-purple-600">
+                <Hash className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900">Device ID</p>
+                <p className="text-xs text-gray-500 font-mono mt-1 break-all">
+                  {deviceRegistration.deviceId}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-300" />
+            <p className="font-medium text-red-600">Registration Failed</p>
+            <p className="text-sm mt-1">
+              {deviceRegistration?.error || 'Unable to register this station'}
+            </p>
+          </div>
+        )}
+      </SettingsSection>
+
       {/* Mango Pad Connection Settings */}
       <SettingsSection
         title="Mango Pad"
