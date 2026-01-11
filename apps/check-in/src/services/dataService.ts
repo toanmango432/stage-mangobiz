@@ -37,18 +37,22 @@ const isOnline = (): boolean => navigator.onLine;
 
 type SupabaseClientRow = {
   id: string;
+  store_id: string;
   first_name: string;
   last_name: string;
   phone: string;
   email: string | null;
-  zip_code: string | null;
-  sms_opt_in: boolean;
-  preferred_technician_id: string | null;
-  loyalty_points: number;
-  loyalty_points_to_next_reward: number;
+  is_blocked: boolean;
+  is_vip: boolean;
+  preferences: Record<string, unknown>;
+  loyalty_info: Record<string, unknown>;
+  visit_summary: Record<string, unknown>;
+  tags: unknown[];
+  notes: unknown[];
+  sync_status: string;
+  sync_version: number;
   created_at: string;
-  last_visit_at: string | null;
-  visit_count: number;
+  updated_at: string;
 };
 
 type SupabaseServiceRow = {
@@ -74,21 +78,27 @@ type SupabaseTechnicianRow = {
   estimated_wait_minutes: number | null;
 };
 
-const toClient = (row: SupabaseClientRow): Client => ({
-  id: row.id,
-  firstName: row.first_name,
-  lastName: row.last_name,
-  phone: row.phone,
-  email: row.email ?? undefined,
-  zipCode: row.zip_code ?? undefined,
-  smsOptIn: row.sms_opt_in,
-  preferredTechnicianId: row.preferred_technician_id ?? undefined,
-  loyaltyPoints: row.loyalty_points ?? 0,
-  loyaltyPointsToNextReward: row.loyalty_points_to_next_reward ?? 100,
-  createdAt: row.created_at,
-  lastVisitAt: row.last_visit_at ?? undefined,
-  visitCount: row.visit_count ?? 0,
-});
+const toClient = (row: SupabaseClientRow): Client => {
+  const loyaltyInfo = row.loyalty_info as { points?: number; pointsToNextReward?: number } || {};
+  const visitSummary = row.visit_summary as { lastVisitAt?: string; visitCount?: number; preferredTechnicianId?: string } || {};
+  const preferences = row.preferences as { smsOptIn?: boolean; zipCode?: string } || {};
+  
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    phone: row.phone,
+    email: row.email ?? undefined,
+    zipCode: preferences.zipCode,
+    smsOptIn: preferences.smsOptIn ?? false,
+    preferredTechnicianId: visitSummary.preferredTechnicianId,
+    loyaltyPoints: loyaltyInfo.points ?? 0,
+    loyaltyPointsToNextReward: loyaltyInfo.pointsToNextReward ?? 100,
+    createdAt: row.created_at,
+    lastVisitAt: visitSummary.lastVisitAt,
+    visitCount: visitSummary.visitCount ?? 0,
+  };
+};
 
 const toService = (row: SupabaseServiceRow): Service => ({
   id: row.id,
@@ -129,9 +139,12 @@ export const dataService = {
       }
 
       if (isOnline()) {
+        const storeId = import.meta.env.VITE_STORE_ID || 'default-store';
+        
         const { data, error } = await supabase
           .from('clients')
           .select('*')
+          .eq('store_id', storeId)
           .eq('phone', normalizedPhone)
           .single();
 
@@ -170,18 +183,20 @@ export const dataService = {
       }
 
       if (isOnline()) {
+        // Get store_id from environment or use a default for check-in kiosk
+        const storeId = import.meta.env.VITE_STORE_ID || 'default-store';
+        
         const { data, error } = await supabase
           .from('clients')
           .insert({
+            store_id: storeId,
             first_name: firstName,
             last_name: lastName,
             phone: normalizedPhone,
             email: email ?? null,
-            zip_code: zipCode ?? null,
-            sms_opt_in: input.smsOptIn,
-            loyalty_points: 0,
-            loyalty_points_to_next_reward: 100,
-            visit_count: 0,
+            preferences: { smsOptIn: input.smsOptIn, zipCode },
+            loyalty_info: { points: 0, pointsToNextReward: 100 },
+            visit_summary: { visitCount: 0 },
           })
           .select()
           .single();
