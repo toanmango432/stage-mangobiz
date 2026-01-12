@@ -7,11 +7,8 @@ import {
   AlertCircle,
   Loader2,
   X,
-  ChevronLeft,
-  Calendar,
   Wallet,
   Camera,
-  Keyboard,
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,7 +44,6 @@ interface GiftCardRedeemModalProps {
 }
 
 type ModalView = 'entry' | 'success';
-type InputMode = 'keyboard' | 'scan';
 
 // ============================================================================
 // Helper Functions
@@ -88,92 +84,6 @@ function normalizeCode(code: string): string {
 // ============================================================================
 // Sub-Components
 // ============================================================================
-
-/**
- * Visual gift card representation
- */
-function GiftCardVisual({
-  code,
-  balance,
-  status,
-  expiresAt,
-}: {
-  code: string;
-  balance: number;
-  status: string;
-  expiresAt?: string | null;
-}) {
-  const isExpired = expiresAt ? new Date(expiresAt) < new Date() : false;
-  const isDepleted = balance <= 0;
-
-  return (
-    <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="relative"
-    >
-      {/* Card container with gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 p-6 shadow-xl">
-        {/* Decorative pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white" />
-          <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-white" />
-        </div>
-
-        {/* Card content */}
-        <div className="relative z-10">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Gift className="h-5 w-5 text-white/90" />
-              <span className="text-sm font-medium text-white/90">Gift Card</span>
-            </div>
-            {status === 'active' && !isExpired && !isDepleted && (
-              <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-                Active
-              </span>
-            )}
-            {(isExpired || status === 'expired') && (
-              <span className="rounded-full bg-red-500/80 px-2.5 py-0.5 text-xs font-medium text-white">
-                Expired
-              </span>
-            )}
-            {isDepleted && (
-              <span className="rounded-full bg-gray-500/80 px-2.5 py-0.5 text-xs font-medium text-white">
-                Depleted
-              </span>
-            )}
-          </div>
-
-          {/* Code - embossed effect */}
-          <div className="mb-6">
-            <p className="font-mono text-lg tracking-wider text-white/60 [text-shadow:0_1px_0_rgba(255,255,255,0.2)]">
-              {code}
-            </p>
-          </div>
-
-          {/* Balance */}
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-xs text-white/60">Available Balance</p>
-              <p className="text-3xl font-bold text-white">
-                ${balance.toFixed(2)}
-              </p>
-            </div>
-            {expiresAt && (
-              <div className="flex items-center gap-1 text-white/60">
-                <Calendar className="h-3.5 w-3.5" />
-                <span className="text-xs">
-                  {new Date(expiresAt).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 /**
  * Applied gift cards list
@@ -244,7 +154,6 @@ export default function GiftCardRedeemModal({
 }: GiftCardRedeemModalProps) {
   // State
   const [view, setView] = useState<ModalView>('entry');
-  const [inputMode, setInputMode] = useState<InputMode>('keyboard');
   const [code, setCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -268,7 +177,6 @@ export default function GiftCardRedeemModal({
         setError(null);
         setFoundCard(null);
         setAmountToApply('');
-        setInputMode('keyboard');
         setIsScanning(false);
       }, 200);
     }
@@ -354,13 +262,11 @@ export default function GiftCardRedeemModal({
 
   // Handle scan button - opens camera (placeholder for now)
   const handleScan = async () => {
-    setInputMode('scan');
     setIsScanning(true);
     // TODO: Integrate with device camera API
     // For now, show a message that scanning is coming soon
     setTimeout(() => {
       setIsScanning(false);
-      setInputMode('keyboard');
       setError('Camera scanning coming soon. Please enter code manually.');
     }, 1500);
   };
@@ -487,10 +393,7 @@ export default function GiftCardRedeemModal({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setIsScanning(false);
-                        setInputMode('keyboard');
-                      }}
+                      onClick={() => setIsScanning(false)}
                     >
                       Cancel
                     </Button>

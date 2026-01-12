@@ -1,0 +1,288 @@
+{
+  "name": "Client Self Check-In App",
+  "branchName": "feature/check-in-app",
+  "description": "Digital receptionist enabling salon clients to self-check-in via tablet or phone",
+  "version": "1.2",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Welcome Screen - The Digital Receptionist Face",
+      "description": "As a client arriving at the salon, I want to see a welcoming, branded screen that clearly shows me how to check in and informs me of any current promotions.",
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Hero section with store logo, name, and welcoming message",
+        "Time-based greeting: Good Morning/Afternoon/Evening",
+        "Promo banner area for promotions and announcements",
+        "Two prominent CTAs: Check In with Phone Number and Scan QR Code",
+        "Visual hierarchy: client knows what to do within 2 seconds",
+        "First-time visitor link: New here? Sign up",
+        "Idle behavior: Return to welcome after 60 seconds inactivity",
+        "Kiosk-friendly: No navigation chrome, full-screen experience",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "designNote": "This screen must be designed using the Mango Designer skill",
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Phone Number Entry with Smart Formatting",
+      "description": "As a client, I want to enter my phone number quickly using a large numeric keypad so I can identify myself without typing on a small keyboard.",
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Display large numeric keypad (0-9, backspace, clear)",
+        "Auto-format phone number as user types: (XXX) XXX-XXXX",
+        "Show entered number prominently above keypad",
+        "Continue button activates when 10 digits entered",
+        "Subtle haptic/visual feedback on key press",
+        "Support paste from clipboard (mobile web)",
+        "Back button returns to welcome screen",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "QR Code Scanner Integration",
+      "description": "As a client with a loyalty QR code, I want to scan it to instantly identify myself without typing.",
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Activate device camera when QR option selected",
+        "Display camera viewfinder with scanning frame overlay",
+        "Auto-detect and process QR code containing client ID",
+        "Show brief Scanning animation during processing",
+        "Handle invalid QR codes gracefully with Try again option",
+        "Fallback link: Having trouble? Enter phone number instead",
+        "Request camera permission with clear explanation",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Client Verification & Smart Routing",
+      "description": "As an existing client, I want to be recognized, greeted by name, and routed to the appropriate flow (appointment confirmation or walk-in services).",
+      "priority": 4,
+      "acceptanceCriteria": [
+        "Query client database by phone number or QR code ID",
+        "If client found with TODAY's appointment: Route to Appointment Confirmation flow",
+        "If client found WITHOUT appointment (walk-in): Display Welcome back message with avatar, last visit date, loyalty points",
+        "If client NOT found: Redirect to new client signup flow",
+        "Not you? link returns to welcome screen",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "title": "New Client Quick Signup Form",
+      "description": "As a new client, I want to register with minimal information so I can complete check-in quickly on my first visit.",
+      "priority": 5,
+      "acceptanceCriteria": [
+        "Display clean form with 5 fields: First Name (required), Last Name (required), Phone (required, pre-filled), Email (optional), Zip Code (optional)",
+        "Large, touch-friendly input fields",
+        "Smart keyboard types (numeric for phone/zip, email for email)",
+        "Real-time validation with inline error messages",
+        "Create Account & Continue button",
+        "Privacy note: We never share your information",
+        "Auto-advance to service selection on success",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "Appointment Confirmation & Edit Flow",
+      "description": "As a client with a booked appointment, I want to confirm my appointment details and optionally make changes if needed.",
+      "priority": 6,
+      "acceptanceCriteria": [
+        "Display appointment summary card: date, time, services, technician, duration, price",
+        "Primary CTA: Confirm & Check In (large, prominent)",
+        "Secondary option: Need to make changes? link",
+        "If editing allowed (based on salon policy): Edit Services, Change Technician, Change Time options",
+        "If editing restricted: Show Please see front desk message",
+        "Availability check: Validate changes against real-time availability",
+        "Conflict handling: Clear message if requested change unavailable",
+        "After confirmation, proceed to guest addition option",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "title": "Service Selection with Visual Cards",
+      "description": "As a walk-in client, I want to browse and select services using visual cards so I can easily find what I need.",
+      "priority": 7,
+      "acceptanceCriteria": [
+        "Display services as visual cards in scrollable grid",
+        "Each card shows: Service name, duration, price",
+        "Optional: Service image/icon for visual recognition",
+        "Category tabs/filters at top (Nails, Hair, Spa, All)",
+        "Tap to select (card highlights with checkmark), tap again to deselect",
+        "Multi-select enabled",
+        "Selected services summary at bottom: count, total duration, total price",
+        "Continue button shows service count badge",
+        "Popular/frequently booked services shown first",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "title": "Technician Selection (Single Technician Per Client)",
+      "description": "As a client, I want to choose one technician for my entire visit from those qualified for my selected services.",
+      "priority": 8,
+      "acceptanceCriteria": [
+        "Single technician selection for entire check-in (not per service)",
+        "Filter technicians by specialty matching ALL selected services",
+        "If no single technician can do all services, show message and suggest splitting",
+        "Display Next Available option at top (pre-selected by default)",
+        "Show technician cards with: Photo/avatar, Name, Specialty tags, Availability status badge",
+        "Availability status: Available (green), ~X min wait (yellow), Busy (red)",
+        "Technicians sorted by availability (available first)",
+        "Tap to select one technician (radio button behavior)",
+        "Continue button proceeds to guest addition",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-009",
+      "title": "Guest Quick-Add Feature",
+      "description": "As a client checking in with friends/family, I want to quickly add guests to my check-in so we can be served together.",
+      "priority": 9,
+      "acceptanceCriteria": [
+        "Add a Guest button displayed after technician selection",
+        "Skip option clearly visible for solo check-ins",
+        "Guest quick-add form: First Name (required), Last Name (required), Phone (optional with Skip button)",
+        "Each guest selects services and technician (single tech, Next Available default)",
+        "Add Another Guest allows unlimited guests",
+        "Guest list shows: name, services, technician, Remove (X) button",
+        "Each guest is separate queue entry linked to primary client",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-010",
+      "title": "Check-In Confirmation & Review",
+      "description": "As a client, I want to review my selections before confirming so I can make changes if needed.",
+      "priority": 10,
+      "acceptanceCriteria": [
+        "Summary screen showing primary client section: name, avatar, services, technician",
+        "Guest section (if any): each guest with services and technician",
+        "Totals: estimated total time, estimated total price",
+        "Edit links for each section",
+        "Add Guest button still accessible",
+        "Confirm Check-In - large, prominent button at bottom",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-011",
+      "title": "Final Confirmation Screen with Queue Info",
+      "description": "As a client who just checked in, I want to see my queue position and loyalty status so I know what to expect.",
+      "priority": 11,
+      "acceptanceCriteria": [
+        "Success celebration: Subtle animation (checkmark ripple or confetti)",
+        "Check-in number: Large, prominent display (A-047 format)",
+        "Queue position: You are #X in line",
+        "Estimated wait: ~X minutes",
+        "Loyalty points section: current balance, progress to next reward, visual progress bar",
+        "Notification reminder: We'll text you when [Technician] is ready!",
+        "Guest confirmation: If guests added, show their queue numbers too",
+        "Done button returns to welcome screen",
+        "Auto-return to welcome screen after 20 seconds (kiosk mode)",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-012",
+      "title": "SMS Notification When Technician Ready",
+      "description": "As a waiting client, I want to receive a text message when my technician is ready so I don't have to watch the queue.",
+      "priority": 12,
+      "acceptanceCriteria": [
+        "Staff can trigger Client Ready notification from POS",
+        "SMS sent to client's phone number",
+        "Message content: Hi [Name]! [Technician] is ready for you at [Store Name]. Please head to the service area.",
+        "Include store phone number for questions",
+        "Track SMS delivery status",
+        "Send to guests' phones too (if phone provided)",
+        "npm run typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-013",
+      "title": "Staff Queue View Integration",
+      "description": "As a staff member, I want to see all checked-in clients in a queue so I can manage the flow.",
+      "priority": 13,
+      "acceptanceCriteria": [
+        "Queue visible in Store App (POS) waiting list",
+        "Each entry shows: check-in number, client name/phone, type badge (Walk-In/Appointment), services, technician, wait time elapsed, guest indicator",
+        "Sort by check-in time (oldest first)",
+        "Quick actions: Notify Client, Cancel Check-In, View Details",
+        "Real-time updates when new check-ins arrive",
+        "Click to expand and see guest details",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-014",
+      "title": "Salon Promo Banner Management",
+      "description": "As a salon manager, I want to configure the welcome screen promotions so I can communicate with clients during check-in.",
+      "priority": 14,
+      "acceptanceCriteria": [
+        "Admin setting in Control Center to manage promo content",
+        "Support for: Text message (headline + description), Image upload, Link (optional)",
+        "Schedule promotions (start date, end date)",
+        "Multiple promos rotate (carousel) or stack",
+        "Preview before publishing",
+        "Default fallback if no active promo configured",
+        "npm run typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-015",
+      "title": "Error Handling, Edge Cases & Navigation",
+      "description": "As a client, I want the app to gracefully handle errors and edge cases so I never get stuck and always have a clear path forward.",
+      "priority": 15,
+      "acceptanceCriteria": [
+        "Network Errors: Show friendly Connection lost message, Try Again button, Start Over option",
+        "Queue completed check-ins locally if network fails, sync when restored",
+        "Show offline indicator banner when disconnected",
+        "Client Not Found: Message with Create Account or Try Different Number options",
+        "Multiple Appointments: Display list of all appointments, let client select which to check in",
+        "No Technicians Available: Show message with options to see partial matches or adjust services",
+        "Empty States: Appropriate messages for no services, no promos, empty categories",
+        "Back button on every screen (except welcome and final)",
+        "Back navigation preserves selections",
+        "Session timeout: Return to welcome after 60 seconds inactivity",
+        "Show Session expiring warning at 45 seconds with Continue option",
+        "Data Validation: Phone (10 digits), Names (1-50 chars), Email (valid format), Zip (5 digits)",
+        "Loading States: Skeleton loaders while fetching data",
+        "Error Recovery: All error screens have Try Again and Start Over options",
+        "If repeated failures (3+), suggest Please see front desk",
+        "npm run typecheck passes",
+        "Verify error states in browser using dev-browser skill"
+      ],
+      "passes": false
+    }
+  ]
+}

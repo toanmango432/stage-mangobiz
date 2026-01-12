@@ -1,20 +1,10 @@
-import { useState, useEffect, useRef, useReducer, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useReducer, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
-import {
-  createCheckoutTicket,
-  updateCheckoutTicket,
-  markTicketAsPaid,
-  type ServiceStatus,
-  type CheckoutTicketService,
-} from "@/store/slices/uiTicketsSlice";
-import { updateServiceStatusInSupabase } from "@/store/slices/ticketsSlice";
-import type { ServiceStatus as TicketServiceStatus } from "@/types/common";
 import {
   Dialog,
   DialogContent,
@@ -77,13 +67,18 @@ import { getPackagesByCategory } from "@/data/mockPackages";
 import { useCatalog } from "@/hooks/useCatalog";
 import { dataService } from "@/services/dataService";
 import { storeAuthManager } from "@/services/storeAuthManager";
-import { giftCardDB } from "@/db/giftCardOperations";
-import type { IssueGiftCardInput, GiftCardType } from "@/types/gift-card";
 // Import extracted types, reducer, constants, and components
 import type { PanelMode } from "./types";
 import { createInitialState, ticketReducer, ticketActions } from "./reducers/ticketReducer";
 import { MOCK_OPEN_TICKETS, KEYBOARD_HINTS_DISMISSED_KEY } from "./constants";
-import { KeyboardShortcutsHint } from "./components";
+import { 
+  KeyboardShortcutsHint, 
+  ClientProfileDialog, 
+  RemoveClientDialog, 
+  PreventStaffRemovalDialog, 
+  ClientSelectorSheet 
+} from "./components";
+import { useTicketKeyboard, useTicketPersistence, useTicketActions } from "./hooks";
 // Collapsible imports available if needed
 // import {
 //   Collapsible,
@@ -147,10 +142,7 @@ export default function TicketPanel({
   staffMembers,
 }: TicketPanelProps) {
   const { toast } = useToast();
-  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Redux dispatch for creating tickets
   const reduxDispatch = useAppDispatch();
 
   const [state, dispatch] = useReducer(ticketReducer, undefined, createInitialState);
@@ -172,221 +164,19 @@ export default function TicketPanel({
   };
   void handleDismissKeyboardHints; // Suppress unused warning - kept for future use
 
-  // Load pending ticket from localStorage when panel opens
-  // Then fetch persisted status from Supabase if available
-  useEffect(() => {
-    if (isOpen) {
-      const storedTicket = localStorage.getItem('checkout-pending-ticket');
-      if (storedTicket) {
-        const loadTicket = async () => {
-          try {
-            const pendingTicket = JSON.parse(storedTicket);
-            console.log('📋 Loading pending ticket:', pendingTicket);
-
-            // CRITICAL: Clear any existing services BEFORE loading to prevent duplicates
-            dispatch(ticketActions.clearServices());
-
-            // Set client from pending ticket
-            if (pendingTicket.clientName && pendingTicket.clientName !== 'Walk-in') {
-              const client: Client = {
-                id: pendingTicket.clientId || `client-${Date.now()}`,
-                firstName: pendingTicket.clientName.split(' ')[0] || '',
-                lastName: pendingTicket.clientName.split(' ').slice(1).join(' ') || '',
-                phone: '',
-              };
-              dispatch(ticketActions.setClient(client));
-            }
-
-            // Try to fetch persisted ticket from Supabase for latest service statuses
-            let persistedServices: any[] | null = null;
-            if (pendingTicket.id) {
-              try {
-                const persistedTicket = await dataService.tickets.getById(pendingTicket.id);
-                if (persistedTicket && persistedTicket.services) {
-                  persistedServices = persistedTicket.services;
-                  console.log('📥 Fetched persisted ticket from Supabase:', persistedTicket.id);
-                }
-              } catch (fetchError) {
-                console.warn('⚠️ Could not fetch persisted ticket, using localStorage data:', fetchError);
-              }
-            }
-
-            // Load services - merge persisted status if available
-            if (pendingTicket.checkoutServices && pendingTicket.checkoutServices.length > 0) {
-              const ticketServices: TicketService[] = pendingTicket.checkoutServices.map((s: any) => {
-                // Find persisted service to get latest status
-                const persistedService = persistedServices?.find(ps => ps.serviceId === (s.serviceId || s.id));
-                return {
-                  id: s.id || `service-${Date.now()}-${Math.random()}`,
-                  serviceId: s.serviceId || s.id,
-                  serviceName: s.serviceName || s.name,
-                  price: s.price || 0,
-                  duration: s.duration || 30,
-                  // Use persisted status if available, otherwise use localStorage/default
-                  status: persistedService?.status || s.status || 'not_started',
-                  staffId: s.staffId,
-                  staffName: s.staffName,
-                  // Restore timing data from persisted service
-                  actualStartTime: persistedService?.actualStartTime,
-                  pausedAt: persistedService?.pausedAt,
-                  totalPausedDuration: persistedService?.totalPausedDuration,
-                  endTime: persistedService?.endTime,
-                  actualDuration: persistedService?.actualDuration,
-                };
-              });
-              dispatch(ticketActions.addService(ticketServices));
-            } else if (pendingTicket.service) {
-              // Fallback: create service from basic pending ticket data
-              const ticketService: TicketService = {
-                id: `service-${Date.now()}`,
-                serviceId: `service-${Date.now()}`,
-                serviceName: pendingTicket.service,
-                price: pendingTicket.subtotal || 0,
-                duration: parseInt(pendingTicket.duration) || 30,
-                status: 'completed',
-                staffId: pendingTicket.techId,
-                staffName: pendingTicket.technician,
-              };
-              dispatch(ticketActions.addService([ticketService]));
-            }
-
-            // Set discount if any
-            if (pendingTicket.discount && pendingTicket.discount > 0) {
-              dispatch(ticketActions.applyDiscount(pendingTicket.discount));
-            }
-
-            // Save ticket ID for persistence
-            if (pendingTicket.id) {
-              dispatch(ticketActions.setTicketId(pendingTicket.id));
-            }
-
-            // Mark as saved since this is an existing ticket from Pending
-            dispatch(ticketActions.markTicketSaved());
-
-            console.log('✅ Pending ticket loaded into checkout, ID:', pendingTicket.id);
-          } catch (error) {
-            console.error('❌ Failed to load pending ticket:', error);
-          }
-        };
-
-        loadTicket();
-      } else {
-        // No stored ticket - this is a NEW ticket, reset state completely
-        console.log('🆕 Opening new ticket panel - resetting state');
-        dispatch(ticketActions.resetTicket());
-      }
-    }
-  }, [isOpen]);
-
   // ============================================================================
-  // AUTO-SAVE FOR EXISTING TICKETS
-  // When opening an existing ticket and making changes, save immediately (no debounce)
+  // TICKET PERSISTENCE & AUTO-SAVE
+  // Handles loading pending tickets from localStorage and auto-saving changes
   // ============================================================================
-  const lastTicketIdRef = useRef<string | null>(null);
-  const loadCompleteRef = useRef(false);
-
-  // Reset auto-save state when panel opens/closes or ticket changes
-  useEffect(() => {
-    if (!isOpen) {
-      // Panel closed - reset everything
-      loadCompleteRef.current = false;
-      lastTicketIdRef.current = null;
-      return;
-    }
-
-    // New ticket loaded - reset load complete flag
-    if (state.ticketId !== lastTicketIdRef.current) {
-      loadCompleteRef.current = false;
-      lastTicketIdRef.current = state.ticketId;
-    }
-  }, [isOpen, state.ticketId]);
-
-  // Mark load as complete after a short delay (after all initial state updates settle)
-  useEffect(() => {
-    if (!isOpen || !state.ticketId) return;
-
-    const timer = setTimeout(() => {
-      loadCompleteRef.current = true;
-      console.log('📋 Ticket load complete, auto-save enabled for:', state.ticketId);
-    }, 500); // Wait for initial load to settle
-
-    return () => clearTimeout(timer);
-  }, [isOpen, state.ticketId]);
-
-  // Helper function to perform auto-save (reusable for immediate save and save-on-close)
-  const performAutoSave = useCallback(async () => {
-    if (!state.ticketId) return;
-
-    const checkoutServices = convertToCheckoutServices(state.services);
-    const clientName = state.selectedClient
-      ? `${state.selectedClient.firstName} ${state.selectedClient.lastName}`.trim()
-      : 'Walk-in';
-    const subtotal = state.services.reduce((sum, s) => sum + s.price, 0);
-    const tax = Math.max(0, subtotal - state.discounts.discount) * 0.085;
-    const total = Math.max(0, subtotal - state.discounts.discount) * 1.085;
-
-    console.log('💾 Auto-saving ticket:', state.ticketId);
-
-    try {
-      // Update Redux state
-      await reduxDispatch(updateCheckoutTicket({
-        ticketId: state.ticketId,
-        updates: {
-          clientId: state.selectedClient?.id,
-          clientName,
-          services: checkoutServices,
-          discount: state.discounts.discount,
-          subtotal,
-          tax,
-          total,
-        },
-      })).unwrap();
-
-      // CRITICAL: Update localStorage IMMEDIATELY so reopening shows saved changes
-      const storedTicket = localStorage.getItem('checkout-pending-ticket');
-      if (storedTicket) {
-        try {
-          const existingTicket = JSON.parse(storedTicket);
-          const updatedTicket = {
-            ...existingTicket,
-            clientId: state.selectedClient?.id,
-            clientName,
-            checkoutServices,
-            discount: state.discounts.discount,
-            subtotal,
-            tax,
-            total,
-          };
-          localStorage.setItem('checkout-pending-ticket', JSON.stringify(updatedTicket));
-        } catch (e) {
-          console.warn('⚠️ Could not update localStorage:', e);
-        }
-      }
-
-      console.log('✅ Auto-save complete for ticket:', state.ticketId);
-      dispatch(ticketActions.markTicketSaved());
-    } catch (error) {
-      console.error('❌ Auto-save failed:', error);
-    }
-  }, [state.ticketId, state.services, state.selectedClient, state.discounts.discount, reduxDispatch]);
-
-  // Auto-save effect - IMMEDIATE save on every change (no debounce)
-  useEffect(() => {
-    // Skip if panel is not open
-    if (!isOpen) return;
-
-    // Skip if no ticketId (new ticket - requires explicit save)
-    if (!state.ticketId) return;
-
-    // Skip if load is not complete (still loading initial data)
-    if (!loadCompleteRef.current) {
-      console.log('⏳ Skipping auto-save - still loading ticket');
-      return;
-    }
-
-    // Save IMMEDIATELY on every change - no debounce to prevent data loss
-    performAutoSave();
-  }, [isOpen, state.ticketId, state.services, state.selectedClient, state.discounts.discount, performAutoSave]);
+  const { performAutoSave } = useTicketPersistence({
+    isOpen,
+    ticketId: state.ticketId,
+    services: state.services,
+    selectedClient: state.selectedClient,
+    discounts: state.discounts,
+    dispatch,
+    reduxDispatch,
+  });
 
   const {
     ticketId,
@@ -457,887 +247,49 @@ export default function TicketPanel({
     return totals;
   }, [services]);
 
+  // Helper for dialog toggles
+  const setShowDiscardTicketConfirm = (value: boolean) => dispatch(ticketActions.toggleDialog("showDiscardTicketConfirm", value));
+
   // ============================================================================
-  // TICKET CREATION - Only create ticket when user explicitly chooses an action
+  // TICKET ACTIONS HOOK - All ticket action handlers
   // ============================================================================
-
-  // Convert local TicketService to CheckoutTicketService for Redux
-  const convertToCheckoutServices = (localServices: TicketService[]): CheckoutTicketService[] => {
-    return localServices.map(s => ({
-      id: s.id,
-      serviceId: s.serviceId,
-      serviceName: s.serviceName,
-      price: s.price,
-      duration: s.duration,
-      status: s.status as ServiceStatus,
-      staffId: s.staffId,
-      staffName: s.staffName,
-      startTime: s.startTime,
-    }));
-  };
-
-  // Create ticket with specified status (waiting, in-service, or completed/pending)
-  type TicketStatus = 'waiting' | 'in-service' | 'completed';
-
-  const createTicketWithStatus = async (status: TicketStatus): Promise<boolean> => {
-    if (services.length === 0) {
-      toast({
-        title: "No Services",
-        description: "Add at least one service before saving the ticket.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    const checkoutServices = convertToCheckoutServices(services);
-    const clientName = selectedClient
-      ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
-      : 'Walk-in';
-
-    const statusLabels: Record<TicketStatus, string> = {
-      'waiting': 'Waitlist',
-      'in-service': 'In Service',
-      'completed': 'Pending',
-    };
-
-    try {
-      // If ticketId exists, UPDATE the existing ticket instead of creating a new one
-      if (ticketId) {
-        console.log('📝 Updating existing ticket:', ticketId, 'with status:', status);
-        await reduxDispatch(updateCheckoutTicket({
-          ticketId,
-          updates: {
-            clientId: selectedClient?.id,
-            clientName,
-            services: checkoutServices,
-            notes: undefined,
-            discount,
-            subtotal,
-            tax,
-            total,
-            status, // Pass the desired status
-          },
-        })).unwrap();
-
-        toast({
-          title: "Ticket Updated",
-          description: `Ticket updated and saved to ${statusLabels[status]}`,
-        });
-
-        // Mark ticket as saved so close confirmation won't show
-        dispatch(ticketActions.markTicketSaved());
-
-        console.log(`✅ Updated ticket in ${statusLabels[status]}:`, ticketId);
-        return true;
-      }
-
-      // No ticketId - create a new ticket
-      const result = await reduxDispatch(createCheckoutTicket({
-        clientId: selectedClient?.id,
-        clientName,
-        services: checkoutServices,
-        notes: undefined,
-        discount,
-        subtotal,
-        tax,
-        total,
-        status, // Pass the desired status
-      })).unwrap();
-
-      toast({
-        title: "Ticket Created",
-        description: `Ticket #${result.number} added to ${statusLabels[status]}`,
-      });
-
-      // Mark ticket as saved so close confirmation won't show
-      dispatch(ticketActions.markTicketSaved());
-
-      console.log(`✅ Created ticket in ${statusLabels[status]}:`, result.id, result.number);
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to save ticket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save ticket. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  // Handler for "Check In" - creates ticket in Waitlist
-  const handleCheckIn = async () => {
-    const success = await createTicketWithStatus('waiting');
-    if (success) {
-      dispatch(ticketActions.resetTicket());
-      setShowDiscardTicketConfirm(false);
-      onClose();
-    }
-  };
-
-  // Handler for "Start Service" - creates ticket in In Service
-  const handleStartService = async () => {
-    const success = await createTicketWithStatus('in-service');
-    if (success) {
-      dispatch(ticketActions.resetTicket());
-      setShowDiscardTicketConfirm(false);
-      onClose();
-    }
-  };
-
-  // Handler for "Save to Pending" - creates ticket in Pending (awaiting payment)
-  const handleSaveToPending = async () => {
-    const success = await createTicketWithStatus('completed');
-    if (success) {
-      dispatch(ticketActions.resetTicket());
-      setShowDiscardTicketConfirm(false);
-      onClose();
-    }
-  };
-
-  // Handler for "Disregard" - just close without saving
-  const handleDisregard = () => {
-    dispatch(ticketActions.resetTicket());
-    setShowDiscardTicketConfirm(false);
-    onClose();
-  };
-
-  const handleCreateClient = (newClient: Partial<Client>) => {
-    const client: Client = {
-      id: Math.random().toString(),
-      firstName: newClient.firstName || "",
-      lastName: newClient.lastName || "",
-      phone: newClient.phone || "",
-      email: newClient.email,
-    };
-    dispatch(ticketActions.setClient(client));
-    toast({
-      title: "Client Added",
-      description: `${client.firstName} ${client.lastName} added to ticket`,
-    });
-  };
-
-  const handleAddServices = (selectedServices: Service[], staffId?: string, staffName?: string) => {
-    const targetStaffId = staffId || preSelectedStaff?.id || activeStaffId || undefined;
-    const targetStaffName = staffName || preSelectedStaff?.name || (targetStaffId && staffMembers.find(s => s.id === targetStaffId)?.name) || undefined;
-
-    const newTicketServices: TicketService[] = selectedServices.map(service => ({
-      id: Math.random().toString(),
-      serviceId: service.id,
-      serviceName: service.name,
-      category: service.category,
-      price: service.price,
-      duration: service.duration,
-      status: "not_started" as const,
-      staffId: targetStaffId,
-      staffName: targetStaffName,
-    }));
-
-    dispatch(ticketActions.addService(newTicketServices));
-    
-    toast({
-      title: `${selectedServices.length} Service${selectedServices.length > 1 ? 's' : ''} Added`,
-      description: targetStaffName ? `Assigned to ${targetStaffName}` : "Service added to ticket",
-    });
-    console.log(`Added ${selectedServices.length} service(s)`, { staffId: targetStaffId, staffName: targetStaffName });
-  };
-
-  // Handler for adding gift cards from the new GiftCardGrid component
-  const handleAddGiftCard = (giftCardData: GiftCardSaleData) => {
-    const giftCardService: TicketService = {
-      id: `gc-${Date.now()}`,
-      serviceId: `giftcard-${giftCardData.amount}`,
-      serviceName: `$${giftCardData.amount} Gift Card`,
-      category: "Gift Card",
-      price: giftCardData.amount,
-      duration: 0,
-      status: "not_started",
-      // Store gift card metadata for later processing (including code!)
-      metadata: {
-        type: 'gift_card',
-        deliveryMethod: giftCardData.deliveryMethod,
-        recipientName: giftCardData.recipientName,
-        recipientEmail: giftCardData.recipientEmail,
-        recipientPhone: giftCardData.recipientPhone,
-        message: giftCardData.message,
-        denominationId: giftCardData.denominationId,
-        giftCardCode: giftCardData.giftCardCode, // CRITICAL: Store the code for database creation
-        isPhysicalCard: giftCardData.isPhysicalCard, // Track if physical card activation
-      },
-    };
-
-    dispatch(ticketActions.addService([giftCardService]));
-
-    toast({
-      title: "Gift Card Added",
-      description: `$${giftCardData.amount} gift card added to ticket (${giftCardData.giftCardCode})`,
-    });
-  };
-
-  const handleAddStaff = (staffId: string, staffName: string) => {
-    dispatch(ticketActions.addStaff(staffId));
-    toast({
-      title: "Staff Added",
-      description: `${staffName} added to ticket`,
-    });
-    console.log("Staff added to ticket:", { staffId, staffName });
-  };
-
-  const handleAddServiceToStaff = (staffId: string, staffName: string) => {
-    if (reassigningServiceIds.length > 0) {
-      if (staffId && staffName) {
-        reassigningServiceIds.forEach(serviceId => {
-          dispatch(ticketActions.updateService(serviceId, { staffId, staffName }));
-        });
-        dispatch(ticketActions.addStaff(staffId));
-      }
-      dispatch(ticketActions.setReassigningServiceIds([]));
-      dispatch(ticketActions.setFullPageTab("services"));
-    } else {
-      if (staffId && staffName) {
-        dispatch(ticketActions.setPreSelectedStaff({ id: staffId, name: staffName }));
-        dispatch(ticketActions.setActiveStaff(staffId));
-        if (!assignedStaffIds.includes(staffId)) {
-          dispatch(ticketActions.addStaff(staffId));
-        }
-      } else {
-        dispatch(ticketActions.setPreSelectedStaff(null));
-      }
-      dispatch(ticketActions.setFullPageTab("services"));
-    }
-  };
-
-  const handleReassignStaff = (serviceIdOrIds: string | string[]) => {
-    const ids = Array.isArray(serviceIdOrIds) ? serviceIdOrIds : [serviceIdOrIds];
-    dispatch(ticketActions.setReassigningServiceIds(ids));
-    dispatch(ticketActions.setFullPageTab("staff"));
-  };
-
-  const handleUpdateService = (serviceId: string, updates: Partial<TicketService>) => {
-    // Update local state immediately for responsive UI
-    dispatch(ticketActions.updateService(serviceId, updates));
-
-    // Persist status changes to Supabase if we have a ticket ID
-    if (updates.status && ticketId) {
-      const service = services.find(s => s.id === serviceId);
-      if (service && service.serviceId) {
-        reduxDispatch(updateServiceStatusInSupabase({
-          ticketId,
-          serviceId: service.serviceId,
-          newStatus: updates.status as TicketServiceStatus,
-          userId: 'current-user', // TODO: Get from auth context
-          deviceId: 'web-browser', // TODO: Get from device context
-        })).then(() => {
-          console.log('✅ Service status persisted:', updates.status);
-        }).catch((error) => {
-          console.error('❌ Failed to persist service status:', error);
-        });
-      }
-    }
-  };
-
-  const handleRemoveService = (serviceId: string) => {
-    const serviceToRemove = services.find(s => s.id === serviceId);
-    if (!serviceToRemove) return;
-    
-    const previousServices = [...services];
-    dispatch(ticketActions.removeService(serviceId));
-    
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
-    
-    toast({
-      title: "Service Removed",
-      description: `${serviceToRemove.serviceName} removed from ticket`,
-      action: (
-        <ToastAction altText="Undo" onClick={() => {
-          if (undoTimeoutRef.current) {
-            clearTimeout(undoTimeoutRef.current);
-          }
-          previousServices.forEach(s => {
-            if (s.id === serviceId) {
-              dispatch(ticketActions.addService([s]));
-            }
-          });
-          toast({
-            title: "Service Restored",
-            description: `${serviceToRemove.serviceName} restored to ticket`,
-          });
-        }}>
-          Undo
-        </ToastAction>
-      ),
-    });
-    
-    undoTimeoutRef.current = setTimeout(() => {
-      undoTimeoutRef.current = null;
-    }, 5000);
-  };
-
-  const handleRemoveClient = (client: Client | null) => {
-    if (client === null) {
-      // Removing client
-      if (selectedClient && services.length > 0) {
-        // Has services - show confirmation dialog
-        dispatch(ticketActions.toggleDialog("showRemoveClientConfirm", true));
-      } else if (selectedClient) {
-        // No services - remove directly
-        dispatch(ticketActions.removeClient());
-      }
-    } else {
-      // Setting/changing client
-      dispatch(ticketActions.setClient(client));
-    }
-  };
-  
-  const confirmRemoveClient = () => {
-    dispatch(ticketActions.removeClient());
-  };
-
-  const handleRemoveStaff = (staffId: string) => {
-    const staffMember = staffMembers.find(s => s.id === staffId);
-    const staffName = staffMember?.name || "Staff";
-    const servicesCount = services.filter(s => s.staffId === staffId).length;
-    
-    if (assignedStaffIds.length === 1 && servicesCount > 0) {
-      dispatch(ticketActions.setPreventStaffRemovalMessage(
-        `Cannot remove ${staffName}. They are the last staff member with ${servicesCount} service(s). Please reassign their services first.`
-      ));
-      dispatch(ticketActions.toggleDialog("showPreventStaffRemoval", true));
-      return;
-    }
-    
-    const previousServices = [...services];
-    const previousAssignedStaffIds = [...assignedStaffIds];
-    const previousActiveStaffId = activeStaffId;
-    
-    dispatch(ticketActions.removeStaff(staffId, true));
-    
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
-    
-    toast({
-      title: "Staff Removed",
-      description: `${staffName} and ${servicesCount} service${servicesCount !== 1 ? 's' : ''} removed`,
-      action: (
-        <ToastAction altText="Undo" onClick={() => {
-          if (undoTimeoutRef.current) {
-            clearTimeout(undoTimeoutRef.current);
-          }
-          const removedServices = previousServices.filter(s => s.staffId === staffId);
-          removedServices.forEach(s => dispatch(ticketActions.addService([s])));
-          dispatch(ticketActions.setAssignedStaffIds(previousAssignedStaffIds));
-          dispatch(ticketActions.setActiveStaff(previousActiveStaffId));
-          toast({
-            title: "Staff Restored",
-            description: `${staffName} and services restored to ticket`,
-          });
-        }}>
-          Undo
-        </ToastAction>
-      ),
-    });
-    
-    undoTimeoutRef.current = setTimeout(() => {
-      undoTimeoutRef.current = null;
-    }, 5000);
-  };
-
-
-  const handleAddPackage = (
-    packageData: {
-      id: string;
-      name: string;
-      description: string;
-      services: { serviceId: string; serviceName: string; originalPrice: number; duration?: number }[];
-      packagePrice: number;
-      validDays: number;
-      category: string;
-    },
-    staffId: string
-  ) => {
-    const staffMember = staffMembers.find((s) => s.id === staffId);
-    if (!staffMember) return;
-
-    const packageServices: TicketService[] = packageData.services.map((service, index) => ({
-      id: `pkg-${packageData.id}-${service.serviceId}-${Date.now()}-${index}`,
-      serviceId: service.serviceId,
-      serviceName: service.serviceName,
-      price: service.originalPrice,
-      duration: service.duration || 30,
-      staffId: staffId,
-      staffName: staffMember.name,
-      status: "not_started" as const,
-    }));
-
-    const totalOriginalPrice = packageData.services.reduce((sum, s) => sum + s.originalPrice, 0);
-    const packageDiscount = totalOriginalPrice - packageData.packagePrice;
-
-    dispatch(ticketActions.addPackage(packageServices, packageDiscount, true));
-
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
-    
-    toast({
-      title: "Package Added",
-      description: `${packageData.name} added to ${staffMember.name} (saved $${packageDiscount.toFixed(2)})`,
-      action: (
-        <ToastAction altText="Undo" onClick={() => {
-          if (undoTimeoutRef.current) {
-            clearTimeout(undoTimeoutRef.current);
-          }
-          dispatch(ticketActions.undoLastAction());
-        }}>
-          Undo
-        </ToastAction>
-      ),
-    });
-    
-    undoTimeoutRef.current = setTimeout(() => {
-      undoTimeoutRef.current = null;
-    }, 5000);
-  };
-
-  const handleAddProducts = (
-    items: { productId: string; name: string; price: number; quantity: number }[]
-  ) => {
-    const productServices: TicketService[] = items.flatMap((item) => {
-      const products: TicketService[] = [];
-      for (let i = 0; i < item.quantity; i++) {
-        products.push({
-          id: `product-${item.productId}-${Date.now()}-${i}`,
-          serviceId: `product-${item.productId}`,
-          serviceName: `[Product] ${item.name}`,
-          price: item.price,
-          duration: 0,
-          staffId: undefined,
-          status: "completed" as const,
-        });
-      }
-      return products;
-    });
-
-    dispatch(ticketActions.addProducts(productServices, true));
-
-    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-    if (undoTimeoutRef.current) {
-      clearTimeout(undoTimeoutRef.current);
-    }
-    
-    toast({
-      title: "Products Added",
-      description: `${totalItems} product${totalItems !== 1 ? "s" : ""} added ($${totalValue.toFixed(2)})`,
-      action: (
-        <ToastAction altText="Undo" onClick={() => {
-          if (undoTimeoutRef.current) {
-            clearTimeout(undoTimeoutRef.current);
-          }
-          dispatch(ticketActions.undoLastAction());
-        }}>
-          Undo
-        </ToastAction>
-      ),
-    });
-    
-    undoTimeoutRef.current = setTimeout(() => {
-      undoTimeoutRef.current = null;
-    }, 5000);
-  };
-
-  const handleRepeatPurchase = (
-    items: { id: string; name: string; price: number; staffName: string; type: string }[]
-  ) => {
-    const repeatedServices: TicketService[] = items.map((item, index) => ({
-      id: `repeat-${item.id}-${Date.now()}-${index}`,
-      serviceId: item.id,
-      serviceName: item.type === "product" ? `[Product] ${item.name}` : item.name,
-      price: item.price,
-      duration: item.type === "product" ? 0 : 30,
-      staffId: undefined,
-      status: item.type === "product" ? ("completed" as const) : ("not_started" as const),
-    }));
-
-    dispatch(ticketActions.addService(repeatedServices));
-
-    toast({
-      title: "Purchase Repeated",
-      description: `${items.length} item${items.length !== 1 ? "s" : ""} added from previous purchase`,
-    });
-  };
-
-  const handleRefund = (data: {
-    type: "full" | "partial";
-    amount: number;
-    reason: string;
-    refundMethod: string;
-    serviceIds: string[];
-  }) => {
-    toast({
-      title: "Refund Processed",
-      description: `$${data.amount.toFixed(2)} refunded via ${data.refundMethod}`,
-    });
-    dispatch(ticketActions.toggleDialog("showRefundVoid", false));
-  };
-
-  const handleVoid = (reason: string) => {
-    dispatch(ticketActions.voidTicket());
-    
-    toast({
-      title: "Transaction Voided",
-      description: `Transaction has been voided: ${reason}`,
-    });
-    dispatch(ticketActions.toggleDialog("showRefundVoid", false));
-  };
-
-
-  const handleDuplicateServices = (serviceIds: string[]) => {
-    dispatch(ticketActions.duplicateServices(serviceIds));
-  };
-
-  const handleSplitTicket = (serviceIds: string[], keepClient: boolean) => {
-    const servicesToSplit = services.filter((s) => serviceIds.includes(s.id));
-    const remainingServices = services.filter((s) => !serviceIds.includes(s.id));
-    
-    const splitSubtotal = servicesToSplit.reduce((sum, s) => sum + s.price, 0);
-    const splitDiscountPortion = subtotal > 0 ? (splitSubtotal / subtotal) * discount : 0;
-    
-    const splitStaffIds = Array.from(new Set(
-      servicesToSplit
-        .filter(s => s.staffId)
-        .map(s => s.staffId as string)
-    ));
-    
-    const firstStaffId = servicesToSplit.find(s => s.staffId)?.staffId || null;
-    
-    dispatch(ticketActions.splitTicket(
-      serviceIds,
-      keepClient,
-      splitDiscountPortion,
-      splitStaffIds,
-      firstStaffId
-    ));
-    
-    toast({
-      title: "Ticket Split",
-      description: `Created new ticket with ${servicesToSplit.length} service${servicesToSplit.length !== 1 ? 's' : ''}. Original ticket has ${remainingServices.length} service${remainingServices.length !== 1 ? 's' : ''}.`,
-    });
-    
-    console.log("Ticket split:", {
-      splitServices: servicesToSplit.length,
-      remainingServices: remainingServices.length,
-      splitDiscount: splitDiscountPortion,
-    });
-  };
-
-  const handleMergeTickets = (ticketIds: string[], keepCurrentClient: boolean) => {
-    const ticketsToMerge = MOCK_OPEN_TICKETS.filter((t) => ticketIds.includes(t.id));
-    
-    const mergedServices: TicketService[] = ticketsToMerge.flatMap((t) =>
-      t.services.map((s) => ({
-        ...s,
-        id: Math.random().toString(),
-      }))
-    );
-    
-    const mergedDiscount = ticketsToMerge.reduce((sum, t) => sum + t.discount, 0);
-    
-    const mergedStaffIds = mergedServices
-      .filter((s) => s.staffId)
-      .map((s) => s.staffId as string);
-    
-    dispatch(ticketActions.mergeTickets(mergedServices, mergedDiscount, mergedStaffIds));
-    
-    if (!keepCurrentClient) {
-      dispatch(ticketActions.removeClient());
-    }
-    
-    toast({
-      title: "Tickets Merged",
-      description: `Combined ${ticketsToMerge.length + 1} tickets with ${services.length + mergedServices.length} total services.`,
-    });
-    
-    console.log("Tickets merged:", {
-      mergedTickets: ticketIds.length,
-      totalServices: services.length + mergedServices.length,
-      combinedDiscount: discount + mergedDiscount,
-    });
-  };
-
-  const handleCheckout = () => {
-    dispatch(ticketActions.toggleDialog("showPaymentModal", true));
-  };
-
-  /**
-   * CRITICAL: Process gift card sales after checkout completion
-   * Creates actual gift card records in IndexedDB for each gift card sold
-   */
-  const processGiftCardSales = async (
-    ticketId: string,
-    ticketServices: TicketService[],
-    purchaserId?: string
-  ): Promise<void> => {
-    // Get auth context for gift card creation
-    const authState = storeAuthManager.getState();
-    const storeId = authState.store?.storeId;
-    const userId = authState.member?.memberId || 'system';
-    const deviceId = authState.store?.deviceId || 'unknown-device';
-    const tenantId = authState.store?.tenantId || 'default-tenant';
-
-    if (!storeId) {
-      console.warn('⚠️ Cannot process gift cards - no store ID');
-      return;
-    }
-
-    // Filter for gift card services
-    const giftCardServices = ticketServices.filter(
-      (s) => s.metadata?.type === 'gift_card'
-    );
-
-    if (giftCardServices.length === 0) {
-      return; // No gift cards to process
-    }
-
-    console.log(`🎁 Processing ${giftCardServices.length} gift card sale(s)...`);
-
-    for (const service of giftCardServices) {
-      const metadata = service.metadata;
-      if (!metadata) continue;
-
-      try {
-        // Prepare gift card input
-        const giftCardInput: IssueGiftCardInput = {
-          type: (metadata.isPhysicalCard ? 'physical' : 'digital') as GiftCardType,
-          amount: service.price,
-          purchaserId: purchaserId,
-          purchaserName: selectedClient
-            ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
-            : 'Walk-in',
-          recipientName: metadata.recipientName,
-          recipientEmail: metadata.recipientEmail,
-          recipientPhone: metadata.recipientPhone,
-          message: metadata.message,
-          deliveryMethod: metadata.deliveryMethod,
-          isReloadable: true,
-        };
-
-        // Issue the gift card - this creates it in IndexedDB
-        const result = await giftCardDB.issueGiftCard(
-          giftCardInput,
-          storeId,
-          userId,
-          deviceId,
-          tenantId,
-          ticketId
-        );
-
-        console.log(
-          `✅ Gift card created: ${result.giftCard.code} (Balance: $${result.giftCard.currentBalance})`
-        );
-
-        // TODO: If delivery method is 'email', queue email for sending when online
-        if (metadata.deliveryMethod === 'email' && metadata.recipientEmail) {
-          console.log(`📧 Email delivery queued for ${metadata.recipientEmail}`);
-          // Email implementation will be added in Phase 6
-        }
-      } catch (error) {
-        console.error('❌ Failed to create gift card:', error);
-        // Don't throw - we still want to complete the transaction
-        // The gift card can be manually issued later if needed
-      }
-    }
-  };
-
-  const handleCompletePayment = async (payment: any) => {
-    // Mark all services as completed
-    services.forEach((s) => {
-      if (s.status !== "completed") {
-        dispatch(ticketActions.updateService(s.id, { status: "completed" }));
-      }
-    });
-
-    console.log("Payment completed:", { selectedClient, services, payment });
-
-    // Close the payment modal first
-    dispatch(ticketActions.toggleDialog("showPaymentModal", false));
-
-    // Track the effective ticket ID (either existing or newly created)
-    let effectiveTicketId = ticketId;
-
-    try {
-      // 1. If no ticketId exists, create the ticket first (for direct checkout without prior save)
-      if (!effectiveTicketId && services.length > 0) {
-        console.log("📝 Creating ticket for direct checkout (no prior save)...");
-        const checkoutServices = convertToCheckoutServices(services);
-        const clientName = selectedClient
-          ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
-          : 'Walk-in';
-
-        const result = await reduxDispatch(createCheckoutTicket({
-          clientId: selectedClient?.id,
-          clientName,
-          services: checkoutServices,
-          notes: undefined,
-          discount,
-          subtotal,
-          tax,
-          total,
-          status: 'completed', // Mark as completed since we're paying now
-        })).unwrap();
-
-        effectiveTicketId = result.id;
-        console.log("✅ Ticket created for direct checkout:", effectiveTicketId, "Number:", result.number);
-      }
-
-      // 2. Complete the ticket in the database (marks status as 'completed')
-      if (effectiveTicketId) {
-        console.log("📝 Completing ticket in database:", effectiveTicketId);
-        const completedTicket = await dataService.tickets.complete(effectiveTicketId, payment.methods || []);
-        if (completedTicket) {
-          console.log("✅ Ticket completed:", completedTicket.id, "Status:", completedTicket.status);
-        }
-      }
-
-      // 2.5. CRITICAL: Process gift card sales - create actual gift cards in database
-      await processGiftCardSales(effectiveTicketId || '', services, selectedClient?.id);
-
-      // 3. Create transaction record for the payment
-      const primaryMethod = payment.methods?.[0];
-      const primaryPaymentMethod = (primaryMethod?.type || 'cash') as 'cash' | 'card' | 'gift_card' | 'other';
-
-      // Bug #10 fix: Get ticket number from state first, then localStorage fallback
-      const storedTicket = localStorage.getItem('checkout-pending-ticket');
-      const parsedStoredTicket = storedTicket ? JSON.parse(storedTicket) : null;
-      const ticketNumber = parsedStoredTicket?.number || 0;
-
-      // Build payment details based on payment method
-      const paymentDetails: {
-        amountTendered?: number;
-        changeDue?: number;
-        authCode?: string;
-        transactionId?: string;
-        splits?: Array<{ method: 'cash' | 'card' | 'gift_card' | 'other'; amount: number; details: any }>;
-      } = {};
-
-      if (primaryPaymentMethod === 'cash' && primaryMethod?.tendered) {
-        paymentDetails.amountTendered = primaryMethod.tendered;
-        paymentDetails.changeDue = primaryMethod.tendered - primaryMethod.amount;
-      }
-
-      // Bug #9 fix: Capture card payment auth code and transaction ID
-      if (primaryPaymentMethod === 'card' && primaryMethod) {
-        paymentDetails.authCode = primaryMethod.authCode || primaryMethod.authorization_code;
-        paymentDetails.transactionId = primaryMethod.transactionId || primaryMethod.transaction_id;
-      }
-
-      // Handle split payments
-      if (payment.methods && payment.methods.length > 1) {
-        paymentDetails.splits = payment.methods.map((m: any) => ({
-          method: m.type as 'cash' | 'card' | 'gift_card' | 'other',
-          amount: m.amount,
-          details: m,
-        }));
-      }
-
-      // Create transaction - cast to any for type flexibility with tipDistribution
-      const transactionData = {
-        ticketId: effectiveTicketId || `ticket-${Date.now()}`,
-        ticketNumber: ticketNumber,
-        clientId: selectedClient?.id,
-        clientName: selectedClient
-          ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() || 'Walk-in'
-          : 'Walk-in',
-        subtotal: subtotal,
-        tax: tax,
-        tip: payment.tip || 0,
-        tipDistribution: payment.tipDistribution || [], // Bug #11 fix: Include tip distribution
-        discount: discount || 0,
-        paymentMethod: primaryPaymentMethod,
-        paymentDetails: paymentDetails,
-        services: services.map(s => ({
-          name: s.serviceName,
-          price: s.price,
-          staffName: s.staffName,
-        })),
-        notes: '',
-      };
-      await dataService.transactions.create(transactionData as any);
-      console.log("✅ Transaction record created");
-
-      // 3. Mark ticket as paid and move from pending to closed
-      if (effectiveTicketId) {
-        console.log("📝 Marking ticket as paid:", effectiveTicketId);
-        // Map payment method to expected format
-        const mappedPaymentMethod = primaryPaymentMethod === 'card' ? 'credit-card' : primaryPaymentMethod;
-        await reduxDispatch(markTicketAsPaid({
-          ticketId: effectiveTicketId,
-          paymentMethod: mappedPaymentMethod as any,
-          paymentDetails: paymentDetails,
-          tip: payment.tip || 0,
-        })).unwrap();
-        console.log("✅ Ticket marked as paid and moved to closed");
-      }
-
-      // Show success toast
-      toast({
-        title: "Payment Complete!",
-        description: `Successfully processed payment of $${total.toFixed(2)}. Ticket closed.`,
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error("❌ Error completing ticket:", error);
-      // Still show success since payment was processed
-      toast({
-        title: "Payment Complete!",
-        description: `Payment of $${total.toFixed(2)} processed. Some records may sync later.`,
-        duration: 3000,
-      });
-    }
-
-    // Reset ticket state and close the panel
-    dispatch(ticketActions.resetTicket());
-
-    const closeTimeout = setTimeout(() => {
-      onClose();
-    }, 1500);
-
-    if (checkoutCloseTimeoutRef.current) {
-      clearTimeout(checkoutCloseTimeoutRef.current);
-    }
-    checkoutCloseTimeoutRef.current = closeTimeout;
-  };
-
-  const handleReset = () => {
-    // Reset clears services only, keeps the ticket open
-    if (services.length > 0) {
-      dispatch(ticketActions.clearServices());
-      toast({
-        title: "Cart cleared",
-        description: "All services have been removed from the ticket.",
-      });
-    }
-  };
-
-  // performReset - used by discard dialog to fully reset ticket
-  const performReset = () => {
-    dispatch(ticketActions.resetTicket());
-  };
-  void performReset; // Used by discard dialog
-
-  // Handle close attempt - show exit confirmation only for NEW unsaved tickets with services
-  const handleCloseAttempt = () => {
-    if (services.length > 0 && isNewTicket) {
-      // Only show confirmation for new unsaved tickets
-      dispatch(ticketActions.toggleDialog("showDiscardTicketConfirm", true));
-    } else {
-      // Already saved ticket or no services - just close
-      onClose();
-    }
-  };
+  const {
+    handleCheckIn,
+    handleStartService,
+    handleSaveToPending,
+    handleDisregard,
+    handleCreateClient,
+    handleAddServices,
+    handleAddGiftCard,
+    handleAddStaff,
+    handleAddServiceToStaff,
+    handleReassignStaff,
+    handleUpdateService,
+    handleRemoveService,
+    handleRemoveClient,
+    confirmRemoveClient,
+    handleRemoveStaff,
+    handleAddPackage,
+    handleAddProducts,
+    handleRepeatPurchase,
+    handleRefund,
+    handleVoid,
+    handleDuplicateServices,
+    handleSplitTicket,
+    handleMergeTickets,
+    handleCheckout,
+    handleCompletePayment,
+    handleReset,
+    handleCloseAttempt,
+  } = useTicketActions({
+    state,
+    dispatch,
+    toast,
+    staffMembers,
+    onClose,
+    setShowDiscardTicketConfirm,
+    checkoutCloseTimeoutRef,
+  });
 
   useEffect(() => {
     localStorage.setItem("checkout-default-mode", mode);
@@ -1390,69 +342,15 @@ export default function TicketPanel({
     }
   }, [lastScrollY]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const modifier = isMac ? e.metaKey : e.ctrlKey;
-      
-      if (e.key === '?' && !e.shiftKey) {
-        e.preventDefault();
-        dispatch(ticketActions.toggleDialog("showKeyboardShortcuts", true));
-        return;
-      }
-      
-      if (e.key === 'Escape') {
-        if (showKeyboardShortcuts) {
-          dispatch(ticketActions.toggleDialog("showKeyboardShortcuts", false));
-        } else if (showPaymentModal) {
-          dispatch(ticketActions.toggleDialog("showPaymentModal", false));
-        } else {
-          onClose();
-        }
-        return;
-      }
-      
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-      
-      if (modifier && e.key === 'k') {
-        e.preventDefault();
-        dispatch(ticketActions.setFullPageTab("services"));
-        setTimeout(() => {
-          const searchInput = document.querySelector('[data-testid="input-search-service-full"]') as HTMLInputElement;
-          if (searchInput) {
-            searchInput.focus();
-          }
-        }, 100);
-        return;
-      }
-      
-      if (modifier && e.key === 'f') {
-        e.preventDefault();
-        setTimeout(() => {
-          const searchInput = document.querySelector('[data-testid="input-search-client"]') as HTMLInputElement;
-          if (searchInput) {
-            searchInput.focus();
-          }
-        }, 100);
-        return;
-      }
-      
-      if (modifier && e.key === 'Enter') {
-        e.preventDefault();
-        if (canCheckout) {
-          handleCheckout();
-        }
-        return;
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showKeyboardShortcuts, showPaymentModal, canCheckout, onClose]);
+  useTicketKeyboard({
+    isOpen,
+    showKeyboardShortcuts,
+    showPaymentModal,
+    canCheckout,
+    onClose,
+    dispatch,
+    handleCheckout,
+  });
 
   if (!isOpen) return null;
 
@@ -1472,7 +370,6 @@ export default function TicketPanel({
   const setShowReceiptPreview = (value: boolean) => dispatch(ticketActions.toggleDialog("showReceiptPreview", value));
   const setShowRefundVoid = (value: boolean) => dispatch(ticketActions.toggleDialog("showRefundVoid", value));
   const setShowRemoveClientConfirm = (value: boolean) => dispatch(ticketActions.toggleDialog("showRemoveClientConfirm", value));
-  const setShowDiscardTicketConfirm = (value: boolean) => dispatch(ticketActions.toggleDialog("showDiscardTicketConfirm", value));
   const setShowPreventStaffRemoval = (value: boolean) => dispatch(ticketActions.toggleDialog("showPreventStaffRemoval", value));
   const setShowKeyboardShortcuts = (value: boolean) => dispatch(ticketActions.toggleDialog("showKeyboardShortcuts", value));
   const setShowSplitTicketDialog = (value: boolean) => dispatch(ticketActions.toggleDialog("showSplitTicketDialog", value));
@@ -2223,6 +1120,10 @@ export default function TicketPanel({
                 serviceTotal: staffServiceTotals[s.id],
               }))}
             ticketId={ticketId || undefined} // Bug #8 fix: Pass actual ticket ID
+            onShowReceipt={() => {
+              setShowPaymentModal(false);
+              setShowReceiptPreview(true);
+            }}
           />
         </Suspense>
       )}
@@ -2574,52 +1475,18 @@ export default function TicketPanel({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showRemoveClientConfirm} onOpenChange={setShowRemoveClientConfirm}>
-        <AlertDialogContent data-testid="dialog-remove-client">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              Remove Client?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              This ticket has {services.length} service(s). Are you sure you want to remove the client? The services will remain but will be unassigned from the client.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-remove-client">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmRemoveClient}
-              data-testid="button-confirm-remove-client"
-            >
-              Remove Client
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RemoveClientDialog
+        open={showRemoveClientConfirm}
+        onOpenChange={setShowRemoveClientConfirm}
+        onConfirm={confirmRemoveClient}
+        serviceCount={services.length}
+      />
 
-      <AlertDialog open={showPreventStaffRemoval} onOpenChange={setShowPreventStaffRemoval}>
-        <AlertDialogContent data-testid="dialog-prevent-staff-removal">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              Cannot Remove Staff
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {preventStaffRemovalMessage}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction 
-              onClick={() => setShowPreventStaffRemoval(false)}
-              data-testid="button-ok-prevent-staff-removal"
-            >
-              OK
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PreventStaffRemovalDialog
+        open={showPreventStaffRemoval}
+        onOpenChange={setShowPreventStaffRemoval}
+        message={preventStaffRemovalMessage}
+      />
 
       <SplitTicketDialog
         open={showSplitTicketDialog}
@@ -2715,171 +1582,23 @@ export default function TicketPanel({
       />
 
       {/* Client Selector Sheet - Slides from right */}
-      <Sheet
+      <ClientSelectorSheet
         open={showClientSelector}
         onOpenChange={(open) => dispatch(ticketActions.toggleDialog("showClientSelector", open))}
-      >
-        <SheetContent side="right" className="w-full sm:max-w-md p-0">
-          <SheetHeader className="px-6 py-4 border-b">
-            <SheetTitle>Select Client</SheetTitle>
-            <SheetDescription>
-              Search for an existing client or create a new one
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-6 py-4 overflow-y-auto h-[calc(100vh-120px)]">
-            <ClientSelector
-              selectedClient={null}
-              onSelectClient={(client) => {
-                if (client) {
-                  dispatch(ticketActions.setClient(client));
-                }
-                dispatch(ticketActions.toggleDialog("showClientSelector", false));
-              }}
-              onCreateClient={(newClient) => {
-                handleCreateClient(newClient);
-                dispatch(ticketActions.toggleDialog("showClientSelector", false));
-              }}
-              inDialog={true}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
+        onSelectClient={(client) => dispatch(ticketActions.setClient(client))}
+        onCreateClient={handleCreateClient}
+      />
 
       {/* Client Profile Dialog - Full Comprehensive Profile */}
-      <Dialog
+      <ClientProfileDialog
         open={showClientProfile}
         onOpenChange={(open) => dispatch(ticketActions.toggleDialog("showClientProfile", open))}
-      >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedClient && (
-            <>
-              <DialogHeader className="border-b pb-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-primary">
-                      {selectedClient.firstName?.[0]}{selectedClient.lastName?.[0]}
-                    </span>
-                  </div>
-                  <div>
-                    <DialogTitle className="text-2xl">
-                      {selectedClient.firstName} {selectedClient.lastName}
-                    </DialogTitle>
-                    {selectedClient.loyaltyStatus && (
-                      <Badge className={`mt-1 ${
-                        selectedClient.loyaltyStatus === 'gold'
-                          ? 'bg-amber-100 text-amber-700'
-                          : selectedClient.loyaltyStatus === 'silver'
-                            ? 'bg-gray-200 text-gray-600'
-                            : 'bg-orange-100 text-orange-600'
-                      }`}>
-                        {selectedClient.loyaltyStatus.toUpperCase()} Member
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <div className="space-y-6 py-4">
-                {/* Contact Information */}
-                <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Card className="p-3 flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Phone className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Phone</p>
-                        <p className="font-medium">{selectedClient.phone}</p>
-                      </div>
-                    </Card>
-                    {selectedClient.email && (
-                      <Card className="p-3 flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Mail className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Email</p>
-                          <p className="font-medium">{selectedClient.email}</p>
-                        </div>
-                      </Card>
-                    )}
-                  </div>
-                </div>
-
-                {/* Statistics */}
-                <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Statistics</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    <Card className="p-4 text-center">
-                      <p className="text-2xl font-bold text-primary">{selectedClient.totalVisits || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Total Visits</p>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <p className="text-2xl font-bold text-primary">${(selectedClient.lifetimeSpend || 0).toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Lifetime Spend</p>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <p className="text-2xl font-bold text-primary">{selectedClient.rewardPoints || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Reward Points</p>
-                    </Card>
-                  </div>
-                </div>
-
-                {/* Health & Preferences - Only show if allergies or notes exist */}
-                {(selectedClient.allergies?.length || selectedClient.notes) && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Health & Preferences</h3>
-                    <div className="space-y-3">
-                      {selectedClient.allergies && selectedClient.allergies.length > 0 && (
-                        <Card className="p-3 bg-destructive/5 border-destructive/20">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-destructive">Allergies</p>
-                              <p className="text-sm text-destructive/80 mt-0.5">
-                                {selectedClient.allergies.join(", ")}
-                              </p>
-                            </div>
-                          </div>
-                        </Card>
-                      )}
-                      {selectedClient.notes && (
-                        <Card className="p-3">
-                          <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                          <p className="text-sm">{selectedClient.notes}</p>
-                        </Card>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <Separator />
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => dispatch(ticketActions.toggleDialog("showClientProfile", false))}
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      dispatch(ticketActions.toggleDialog("showClientProfile", false));
-                      dispatch(ticketActions.toggleDialog("showClientSelector", true));
-                    }}
-                  >
-                    Change Client
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+        client={selectedClient}
+        onChangeClient={() => {
+          dispatch(ticketActions.toggleDialog("showClientProfile", false));
+          dispatch(ticketActions.toggleDialog("showClientSelector", true));
+        }}
+      />
     </>
   );
 }

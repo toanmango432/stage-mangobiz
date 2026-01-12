@@ -359,7 +359,7 @@ const uiStaffSlice = createSlice({
           staff.status = status;
         }
       })
-      // NOTE: Clock in/out handlers removed - these are now handled by timesheetSlice matchers below
+      // NOTE: Clock in/out is handled by matchers listening to timesheet actions below
       // Listen to ticket assignment - update staff status and active tickets
       .addMatcher(
         (action) => action.type === 'uiTickets/assign/fulfilled',

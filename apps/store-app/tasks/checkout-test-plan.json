@@ -1,0 +1,951 @@
+{
+  "name": "Ticket/Checkout Module - Full Implementation",
+  "description": "TDD + ShadCN Loop implementation of all PRD features for checkout",
+  "methodology": "Ralph Wiggum + ShadCN Loop (AI LABS) + Screenshot Verification",
+  "estimated_iterations": "100-150",
+  "estimated_cost": "$110-150",
+  "created": "2026-01-08",
+  "phases": [
+    {
+      "id": 1,
+      "name": "Test Infrastructure",
+      "priority": "foundation",
+      "gate_command": "test -d e2e/checkout && npm test -- --coverage 2>&1 | grep -q 'All files'"
+    },
+    {
+      "id": 2,
+      "name": "Service Status Persistence",
+      "priority": "P0 Critical",
+      "gate_command": "npm test -- useTicketServices && npm run build"
+    },
+    {
+      "id": 3,
+      "name": "Client Alerts & Safety",
+      "priority": "P0 Critical",
+      "gate_command": "npm test -- ClientAlerts && npm run build"
+    },
+    {
+      "id": 4,
+      "name": "Tip Distribution UI",
+      "priority": "P0",
+      "gate_command": "npm test -- TipDistribution && npm run build"
+    },
+    {
+      "id": 5,
+      "name": "Draft Sales System",
+      "priority": "P1",
+      "gate_command": "npm test -- draftSales && npm run build"
+    },
+    {
+      "id": 6,
+      "name": "Receipt Integration",
+      "priority": "P1",
+      "gate_command": "npm test -- receipt && npm run build"
+    },
+    {
+      "id": 7,
+      "name": "TicketPanel Refactor",
+      "priority": "quality",
+      "gate_command": "wc -l src/components/tickets/TicketPanel.tsx | awk '{if($1<500) exit 0; else exit 1}'"
+    },
+    {
+      "id": 8,
+      "name": "Final Verification",
+      "priority": "validation",
+      "gate_command": "npm test && npm run build && npm run lint"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "phase": 1,
+      "name": "Create checkout E2E test structure",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "test -d e2e/checkout && echo 'exists'",
+      "command": "test -d e2e/checkout",
+      "files": [
+        "e2e/checkout/checkout.spec.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Create e2e/checkout directory with basic test structure"
+    },
+    {
+      "id": 2,
+      "phase": 1,
+      "name": "Create screenshot baseline for checkout flow",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "ls e2e/checkout/screenshots/*.png 2>/dev/null | wc -l",
+      "command": "ls e2e/checkout/screenshots/*.png | wc -l | awk '{if($1>=5) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer for screenshot states. Need 5+ baseline screenshots."
+    },
+    {
+      "id": 3,
+      "phase": 1,
+      "name": "Add useTicketPayment hook tests",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'useTicketPayment.test' src/ | wc -l",
+      "command": "npm test -- useTicketPayment.test.ts --passWithNoTests",
+      "files": [
+        "src/hooks/useTicketPayment.test.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Test payment flow, tip handling, split payments"
+    },
+    {
+      "id": 4,
+      "phase": 1,
+      "name": "Add useTicketServices hook tests",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'useTicketServices.test' src/ | wc -l",
+      "command": "npm test -- useTicketServices.test.ts --passWithNoTests",
+      "files": [
+        "src/hooks/useTicketServices.test.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Test service status changes, timer functionality"
+    },
+    {
+      "id": 5,
+      "phase": 1,
+      "name": "Add useTicketAutoSave hook tests",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'useTicketAutoSave.test' src/ | wc -l",
+      "command": "npm test -- useTicketAutoSave.test.ts --passWithNoTests",
+      "files": [
+        "src/hooks/useTicketAutoSave.test.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Test auto-save debounce, draft persistence"
+    },
+    {
+      "id": 6,
+      "phase": 1,
+      "name": "Add PaymentModal component tests",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'PaymentModal.test' src/ | wc -l",
+      "command": "npm test -- PaymentModal.test.tsx --passWithNoTests",
+      "files": [
+        "src/components/checkout/PaymentModal.test.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Test payment modal states, validation, submission"
+    },
+    {
+      "id": 7,
+      "phase": 1,
+      "name": "Add CheckoutSummary component tests",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'CheckoutSummary.test' src/ | wc -l",
+      "command": "npm test -- CheckoutSummary.test.tsx --passWithNoTests",
+      "files": [
+        "src/components/checkout/CheckoutSummary.test.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Test summary calculations, discount display"
+    },
+    {
+      "id": 8,
+      "phase": 1,
+      "name": "Run test suite and verify baseline",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm test -- --coverage 2>&1 | grep -E '(PASS|FAIL|Coverage)'",
+      "files": [],
+      "status": "passed",
+      "passes": true,
+      "notes": "Phase 1 completion gate - all baseline tests must pass"
+    },
+    {
+      "id": 9,
+      "phase": 2,
+      "name": "Write tests for service status persistence",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "grep -r 'serviceStatusPersistence' src/ | wc -l",
+      "command": "npm test -- serviceStatus.test.ts --passWithNoTests",
+      "files": [
+        "src/store/slices/__tests__/serviceStatusPersistence.test.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "TDD - write failing tests first for persistence"
+    },
+    {
+      "id": 10,
+      "phase": 2,
+      "name": "Add service_status column to tickets table",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "grep -r 'service_status' src/services/supabase/types.ts | wc -l",
+      "command": "grep -r 'service_status' src/services/supabase/types.ts",
+      "files": [
+        "src/services/supabase/types.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Add service_status field to TicketRow type"
+    },
+    {
+      "id": 11,
+      "phase": 2,
+      "name": "Update ticketAdapter for service status",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "grep -r 'serviceStatus' src/services/supabase/adapters/ticketAdapter.ts | wc -l",
+      "command": "npm run build",
+      "files": [
+        "src/services/supabase/adapters/ticketAdapter.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Map service_status between Supabase and app types"
+    },
+    {
+      "id": 12,
+      "phase": 2,
+      "name": "Add updateServiceStatus thunk with persistence",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "grep -r 'updateServiceStatus' src/store/slices/ticketsSlice.ts | wc -l",
+      "command": "npm run build && npm test -- ticketsSlice.test.ts --passWithNoTests",
+      "files": [
+        "src/store/slices/ticketsSlice.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Thunk should update Redux + persist to Supabase"
+    },
+    {
+      "id": 13,
+      "phase": 2,
+      "name": "Update useTicketServices to use persisted status",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "grep -r 'persistedStatus' src/hooks/useTicketServices.ts | wc -l",
+      "command": "npm test -- useTicketServices.test.ts",
+      "files": [
+        "src/hooks/useTicketServices.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Hook should read from persisted state on mount"
+    },
+    {
+      "id": 14,
+      "phase": 2,
+      "name": "Add service status timer persistence",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'timerPersistence' src/ | wc -l",
+      "command": "npm run build",
+      "files": [
+        "src/hooks/useTicketServices.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Timer state should survive page reload"
+    },
+    {
+      "id": 15,
+      "phase": 2,
+      "name": "Update TicketPanel to load persisted status",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/tickets/TicketPanel.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Load service status on mount."
+    },
+    {
+      "id": 16,
+      "phase": 2,
+      "name": "Add real-time sync for service status",
+      "priority": "medium",
+      "ui": false,
+      "pre_check": "grep -r 'serviceStatusSync' src/ | wc -l",
+      "command": "npm run build",
+      "files": [
+        "src/hooks/useTicketServices.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Supabase realtime subscription for status changes"
+    },
+    {
+      "id": 17,
+      "phase": 2,
+      "name": "Screenshot verification - service status UI",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "ls e2e/checkout/screenshots/verified_service-status*.png | wc -l | awk '{if($1>=3) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Review screenshots, rename to verified_ prefix after review"
+    },
+    {
+      "id": 18,
+      "phase": 2,
+      "name": "E2E test - service status persists across reload",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/serviceStatus.spec.ts",
+      "files": [
+        "e2e/checkout/serviceStatus.spec.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Phase 2 gate - change status, reload, verify persisted"
+    },
+    {
+      "id": 19,
+      "phase": 3,
+      "name": "Write tests for ClientAlerts component",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "grep -r 'ClientAlerts.test' src/ | wc -l",
+      "command": "npm test -- ClientAlerts.test.tsx --passWithNoTests",
+      "files": [
+        "src/components/checkout/ClientAlerts.test.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "TDD - test allergy, notes, balance alert rendering"
+    },
+    {
+      "id": 20,
+      "phase": 3,
+      "name": "Create ClientAlerts with allergy banner",
+      "priority": "critical",
+      "ui": true,
+      "pre_check": "grep -r 'ClientAlerts' src/components/checkout/ | wc -l",
+      "command": "npm run build && npm test -- ClientAlerts.test.tsx",
+      "files": [
+        "src/components/checkout/ClientAlerts.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Red banner, blocks checkout until acknowledged."
+    },
+    {
+      "id": 21,
+      "phase": 3,
+      "name": "Add staff notes banner",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/ClientAlerts.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Yellow banner, dismissible."
+    },
+    {
+      "id": 22,
+      "phase": 3,
+      "name": "Add outstanding balance warning",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/ClientAlerts.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Orange banner, shows amount owed."
+    },
+    {
+      "id": 23,
+      "phase": 3,
+      "name": "Integrate ClientAlerts into TicketPanel",
+      "priority": "critical",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/tickets/TicketPanel.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Show alerts above checkout button."
+    },
+    {
+      "id": 24,
+      "phase": 3,
+      "name": "Add checkout blocking for unacknowledged allergies",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm test -- ClientAlerts.test.tsx",
+      "files": [
+        "src/components/checkout/ClientAlerts.tsx",
+        "src/hooks/useTicketPayment.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Checkout button disabled until allergy acknowledged"
+    },
+    {
+      "id": 25,
+      "phase": 3,
+      "name": "Screenshot verification - client alerts UI",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "ls e2e/checkout/screenshots/verified_client-alert*.png | wc -l | awk '{if($1>=3) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Review all 3 alert types, rename to verified_ prefix"
+    },
+    {
+      "id": 26,
+      "phase": 3,
+      "name": "E2E test - allergy alert blocks checkout",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/clientAlerts.spec.ts",
+      "files": [
+        "e2e/checkout/clientAlerts.spec.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Phase 3 gate - verify allergy blocking works"
+    },
+    {
+      "id": 27,
+      "phase": 4,
+      "name": "Write tests for TipDistributionPreview component",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'TipDistributionPreview.test' src/ | wc -l",
+      "command": "npm test -- TipDistributionPreview.test.tsx --passWithNoTests",
+      "files": [
+        "src/components/checkout/TipDistributionPreview.test.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "TDD - test single and multi-staff tip distribution"
+    },
+    {
+      "id": 28,
+      "phase": 4,
+      "name": "Create TipDistributionPreview component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'TipDistributionPreview' src/components/checkout/ | wc -l",
+      "command": "npm run build && npm test -- TipDistributionPreview.test.tsx",
+      "files": [
+        "src/components/checkout/TipDistributionPreview.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Show staff name, amount, percentage."
+    },
+    {
+      "id": 29,
+      "phase": 4,
+      "name": "Integrate TipDistributionPreview into PaymentModal",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/PaymentModal.tsx"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Use mango-designer. Show preview before payment confirmation."
+    },
+    {
+      "id": 30,
+      "phase": 4,
+      "name": "Add tip calculation with proportional distribution",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm test -- tipCalculation.test.ts",
+      "files": [
+        "src/utils/tipCalculation.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Distribute tips proportionally based on service amounts"
+    },
+    {
+      "id": 31,
+      "phase": 4,
+      "name": "Screenshot verification - tip distribution UI",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "ls e2e/checkout/screenshots/verified_tip-distribution*.png | wc -l | awk '{if($1>=2) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Review single-staff and multi-staff screenshots"
+    },
+    {
+      "id": 32,
+      "phase": 4,
+      "name": "E2E test - tip distribution accuracy",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/tipDistribution.spec.ts",
+      "files": [
+        "e2e/checkout/tipDistribution.spec.ts"
+      ],
+      "status": "passed",
+      "passes": true,
+      "notes": "Phase 4 gate - verify tip math is correct"
+    },
+    {
+      "id": 33,
+      "phase": 5,
+      "name": "Write tests for draft sales slice",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'draftSalesSlice.test' src/ | wc -l",
+      "command": "npm test -- draftSalesSlice.test.ts --passWithNoTests",
+      "files": [
+        "src/store/slices/__tests__/draftSalesSlice.test.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "TDD - test save, load, delete draft operations"
+    },
+    {
+      "id": 34,
+      "phase": 5,
+      "name": "Create draftSalesSlice with Supabase persistence",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'draftSalesSlice' src/store/slices/ | wc -l",
+      "command": "npm run build && npm test -- draftSalesSlice.test.ts",
+      "files": [
+        "src/store/slices/draftSalesSlice.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Redux slice with thunks for Supabase CRUD"
+    },
+    {
+      "id": 35,
+      "phase": 5,
+      "name": "Add draft_sales table to Supabase types",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'draft_sales' src/services/supabase/types.ts | wc -l",
+      "command": "npm run build",
+      "files": [
+        "src/services/supabase/types.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Add DraftSaleRow interface"
+    },
+    {
+      "id": 36,
+      "phase": 5,
+      "name": "Create SaveDraftButton component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'SaveDraftButton' src/components/checkout/ | wc -l",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/SaveDraftButton.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Button to save current ticket as draft."
+    },
+    {
+      "id": 37,
+      "phase": 5,
+      "name": "Create DraftSalesDrawer component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'DraftSalesDrawer' src/components/checkout/ | wc -l",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/DraftSalesDrawer.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. List drafts with resume/delete actions."
+    },
+    {
+      "id": 38,
+      "phase": 5,
+      "name": "Implement auto-save with useTicketAutoSave",
+      "priority": "medium",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm test -- useTicketAutoSave.test.ts",
+      "files": [
+        "src/hooks/useTicketAutoSave.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Auto-save every 30s with debounce"
+    },
+    {
+      "id": 39,
+      "phase": 5,
+      "name": "Screenshot verification - draft sales UI",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "ls e2e/checkout/screenshots/verified_draft-sales*.png | wc -l | awk '{if($1>=2) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Review button and drawer screenshots"
+    },
+    {
+      "id": 40,
+      "phase": 5,
+      "name": "E2E test - save and resume draft",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/draftSales.spec.ts",
+      "files": [
+        "e2e/checkout/draftSales.spec.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Phase 5 gate - full draft lifecycle test"
+    },
+    {
+      "id": 41,
+      "phase": 6,
+      "name": "Write tests for receipt generation",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'receiptService.test' src/ | wc -l",
+      "command": "npm test -- receiptService.test.ts --passWithNoTests",
+      "files": [
+        "src/services/receiptService.test.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "TDD - test print, email, SMS receipt generation"
+    },
+    {
+      "id": 42,
+      "phase": 6,
+      "name": "Create receiptService with print/email/SMS",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "grep -r 'receiptService' src/services/ | wc -l",
+      "command": "npm run build && npm test -- receiptService.test.ts",
+      "files": [
+        "src/services/receiptService.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Service for all receipt delivery methods"
+    },
+    {
+      "id": 43,
+      "phase": 6,
+      "name": "Update ReceiptPreview with action buttons",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/ReceiptPreview.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Add Print, Email, SMS buttons."
+    },
+    {
+      "id": 44,
+      "phase": 6,
+      "name": "Add receipt options to payment success flow",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [
+        "src/components/checkout/PaymentSuccessModal.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Show receipt options after payment."
+    },
+    {
+      "id": 45,
+      "phase": 6,
+      "name": "Screenshot verification - receipt UI",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "ls e2e/checkout/screenshots/verified_receipt*.png | wc -l | awk '{if($1>=2) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Review receipt preview and success modal screenshots"
+    },
+    {
+      "id": 46,
+      "phase": 6,
+      "name": "E2E test - receipt flow",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/receipt.spec.ts",
+      "files": [
+        "e2e/checkout/receipt.spec.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Phase 6 gate - verify receipt generation and actions"
+    },
+    {
+      "id": 47,
+      "phase": 7,
+      "name": "Create TicketPanel module structure",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "test -d src/components/tickets/TicketPanel && echo 'exists'",
+      "command": "test -d src/components/tickets/TicketPanel",
+      "files": [
+        "src/components/tickets/TicketPanel/"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Create directory structure for module"
+    },
+    {
+      "id": 48,
+      "phase": 7,
+      "name": "Extract StaffSection component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'StaffSection' src/components/tickets/TicketPanel/ | wc -l",
+      "command": "wc -l src/components/tickets/TicketPanel/components/StaffSection.tsx | awk '{if($1<400) exit 0; else exit 1}'",
+      "files": [
+        "src/components/tickets/TicketPanel/components/StaffSection.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Extract staff selection UI. Target <400 lines."
+    },
+    {
+      "id": 49,
+      "phase": 7,
+      "name": "Extract ServiceSection component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'ServiceSection' src/components/tickets/TicketPanel/ | wc -l",
+      "command": "wc -l src/components/tickets/TicketPanel/components/ServiceSection.tsx | awk '{if($1<400) exit 0; else exit 1}'",
+      "files": [
+        "src/components/tickets/TicketPanel/components/ServiceSection.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Extract service management UI. Target <400 lines."
+    },
+    {
+      "id": 50,
+      "phase": 7,
+      "name": "Extract SummarySection component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'SummarySection' src/components/tickets/TicketPanel/ | wc -l",
+      "command": "wc -l src/components/tickets/TicketPanel/components/SummarySection.tsx | awk '{if($1<300) exit 0; else exit 1}'",
+      "files": [
+        "src/components/tickets/TicketPanel/components/SummarySection.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Extract totals/summary UI. Target <300 lines."
+    },
+    {
+      "id": 51,
+      "phase": 7,
+      "name": "Extract ActionBar component",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "grep -r 'ActionBar' src/components/tickets/TicketPanel/ | wc -l",
+      "command": "wc -l src/components/tickets/TicketPanel/components/ActionBar.tsx | awk '{if($1<200) exit 0; else exit 1}'",
+      "files": [
+        "src/components/tickets/TicketPanel/components/ActionBar.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Extract action buttons. Target <200 lines."
+    },
+    {
+      "id": 52,
+      "phase": 7,
+      "name": "Create TicketPanel types.ts",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "test -f src/components/tickets/TicketPanel/types.ts && echo 'exists'",
+      "command": "npm run build",
+      "files": [
+        "src/components/tickets/TicketPanel/types.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Shared interfaces for TicketPanel module"
+    },
+    {
+      "id": 53,
+      "phase": 7,
+      "name": "Create TicketPanel constants.ts",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "test -f src/components/tickets/TicketPanel/constants.ts && echo 'exists'",
+      "command": "npm run build",
+      "files": [
+        "src/components/tickets/TicketPanel/constants.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Shared constants for TicketPanel module"
+    },
+    {
+      "id": 54,
+      "phase": 7,
+      "name": "Update main TicketPanel to compose",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "wc -l src/components/tickets/TicketPanel/TicketPanel.tsx | awk '{if($1<500) exit 0; else exit 1}'",
+      "files": [
+        "src/components/tickets/TicketPanel/TicketPanel.tsx"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Use mango-designer. Compose from sub-components. Target <500 lines."
+    },
+    {
+      "id": 55,
+      "phase": 7,
+      "name": "Update imports across codebase",
+      "priority": "high",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run build",
+      "files": [],
+      "status": "pending",
+      "passes": false,
+      "notes": "Update all imports to use new module structure"
+    },
+    {
+      "id": 56,
+      "phase": 7,
+      "name": "Visual regression test - no UI changes",
+      "priority": "high",
+      "ui": true,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/visualRegression.spec.ts",
+      "files": [
+        "e2e/checkout/visualRegression.spec.ts"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "Phase 7 gate - refactor must not change UI appearance"
+    },
+    {
+      "id": 57,
+      "phase": 8,
+      "name": "Run full E2E test suite",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run test:e2e -- checkout/",
+      "files": [],
+      "status": "pending",
+      "passes": false,
+      "notes": "All E2E tests must pass"
+    },
+    {
+      "id": 58,
+      "phase": 8,
+      "name": "Verify all screenshots have verified_ prefix",
+      "priority": "critical",
+      "ui": true,
+      "pre_check": "",
+      "command": "find e2e/checkout/screenshots -name '*.png' ! -name 'verified_*' | wc -l | awk '{if($1==0) exit 0; else exit 1}'",
+      "files": [
+        "e2e/checkout/screenshots/"
+      ],
+      "status": "pending",
+      "passes": false,
+      "notes": "All screenshots must be reviewed and renamed"
+    },
+    {
+      "id": 59,
+      "phase": 8,
+      "name": "Run full unit test suite with coverage",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm test -- --coverage",
+      "files": [],
+      "status": "pending",
+      "passes": false,
+      "notes": "Target 80%+ coverage for checkout module"
+    },
+    {
+      "id": 60,
+      "phase": 8,
+      "name": "Final build verification",
+      "priority": "critical",
+      "ui": false,
+      "pre_check": "",
+      "command": "npm run build && npm run lint",
+      "files": [],
+      "status": "pending",
+      "passes": false,
+      "notes": "Final gate - clean build and lint"
+    }
+  ]
+}

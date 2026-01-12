@@ -20,6 +20,7 @@ import {
   Printer,
   Loader2,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 import { paymentBridge } from "@/services/payment";
 import GiftCardRedeemModal, { AppliedGiftCard } from "./modals/GiftCardRedeemModal";
@@ -50,6 +51,7 @@ interface PaymentModalProps {
   }) => void;
   staffMembers?: { id: string; name: string; serviceTotal?: number }[];
   ticketId?: string; // Bug #8 fix: Pass actual ticket ID for transaction linking
+  onShowReceipt?: () => void; // Callback to show receipt preview
 }
 
 const TIP_PERCENTAGES = [15, 18, 20, 25];
@@ -120,6 +122,7 @@ export default function PaymentModal({
   onComplete,
   staffMembers = [],
   ticketId,
+  onShowReceipt,
 }: PaymentModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [tipPercentage, setTipPercentage] = useState<number | null>(20);
@@ -161,9 +164,7 @@ export default function PaymentModal({
   // Auto-advance to step 3 when fully paid and trigger completion
   useEffect(() => {
     if (isFullyPaid && currentStep === 2) {
-      setCurrentStep(3);
-      // Bug #12 fix: Auto-trigger completion when advancing to step 3
-      // This ensures onComplete is called to close the ticket
+      // Show success animation briefly, then transition to step 3
       setShowSuccess(true);
 
       // Redeem gift cards in the database
@@ -191,15 +192,14 @@ export default function PaymentModal({
 
       redeemGiftCards();
 
+      // Transition to step 3 after showing success animation
+      // User will click "Done" to complete and close
       setTimeout(() => {
-        onComplete({
-          methods: paymentMethods,
-          tip: tipAmount,
-          tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
-        });
+        setShowSuccess(false);
+        setCurrentStep(3);
       }, 800);
     }
-  }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId]);
+  }, [isFullyPaid, currentStep, appliedGiftCards, storeId, userId, deviceId, ticketId]);
 
   const handleQuickCash = (amount: number) => {
     setCashTendered(amount.toString());
@@ -876,6 +876,38 @@ export default function PaymentModal({
                     </div>
                   </div>
                 </Card>
+
+                {/* Receipt and Done buttons */}
+                <div className="flex gap-3 mt-4 w-full">
+                  {onShowReceipt && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-12"
+                      onClick={() => {
+                        onShowReceipt();
+                      }}
+                      data-testid="button-view-receipt"
+                    >
+                      <FileText className="h-5 w-5 mr-2" />
+                      View Receipt
+                    </Button>
+                  )}
+                  <Button
+                    className="flex-1 h-12"
+                    onClick={() => {
+                      // Complete the payment and close
+                      onComplete({
+                        methods: paymentMethods,
+                        tip: tipAmount,
+                        tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
+                      });
+                    }}
+                    data-testid="button-done"
+                  >
+                    <Check className="h-5 w-5 mr-2" />
+                    Done
+                  </Button>
+                </div>
               </div>
             )}
           </div>

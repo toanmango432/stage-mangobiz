@@ -24,6 +24,23 @@
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pnpm install
+
+# 2. Start development server
+pnpm dev              # → localhost:5173
+
+# 3. Run tests
+pnpm test
+```
+
+> **First time?** Copy `.env.example` to `.env` before starting.
+
+---
+
 ## Environment Setup
 
 Copy `.env.example` to `.env` and configure:
@@ -89,6 +106,17 @@ Copy `.env.example` to `.env` and configure:
 - [ ] Verify TypeScript interfaces in `src/types/`
 - [ ] Use design tokens from `src/design-system/` (see README.md)
 - [ ] Check utilities in `src/utils/` before creating new ones
+
+### 4. Best Practices Reference
+
+Read these when working on specific areas:
+
+| Document | When to Read |
+|----------|--------------|
+| `.claude/reference/react-frontend-best-practices.md` | Building components, hooks, state management |
+| `docs/PATTERNS.md` | Understanding project code patterns |
+| `docs/testing/TESTING_GUIDE.md` | Writing unit, integration, E2E tests |
+| `src/design-system/README.md` | Styling, design tokens, UI components |
 
 ---
 
@@ -486,13 +514,26 @@ npm run electron:build   # Build Electron app (future)
 | E2E tests | `npm run test:e2e` | Playwright |
 | E2E tests (UI) | `npm run test:e2e:ui` | Playwright |
 
+### Testing Pyramid
+
+```
+        ┌───────────┐
+        │    E2E    │  10% - Critical user journeys
+        │  (slow)   │  • Booking flow, checkout, payments
+        ├───────────┤
+        │Integration│  20% - API & component integration
+        │ (medium)  │  • Redux thunks, dataService calls
+        ├───────────┤
+        │   Unit    │  70% - Pure functions, utilities
+        │  (fast)   │  • Validators, formatters, calculations
+        └───────────┘
+```
+
+**Current:** ~3.5% coverage → **Target:** 70%+
+
 ### Test File Conventions
 - Unit tests: `*.test.ts` or `*.test.tsx` alongside source files
 - E2E tests: `e2e/*.spec.ts`
-
-### Current Status
-- Unit test coverage: ~3.5% (target: 70%+)
-- E2E tests located in `e2e/` directory
 
 ---
 
@@ -531,6 +572,71 @@ npm run electron:build   # Build Electron app (future)
 - ✅ Check `src/services/supabase/types.ts` for existing table schemas
 - ✅ Keep files under 500 lines (split into modules if needed)
 - ✅ Use `import type` for type-only imports
+
+---
+
+## Ralph Agent Workflow (Autonomous PRD Implementation)
+
+Ralph is an autonomous AI agent loop that implements PRD items one by one. Files are located in `scripts/ralph/`.
+
+### Setup
+
+1. Create `scripts/ralph/prd.json` with your user stories:
+
+```json
+{
+  "branchName": "ralph/feature-name",
+  "stories": [
+    {
+      "id": "STORY-001",
+      "title": "Story title",
+      "description": "What needs to be done",
+      "priority": 1,
+      "passes": false
+    }
+  ]
+}
+```
+
+2. Run Ralph: `./scripts/ralph/ralph.sh [max_iterations]`
+
+### How Ralph Works
+
+1. Reads `prd.json` for user stories
+2. Checks out the correct branch (creates from main if needed)
+3. Picks the **highest priority** story where `passes: false`
+4. Implements that single story
+5. Runs quality checks (typecheck, lint, test)
+6. Commits with message: `feat: [Story ID] - [Story Title]`
+7. Updates `passes: true` in prd.json
+8. Appends progress to `progress.txt`
+9. Repeats until all stories complete or max iterations reached
+
+### Progress Tracking
+
+Ralph maintains `scripts/ralph/progress.txt` with:
+- **Codebase Patterns** section at top (reusable learnings)
+- Per-iteration logs with thread URLs, files changed, learnings
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `scripts/ralph/ralph.sh` | Main execution script |
+| `scripts/ralph/prompt.md` | Agent instructions |
+| `scripts/ralph/prd.json` | User stories (you create this) |
+| `scripts/ralph/progress.txt` | Auto-generated progress log |
+| `scripts/ralph/archive/` | Archived previous runs |
+
+### Stop Condition
+
+Ralph outputs `<promise>COMPLETE</promise>` when all stories have `passes: true`.
+
+### Requirements
+
+- `amp` CLI installed (Sourcegraph Amp)
+- `jq` for JSON parsing
+- Valid `prd.json` in scripts/ralph/
 
 ---
 

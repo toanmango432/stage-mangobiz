@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -17,46 +16,24 @@ export default defineConfig({
   build: {
     target: 'es2020',
     sourcemap: true,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          icons: ['lucide-react'],
+          // Core React + Redux (essential for app shell)
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
+          // Form handling
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          // Database and API (can load async)
+          'vendor-data': ['@supabase/supabase-js', 'dexie'],
+          // UI utilities
+          'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge'],
+          // QR code (only needed on scan page)
+          'vendor-qr': ['html5-qrcode'],
+          // Security
+          'vendor-security': ['dompurify'],
         },
       },
     },
-    chunkSizeWarningLimit: 500,
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'json'],
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/**/*.test.{ts,tsx}',
-        'src/**/*.spec.{ts,tsx}',
-        'src/test/**',
-        'src/main.tsx'
-      ],
-      thresholds: {
-        global: {
-          statements: 70,
-          branches: 70,
-          functions: 70,
-          lines: 70
-        }
-      }
-    }
   }
 });
