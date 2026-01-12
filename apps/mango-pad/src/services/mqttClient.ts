@@ -51,7 +51,7 @@ class MqttService {
             message.topic,
             JSON.stringify(mqttMessage),
             { qos: 1 },
-            (error) => {
+            (error: Error | undefined) => {
               resolve(!error);
             }
           );
@@ -141,13 +141,13 @@ class MqttService {
         this.setConnectionState('disconnected');
       });
 
-      this.client.on('error', (error) => {
+      this.client.on('error', (error: Error) => {
         console.error('[MqttService] Error:', error);
         this.setConnectionState('disconnected');
         reject(error);
       });
 
-      this.client.on('message', (topic, payload) => {
+      this.client.on('message', (topic: string, payload: Buffer) => {
         try {
           const message: MqttMessage = JSON.parse(payload.toString());
           this.handleMessage(topic, message);
@@ -228,7 +228,7 @@ class MqttService {
         topic,
         JSON.stringify(message),
         { qos: options?.qos ?? 1, retain: options?.retain ?? false },
-        (error) => {
+        (error: Error | undefined) => {
           if (error) {
             reject(error);
           } else {
