@@ -6,30 +6,33 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
+import mqtt, { type MqttClient } from 'mqtt';
 import { useAppSelector } from '@/store/hooks';
 import { selectStoreId, selectStoreName } from '@/store/slices/authSlice';
-import { useMqttContext } from '../MqttProvider';
-import { buildTopic, TOPIC_PATTERNS, getQosForTopic } from '../topics';
-import { isMqttEnabled } from '../featureFlags';
+import { buildTopic, TOPIC_PATTERNS } from '../topics';
+import { isMqttEnabled, getCloudBrokerUrl } from '../featureFlags';
 import type { PosHeartbeatPayload } from '../types';
 
 const HEARTBEAT_INTERVAL_MS = 15000; // 15 seconds
-const APP_VERSION = '1.0.0'; // TODO: Pull from package.json or build config
+const APP_VERSION = '1.0.0';
 
 export function usePosHeartbeat() {
-  const { publish, connection } = useMqttContext();
-  const storeId = useAppSelector(selectStoreId);
-  const storeName = useAppSelector(selectStoreName);
+  const reduxStoreId = useAppSelector(selectStoreId);
+  const reduxStoreName = useAppSelector(selectStoreName);
+
+  // Fallback to env variable for dev mode (when not logged in)
+  const storeId = reduxStoreId || import.meta.env.VITE_STORE_ID || null;
+  const storeName = reduxStoreName || 'Dev Store';
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const clientRef = useRef<MqttClient | null>(null);
   const isPublishingRef = useRef(false);
 
-  const publishHeartbeat = useCallback(async () => {
-    if (!storeId || isPublishingRef.current) return;
+  const publishHeartbeat = useCallback(() => {
+    if (!storeId || isPublishingRef.current || !clientRef.current?.connected) return;
 
     try {
       isPublishingRef.current = true;
       const topic = buildTopic(TOPIC_PATTERNS.POS_HEARTBEAT, { storeId });
-      const qos = getQosForTopic(topic);
 
       const payload: PosHeartbeatPayload = {
         storeId,
@@ -38,32 +41,58 @@ export function usePosHeartbeat() {
         version: APP_VERSION,
       };
 
-      await publish(topic, payload, { qos });
+      clientRef.current.publish(topic, JSON.stringify(payload), { qos: 0 });
+      console.log('[usePosHeartbeat] Published heartbeat to:', topic);
     } catch (error) {
       console.warn('[usePosHeartbeat] Failed to publish heartbeat:', error);
     } finally {
       isPublishingRef.current = false;
     }
-  }, [storeId, storeName, publish]);
+  }, [storeId, storeName]);
 
   useEffect(() => {
-    if (!isMqttEnabled()) return;
-    if (connection.state !== 'connected') return;
-    if (!storeId) return;
+    if (!isMqttEnabled()) {
+      console.log('[usePosHeartbeat] MQTT disabled');
+      return;
+    }
+    if (!storeId) {
+      console.log('[usePosHeartbeat] No storeId, skipping');
+      return;
+    }
 
-    // Publish immediately on connect
-    publishHeartbeat();
+    const brokerUrl = getCloudBrokerUrl();
+    console.log('[usePosHeartbeat] Connecting to MQTT broker:', brokerUrl);
 
-    // Then publish every 15 seconds
-    intervalRef.current = setInterval(publishHeartbeat, HEARTBEAT_INTERVAL_MS);
+    const client = mqtt.connect(brokerUrl, {
+      clientId: `pos-heartbeat-${storeId}-${Date.now()}`,
+      clean: true,
+      keepalive: 30,
+      reconnectPeriod: 5000,
+    });
+
+    clientRef.current = client;
+
+    client.on('connect', () => {
+      console.log('[usePosHeartbeat] Connected to MQTT broker');
+      // Publish immediately
+      publishHeartbeat();
+      // Then every 15 seconds
+      intervalRef.current = setInterval(publishHeartbeat, HEARTBEAT_INTERVAL_MS);
+    });
+
+    client.on('error', (err) => {
+      console.error('[usePosHeartbeat] MQTT error:', err);
+    });
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      client.end(true);
+      clientRef.current = null;
     };
-  }, [connection.state, storeId, publishHeartbeat]);
+  }, [storeId, publishHeartbeat]);
 
   // Cleanup on window unload/beforeunload
   useEffect(() => {

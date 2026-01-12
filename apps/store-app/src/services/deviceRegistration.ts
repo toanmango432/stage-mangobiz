@@ -242,13 +242,28 @@ export async function registerDevice(storeId: string): Promise<DeviceRegistratio
 
   } catch (error) {
     console.error('[DeviceRegistration] Registration failed:', error);
+    console.error('[DeviceRegistration] Error details:', JSON.stringify(error, null, 2));
+    console.error('[DeviceRegistration] storeId:', storeId);
+    console.error('[DeviceRegistration] deviceId:', deviceId);
+
+    // Extract better error message from Supabase error
+    let errorMessage = 'Unknown error';
+    if (error && typeof error === 'object') {
+      const supabaseError = error as { message?: string; code?: string; details?: string; hint?: string };
+      errorMessage = supabaseError.message || supabaseError.details || supabaseError.hint || 'Unknown error';
+      if (supabaseError.code) {
+        errorMessage = `[${supabaseError.code}] ${errorMessage}`;
+      }
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
 
     return {
       success: false,
       deviceId,
       pairingCode: pairingCode || '',
       stationName: DEFAULT_STATION_NAME,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
     };
   }
 }
