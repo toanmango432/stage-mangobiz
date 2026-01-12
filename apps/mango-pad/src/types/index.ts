@@ -1,78 +1,180 @@
 /**
  * Mango Pad Type Definitions
+ * TypeScript interfaces for MQTT payloads and application state
  */
 
-export type PadScreen = 'waiting' | 'tip' | 'signature' | 'receipt' | 'complete' | 'error';
+export type PadScreen =
+  | 'idle'
+  | 'order-review'
+  | 'tip'
+  | 'signature'
+  | 'payment'
+  | 'result'
+  | 'receipt'
+  | 'thank-you'
+  | 'split-selection'
+  | 'split-status'
+  | 'settings';
 
-export interface PosConnectionState {
-  isConnected: boolean;
-  lastHeartbeat: Date | null;
-  storeId: string | null;
-  storeName: string | null;
+export type MqttConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
+
+export interface TransactionItem {
+  name: string;
+  price: number;
+  quantity: number;
+  type: 'service' | 'product';
 }
 
-// ============================================================================
-// Device Pairing Types (migration 028)
-// ============================================================================
+export interface TransactionPayload {
+  transactionId: string;
+  clientId: string;
+  clientName: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  staffName: string;
+  items: TransactionItem[];
+  subtotal: number;
+  tax: number;
+  discount?: number;
+  total: number;
+  loyaltyPoints?: number;
+  suggestedTips: number[];
+  showReceiptOptions: boolean;
+  terminalType?: 'pax' | 'dejavoo' | 'clover' | 'generic';
+}
 
-/**
- * Device role - what the device does in the salon
- * - store-app: Main checkout station (runs on desktop/tablet)
- * - mango-pad: Customer-facing iPad for signatures and tips
- * - check-in: Walk-in registration kiosk
- * - display: Waiting room display
- */
-export type SalonDeviceRole = 'store-app' | 'mango-pad' | 'check-in' | 'display';
+export interface TipSelection {
+  tipAmount: number;
+  tipPercent: number | null;
+  selectedAt: string;
+}
 
-/**
- * Platform type - what hardware/OS the device runs on
- */
-export type SalonDeviceType = 'ios' | 'android' | 'web' | 'desktop';
+export interface SignatureData {
+  signatureBase64: string;
+  agreedAt: string;
+}
 
-/**
- * Salon device record from Supabase
- */
-export interface SalonDevice {
+export interface PaymentResult {
+  success: boolean;
+  cardLast4?: string;
+  authCode?: string;
+  failureReason?: string;
+  processedAt: string;
+}
+
+export type ReceiptPreference = 'email' | 'sms' | 'print' | 'none';
+
+export interface ReceiptSelection {
+  preference: ReceiptPreference;
+  email?: string;
+  phone?: string;
+  selectedAt: string;
+}
+
+export interface SplitPayment {
+  splitIndex: number;
+  totalSplits: number;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  tipAmount?: number;
+  signatureBase64?: string;
+}
+
+export interface PromoSlide {
   id: string;
-  store_id: string;
-  device_fingerprint: string;
-  device_name: string | null;
-  device_type: SalonDeviceType;
-  device_role: SalonDeviceRole | null;
-  mqtt_client_id: string | null;
-  local_ip: string | null;
-  mqtt_port: number;
-  is_hub: boolean;
-  is_online: boolean;
-  last_seen_at: string;
-  // Device pairing fields
-  station_name: string | null;
-  pairing_code: string | null;
-  paired_to_device_id: string | null;
-  capabilities: Record<string, unknown>;
-  settings: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
+  type: 'promotion' | 'announcement' | 'staff-spotlight' | 'testimonial' | 'social-qr';
+  title?: string;
+  subtitle?: string;
+  imageUrl?: string;
+  backgroundColor?: string;
 }
 
-/**
- * Pairing info stored in localStorage after successful pairing
- */
-export interface PairingInfo {
-  stationId: string;        // device_fingerprint of the paired Store App station
-  salonId: string;          // store_id (salon/store)
-  stationName: string;      // Human-readable station name
-  deviceId: string;         // This Mango Pad's device_fingerprint
-  pairedAt: string;         // ISO timestamp of pairing
+export interface PadConfig {
+  salonId: string;
+  mqttBrokerUrl: string;
+  tipEnabled: boolean;
+  tipType: 'percentage' | 'dollar';
+  tipSuggestions: number[];
+  signatureRequired: boolean;
+  showReceiptOptions: boolean;
+  paymentTimeout: number;
+  thankYouDelay: number;
+  splitPaymentEnabled: boolean;
+  maxSplits: number;
+  logoUrl?: string;
+  promoSlides: PromoSlide[];
+  slideDuration: number;
+  brandColors: { primary: string; secondary: string };
+  highContrastMode: boolean;
+  largeTextMode: boolean;
 }
 
-/**
- * QR code payload for pairing
- */
-export interface PairingQRPayload {
-  type: 'mango-pad-pairing';
-  stationId: string;        // device_fingerprint of Store App station
-  pairingCode: string;      // 6-char pairing code
-  salonId: string;          // store_id
-  brokerUrl: string;        // MQTT broker URL
+export interface ReadyToPayPayload {
+  transactionId: string;
+  clientId: string;
+  clientName: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  staffName: string;
+  items: TransactionItem[];
+  subtotal: number;
+  tax: number;
+  discount?: number;
+  total: number;
+  loyaltyPoints?: number;
+  suggestedTips: number[];
+  showReceiptOptions: boolean;
+  terminalType?: 'pax' | 'dejavoo' | 'clover' | 'generic';
+}
+
+export interface TipSelectedPayload {
+  transactionId: string;
+  tipAmount: number;
+  tipPercent: number | null;
+}
+
+export interface SignatureCapturedPayload {
+  transactionId: string;
+  signatureBase64: string;
+  agreedAt: string;
+}
+
+export interface PaymentResultPayload {
+  transactionId: string;
+  success: boolean;
+  cardLast4?: string;
+  authCode?: string;
+  failureReason?: string;
+}
+
+export interface ReceiptPreferencePayload {
+  transactionId: string;
+  preference: ReceiptPreference;
+  email?: string;
+  phone?: string;
+}
+
+export interface TransactionCompletePayload {
+  transactionId: string;
+  completedAt: string;
+}
+
+export interface CancelPayload {
+  transactionId?: string;
+  reason?: string;
+}
+
+export interface HelpRequestedPayload {
+  transactionId?: string;
+  currentScreen: PadScreen;
+  requestedAt: string;
+}
+
+export interface SplitPaymentPayload {
+  transactionId: string;
+  splitType: 'equal' | 'custom';
+  splits: Array<{
+    index: number;
+    amount: number;
+  }>;
 }

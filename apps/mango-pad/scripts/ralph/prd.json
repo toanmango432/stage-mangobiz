@@ -1,0 +1,380 @@
+{
+  "project": "Mango Pad",
+  "branchName": "ralph/mango-pad-full",
+  "description": "Customer-facing payment and signature display for Mango POS. Handles order review, tip selection, signature capture, payment instructions, split payments, and receipt preferences via MQTT communication with the POS.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project Setup and MQTT Integration",
+      "description": "As a developer, I want the project foundation with MQTT connectivity so that the Pad can communicate with the POS",
+      "acceptanceCriteria": [
+        "Redux store configured in src/store/index.ts",
+        "Slices created: padSlice, transactionSlice, configSlice, uiSlice",
+        "TypeScript types in src/types/index.ts for all MQTT payloads",
+        "MQTT client initialized using mqtt.js library",
+        "Subscribe to salon/{id}/pad/ready_to_pay topic",
+        "Subscribe to salon/{id}/pad/payment_result topic",
+        "Subscribe to salon/{id}/pad/cancel topic",
+        "Publish capability to salon/{id}/pad/signature topic",
+        "Publish capability to salon/{id}/pad/tip_selected topic",
+        "Connection status tracked in Redux (connected/disconnected/reconnecting)",
+        "MqttProvider context wrapper created",
+        "Typecheck passes",
+        "pnpm build succeeds"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Phase 1 - Foundation. Critical setup that everything depends on."
+    },
+    {
+      "id": "US-002",
+      "title": "Idle/Standby Screen with Digital Signage",
+      "description": "As a salon, I want an attractive idle screen with promotional content so that the Pad engages customers and reinforces our brand",
+      "acceptanceCriteria": [
+        "Full-screen idle display component created",
+        "Shows salon logo (configurable via config store)",
+        "Displays current date and time (updates every minute)",
+        "Promotional Carousel with rotating slides",
+        "Slide content types: promotions, announcements, staff spotlights, testimonials, social media QR",
+        "Configurable slide duration (default 8 seconds)",
+        "Smooth fade/slide transitions between content",
+        "Ambient background option (gradient animation or static brand colors)",
+        "MQTT connection status indicator (subtle, corner)",
+        "Transitions smoothly when transaction begins",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Phase 1 - Foundation. Digital signage feature inspired by Toast/Square."
+    },
+    {
+      "id": "US-003",
+      "title": "Order Review Screen",
+      "description": "As a client, I want to see my service details and total so that I can verify the charges before paying",
+      "acceptanceCriteria": [
+        "Screen receives transaction data from Redux (populated by MQTT)",
+        "Displays client name prominently at top",
+        "Lists all service items with individual prices",
+        "Lists all product items if any",
+        "Shows subtotal, tax, discount (if any), and total",
+        "Shows staff name who served the client",
+        "Large Looks Good / Confirm button to proceed",
+        "Split Payment button if enabled in settings",
+        "Need Help button that publishes salon/{id}/pad/help_requested",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Phase 2 - Core Payment Flow."
+    },
+    {
+      "id": "US-004",
+      "title": "Tip Selection Screen",
+      "description": "As a client, I want to select a tip amount easily so that I can reward good service",
+      "acceptanceCriteria": [
+        "Tip type configurable: percentage-based OR dollar-based suggestions",
+        "Suggested tip buttons from config (default: 18%, 20%, 25%, 30% or $5, $10, $15, $20)",
+        "Each button shows calculated amount clearly",
+        "Custom button opens numeric keypad modal for custom amount",
+        "No Tip option available as smaller button",
+        "Running total updates dynamically as tip is selected",
+        "Selected tip visually highlighted with distinct style",
+        "Continue button proceeds to signature screen",
+        "Publish tip to MQTT salon/{id}/pad/tip_selected with tipAmount and tipPercent",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Phase 2 - Core Payment Flow."
+    },
+    {
+      "id": "US-005",
+      "title": "Signature Capture Screen",
+      "description": "As a client, I want to sign digitally so that the salon has my authorization on record",
+      "acceptanceCriteria": [
+        "Install and use react-signature-canvas or similar library",
+        "Full-width signature canvas with clear background",
+        "Works with finger touch on tablets and stylus",
+        "Clear button resets the signature canvas",
+        "Displays agreement text: I agree to pay the total shown",
+        "Shows final total including tip prominently",
+        "Done / Complete button to proceed",
+        "Signature captured as base64 PNG image",
+        "Minimum validation: signature canvas is not empty",
+        "Publish signature to MQTT salon/{id}/pad/signature with signatureBase64 and agreedAt timestamp",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Phase 2 - Core Payment Flow."
+    },
+    {
+      "id": "US-006",
+      "title": "Payment Instruction Screen",
+      "description": "As a client, I want clear instructions on how to pay so that I know what to do with the terminal",
+      "acceptanceCriteria": [
+        "Large clear text: Please Insert or Tap Card on Terminal",
+        "Animated visual showing card insert/tap action",
+        "Terminal type icon if configured (PAX, Dejavoo, Clover, generic)",
+        "Shows total amount being charged prominently",
+        "Loading/processing indicator (spinner or pulse animation)",
+        "Cancel button that publishes salon/{id}/pad/help_requested (does not cancel directly)",
+        "Listens for MQTT salon/{id}/pad/payment_result message",
+        "Timeout handling: show timeout message after configurable duration",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Phase 2 - Core Payment Flow."
+    },
+    {
+      "id": "US-007",
+      "title": "Payment Result Screen",
+      "description": "As a client, I want to see if my payment succeeded so that I know the transaction is complete",
+      "acceptanceCriteria": [
+        "Success state: Large green checkmark with Payment Successful message",
+        "Failure state: Red X icon with Payment Failed message and reason",
+        "Shows last 4 digits of card used on success",
+        "Shows authorization code on success",
+        "Try Again button on failure returns to payment instruction screen",
+        "Auto-proceeds to next screen after configurable delay on success",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 3 - Post-Payment Flow."
+    },
+    {
+      "id": "US-008",
+      "title": "Receipt Selection Screen",
+      "description": "As a client, I want to choose how to receive my receipt so that I have a record of my visit",
+      "acceptanceCriteria": [
+        "Screen only shown if config.showReceiptOptions is true",
+        "Four options: Email, Text/SMS, Print, No Receipt",
+        "Email option shows client email if on file with edit button",
+        "SMS option shows client phone if on file with edit button",
+        "Print option sends print command via MQTT",
+        "No Receipt skips directly to thank you screen",
+        "Publish receipt preference to MQTT salon/{id}/pad/receipt_preference",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Phase 3 - Post-Payment Flow."
+    },
+    {
+      "id": "US-009",
+      "title": "Thank You Screen",
+      "description": "As a client, I want a pleasant closing experience so that I leave with a positive impression",
+      "acceptanceCriteria": [
+        "Displays Thank You, [Client Name]! message",
+        "Shows loyalty points earned if applicable",
+        "Optional promotional message from config",
+        "Auto-returns to idle after configurable delay (default 5 seconds)",
+        "Publish salon/{id}/pad/transaction_complete to MQTT",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Phase 3 - Post-Payment Flow."
+    },
+    {
+      "id": "US-010",
+      "title": "Split Payment Flow",
+      "description": "As a client paying with friends/family, I want to split the bill across multiple cards so that each person pays their share",
+      "acceptanceCriteria": [
+        "Split Payment button available on Order Review screen (if enabled in settings)",
+        "Split options: Equal split (2, 3, or 4 ways) or Custom amounts",
+        "Equal split calculates and displays amount per person",
+        "Custom split allows entering specific dollar amounts per payment",
+        "Validation: split amounts must equal total",
+        "Each split follows the flow: Tip (optional) -> Sign -> Pay",
+        "Track which splits are completed vs pending",
+        "Visual progress indicator showing completed payments (e.g., 1 of 3)",
+        "After each successful split payment, return to split status screen",
+        "When all splits complete, proceed to receipt/thank you",
+        "Cancel split returns to Order Review with option to pay full amount",
+        "Publish split payment details to MQTT salon/{id}/pad/split_payment",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Phase 4 - Split Payments. Common feature in Toast, Square, Clover."
+    },
+    {
+      "id": "US-011",
+      "title": "Comprehensive Settings/Configuration Screen",
+      "description": "As a salon admin, I want to fully customize the Pad experience so that it matches our business preferences and workflow",
+      "acceptanceCriteria": [
+        "Accessible via hidden gesture (4-finger long press) or PIN entry",
+        "Connection Settings: salon ID, MQTT broker URL, test connection button",
+        "Payment Flow Settings: toggle tip screen, tip type (% or $), tip values, toggle signature, toggle receipt options, payment timeout",
+        "Idle Screen Settings: logo URL, enable/disable carousel, add/edit/remove slides, slide duration, background style, brand colors",
+        "Display Settings: thank you delay, high contrast mode, large text mode",
+        "Split Payment Settings: enable/disable, max splits (2-4)",
+        "Settings persisted to localStorage",
+        "Export/Import settings as JSON for multi-device setup",
+        "Reset to defaults button",
+        "Exit settings returns to idle",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Phase 4 - Configuration. Extensive customization options."
+    },
+    {
+      "id": "US-012",
+      "title": "Offline Mode and Sync Queue",
+      "description": "As a salon, I want the Pad to handle brief disconnections so that transactions are not lost",
+      "acceptanceCriteria": [
+        "Detect MQTT disconnection and update Redux state",
+        "Show Reconnecting... indicator overlay",
+        "Queue outbound messages (tip, signature, receipt preference) when offline",
+        "Replay queued messages in order when reconnected",
+        "If disconnected during active transaction show Please wait, reconnecting message",
+        "Alert staff via stored queue if disconnected for more than 30 seconds",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Phase 4 - Reliability."
+    },
+    {
+      "id": "US-013",
+      "title": "Cancel/Abort Flow",
+      "description": "As a client or staff, I want to cancel a transaction so that mistakes can be corrected",
+      "acceptanceCriteria": [
+        "Listen for MQTT salon/{id}/pad/cancel message",
+        "Immediately return to idle screen on cancel",
+        "Need Help button visible on Order Review, Tip, Signature, Payment screens",
+        "Need Help publishes salon/{id}/pad/help_requested with current screen name",
+        "Clear all transaction state on cancel",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Phase 4 - Reliability."
+    },
+    {
+      "id": "US-014",
+      "title": "Accessibility (WCAG 2.1 AA)",
+      "description": "As a client with accessibility needs, I want the Pad to be usable so that I can complete payment independently",
+      "acceptanceCriteria": [
+        "Touch targets minimum 48x48px on all interactive elements",
+        "Color contrast ratio 4.5:1 minimum verified",
+        "Large readable fonts: minimum 18px body, 24px+ headers",
+        "ARIA labels on all buttons and interactive elements",
+        "Focus indicators visible for keyboard navigation",
+        "High contrast mode option in settings",
+        "Large text mode option in settings",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Phase 5 - Quality."
+    },
+    {
+      "id": "US-015",
+      "title": "Responsive Design (Multi-Device)",
+      "description": "As a salon, I want the Pad to work on various devices so that I can use my preferred hardware",
+      "acceptanceCriteria": [
+        "Works on iPad 9.7 inch to 12.9 inch",
+        "Works on Android tablets 7 inch to 10 inch",
+        "Works on desktop secondary display at any resolution",
+        "Portrait and landscape orientation support",
+        "Scales gracefully across screen sizes using responsive utilities",
+        "Touch-optimized spacing on tablets",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Phase 5 - Quality."
+    },
+    {
+      "id": "US-016",
+      "title": "Unit Tests (70% Coverage)",
+      "description": "As a developer, I want comprehensive tests so that the Pad is reliable",
+      "acceptanceCriteria": [
+        "Unit tests for all Redux thunks and reducers",
+        "Unit tests for MQTT message handlers",
+        "Unit tests for tip calculation utility functions",
+        "Unit tests for split payment calculations",
+        "Unit tests for signature validation logic",
+        "Unit tests for config persistence",
+        "Test coverage >= 70%",
+        "All tests pass with pnpm test",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Phase 5 - Quality. Load test-generator skill."
+    },
+    {
+      "id": "US-017",
+      "title": "E2E Tests (Happy Path)",
+      "description": "As a developer, I want E2E tests so that the complete flow is verified",
+      "acceptanceCriteria": [
+        "Playwright E2E test for complete payment flow",
+        "Test flow: Idle -> Review -> Tip -> Sign -> Pay -> Receipt -> Thank You -> Idle",
+        "E2E test for split payment flow (2-way split)",
+        "Mock MQTT messages for testing",
+        "E2E test for cancel flow",
+        "E2E test for payment failure and retry",
+        "All E2E tests pass with pnpm test:e2e",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Phase 5 - Quality. Load test-generator skill."
+    },
+    {
+      "id": "US-018",
+      "title": "Performance Optimization",
+      "description": "As a user, I want the Pad to be fast and responsive so that checkout is smooth",
+      "acceptanceCriteria": [
+        "Bundle size < 300KB gzipped",
+        "Time to interactive < 2 seconds",
+        "Smooth animations at 60fps",
+        "No jank during signature capture",
+        "Lazy load settings screen",
+        "Code splitting for non-critical screens",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Phase 5 - Quality. Load performance-profiler skill."
+    },
+    {
+      "id": "US-019",
+      "title": "Documentation and Production Readiness",
+      "description": "As a developer, I want documentation so that the Pad can be deployed and maintained",
+      "acceptanceCriteria": [
+        "README.md with setup and development instructions",
+        "MQTT_TOPICS.md documenting all topics and payloads",
+        "CONFIGURATION.md with all settings explained",
+        "DEPLOYMENT.md for web, Capacitor iOS, and Capacitor Android",
+        "No console errors in production build",
+        "No hardcoded credentials or secrets",
+        "Environment variables documented in .env.example",
+        "pnpm build succeeds with no warnings",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "Phase 5 - Final. Load documentation-generator skill."
+    }
+  ]
+}

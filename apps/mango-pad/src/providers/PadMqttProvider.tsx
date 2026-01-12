@@ -1,280 +1,270 @@
 /**
- * Mango Pad MQTT Provider
- * Provides MQTT connection, heartbeat publishing, and POS connection status
+ * Pad MQTT Provider
+ * Provides MQTT connectivity and Pad-specific topic handling
  */
 
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
   useCallback,
+  useState,
   useRef,
   type ReactNode,
 } from 'react';
-import mqtt, { type MqttClient as MqttClientType } from 'mqtt';
+import { mqttService, type MqttMessage } from '@/services/mqttClient';
+import { syncQueueService } from '@/services/syncQueue';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setMqttConnectionStatus, setScreen, resetToIdle } from '@/store/slices/padSlice';
+import { setTransaction, setPaymentResult, clearTransaction } from '@/store/slices/transactionSlice';
 import {
-  PAD_CONFIG,
-  getSalonId,
-  getDeviceId,
-  getMqttBrokerUrl
-} from '../constants/config';
-import { getPairingInfo } from '../services/pairingService';
-import type { PadScreen, PosConnectionState } from '../types';
-
-// =============================================================================
-// Topic Patterns (aligned with @mango/mqtt)
-// =============================================================================
-
-const TOPICS = {
-  PAD_HEARTBEAT: 'salon/{salonId}/pad/heartbeat',
-  POS_HEARTBEAT: 'salon/{salonId}/pos/heartbeat',
-  // Device pairing notifications (US-012, US-013)
-  PAD_UNPAIRED: 'salon/{salonId}/pad/{deviceId}/unpaired',
-};
-
-function buildTopic(pattern: string, params: Record<string, string>): string {
-  let topic = pattern;
-  for (const [key, value] of Object.entries(params)) {
-    topic = topic.replace(`{${key}}`, value);
-  }
-  return topic;
-}
-
-// =============================================================================
-// Payload Types (aligned with @mango/mqtt)
-// =============================================================================
-
-interface PadHeartbeatPayload {
-  deviceId: string;
-  deviceName: string;
-  salonId: string;
-  /** Device ID of the Store App station this Pad is paired to (US-010) */
-  pairedTo?: string;
-  timestamp: string;
-  screen: PadScreen;
-}
-
-interface PosHeartbeatPayload {
-  storeId: string;
-  storeName: string;
-  timestamp: string;
-  version: string;
-}
-
-// =============================================================================
-// Context
-// =============================================================================
+  setShowReconnecting,
+  setOfflineSince,
+  setOfflineAlertTriggered,
+  setQueuedMessageCount,
+} from '@/store/slices/uiSlice';
+import { buildPadTopic, PAD_TOPICS } from '@/constants/mqttTopics';
+import type {
+  MqttConnectionStatus,
+  ReadyToPayPayload,
+  PaymentResultPayload,
+  TipSelectedPayload,
+  SignatureCapturedPayload,
+  ReceiptPreferencePayload,
+  TransactionCompletePayload,
+  HelpRequestedPayload,
+  SplitPaymentPayload,
+  PadScreen,
+} from '@/types';
 
 interface PadMqttContextValue {
-  /** MQTT connected status */
+  connectionStatus: MqttConnectionStatus;
   isConnected: boolean;
-  /** Current screen for heartbeat */
-  currentScreen: PadScreen;
-  /** Set the current screen */
-  setCurrentScreen: (screen: PadScreen) => void;
-  /** POS connection status */
-  posConnection: PosConnectionState;
-  /** Salon ID */
-  salonId: string;
-  /** Device ID */
-  deviceId: string;
-  /** Unpair event received from Store App (US-013) */
-  unpairReceived: boolean;
-  /** Clear unpair received flag after handling */
-  clearUnpairReceived: () => void;
+  publishTipSelected: (payload: Omit<TipSelectedPayload, 'transactionId'>) => Promise<void>;
+  publishSignature: (payload: Omit<SignatureCapturedPayload, 'transactionId'>) => Promise<void>;
+  publishReceiptPreference: (
+    payload: Omit<ReceiptPreferencePayload, 'transactionId'>
+  ) => Promise<void>;
+  publishTransactionComplete: () => Promise<void>;
+  publishHelpRequested: (currentScreen: PadScreen) => Promise<void>;
+  publishSplitPayment: (payload: Omit<SplitPaymentPayload, 'transactionId'>) => Promise<void>;
+  reconnect: () => Promise<void>;
 }
 
 const PadMqttContext = createContext<PadMqttContextValue | null>(null);
-
-// =============================================================================
-// Provider Component
-// =============================================================================
 
 interface PadMqttProviderProps {
   children: ReactNode;
 }
 
 export function PadMqttProvider({ children }: PadMqttProviderProps) {
-  const salonId = getSalonId();
-  const deviceId = getDeviceId();
-  const brokerUrl = getMqttBrokerUrl();
+  const dispatch = useAppDispatch();
+  const config = useAppSelector((state) => state.config.config);
+  const transactionId = useAppSelector((state) => state.transaction.current?.transactionId);
+  const [connectionStatus, setConnectionStatus] = useState<MqttConnectionStatus>('disconnected');
+  const offlineAlertSentRef = useRef(false);
 
-  const [isConnected, setIsConnected] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState<PadScreen>('waiting');
-  const [posConnection, setPosConnection] = useState<PosConnectionState>({
-    isConnected: false,
-    lastHeartbeat: null,
-    storeId: null,
-    storeName: null,
-  });
-  // Unpair event state (US-013)
-  const [unpairReceived, setUnpairReceived] = useState(false);
+  const salonId = config.salonId;
+  const brokerUrl = config.mqttBrokerUrl;
 
-  const clientRef = useRef<MqttClientType | null>(null);
-  const heartbeatIntervalRef = useRef<number | null>(null);
-  const posCheckIntervalRef = useRef<number | null>(null);
-  const currentScreenRef = useRef(currentScreen);
-
-  // Keep currentScreenRef in sync
   useEffect(() => {
-    currentScreenRef.current = currentScreen;
-  }, [currentScreen]);
+    const unsubscribeState = mqttService.onStateChange((status) => {
+      setConnectionStatus(status);
+      dispatch(setMqttConnectionStatus(status));
 
-  // Publish heartbeat
-  const publishHeartbeat = useCallback(() => {
-    if (!clientRef.current?.connected) return;
+      if (status === 'disconnected' || status === 'reconnecting') {
+        dispatch(setShowReconnecting(true));
+        if (status === 'disconnected') {
+          dispatch(setOfflineSince(new Date().toISOString()));
+        }
+      } else if (status === 'connected') {
+        dispatch(setShowReconnecting(false));
+        dispatch(setOfflineSince(null));
+        dispatch(setOfflineAlertTriggered(false));
+        offlineAlertSentRef.current = false;
+      }
+    });
 
-    // Get pairing info to include pairedTo in heartbeat (US-010)
-    const pairingInfo = getPairingInfo();
-
-    const topic = buildTopic(TOPICS.PAD_HEARTBEAT, { salonId });
-    const payload: PadHeartbeatPayload = {
-      deviceId,
-      deviceName: PAD_CONFIG.DEVICE_NAME,
-      salonId,
-      pairedTo: pairingInfo?.stationId,
-      timestamp: new Date().toISOString(),
-      screen: currentScreenRef.current,
+    return () => {
+      unsubscribeState();
     };
+  }, [dispatch]);
 
-    clientRef.current.publish(topic, JSON.stringify(payload), { qos: 0 });
-  }, [salonId, deviceId]);
-
-  // Connect to MQTT
   useEffect(() => {
-    const clientId = `pad-${deviceId}-${Date.now()}`;
-    
-    const client = mqtt.connect(brokerUrl, {
-      clientId,
-      clean: true,
-      keepalive: 30,
-      reconnectPeriod: 5000,
-      connectTimeout: 10000,
+    syncQueueService.setOfflineAlertCallback((durationMs) => {
+      if (!offlineAlertSentRef.current) {
+        offlineAlertSentRef.current = true;
+        dispatch(setOfflineAlertTriggered(true));
+        console.warn(`[PadMqttProvider] Offline for ${Math.round(durationMs / 1000)}s - alerting staff`);
+      }
     });
+  }, [dispatch]);
 
-    clientRef.current = client;
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch(setQueuedMessageCount(syncQueueService.getQueueSize()));
+    }, 2000);
 
-    client.on('connect', () => {
-      console.log('[PadMqtt] Connected to broker');
-      setIsConnected(true);
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
-      // Subscribe to POS heartbeat
-      const posHeartbeatTopic = buildTopic(TOPICS.POS_HEARTBEAT, { salonId });
-      client.subscribe(posHeartbeatTopic, { qos: 0 }, (err) => {
-        if (err) {
-          console.error('[PadMqtt] Failed to subscribe to POS heartbeat:', err);
-        } else {
-          console.log('[PadMqtt] Subscribed to:', posHeartbeatTopic);
-        }
-      });
+  useEffect(() => {
+    if (!salonId || !brokerUrl) return;
 
-      // Subscribe to unpair notifications (US-013)
-      const unpairTopic = buildTopic(TOPICS.PAD_UNPAIRED, { salonId, deviceId });
-      client.subscribe(unpairTopic, { qos: 1 }, (err) => {
-        if (err) {
-          console.error('[PadMqtt] Failed to subscribe to unpair topic:', err);
-        } else {
-          console.log('[PadMqtt] Subscribed to:', unpairTopic);
-        }
-      });
-
-      // Start heartbeat
-      publishHeartbeat();
-      heartbeatIntervalRef.current = window.setInterval(
-        publishHeartbeat,
-        PAD_CONFIG.HEARTBEAT_INTERVAL_MS
-      );
-    });
-
-    client.on('disconnect', () => {
-      console.log('[PadMqtt] Disconnected');
-      setIsConnected(false);
-    });
-
-    client.on('error', (err) => {
-      console.error('[PadMqtt] Error:', err);
-    });
-
-    client.on('message', (topic, message) => {
+    const connectAndSubscribe = async () => {
       try {
-        const payload = JSON.parse(message.toString());
-
-        if (topic.includes('/pos/heartbeat')) {
-          const posPayload = payload as PosHeartbeatPayload;
-          setPosConnection({
-            isConnected: true,
-            lastHeartbeat: new Date(),
-            storeId: posPayload.storeId,
-            storeName: posPayload.storeName,
-          });
-        }
-
-        // Handle unpair notification (US-013)
-        if (topic.includes('/unpaired')) {
-          console.log('[PadMqtt] Received unpair notification:', payload);
-          // Clear the pairing info from localStorage
-          localStorage.removeItem('mango_pad_pairing');
-          // Set flag to trigger navigation in components
-          setUnpairReceived(true);
-        }
+        await mqttService.connect(brokerUrl);
       } catch (error) {
-        console.error('[PadMqtt] Failed to parse message:', error);
+        console.error('[PadMqttProvider] Connection failed:', error);
       }
+    };
+
+    connectAndSubscribe();
+
+    return () => {
+      mqttService.disconnect();
+    };
+  }, [salonId, brokerUrl]);
+
+  useEffect(() => {
+    if (!salonId || connectionStatus !== 'connected') return;
+
+    const readyToPayTopic = buildPadTopic(PAD_TOPICS.READY_TO_PAY, { salonId });
+    const paymentResultTopic = buildPadTopic(PAD_TOPICS.PAYMENT_RESULT, { salonId });
+    const cancelTopic = buildPadTopic(PAD_TOPICS.CANCEL, { salonId });
+
+    const unsubReadyToPay = mqttService.subscribe<ReadyToPayPayload>(
+      readyToPayTopic,
+      (_topic, msg: MqttMessage<ReadyToPayPayload>) => {
+        const payload = msg.payload;
+        dispatch(
+          setTransaction({
+            transactionId: payload.transactionId,
+            clientId: payload.clientId,
+            clientName: payload.clientName,
+            clientEmail: payload.clientEmail,
+            clientPhone: payload.clientPhone,
+            staffName: payload.staffName,
+            items: payload.items,
+            subtotal: payload.subtotal,
+            tax: payload.tax,
+            discount: payload.discount,
+            total: payload.total,
+            loyaltyPoints: payload.loyaltyPoints,
+            suggestedTips: payload.suggestedTips,
+            showReceiptOptions: payload.showReceiptOptions,
+            terminalType: payload.terminalType,
+          })
+        );
+        dispatch(setScreen('order-review'));
+      }
+    );
+
+    const unsubPaymentResult = mqttService.subscribe<PaymentResultPayload>(
+      paymentResultTopic,
+      (_topic, msg: MqttMessage<PaymentResultPayload>) => {
+        const payload = msg.payload;
+        dispatch(
+          setPaymentResult({
+            success: payload.success,
+            cardLast4: payload.cardLast4,
+            authCode: payload.authCode,
+            failureReason: payload.failureReason,
+            processedAt: new Date().toISOString(),
+          })
+        );
+        dispatch(setScreen('result'));
+      }
+    );
+
+    const unsubCancel = mqttService.subscribe(cancelTopic, () => {
+      dispatch(clearTransaction());
+      dispatch(resetToIdle());
     });
 
-    // Cleanup
     return () => {
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-        heartbeatIntervalRef.current = null;
-      }
-      client.end(true);
-      clientRef.current = null;
+      unsubReadyToPay();
+      unsubPaymentResult();
+      unsubCancel();
     };
-  }, [brokerUrl, deviceId, salonId, publishHeartbeat]);
+  }, [salonId, connectionStatus, dispatch]);
 
-  // Check for POS offline status
-  useEffect(() => {
-    const checkPosStatus = () => {
-      setPosConnection((prev) => {
-        if (!prev.lastHeartbeat) return prev;
-        
-        const timeSinceLastHeartbeat = Date.now() - prev.lastHeartbeat.getTime();
-        if (timeSinceLastHeartbeat > PAD_CONFIG.POS_OFFLINE_TIMEOUT_MS) {
-          return {
-            ...prev,
-            isConnected: false,
-          };
-        }
-        return prev;
-      });
+  const publishTipSelected = useCallback(
+    async (payload: Omit<TipSelectedPayload, 'transactionId'>) => {
+      if (!salonId || !transactionId) return;
+      const topic = buildPadTopic(PAD_TOPICS.TIP_SELECTED, { salonId });
+      await mqttService.publish(topic, { ...payload, transactionId });
+    },
+    [salonId, transactionId]
+  );
+
+  const publishSignature = useCallback(
+    async (payload: Omit<SignatureCapturedPayload, 'transactionId'>) => {
+      if (!salonId || !transactionId) return;
+      const topic = buildPadTopic(PAD_TOPICS.SIGNATURE, { salonId });
+      await mqttService.publish(topic, { ...payload, transactionId });
+    },
+    [salonId, transactionId]
+  );
+
+  const publishReceiptPreference = useCallback(
+    async (payload: Omit<ReceiptPreferencePayload, 'transactionId'>) => {
+      if (!salonId || !transactionId) return;
+      const topic = buildPadTopic(PAD_TOPICS.RECEIPT_PREFERENCE, { salonId });
+      await mqttService.publish(topic, { ...payload, transactionId });
+    },
+    [salonId, transactionId]
+  );
+
+  const publishTransactionComplete = useCallback(async () => {
+    if (!salonId || !transactionId) return;
+    const topic = buildPadTopic(PAD_TOPICS.TRANSACTION_COMPLETE, { salonId });
+    const payload: TransactionCompletePayload = {
+      transactionId,
+      completedAt: new Date().toISOString(),
     };
+    await mqttService.publish(topic, payload);
+  }, [salonId, transactionId]);
 
-    posCheckIntervalRef.current = window.setInterval(checkPosStatus, 10_000);
+  const publishHelpRequested = useCallback(
+    async (currentScreen: PadScreen) => {
+      if (!salonId) return;
+      const topic = buildPadTopic(PAD_TOPICS.HELP_REQUESTED, { salonId });
+      const payload: HelpRequestedPayload = {
+        transactionId: transactionId ?? undefined,
+        currentScreen,
+        requestedAt: new Date().toISOString(),
+      };
+      await mqttService.publish(topic, payload);
+    },
+    [salonId, transactionId]
+  );
 
-    return () => {
-      if (posCheckIntervalRef.current) {
-        clearInterval(posCheckIntervalRef.current);
-        posCheckIntervalRef.current = null;
-      }
-    };
-  }, []);
+  const publishSplitPayment = useCallback(
+    async (payload: Omit<SplitPaymentPayload, 'transactionId'>) => {
+      if (!salonId || !transactionId) return;
+      const topic = buildPadTopic(PAD_TOPICS.SPLIT_PAYMENT, { salonId });
+      await mqttService.publish(topic, { ...payload, transactionId });
+    },
+    [salonId, transactionId]
+  );
 
-  // Clear unpair received flag (US-013)
-  const clearUnpairReceived = useCallback(() => {
-    setUnpairReceived(false);
-  }, []);
+  const reconnect = useCallback(async () => {
+    if (!brokerUrl) return;
+    mqttService.disconnect();
+    await mqttService.connect(brokerUrl);
+  }, [brokerUrl]);
 
   const contextValue: PadMqttContextValue = {
-    isConnected,
-    currentScreen,
-    setCurrentScreen,
-    posConnection,
-    salonId,
-    deviceId,
-    unpairReceived,
-    clearUnpairReceived,
+    connectionStatus,
+    isConnected: connectionStatus === 'connected',
+    publishTipSelected,
+    publishSignature,
+    publishReceiptPreference,
+    publishTransactionComplete,
+    publishHelpRequested,
+    publishSplitPayment,
+    reconnect,
   };
 
   return (
@@ -284,10 +274,6 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   );
 }
 
-// =============================================================================
-// Hooks
-// =============================================================================
-
 export function usePadMqtt(): PadMqttContextValue {
   const context = useContext(PadMqttContext);
   if (!context) {
@@ -296,16 +282,6 @@ export function usePadMqtt(): PadMqttContextValue {
   return context;
 }
 
-export function usePosConnection(): PosConnectionState {
-  const { posConnection } = usePadMqtt();
-  return posConnection;
-}
-
-/**
- * Hook to use unpair event state (US-013)
- * Use this in components to detect when unpair has been received
- */
-export function useUnpairEvent() {
-  const { unpairReceived, clearUnpairReceived } = usePadMqtt();
-  return { unpairReceived, clearUnpairReceived };
+export function usePadMqttOptional(): PadMqttContextValue | null {
+  return useContext(PadMqttContext);
 }
