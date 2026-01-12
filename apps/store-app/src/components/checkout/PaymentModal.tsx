@@ -59,6 +59,7 @@ interface PaymentModalProps {
     methods: PaymentMethod[];
     tip: number;
     tipDistribution?: TipDistribution[];
+    padTransactionId?: string;
   }) => void;
   staffMembers?: { id: string; name: string; serviceTotal?: number }[];
   ticketId?: string;
@@ -224,10 +225,11 @@ export default function PaymentModal({
           methods: paymentMethods,
           tip: tipAmount,
           tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
+          padTransactionId: sentToPadTransactionId || undefined,
         });
       }, 800);
     }
-  }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId]);
+  }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId, sentToPadTransactionId]);
 
   const handleQuickCash = (amount: number) => {
     setCashTendered(amount.toString());
@@ -301,12 +303,13 @@ export default function PaymentModal({
   const handleComplete = () => {
     if (isFullyPaid) {
       setShowSuccess(true);
-      
+
       setTimeout(() => {
         onComplete({
           methods: paymentMethods,
           tip: tipAmount,
           tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
+          padTransactionId: sentToPadTransactionId || undefined,
         });
         setCurrentStep(1);
         setPaymentMethods([]);
@@ -317,6 +320,7 @@ export default function PaymentModal({
         setTipDistribution([]);
         setShowSuccess(false);
         setCurrentMethod(null);
+        setSentToPadTransactionId(null);
       }, 800);
     }
   };
