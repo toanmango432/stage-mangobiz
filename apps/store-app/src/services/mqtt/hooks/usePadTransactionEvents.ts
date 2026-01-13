@@ -34,6 +34,28 @@ import type {
   PadTransactionCompletePayload,
 } from '../types';
 
+/**
+ * Get human-readable notification message for receipt preference
+ */
+function getReceiptNotificationMessage(
+  preference: string,
+  email?: string,
+  phone?: string
+): string {
+  switch (preference) {
+    case 'email':
+      return `Receipt will be emailed to ${email}`;
+    case 'sms':
+      return `Receipt will be texted to ${phone}`;
+    case 'print':
+      return 'Receipt will be printed';
+    case 'none':
+      return 'Customer declined receipt';
+    default:
+      return 'Receipt preference recorded';
+  }
+}
+
 export function usePadTransactionEvents() {
   const dispatch = useAppDispatch();
   const { subscribe, connection } = useMqttContext();
@@ -86,30 +108,8 @@ export function usePadTransactionEvents() {
 
       dispatch(setReceiptPreference({ transactionId, preference }));
 
-      let notificationMessage: string;
-      switch (preference) {
-        case 'email':
-          notificationMessage = `Receipt will be emailed to ${email}`;
-          break;
-        case 'sms':
-          notificationMessage = `Receipt will be texted to ${phone}`;
-          break;
-        case 'print':
-          notificationMessage = 'Receipt will be printed';
-          break;
-        case 'none':
-          notificationMessage = 'Customer declined receipt';
-          break;
-        default:
-          notificationMessage = 'Receipt preference recorded';
-      }
-
-      dispatch(
-        addNotification({
-          type: 'info',
-          message: notificationMessage,
-        })
-      );
+      const notificationMessage = getReceiptNotificationMessage(preference, email, phone);
+      dispatch(addNotification({ type: 'info', message: notificationMessage }));
 
       console.log(`[PadTransactionEvents] Receipt preference for ticket ${ticketId}: ${preference}`);
     },

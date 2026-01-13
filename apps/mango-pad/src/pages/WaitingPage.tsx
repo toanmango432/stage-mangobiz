@@ -8,6 +8,19 @@ import { unpairDevice, getPairingInfo } from '../services/pairingService';
 import { useTransactionNavigation } from '../hooks/useTransactionNavigation';
 import type { ActiveTransaction } from '../types';
 
+/**
+ * Get status text based on demo mode and connection state
+ */
+function getStatusText(isDemo: boolean, isConnected: boolean): string {
+  if (isDemo) {
+    return 'Demo mode - tap button below to start';
+  }
+  if (isConnected) {
+    return 'Waiting for receipt from POS...';
+  }
+  return 'Waiting for POS connection...';
+}
+
 // Demo transaction with mock data
 const DEMO_TRANSACTION: ActiveTransaction = {
   transactionId: `demo-${Date.now()}`,
@@ -128,11 +141,7 @@ export function WaitingPage() {
 
         {/* Status text */}
         <p className="text-gray-500 text-sm mt-8">
-          {isDemo
-            ? 'Demo mode - tap button below to start'
-            : posConnection.isConnected
-            ? 'Waiting for receipt from POS...'
-            : 'Waiting for POS connection...'}
+          {getStatusText(isDemo, posConnection.isConnected)}
         </p>
 
         {/* Demo mode: Start Demo button */}

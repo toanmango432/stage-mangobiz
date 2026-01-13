@@ -10,14 +10,8 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { setScreen } from '@/store/slices/padSlice';
 import { setReceiptSelection } from '@/store/slices/transactionSlice';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
+import { formatCurrency } from '@/utils/formatting';
 import type { ReceiptPreference } from '@/types';
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
 
 interface EditModalProps {
   type: 'email' | 'phone';
@@ -91,6 +85,26 @@ interface ReceiptOptionProps {
   variant?: 'default' | 'none';
 }
 
+function getButtonStyles(selected: boolean, variant: 'default' | 'none'): string {
+  if (selected) {
+    return 'border-indigo-500 bg-indigo-50';
+  }
+  if (variant === 'none') {
+    return 'border-gray-200 bg-gray-50 hover:border-gray-300';
+  }
+  return 'border-gray-200 bg-white hover:border-gray-300';
+}
+
+function getIconStyles(selected: boolean, variant: 'default' | 'none'): string {
+  if (selected) {
+    return 'bg-indigo-500 text-white';
+  }
+  if (variant === 'none') {
+    return 'bg-gray-200 text-gray-500';
+  }
+  return 'bg-gray-100 text-gray-600';
+}
+
 function ReceiptOption({
   icon,
   title,
@@ -104,32 +118,16 @@ function ReceiptOption({
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
-      className={`w-full min-h-[80px] p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${
-        selected
-          ? 'border-indigo-500 bg-indigo-50'
-          : variant === 'none'
-            ? 'border-gray-200 bg-gray-50 hover:border-gray-300'
-            : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
+      className={`w-full min-h-[80px] p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${getButtonStyles(selected, variant)}`}
     >
       <div
-        className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-          selected
-            ? 'bg-indigo-500 text-white'
-            : variant === 'none'
-              ? 'bg-gray-200 text-gray-500'
-              : 'bg-gray-100 text-gray-600'
-        }`}
+        className={`w-14 h-14 rounded-xl flex items-center justify-center ${getIconStyles(selected, variant)}`}
       >
         {icon}
       </div>
 
       <div className="flex-1 text-left">
-        <p
-          className={`text-lg font-semibold ${
-            selected ? 'text-indigo-700' : 'text-gray-800'
-          }`}
-        >
+        <p className={`text-lg font-semibold ${selected ? 'text-indigo-700' : 'text-gray-800'}`}>
           {title}
         </p>
         {subtitle && (

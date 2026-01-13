@@ -15,6 +15,7 @@ import { useLocation } from 'react-router-dom';
 import { WifiOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAppSelector } from '@/store/hooks';
 import { mqttService } from '@/services/mqttClient';
+import { formatDuration } from '@/utils/formatting';
 
 /**
  * Check if device is paired (has pairing info in localStorage)
@@ -95,14 +96,6 @@ export function ReconnectingOverlay({ onAlertStaff }: ReconnectingOverlayProps) 
 
     return () => clearInterval(interval);
   }, [shouldShow, showExtendedWarning, onAlertStaff]);
-
-  const formatDuration = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
-  };
 
   const queuedCount = mqttService.getQueuedMessageCount();
 

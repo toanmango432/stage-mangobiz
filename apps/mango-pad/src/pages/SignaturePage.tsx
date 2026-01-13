@@ -13,38 +13,8 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { setSignature } from '@/store/slices/transactionSlice';
 import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
-import type { ActiveTransaction } from '@/types';
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
-
-/**
- * Demo transaction data for testing without a live Store App connection
- */
-const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
-  transactionId: 'demo-signature-page',
-  ticketId: 'ticket-demo-001',
-  clientName: 'Sarah Johnson',
-  clientEmail: 'sarah@example.com',
-  clientPhone: '555-0123',
-  staffName: 'Mike Chen',
-  items: [
-    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
-    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
-    { id: '3', name: 'Premium Shampoo', staffName: 'Mike Chen', price: 18.99, quantity: 1, type: 'product' },
-  ],
-  subtotal: 88.99,
-  tax: 7.12,
-  discount: 0,
-  total: 96.11,
-  suggestedTips: [15, 18, 20, 25],
-  tipAmount: 17.33, // 18% tip
-  tipPercent: 18,
-};
+import { formatCurrency } from '@/utils/formatting';
+import { createDemoTransaction } from '@/constants/demoData';
 
 export function SignaturePage() {
   const dispatch = useAppDispatch();
@@ -61,16 +31,15 @@ export function SignaturePage() {
   const [isEmpty, setIsEmpty] = useState(true);
 
   // Use activeTransaction from context, fallback to demo data for demo mode
-  const transaction = activeTransaction ?? {
-    ...DEMO_TRANSACTION,
-    step: 'signature' as const,
-    startedAt: new Date().toISOString(),
-  };
+  const transaction = activeTransaction ?? createDemoTransaction('signature', {
+    tipAmount: 17.33,
+    tipPercent: 18,
+  });
 
   const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
   const baseAmount = currentSplit ? currentSplit.amount : transaction.total;
   // Use tip from activeTransaction if available, fallback to Redux tip state
-  const tipAmount = activeTransaction?.tipAmount ?? tip?.tipAmount ?? DEMO_TRANSACTION.tipAmount;
+  const tipAmount = activeTransaction?.tipAmount ?? tip?.tipAmount ?? 17.33;
   const finalTotal = baseAmount + tipAmount;
 
   const handleClear = useCallback(() => {

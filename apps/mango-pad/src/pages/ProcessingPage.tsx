@@ -10,38 +10,8 @@ import { motion } from 'framer-motion';
 import { CreditCard } from 'lucide-react';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
-import type { ActiveTransaction } from '@/types';
-
-/**
- * Demo transaction data for testing without a live Store App connection
- */
-const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
-  transactionId: 'demo-processing-page',
-  ticketId: 'ticket-demo-001',
-  clientName: 'Sarah Johnson',
-  clientEmail: 'sarah@example.com',
-  clientPhone: '555-0123',
-  staffName: 'Mike Chen',
-  items: [
-    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
-    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
-    { id: '3', name: 'Premium Shampoo', staffName: 'Mike Chen', price: 18.99, quantity: 1, type: 'product' },
-  ],
-  subtotal: 88.99,
-  tax: 7.12,
-  discount: 0,
-  total: 96.11,
-  suggestedTips: [15, 18, 20, 25],
-  tipAmount: 17.33, // 18% tip
-  tipPercent: 18,
-};
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
+import { formatCurrency } from '@/utils/formatting';
+import { createDemoTransaction } from '@/constants/demoData';
 
 export function ProcessingPage() {
   const { activeTransaction } = usePadMqtt();
@@ -51,11 +21,10 @@ export function ProcessingPage() {
   useTransactionNavigation({ skipInitialNavigation: true });
 
   // Use activeTransaction from context, fallback to demo data for demo mode
-  const transaction = activeTransaction ?? {
-    ...DEMO_TRANSACTION,
-    step: 'waiting_payment' as const,
-    startedAt: new Date().toISOString(),
-  };
+  const transaction = activeTransaction ?? createDemoTransaction('waiting_payment', {
+    tipAmount: 17.33,
+    tipPercent: 18,
+  });
 
   // Calculate final total including tip
   const tipAmount = transaction.tipAmount ?? 0;

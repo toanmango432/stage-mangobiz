@@ -13,38 +13,8 @@ import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { setScreen } from '@/store/slices/padSlice';
 import { setTip } from '@/store/slices/transactionSlice';
 import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
-import type { ActiveTransaction } from '@/types';
-
-/**
- * Demo transaction data for testing without a live Store App connection
- */
-const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
-  transactionId: 'demo-tip-page',
-  ticketId: 'ticket-demo-001',
-  clientName: 'Sarah Johnson',
-  clientEmail: 'sarah@example.com',
-  clientPhone: '555-0123',
-  staffName: 'Mike Chen',
-  items: [
-    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
-    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
-    { id: '3', name: 'Premium Shampoo', staffName: 'Mike Chen', price: 18.99, quantity: 1, type: 'product' },
-  ],
-  subtotal: 88.99,
-  tax: 7.12,
-  discount: 0,
-  total: 96.11,
-  suggestedTips: [15, 18, 20, 25],
-  tipAmount: 0,
-  tipPercent: null,
-};
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
+import { formatCurrency } from '@/utils/formatting';
+import { createDemoTransaction } from '@/constants/demoData';
 
 interface NumericKeypadModalProps {
   isOpen: boolean;
@@ -218,11 +188,7 @@ export function TipPage() {
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
 
   // Use activeTransaction from context, fallback to demo data for demo mode
-  const transaction = activeTransaction ?? {
-    ...DEMO_TRANSACTION,
-    step: 'tip' as const,
-    startedAt: new Date().toISOString(),
-  };
+  const transaction = activeTransaction ?? createDemoTransaction('tip');
 
   const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
   const baseAmount = currentSplit ? currentSplit.amount : transaction.total;

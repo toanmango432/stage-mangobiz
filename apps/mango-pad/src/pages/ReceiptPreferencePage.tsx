@@ -14,38 +14,9 @@ import { useAppDispatch } from '@/store/hooks';
 import { setReceiptSelection } from '@/store/slices/transactionSlice';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
-import type { ReceiptPreference, ActiveTransaction } from '@/types';
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
-
-/**
- * Demo transaction data for testing without a live Store App connection
- */
-const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
-  transactionId: 'demo-receipt-preference-page',
-  ticketId: 'ticket-demo-001',
-  clientName: 'Sarah Johnson',
-  clientEmail: 'sarah@example.com',
-  clientPhone: '555-0123',
-  staffName: 'Mike Chen',
-  items: [
-    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
-    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
-    { id: '3', name: 'Premium Shampoo', staffName: 'Mike Chen', price: 18.99, quantity: 1, type: 'product' },
-  ],
-  subtotal: 88.99,
-  tax: 7.12,
-  discount: 0,
-  total: 96.11,
-  suggestedTips: [15, 18, 20, 25],
-  tipAmount: 17.33, // 18% tip
-  tipPercent: 18,
-};
+import { formatCurrency } from '@/utils/formatting';
+import { createDemoTransaction } from '@/constants/demoData';
+import type { ReceiptPreference } from '@/types';
 
 interface EditModalProps {
   type: 'email' | 'phone';
@@ -130,6 +101,26 @@ interface ReceiptOptionProps {
   variant?: 'default' | 'none';
 }
 
+function getButtonStyles(selected: boolean, variant: 'default' | 'none'): string {
+  if (selected) {
+    return 'border-indigo-600 bg-indigo-50';
+  }
+  if (variant === 'none') {
+    return 'border-gray-200 bg-gray-50 hover:border-gray-300';
+  }
+  return 'border-gray-200 bg-white hover:border-gray-300';
+}
+
+function getIconStyles(selected: boolean, variant: 'default' | 'none'): string {
+  if (selected) {
+    return 'bg-indigo-600 text-white';
+  }
+  if (variant === 'none') {
+    return 'bg-gray-200 text-gray-500';
+  }
+  return 'bg-gray-100 text-gray-600';
+}
+
 function ReceiptOption({
   icon,
   title,
@@ -145,22 +136,10 @@ function ReceiptOption({
       onClick={onSelect}
       aria-label={`Select ${title}${subtitle ? `, ${subtitle}` : ''}`}
       aria-pressed={selected}
-      className={`w-full min-h-[80px] p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${
-        selected
-          ? 'border-indigo-600 bg-indigo-50'
-          : variant === 'none'
-            ? 'border-gray-200 bg-gray-50 hover:border-gray-300'
-            : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
+      className={`w-full min-h-[80px] p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${getButtonStyles(selected, variant)}`}
     >
       <div
-        className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-          selected
-            ? 'bg-indigo-600 text-white'
-            : variant === 'none'
-              ? 'bg-gray-200 text-gray-500'
-              : 'bg-gray-100 text-gray-600'
-        }`}
+        className={`w-14 h-14 rounded-xl flex items-center justify-center ${getIconStyles(selected, variant)}`}
       >
         {icon}
       </div>
@@ -214,11 +193,10 @@ export function ReceiptPreferencePage() {
   useTransactionNavigation({ skipInitialNavigation: true });
 
   // Use activeTransaction from context, fallback to demo data for demo mode
-  const transaction = activeTransaction ?? {
-    ...DEMO_TRANSACTION,
-    step: 'receipt_preference' as const,
-    startedAt: new Date().toISOString(),
-  };
+  const transaction = activeTransaction ?? createDemoTransaction('receipt_preference', {
+    tipAmount: 17.33,
+    tipPercent: 18,
+  });
 
   const [selectedPreference, setSelectedPreference] = useState<ReceiptPreference | null>(null);
   const [email, setEmail] = useState(transaction.clientEmail || '');

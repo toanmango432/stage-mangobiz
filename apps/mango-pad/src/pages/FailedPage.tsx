@@ -12,41 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { XCircle, AlertTriangle } from 'lucide-react';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
-import type { ActiveTransaction } from '@/types';
-
-/**
- * Demo transaction data for testing without a live Store App connection
- */
-const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
-  transactionId: 'demo-failed-page',
-  ticketId: 'ticket-demo-001',
-  clientName: 'Sarah Johnson',
-  clientEmail: 'sarah@example.com',
-  clientPhone: '555-0123',
-  staffName: 'Mike Chen',
-  items: [
-    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
-    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
-  ],
-  subtotal: 70.00,
-  tax: 5.60,
-  discount: 0,
-  total: 75.60,
-  suggestedTips: [15, 18, 20, 25],
-  tipAmount: 0,
-  tipPercent: 0,
-  paymentResult: {
-    success: false,
-    errorMessage: 'Card declined - insufficient funds',
-  },
-};
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
+import { formatCurrency } from '@/utils/formatting';
+import { createDemoTransaction } from '@/constants/demoData';
 
 export function FailedPage() {
   const navigate = useNavigate();
@@ -54,11 +21,12 @@ export function FailedPage() {
   const hasCleared = useRef(false);
 
   // Use activeTransaction from context, fallback to demo data for demo mode
-  const transaction = activeTransaction ?? {
-    ...DEMO_TRANSACTION,
-    step: 'failed' as const,
-    startedAt: new Date().toISOString(),
-  };
+  const transaction = activeTransaction ?? createDemoTransaction('failed', {
+    paymentResult: {
+      success: false,
+      errorMessage: 'Card declined - insufficient funds',
+    },
+  });
 
   // Get error message from payment result
   const errorMessage = transaction.paymentResult?.errorMessage ?? 'An unknown error occurred during payment processing.';
