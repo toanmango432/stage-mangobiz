@@ -7,18 +7,30 @@
  */
 
 import { useEffect, lazy, Suspense, memo } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PadMqttProvider } from '@/providers/PadMqttProvider';
 import { useAppSelector } from '@/store/hooks';
-import { IdlePage } from '@/pages/IdlePage';
+// IdlePage replaced by WaitingPage
+// import { IdlePage } from '@/pages/IdlePage';
 import { OrderReviewPage } from '@/pages/OrderReviewPage';
 import { TipPage } from '@/pages/TipPage';
 import { SignaturePage } from '@/pages/SignaturePage';
 import { PaymentPage } from '@/pages/PaymentPage';
 import { ResultPage } from '@/pages/ResultPage';
+import { WaitingPage } from '@/pages/WaitingPage';
+import { WelcomePage, isPaired } from '@/pages/WelcomePage';
+import { PairingPage } from '@/pages/PairingPage';
+import { ReceiptPreferencePage } from '@/pages/ReceiptPreferencePage';
 import { ReconnectingOverlay } from '@/components/ReconnectingOverlay';
+import { UnpairHandler } from '@/components/UnpairHandler';
 import { useOrientation } from '@/hooks/useResponsive';
 import type { PadScreen } from '@/types';
+
+// Helper to check if in demo mode
+function isDemoMode(): boolean {
+  return localStorage.getItem('mango_pad_demo_mode') === 'true';
+}
 
 // Lazy load non-critical screens for code splitting
 const ReceiptPage = lazy(() => import('@/pages/ReceiptPage').then(m => ({ default: m.ReceiptPage })));
@@ -59,7 +71,8 @@ function ScreenRouter() {
     // Eagerly loaded screens (critical path)
     switch (screen) {
       case 'idle':
-        return <IdlePage />;
+      case 'waiting':
+        return <WaitingPage />;
       case 'order-review':
         return <OrderReviewPage />;
       case 'tip':
@@ -100,7 +113,7 @@ function ScreenRouter() {
       );
     }
 
-    return <IdlePage />;
+    return <WaitingPage />;
   };
 
   return (
@@ -143,6 +156,15 @@ function AccessibilityProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Guard component to check pairing status
+function PairingGuard({ children }: { children: React.ReactNode }) {
+  // If not paired and not in demo mode, redirect to welcome
+  if (!isPaired() && !isDemoMode()) {
+    return <Navigate to="/welcome" replace />;
+  }
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <PadMqttProvider>
@@ -150,7 +172,32 @@ export function App() {
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <ScreenRouter />
+        <UnpairHandler />
+        <Routes>
+          {/* Pairing flow routes */}
+          <Route path="/welcome" element={<WelcomePage />} />
+          <Route path="/pair" element={<PairingPage />} />
+
+          {/* Transaction flow routes - US-015, US-019 */}
+          <Route
+            path="/receipt-preference"
+            element={
+              <PairingGuard>
+                <ReceiptPreferencePage />
+              </PairingGuard>
+            }
+          />
+
+          {/* Main app route - requires pairing or demo mode */}
+          <Route
+            path="/*"
+            element={
+              <PairingGuard>
+                <ScreenRouter />
+              </PairingGuard>
+            }
+          />
+        </Routes>
         <ReconnectingOverlay />
       </AccessibilityProvider>
     </PadMqttProvider>
