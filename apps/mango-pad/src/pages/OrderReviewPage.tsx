@@ -11,7 +11,32 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { setScreen } from '@/store/slices/padSlice';
 import { useResponsive } from '@/hooks/useResponsive';
-import type { TransactionItem } from '@/types';
+import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
+import type { TransactionItem, ActiveTransaction } from '@/types';
+
+/**
+ * Demo transaction data for testing without a live Store App connection
+ */
+const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
+  transactionId: 'demo-order-review',
+  ticketId: 'ticket-demo-001',
+  clientName: 'Sarah Johnson',
+  clientEmail: 'sarah@example.com',
+  clientPhone: '555-0123',
+  staffName: 'Mike Chen',
+  items: [
+    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
+    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
+    { id: '3', name: 'Premium Shampoo', staffName: 'Mike Chen', price: 18.99, quantity: 1, type: 'product' },
+  ],
+  subtotal: 88.99,
+  tax: 7.12,
+  discount: 0,
+  total: 96.11,
+  suggestedTips: [15, 18, 20, 25],
+  tipAmount: 0,
+  tipPercent: null,
+};
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -74,10 +99,19 @@ function SummaryRow({ label, value, isTotal, isDiscount }: SummaryRowProps) {
 
 export function OrderReviewPage() {
   const dispatch = useAppDispatch();
-  const { publishHelpRequested } = usePadMqtt();
-  const transaction = useAppSelector((state) => state.transaction.current);
+  const { publishHelpRequested, activeTransaction } = usePadMqtt();
   const config = useAppSelector((state) => state.config.config);
   const { orientation, isShortScreen } = useResponsive();
+
+  // Enable auto-navigation on transaction step changes
+  useTransactionNavigation({ skipInitialNavigation: true });
+
+  // Use activeTransaction from context, fallback to demo data for demo mode
+  const transaction = activeTransaction ?? {
+    ...DEMO_TRANSACTION,
+    step: 'receipt' as const,
+    startedAt: new Date().toISOString(),
+  };
 
   const handleConfirm = () => {
     if (config.tipEnabled) {
@@ -100,14 +134,6 @@ export function OrderReviewPage() {
       console.error('Failed to publish help request:', error);
     }
   };
-
-  if (!transaction) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-500">No transaction data</p>
-      </div>
-    );
-  }
 
   const serviceItems = transaction.items.filter((item) => item.type === 'service');
   const productItems = transaction.items.filter((item) => item.type === 'product');
