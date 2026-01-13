@@ -23,6 +23,7 @@ import { WelcomePage, isPaired } from '@/pages/WelcomePage';
 import { PairingPage } from '@/pages/PairingPage';
 import { ReceiptPreferencePage } from '@/pages/ReceiptPreferencePage';
 import { ProcessingPage } from '@/pages/ProcessingPage';
+import { CompletePage } from '@/pages/CompletePage';
 import { ReconnectingOverlay } from '@/components/ReconnectingOverlay';
 import { UnpairHandler } from '@/components/UnpairHandler';
 import { useOrientation } from '@/hooks/useResponsive';
@@ -193,6 +194,14 @@ export function App() {
             element={
               <PairingGuard>
                 <ProcessingPage />
+              </PairingGuard>
+            }
+          />
+          <Route
+            path="/complete"
+            element={
+              <PairingGuard>
+                <CompletePage />
               </PairingGuard>
             }
           />
