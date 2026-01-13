@@ -14,7 +14,6 @@ import { authService } from './services/supabase';
 import { TooltipProvider } from './components/ui/tooltip';
 import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
 import { ConflictNotificationProvider } from './providers/ConflictNotificationContext';
-import { PosHeartbeatProvider } from './providers/PosHeartbeatProvider';
 
 // NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
 // If you need to clear the database, do it manually via browser DevTools
@@ -223,40 +222,39 @@ export function App() {
   }
 
   // Show login screen if not authenticated
-  // PosHeartbeatProvider wraps so heartbeats are published even on login screen
+  // NOTE: Station heartbeats are published via usePosHeartbeat in PadConnectionIndicator
+  // after login, so they use the correct station-specific topic
   if (storeAuthManager.isLoginRequired()) {
     return (
-      <PosHeartbeatProvider>
-        <Provider store={store}>
-          <StoreLoginScreen
-            initialState={authState || undefined}
-            onLoggedIn={() => {
-              // Login successful - auth state will be updated by subscription
-              // Just force a re-render by updating the state
-              const currentState = storeAuthManager.getState();
-              setAuthState(currentState);
-            }}
-          />
-        </Provider>
-      </PosHeartbeatProvider>
+      <Provider store={store}>
+        <StoreLoginScreen
+          initialState={authState || undefined}
+          onLoggedIn={() => {
+            // Login successful - auth state will be updated by subscription
+            // Just force a re-render by updating the state
+            const currentState = storeAuthManager.getState();
+            setAuthState(currentState);
+          }}
+        />
+      </Provider>
     );
   }
 
   // Normal app flow
+  // NOTE: Station heartbeats are published via usePosHeartbeat in PadConnectionIndicator
+  // which uses the correct station-specific topic: salon/{storeId}/station/{stationId}/heartbeat
   return (
-    <PosHeartbeatProvider>
-      <ErrorBoundary module="app">
-        <Provider store={store}>
-          <SupabaseSyncProvider autoSyncInterval={0} enableRealtime={true}>
-            <ConflictNotificationProvider>
-              <TooltipProvider>
-                <AppShell />
-                <Toaster {...toasterConfig} />
-              </TooltipProvider>
-            </ConflictNotificationProvider>
-          </SupabaseSyncProvider>
-        </Provider>
-      </ErrorBoundary>
-    </PosHeartbeatProvider>
+    <ErrorBoundary module="app">
+      <Provider store={store}>
+        <SupabaseSyncProvider autoSyncInterval={0} enableRealtime={true}>
+          <ConflictNotificationProvider>
+            <TooltipProvider>
+              <AppShell />
+              <Toaster {...toasterConfig} />
+            </TooltipProvider>
+          </ConflictNotificationProvider>
+        </SupabaseSyncProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }
