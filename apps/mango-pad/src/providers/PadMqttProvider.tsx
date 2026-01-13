@@ -40,6 +40,9 @@ import type {
   HelpRequestedPayload,
   SplitPaymentPayload,
   PadScreen,
+  PadFlowStep,
+  ActiveTransaction,
+  TransactionPayload,
 } from '@/types';
 
 // POS connection status tracked via heartbeat
@@ -53,6 +56,12 @@ interface PadMqttContextValue {
   isConnected: boolean;
   posConnection: PosConnectionStatus;
   stationId: string | null;
+  // Transaction state management
+  activeTransaction: ActiveTransaction | null;
+  setActiveTransaction: (transaction: ActiveTransaction) => void;
+  clearTransaction: () => void;
+  updateTransactionStep: (step: PadFlowStep) => void;
+  // Publish functions
   publishTipSelected: (payload: Omit<TipSelectedPayload, 'transactionId'>) => Promise<void>;
   publishSignature: (payload: Omit<SignatureCapturedPayload, 'transactionId'>) => Promise<void>;
   publishReceiptPreference: (
@@ -107,10 +116,54 @@ function getPairingInfo(): { stationId: string; salonId: string; stationName?: s
   return null;
 }
 
+/**
+ * Map PadFlowStep to PadScreen for navigation
+ */
+function flowStepToScreen(step: PadFlowStep): PadScreen {
+  const mapping: Record<PadFlowStep, PadScreen> = {
+    waiting: 'idle',
+    receipt: 'order-review',
+    tip: 'tip',
+    signature: 'signature',
+    receipt_preference: 'receipt',
+    waiting_payment: 'payment',
+    complete: 'result',
+    failed: 'result',
+    cancelled: 'idle',
+  };
+  return mapping[step];
+}
+
+/**
+ * Map PadScreen to PadFlowStep for state tracking
+ */
+function screenToFlowStep(screen: PadScreen): PadFlowStep {
+  const mapping: Record<PadScreen, PadFlowStep> = {
+    idle: 'waiting',
+    waiting: 'waiting',
+    'order-review': 'receipt',
+    tip: 'tip',
+    signature: 'signature',
+    payment: 'waiting_payment',
+    result: 'complete', // Will be refined by payment result
+    receipt: 'receipt_preference',
+    'thank-you': 'complete',
+    'split-selection': 'tip',
+    'split-status': 'waiting_payment',
+    settings: 'waiting',
+  };
+  return mapping[screen];
+}
+
 export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const dispatch = useAppDispatch();
   const config = useAppSelector((state) => state.config.config);
   const transactionId = useAppSelector((state) => state.transaction.current?.transactionId);
+
+  // Get full transaction state from Redux for computing activeTransaction
+  const transactionState = useAppSelector((state) => state.transaction);
+  const currentScreen = useAppSelector((state) => state.pad.currentScreen);
+
   const [connectionStatus, setConnectionStatus] = useState<MqttConnectionStatus>('disconnected');
   const [posConnection, setPosConnection] = useState<PosConnectionStatus>({ isConnected: false });
   const [unpairReceived, setUnpairReceived] = useState(false);
@@ -118,6 +171,44 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const [salonId, setSalonId] = useState<string | null>(null);
   const offlineAlertSentRef = useRef(false);
   const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Compute activeTransaction from Redux state
+  const activeTransaction: ActiveTransaction | null = transactionState.current
+    ? {
+        transactionId: transactionState.current.transactionId,
+        ticketId: transactionState.current.transactionId, // Use transactionId as ticketId for now
+        clientName: transactionState.current.clientName,
+        clientEmail: transactionState.current.clientEmail,
+        clientPhone: transactionState.current.clientPhone,
+        staffName: transactionState.current.staffName,
+        items: transactionState.current.items,
+        subtotal: transactionState.current.subtotal,
+        tax: transactionState.current.tax,
+        discount: transactionState.current.discount ?? 0,
+        total: transactionState.current.total,
+        suggestedTips: transactionState.current.suggestedTips,
+        tipAmount: transactionState.tip?.tipAmount ?? 0,
+        tipPercent: transactionState.tip?.tipPercent ?? null,
+        signatureData: transactionState.signature?.signatureBase64,
+        receiptPreference: transactionState.receiptSelection?.preference,
+        step: transactionState.paymentResult
+          ? transactionState.paymentResult.success
+            ? 'complete'
+            : 'failed'
+          : screenToFlowStep(currentScreen),
+        startedAt:
+          transactionState.tip?.selectedAt ??
+          transactionState.signature?.agreedAt ??
+          new Date().toISOString(),
+        paymentResult: transactionState.paymentResult
+          ? {
+              success: transactionState.paymentResult.success,
+              cardLast4: transactionState.paymentResult.cardLast4,
+              errorMessage: transactionState.paymentResult.failureReason,
+            }
+          : undefined,
+      }
+    : null;
 
   // Use broker URL from config
   const brokerUrl = config.mqttBrokerUrl;
@@ -372,6 +463,46 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     setUnpairReceived(false);
   }, []);
 
+  // Set active transaction - converts ActiveTransaction to TransactionPayload and dispatches to Redux
+  const setActiveTransactionFn = useCallback(
+    (transaction: ActiveTransaction) => {
+      const payload: TransactionPayload = {
+        transactionId: transaction.transactionId,
+        clientId: transaction.ticketId, // Use ticketId as clientId fallback
+        clientName: transaction.clientName,
+        clientEmail: transaction.clientEmail,
+        clientPhone: transaction.clientPhone,
+        staffName: transaction.staffName,
+        items: transaction.items,
+        subtotal: transaction.subtotal,
+        tax: transaction.tax,
+        discount: transaction.discount,
+        total: transaction.total,
+        suggestedTips: transaction.suggestedTips,
+        showReceiptOptions: true,
+      };
+      dispatch(setTransaction(payload));
+      // Also navigate to the appropriate screen based on step
+      dispatch(setScreen(flowStepToScreen(transaction.step)));
+    },
+    [dispatch]
+  );
+
+  // Clear transaction - clears Redux state and resets to idle
+  const clearTransactionFn = useCallback(() => {
+    dispatch(clearTransaction());
+    dispatch(resetToIdle());
+  }, [dispatch]);
+
+  // Update transaction step - changes the current flow step
+  const updateTransactionStep = useCallback(
+    (step: PadFlowStep) => {
+      // Navigate to the appropriate screen for this step
+      dispatch(setScreen(flowStepToScreen(step)));
+    },
+    [dispatch]
+  );
+
   // Set current screen via Redux
   const setCurrentScreen = useCallback(
     (screen: PadScreen) => {
@@ -452,6 +583,12 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     isConnected: connectionStatus === 'connected',
     posConnection,
     stationId,
+    // Transaction state management
+    activeTransaction,
+    setActiveTransaction: setActiveTransactionFn,
+    clearTransaction: clearTransactionFn,
+    updateTransactionStep,
+    // Publish functions
     publishTipSelected,
     publishSignature,
     publishReceiptPreference,
