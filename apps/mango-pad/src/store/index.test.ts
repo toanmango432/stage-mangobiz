@@ -58,7 +58,7 @@ describe('Redux Store', () => {
         clientId: 'client-1',
         clientName: 'Test Client',
         staffName: 'Staff Member',
-        items: [{ name: 'Service', price: 50, quantity: 1, type: 'service' }],
+        items: [{ id: 'item-1', name: 'Service', price: 50, quantity: 1, type: 'service' }],
         subtotal: 50,
         tax: 4,
         total: 54,

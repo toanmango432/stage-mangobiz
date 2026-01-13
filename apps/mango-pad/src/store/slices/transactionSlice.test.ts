@@ -37,8 +37,8 @@ describe('transactionSlice', () => {
     clientPhone: '555-0100',
     staffName: 'Jane Smith',
     items: [
-      { name: 'Haircut', price: 45.00, quantity: 1, type: 'service' },
-      { name: 'Shampoo', price: 12.99, quantity: 2, type: 'product' },
+      { id: 'item-1', name: 'Haircut', price: 45.00, quantity: 1, type: 'service' },
+      { id: 'item-2', name: 'Shampoo', price: 12.99, quantity: 2, type: 'product' },
     ],
     subtotal: 70.99,
     tax: 5.32,
