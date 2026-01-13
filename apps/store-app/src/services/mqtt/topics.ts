@@ -41,23 +41,26 @@ export const TOPIC_PATTERNS = {
   STAFF_BREAK_END: 'mango/{storeId}/staff/break-end',
   STAFF_UPDATED: 'mango/{storeId}/staff/updated',
 
-  // Mango Pad (Signature Capture) - Uses 'salon' prefix to match Mango Pad app
-  PAD_ALL: 'salon/{storeId}/pad/#',
-  // Store App publishes (to Pad)
-  PAD_READY_TO_PAY: 'salon/{storeId}/pad/ready_to_pay',
-  PAD_PAYMENT_RESULT: 'salon/{storeId}/pad/payment_result',
-  PAD_CANCEL: 'salon/{storeId}/pad/cancel',
-  // Store App receives (from Pad)
-  PAD_TIP_SELECTED: 'salon/{storeId}/pad/tip_selected',
-  PAD_SIGNATURE_CAPTURED: 'salon/{storeId}/pad/signature',
-  PAD_RECEIPT_PREFERENCE: 'salon/{storeId}/pad/receipt_preference',
-  PAD_TRANSACTION_COMPLETE: 'salon/{storeId}/pad/transaction_complete',
-  PAD_HELP_REQUESTED: 'salon/{storeId}/pad/help_requested',
-  // Heartbeats for connection awareness
-  PAD_HEARTBEAT: 'salon/{storeId}/pad/heartbeat',
-  POS_HEARTBEAT: 'salon/{storeId}/pos/heartbeat',
+  // Mango Pad (Signature Capture) - Device-to-Device (1:1) Architecture
+  // Each Mango Pad pairs to ONE specific Store App station
+  // All topics include stationId for device-to-device communication
+  PAD_ALL: 'salon/{storeId}/station/{stationId}/pad/#',
+  // Store App publishes (to paired Pad)
+  PAD_READY_TO_PAY: 'salon/{storeId}/station/{stationId}/pad/ready_to_pay',
+  PAD_PAYMENT_RESULT: 'salon/{storeId}/station/{stationId}/pad/payment_result',
+  PAD_CANCEL: 'salon/{storeId}/station/{stationId}/pad/cancel',
+  // Store App receives (from paired Pad)
+  PAD_TIP_SELECTED: 'salon/{storeId}/station/{stationId}/pad/tip_selected',
+  PAD_SIGNATURE_CAPTURED: 'salon/{storeId}/station/{stationId}/pad/signature',
+  PAD_RECEIPT_PREFERENCE: 'salon/{storeId}/station/{stationId}/pad/receipt_preference',
+  PAD_TRANSACTION_COMPLETE: 'salon/{storeId}/station/{stationId}/pad/transaction_complete',
+  PAD_HELP_REQUESTED: 'salon/{storeId}/station/{stationId}/pad/help_requested',
+  PAD_SPLIT_PAYMENT: 'salon/{storeId}/station/{stationId}/pad/split_payment',
+  // Heartbeats for connection awareness (device-to-device)
+  PAD_HEARTBEAT: 'salon/{storeId}/station/{stationId}/pad/heartbeat',  // Pad -> Station
+  STATION_HEARTBEAT: 'salon/{storeId}/station/{stationId}/heartbeat',  // Station -> Pad
   // Device pairing notifications (US-012, US-013)
-  PAD_UNPAIRED: 'salon/{storeId}/pad/{deviceId}/unpaired',
+  PAD_UNPAIRED: 'salon/{storeId}/station/{stationId}/pad/{deviceId}/unpaired',
 
   // Check-In App
   CHECKIN_ALL: 'mango/{storeId}/checkin/#',
@@ -251,8 +254,9 @@ export const QOS_BY_TOPIC: Record<string, MqttQoS> = {
   [TOPIC_PATTERNS.PAD_RECEIPT_PREFERENCE]: 1,
   [TOPIC_PATTERNS.PAD_TRANSACTION_COMPLETE]: 1,
   [TOPIC_PATTERNS.PAD_HELP_REQUESTED]: 1,
+  [TOPIC_PATTERNS.PAD_SPLIT_PAYMENT]: 1,
   [TOPIC_PATTERNS.PAD_HEARTBEAT]: 0,
-  [TOPIC_PATTERNS.POS_HEARTBEAT]: 0,
+  [TOPIC_PATTERNS.STATION_HEARTBEAT]: 0,
   [TOPIC_PATTERNS.PAD_UNPAIRED]: 1, // Guaranteed delivery for unpair notification
   [TOPIC_PATTERNS.CHECKIN_WALKIN]: 1,
   [TOPIC_PATTERNS.CHECKIN_STAFF]: 1,

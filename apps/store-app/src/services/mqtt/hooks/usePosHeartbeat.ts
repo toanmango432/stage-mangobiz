@@ -1,6 +1,13 @@
 /**
  * usePosHeartbeat Hook
- * Publish POS heartbeats so Mango Pad knows Store App is connected
+ * Publish station heartbeats so Mango Pad knows Store App is connected
+ *
+ * Device-to-Device (1:1) Architecture:
+ * - Each Store App station publishes to: salon/{storeId}/station/{stationId}/heartbeat
+ * - Only the Mango Pad paired to this station receives the heartbeat
+ *
+ * NOTE: This hook is now largely redundant as usePadHeartbeat also publishes station heartbeats.
+ * Keeping for backwards compatibility and explicit heartbeat control.
  *
  * Part of: Mango Pad Integration (US-011)
  */
@@ -11,6 +18,7 @@ import { useAppSelector } from '@/store/hooks';
 import { selectStoreId, selectStoreName } from '@/store/slices/authSlice';
 import { buildTopic, TOPIC_PATTERNS } from '../topics';
 import { isMqttEnabled, getCloudBrokerUrl } from '../featureFlags';
+import { getOrCreateDeviceId } from '@/services/deviceRegistration';
 import type { PosHeartbeatPayload } from '../types';
 
 const HEARTBEAT_INTERVAL_MS = 15000; // 15 seconds
@@ -26,16 +34,22 @@ export function usePosHeartbeat() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientRef = useRef<MqttClient | null>(null);
   const isPublishingRef = useRef(false);
+  const stationIdRef = useRef<string | null>(null);
 
   const publishHeartbeat = useCallback(() => {
     if (!storeId || isPublishingRef.current || !clientRef.current?.connected) return;
 
     try {
       isPublishingRef.current = true;
-      const topic = buildTopic(TOPIC_PATTERNS.POS_HEARTBEAT, { storeId });
+      // Get station ID (this device's fingerprint) for device-to-device communication
+      const stationId = stationIdRef.current || getOrCreateDeviceId();
+      stationIdRef.current = stationId;
+
+      const topic = buildTopic(TOPIC_PATTERNS.STATION_HEARTBEAT, { storeId, stationId });
 
       const payload: PosHeartbeatPayload = {
         storeId,
+        stationId,
         storeName: storeName || 'Unknown Store',
         timestamp: new Date().toISOString(),
         version: APP_VERSION,
@@ -60,11 +74,16 @@ export function usePosHeartbeat() {
       return;
     }
 
+    // Get station ID for device-to-device communication
+    const stationId = getOrCreateDeviceId();
+    stationIdRef.current = stationId;
+
     const brokerUrl = getCloudBrokerUrl();
+    console.log('[usePosHeartbeat] Station ID:', stationId);
     console.log('[usePosHeartbeat] Connecting to MQTT broker:', brokerUrl);
 
     const client = mqtt.connect(brokerUrl, {
-      clientId: `pos-heartbeat-${storeId}-${Date.now()}`,
+      clientId: `pos-heartbeat-${stationId}-${Date.now()}`,
       clean: true,
       keepalive: 30,
       reconnectPeriod: 5000,

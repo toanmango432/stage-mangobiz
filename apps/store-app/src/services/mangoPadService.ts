@@ -2,6 +2,11 @@
  * Mango Pad Service
  * Handles communication between Store App (POS) and Mango Pad devices via MQTT
  *
+ * Device-to-Device (1:1) Architecture:
+ * - Each Store App station has a unique stationId (device fingerprint)
+ * - Topics include stationId: salon/{storeId}/station/{stationId}/pad/...
+ * - Only the Mango Pad paired to this station receives messages
+ *
  * Store App publishes:
  * - ready_to_pay: Send transaction to Pad for customer checkout
  * - payment_result: Send payment success/failure to Pad
@@ -11,6 +16,7 @@
 import { getMqttClient } from './mqtt/MqttClient';
 import { buildTopic, TOPIC_PATTERNS } from './mqtt/topics';
 import { isMqttEnabled } from './mqtt/featureFlags';
+import { getOrCreateDeviceId } from './deviceRegistration';
 import type {
   PadReadyToPayPayload,
   PadPaymentResultPayload,
@@ -54,20 +60,30 @@ export interface CancelTransaction {
 
 export class MangoPadService {
   private storeId: string | null = null;
+  private stationId: string | null = null;
 
   setStoreId(storeId: string): void {
     this.storeId = storeId;
+    // Station ID is this device's fingerprint (device-to-device pairing)
+    this.stationId = getOrCreateDeviceId();
   }
 
   getStoreId(): string | null {
     return this.storeId;
   }
 
-  private ensureStoreId(): string {
+  getStationId(): string | null {
+    return this.stationId;
+  }
+
+  private ensureIds(): { storeId: string; stationId: string } {
     if (!this.storeId) {
       throw new Error('MangoPadService: storeId not set. Call setStoreId() first.');
     }
-    return this.storeId;
+    if (!this.stationId) {
+      this.stationId = getOrCreateDeviceId();
+    }
+    return { storeId: this.storeId, stationId: this.stationId };
   }
 
   private ensureMqttEnabled(): void {
@@ -78,14 +94,14 @@ export class MangoPadService {
 
   async sendReadyToPay(transaction: PadTransaction): Promise<void> {
     this.ensureMqttEnabled();
-    const storeId = this.ensureStoreId();
+    const { storeId, stationId } = this.ensureIds();
     const mqttClient = getMqttClient();
 
     if (!mqttClient.isConnected()) {
       throw new Error('MQTT client is not connected');
     }
 
-    const topic = buildTopic(TOPIC_PATTERNS.PAD_READY_TO_PAY, { storeId });
+    const topic = buildTopic(TOPIC_PATTERNS.PAD_READY_TO_PAY, { storeId, stationId });
     const payload: PadReadyToPayPayload = {
       transactionId: transaction.transactionId,
       ticketId: transaction.ticketId,
@@ -102,19 +118,20 @@ export class MangoPadService {
       suggestedTips: transaction.suggestedTips,
     };
 
+    console.log('[MangoPadService] Publishing ready_to_pay to station:', stationId);
     await mqttClient.publish(topic, payload, { qos: 1 });
   }
 
   async sendPaymentResult(result: PaymentResult): Promise<void> {
     this.ensureMqttEnabled();
-    const storeId = this.ensureStoreId();
+    const { storeId, stationId } = this.ensureIds();
     const mqttClient = getMqttClient();
 
     if (!mqttClient.isConnected()) {
       throw new Error('MQTT client is not connected');
     }
 
-    const topic = buildTopic(TOPIC_PATTERNS.PAD_PAYMENT_RESULT, { storeId });
+    const topic = buildTopic(TOPIC_PATTERNS.PAD_PAYMENT_RESULT, { storeId, stationId });
     const payload: PadPaymentResultPayload = {
       transactionId: result.transactionId,
       ticketId: result.ticketId,
@@ -125,25 +142,27 @@ export class MangoPadService {
       errorMessage: result.errorMessage,
     };
 
+    console.log('[MangoPadService] Publishing payment_result to station:', stationId);
     await mqttClient.publish(topic, payload, { qos: 1 });
   }
 
   async sendCancel(cancel: CancelTransaction): Promise<void> {
     this.ensureMqttEnabled();
-    const storeId = this.ensureStoreId();
+    const { storeId, stationId } = this.ensureIds();
     const mqttClient = getMqttClient();
 
     if (!mqttClient.isConnected()) {
       throw new Error('MQTT client is not connected');
     }
 
-    const topic = buildTopic(TOPIC_PATTERNS.PAD_CANCEL, { storeId });
+    const topic = buildTopic(TOPIC_PATTERNS.PAD_CANCEL, { storeId, stationId });
     const payload: PadCancelPayload = {
       transactionId: cancel.transactionId,
       ticketId: cancel.ticketId,
       reason: cancel.reason,
     };
 
+    console.log('[MangoPadService] Publishing cancel to station:', stationId);
     await mqttClient.publish(topic, payload, { qos: 1 });
   }
 }

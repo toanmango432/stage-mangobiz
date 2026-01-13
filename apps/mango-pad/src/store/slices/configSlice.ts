@@ -7,8 +7,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { PadConfig, PromoSlide } from '@/types';
 
 const DEFAULT_CONFIG: PadConfig = {
-  salonId: '',
-  mqttBrokerUrl: 'ws://localhost:1883',
+  salonId: 'demo-salon',
+  mqttBrokerUrl: 'wss://broker.emqx.io:8084/mqtt',
   tipEnabled: true,
   tipType: 'percentage',
   tipSuggestions: [18, 20, 25, 30],

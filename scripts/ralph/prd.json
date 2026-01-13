@@ -166,8 +166,8 @@
         "npm run typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "File: apps/mango-pad/src/pages/WaitingPage.tsx"
+      "passes": true,
+      "notes": "Commit 6ccfcd0 - Added useTransactionNavigation hook, DEMO_TRANSACTION constant with mock data, and updated handleStartDemo to use setActiveTransaction."
     },
     {
       "id": "US-012",
@@ -182,8 +182,8 @@
         "npm run typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "File: apps/mango-pad/src/pages/ReceiptPage.tsx"
+      "passes": true,
+      "notes": "Commit b49dcaa - Updated OrderReviewPage (receipt step) to use activeTransaction from context with demo fallback. Shows items, subtotal, tax, discount, total, client name, and staff name."
     },
     {
       "id": "US-013",
@@ -198,8 +198,8 @@
         "npm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "File: apps/mango-pad/src/pages/TipPage.tsx"
+      "passes": true,
+      "notes": "Commit 1248604 - Uses activeTransaction from PadMqttProvider context with demo fallback. Uses suggestedTips from transaction when available."
     },
     {
       "id": "US-014",
@@ -213,8 +213,8 @@
         "npm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "File: apps/mango-pad/src/pages/SignaturePage.tsx"
+      "passes": true,
+      "notes": "Commit 0ac9e8b - Uses activeTransaction from context with demo fallback. Calls updateTransactionStep('receipt_preference') to navigate."
     },
     {
       "id": "US-015",
@@ -227,11 +227,12 @@
         "If SMS selected, shows phone input (pre-filled from activeTransaction.clientPhone)",
         "On complete, calls publishReceiptPreference() and publishTransactionComplete()",
         "Updates transaction step to waiting_payment and navigates to /processing",
-        "npm run typecheck passes"
+        "npm run typecheck passes",
+        "Verify in browser - all 4 options work correctly with demo mode"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Commit b81362a - Created ReceiptPreferencePage.tsx with 4 receipt options (Email, SMS, Print, No Receipt), pre-filled email/phone from activeTransaction, edit modals, publishReceiptPreference() + publishTransactionComplete() on complete, demo fallback. Added route /receipt-preference in App.tsx."
     },
     {
       "id": "US-016",
@@ -242,11 +243,12 @@
         "Shows Processing Payment with spinner animation",
         "Uses useTransactionNavigation to auto-navigate when step changes to complete/failed",
         "Clean, centered design matching app style",
-        "npm run typecheck passes"
+        "npm run typecheck passes",
+        "Verify in browser - spinner displays correctly at /processing route"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Commit b53dc30 - Created ProcessingPage.tsx with spinner animation, credit card icon, total display, and auto-navigation via useTransactionNavigation hook. Added /processing route in App.tsx."
     },
     {
       "id": "US-017",
@@ -258,11 +260,12 @@
         "Shows final total with tip included",
         "Auto-returns to WaitingPage after 5 seconds",
         "Clears activeTransaction on mount or before navigating away",
-        "npm run typecheck passes"
+        "npm run typecheck passes",
+        "Verify in browser - success message and auto-redirect work correctly"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Commit d7f8467 - Created CompletePage.tsx with success checkmark, total/tip display, 5-second auto-return with progress bar, clearTransaction on mount/unmount via useRef guard, card info display, receipt preference confirmation. Added /complete route in App.tsx with PairingGuard."
     },
     {
       "id": "US-018",
@@ -273,11 +276,12 @@
         "Shows error icon with Payment Failed message",
         "Shows error message from payment_result if available",
         "Has Return to Waiting button that clears transaction and navigates to /",
-        "npm run typecheck passes"
+        "npm run typecheck passes",
+        "Verify in browser - error display and return button work correctly"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Commit cba962d - Created FailedPage.tsx with error icon (XCircle), Payment Failed message, error details from paymentResult.errorMessage, attempted amount display, helpful text, Return to Waiting button that clears transaction and navigates to /. Added /failed route in App.tsx with PairingGuard wrapper."
     },
     {
       "id": "US-019",
@@ -292,8 +296,8 @@
         "npm run typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": "File: apps/mango-pad/src/App.tsx"
+      "passes": true,
+      "notes": "All routes completed via US-015 (/receipt-preference), US-016 (/processing), US-017 (/complete), US-018 (/failed). All wrapped in PairingGuard. Typecheck passes."
     },
     {
       "id": "US-020",
@@ -304,11 +308,12 @@
         "sendPaymentResult() called after failed payment with success: false, errorMessage",
         "Payment result published to correct topic: salon/{storeId}/station/{stationId}/pad/payment_result",
         "Mango Pad receives result and navigates to /complete or /failed",
-        "npm run typecheck passes"
+        "npm run typecheck passes",
+        "Unit test verifies sendPaymentResult payload structure for success and failure cases"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": "File: apps/store-app/src/components/checkout/PaymentModal.tsx or equivalent"
+      "passes": true,
+      "notes": "Commit 02be8ce - Implementation already existed in useTicketPayment.ts (lines 216-258). Added unit tests in mangoPadService.test.ts verifying success payload (transactionId, ticketId, success, cardLast4, cardBrand, authCode), failure payload (errorMessage), correct topic pattern, QoS 1, error handling. 13 tests pass."
     }
   ]
 }

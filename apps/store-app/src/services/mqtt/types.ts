@@ -285,6 +285,8 @@ export interface PadHeartbeatPayload {
 
 export interface PosHeartbeatPayload {
   storeId: string;
+  /** Station ID (device fingerprint) for device-to-device communication */
+  stationId: string;
   storeName: string;
   timestamp: string;
   version: string;

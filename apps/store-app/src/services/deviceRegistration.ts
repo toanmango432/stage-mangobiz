@@ -129,6 +129,7 @@ export interface DeviceRegistrationResult {
 
 /**
  * Register or update this device in Supabase salon_devices table
+ * Falls back to local-only mode if Supabase is unavailable (for demo/dev)
  */
 export async function registerDevice(storeId: string): Promise<DeviceRegistrationResult> {
   const deviceId = getOrCreateDeviceId();
@@ -139,6 +140,9 @@ export async function registerDevice(storeId: string): Promise<DeviceRegistratio
     pairingCode = generatePairingCode();
     console.log('[DeviceRegistration] Generated new pairing code:', pairingCode);
   }
+
+  // Check if we're in demo mode (storeId is demo-salon or similar)
+  const isDemoMode = storeId === 'demo-salon' || storeId.startsWith('demo-');
 
   try {
     // Check if device already exists
@@ -245,6 +249,19 @@ export async function registerDevice(storeId: string): Promise<DeviceRegistratio
     console.error('[DeviceRegistration] Error details:', JSON.stringify(error, null, 2));
     console.error('[DeviceRegistration] storeId:', storeId);
     console.error('[DeviceRegistration] deviceId:', deviceId);
+
+    // In demo mode, fall back to local-only operation
+    if (isDemoMode) {
+      console.log('[DeviceRegistration] Demo mode - using local-only registration');
+      storePairingCode(pairingCode);
+
+      return {
+        success: true,
+        deviceId,
+        pairingCode,
+        stationName: DEFAULT_STATION_NAME,
+      };
+    }
 
     // Extract better error message from Supabase error
     let errorMessage = 'Unknown error';

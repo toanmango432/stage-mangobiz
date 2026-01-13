@@ -13,6 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Link, Loader2, Camera, X } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeResult } from 'html5-qrcode';
 import { verifyPairingCode } from '../services/pairingService';
+import { useAppDispatch } from '../store/hooks';
+import { setSalonId } from '../store/slices/configSlice';
 import type { PairingQRPayload } from '../types';
 
 // Parse input: remove dashes/spaces, uppercase, limit to 6 chars
@@ -43,6 +45,7 @@ function isValidPairingPayload(data: unknown): data is PairingQRPayload {
 
 export function PairingPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const inputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerRef = useRef<HTMLDivElement>(null);
@@ -101,9 +104,11 @@ export function PairingPage() {
       const result = await verifyPairingCode(code);
 
       if (result.success) {
-        // Success! Navigate to waiting page
+        // Success! Update config and navigate to waiting page
         // Clear demo mode flag if it was set
         localStorage.removeItem('mango_pad_demo_mode');
+        // Update Redux config with the salon ID from pairing
+        dispatch(setSalonId(result.pairing.salonId));
         navigate('/');
       } else {
         // Handle specific error types
@@ -125,7 +130,7 @@ export function PairingPage() {
     } finally {
       setIsVerifying(false);
     }
-  }, [code, isVerifying, navigate]);
+  }, [code, isVerifying, navigate, dispatch]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
@@ -161,6 +166,8 @@ export function PairingPage() {
 
         if (verifyResult.success) {
           localStorage.removeItem('mango_pad_demo_mode');
+          // Update Redux config with the salon ID from pairing
+          dispatch(setSalonId(verifyResult.pairing.salonId));
           navigate('/');
         } else {
           switch (verifyResult.error) {
@@ -182,7 +189,7 @@ export function PairingPage() {
         setIsVerifying(false);
       }
     },
-    [navigate]
+    [navigate, dispatch]
   );
 
   // Start QR scanner

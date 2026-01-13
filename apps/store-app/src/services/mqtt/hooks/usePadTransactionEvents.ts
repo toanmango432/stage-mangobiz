@@ -2,10 +2,14 @@
  * usePadTransactionEvents Hook
  * Subscribes to Mango Pad transaction events and updates Redux state.
  *
+ * Device-to-Device (1:1) Architecture:
+ * - Each Store App station subscribes to: salon/{storeId}/station/{stationId}/pad/...
+ * - Only receives events from the Mango Pad paired to this specific station
+ *
  * Part of: Mango Pad Integration (US-007)
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectStoreId } from '@/store/slices/authSlice';
 import {
@@ -21,6 +25,7 @@ import { addNotification } from '@/store/slices/uiSlice';
 import { useMqttContext } from '../MqttProvider';
 import { buildTopic, TOPIC_PATTERNS } from '../topics';
 import { isMqttEnabled } from '../featureFlags';
+import { getOrCreateDeviceId } from '@/services/deviceRegistration';
 import type {
   MqttMessage,
   PadTipPayload,
@@ -33,6 +38,9 @@ export function usePadTransactionEvents() {
   const dispatch = useAppDispatch();
   const { subscribe, connection } = useMqttContext();
   const storeId = useAppSelector(selectStoreId);
+
+  // Get station ID (this device's fingerprint) for device-to-device communication
+  const stationId = useMemo(() => getOrCreateDeviceId(), []);
 
   const handleTipSelected = useCallback(
     (_topic: string, message: MqttMessage<PadTipPayload>) => {
@@ -145,10 +153,16 @@ export function usePadTransactionEvents() {
     if (connection.state !== 'connected') return;
     if (!storeId) return;
 
-    const tipTopic = buildTopic(TOPIC_PATTERNS.PAD_TIP_SELECTED, { storeId });
-    const signatureTopic = buildTopic(TOPIC_PATTERNS.PAD_SIGNATURE_CAPTURED, { storeId });
-    const receiptTopic = buildTopic(TOPIC_PATTERNS.PAD_RECEIPT_PREFERENCE, { storeId });
-    const completeTopic = buildTopic(TOPIC_PATTERNS.PAD_TRANSACTION_COMPLETE, { storeId });
+    console.log('[usePadTransactionEvents] Subscribing to station-specific topics');
+    console.log('[usePadTransactionEvents] Station ID:', stationId);
+
+    // Subscribe to station-specific topics (device-to-device)
+    const tipTopic = buildTopic(TOPIC_PATTERNS.PAD_TIP_SELECTED, { storeId, stationId });
+    const signatureTopic = buildTopic(TOPIC_PATTERNS.PAD_SIGNATURE_CAPTURED, { storeId, stationId });
+    const receiptTopic = buildTopic(TOPIC_PATTERNS.PAD_RECEIPT_PREFERENCE, { storeId, stationId });
+    const completeTopic = buildTopic(TOPIC_PATTERNS.PAD_TRANSACTION_COMPLETE, { storeId, stationId });
+
+    console.log('[usePadTransactionEvents] Topic patterns:', { tipTopic, signatureTopic, receiptTopic, completeTopic });
 
     const unsubTip = subscribe(tipTopic, handleTipSelected as any);
     const unsubSignature = subscribe(signatureTopic, handleSignatureCaptured as any);
@@ -164,6 +178,7 @@ export function usePadTransactionEvents() {
   }, [
     connection.state,
     storeId,
+    stationId,
     subscribe,
     handleTipSelected,
     handleSignatureCaptured,

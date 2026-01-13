@@ -111,14 +111,30 @@ export function clearPairingInfo(): void {
  * @returns PairingResult with success/error info
  */
 export async function verifyPairingCode(code: string): Promise<PairingResult> {
-  // Check if Supabase is configured
-  if (!isSupabaseConfigured() || !supabase) {
-    console.error('[PairingService] Supabase not configured');
-    return { success: false, error: 'not_configured' };
-  }
-
   // Normalize code to uppercase
   const normalizedCode = code.toUpperCase().replace(/[-\s]/g, '');
+
+  // Check if Supabase is configured
+  if (!isSupabaseConfigured() || !supabase) {
+    console.warn('[PairingService] Supabase not configured, using demo mode');
+
+    // Demo mode: accept any 6-character code and create local pairing
+    if (normalizedCode.length === 6) {
+      const deviceId = getOrCreateDeviceId();
+      const pairing: PairingInfo = {
+        stationId: 'demo-station',
+        salonId: 'demo-salon',
+        stationName: 'Demo Checkout Station',
+        deviceId: deviceId,
+        pairedAt: new Date().toISOString(),
+      };
+      savePairingInfo(pairing);
+      console.log('[PairingService] Demo mode pairing successful:', pairing);
+      return { success: true, pairing };
+    }
+
+    return { success: false, error: 'invalid_code' };
+  }
 
   try {
     // Step 1: Find the Store App station with this pairing code
@@ -195,9 +211,12 @@ export async function verifyPairingCode(code: string): Promise<PairingResult> {
 
 /**
  * Check if this device is currently paired
+ * Validates that pairing info has required fields for device-to-device communication
  */
 export function isPaired(): boolean {
-  return getPairingInfo() !== null;
+  const pairing = getPairingInfo();
+  // Require stationId for device-to-device architecture (US-010)
+  return pairing !== null && Boolean(pairing.stationId) && Boolean(pairing.salonId);
 }
 
 /**
