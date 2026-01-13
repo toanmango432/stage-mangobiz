@@ -1,6 +1,7 @@
 /**
  * TipPage - Tip Selection Screen
  * US-004: Allows clients to select a tip amount before payment
+ * US-013: Uses activeTransaction from context with demo fallback
  * US-014: WCAG 2.1 AA Accessibility compliance
  */
 
@@ -11,6 +12,32 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { setScreen } from '@/store/slices/padSlice';
 import { setTip } from '@/store/slices/transactionSlice';
+import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
+import type { ActiveTransaction } from '@/types';
+
+/**
+ * Demo transaction data for testing without a live Store App connection
+ */
+const DEMO_TRANSACTION: Omit<ActiveTransaction, 'step' | 'startedAt'> = {
+  transactionId: 'demo-tip-page',
+  ticketId: 'ticket-demo-001',
+  clientName: 'Sarah Johnson',
+  clientEmail: 'sarah@example.com',
+  clientPhone: '555-0123',
+  staffName: 'Mike Chen',
+  items: [
+    { id: '1', name: 'Haircut & Style', staffName: 'Mike Chen', price: 45.00, quantity: 1, type: 'service' },
+    { id: '2', name: 'Deep Conditioning', staffName: 'Mike Chen', price: 25.00, quantity: 1, type: 'service' },
+    { id: '3', name: 'Premium Shampoo', staffName: 'Mike Chen', price: 18.99, quantity: 1, type: 'product' },
+  ],
+  subtotal: 88.99,
+  tax: 7.12,
+  discount: 0,
+  total: 96.11,
+  suggestedTips: [15, 18, 20, 25],
+  tipAmount: 0,
+  tipPercent: null,
+};
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -176,29 +203,31 @@ function TipButton({ label, subLabel, isSelected, onClick }: TipButtonProps) {
 
 export function TipPage() {
   const dispatch = useAppDispatch();
-  const { publishTipSelected, publishHelpRequested } = usePadMqtt();
-  const transaction = useAppSelector((state) => state.transaction.current);
+  const { publishTipSelected, publishHelpRequested, activeTransaction } = usePadMqtt();
   const config = useAppSelector((state) => state.config.config);
   const isSplitPayment = useAppSelector((state) => state.transaction.isSplitPayment);
   const splitPayments = useAppSelector((state) => state.transaction.splitPayments);
   const currentSplitIndex = useAppSelector((state) => state.transaction.currentSplitIndex);
+
+  // Enable auto-navigation on transaction step changes
+  useTransactionNavigation({ skipInitialNavigation: true });
 
   const [selectedTipIndex, setSelectedTipIndex] = useState<number | null>(1);
   const [customTipAmount, setCustomTipAmount] = useState<number | null>(null);
   const [isNoTip, setIsNoTip] = useState(false);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
 
-  if (!transaction) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-500">No transaction data</p>
-      </div>
-    );
-  }
+  // Use activeTransaction from context, fallback to demo data for demo mode
+  const transaction = activeTransaction ?? {
+    ...DEMO_TRANSACTION,
+    step: 'tip' as const,
+    startedAt: new Date().toISOString(),
+  };
 
   const currentSplit = isSplitPayment ? splitPayments[currentSplitIndex] : null;
   const baseAmount = currentSplit ? currentSplit.amount : transaction.total;
-  const tipSuggestions = config.tipSuggestions;
+  // Use suggestedTips from activeTransaction when available, fallback to config
+  const tipSuggestions = transaction.suggestedTips?.length > 0 ? transaction.suggestedTips : config.tipSuggestions;
   const tipType = config.tipType;
 
   const calculateTipAmount = (suggestion: number): number => {
