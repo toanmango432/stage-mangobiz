@@ -22,6 +22,7 @@ import { WaitingPage } from '@/pages/WaitingPage';
 import { WelcomePage, isPaired } from '@/pages/WelcomePage';
 import { PairingPage } from '@/pages/PairingPage';
 import { ReceiptPreferencePage } from '@/pages/ReceiptPreferencePage';
+import { ProcessingPage } from '@/pages/ProcessingPage';
 import { ReconnectingOverlay } from '@/components/ReconnectingOverlay';
 import { UnpairHandler } from '@/components/UnpairHandler';
 import { useOrientation } from '@/hooks/useResponsive';
@@ -178,12 +179,20 @@ export function App() {
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/pair" element={<PairingPage />} />
 
-          {/* Transaction flow routes - US-015, US-019 */}
+          {/* Transaction flow routes - US-015, US-016, US-019 */}
           <Route
             path="/receipt-preference"
             element={
               <PairingGuard>
                 <ReceiptPreferencePage />
+              </PairingGuard>
+            }
+          />
+          <Route
+            path="/processing"
+            element={
+              <PairingGuard>
+                <ProcessingPage />
               </PairingGuard>
             }
           />
