@@ -18,7 +18,7 @@ describe('MQTT Topics', () => {
     it('should have all required topic patterns', () => {
       expect(TOPIC_PATTERNS.APPOINTMENT_CREATED).toBeDefined();
       expect(TOPIC_PATTERNS.TICKET_UPDATED).toBeDefined();
-      expect(TOPIC_PATTERNS.PAD_SIGNATURE).toBeDefined();
+      expect(TOPIC_PATTERNS.PAD_SIGNATURE_CAPTURED).toBeDefined();
       expect(TOPIC_PATTERNS.CHECKIN_WALKIN).toBeDefined();
       expect(TOPIC_PATTERNS.DEVICE_PRESENCE).toBeDefined();
     });
@@ -46,10 +46,10 @@ describe('MQTT Topics', () => {
     });
 
     it('should handle pad signature topic', () => {
-      const topic = buildTopic(TOPIC_PATTERNS.PAD_SIGNATURE, {
+      const topic = buildTopic(TOPIC_PATTERNS.PAD_SIGNATURE_CAPTURED, {
         storeId: 'abc',
       });
-      expect(topic).toBe('mango/abc/pad/signature');
+      expect(topic).toBe('salon/abc/pad/signature');
     });
 
     it('should handle checkin walkin topic', () => {

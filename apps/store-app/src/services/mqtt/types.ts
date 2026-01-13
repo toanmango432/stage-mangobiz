@@ -125,9 +125,16 @@ export type MqttEventType =
   | 'device:discovered'
   | 'device:heartbeat'
   // Mango Pad events
-  | 'pad:receipt_ready'
+  | 'pad:ready_to_pay'
+  | 'pad:payment_result'
+  | 'pad:cancel'
   | 'pad:tip_selected'
   | 'pad:signature_captured'
+  | 'pad:receipt_preference'
+  | 'pad:transaction_complete'
+  | 'pad:help_requested'
+  | 'pad:heartbeat'
+  | 'pos:heartbeat'
   // Check-in events
   | 'checkin:walkin'
   | 'checkin:staff'
@@ -184,31 +191,105 @@ export interface DevicePresencePayload {
 // Payload Types for Specific Events
 // =============================================================================
 
-export interface PadSignaturePayload {
+export interface PadTransactionItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  staffName?: string;
+}
+
+export interface PadReadyToPayPayload {
+  transactionId: string;
   ticketId: string;
-  signatureData: string; // Base64 encoded PNG
-  signedAt: string;
+  clientId?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  staffName?: string;
+  items: PadTransactionItem[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  suggestedTips: number[];
+}
+
+export interface PadPaymentResultPayload {
+  transactionId: string;
+  ticketId: string;
+  success: boolean;
+  cardLast4?: string;
+  cardBrand?: string;
+  authCode?: string;
+  errorMessage?: string;
+}
+
+export interface PadCancelPayload {
+  transactionId: string;
+  ticketId: string;
+  reason?: string;
 }
 
 export interface PadTipPayload {
+  transactionId: string;
   ticketId: string;
   tipAmount: number;
   tipPercent: number | null;
   selectedAt: string;
 }
 
-export interface PadReceiptReadyPayload {
+export interface PadSignaturePayload {
+  transactionId: string;
   ticketId: string;
-  receipt: {
-    items: Array<{
-      name: string;
-      quantity: number;
-      price: number;
-    }>;
-    subtotal: number;
-    tax: number;
-    total: number;
-  };
+  signatureData: string;
+  signedAt: string;
+}
+
+export interface PadReceiptPreferencePayload {
+  transactionId: string;
+  ticketId: string;
+  preference: 'email' | 'sms' | 'print' | 'none';
+  email?: string;
+  phone?: string;
+}
+
+export interface PadTransactionCompletePayload {
+  transactionId: string;
+  ticketId: string;
+  tipAmount: number;
+  total: number;
+  signatureData?: string;
+  receiptPreference: 'email' | 'sms' | 'print' | 'none';
+  completedAt: string;
+}
+
+export interface PadHelpRequestedPayload {
+  transactionId: string;
+  ticketId: string;
+  deviceId: string;
+  deviceName: string;
+  clientName?: string;
+  requestedAt: string;
+}
+
+export interface PadHeartbeatPayload {
+  deviceId: string;
+  deviceName: string;
+  salonId: string;
+  /** Device ID of the Store App station this Pad is paired to (US-010) */
+  pairedTo?: string;
+  timestamp: string;
+  screen: 'idle' | 'checkout' | 'tip' | 'signature' | 'receipt' | 'complete' | 'waiting';
+}
+
+export interface PosHeartbeatPayload {
+  storeId: string;
+  /** Station ID (device fingerprint) for device-to-device communication */
+  stationId: string;
+  storeName: string;
+  timestamp: string;
+  version: string;
 }
 
 export interface CheckinWalkinPayload {

@@ -41,11 +41,21 @@ export const TOPIC_PATTERNS = {
   STAFF_BREAK_END: 'mango/{storeId}/staff/break-end',
   STAFF_UPDATED: 'mango/{storeId}/staff/updated',
 
-  // Mango Pad (Signature Capture)
-  PAD_ALL: 'mango/{storeId}/pad/#',
-  PAD_RECEIPT_READY: 'mango/{storeId}/pad/receipt-ready',
-  PAD_TIP_SELECTED: 'mango/{storeId}/pad/tip-selected',
-  PAD_SIGNATURE: 'mango/{storeId}/pad/signature',
+  // Mango Pad (Signature Capture) - Uses 'salon' prefix to match Mango Pad app
+  PAD_ALL: 'salon/{storeId}/pad/#',
+  // Store App publishes (to Pad)
+  PAD_READY_TO_PAY: 'salon/{storeId}/pad/ready_to_pay',
+  PAD_PAYMENT_RESULT: 'salon/{storeId}/pad/payment_result',
+  PAD_CANCEL: 'salon/{storeId}/pad/cancel',
+  // Store App receives (from Pad)
+  PAD_TIP_SELECTED: 'salon/{storeId}/pad/tip_selected',
+  PAD_SIGNATURE: 'salon/{storeId}/pad/signature',
+  PAD_RECEIPT_PREFERENCE: 'salon/{storeId}/pad/receipt_preference',
+  PAD_TRANSACTION_COMPLETE: 'salon/{storeId}/pad/transaction_complete',
+  PAD_HELP_REQUESTED: 'salon/{storeId}/pad/help_requested',
+  // Heartbeats for connection awareness
+  PAD_HEARTBEAT: 'salon/{storeId}/pad/heartbeat',
+  POS_HEARTBEAT: 'salon/{storeId}/pos/heartbeat',
 
   // Check-In App
   CHECKIN_ALL: 'mango/{storeId}/checkin/#',
@@ -223,6 +233,8 @@ export const QOS_BY_TOPIC: Record<string, MqttQoS> = {
   [TOPIC_PATTERNS.WAITLIST_UPDATED]: 0,
   [TOPIC_PATTERNS.WAITLIST_POSITION]: 0,
   [TOPIC_PATTERNS.DEVICE_HEARTBEAT]: 0,
+  [TOPIC_PATTERNS.PAD_HEARTBEAT]: 0,
+  [TOPIC_PATTERNS.POS_HEARTBEAT]: 0,
 
   // QoS 1 - Important, must deliver (default for most)
   [TOPIC_PATTERNS.APPOINTMENT_CREATED]: 1,
@@ -231,9 +243,14 @@ export const QOS_BY_TOPIC: Record<string, MqttQoS> = {
   [TOPIC_PATTERNS.TICKET_CREATED]: 1,
   [TOPIC_PATTERNS.TICKET_UPDATED]: 1,
   [TOPIC_PATTERNS.TICKET_COMPLETED]: 1,
-  [TOPIC_PATTERNS.PAD_SIGNATURE]: 1,
+  [TOPIC_PATTERNS.PAD_READY_TO_PAY]: 1,
+  [TOPIC_PATTERNS.PAD_PAYMENT_RESULT]: 1,
+  [TOPIC_PATTERNS.PAD_CANCEL]: 1,
   [TOPIC_PATTERNS.PAD_TIP_SELECTED]: 1,
-  [TOPIC_PATTERNS.PAD_RECEIPT_READY]: 1,
+  [TOPIC_PATTERNS.PAD_SIGNATURE]: 1,
+  [TOPIC_PATTERNS.PAD_RECEIPT_PREFERENCE]: 1,
+  [TOPIC_PATTERNS.PAD_TRANSACTION_COMPLETE]: 1,
+  [TOPIC_PATTERNS.PAD_HELP_REQUESTED]: 1,
   [TOPIC_PATTERNS.CHECKIN_WALKIN]: 1,
   [TOPIC_PATTERNS.CHECKIN_STAFF]: 1,
   [TOPIC_PATTERNS.BOOKING_CREATED]: 1,

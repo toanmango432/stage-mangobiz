@@ -1,108 +1,120 @@
 # Ralph Agent Instructions
 
-You are an autonomous coding agent working on a software project.
+You are an autonomous coding agent working on the Mango POS monorepo.
+
+## Project Context
+
+- **Stack:** React 18, TypeScript 5.5, Vite, Redux Toolkit, Tailwind CSS
+- **Apps:** Store App (Electron), Mango Pad (Capacitor/iPad), Check-In, Online Store
+- **Package Manager:** pnpm (use `pnpm` not `npm`)
+- **Key Docs:** `CLAUDE.md` at monorepo root for patterns and architecture
 
 ## Your Task
 
-1. Read the PRD at `prd.json` (in the same directory as this file)
-2. Read the progress log at `progress.txt` (check Codebase Patterns section first)
-3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
-4. Pick the **highest priority** user story where `passes: false`
-5. Implement that single user story
-6. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
-7. Update AGENTS.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
-9. Update the PRD to set `passes: true` for the completed story
-10. Append your progress to `progress.txt`
+1. Read the PRD at `scripts/ralph/prd.json`
+2. Read the progress log at `scripts/ralph/progress.txt` (check Codebase Patterns section first)
+3. Read `scripts/ralph/patterns.md` for accumulated patterns from previous runs
+4. Check you're on the correct branch from PRD `branchName`. If not, check it out.
+5. Pick the **highest priority** user story where `passes: false`
+6. Implement that single user story
+7. Run quality checks (typecheck, lint)
+8. Update CLAUDE.md if you discover reusable patterns
+9. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
+10. Update the PRD to set `passes: true` for the completed story
+11. Append your progress to `scripts/ralph/progress.txt`
+
+## Quality Checks
+
+Before marking a story as complete:
+
+```bash
+# From monorepo root
+pnpm run typecheck          # TypeScript check (REQUIRED for all stories)
+pnpm run lint               # ESLint check (if available)
+```
+
+For app-specific checks:
+```bash
+cd apps/mango-pad && npx tsc --noEmit   # Mango Pad typecheck
+cd apps/store-app && pnpm run typecheck # Store App typecheck
+```
+
+### When to Run Tests
+
+| Story Type | Validation Required |
+|------------|---------------------|
+| Type/interface changes | Typecheck + update affected test mocks |
+| Business logic (calculations, payments) | Typecheck + `pnpm test` |
+| UI component changes | Typecheck + browser verification |
+| Infrastructure (logging, configs) | Typecheck only |
+
+**If acceptance criteria explicitly mentions "test" or "unit test", you MUST write/run tests.**
+
+## Browser Testing (Required for Frontend Stories)
+
+For any story that changes UI, verify it works in the browser:
+
+1. Start the dev server: `cd apps/[app-name] && pnpm run dev`
+2. Use browser MCP tools to navigate and verify:
+   - `mcp__chrome-devtools__navigate_page` - Go to a URL
+   - `mcp__chrome-devtools__take_snapshot` - Get page accessibility tree
+   - `mcp__chrome-devtools__click` - Click an element by uid
+   - `mcp__chrome-devtools__fill` - Fill form inputs
+   - `mcp__chrome-devtools__take_screenshot` - Capture screenshot
+
+**A frontend story is NOT complete until browser verification passes.**
 
 ## Progress Report Format
 
-APPEND to progress.txt (never replace, always append):
+APPEND to `scripts/ralph/progress.txt` (never replace, always append):
+
 ```
-## [Date/Time] - [Story ID]
-Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+## [Date/Time] - [Story ID]: [Story Title]
+Commit: [git commit hash]
 - What was implemented
 - Files changed
 - **Learnings for future iterations:**
   - Patterns discovered (e.g., "this codebase uses X for Y")
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
-  - Useful context (e.g., "the evaluation panel is in component X")
+  - Useful context (e.g., "the settings panel is in component X")
 ---
 ```
 
-Include the thread URL so future iterations can use the `read_thread` tool to reference previous work if needed.
-
-The learnings section is critical - it helps future iterations avoid repeating mistakes and understand the codebase better.
-
 ## Consolidate Patterns
 
-If you discover a **reusable pattern** that future iterations should know, add it to the `## Codebase Patterns` section at the TOP of progress.txt (create it if it doesn't exist). This section should consolidate the most important learnings:
-
-```
-## Codebase Patterns
-- Example: Use `sql<number>` template for aggregations
-- Example: Always use `IF NOT EXISTS` for migrations
-- Example: Export types from actions.ts for UI components
-```
-
-Only add patterns that are **general and reusable**, not story-specific details.
-
-## Update AGENTS.md Files
-
-Before committing, check if any edited files have learnings worth preserving in nearby AGENTS.md files:
-
-1. **Identify directories with edited files** - Look at which directories you modified
-2. **Check for existing AGENTS.md** - Look for AGENTS.md in those directories or parent directories
-3. **Add valuable learnings** - If you discovered something future developers/agents should know:
-   - API patterns or conventions specific to that module
-   - Gotchas or non-obvious requirements
-   - Dependencies between files
-   - Testing approaches for that area
-   - Configuration or environment requirements
-
-**Examples of good AGENTS.md additions:**
-- "When modifying X, also update Y to keep them in sync"
-- "This module uses pattern Z for all API calls"
-- "Tests require the dev server running on PORT 3000"
-- "Field names must match the template exactly"
-
-**Do NOT add:**
-- Story-specific implementation details
-- Temporary debugging notes
-- Information already in progress.txt
-
-Only update AGENTS.md if you have **genuinely reusable knowledge** that would help future work in that directory.
-
-## Quality Requirements
-
-- ALL commits must pass your project's quality checks (typecheck, lint, test)
-- Do NOT commit broken code
-- Keep changes focused and minimal
-- Follow existing code patterns
-
-## Browser Testing (Required for Frontend Stories)
-
-For any story that changes UI, you MUST verify it works in the browser:
-
-1. Load the `dev-browser` skill
-2. Navigate to the relevant page
-3. Verify the UI changes work as expected
-4. Take a screenshot if helpful for the progress log
-
-A frontend story is NOT complete until browser verification passes.
+Add reusable patterns to `## Codebase Patterns` section at TOP of progress.txt.
+These patterns help future iterations avoid repeating mistakes.
 
 ## Stop Condition
 
-After completing a user story, check if ALL stories have `passes: true`.
-
-If ALL stories are complete and passing, reply with:
+If ALL stories have `passes: true`, reply with:
+```
 <promise>COMPLETE</promise>
+```
 
-If there are still stories with `passes: false`, end your response normally (another iteration will pick up the next story).
+## Critical Rules
 
-## Important
+1. **ONE story per iteration** - Do not attempt multiple stories
+2. **Commit format:** `feat: [US-XXX] - [Story Title]`
+3. **Never commit broken code** - All checks must pass first
+4. **Read Codebase Patterns first** - Avoid repeating past mistakes
+5. **Update PRD after commit** - Set `passes: true` for completed story
+6. **Append progress** - Never delete existing progress entries
+7. **Browser verify UI changes** - Frontend stories require visual confirmation
+8. **Use pnpm** - This monorepo uses pnpm, not npm
 
-- Work on ONE story per iteration
-- Commit frequently
-- Keep CI green
-- Read the Codebase Patterns section in progress.txt before starting
+## File Locations
+
+| File | Purpose |
+|------|---------|
+| `scripts/ralph/prd.json` | User stories with `passes` status |
+| `scripts/ralph/progress.txt` | Append-only progress log |
+| `scripts/ralph/patterns.md` | Persistent patterns across all runs |
+| `CLAUDE.md` | Project-specific AI instructions (READ THIS) |
+
+## Common Gotchas
+
+- **Import paths:** Use `@/` alias for src imports (e.g., `@/components/Button`)
+- **Type adapters:** Supabase uses snake_case, app uses camelCase - check `src/services/supabase/adapters/`
+- **MQTT topics:** Check `src/constants/mqttTopics.ts` for topic patterns
+- **Design tokens:** Use `@/design-system` for colors/styling, not hardcoded values

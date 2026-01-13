@@ -7,6 +7,7 @@ import {
   Plus
 } from 'lucide-react';
 import { ClockInOutButton } from './ClockInOutButton';
+import { PadConnectionIndicator } from './PadConnectionIndicator';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { storeAuthManager } from '../../services/storeAuthManager';
 import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
@@ -588,6 +589,9 @@ export function TopHeaderBar({
             <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{notificationCount}</span>
           )}
         </button>
+
+        {/* Mango Pad Connection Status */}
+        <PadConnectionIndicator />
 
         {/* Store Profile - glass style */}
         <div className="relative ml-0.5 lg:ml-1">

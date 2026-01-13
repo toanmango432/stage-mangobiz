@@ -5,7 +5,16 @@
  * Part of: MQTT Architecture Implementation (Phase 0)
  */
 
-import type { SalonDeviceType, DeviceCapabilities } from '../supabase/types';
+/** Device type for MQTT clients */
+export type SalonDeviceType = 'ios' | 'android' | 'web' | 'desktop' | 'pad' | 'checkin';
+
+/** Device capabilities for presence */
+export interface DeviceCapabilities {
+  canSignature?: boolean;
+  canPayment?: boolean;
+  canPrint?: boolean;
+  canOffline?: boolean;
+}
 
 // =============================================================================
 // Connection Types
@@ -227,6 +236,27 @@ export interface CheckinStaffPayload {
   staffId: string;
   action: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
   timestamp: string;
+}
+
+// =============================================================================
+// Heartbeat Payloads (Pad ↔ POS connection awareness)
+// =============================================================================
+
+/** Payload sent by Mango Pad on salon/{salonId}/pad/heartbeat */
+export interface PadHeartbeatPayload {
+  deviceId: string;
+  deviceName: string;
+  salonId: string;
+  timestamp: string;
+  screen: 'waiting' | 'tip' | 'signature' | 'receipt' | 'complete' | 'error';
+}
+
+/** Payload sent by Store App on salon/{salonId}/pos/heartbeat */
+export interface PosHeartbeatPayload {
+  storeId: string;
+  storeName: string;
+  timestamp: string;
+  version: string;
 }
 
 // =============================================================================

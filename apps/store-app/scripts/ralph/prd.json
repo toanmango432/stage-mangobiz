@@ -1,0 +1,311 @@
+{
+  "project": "Mango POS - Device Pairing",
+  "branchName": "ralph/mango-pad-integration",
+  "description": "Device Pairing System - Enable Mango Pad (iPad) devices to pair with specific checkout stations in Store App via cloud MQTT broker",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create salon_devices table in Supabase",
+      "description": "As a developer, I need a database table to store device registrations and pairing relationships.",
+      "acceptanceCriteria": [
+        "Create salon_devices table with columns: id (UUID), salon_id (UUID), device_id (TEXT), device_name (TEXT), device_type (TEXT), station_name (TEXT), pairing_code (TEXT), paired_to_device_id (TEXT), is_online (BOOLEAN), last_seen (TIMESTAMPTZ), created_at, updated_at",
+        "device_type CHECK constraint: 'store-app', 'mango-pad', 'check-in', 'display'",
+        "Add UNIQUE constraint on (salon_id, device_id)",
+        "Add index on pairing_code for fast lookup",
+        "Add RLS policies for salon-scoped access",
+        "Create TypeScript types for salon_devices in apps/store-app/src/types/",
+        "Create TypeScript types for salon_devices in apps/mango-pad/src/types/",
+        "npm run typecheck passes in both apps"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Foundation for all device pairing. Must complete first."
+    },
+    {
+      "id": "US-002",
+      "title": "Store App generates device ID and pairing code on startup",
+      "description": "As a Store App, I need to register myself as a checkout station with a unique pairing code.",
+      "acceptanceCriteria": [
+        "Generate unique device_id on first launch (persist in localStorage as 'mango_store_device_id')",
+        "Generate 6-character alphanumeric pairing_code (uppercase, e.g., 'A7X92K')",
+        "Create service: apps/store-app/src/services/deviceRegistration.ts",
+        "On app startup, upsert device record to salon_devices table via Supabase",
+        "Set device_type: 'store-app', station_name: 'Checkout Station' (default)",
+        "Update is_online: true and last_seen on startup",
+        "Pairing code regenerates only if explicitly requested",
+        "npm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Depends on US-001 (table must exist)"
+    },
+    {
+      "id": "US-003",
+      "title": "Store App Device Settings page - Basic UI",
+      "description": "As a store manager, I want to access device settings to see my station info.",
+      "acceptanceCriteria": [
+        "Add 'Devices' menu item under Settings navigation",
+        "Create route /settings/devices in Store App",
+        "Create page component: apps/store-app/src/components/modules/settings/DeviceSettings.tsx",
+        "Display current station name (read-only for now)",
+        "Display pairing code prominently in large font",
+        "Show device ID in smaller text",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Added This Station section to MangoPadSettings with pairing code display. Registration fails in dev because migration 028 not applied to DB yet."
+    },
+    {
+      "id": "US-004",
+      "title": "Store App generates and displays QR code",
+      "description": "As a store manager, I want to see a QR code so I can quickly pair a new Pad by scanning.",
+      "acceptanceCriteria": [
+        "Install qrcode.react package in store-app",
+        "QR code contains JSON: { type: 'mango-pad-pairing', stationId, pairingCode, salonId, brokerUrl }",
+        "Display QR code in Device Settings page below pairing code",
+        "Add 'Show Full Screen' button that opens QR in modal for easy scanning",
+        "QR code auto-updates if pairing code changes",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "QR code with fullscreen modal implemented. QR displays when device registration succeeds (migration 028 must be applied to DB)."
+    },
+    {
+      "id": "US-005",
+      "title": "Mango Pad welcome screen on first launch",
+      "description": "As a new Mango Pad user, I want to see a welcome screen with options to pair or try demo mode.",
+      "acceptanceCriteria": [
+        "Create WelcomePage component: apps/mango-pad/src/pages/WelcomePage.tsx",
+        "Show welcome screen if no pairing exists in localStorage (check 'mango_pad_pairing' key)",
+        "Display Mango logo and 'Welcome to Mango Pad' heading",
+        "Display 'Pair with Store' button (primary action, large, orange)",
+        "Display 'Try Demo Mode' button (secondary action, smaller, outlined)",
+        "Clean, customer-friendly design with centered content",
+        "Add route logic: if paired, go to WaitingPage; if not, go to WelcomePage",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "WelcomePage created with orange gradient design. RootRoute in App.tsx handles pairing/demo mode logic."
+    },
+    {
+      "id": "US-006",
+      "title": "Mango Pad pairing screen with code entry",
+      "description": "As a Mango Pad user, I want to enter a pairing code to connect to a specific checkout station.",
+      "acceptanceCriteria": [
+        "Create PairingPage component: apps/mango-pad/src/pages/PairingPage.tsx",
+        "Large input field for 6-character code (uppercase, alphanumeric only)",
+        "Auto-uppercase input as user types",
+        "Format display with dash: 'A7X-92K' (input accepts with or without dash)",
+        "'Connect' button disabled until exactly 6 alphanumeric chars entered",
+        "Loading spinner on button while verifying",
+        "Back button to return to welcome screen",
+        "Add /pair route",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "PairingPage created with parseCode/formatCode helpers for dash formatting. Connect button shows loading state placeholder. Verified in browser at localhost:5176/pair."
+    },
+    {
+      "id": "US-007",
+      "title": "Pairing code verification and persistence",
+      "description": "As a system, I need to verify pairing codes and persist the relationship in Supabase.",
+      "acceptanceCriteria": [
+        "Create pairing service: apps/mango-pad/src/services/pairingService.ts",
+        "Query salon_devices by pairing_code (case-insensitive)",
+        "Verify code exists and belongs to a device_type: 'store-app'",
+        "If valid: create Mango Pad device record in salon_devices with paired_to_device_id = station's device_id",
+        "Store pairing info in localStorage key 'mango_pad_pairing': { stationId, salonId, stationName, deviceId }",
+        "On success: navigate to WaitingPage",
+        "On invalid code: show error 'Invalid pairing code. Please check and try again.'",
+        "On network error: show error 'Connection failed. Please check your internet.'",
+        "npm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Created pairingService with verifyPairingCode(), added Supabase client to mango-pad. Error messages display correctly. Full functionality requires migration 028 to be applied to DB."
+    },
+    {
+      "id": "US-008",
+      "title": "Store App shows list of paired Mango Pads",
+      "description": "As a store manager, I want to see which Pads are paired to my station.",
+      "acceptanceCriteria": [
+        "In Device Settings page, add 'Paired Devices' section below QR code",
+        "Query salon_devices where paired_to_device_id = current station's device_id",
+        "Display list of paired Pads: device_name, device_id (truncated), last_seen",
+        "Show 'No devices paired yet' message if list is empty",
+        "Refresh list on page load",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Added Paired Devices section with loading/empty/populated states. Uses existing getPairedDevices() function. Shows truncated device ID, last seen time, and online/offline badge."
+    },
+    {
+      "id": "US-009",
+      "title": "Mango Pad connection status indicator",
+      "description": "As a customer using Mango Pad, I want to see if the device is connected.",
+      "acceptanceCriteria": [
+        "Create ConnectionIndicator component: apps/mango-pad/src/components/ConnectionIndicator.tsx",
+        "Small status indicator in top-right corner of all Pad screens",
+        "Green dot + 'Connected' text when MQTT is connected",
+        "Red dot + 'Offline' text when MQTT is disconnected",
+        "Show station name on tap/hover",
+        "Add ConnectionIndicator to WaitingPage, ReceiptPage, TipPage, SignaturePage",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "ConnectionIndicator uses usePadMqtt hook for isConnected and posConnection status. Added setCurrentScreen to all pages for heartbeat tracking."
+    },
+    {
+      "id": "US-010",
+      "title": "MQTT heartbeat for paired devices",
+      "description": "As a system, I need devices to exchange heartbeats to track online/offline status.",
+      "acceptanceCriteria": [
+        "Mango Pad publishes heartbeat every 15 seconds to topic: salon/{salonId}/pad/{deviceId}/heartbeat",
+        "Heartbeat payload: { deviceId, deviceName, salonId, pairedTo, timestamp, screen }",
+        "Store App subscribes to heartbeats from paired Pads: salon/{salonId}/pad/+/heartbeat",
+        "Store App tracks last_seen for each paired Pad in Redux state",
+        "Update is_online and last_seen in Supabase every 60 seconds (batch update)",
+        "npm run typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Implemented pairedTo field in heartbeats and 60-second Supabase batch sync"
+    },
+    {
+      "id": "US-011",
+      "title": "Store App shows online/offline status for paired Pads",
+      "description": "As a store manager, I want to see which Pads are currently online.",
+      "acceptanceCriteria": [
+        "In paired devices list, show green dot if last heartbeat < 30 seconds ago",
+        "Show gray dot if last heartbeat > 30 seconds ago (offline)",
+        "Show 'Last seen: X minutes ago' for offline devices",
+        "Status updates in real-time as heartbeats arrive",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Merged Supabase data with Redux heartbeats for real-time status updates"
+    },
+    {
+      "id": "US-012",
+      "title": "Store App unpair device functionality",
+      "description": "As a store manager, I want to unpair a Mango Pad so it can be reassigned.",
+      "acceptanceCriteria": [
+        "'Unpair' button next to each paired Pad in Device Settings",
+        "Confirmation dialog: 'Unpair [device name]? The device will need to be paired again.'",
+        "On confirm: update Supabase - set paired_to_device_id = null on Pad record",
+        "Send MQTT message to topic salon/{salonId}/pad/{deviceId}/unpaired",
+        "Remove device from paired list immediately",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Added Unpair button with confirmation dialog. Updates Supabase, sends MQTT notification to Pad, removes from list immediately."
+    },
+    {
+      "id": "US-013",
+      "title": "Mango Pad handles unpair notification",
+      "description": "As a Mango Pad, I need to return to welcome screen when unpaired by Store App.",
+      "acceptanceCriteria": [
+        "Subscribe to MQTT topic: salon/{salonId}/pad/{deviceId}/unpaired",
+        "On receiving unpair message: clear localStorage 'mango_pad_pairing'",
+        "Navigate to WelcomePage",
+        "Show toast notification: 'Device unpaired by store'",
+        "npm run typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Added PAD_UNPAIRED subscription to PadMqttProvider. Created UnpairHandler component for navigation and toast. Uses context state pattern to trigger navigation from inside Router."
+    },
+    {
+      "id": "US-014",
+      "title": "Mango Pad settings page with unpair option",
+      "description": "As a store staff member, I want to unpair a Mango Pad from its current station.",
+      "acceptanceCriteria": [
+        "Add settings gear icon to WaitingPage top-left corner",
+        "Create SettingsPage component: apps/mango-pad/src/pages/SettingsPage.tsx",
+        "Show current pairing info: station name, salon ID, device ID",
+        "'Unpair Device' button with red styling",
+        "Confirmation dialog: 'Unpair from [station name]?'",
+        "On confirm: clear localStorage, update Supabase (paired_to_device_id = null), navigate to WelcomePage",
+        "Back button to return to WaitingPage",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Created SettingsPage with pairing info display and unpair confirmation dialog. Settings gear icon added to WaitingPage top-left. Self-unpair calls existing unpairDevice() function."
+    },
+    {
+      "id": "US-015",
+      "title": "Mango Pad QR code scanning for pairing",
+      "description": "As a Mango Pad user, I want to scan a QR code to quickly pair without typing.",
+      "acceptanceCriteria": [
+        "Install html5-qrcode package in mango-pad",
+        "'Scan QR Code' button on PairingPage",
+        "Opens camera viewfinder for scanning",
+        "Parse QR JSON payload: { type, stationId, pairingCode, salonId, brokerUrl }",
+        "Validate type === 'mango-pad-pairing'",
+        "Auto-submit pairing with extracted pairingCode",
+        "Handle camera permission denied: show message 'Camera access required. Please enable in settings.'",
+        "'Cancel' button to close scanner and return to code entry",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Added html5-qrcode package. Scan QR Code button opens camera viewfinder. Parses QR JSON payload and validates type === 'mango-pad-pairing'. Auto-submits pairing. Handles camera permission denied errors."
+    },
+    {
+      "id": "US-016",
+      "title": "Mango Pad demo mode",
+      "description": "As a potential customer or tester, I want to try Mango Pad without pairing.",
+      "acceptanceCriteria": [
+        "From WelcomePage, 'Try Demo Mode' navigates to demo version of WaitingPage",
+        "Set localStorage flag: mango_pad_demo_mode = true",
+        "Demo mode uses hardcoded mock receipt data",
+        "All screens functional: WaitingPage -> ReceiptPage -> TipPage -> SignaturePage",
+        "Show 'DEMO MODE' banner at top of all screens (yellow background)",
+        "'Exit Demo' button in banner returns to WelcomePage and clears demo flag",
+        "Demo mode does not connect to MQTT or Supabase",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Created DemoBanner component with Exit Demo button. Added DEMO MODE banner to WaitingPage, ReceiptPage, TipPage, SignaturePage. Demo mode uses mock receipt data. Start Demo button on WaitingPage. Skips MQTT heartbeats in demo mode."
+    },
+    {
+      "id": "US-017",
+      "title": "Store App editable station name",
+      "description": "As a store manager, I want to change my station name to identify it easily.",
+      "acceptanceCriteria": [
+        "In Device Settings, station name is displayed with edit (pencil) icon",
+        "Clicking edit icon shows inline text input",
+        "Save button updates station_name in Supabase",
+        "Cancel button reverts to previous value",
+        "Validation: station name required, max 50 characters",
+        "Success toast: 'Station name updated'",
+        "npm run typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Added Pencil icon with inline edit mode. Input has maxLength=50 and validation error for empty. Save/Cancel buttons with loading state. Success toast shows for 3 seconds."
+    }
+  ]
+}

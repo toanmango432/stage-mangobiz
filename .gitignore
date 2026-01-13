@@ -30,9 +30,9 @@ dist-ssr
 /playwright/.cache/
 /playwright/.auth/
 
-# E2E tests (not ready yet)
-e2e/
-playwright.config.ts
+# E2E test artifacts (tests themselves are tracked)
+# e2e/
+# playwright.config.ts
 archive/
 
 # Electron

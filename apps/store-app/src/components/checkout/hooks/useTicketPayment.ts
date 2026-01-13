@@ -7,6 +7,8 @@ import {
   type CheckoutTicketService,
 } from '@/store/slices/uiTicketsSlice';
 import { dataService } from '@/services/dataService';
+import { getMangoPadService } from '@/services/mangoPadService';
+import { isMqttEnabled } from '@/services/mqtt/featureFlags';
 import type { TicketService } from '../ServiceList';
 import type { Client } from '../ClientSelector';
 
@@ -32,6 +34,8 @@ interface PaymentData {
     authorization_code?: string;
     transactionId?: string;
     transaction_id?: string;
+    cardLast4?: string;
+    cardBrand?: string;
   }>;
   tip?: number;
   tipDistribution?: Array<{
@@ -39,6 +43,7 @@ interface PaymentData {
     staffName: string;
     amount: number;
   }>;
+  padTransactionId?: string;
 }
 
 interface RefundData {
@@ -207,6 +212,27 @@ export function useTicketPayment({
         console.log('✅ Ticket marked as paid and moved to closed');
       }
 
+      // 5. Send payment result to Mango Pad (if transaction was sent to Pad)
+      if (payment.padTransactionId && effectiveTicketId && isMqttEnabled()) {
+        try {
+          console.log('📱 Sending payment result to Mango Pad:', payment.padTransactionId);
+          const mangoPadService = getMangoPadService();
+          const cardPayment = payment.methods?.find(m => m.type === 'card');
+          await mangoPadService.sendPaymentResult({
+            transactionId: payment.padTransactionId,
+            ticketId: effectiveTicketId,
+            success: true,
+            cardLast4: cardPayment?.cardLast4,
+            cardBrand: cardPayment?.cardBrand,
+            authCode: cardPayment?.authCode || cardPayment?.authorization_code,
+          });
+          console.log('✅ Payment result sent to Mango Pad');
+        } catch (error) {
+          console.error('❌ Failed to send payment result to Mango Pad:', error);
+          // Don't fail the whole payment flow for this
+        }
+      }
+
       // Show success toast
       toast({
         title: 'Payment Complete!',
@@ -215,6 +241,22 @@ export function useTicketPayment({
       });
     } catch (error) {
       console.error('❌ Error completing ticket:', error);
+
+      // Send failure to Mango Pad if transaction was sent there
+      if (payment.padTransactionId && isMqttEnabled()) {
+        try {
+          const mangoPadService = getMangoPadService();
+          await mangoPadService.sendPaymentResult({
+            transactionId: payment.padTransactionId,
+            ticketId: ticketId || 'unknown',
+            success: false,
+            errorMessage: error instanceof Error ? error.message : 'Payment processing failed',
+          });
+        } catch (padError) {
+          console.error('❌ Failed to send failure to Mango Pad:', padError);
+        }
+      }
+
       // Still show success since payment was processed
       toast({
         title: 'Payment Complete!',

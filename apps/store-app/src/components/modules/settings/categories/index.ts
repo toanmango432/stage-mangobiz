@@ -9,3 +9,4 @@ export { AccountLicensingSettings } from './AccountLicensingSettings';
 export { SystemSettings } from './SystemSettings';
 export { DeviceManagerSettings } from './DeviceManagerSettings';
 export { IntegrationsSettings } from './IntegrationsSettings';
+export { MangoPadSettings } from './MangoPadSettings';

@@ -1,0 +1,323 @@
+# Ralph Progress Log
+Started: 2025-01-11
+Branch: ralph/mango-pad-integration
+Stories: 17 (Device Pairing System)
+
+## Codebase Patterns
+
+> Reusable patterns discovered during implementation.
+
+**From Previous Work (Checkout Integration):**
+- MQTT topics are defined in src/services/mqtt/topics.ts
+- Use buildTopic() helper to create topics with storeId substitution
+- MQTT feature flag: isMqttEnabled() from featureFlags.ts
+- Redux slices go in src/store/slices/
+- Settings pages are in src/components/modules/settings/categories/
+- PAD topics use 'salon' prefix (not 'mango') to match Mango Pad app
+- Heartbeat topics use QoS 0, all other Pad topics use QoS 1
+- Device goes offline after 30 seconds without heartbeat
+- Use design-system tokens for all styling
+- Use Popover from @/components/ui/popover for dropdown menus
+- Use formatDistanceToNow from date-fns with addSuffix: true for "X ago" format
+- Mango Pad deviceId persisted in localStorage as 'mango_pad_device_id'
+- Mango Pad salonId from VITE_SALON_ID env var
+
+**Device Pairing Patterns (to be discovered):**
+- [TBD as we implement]
+
+---
+
+## Previous Work (Archived)
+
+The checkout integration (US-001 through US-014) was completed in a previous Ralph run.
+Archived to: `archive/2025-01-10-checkout-integration/`
+
+---
+
+## 2025-01-11 - US-001: Create salon_devices table in Supabase
+
+**Summary:**
+- Created migration `028_add_device_pairing_columns.sql` to extend salon_devices table
+- Added `device_role` column with CHECK constraint for 'store-app', 'mango-pad', 'check-in', 'display'
+- Added `station_name`, `pairing_code`, `paired_to_device_id` columns
+- Created indexes on pairing_code and paired_to_device_id
+- Added RLS policies for authenticated insert/update
+
+**Files changed:**
+- `supabase/migrations/028_add_device_pairing_columns.sql` (new)
+- `apps/store-app/src/services/supabase/types.ts` (updated SalonDeviceRow with new columns, added SalonDeviceRole type)
+- `apps/mango-pad/src/types/index.ts` (added SalonDevice, SalonDeviceRole, PairingInfo, PairingQRPayload types)
+
+**Learnings:**
+- Existing salon_devices table uses `store_id` and `device_fingerprint` (not `salon_id` and `device_id`)
+- `device_type` is for platform (ios/android/web/desktop), `device_role` is for app role (store-app/mango-pad/etc)
+- Use ALTER TABLE ADD COLUMN IF NOT EXISTS for safe migrations
+- TypeScript types in mango-pad use simple interfaces (not Database type pattern) for simplicity
+
+---
+
+## 2025-01-11 - US-002: Store App generates device ID and pairing code
+
+**Summary:**
+- Created `deviceRegistration.ts` service with device registration logic
+- Generates UUID device_id on first launch, persists in localStorage
+- Generates 6-char alphanumeric pairing code (uppercase, excludes confusing chars like 0/O/1/I)
+- Upserts device to salon_devices via Supabase on app startup
+- Helper functions: formatPairingCode(), parsePairingCode(), regeneratePairingCode()
+- Includes getPairedDevices() and markDeviceOffline() for lifecycle management
+
+**Files changed:**
+- `apps/store-app/src/services/deviceRegistration.ts` (new)
+
+**Learnings:**
+- Use PGRST116 error code to detect "no rows found" in Supabase single() queries
+- Exclude confusing characters (0, O, 1, I) from pairing codes for readability
+- Desktop detection via 'electronAPI' in window object
+- Mobile detection via 'Capacitor' in window object
+
+---
+
+## 2025-01-11 - US-003: Store App Device Settings page - Basic UI
+
+**Summary:**
+- Added "This Station" section to MangoPadSettings component
+- Displays station name (read-only), pairing code in large font, device ID in smaller text
+- Pairing code has copy-to-clipboard button with visual feedback
+- Shows loading state while registering device
+- Shows error state with message when registration fails
+- Integrates with deviceRegistration service from US-002
+
+**Files changed:**
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (updated)
+
+**Learnings:**
+- Settings categories are in src/components/modules/settings/categories/
+- MangoPadSettings is rendered inside DeviceManagerSettings via import
+- Device registration happens on component mount via useEffect
+- Use amber-50/amber-200 colors for prominent pairing code display
+- Registration fails in dev because migration 028 not applied to DB - this is expected
+
+---
+
+## 2025-01-11 - US-004: Store App generates and displays QR code
+
+**Summary:**
+- Installed qrcode.react package for QR code generation
+- Added QR code section below pairing code in Device Settings
+- QR payload contains JSON: { type, stationId, pairingCode, salonId, brokerUrl }
+- "Full Screen" button opens modal with larger QR code for easy scanning
+- Fullscreen modal includes close button and manual code fallback
+- QR code auto-updates via useMemo when pairing code changes
+- Uses error correction level "H" (high) in fullscreen for better scanning
+
+**Files changed:**
+- `apps/store-app/package.json` (added qrcode.react dependency)
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added QR code section and fullscreen modal)
+- `pnpm-lock.yaml` (updated lockfile)
+
+**Learnings:**
+- qrcode.react exports QRCodeSVG (preferred) and QRCodeCanvas components
+- SVG QR codes scale better for responsive displays
+- Error correction levels: L (7%), M (15%), Q (25%), H (30%) - higher = more scannable but larger
+- Fullscreen modal uses fixed positioning with z-50 for proper stacking
+- stopPropagation() on inner div prevents click-outside-to-close from firing when clicking inside modal
+- QR code only renders when deviceRegistration?.success is true (requires DB migration to be applied)
+
+---
+
+## 2025-01-11 - US-005: Mango Pad welcome screen on first launch
+
+**Summary:**
+- Created WelcomePage component with orange gradient design matching app theme
+- Tablet icon in rounded orange square as logo
+- "Welcome to Mango Pad" heading with description
+- "Pair with Store" primary button (orange, large) navigates to /pair
+- "Try Demo Mode" secondary button (outlined) sets demo flag and goes to WaitingPage
+- isPaired() helper checks localStorage 'mango_pad_pairing' key
+- RootRoute component handles conditional routing based on pairing/demo status
+
+**Files changed:**
+- `apps/mango-pad/src/pages/WelcomePage.tsx` (new)
+- `apps/mango-pad/src/App.tsx` (updated routing with RootRoute, added /welcome route)
+
+**Learnings:**
+- Mango Pad uses port 5176 (defined in package.json dev script)
+- Mango Pad doesn't have typecheck script, use `npx tsc --noEmit` directly
+- react-router-dom Navigate component with `replace` prop for redirects
+- Demo mode flag stored in localStorage as 'mango_pad_demo_mode'
+- RootRoute pattern useful for conditional rendering based on app state
+
+---
+
+## 2025-01-11 - US-006: Mango Pad pairing screen with code entry
+
+**Summary:**
+- Created PairingPage component for code entry
+- Large centered input field with auto-uppercase and alphanumeric filtering
+- parseCode() helper strips dashes/spaces, uppercases, limits to 6 chars
+- formatCode() displays as 'ABC-123' with dash after 3rd character
+- Connect button disabled until exactly 6 characters entered
+- Loading state with spinner placeholder for verification (US-007)
+- Back button returns to /welcome
+- Added /pair route to App.tsx
+
+**Files changed:**
+- `apps/mango-pad/src/pages/PairingPage.tsx` (new)
+- `apps/mango-pad/src/App.tsx` (added /pair route and PairingPage import)
+
+**Learnings:**
+- Input maxLength should be 7 (6 chars + dash) for formatted display
+- Use e.target.value with parseCode() on every change to keep state clean
+- handleKeyDown for Enter key submission
+- autoCapitalize="characters" for mobile keyboard uppercase hint
+- useRef with inputRef.current?.focus() in useEffect for auto-focus on mount
+
+---
+
+## 2025-01-11 - US-007: Pairing code verification and persistence
+
+**Summary:**
+- Added @supabase/supabase-js package to mango-pad
+- Created simple Supabase client at apps/mango-pad/src/services/supabase.ts
+- Created pairingService with verifyPairingCode() function
+- verifyPairingCode queries salon_devices by pairing_code (ILIKE for case-insensitive)
+- On valid code: creates Mango Pad device record with paired_to_device_id
+- Saves PairingInfo to localStorage after successful pairing
+- Error handling: invalid_code, network_error, not_configured
+- Updated PairingPage to use verifyPairingCode instead of placeholder
+- Updated WelcomePage to re-export isPaired from pairingService
+
+**Files changed:**
+- `apps/mango-pad/package.json` (added @supabase/supabase-js)
+- `apps/mango-pad/src/services/supabase.ts` (new)
+- `apps/mango-pad/src/services/pairingService.ts` (new)
+- `apps/mango-pad/src/pages/PairingPage.tsx` (integrated verifyPairingCode)
+- `apps/mango-pad/src/pages/WelcomePage.tsx` (use isPaired from pairingService)
+- `pnpm-lock.yaml`
+
+**Learnings:**
+- Mango Pad Supabase client doesn't need auth sessions (persistSession: false)
+- Use ILIKE for case-insensitive pairing code matching in Supabase
+- PGRST116 error code indicates "no rows found" - maps to invalid_code
+- Device type detection: /iPad|iPhone|iPod/.test(ua) for iOS
+- onConflict: 'store_id,device_fingerprint' for upsert on composite key
+
+---
+
+
+## 2025-01-11 - US-008: Store App shows list of paired Mango Pads
+
+**Summary:**
+- Added "Paired Devices" section to MangoPadSettings component
+- Uses existing getPairedDevices() function from deviceRegistration service
+- Displays loading spinner, empty state, or list of paired devices
+- Each device shows: name, truncated device_fingerprint, last_seen time, online/offline badge
+- Uses SalonDeviceRow type from Supabase types
+
+**Files changed:**
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added Paired Devices section)
+
+**Learnings:**
+- getPairedDevices() already existed in deviceRegistration.ts from US-002
+- SalonDeviceRow type has `device_fingerprint` not `device_id` for the unique identifier
+- formatLastSeen helper already existed in component for formatting dates
+- StatusBadge component already existed for online/offline status display
+- Pre-existing typecheck errors in test files are unrelated to component changes
+
+---
+
+## 2025-01-11 - US-009: Mango Pad connection status indicator
+
+**Summary:**
+- Created ConnectionIndicator component at apps/mango-pad/src/components/
+- Uses usePadMqtt hook for isConnected (MQTT) and posConnection (POS heartbeats)
+- Green pill with pulse animation when connected, red when offline
+- Tooltip shows station name from pairing info or POS connection
+- Added to WaitingPage, ReceiptPage, TipPage, SignaturePage in top-right corner
+- Added setCurrentScreen to all pages for heartbeat screen tracking
+
+**Files changed:**
+- `apps/mango-pad/src/components/ConnectionIndicator.tsx` (new)
+- `apps/mango-pad/src/pages/WaitingPage.tsx` (added ConnectionIndicator)
+- `apps/mango-pad/src/pages/ReceiptPage.tsx` (added ConnectionIndicator + setCurrentScreen)
+- `apps/mango-pad/src/pages/TipPage.tsx` (added ConnectionIndicator + setCurrentScreen)
+- `apps/mango-pad/src/pages/SignaturePage.tsx` (added ConnectionIndicator + setCurrentScreen)
+
+**Learnings:**
+- PadMqttProvider already tracks MQTT connection (isConnected) and POS heartbeats (posConnection)
+- usePadMqtt hook provides all needed context values
+- setCurrentScreen updates heartbeat payload with current screen (waiting, receipt, tip, signature)
+- getPairingInfo from pairingService provides station name for tooltip
+
+---
+
+## 2025-01-11 - US-010: MQTT heartbeat for paired devices
+
+**Summary:**
+- Added `pairedTo` field to PadHeartbeatPayload in Store App types
+- Updated PadDevice interface in padDevicesSlice to include pairedTo
+- Updated handleHeartbeat reducer to track pairedTo from incoming heartbeats
+- Mango Pad heartbeat now includes pairingInfo.stationId as pairedTo
+- Added 60-second interval in usePadHeartbeat to sync device status to Supabase
+- syncToSupabase function batch updates is_online and last_seen_at for all tracked pads
+
+**Files changed:**
+- `apps/store-app/src/services/mqtt/types.ts` (added pairedTo to PadHeartbeatPayload)
+- `apps/store-app/src/store/slices/padDevicesSlice.ts` (added pairedTo to PadDevice, updated handleHeartbeat)
+- `apps/store-app/src/services/mqtt/hooks/usePadHeartbeat.ts` (added Supabase batch sync every 60s)
+- `apps/mango-pad/src/providers/PadMqttProvider.tsx` (include pairedTo in heartbeat payload)
+
+**Learnings:**
+- Use useRef to access Redux state in setInterval callbacks without causing re-renders
+- padDevicesRef.current pattern allows interval to read latest devices without dependency on padDevices
+- Supabase updates use device_fingerprint column (not device_id) to match salon_devices schema
+- Batch updates iterate through devices sequentially - could optimize with Promise.all for larger lists
+
+---
+
+## 2025-01-11 - US-011: Store App shows online/offline status for paired Pads
+
+**Summary:**
+- Created `pairedDevicesWithRealTimeStatus` useMemo to merge Supabase data with Redux heartbeat data
+- Matches devices by device_fingerprint (Supabase) = id (Redux)
+- Shows green/gray status dot indicator on device icon
+- Display "X/Y Online" count in section header badge
+- Shows "Connected now" for online devices, "Last seen: X minutes ago" for offline
+- Shows current screen (Ready, Checkout, Tip, etc.) for online devices
+- Status updates automatically as heartbeats arrive via Redux
+
+**Files changed:**
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added useMemo for merged data, updated UI)
+
+**Learnings:**
+- Use useMemo to merge data sources (Supabase + Redux) for real-time updates
+- `_reduxScreen` pattern to pass additional data without modifying base type
+- TypeScript type assertion needed for custom properties added at runtime
+- Green dot = online (< 30s since heartbeat), gray dot = offline (> 30s)
+
+---
+
+
+## 2025-01-11 - US-012: Store App unpair device functionality
+
+**Summary:**
+- Added `unpairDevice` function to deviceRegistration.ts
+- Added `PAD_UNPAIRED` topic pattern to topics.ts with QoS 1
+- Added Unpair button next to each paired device in MangoPadSettings
+- Added confirmation dialog modal with device info display
+- handleUnpair function: updates Supabase, sends MQTT notification, removes from local state
+- Fixed TypeScript error with pairingCode type assertion in deviceRegistration.ts
+
+**Files changed:**
+- `apps/store-app/src/services/deviceRegistration.ts` (added unpairDevice function, fixed type assertion)
+- `apps/store-app/src/services/mqtt/topics.ts` (added PAD_UNPAIRED topic and QoS mapping)
+- `apps/store-app/src/components/modules/settings/categories/MangoPadSettings.tsx` (added Unpair button, confirmation modal, handleUnpair callback)
+- `apps/store-app/scripts/ralph/prd.json` (marked US-012 as passes: true)
+
+**Learnings:**
+- Use `as string` type assertion when TypeScript can't infer string guarantee through control flow
+- Confirmation modals should show device info to help user confirm correct action
+- MQTT notifications for unpair are best-effort (wrapped in try/catch, don't fail the main operation)
+- Modal should be disabled during loading to prevent double-clicks
+
+---

@@ -222,6 +222,8 @@ export function App() {
   }
 
   // Show login screen if not authenticated
+  // NOTE: Station heartbeats are published via usePosHeartbeat in PadConnectionIndicator
+  // after login, so they use the correct station-specific topic
   if (storeAuthManager.isLoginRequired()) {
     return (
       <Provider store={store}>
@@ -239,6 +241,8 @@ export function App() {
   }
 
   // Normal app flow
+  // NOTE: Station heartbeats are published via usePosHeartbeat in PadConnectionIndicator
+  // which uses the correct station-specific topic: salon/{storeId}/station/{stationId}/heartbeat
   return (
     <ErrorBoundary module="app">
       <Provider store={store}>

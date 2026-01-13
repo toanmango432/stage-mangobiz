@@ -360,6 +360,23 @@ class MqttBridgeService {
   getConnectionType(): 'local' | 'cloud' | null {
     return this.client?.getConnectionType() || null;
   }
+
+  /**
+   * Get the underlying MQTT client for direct operations
+   */
+  getClient(): MqttClient | null {
+    return this.client;
+  }
+
+  /**
+   * Publish a raw message to a topic (for heartbeats and simple messages)
+   */
+  async publishRaw(topic: string, payload: unknown, qos: 0 | 1 | 2 = 0): Promise<void> {
+    if (!this.client) {
+      throw new Error('MqttBridge not initialized');
+    }
+    await this.client.publish(topic, payload, { qos });
+  }
 }
 
 // Export singleton instance

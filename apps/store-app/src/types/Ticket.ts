@@ -234,6 +234,10 @@ export interface Ticket {
   // Closed ticket tracking
   closedAt?: string;              // ISO 8601 string - when ticket was closed/paid
   closedBy?: string;              // User ID who closed the ticket
+
+  // Signature capture (from Mango Pad)
+  signatureBase64?: string;       // Base64 encoded signature image data
+  signatureTimestamp?: string;    // ISO 8601 string - when signature was captured
 }
 
 /**

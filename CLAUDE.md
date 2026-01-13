@@ -550,6 +550,53 @@ npm run electron:build   # Build Electron app (future)
 
 ---
 
+## Ralph - Autonomous AI Agent Loop
+
+Ralph is an autonomous AI agent loop for running Claude Code repeatedly until all PRD items are complete.
+
+### Quick Start
+
+```bash
+# From monorepo root
+cd "/Users/seannguyen/Winsurf built/Mango-monorepo"
+chmod +x scripts/ralph/ralph.sh
+./scripts/ralph/ralph.sh [max_iterations]
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `scripts/ralph/ralph.sh` | Bash loop spawning fresh Claude instances |
+| `scripts/ralph/prompt.md` | Instructions given to each Claude instance |
+| `scripts/ralph/prd.json` | User stories with `passes` status |
+| `scripts/ralph/progress.txt` | Append-only progress log |
+| `scripts/ralph/patterns.md` | Persistent patterns across all runs |
+
+### How It Works
+
+1. Each iteration spawns a fresh Claude instance with clean context
+2. Claude reads the PRD, finds highest priority incomplete story
+3. Implements ONE story, runs quality checks, commits
+4. Updates PRD to mark story complete
+5. Repeats until all stories pass or max iterations reached
+
+### Creating PRDs for Ralph
+
+Use the `/prd` and `/ralph` skills:
+1. `/prd [feature description]` - Generate PRD document
+2. `/ralph [prd-file]` - Convert to `scripts/ralph/prd.json`
+
+### Memory Persistence
+
+Each iteration is fresh, but memory persists via:
+- Git history (commits from previous iterations)
+- `progress.txt` (learnings and patterns)
+- `patterns.md` (accumulated patterns across all runs)
+- `prd.json` (which stories are complete)
+
+---
+
 ## Don't
 
 - ❌ Create custom `/api/v1/...` REST endpoints (we use Supabase directly)
