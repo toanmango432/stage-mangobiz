@@ -2,6 +2,11 @@
  * usePadHeartbeat Hook
  * Subscribe to Mango Pad heartbeats and manage device presence
  *
+ * Device-to-Device (1:1) Architecture:
+ * - Each Store App station subscribes to: salon/{storeId}/station/{stationId}/pad/heartbeat
+ * - Each Store App station publishes to: salon/{storeId}/station/{stationId}/heartbeat
+ * - Only receives heartbeats from Mango Pads paired to this specific station
+ *
  * Part of: Mango Pad Integration (US-004, US-010)
  */
 
@@ -17,10 +22,12 @@ import { selectStoreId } from '@/store/slices/authSlice';
 import { buildTopic, TOPIC_PATTERNS } from '../topics';
 import { isMqttEnabled, getCloudBrokerUrl } from '../featureFlags';
 import { supabase } from '@/services/supabase/client';
+import { getOrCreateDeviceId } from '@/services/deviceRegistration';
 import type { PadHeartbeatPayload } from '../types';
 
 const OFFLINE_CHECK_INTERVAL = 10000; // Check every 10 seconds
 const SUPABASE_SYNC_INTERVAL = 60000; // Sync to Supabase every 60 seconds
+const STATION_HEARTBEAT_INTERVAL = 5000; // Send heartbeat every 5 seconds
 
 export function usePadHeartbeat() {
   const dispatch = useAppDispatch();
@@ -29,6 +36,7 @@ export function usePadHeartbeat() {
   const clientRef = useRef<MqttClient | null>(null);
   const offlineCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const supabaseSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const padDevicesRef = useRef(padDevices);
 
   // Keep padDevicesRef in sync to access in interval callback
@@ -77,14 +85,22 @@ export function usePadHeartbeat() {
       return;
     }
 
+    // Get station ID (this device's fingerprint) for device-to-device communication
+    const stationId = getOrCreateDeviceId();
+
     const brokerUrl = getCloudBrokerUrl();
-    const topic = buildTopic(TOPIC_PATTERNS.PAD_HEARTBEAT, { storeId });
-    
+    // Subscribe to pad heartbeats for this specific station
+    const padHeartbeatTopic = buildTopic(TOPIC_PATTERNS.PAD_HEARTBEAT, { storeId, stationId });
+    // Topic for publishing station heartbeats
+    const stationHeartbeatTopic = buildTopic(TOPIC_PATTERNS.STATION_HEARTBEAT, { storeId, stationId });
+
+    console.log('[usePadHeartbeat] Station ID:', stationId);
     console.log('[usePadHeartbeat] Connecting to MQTT broker:', brokerUrl);
-    console.log('[usePadHeartbeat] Will subscribe to:', topic);
+    console.log('[usePadHeartbeat] Will subscribe to:', padHeartbeatTopic);
+    console.log('[usePadHeartbeat] Will publish heartbeats to:', stationHeartbeatTopic);
 
     const client = mqtt.connect(brokerUrl, {
-      clientId: `pos-pad-listener-${storeId}-${Date.now()}`,
+      clientId: `pos-station-${stationId}-${Date.now()}`,
       clean: true,
       keepalive: 30,
       reconnectPeriod: 5000,
@@ -94,20 +110,53 @@ export function usePadHeartbeat() {
 
     client.on('connect', () => {
       console.log('[usePadHeartbeat] Connected to MQTT broker');
-      client.subscribe(topic, { qos: 0 }, (err) => {
+
+      // Subscribe to pad heartbeats for this station
+      client.subscribe(padHeartbeatTopic, { qos: 0 }, (err) => {
         if (err) {
           console.error('[usePadHeartbeat] Subscribe error:', err);
         } else {
-          console.log('[usePadHeartbeat] Subscribed to:', topic);
+          console.log('[usePadHeartbeat] Subscribed to:', padHeartbeatTopic);
         }
       });
+
+      // Start publishing station heartbeats so Mango Pad knows we're online
+      const publishHeartbeat = () => {
+        const heartbeat = {
+          stationId,
+          storeId,
+          timestamp: new Date().toISOString(),
+          status: 'online',
+        };
+        client.publish(stationHeartbeatTopic, JSON.stringify(heartbeat), { qos: 0 });
+      };
+
+      // Publish immediately and then every 5 seconds
+      publishHeartbeat();
+      heartbeatIntervalRef.current = setInterval(publishHeartbeat, STATION_HEARTBEAT_INTERVAL);
     });
 
     client.on('message', (receivedTopic, message) => {
       if (receivedTopic.includes('/pad/heartbeat')) {
         try {
-          const payload = JSON.parse(message.toString()) as PadHeartbeatPayload;
-          console.log('[usePadHeartbeat] Received pad heartbeat:', payload);
+          const parsed = JSON.parse(message.toString());
+
+          // Handle wrapped MqttMessage format { id, timestamp, payload } from Mango Pad
+          // or direct payload format for backwards compatibility
+          let payload: PadHeartbeatPayload;
+          if (parsed.payload && typeof parsed.payload === 'object') {
+            // Wrapped format: { id, timestamp, payload: PadHeartbeatPayload }
+            payload = parsed.payload as PadHeartbeatPayload;
+            console.log('[usePadHeartbeat] Received wrapped pad heartbeat:', payload);
+          } else if (parsed.deviceId) {
+            // Direct payload format (has deviceId at root level)
+            payload = parsed as PadHeartbeatPayload;
+            console.log('[usePadHeartbeat] Received direct pad heartbeat:', payload);
+          } else {
+            console.warn('[usePadHeartbeat] Unknown message format:', parsed);
+            return;
+          }
+
           handleHeartbeatMessage(payload);
         } catch (error) {
           console.error('[usePadHeartbeat] Failed to parse message:', error);
@@ -137,6 +186,10 @@ export function usePadHeartbeat() {
       if (supabaseSyncRef.current) {
         clearInterval(supabaseSyncRef.current);
         supabaseSyncRef.current = null;
+      }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
       }
       client.end(true);
       clientRef.current = null;
