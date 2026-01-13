@@ -24,6 +24,7 @@ import { PairingPage } from '@/pages/PairingPage';
 import { ReceiptPreferencePage } from '@/pages/ReceiptPreferencePage';
 import { ProcessingPage } from '@/pages/ProcessingPage';
 import { CompletePage } from '@/pages/CompletePage';
+import { FailedPage } from '@/pages/FailedPage';
 import { ReconnectingOverlay } from '@/components/ReconnectingOverlay';
 import { UnpairHandler } from '@/components/UnpairHandler';
 import { useOrientation } from '@/hooks/useResponsive';
@@ -202,6 +203,14 @@ export function App() {
             element={
               <PairingGuard>
                 <CompletePage />
+              </PairingGuard>
+            }
+          />
+          <Route
+            path="/failed"
+            element={
+              <PairingGuard>
+                <FailedPage />
               </PairingGuard>
             }
           />
