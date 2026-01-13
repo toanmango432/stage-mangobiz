@@ -2,29 +2,82 @@
  * Reconnecting Overlay Component
  * Shows when MQTT connection is lost and reconnecting
  * Displays different messages based on connection duration and transaction state
+ *
+ * US-003: Only shows overlay when:
+ * - Device is paired (has pairing info in localStorage)
+ * - NOT on /welcome or /pair routes
+ * - Device was previously connected and connection dropped
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { WifiOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAppSelector } from '@/store/hooks';
 import { mqttService } from '@/services/mqttClient';
+
+/**
+ * Check if device is paired (has pairing info in localStorage)
+ */
+function checkIsPaired(): boolean {
+  const pairingInfo = localStorage.getItem('mango_pad_pairing');
+  if (!pairingInfo) return false;
+  try {
+    const parsed = JSON.parse(pairingInfo);
+    return Boolean(parsed.stationId && parsed.salonId);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Routes where the reconnecting overlay should NOT appear
+ */
+const EXCLUDED_ROUTES = ['/welcome', '/pair'];
 
 interface ReconnectingOverlayProps {
   onAlertStaff?: () => void;
 }
 
 export function ReconnectingOverlay({ onAlertStaff }: ReconnectingOverlayProps) {
+  const location = useLocation();
   const showReconnecting = useAppSelector((state) => state.ui.showReconnecting);
   const currentScreen = useAppSelector((state) => state.pad.currentScreen);
   const transaction = useAppSelector((state) => state.transaction.current);
   const [offlineDuration, setOfflineDuration] = useState(0);
   const [showExtendedWarning, setShowExtendedWarning] = useState(false);
+  // Track if device was previously connected (for this session)
+  const wasConnectedRef = useRef(false);
+  const [wasConnected, setWasConnected] = useState(false);
 
   const isActiveTransaction = currentScreen !== 'idle' && currentScreen !== 'settings' && transaction !== null;
 
+  // Track when we've been connected at least once
   useEffect(() => {
-    if (!showReconnecting) {
+    if (!showReconnecting && !wasConnectedRef.current) {
+      // When showReconnecting is false and we haven't tracked connection yet,
+      // it means we're connected - mark that we were connected
+      const isPaired = checkIsPaired();
+      if (isPaired) {
+        wasConnectedRef.current = true;
+        setWasConnected(true);
+      }
+    }
+  }, [showReconnecting]);
+
+  // Check if overlay should be shown based on route and pairing status
+  const isExcludedRoute = EXCLUDED_ROUTES.includes(location.pathname);
+  const isPaired = checkIsPaired();
+
+  // US-003: Only show overlay when:
+  // 1. showReconnecting flag is true (connection lost)
+  // 2. Device is paired
+  // 3. NOT on excluded routes (/welcome, /pair)
+  // 4. Device was previously connected (not initial connection)
+  const shouldShow = showReconnecting && isPaired && !isExcludedRoute && wasConnected;
+
+  useEffect(() => {
+    if (!shouldShow) {
       setOfflineDuration(0);
       setShowExtendedWarning(false);
       return;
@@ -41,7 +94,7 @@ export function ReconnectingOverlay({ onAlertStaff }: ReconnectingOverlayProps) 
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [showReconnecting, showExtendedWarning, onAlertStaff]);
+  }, [shouldShow, showExtendedWarning, onAlertStaff]);
 
   const formatDuration = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
@@ -55,7 +108,7 @@ export function ReconnectingOverlay({ onAlertStaff }: ReconnectingOverlayProps) 
 
   return (
     <AnimatePresence>
-      {showReconnecting && (
+      {shouldShow && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
