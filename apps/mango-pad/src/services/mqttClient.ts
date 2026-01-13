@@ -184,7 +184,13 @@ class MqttService {
     if (!this.subscriptions.has(topic)) {
       this.subscriptions.set(topic, new Set());
       if (this.client?.connected) {
-        this.client.subscribe(topic, { qos: 1 });
+        this.client.subscribe(topic, { qos: 1 }, (err) => {
+          if (err) {
+            console.error(`[MqttClient] Subscription FAILED for ${topic}:`, err);
+          } else {
+            console.log(`[MqttClient] Subscription SUCCESS for ${topic}`);
+          }
+        });
       }
     }
     this.subscriptions.get(topic)!.add(handler as MessageHandler);
@@ -271,7 +277,13 @@ class MqttService {
   private resubscribeAll(): void {
     if (!this.client?.connected) return;
     this.subscriptions.forEach((_, topic) => {
-      this.client!.subscribe(topic, { qos: 1 });
+      this.client!.subscribe(topic, { qos: 1 }, (err) => {
+        if (err) {
+          console.error(`[MqttClient] Subscription FAILED for ${topic}:`, err);
+        } else {
+          console.log(`[MqttClient] Subscription SUCCESS for ${topic}`);
+        }
+      });
     });
   }
 }
