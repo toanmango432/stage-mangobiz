@@ -2,6 +2,7 @@ import { useState, useEffect, memo } from 'react';
 import { MoreVertical, Check, Pause, Play, Trash2, StickyNote } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import { TicketDetailsModal } from './TicketDetailsModal';
+import { useStatusChangeAnimation } from '@/hooks/useStatusChangeAnimation';
 
 // Service status for individual services within a ticket
 type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
@@ -71,6 +72,9 @@ function ServiceTicketCardComponent({
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [progress, setProgress] = useState(0);
+
+  // Status change animation - flash when ticket status changes
+  const { isAnimating } = useStatusChangeAnimation(ticket.status);
 
   // Check if ticket is paused
   const isPaused = ticket.serviceStatus === 'paused';
@@ -206,7 +210,7 @@ function ServiceTicketCardComponent({
       <>
         <div
           onClick={() => onClick?.(ticket.id)}
-          className={`relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer ${isPaused ? 'opacity-75' : ''}`}
+          className={`relative overflow-visible transition-all duration-200 ease-out hover:-translate-y-0.5 cursor-pointer ${isPaused ? 'opacity-75' : ''} ${isAnimating ? 'animate-status-flash' : ''}`}
           role="button"
           tabIndex={0}
           aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}${isPaused ? ' (Paused)' : ''}`}
@@ -324,7 +328,7 @@ function ServiceTicketCardComponent({
     return (
       <>
       <div onClick={() => onClick?.(ticket.id)}
-           className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${isPaused ? 'opacity-75' : ''}`}
+           className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 cursor-pointer ${isPaused ? 'opacity-75' : ''} ${isAnimating ? 'animate-status-flash' : ''}`}
            role="button"
            tabIndex={0}
            aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}${isPaused ? ' (Paused)' : ''}`}
@@ -481,7 +485,7 @@ function ServiceTicketCardComponent({
   if (viewMode === 'grid-normal') {
     return (
       <>
-      <div onClick={() => onClick?.(ticket.id)} className="relative rounded-lg sm:rounded-xl overflow-visible transition-all duration-500 ease-out hover:-translate-y-2 hover:rotate-[0.5deg] flex flex-col min-w-[280px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)', border: '2px solid #e8dcc8', boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.70), inset 0 -0.8px 1px rgba(0,0,0,0.05), 0.5px 0.5px 0 rgba(255,255,255,0.80), -3px 0 8px rgba(0,0,0,0.08), 2px 3px 4px rgba(0,0,0,0.04), 4px 8px 12px rgba(0,0,0,0.08)' }}>
+      <div onClick={() => onClick?.(ticket.id)} className={`relative rounded-lg sm:rounded-xl overflow-visible transition-all duration-500 ease-out hover:-translate-y-2 hover:rotate-[0.5deg] flex flex-col min-w-[280px] max-w-full cursor-pointer ${isAnimating ? 'animate-status-flash' : ''}`} role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)', border: '2px solid #e8dcc8', boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.70), inset 0 -0.8px 1px rgba(0,0,0,0.05), 0.5px 0.5px 0 rgba(255,255,255,0.80), -3px 0 8px rgba(0,0,0,0.08), 2px 3px 4px rgba(0,0,0,0.04), 4px 8px 12px rgba(0,0,0,0.08)' }}>
         <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-3 sm:px-4 z-10 opacity-25">{[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}</div>
         <div className="absolute left-[-6px] sm:left-[-8px] top-[50%] w-3 h-3 sm:w-4 sm:h-4 rounded-full border-r border-[#d4b896]/50" style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -2px 0 3px rgba(139, 92, 46, 0.10)' }} />
         {/* Thick paper left edge shadow effect */}
@@ -520,7 +524,7 @@ function ServiceTicketCardComponent({
   if (viewMode === 'grid-compact') {
     return (
       <>
-      <div onClick={() => onClick?.(ticket.id)} className="relative rounded-md sm:rounded-lg overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 flex flex-col min-w-[240px] max-w-full cursor-pointer" role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)', border: '2px solid #e8dcc8', boxShadow: '-2px 0 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
+      <div onClick={() => onClick?.(ticket.id)} className={`relative rounded-md sm:rounded-lg overflow-visible transition-all duration-300 ease-out hover:-translate-y-1 flex flex-col min-w-[240px] max-w-full cursor-pointer ${isAnimating ? 'animate-status-flash' : ''}`} role="button" tabIndex={0} aria-label={`Service ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }} style={{ background: 'linear-gradient(145deg, #FFFCF7 0%, #FFFBF5 40%, #FFF9F0 100%)', border: '2px solid #e8dcc8', boxShadow: '-2px 0 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
         <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 opacity-20">{[...Array(15)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] rounded-full bg-[#c4b5a0]" />))}</div>
         <div className="absolute left-[-4px] sm:left-[-5px] top-[50%] w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-r border-[#d4b896]/50" style={{ background: 'linear-gradient(to right, #f8f3eb, #f5f0e8)', boxShadow: 'inset -1px 0 2px rgba(139, 92, 46, 0.10)' }} />
         {/* Thick paper left edge shadow effect */}

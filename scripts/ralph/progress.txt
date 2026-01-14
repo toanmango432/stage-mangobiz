@@ -534,3 +534,27 @@ Commit: (already implemented - no changes needed)
   - appointmentBuckets computed from live comingAppointments data provides real-time badge updates
   - Conditional badge rendering is correct behavior - only show late/next hr when counts > 0
 ---
+
+## 2026-01-14 02:22 - US-025: Add live status update indicator to ticket cards
+**Status:** Implemented
+**Files changed:**
+- apps/store-app/tailwind.config.js (added statusFlash animation keyframe)
+- apps/store-app/src/hooks/useStatusChangeAnimation.ts (new file)
+- apps/store-app/src/components/tickets/ServiceTicketCard.tsx (applied animation)
+
+**Implementation:**
+1. Added `statusFlash` keyframe in tailwind.config.js - green ring highlight that fades over 500ms
+2. Created `useStatusChangeAnimation` hook that:
+   - Tracks previous status using useRef
+   - Skips animation on first render
+   - Returns `isAnimating` boolean when status changes
+   - Auto-clears after 500ms
+3. Applied hook to ServiceTicketCard for all 4 view modes (compact, normal, grid-normal, grid-compact)
+4. Animation triggers on status transitions (in-service→completed, paused→resumed, etc.)
+
+**Learnings for future iterations:**
+- ServiceTicketCard has explicit `ticket.status` prop - ideal for status change animation
+- WaitListTicketCard is implicitly "waiting" - no status prop, transitions out when assigned
+- PendingTicketCard is implicitly "pending payment" - status change animation less relevant
+- Animation uses CSS keyframes via Tailwind for performance (GPU-accelerated)
+---

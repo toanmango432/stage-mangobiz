@@ -403,8 +403,8 @@
         "Verify in browser: Check in appointment, see visual feedback"
       ],
       "priority": 25,
-      "passes": false,
-      "notes": "FD-P0-067. Files: Various ticket card components. Enhances real-time update visibility."
+      "passes": true,
+      "notes": "FD-P0-067. Added statusFlash animation to tailwind.config.js, created useStatusChangeAnimation hook, applied to ServiceTicketCard all 4 view modes. Green ring highlight fades over 500ms."
     },
     {
       "id": "US-026",
