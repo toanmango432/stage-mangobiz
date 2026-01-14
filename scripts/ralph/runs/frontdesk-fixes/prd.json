@@ -295,8 +295,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": "AddStaffNoteModal has currentNote prop but it's never passed."
+      "passes": true,
+      "notes": "Already implemented in US-006 and US-015. StaffSidebar and MobileTeamSection both pass currentNote={staffNotes[String(id)]} to AddStaffNoteModal. Modal shows 'Edit Staff Note' title and pre-fills content."
     },
     {
       "id": "US-019",

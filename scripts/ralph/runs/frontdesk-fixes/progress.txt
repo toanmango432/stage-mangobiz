@@ -935,3 +935,37 @@ Consolidated teamSettings state management into Redux frontDeskSettingsSlice:
 
 ---
 
+## 2026-01-14 15:30 - US-018: Add staff note edit functionality
+Commit: N/A (No code changes - already implemented)
+
+### Analysis
+US-018 was already fully implemented in previous iterations (US-006 and US-015). Verification confirmed:
+
+**AddStaffNoteModal.tsx (already has edit support):**
+- Line 67: Title shows "Edit Staff Note" when `currentNote` exists, "Add Staff Note" when creating
+- Line 114: Button shows "Update Note" when editing, "Add Note" when creating
+- Lines 32-40: Pre-fills textarea with existing note content via `useEffect`
+
+**StaffSidebar.tsx (already passes currentNote):**
+- Line 316: `currentNote={staffNotes[String(selectedStaffForNote.id)] || ''}`
+
+**MobileTeamSection.tsx (already passes currentNote):**
+- Line 809: `currentNote={staffNotes[String(selectedStaffForNote.id)] || ''}`
+
+### Files Changed
+- None (already implemented)
+
+### Quality Checklist
+- [x] Load existing note when opening AddStaffNoteModal ✅
+- [x] Pass currentNote prop to modal ✅ (both StaffSidebar and MobileTeamSection)
+- [x] Show 'Edit Note' title when editing, 'Add Note' when creating ✅
+- [x] Pre-fill textarea with existing note content ✅
+- [x] pnpm run typecheck passes ✅
+
+### Learnings
+- PRD notes can become outdated - "AddStaffNoteModal has currentNote prop but it's never passed" was no longer accurate
+- US-006 added the Redux state and modal support, US-015 wired it to both components
+- Always verify current implementation before assuming work is needed
+
+---
+
