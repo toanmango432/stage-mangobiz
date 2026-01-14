@@ -211,7 +211,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Current test coverage is ~3.5%. Add basic tests for the main Team Section components."
     },
     {

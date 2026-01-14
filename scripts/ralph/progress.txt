@@ -278,3 +278,43 @@ Commit: 6542101
   - FrontDeskSettingsData type must be updated when adding new settings
   - Test mocks must include all fields from FrontDeskSettingsData to pass typecheck
 ---
+
+## 2026-01-14 - US-013: Add unit tests for Team Section components
+Commit: fac5490
+- Added StaffSidebar.test.tsx with 34 tests:
+  - Rendering tests: staff name, ARIA attributes, queue number
+  - View mode tests: normal, compact, ultra-compact modes
+  - Staff status tests: ready without overlay, busy with overlay
+  - Action callback tests: card click, dropdown menu rendering
+  - DisplayConfig tests: toggle visibility based on settings
+  - Selection state tests: ring styling for selected cards
+  - Keyboard navigation tests: focusable, button role
+- Added StaffCardVertical.test.tsx with 22 tests:
+  - Rendering tests: name, ARIA, queue number, turn count
+  - View mode tests: normal, compact, ultra-compact
+  - Staff status tests: ready, busy with overlay, off
+  - Action callback tests: onClick, More Options button
+  - DisplayConfig tests: settings control visibility
+  - Selection state tests: ring styling
+  - Keyboard navigation tests: tabindex, role
+  - Busy staff display tests: progress indicator
+- Updated MobileTeamSection.test.tsx with Redux support (57 tests):
+  - Added Redux Provider wrapper with mock store
+  - Added TicketPanelContext mock
+  - Mocked MobileStaffActionSheet and AddStaffNoteModal
+  - Fixed staff ID expectations (convertToStaffMember parses 'staff-1' to 1)
+  - Fixed group tests for busyStatus mode (only Ready/Busy groups)
+- Total: 113 tests passing for Team Section components
+- Files changed:
+  - apps/store-app/src/components/frontdesk/__tests__/StaffSidebar.test.tsx (new)
+  - apps/store-app/src/components/StaffCard/__tests__/StaffCardVertical.test.tsx (new)
+  - apps/store-app/src/components/frontdesk/__tests__/MobileTeamSection.test.tsx (updated)
+- **Learnings for future iterations:**
+  - Redux-connected components need Provider wrapper in tests
+  - Use function reducers returning fixed state to avoid TypeScript inference issues with configureStore
+  - convertToStaffMember parses IDs like 'staff-1' to get numeric ID (1)
+  - busyStatus organizeBy mode only renders Ready and Busy groups (not Off)
+  - Radix UI DropdownMenu renders to portal - use simpler tests to avoid portal complexity
+  - Pre-existing test failures in topics.test.ts and padCheckoutFlow.test.ts are unrelated infrastructure issues
+  - DisplayConfig uses showLastService (not showLastDone) for the property name
+---
