@@ -13,12 +13,12 @@ You are an autonomous coding agent working on the Mango POS monorepo.
 
 1. Read the PRD at `scripts/ralph/prd.json`
 2. Read the progress log at `scripts/ralph/progress.txt` (check Codebase Patterns section first)
-3. Read `scripts/ralph/patterns.md` for accumulated patterns from previous runs
+3. Read `.claude/rules/codebase-patterns.md` for accumulated patterns (auto-loaded but review for context)
 4. Check you're on the correct branch from PRD `branchName`. If not, check it out.
 5. Pick the **highest priority** user story where `passes: false`
 6. Implement that single user story
 7. Run quality checks (typecheck, lint)
-8. Update CLAUDE.md if you discover reusable patterns
+8. **Update `.claude/rules/codebase-patterns.md`** with any reusable patterns discovered
 9. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
 10. Update the PRD to set `passes: true` for the completed story
 11. Append your progress to `scripts/ralph/progress.txt`
@@ -82,8 +82,14 @@ Commit: [git commit hash]
 
 ## Consolidate Patterns
 
-Add reusable patterns to `## Codebase Patterns` section at TOP of progress.txt.
-These patterns help future iterations avoid repeating mistakes.
+**IMPORTANT:** Add reusable patterns to `.claude/rules/codebase-patterns.md` (NOT progress.txt).
+
+This file is a global rule that ALL Claude sessions read automatically. When you discover:
+- A useful code pattern (e.g., "use X selector for Y data")
+- A gotcha or pitfall (e.g., "duration is stored as string, parse with parseInt")
+- An architecture insight (e.g., "Redux slice X controls Y")
+
+Add it to the appropriate section in `.claude/rules/codebase-patterns.md`. This makes future runs smarter.
 
 ## Stop Condition
 
@@ -102,14 +108,15 @@ If ALL stories have `passes: true`, reply with:
 6. **Append progress** - Never delete existing progress entries
 7. **Browser verify UI changes** - Frontend stories require visual confirmation
 8. **Use pnpm** - This monorepo uses pnpm, not npm
+9. **Update codebase-patterns.md** - Add discovered patterns so ALL future sessions benefit
 
 ## File Locations
 
 | File | Purpose |
 |------|---------|
 | `scripts/ralph/prd.json` | User stories with `passes` status |
-| `scripts/ralph/progress.txt` | Append-only progress log |
-| `scripts/ralph/patterns.md` | Persistent patterns across all runs |
+| `scripts/ralph/progress.txt` | Append-only progress log for this run |
+| `.claude/rules/codebase-patterns.md` | **Accumulated patterns (UPDATE THIS)** - read by ALL sessions |
 | `CLAUDE.md` | Project-specific AI instructions (READ THIS) |
 
 ## Common Gotchas
