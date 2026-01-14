@@ -146,7 +146,7 @@
         "Verify in browser: book an appointment for a staff member and see their card update with real next appointment time"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Currently uses mock data ('10:30 AM', '2:00 PM'). Need to integrate with appointmentsSlice."
     },
     {

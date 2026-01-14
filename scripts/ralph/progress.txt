@@ -163,3 +163,30 @@ Commit: 35b6c98
   - Use useCallback with [inServiceTickets] dependency for performance
   - Type compatibility: use `?? undefined` to convert null to undefined
 ---
+
+## 2026-01-14 - US-009: Connect StaffCard to real appointment data
+Commit: 11cd707
+- Added selectAllAppointments selector import from appointmentsSlice
+- Added selectCompletedTickets selector import from uiTicketsSlice
+- Added LocalAppointment type import from @/types/appointment
+- Created getStaffNextAppointment helper function (useCallback memoized) that:
+  1. Filters allAppointments by staffId matching (handles string/number IDs)
+  2. Only includes scheduled/confirmed/pending status appointments
+  3. Filters for future appointments only
+  4. Sorts by scheduledStartTime ascending
+  5. Returns formatted time string (e.g., "10:30 AM")
+- Created getStaffLastServiceTime helper function (useCallback memoized) that:
+  1. Filters completedTickets by techId or assignedTo.id matching
+  2. Sorts by updatedAt/createdAt descending (most recent first)
+  3. Returns formatted time string from last completion
+- Replaced mock nextAppointmentTime/lastServiceTime with real data
+- Updated tooltip to show Next Appt and Last Done times
+- Files changed:
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - LocalAppointment.scheduledStartTime is always a string (ISO format) - no need for type check
+  - Appointment status values: 'scheduled', 'confirmed', 'pending', 'cancelled', 'completed', etc.
+  - completedTickets are tickets with status 'paid' (not 'completed' which means pending checkout)
+  - UITicket.updatedAt is when ticket was marked as paid/completed
+  - toLocaleTimeString with hour12: true gives "10:30 AM" format
+---
