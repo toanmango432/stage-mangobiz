@@ -13,6 +13,8 @@ import { Users, Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
 import { StaffCardVertical, type StaffMember, type ViewMode } from '../StaffCard/index';
+import { useAppSelector } from '@/store/hooks';
+import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
 
 interface MobileTeamSectionProps {
   className?: string;
@@ -66,7 +68,15 @@ export const MobileTeamSection = memo(function MobileTeamSection({
   className = '',
 }: MobileTeamSectionProps) {
   const { staff = [] } = useTickets();
-  const [filter, setFilter] = useState<'all' | 'ready' | 'busy' | 'off'>('all');
+
+  // US-007: Read FrontDeskSettings from Redux
+  const settings = useAppSelector(selectFrontDeskSettings);
+
+  // US-007: Use organizeBy setting from FrontDeskSettings
+  // 'busyStatus' shows Ready/Busy groups, 'clockedStatus' shows Clocked In/Out groups
+  const organizeBy = settings?.organizeBy || 'busyStatus';
+
+  const [filter, setFilter] = useState<'all' | 'ready' | 'busy' | 'off' | 'clockedIn' | 'clockedOut'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // View mode state - persisted in localStorage
@@ -82,31 +92,51 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     localStorage.setItem('mobileTeamViewMode', newMode);
   };
 
-  // Calculate staff counts
+  // US-007: Calculate staff counts based on organizeBy setting
   const counts = useMemo(() => {
     const all = staff.length;
     const ready = staff.filter((s: any) => s.status === 'ready').length;
     const busy = staff.filter((s: any) => s.status === 'busy').length;
     const off = staff.filter((s: any) => s.status === 'off').length;
-    return { all, ready, busy, off };
+    // For clockedStatus mode
+    const clockedIn = staff.filter((s: any) => s.status === 'ready' || s.status === 'busy').length;
+    const clockedOut = off;
+    return { all, ready, busy, off, clockedIn, clockedOut };
   }, [staff]);
 
-  // Filter staff
+  // US-007: Filter staff based on organizeBy mode
   const filteredStaff = useMemo(() => {
     return staff.filter((s: any) => {
-      const matchesFilter = filter === 'all' || s.status === filter;
       const matchesSearch = !searchQuery ||
         s.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [staff, filter, searchQuery]);
 
-  // Group by status for grid view
+      if (filter === 'all') return matchesSearch;
+
+      if (organizeBy === 'busyStatus') {
+        // Ready/Busy mode - filter by actual status
+        return matchesSearch && s.status === filter;
+      } else {
+        // Clocked In/Out mode
+        if (filter === 'clockedIn') {
+          return matchesSearch && (s.status === 'ready' || s.status === 'busy');
+        } else if (filter === 'clockedOut') {
+          return matchesSearch && s.status === 'off';
+        }
+        // Fallback for legacy filters
+        return matchesSearch && s.status === filter;
+      }
+    });
+  }, [staff, filter, searchQuery, organizeBy]);
+
+  // US-007: Group by status based on organizeBy setting
   const groupedStaff = useMemo(() => {
     const ready = filteredStaff.filter((s: any) => s.status === 'ready');
     const busy = filteredStaff.filter((s: any) => s.status === 'busy');
     const off = filteredStaff.filter((s: any) => s.status === 'off');
-    return { ready, busy, off };
+    // For clockedStatus mode
+    const clockedIn = filteredStaff.filter((s: any) => s.status === 'ready' || s.status === 'busy');
+    const clockedOut = filteredStaff.filter((s: any) => s.status === 'off');
+    return { ready, busy, off, clockedIn, clockedOut };
   }, [filteredStaff]);
 
   const handleFilterChange = (newFilter: typeof filter) => {
@@ -114,17 +144,26 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     setFilter(newFilter);
   };
 
-  // Get current count based on filter
-  const currentCount = filter === 'all' ? counts.all :
-                       filter === 'ready' ? counts.ready :
-                       filter === 'busy' ? counts.busy : counts.off;
+  // US-007: Get current count based on filter and organizeBy mode
+  const currentCount = useMemo(() => {
+    if (filter === 'all') return counts.all;
+    if (organizeBy === 'busyStatus') {
+      if (filter === 'ready') return counts.ready;
+      if (filter === 'busy') return counts.busy;
+      return counts.off;
+    } else {
+      if (filter === 'clockedIn') return counts.clockedIn;
+      if (filter === 'clockedOut') return counts.clockedOut;
+      return counts.all;
+    }
+  }, [filter, organizeBy, counts]);
 
   return (
     <div className={`flex flex-col bg-white overflow-hidden ${className}`}>
-      {/* Row 1: Filter pills as tabs */}
+      {/* Row 1: Filter pills as tabs - US-007: Show different filters based on organizeBy */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
-        <div className="grid grid-cols-4 gap-1">
-          {/* All filter */}
+        <div className="grid grid-cols-3 gap-1">
+          {/* All filter - always shown */}
           <button
             onClick={() => handleFilterChange('all')}
             className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
@@ -142,56 +181,79 @@ export const MobileTeamSection = memo(function MobileTeamSection({
             </span>
           </button>
 
-          {/* Ready filter */}
-          <button
-            onClick={() => handleFilterChange('ready')}
-            className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              filter === 'ready'
-                ? 'bg-emerald-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="truncate">Ready</span>
-            <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === 'ready' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {counts.ready}
-            </span>
-          </button>
+          {organizeBy === 'busyStatus' ? (
+            <>
+              {/* Ready filter - busyStatus mode */}
+              <button
+                onClick={() => handleFilterChange('ready')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'ready'
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">Ready</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'ready' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.ready}
+                </span>
+              </button>
 
-          {/* Busy filter */}
-          <button
-            onClick={() => handleFilterChange('busy')}
-            className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              filter === 'busy'
-                ? 'bg-rose-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="truncate">Busy</span>
-            <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === 'busy' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {counts.busy}
-            </span>
-          </button>
+              {/* Busy filter - busyStatus mode */}
+              <button
+                onClick={() => handleFilterChange('busy')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'busy'
+                    ? 'bg-rose-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">Busy</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'busy' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.busy}
+                </span>
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Clocked In filter - clockedStatus mode */}
+              <button
+                onClick={() => handleFilterChange('clockedIn')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'clockedIn'
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">In</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'clockedIn' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.clockedIn}
+                </span>
+              </button>
 
-          {/* Off filter */}
-          <button
-            onClick={() => handleFilterChange('off')}
-            className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              filter === 'off'
-                ? 'bg-gray-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="truncate">Off</span>
-            <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === 'off' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {counts.off}
-            </span>
-          </button>
+              {/* Clocked Out filter - clockedStatus mode */}
+              <button
+                onClick={() => handleFilterChange('clockedOut')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'clockedOut'
+                    ? 'bg-gray-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">Out</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'clockedOut' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.clockedOut}
+                </span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -246,6 +308,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
       </div>
 
       {/* Staff content - Grid of vertical staff cards */}
+      {/* US-007: Render staff card with displayConfig from FrontDeskSettings */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-3 bg-white">
         {filteredStaff.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500">
@@ -253,76 +316,152 @@ export const MobileTeamSection = memo(function MobileTeamSection({
             <p className="text-sm">No team members found</p>
           </div>
         ) : filter === 'all' ? (
-          // Grouped view when "All" is selected
+          // Grouped view when "All" is selected - US-007: Show groups based on organizeBy
           <div className="space-y-5">
-            {/* Ready section */}
-            {groupedStaff.ready.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Ready ({groupedStaff.ready.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {groupedStaff.ready.map((s: any) => (
-                    <StaffCardVertical
-                      key={s.id}
-                      staff={convertToStaffMember(s)}
-                      viewMode={viewMode}
-                      onClick={() => haptics.selection()}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {organizeBy === 'busyStatus' ? (
+              <>
+                {/* Ready section - busyStatus mode */}
+                {groupedStaff.ready.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Ready ({groupedStaff.ready.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.ready.map((s: any) => (
+                        <StaffCardVertical
+                          key={s.id}
+                          staff={convertToStaffMember(s)}
+                          viewMode={viewMode}
+                          onClick={() => haptics.selection()}
+                          displayConfig={{
+                            showName: true,
+                            showQueueNumber: true,
+                            showAvatar: true,
+                            showTurnCount: settings?.showTurnCount ?? true,
+                            showStatus: true,
+                            showClockedInTime: true,
+                            showNextAppointment: settings?.showNextAppointment ?? true,
+                            showSalesAmount: settings?.showServicedAmount ?? true,
+                            showTickets: settings?.showTicketCount ?? true,
+                            showLastService: settings?.showLastDone ?? true,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Busy section */}
-            {groupedStaff.busy.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Busy ({groupedStaff.busy.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {groupedStaff.busy.map((s: any) => (
-                    <StaffCardVertical
-                      key={s.id}
-                      staff={convertToStaffMember(s)}
-                      viewMode={viewMode}
-                      onClick={() => haptics.selection()}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+                {/* Busy section - busyStatus mode */}
+                {groupedStaff.busy.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-rose-500" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Busy ({groupedStaff.busy.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.busy.map((s: any) => (
+                        <StaffCardVertical
+                          key={s.id}
+                          staff={convertToStaffMember(s)}
+                          viewMode={viewMode}
+                          onClick={() => haptics.selection()}
+                          displayConfig={{
+                            showName: true,
+                            showQueueNumber: true,
+                            showAvatar: true,
+                            showTurnCount: settings?.showTurnCount ?? true,
+                            showStatus: true,
+                            showClockedInTime: true,
+                            showNextAppointment: settings?.showNextAppointment ?? true,
+                            showSalesAmount: settings?.showServicedAmount ?? true,
+                            showTickets: settings?.showTicketCount ?? true,
+                            showLastService: settings?.showLastDone ?? true,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Clocked In section - clockedStatus mode */}
+                {groupedStaff.clockedIn.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Clocked In ({groupedStaff.clockedIn.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.clockedIn.map((s: any) => (
+                        <StaffCardVertical
+                          key={s.id}
+                          staff={convertToStaffMember(s)}
+                          viewMode={viewMode}
+                          onClick={() => haptics.selection()}
+                          displayConfig={{
+                            showName: true,
+                            showQueueNumber: true,
+                            showAvatar: true,
+                            showTurnCount: settings?.showTurnCount ?? true,
+                            showStatus: true,
+                            showClockedInTime: true,
+                            showNextAppointment: settings?.showNextAppointment ?? true,
+                            showSalesAmount: settings?.showServicedAmount ?? true,
+                            showTickets: settings?.showTicketCount ?? true,
+                            showLastService: settings?.showLastDone ?? true,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Off section */}
-            {groupedStaff.off.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Off ({groupedStaff.off.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {groupedStaff.off.map((s: any) => (
-                    <StaffCardVertical
-                      key={s.id}
-                      staff={convertToStaffMember(s)}
-                      viewMode={viewMode}
-                      onClick={() => haptics.selection()}
-                    />
-                  ))}
-                </div>
-              </div>
+                {/* Clocked Out section - clockedStatus mode */}
+                {groupedStaff.clockedOut.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Clocked Out ({groupedStaff.clockedOut.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.clockedOut.map((s: any) => (
+                        <StaffCardVertical
+                          key={s.id}
+                          staff={convertToStaffMember(s)}
+                          viewMode={viewMode}
+                          onClick={() => haptics.selection()}
+                          displayConfig={{
+                            showName: true,
+                            showQueueNumber: true,
+                            showAvatar: true,
+                            showTurnCount: settings?.showTurnCount ?? true,
+                            showStatus: true,
+                            showClockedInTime: true,
+                            showNextAppointment: settings?.showNextAppointment ?? true,
+                            showSalesAmount: settings?.showServicedAmount ?? true,
+                            showTickets: settings?.showTicketCount ?? true,
+                            showLastService: settings?.showLastDone ?? true,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
-          // Grid view for filtered results
+          // Grid view for filtered results - US-007: Apply displayConfig from settings
           <div className="grid grid-cols-2 gap-3">
             {filteredStaff.map((s: any) => (
               <StaffCardVertical
@@ -330,6 +469,18 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                 staff={convertToStaffMember(s)}
                 viewMode={viewMode}
                 onClick={() => haptics.selection()}
+                displayConfig={{
+                  showName: true,
+                  showQueueNumber: true,
+                  showAvatar: true,
+                  showTurnCount: settings?.showTurnCount ?? true,
+                  showStatus: true,
+                  showClockedInTime: true,
+                  showNextAppointment: settings?.showNextAppointment ?? true,
+                  showSalesAmount: settings?.showServicedAmount ?? true,
+                  showTickets: settings?.showTicketCount ?? true,
+                  showLastService: settings?.showLastDone ?? true,
+                }}
               />
             ))}
           </div>
