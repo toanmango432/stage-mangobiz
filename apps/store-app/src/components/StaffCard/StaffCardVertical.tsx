@@ -4,7 +4,14 @@
  */
 
 import React, { useMemo } from 'react';
-import { MoreVertical, Camera } from 'lucide-react';
+import { MoreVertical, Camera, Plus, StickyNote, UserCog, CreditCard } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   SPECIALTY_COLORS,
   STATUS_COLORS,
@@ -73,6 +80,11 @@ export interface StaffCardVerticalProps {
   displayConfig?: DisplayConfig;
   onClick?: () => void;
   onTicketClick?: (ticketId: number) => void;
+  // More Options menu action callbacks
+  onAddTicket?: (staffId: number) => void;
+  onAddNote?: (staffId: number) => void;
+  onEditTeam?: (staffId: number) => void;
+  onQuickCheckout?: (staffId: number, ticketId?: number) => void;
 }
 
 // ============================================================================
@@ -88,6 +100,10 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
     displayConfig,
     onClick,
     onTicketClick,
+    onAddTicket,
+    onAddNote,
+    onEditTeam,
+    onQuickCheckout,
   }) => {
     // ========================================
     // Hooks & Memoized Values
@@ -221,18 +237,71 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
             )}
 
             {/* More Options Button - Relocated to Top Right */}
-            {!layout.isUltra && (
+            {!layout.isUltra && config.showMoreOptionsButton && (
               <div className="absolute top-2 right-2 z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  className="p-1.5 rounded-full hover:bg-black/5 text-gray-400 hover:text-gray-600 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle menu click
-                  }}
-                >
-                  <MoreVertical size={16} />
-                </button>
-              </div>)}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-1.5 rounded-full hover:bg-black/5 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="More options"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={5}>
+                    {config.showAddTicketAction && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddTicket?.(staff.id);
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Ticket
+                      </DropdownMenuItem>
+                    )}
+                    {config.showAddNoteAction && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddNote?.(staff.id);
+                        }}
+                      >
+                        <StickyNote className="mr-2 h-4 w-4" />
+                        Add Note
+                      </DropdownMenuItem>
+                    )}
+                    {(config.showAddTicketAction || config.showAddNoteAction) &&
+                      (config.showEditTeamAction || config.showQuickCheckoutAction) && (
+                        <DropdownMenuSeparator />
+                      )}
+                    {config.showEditTeamAction && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditTeam?.(staff.id);
+                        }}
+                      >
+                        <UserCog className="mr-2 h-4 w-4" />
+                        Edit Team Member
+                      </DropdownMenuItem>
+                    )}
+                    {config.showQuickCheckoutAction && isBusy && activeTicket && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onQuickCheckout?.(staff.id, activeTicket.id);
+                        }}
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Quick Checkout
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
 
             {/* Avatar or Add Photo */}
             {config.showAvatar && (
