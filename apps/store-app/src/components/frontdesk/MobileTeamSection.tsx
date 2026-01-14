@@ -14,7 +14,7 @@ import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
 import { StaffCardVertical, type StaffMember, type ViewMode } from '../StaffCard/index';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
+import { selectFrontDeskSettings, selectAllStaffNotes, setStaffNote } from '@/store/slices/frontDeskSettingsSlice';
 import { setSelectedMember } from '@/store/slices/teamSlice';
 import { clockIn, clockOut } from '@/store/slices/timesheetSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
@@ -40,7 +40,8 @@ const mapSpecialty = (specialty?: string): 'neutral' | 'nails' | 'hair' | 'massa
 };
 
 // Convert UIStaff to StaffMember format for StaffCardVertical
-const convertToStaffMember = (staff: any): StaffMember => {
+// US-015: Added staffNotes param to check if staff has a note
+const convertToStaffMember = (staff: any, staffNotes: Record<string, string> = {}): StaffMember => {
   const staffId = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 1 : staff.id;
 
   // Convert activeTickets format
@@ -51,6 +52,9 @@ const convertToStaffMember = (staff: any): StaffMember => {
     serviceName: t.serviceName,
     status: t.status === 'in-service' ? 'in-service' : 'pending',
   })) || undefined;
+
+  // US-015: Check if staff has a note (check both string ID and original ID)
+  const hasNote = !!(staffNotes[String(staffId)] || staffNotes[String(staff.id)]);
 
   return {
     id: staffId,
@@ -66,6 +70,7 @@ const convertToStaffMember = (staff: any): StaffMember => {
     lastServiceTime: staff.lastServiceTime,
     nextAppointmentTime: staff.nextAppointmentTime,
     activeTickets,
+    hasNote,
   };
 };
 
@@ -76,6 +81,9 @@ export const MobileTeamSection = memo(function MobileTeamSection({
 
   // US-007: Read FrontDeskSettings from Redux
   const settings = useAppSelector(selectFrontDeskSettings);
+
+  // US-015: Get staff notes from Redux for persistence
+  const staffNotes = useAppSelector(selectAllStaffNotes);
 
   // US-011: Get dispatch for Edit Team Member action
   const dispatch = useAppDispatch();
@@ -200,11 +208,10 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     }
   }, [staff]);
 
-  // US-011: Handle saving staff note
+  // US-015: Handle saving staff note - dispatch Redux action for persistence
   const handleSaveStaffNote = useCallback((staffId: number, note: string) => {
-    // TODO: Integrate with staff notes storage/API
-    console.log(`Staff note saved for ${staffId}:`, note);
-  }, []);
+    dispatch(setStaffNote({ staffId: String(staffId), note }));
+  }, [dispatch]);
 
   // US-011: Handle Edit Team Member action from action sheet
   const handleEditTeam = useCallback((staffId: number) => {
@@ -494,7 +501,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {groupedStaff.ready.map((s: any) => {
-                        const staffMember = convertToStaffMember(s);
+                        const staffMember = convertToStaffMember(s, staffNotes);
                         return (
                           <StaffCardVertical
                             key={s.id}
@@ -541,7 +548,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {groupedStaff.busy.map((s: any) => {
-                        const staffMember = convertToStaffMember(s);
+                        const staffMember = convertToStaffMember(s, staffNotes);
                         return (
                           <StaffCardVertical
                             key={s.id}
@@ -588,7 +595,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {groupedStaff.off.map((s: any) => {
-                        const staffMember = convertToStaffMember(s);
+                        const staffMember = convertToStaffMember(s, staffNotes);
                         return (
                           <StaffCardVertical
                             key={s.id}
@@ -637,7 +644,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {groupedStaff.clockedIn.map((s: any) => {
-                        const staffMember = convertToStaffMember(s);
+                        const staffMember = convertToStaffMember(s, staffNotes);
                         return (
                           <StaffCardVertical
                             key={s.id}
@@ -684,7 +691,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {groupedStaff.clockedOut.map((s: any) => {
-                        const staffMember = convertToStaffMember(s);
+                        const staffMember = convertToStaffMember(s, staffNotes);
                         return (
                           <StaffCardVertical
                             key={s.id}
@@ -726,7 +733,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
           // Grid view for filtered results - US-007: Apply displayConfig from settings
           <div className="grid grid-cols-2 gap-3">
             {filteredStaff.map((s: any) => {
-              const staffMember = convertToStaffMember(s);
+              const staffMember = convertToStaffMember(s, staffNotes);
               return (
                 <StaffCardVertical
                   key={s.id}
@@ -789,7 +796,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
         />
       )}
 
-      {/* US-011: Add Staff Note Modal */}
+      {/* US-015: Add Staff Note Modal with Redux persistence */}
       {selectedStaffForNote && (
         <AddStaffNoteModal
           isOpen={showStaffNoteModal}
@@ -799,6 +806,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
           }}
           staffName={selectedStaffForNote.name}
           staffId={selectedStaffForNote.id}
+          currentNote={staffNotes[String(selectedStaffForNote.id)] || ''}
           onSave={handleSaveStaffNote}
         />
       )}

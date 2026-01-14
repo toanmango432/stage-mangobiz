@@ -70,6 +70,8 @@ export interface StaffMember {
   nextAppointmentTime?: string;
   activeTickets?: ActiveTicket[];
   currentTicketInfo?: CurrentTicketInfo;
+  /** US-015: Indicates if staff member has a note attached */
+  hasNote?: boolean;
 }
 
 export interface StaffCardVerticalProps {
@@ -237,6 +239,26 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                   }}
                 >
                   {staff.count}
+                </div>
+              </div>
+            )}
+
+            {/* US-015: Note Indicator Badge - shows when staff has a note attached */}
+            {staff.hasNote && !layout.isUltra && (
+              <div className={`absolute ${layout.isCompact ? 'top-5 right-10' : 'top-5 right-10'} z-30`}>
+                <div
+                  className="flex items-center justify-center backdrop-blur-md transition-all duration-300"
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(251, 191, 36, 0.9)', // amber-400
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                  }}
+                  title="Has note"
+                >
+                  <StickyNote size={12} className="text-amber-900" />
                 </div>
               </div>
             )}
