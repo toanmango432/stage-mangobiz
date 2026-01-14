@@ -320,12 +320,6 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     };
   }, []);
   const customWidthPopupRef = useRef<HTMLDivElement>(null);
-  // Save the original width before previewing
-  const _saveOriginalWidth = () => {
-    setOriginalWidth(sidebarWidth);
-    setOriginalWidthType(widthType);
-    setOriginalWidthPercentage(widthPercentage);
-  };
   // Restore the original width when cancelling
   const restoreOriginalWidth = () => {
     setSidebarWidth(originalWidth);
@@ -340,10 +334,6 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       // Save the selection to localStorage
       localStorage.setItem('staffSidebarViewMode', newViewMode);
     }
-  };
-  // Handle reset staff status
-  const _handleResetClick = () => {
-    setShowResetConfirmation(true);
   };
   const handleConfirmReset = () => {
     resetStaffStatus();
@@ -632,61 +622,6 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
     return viewMode;
   };
-  // Calculate display priority tiers based on available width
-  const _getDisplayPriorityTiers = () => {
-    // Base tier settings - now using team settings
-    const tier1 = true; // Always show: Staff Name, Queue Order, Avatar
-    let tier2 = teamSettings.showTurnCount; // Turn Count
-    let tier3 = true; // Status is always shown
-    let tier4 = false; // Clocked In Time
-    let tier5 = teamSettings.showNextAppointment; // Next Appointment
-    let tier6 = teamSettings.showServicedAmount; // Service Amount
-    let tier7 = teamSettings.showTicketCount; // Tickets
-    let tier8 = teamSettings.showLastDone; // Last Done Time
-    // Determine which tiers to display based on width and view mode
-    const cardMode = getCardViewMode();
-    if (cardMode === 'ultra-compact') {
-      // Ultra compact shows only tier 1 and selected options
-      return {
-        tier1,
-        tier2,
-        tier3,
-        tier4: false,
-        tier5: false,
-        tier6: false,
-        tier7: false,
-        tier8: false
-      };
-    }
-    if (cardMode === 'compact') {
-      if (sidebarWidth >= 260) {
-        tier4 = true; // Show Clocked In Time
-      }
-      // Adjust based on width, but respect user settings
-      if (sidebarWidth < 220) tier7 = false; // Hide Tickets if narrow
-      if (sidebarWidth < 240) tier8 = false; // Hide Last Done if narrow
-      if (sidebarWidth < 200) tier5 = false; // Hide Next Appointment if very narrow
-    } else {
-      // Normal mode
-      tier4 = true; // Always show Clocked In Time in normal mode
-      // Adjust based on width, but respect user settings
-      if (sidebarWidth < 180) {
-        tier7 = false; // Hide Tickets if narrow
-        tier8 = false; // Hide Last Done if narrow
-      }
-      if (sidebarWidth < 220) tier8 = false; // Hide Last Done if somewhat narrow
-    }
-    return {
-      tier1,
-      tier2,
-      tier3,
-      tier4,
-      tier5,
-      tier6,
-      tier7,
-      tier8
-    };
-  };
   // Updated staff status to include both organization structures
   const staffStatus = [
     // For Busy/Ready organization
@@ -973,10 +908,6 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       </div>;
     }
   };
-  // Suppress unused variable warnings
-  void _saveOriginalWidth;
-  void _handleResetClick;
-  void _getDisplayPriorityTiers;
 
   // US-002: Helper to find staff's in-service ticket and calculate progress
   // Returns real ticket data from Redux serviceTickets selector
