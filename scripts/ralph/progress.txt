@@ -11,15 +11,46 @@ Purpose: Fix critical issues from previous Ralph run (mock data, unused selector
 
 ## Pre-Run Notes
 
-**Issues to fix from previous run (ralph/frontdesk-update):**
-1. Mock data in production code (StaffSidebar lines 791-813)
-2. Redux selectors imported but never used
-3. Modal callbacks not implemented
-4. Unused variables suppressed with void statements
-5. Type safety violations (as any casts)
-6. Large file (902 lines) needs splitting
+**Scope Expanded to 24 Stories** (2026-01-14)
+
+After thorough post-mortem analysis of the previous ralph/frontdesk-update run, identified 24 total issues requiring fixes. Stories organized into 6 phases:
+
+### Phase 1: Critical Fixes (US-001 to US-004)
+- Remove mock data ("Test Client", fake timestamps)
+- Wire Redux selectors to staff cards (serviceTickets, appointments, completedTickets)
+
+### Phase 2: Code Cleanup (US-005 to US-008)
+- Remove void suppressed unused variables
+- Implement modal/callback handlers
+- Replace ~15 `as any` type casts
+
+### Phase 3: Architecture (US-009 to US-012)
+- Split StaffSidebar (902 lines → <300 lines)
+- Wire MobileStaffActionSheet
+- Add integration tests
+- Fix mobile responsiveness
+
+### Phase 4: Production Safety (US-013 to US-016)
+- Fix dynamic Tailwind class purging (CRITICAL)
+- Migrate localStorage to Redux (150+ lines)
+- Implement staff note persistence
+- Clarify data source documentation
+
+### Phase 5: Data Consistency (US-017 to US-019)
+- Consolidate teamSettings with FrontDeskSettings
+- Add staff note edit functionality
+- Consolidate modal state with useModalStack hook
+
+### Phase 6: Type Safety & Cleanup (US-020 to US-024)
+- Fix window event type safety
+- Extract getStaffTicketInfo to hook
+- Remove unused determineStaffStatus
+- Split WaitListSection (1658 lines → <300)
+- Split ServiceSection (1395 lines → <300)
 
 **Quality checklist added to prompt.md - follow it for EVERY story.**
+
+**Estimated iterations:** 30-40 for 24 stories
 
 <!-- Ralph appends entries below -->
 

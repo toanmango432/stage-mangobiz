@@ -1,7 +1,7 @@
 {
   "project": "Mango POS Offline V2",
   "branchName": "ralph/frontdesk-fixes",
-  "description": "Fix critical issues from previous Ralph run and improve Front Desk module quality. Addresses mock data, unused selectors, incomplete modal handlers, and code organization.",
+  "description": "Complete Front Desk module fix - addresses ALL 24 issues found in post-mortem analysis including mock data, unused selectors, incomplete handlers, type safety, and large file splits.",
   "userStories": [
     {
       "id": "US-001",
@@ -17,7 +17,7 @@
       ],
       "priority": 1,
       "passes": false,
-      "notes": "File: apps/store-app/src/components/frontdesk/StaffSidebar.tsx. This is the most critical fix - mock data was shipped in production code."
+      "notes": "File: apps/store-app/src/components/frontdesk/StaffSidebar.tsx. CRITICAL - mock data was shipped in production code."
     },
     {
       "id": "US-002",
@@ -85,19 +85,21 @@
     },
     {
       "id": "US-006",
-      "title": "Implement AddStaffNoteModal onConfirm handler",
-      "description": "As a user, I want to add notes to staff members so I can track important information.",
+      "title": "Implement AddStaffNoteModal onConfirm handler with edit support",
+      "description": "As a user, I want to add and edit notes to staff members so I can track important information.",
       "acceptanceCriteria": [
         "AddStaffNoteModal onConfirm must dispatch Redux action to save note",
         "Create or use existing staff note action in staffSlice",
         "Close modal and reset selectedStaffForNote after save",
+        "Load existing staff notes from Redux when opening modal",
+        "Display edit mode if note already exists",
         "Show success feedback (toast or visual confirmation)",
         "Verify in browser: open modal → add note → confirm → note is saved",
         "pnpm run typecheck passes"
       ],
       "priority": 6,
       "passes": false,
-      "notes": "Modal exists but onConfirm callback doesn't dispatch any Redux action."
+      "notes": "Modal exists but onConfirm callback doesn't dispatch any Redux action. Also support editing existing notes."
     },
     {
       "id": "US-007",
@@ -125,6 +127,8 @@
         "Replace staff.find((s: any) => ...) with typed staff array",
         "Create StaffWithTicketInfo interface extending base Staff type",
         "Use typeof checks for string/number staff ID handling",
+        "Replace (viewMode as any) on line 548 with type guard",
+        "Replace (modifiedStaffMember as any) on lines 1191, 1249",
         "No as any casts without documented reason in comment",
         "pnpm run typecheck passes with strict mode"
       ],
@@ -141,6 +145,7 @@
         "Extract StaffCardGrid component (~150 lines) for card rendering",
         "Extract StaffSidebarHeader component (~100 lines) for controls",
         "Extract useStaffFiltering hook for filter logic",
+        "Extract getStaffTicketInfo logic to useStaffTicketInfo hook",
         "Main StaffSidebar.tsx should be under 300 lines",
         "All imports/exports work correctly",
         "Verify in browser: Front Desk page renders correctly after split",
@@ -148,7 +153,7 @@
       ],
       "priority": 9,
       "passes": false,
-      "notes": "Current file is 902 lines. Target is <300 lines per file. Follow module structure in codebase-patterns.md."
+      "notes": "Current file is 902+ lines. Target is <300 lines per file. Follow module structure in codebase-patterns.md."
     },
     {
       "id": "US-010",
@@ -197,6 +202,197 @@
       "priority": 12,
       "passes": false,
       "notes": "Mobile view should use Sheet with side='bottom' for action menus."
+    },
+    {
+      "id": "US-013",
+      "title": "Fix dynamic Tailwind class generation",
+      "description": "As a developer, I want CSS to work in production so staff cards render correctly.",
+      "acceptanceCriteria": [
+        "Replace getGridClass function (lines 512-573) with CSS Grid auto-fit/minmax",
+        "Use static Tailwind classes instead of dynamic string concatenation",
+        "All view modes (normal, compact, ultra-compact) work correctly",
+        "Run production build: pnpm run build",
+        "Verify CSS is not purged by checking staff card grid renders",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "CRITICAL: Dynamic class names like grid-cols-${n} are purged by Tailwind. Use CSS Grid auto-fit instead."
+    },
+    {
+      "id": "US-014",
+      "title": "Migrate localStorage state to Redux",
+      "description": "As a user, I want my settings to sync across devices.",
+      "acceptanceCriteria": [
+        "Move viewMode state to FrontDeskSettings Redux slice",
+        "Move sidebarWidth to viewState or FrontDeskSettings slice",
+        "Remove all localStorage.getItem/setItem calls from StaffSidebar",
+        "Settings persist after page reload (via Redux persist)",
+        "Verify in browser: change settings → refresh → settings retained",
+        "Remove 150+ lines of localStorage logic",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Lines 86-230 have extensive localStorage usage. Should use Redux per CLAUDE.md architecture."
+    },
+    {
+      "id": "US-015",
+      "title": "Implement staff note persistence in MobileTeamSection",
+      "description": "As a mobile user, I want notes I add to persist.",
+      "acceptanceCriteria": [
+        "Notes dispatch Redux action to save (not just local state)",
+        "Load existing notes when staff selected",
+        "Show note count indicator on staff cards with notes",
+        "Verify in browser (mobile): add note → refresh → note still exists",
+        "Remove TODO comment on line 205",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "MobileTeamSection.tsx line 205 has TODO: 'Integrate with staff notes storage/API'"
+    },
+    {
+      "id": "US-016",
+      "title": "Clarify staff data source (Redux vs useTickets)",
+      "description": "As a developer, I want clear data source documentation.",
+      "acceptanceCriteria": [
+        "Document which selectors are authoritative for staff list",
+        "Either use Redux selectors OR useTickets hook, not both",
+        "Add JSDoc comments explaining data flow",
+        "Remove redundant data fetching",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Line 70 imports Redux selectors but also uses useTickets() hook - confusing."
+    },
+    {
+      "id": "US-017",
+      "title": "Consolidate teamSettings with FrontDeskSettings Redux slice",
+      "description": "As a developer, I want single source of truth for settings.",
+      "acceptanceCriteria": [
+        "Remove local teamSettings state (lines 94-100)",
+        "Use FrontDeskSettings slice for all team section settings",
+        "TeamSettingsPanel updates Redux, not localStorage",
+        "Settings changes reflect immediately across components",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Two sources of truth: local teamSettings AND Redux FrontDeskSettings."
+    },
+    {
+      "id": "US-018",
+      "title": "Add staff note edit functionality",
+      "description": "As a user, I want to edit existing staff notes.",
+      "acceptanceCriteria": [
+        "Load existing note when opening AddStaffNoteModal",
+        "Pass currentNote prop to modal",
+        "Show 'Edit Note' title when editing, 'Add Note' when creating",
+        "Pre-fill textarea with existing note content",
+        "Verify in browser: click existing note → edit → save → updated",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "AddStaffNoteModal has currentNote prop but it's never passed."
+    },
+    {
+      "id": "US-019",
+      "title": "Consolidate modal state with useModalStack hook",
+      "description": "As a developer, I want simpler modal state management.",
+      "acceptanceCriteria": [
+        "Create useModalStack hook for managing multiple modals",
+        "Replace 4 separate state pairs (lines 102-129)",
+        "Single hook manages all modal visibility and selected items",
+        "Modals still work correctly after refactor",
+        "Easier to test modal interactions",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "4 modal state pairs: showTurnTracker, showStaffNoteModal, showStaffDetails, showTeamSettings"
+    },
+    {
+      "id": "US-020",
+      "title": "Fix window event type safety",
+      "description": "As a developer, I want type-safe event listeners.",
+      "acceptanceCriteria": [
+        "Replace (window as any) on lines 131, 133",
+        "Create typed CustomEvent interface for 'open-turn-tracker'",
+        "Use proper event listener typing",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Part of type safety cleanup but separate from US-008 for focused change."
+    },
+    {
+      "id": "US-021",
+      "title": "Extract getStaffTicketInfo to useStaffTicketInfo hook",
+      "description": "As a developer, I want reusable ticket info logic.",
+      "acceptanceCriteria": [
+        "Create useStaffTicketInfo.ts hook",
+        "Move 60+ lines of logic from lines 982-1040",
+        "Hook returns { getStaffTicketInfo } function",
+        "Main component imports and uses hook",
+        "Logic is testable in isolation",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Complex inline logic should be extracted per codebase patterns."
+    },
+    {
+      "id": "US-022",
+      "title": "Remove unused determineStaffStatus export",
+      "description": "As a developer, I want clean code without dead exports.",
+      "acceptanceCriteria": [
+        "Search codebase for any usages of determineStaffStatus first",
+        "If used elsewhere, keep but fix typing (remove as any)",
+        "If unused, delete completely from line 37",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "Exported function with (status: any) typing, appears unused."
+    },
+    {
+      "id": "US-023",
+      "title": "Split WaitListSection into module structure",
+      "description": "As a developer, I want maintainable file sizes.",
+      "acceptanceCriteria": [
+        "Create WaitListSection/ directory",
+        "Extract WaitListCard component",
+        "Extract useWaitListFiltering hook",
+        "Extract types to types.ts",
+        "Main file under 300 lines",
+        "All functionality preserved",
+        "Verify in browser: wait list renders correctly after split",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Current: 1658 lines. Far exceeds 500-line guideline."
+    },
+    {
+      "id": "US-024",
+      "title": "Split ServiceSection into module structure",
+      "description": "As a developer, I want maintainable file sizes.",
+      "acceptanceCriteria": [
+        "Create ServiceSection/ directory",
+        "Extract ServiceCard component",
+        "Extract useServiceFiltering hook",
+        "Extract types to types.ts",
+        "Main file under 300 lines",
+        "All functionality preserved",
+        "Verify in browser: service section renders correctly after split",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "Current: 1395 lines. Far exceeds 500-line guideline."
     }
   ]
 }
