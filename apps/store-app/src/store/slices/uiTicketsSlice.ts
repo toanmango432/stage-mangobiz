@@ -1276,6 +1276,17 @@ const uiTicketsSlice = createSlice({
     setWaitlistOrder: (state, action: PayloadAction<UITicket[]>) => {
       state.waitlist = action.payload;
     },
+    // Remove a pending ticket (e.g., client left, cancelled)
+    removePendingTicket: (state, action: PayloadAction<{ ticketId: string; reason: string; notes?: string }>) => {
+      const { ticketId } = action.payload;
+      const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+      if (ticketIndex !== -1) {
+        state.pendingTickets.splice(ticketIndex, 1);
+        // Note: In a production implementation, we would also log this removal
+        // to an audit trail via a thunk that persists to the database
+        console.log(`Pending ticket ${ticketId} removed. Reason: ${action.payload.reason}${action.payload.notes ? `, Notes: ${action.payload.notes}` : ''}`);
+      }
+    },
     // Real-time update from Socket.io
     ticketUpdated: (state, action: PayloadAction<UITicket>) => {
       const ticket = action.payload;
@@ -1516,7 +1527,7 @@ const uiTicketsSlice = createSlice({
   },
 });
 
-export const { clearError, ticketUpdated, setPendingTickets, reorderWaitlist, setWaitlistOrder } = uiTicketsSlice.actions;
+export const { clearError, ticketUpdated, setPendingTickets, reorderWaitlist, setWaitlistOrder, removePendingTicket } = uiTicketsSlice.actions;
 
 // Selectors
 export const selectWaitlist = (state: RootState) => state.uiTickets.waitlist;

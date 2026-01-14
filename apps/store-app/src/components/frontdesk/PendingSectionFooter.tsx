@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { Receipt, ChevronUp, ChevronDown, Maximize2, X, Grid, List, DollarSign, CreditCard } from 'lucide-react';
-import { useAppSelector } from '../../store/hooks';
-import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { selectPendingTickets, removePendingTicket } from '../../store/slices/uiTicketsSlice';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import { selectFrontDeskSettings } from '../../store/slices/frontDeskSettingsSlice';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
 import { EditTicketModal } from '../tickets/EditTicketModal';
 import { TicketDetailsModal } from '../tickets/TicketDetailsModal';
+import { RemoveFromPendingModal, type RemoveReason } from '../tickets/RemoveFromPendingModal';
 import { Pending } from '../modules/Pending';
 import TicketPanel from '../checkout/TicketPanel';
 import type { StaffMember } from '../checkout/ServiceList';
@@ -67,6 +68,8 @@ type ViewMode = 'collapsed' | 'expanded' | 'fullView';
 type DisplayMode = 'grid' | 'list';
 
 export const PendingSectionFooter = memo(function PendingSectionFooter() {
+  const dispatch = useAppDispatch();
+
   // PERFORMANCE: Use direct Redux selector instead of useTickets() to avoid
   // unnecessary re-renders when staff data changes
   const pendingTickets = useAppSelector(selectPendingTickets);
@@ -162,6 +165,22 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const [ticketToEdit, setTicketToEdit] = useState<number | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [ticketToView, setTicketToView] = useState<number | null>(null);
+
+  // Remove from Pending modal state
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [ticketToRemove, setTicketToRemove] = useState<{ id: string; number: number; clientName: string } | null>(null);
+
+  // Handle remove from pending
+  const handleRemoveTicket = (reason: RemoveReason, notes?: string) => {
+    if (!ticketToRemove) return;
+    dispatch(removePendingTicket({
+      ticketId: ticketToRemove.id,
+      reason,
+      notes,
+    }));
+    setShowRemoveModal(false);
+    setTicketToRemove(null);
+  };
 
   // Update CSS variable for pending section height so FrontDesk can adjust its padding
   useEffect(() => {
@@ -499,6 +518,13 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                     setTicketToView(parseInt(id));
                     setShowDetailsModal(true);
                   }}
+                  onRemove={(id) => {
+                    const t = pendingTickets.find(pt => pt.id === id);
+                    if (t) {
+                      setTicketToRemove({ id: t.id, number: t.number, clientName: t.clientName });
+                      setShowRemoveModal(true);
+                    }
+                  }}
                   onClick={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
@@ -531,6 +557,13 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                     setTicketToView(parseInt(id));
                     setShowDetailsModal(true);
                   }}
+                  onRemove={(id) => {
+                    const t = pendingTickets.find(pt => pt.id === id);
+                    if (t) {
+                      setTicketToRemove({ id: t.id, number: t.number, clientName: t.clientName });
+                      setShowRemoveModal(true);
+                    }
+                  }}
                   onClick={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
@@ -553,13 +586,20 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
           ]}
         />
 
-        {/* Edit and Details Modals */}
+        {/* Edit, Details, and Remove Modals */}
         <EditTicketModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} ticketId={ticketToEdit} />
         <TicketDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} ticketId={ticketToView} onEdit={(id) => {
           setShowDetailsModal(false);
           setTicketToEdit(id);
           setShowEditModal(true);
         }} />
+        <RemoveFromPendingModal
+          isOpen={showRemoveModal}
+          onClose={() => { setShowRemoveModal(false); setTicketToRemove(null); }}
+          onConfirm={handleRemoveTicket}
+          ticketNumber={ticketToRemove?.number}
+          clientName={ticketToRemove?.clientName}
+        />
       </div>
     );
   }

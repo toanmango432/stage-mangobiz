@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Clock, MoreVertical, Edit2, StickyNote } from 'lucide-react';
+import { DollarSign, Clock, MoreVertical, Edit2, StickyNote, Trash2 } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import {
@@ -62,6 +62,7 @@ interface PendingTicketCardProps {
   onMarkPaid: (id: string) => void;
   onEdit?: (ticketId: string) => void;
   onViewDetails?: (ticketId: string) => void;
+  onRemove?: (ticketId: string) => void;
   onClick?: (ticketId: string) => void;
 }
 
@@ -80,6 +81,7 @@ export function PendingTicketCard({
   onMarkPaid,
   onEdit,
   onViewDetails,
+  onRemove,
   onClick,
 }: PendingTicketCardProps) {
   const [showMenu, setShowMenu] = useState(false);
@@ -344,6 +346,10 @@ export function PendingTicketCard({
                     <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
                       <StickyNote size={11} /> Details
                     </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2">
+                      <Trash2 size={11} /> Remove
+                    </button>
                   </div>
                 }
                 visible={showMenu}
@@ -480,6 +486,10 @@ export function PendingTicketCard({
                     <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
                       <StickyNote size={12} /> Details
                     </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2">
+                      <Trash2 size={12} /> Remove
+                    </button>
                   </div>
                 }
                 visible={showMenu}
@@ -571,6 +581,10 @@ export function PendingTicketCard({
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
                   <StickyNote size={11} /> Details
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2">
+                  <Trash2 size={11} /> Remove
                 </button>
               </div>
             }
@@ -730,6 +744,10 @@ export function PendingTicketCard({
               </button>
               <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                 <StickyNote size={14} /> Details
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <button onClick={(e) => { e.stopPropagation(); onRemove?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
+                <Trash2 size={14} /> Remove
               </button>
             </div>
           }
