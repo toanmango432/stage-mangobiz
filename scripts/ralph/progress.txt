@@ -419,3 +419,22 @@ Commit: f56a1ef
   - Each view mode has its own style block that needs to be updated for consistency
   - Pre-existing typecheck errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx) are unrelated infrastructure issues
 ---
+
+## 2026-01-14 - US-019: Add wait time display to PendingTicketCard in collapsed footer
+Commit: 9cfe306
+- Added useState + useEffect for wait time state with 30-second interval updates
+- Imported calculateWaitingMinutes and formatWaitingTime from urgencyUtils.ts
+- Created getWaitTimeBadgeColors function for urgency-matched badge styling
+- Added wait time badge to all 4 view modes: compact, normal, grid-compact, grid-normal
+- Badge uses Clock icon from lucide-react with formatted time (e.g., '5m', '12m', '1h 5m')
+- Badge colors match urgency level: gray (normal), yellow (attention), orange (urgent), red (critical)
+- Wait time updates periodically to keep display current
+- Files changed:
+  - apps/store-app/src/components/tickets/PendingTicketCard.tsx
+- **Learnings for future iterations:**
+  - calculateWaitingMinutes(completedAt) returns number of minutes since service completed
+  - formatWaitingTime(minutes) formats as '5m', '15m', '1h 5m' etc.
+  - useEffect cleanup with clearInterval is important to prevent memory leaks
+  - Badge styling uses Tailwind classes (not inline styles) for consistent theming
+  - Wait time badge placed differently per view mode for optimal layout
+---

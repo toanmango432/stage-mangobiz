@@ -308,7 +308,7 @@
         "Verify in browser: Navigate to Pending footer, see wait time on each ticket card"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "PND-P0-003. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. completedAt field exists on tickets for calculating wait time."
     },
     {
