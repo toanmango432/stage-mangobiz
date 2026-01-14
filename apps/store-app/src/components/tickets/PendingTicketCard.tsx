@@ -1,10 +1,13 @@
-import { DollarSign } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { DollarSign, Clock } from 'lucide-react';
 import {
   UnpaidWatermark,
 } from './pending';
 import { PremiumTypography } from '../../constants/premiumDesignTokens';
 import {
   getUrgencyLevel,
+  calculateWaitingMinutes,
+  formatWaitingTime,
   type UrgencyLevel,
 } from '../../utils/urgencyUtils';
 
@@ -139,6 +142,27 @@ export function PendingTicketCard({
   // Calculate urgency level based on wait time
   const urgencyLevel = getUrgencyLevel(ticket.completedAt);
 
+  // Wait time state with periodic updates (every 30 seconds)
+  const [waitTimeDisplay, setWaitTimeDisplay] = useState(() => {
+    const minutes = calculateWaitingMinutes(ticket.completedAt);
+    return formatWaitingTime(minutes);
+  });
+
+  useEffect(() => {
+    // Update immediately
+    const updateWaitTime = () => {
+      const minutes = calculateWaitingMinutes(ticket.completedAt);
+      setWaitTimeDisplay(formatWaitingTime(minutes));
+    };
+
+    updateWaitTime();
+
+    // Update every 30 seconds
+    const intervalId = setInterval(updateWaitTime, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [ticket.completedAt]);
+
   // Urgency-based color scheme for paper design
   // These colors are designed to work with the paper/ticket aesthetic
   const getUrgencyColors = (level: UrgencyLevel) => {
@@ -183,6 +207,22 @@ export function PendingTicketCard({
   };
 
   const urgencyColors = getUrgencyColors(urgencyLevel);
+
+  // Wait time badge colors based on urgency level
+  const getWaitTimeBadgeColors = (level: UrgencyLevel) => {
+    switch (level) {
+      case 'attention':
+        return { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-400' };
+      case 'urgent':
+        return { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-400' };
+      case 'critical':
+        return { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-400' };
+      default:
+        return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' };
+    }
+  };
+
+  const waitBadgeColors = getWaitTimeBadgeColors(urgencyLevel);
 
   // ====================
   // COMPACT LIST VIEW
@@ -244,6 +284,11 @@ export function PendingTicketCard({
             </div>
 
             <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Wait time badge */}
+              <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[9px] font-semibold ${waitBadgeColors.bg} ${waitBadgeColors.text} ${waitBadgeColors.border}`}>
+                <Clock size={9} />
+                <span>{waitTimeDisplay}</span>
+              </div>
               <span className="font-bold whitespace-nowrap text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono, fontSize: 'clamp(11px, 1.5vw, 13px)' }}>${total.toFixed(2)}</span>
             </div>
           </div>
@@ -349,7 +394,12 @@ export function PendingTicketCard({
               </div>
               <div className="text-[#8b7968] font-medium tracking-wide leading-tight text-xs">{getLastVisitText()}</div>
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
+            <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+              {/* Wait time badge */}
+              <div className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold ${waitBadgeColors.bg} ${waitBadgeColors.text} ${waitBadgeColors.border}`}>
+                <Clock size={10} />
+                <span>{waitTimeDisplay}</span>
+              </div>
               <span className="font-bold whitespace-nowrap text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono, fontSize: 'clamp(14px, 1.75vw, 16px)' }}>${total.toFixed(2)}</span>
             </div>
           </div>
@@ -468,8 +518,13 @@ export function PendingTicketCard({
         {/* Divider */}
         <div className="mx-2 mb-1.5 border-t border-[#e8dcc8]/50" />
 
-        {/* Total - compact */}
-        <div className="px-2 pb-1 flex items-center justify-end">
+        {/* Total + Wait time - compact */}
+        <div className="px-2 pb-1 flex items-center justify-between">
+          {/* Wait time badge */}
+          <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[9px] font-semibold ${waitBadgeColors.bg} ${waitBadgeColors.text} ${waitBadgeColors.border}`}>
+            <Clock size={9} />
+            <span>{waitTimeDisplay}</span>
+          </div>
           <div className="text-sm font-bold text-[#1a1614]" style={{ fontFamily: PremiumTypography.fontFamily.mono }}>
             ${total.toFixed(2)}
           </div>
@@ -585,14 +640,21 @@ export function PendingTicketCard({
         </div>
       </div>
 
-      {/* Service name */}
-      <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight flex items-center gap-2">
-        <span className="line-clamp-2">{serviceDisplay}</span>
-        {hasCheckoutServices && serviceCount > 1 && (
-          <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
-            ${serviceTotal.toFixed(0)}
-          </span>
-        )}
+      {/* Service name + Wait time */}
+      <div className="px-2 sm:px-3 md:px-4 pb-2 sm:pb-3 flex items-center justify-between gap-2">
+        <div className="text-xs sm:text-sm md:text-base text-[#1a1614] font-semibold leading-snug tracking-tight flex items-center gap-2 flex-1 min-w-0">
+          <span className="line-clamp-2">{serviceDisplay}</span>
+          {hasCheckoutServices && serviceCount > 1 && (
+            <span className="flex-shrink-0 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+              ${serviceTotal.toFixed(0)}
+            </span>
+          )}
+        </div>
+        {/* Wait time badge */}
+        <div className={`flex items-center gap-1 px-2 py-1 rounded border text-xs font-semibold flex-shrink-0 ${waitBadgeColors.bg} ${waitBadgeColors.text} ${waitBadgeColors.border}`}>
+          <Clock size={12} />
+          <span>{waitTimeDisplay}</span>
+        </div>
       </div>
 
       {/* Divider */}
