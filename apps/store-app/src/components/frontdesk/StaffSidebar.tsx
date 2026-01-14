@@ -55,7 +55,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Get context data including resetStaffStatus function
   const {
     resetStaffStatus,
-    staff
+    staff,
+    serviceTickets, // US-006: Get in-service tickets for Quick Checkout
   } = useTickets();
 
   // US-003: Get ticket panel context for Add Ticket action
@@ -395,6 +396,62 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       }));
     }
   }, [staff, dispatch]);
+
+  // US-006: Handle Quick Checkout action from staff card
+  // Opens the checkout panel for the staff's current in-service ticket
+  const handleQuickCheckout = useCallback((staffId: number, ticketId?: number) => {
+    // Find the staff member by ID
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) {
+      console.warn('[StaffSidebar] Staff member not found for Quick Checkout:', staffId);
+      return;
+    }
+
+    // Find the staff's in-service ticket from serviceTickets
+    // Match by staffId (UUID) or by the ticket's assignedTo.id
+    const staffInServiceTicket = serviceTickets.find((ticket: any) => {
+      // Check if ticket has this staff assigned
+      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
+      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
+    });
+
+    if (!staffInServiceTicket) {
+      console.warn('[StaffSidebar] No in-service ticket found for staff:', staffMember.name);
+      return;
+    }
+
+    // Convert the UITicket to TicketData format for openTicketWithData
+    // UITicket uses: number (not ticketNumber), service (singular), checkoutServices (for detailed services)
+    const ticketData = {
+      id: staffInServiceTicket.id,
+      number: staffInServiceTicket.number,
+      clientId: staffInServiceTicket.clientId,
+      clientName: staffInServiceTicket.clientName,
+      clientType: staffInServiceTicket.clientType,
+      service: staffInServiceTicket.service,
+      // Use checkoutServices if available, otherwise create from service string
+      services: staffInServiceTicket.checkoutServices || (staffInServiceTicket.service ? [{
+        serviceName: staffInServiceTicket.service,
+        name: staffInServiceTicket.service,
+        duration: parseInt(String(staffInServiceTicket.duration)) || 30,
+        status: staffInServiceTicket.serviceStatus || 'in_progress',
+        staffId: staffInServiceTicket.techId,
+        staffName: staffInServiceTicket.technician,
+      }] : []),
+      technician: staffInServiceTicket.technician,
+      techId: staffInServiceTicket.techId,
+      duration: staffInServiceTicket.duration,
+      status: staffInServiceTicket.status,
+      notes: staffInServiceTicket.notes,
+    };
+
+    // Open the ticket panel with the checkout data
+    openTicketWithData(ticketData);
+  }, [staff, serviceTickets, openTicketWithData]);
 
   // Determine responsive grid class based on sidebar width and view mode
   const getGridColumns = () => {
@@ -961,6 +1018,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                     onAddNote={handleAddNote}
                     // US-005: Handle Edit Team Member action
                     onEditTeam={handleEditTeam}
+                    // US-006: Handle Quick Checkout action
+                    onQuickCheckout={handleQuickCheckout}
                   />
                 </div>
               </Tippy>
