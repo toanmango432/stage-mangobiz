@@ -380,3 +380,21 @@ Commit: 401abc7
   - Both components need to be updated for consistent progress bar styling
   - Pre-existing typecheck errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx) are unrelated infrastructure issues
 ---
+
+## 2026-01-14 - US-017: Update urgency thresholds to match Pending PRD specification
+Commit: 452669f
+- Updated DEFAULT_URGENCY_THRESHOLDS to match PRD: attention=5, urgent=10, critical=20 (was 10/15/20)
+- Updated URGENCY_COLORS to match PRD:
+  - normal: changed from amber to white/neutral (gray border, white bg, gray text)
+  - attention: changed from amber to yellow (yellow border, yellow-50 bg, yellow text)
+  - urgent and critical: unchanged (orange and red respectively)
+- getUrgencyLevel function automatically uses new thresholds via default parameter
+- All urgency sorting functions (sortByUrgency, hasUrgentTickets, getHighestUrgency) continue working correctly
+- Files changed:
+  - apps/store-app/src/utils/urgencyUtils.ts
+- **Learnings for future iterations:**
+  - URGENCY_COLORS provides border, bg, dot, text, and glow Tailwind classes for each level
+  - DEFAULT_URGENCY_THRESHOLDS is used as default parameter in getUrgencyLevel, sortByUrgency, etc.
+  - No need to update calling code when thresholds change - they use defaults from the utils file
+  - This is a dependency for US-018 (urgency color-coding in PendingTicketCard)
+---
