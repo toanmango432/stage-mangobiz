@@ -80,7 +80,7 @@
         "Verify in browser: click Edit Team Member and navigate to team settings for that staff"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Can use React Router navigate to /team/settings with staff ID, or open TeamSettingsPanel with pre-selected staff."
     },
     {

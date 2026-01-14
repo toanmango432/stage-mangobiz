@@ -82,3 +82,21 @@ Commit: 5fac7c6
   - Staff notes need their own storage/API integration (TODO in handleSaveStaffNote)
   - Use selectedStaffForNote state to track which staff member the modal is for
 ---
+
+## 2026-01-13 - US-005: Implement Edit Team Member action on staff cards
+Commit: 96528c3
+- Added useAppDispatch hook import to StaffSidebar for Redux dispatch
+- Added setSelectedMember import from teamSlice for pre-selecting team member
+- Created handleEditTeam callback that:
+  1. Finds staff member by numeric ID (handles string/number ID conversion)
+  2. Pre-selects the staff member in Redux teamSlice using setSelectedMember
+  3. Navigates to team-settings module via custom event (navigate-to-module)
+- Passed onEditTeam callback to StaffCardVertical component
+- Files changed:
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - AppShell listens for 'navigate-to-module' custom events to switch modules
+  - UIStaff.id is already the team member UUID string (from TeamMemberSettings.id)
+  - teamSlice's setSelectedMember expects a string ID matching TeamMemberSettings.id
+  - Navigation pattern: dispatch Redux action first, then trigger module navigation event
+---
