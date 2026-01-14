@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, memo, useCallback } from 'react';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { useAppDispatch } from '@/store/hooks';
 import { updateLocalAppointment, updateAppointmentInSupabase } from '@/store/slices/appointmentsSlice';
-import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil, AlertCircle, UserX } from 'lucide-react';
+import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil, AlertCircle, UserX, Sparkles } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
@@ -320,6 +320,12 @@ export const ComingAppointments = memo(function ComingAppointments({
                           <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
                             {appointment.clientName?.split(' ')[0] || 'Guest'}
                             {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                            {appointment.isFirstVisit && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                <Sparkles size={8} />
+                                NEW
+                              </span>
+                            )}
                           </div>
                           {/* Service + Staff */}
                           <div className="flex items-center justify-between text-xs text-gray-500">
@@ -370,6 +376,12 @@ export const ComingAppointments = memo(function ComingAppointments({
                             <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
                               {appointment.clientName?.split(' ')[0] || 'Guest'}
                               {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                              {appointment.isFirstVisit && (
+                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                  <Sparkles size={8} />
+                                  NEW
+                                </span>
+                              )}
                             </div>
                             {/* Service + Staff */}
                             <div className="flex items-center justify-between text-xs text-gray-500">
@@ -420,6 +432,12 @@ export const ComingAppointments = memo(function ComingAppointments({
                             <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
                               {appointment.clientName?.split(' ')[0] || 'Guest'}
                               {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                              {appointment.isFirstVisit && (
+                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                  <Sparkles size={8} />
+                                  NEW
+                                </span>
+                              )}
                             </div>
                             {/* Service + Staff */}
                             <div className="flex items-center justify-between text-xs text-gray-500">
@@ -549,9 +567,15 @@ export const ComingAppointments = memo(function ComingAppointments({
       }} onClick={e => e.stopPropagation()}>
             {/* Modal header with client name, service and time */}
             <div className="px-6 py-5 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1">
+              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1 flex items-center gap-1.5">
                 {activeAppointment.clientName?.split(' ')[0] || 'Guest'}
-                {activeAppointment.isVip && <Star size={14} className="ml-1.5 text-[#FF9500] inline-block" />}
+                {activeAppointment.isVip && <Star size={14} className="text-[#FF9500]" />}
+                {activeAppointment.isFirstVisit && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-medium">
+                    <Sparkles size={10} />
+                    NEW
+                  </span>
+                )}
               </h3>
               <div className="text-[15px] text-gray-700 font-medium">
                 {/* Truncate service name if too long */}
