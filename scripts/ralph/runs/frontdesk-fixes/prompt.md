@@ -11,8 +11,8 @@ You are an autonomous coding agent working on the Mango POS monorepo.
 
 ## Your Task
 
-1. Read the PRD at `scripts/ralph/prd.json`
-2. Read the progress log at `scripts/ralph/progress.txt` (check Codebase Patterns section first)
+1. Read the PRD at `scripts/ralph/runs/frontdesk-fixes/prd.json`
+2. Read the progress log at `scripts/ralph/runs/frontdesk-fixes/progress.txt` (check Codebase Patterns section first)
 3. Read `.claude/rules/codebase-patterns.md` for accumulated patterns (auto-loaded but review for context)
 4. Check you're on the correct branch from PRD `branchName`. If not, check it out.
 5. **START DEV SERVER FIRST:** `cd apps/store-app && pnpm run dev` (REQUIRED for UI stories)
@@ -29,7 +29,7 @@ You are an autonomous coding agent working on the Mango POS monorepo.
 12. **Update `.claude/rules/codebase-patterns.md`** with any reusable patterns discovered
 13. If ALL checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
 14. Update the PRD to set `passes: true` for the completed story
-15. Append your progress to `scripts/ralph/progress.txt` (MUST include browser verification results)
+15. Append your progress to `scripts/ralph/runs/frontdesk-fixes/progress.txt` (MUST include browser verification results)
 
 ---
 
@@ -208,7 +208,7 @@ src/components/ExampleModule/
 
 ## Progress Report Format
 
-APPEND to `scripts/ralph/progress.txt` (never replace, always append):
+APPEND to `scripts/ralph/runs/frontdesk-fixes/progress.txt` (never replace, always append):
 
 ```
 ## [Date/Time] - [Story ID]: [Story Title]
@@ -291,8 +291,8 @@ If ALL stories have `passes: true`, reply with:
 
 | File | Purpose |
 |------|---------|
-| `scripts/ralph/prd.json` | User stories with `passes` status |
-| `scripts/ralph/progress.txt` | Append-only progress log for this run |
+| `scripts/ralph/runs/frontdesk-fixes/prd.json` | User stories with `passes` status |
+| `scripts/ralph/runs/frontdesk-fixes/progress.txt` | Append-only progress log for this run |
 | `.claude/rules/codebase-patterns.md` | **Accumulated patterns (UPDATE THIS)** - read by ALL sessions |
 | `CLAUDE.md` | Project-specific AI instructions (READ THIS) |
 

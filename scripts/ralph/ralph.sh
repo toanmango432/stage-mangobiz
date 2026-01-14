@@ -1,22 +1,74 @@
 #!/bin/bash
 # Ralph Wiggum - Autonomous AI Agent Loop for Claude Code
-# Usage: ./ralph.sh [max_iterations]
+# Usage: ./ralph.sh [max_iterations] [run_name]
+#
+# Examples:
+#   ./ralph.sh 50                    # Auto-detect run from git branch
+#   ./ralph.sh 50 frontdesk-fixes    # Use specific run directory
 #
 # Ralph runs Claude Code repeatedly until all PRD items are complete.
 # Each iteration is a fresh Claude instance with clean context.
 # Memory persists via git history, progress.txt, and prd.json.
+#
+# Run directories: scripts/ralph/runs/<run_name>/
+# Each run is isolated to prevent accidental modifications by other agents.
 
 set -e
 
 MAX_ITERATIONS=${1:-10}
+RUN_NAME=${2:-""}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 
-PRD_FILE="$SCRIPT_DIR/prd.json"
-PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
+# =============================================================================
+# DETERMINE RUN DIRECTORY
+# =============================================================================
+
+# If no run name provided, try to detect from current branch
+if [ -z "$RUN_NAME" ]; then
+    CURRENT_BRANCH=$(cd "$MONOREPO_ROOT" && git branch --show-current)
+    # Extract run name from branch (e.g., "ralph/frontdesk-fixes" -> "frontdesk-fixes")
+    if [[ "$CURRENT_BRANCH" == ralph/* ]]; then
+        RUN_NAME="${CURRENT_BRANCH#ralph/}"
+    else
+        # Check if there's only one run directory
+        RUN_COUNT=$(ls -d "$SCRIPT_DIR/runs"/*/ 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$RUN_COUNT" -eq 1 ]; then
+            RUN_NAME=$(basename "$(ls -d "$SCRIPT_DIR/runs"/*/ 2>/dev/null)")
+        else
+            echo "ERROR: Cannot determine run directory."
+            echo "Either:"
+            echo "  1. Be on a ralph/* branch (e.g., ralph/frontdesk-fixes)"
+            echo "  2. Specify run name: ./ralph.sh 50 frontdesk-fixes"
+            echo ""
+            echo "Available runs:"
+            ls -d "$SCRIPT_DIR/runs"/*/ 2>/dev/null | xargs -I {} basename {} || echo "  (none)"
+            exit 1
+        fi
+    fi
+fi
+
+RUN_DIR="$SCRIPT_DIR/runs/$RUN_NAME"
+
+# Verify run directory exists
+if [ ! -d "$RUN_DIR" ]; then
+    echo "ERROR: Run directory not found: $RUN_DIR"
+    echo ""
+    echo "Available runs:"
+    ls -d "$SCRIPT_DIR/runs"/*/ 2>/dev/null | xargs -I {} basename {} || echo "  (none)"
+    echo ""
+    echo "To create a new run:"
+    echo "  mkdir -p $SCRIPT_DIR/runs/<run-name>"
+    echo "  # Add prd.json, progress.txt, prompt.md"
+    exit 1
+fi
+
+PRD_FILE="$RUN_DIR/prd.json"
+PROGRESS_FILE="$RUN_DIR/progress.txt"
+PROMPT_FILE="$RUN_DIR/prompt.md"
 PATTERNS_FILE="$SCRIPT_DIR/patterns.md"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
-LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+LAST_BRANCH_FILE="$RUN_DIR/.last-branch"
 
 # =============================================================================
 # WHATSAPP NOTIFICATIONS (via TextMeBot)
@@ -172,6 +224,7 @@ COMPLETED_STORIES=$(jq '[.userStories[] | select(.passes == true)] | length' "$P
 REMAINING_STORIES=$((TOTAL_STORIES - COMPLETED_STORIES))
 
 echo "Monorepo Root: $MONOREPO_ROOT"
+echo "Run Directory: $RUN_DIR"
 echo "PRD: $PRD_FILE"
 echo "Branch: $PRD_BRANCH"
 echo "Stories: $COMPLETED_STORIES/$TOTAL_STORIES complete ($REMAINING_STORIES remaining)"
@@ -196,10 +249,10 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     # CRITICAL: Run Claude from monorepo root so all paths resolve correctly
     cd "$MONOREPO_ROOT"
 
-    # Run Claude with the ralph prompt
+    # Run Claude with the ralph prompt from run directory
     # Unset ANTHROPIC_API_KEY to force OAuth authentication (Claude Code Max)
     unset ANTHROPIC_API_KEY
-    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude --dangerously-skip-permissions -p 2>&1 | tee /dev/stderr) || true
+    OUTPUT=$(cat "$PROMPT_FILE" | claude --dangerously-skip-permissions -p 2>&1 | tee /dev/stderr) || true
 
     # Get updated story count after iteration
     COMPLETED_NOW=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE")
