@@ -46,11 +46,13 @@ interface DBTicket {
     id: string;
     name: string;
     color: string;
+    photo?: string;
   };
   assignedStaff?: Array<{
     id: string;
     name: string;
     color: string;
+    photo?: string;
   }>;
   createdAt: Date | string;
   updatedAt?: Date | string;
@@ -81,12 +83,14 @@ export interface UITicket {
     id: string;
     name: string;
     color: string;
+    photo?: string;
   };
   // Multi-staff support
   assignedStaff?: Array<{
     id: string;
     name: string;
     color: string;
+    photo?: string;
   }>;
   notes?: string;
   priority?: 'normal' | 'high';
@@ -126,6 +130,7 @@ export interface PendingTicket {
     id: string;
     name: string;
     color: string;
+    photo?: string;
   }>;
   lastVisitDate?: Date | null;
   // When service was marked done (for urgency calculation)
@@ -159,6 +164,7 @@ export interface CheckoutTicketService {
   staffId?: string;
   staffName?: string;
   staffColor?: string;
+  staffPhoto?: string;
   startTime?: Date;
   endTime?: Date;
 }
@@ -942,10 +948,11 @@ export const createCheckoutTicket = createAsyncThunk(
             id: s.staffId!,
             name: s.staffName || 'Staff',
             color: s.staffColor || '#6B7280',
+            photo: s.staffPhoto,
           });
         }
         return acc;
-      }, [] as Array<{ id: string; name: string; color: string }>);
+      }, [] as Array<{ id: string; name: string; color: string; photo?: string }>);
 
     const newTicket: UITicketWithServices = {
       id: uuidv4(),
@@ -961,6 +968,7 @@ export const createCheckoutTicket = createAsyncThunk(
         id: primaryStaff.staffId!,
         name: primaryStaff.staffName || 'Staff',
         color: primaryStaff.staffColor || '#6B7280',
+        photo: primaryStaff.staffPhoto,
       } : undefined,
       assignedStaff,
       technician: primaryStaff?.staffName,
@@ -1089,10 +1097,11 @@ export const updateCheckoutTicket = createAsyncThunk(
               id: s.staffId!,
               name: s.staffName || 'Staff',
               color: s.staffColor || '#6B7280',
+              photo: s.staffPhoto,
             });
           }
           return acc;
-        }, [] as Array<{ id: string; name: string; color: string }>);
+        }, [] as Array<{ id: string; name: string; color: string; photo?: string }>);
 
       ticketUpdates.assignedStaff = assignedStaff;
       if (primaryStaff) {
@@ -1100,6 +1109,7 @@ export const updateCheckoutTicket = createAsyncThunk(
           id: primaryStaff.staffId!,
           name: primaryStaff.staffName || 'Staff',
           color: primaryStaff.staffColor || '#6B7280',
+          photo: primaryStaff.staffPhoto,
         };
         ticketUpdates.technician = primaryStaff.staffName;
         ticketUpdates.techId = primaryStaff.staffId;

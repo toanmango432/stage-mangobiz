@@ -34,12 +34,14 @@ interface ServiceTicketCardProps {
       id: string;
       name: string;
       color: string;
+      photo?: string;
     };
     // Multi-staff support
     assignedStaff?: Array<{
       id: string;
       name: string;
       color: string;
+      photo?: string;
     }>;
     createdAt?: Date;
     lastVisitDate?: Date | null; // null for first-time clients
@@ -123,6 +125,32 @@ function ServiceTicketCardComponent({
 
   // Use exact staff color for badge
   const getStaffColor = (staff: any) => staff.color || '#6B7280';
+
+  // Render staff avatar with photo or initial
+  const renderStaffAvatar = (staff: { name: string; color: string; photo?: string }, size: 'sm' | 'md' = 'sm') => {
+    const sizeClasses = size === 'sm' ? 'w-5 h-5' : 'w-8 h-8';
+    const textSize = size === 'sm' ? 'text-2xs' : 'text-xs';
+
+    if (staff.photo) {
+      return (
+        <img
+          src={staff.photo}
+          alt={staff.name}
+          className={`${sizeClasses} rounded-full object-cover border border-white/50 flex-shrink-0`}
+          style={{ boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}
+        />
+      );
+    }
+    // Default avatar with initial
+    return (
+      <div
+        className={`${sizeClasses} rounded-full flex items-center justify-center ${textSize} font-semibold text-white flex-shrink-0`}
+        style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)' }}
+      >
+        {staff.name.charAt(0).toUpperCase()}
+      </div>
+    );
+  };
 
   // Helper flags for reference design
   const isFirstVisit = ticket.clientType === 'New';
@@ -241,12 +269,15 @@ function ServiceTicketCardComponent({
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <span className="text-2xs font-bold whitespace-nowrap" style={{ color: currentStatus.text }}>{Math.round(progress)}%</span>
-                {/* Staff badges (max 2) */}
-                <div className="flex items-center gap-0.5">
+                {/* Staff badges with photos (max 2) */}
+                <div className="flex items-center gap-1">
                   {staffList.slice(0, 2).map((staff, i) => (
-                    <div key={i} className="text-white text-2xs font-semibold px-1 py-0.5 rounded"
-                         style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}>
-                      {getFirstName(staff.name)}
+                    <div key={i} className="flex items-center gap-0.5">
+                      {renderStaffAvatar(staff, 'sm')}
+                      <div className="text-white text-2xs font-semibold px-1 py-0.5 rounded"
+                           style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}>
+                        {getFirstName(staff.name)}
+                      </div>
                     </div>
                   ))}
                   {staffList.length > 2 && <span className="text-2xs text-[#6b5d52]">+{staffList.length - 2}</span>}
@@ -397,13 +428,16 @@ function ServiceTicketCardComponent({
               )}
             </div>
 
-            {/* Staff badges + Done/Resume button */}
+            {/* Staff badges with photos + Done/Resume button */}
             <div className="relative flex-shrink-0 flex items-center gap-2">
               <div className="flex items-center gap-1.5">
                 {staffList.map((staff, i) => (
-                  <div key={i} className="text-white text-xs font-semibold px-2 py-0.5 rounded-md border border-white/30 tracking-wide"
-                       style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
-                    {getFirstName(staff.name)}
+                  <div key={i} className="flex items-center gap-1">
+                    {renderStaffAvatar(staff, 'sm')}
+                    <div className="text-white text-xs font-semibold px-2 py-0.5 rounded-md border border-white/30 tracking-wide"
+                         style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                      {getFirstName(staff.name)}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -470,7 +504,7 @@ function ServiceTicketCardComponent({
         <div className="mx-3 sm:px-4 mb-3 sm:mb-4 border-t border-[#e8dcc8]/50" />
         <div className="px-3 sm:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="text-xs sm:text-sm text-[#6b5d52] font-medium">{formatTime(timeRemaining)} left</div><div className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-3 sm:px-4 pb-4 sm:pb-5"><div className="h-2 sm:h-2.5 bg-[#f5f0e8] rounded-full border border-[#e8dcc8]/40 overflow-hidden" style={{ boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08)' }}><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress, boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)' }} /></div></div>
-        <div className="mt-auto mx-2 sm:mx-3 mb-2 sm:mb-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pr-11 sm:pr-12">{staffList.map((staff, index) => (<div key={index} className="text-white text-2xs sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 cursor-pointer hover:scale-105 transition-transform tracking-wide" style={{ background: getStaffColor(staff), boxShadow: `0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{getFirstName(staff.name)}</div>))}</div>
+        <div className="mt-auto mx-2 sm:mx-3 mb-2 sm:mb-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: `inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)`, border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1.5 sm:gap-2 pr-11 sm:pr-12">{staffList.map((staff, index) => (<div key={index} className="flex items-center gap-1 cursor-pointer hover:scale-105 transition-transform">{renderStaffAvatar(staff, 'md')}<div className="text-white text-2xs sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 tracking-wide" style={{ background: getStaffColor(staff), boxShadow: `0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)`, textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>{getFirstName(staff.name)}</div></div>))}</div>
           <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-2 md:right-3 -translate-y-1/2 w-11 h-11 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Mark as Done"><Check size={20} className="md:w-5 md:h-5" strokeWidth={2} /></button>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay rounded-xl" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '200px 200px' }} />
@@ -508,7 +542,7 @@ function ServiceTicketCardComponent({
         <div className="mx-2 sm:mx-3 mb-2 border-t border-[#e8dcc8]/50" />
         <div className="px-2 sm:px-3 pb-1 flex items-center justify-between"><div className="text-2xs sm:text-xs text-[#6b5d52]">{formatTime(timeRemaining)} left</div><div className="text-base sm:text-lg font-bold" style={{ color: currentStatus.text }}>{Math.round(progress)}%</div></div>
         <div className="px-2 sm:px-3 pb-2 sm:pb-3"><div className="h-1.5 sm:h-2 bg-[#f5f0e8] rounded-full overflow-hidden"><div className="h-full transition-all duration-300 rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: currentStatus.progress }} /></div></div>
-        <div className="mt-auto mx-1.5 sm:mx-2 mb-1.5 sm:mb-2 px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1 pr-9 sm:pr-10">{staffList.slice(0, 2).map((staff, index) => (<div key={index} className="text-white text-2xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide" style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>{getFirstName(staff.name)}</div>))}{staffList.length > 2 && <span className="text-2xs text-[#6b5d52] font-medium">+{staffList.length - 2}</span>}</div>
+        <div className="mt-auto mx-1.5 sm:mx-2 mb-1.5 sm:mb-2 px-1.5 sm:px-2 py-1.5 sm:py-2 rounded-md relative" style={{ background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 2px rgba(139, 92, 46, 0.08), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}><div className="flex items-center flex-wrap gap-1 pr-9 sm:pr-10">{staffList.slice(0, 2).map((staff, index) => (<div key={index} className="flex items-center gap-0.5">{renderStaffAvatar(staff, 'sm')}<div className="text-white text-2xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide" style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>{getFirstName(staff.name)}</div></div>))}{staffList.length > 2 && <span className="text-2xs text-[#6b5d52] font-medium">+{staffList.length - 2}</span>}</div>
           <button onClick={(e) => { e.stopPropagation(); onComplete?.(ticket.id); }} className="absolute top-1/2 right-1.5 md:right-2 -translate-y-1/2 w-11 h-11 md:w-8 md:h-8 rounded-full flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 hover:border-green-500 hover:text-green-500 hover:bg-green-50 transition-all" title="Done"><Check size={18} className="md:w-[18px] md:h-[18px]" strokeWidth={2} /></button>
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay rounded-lg" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")', backgroundSize: '150px 150px' }} />
