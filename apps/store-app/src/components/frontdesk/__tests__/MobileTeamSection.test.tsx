@@ -1,16 +1,19 @@
 /**
  * MobileTeamSection Component Tests
  * Tests for mobile-optimized team view with filters and search
+ * US-013: Updated to support Redux integration from US-007
  * @vitest-environment jsdom
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import { MobileTeamSection } from '../MobileTeamSection';
 
 // Mock dependencies
 vi.mock('../../../hooks/useTicketsCompat', () => ({
-  useTickets: vi.fn(() => ({ staff: [] })),
+  useTickets: vi.fn(() => ({ staff: [], serviceTickets: [] })),
 }));
 
 vi.mock('../../../utils/haptics', () => ({
@@ -19,16 +22,45 @@ vi.mock('../../../utils/haptics', () => ({
   },
 }));
 
+vi.mock('@/contexts/TicketPanelContext', () => ({
+  useTicketPanel: () => ({
+    openTicketWithData: vi.fn(),
+  }),
+}));
+
 vi.mock('../../StaffCard/index', () => ({
-  StaffCardVertical: ({ staff, viewMode, onClick }: any) => (
+  StaffCardVertical: ({ staff, viewMode, onClick, displayConfig }: any) => (
     <div
       data-testid={`staff-card-${staff.id}`}
       data-view-mode={viewMode}
+      data-show-turn-count={displayConfig?.showTurnCount}
       onClick={onClick}
     >
       <span data-testid="staff-name">{staff.name}</span>
       <span data-testid="staff-status">{staff.status}</span>
     </div>
+  ),
+}));
+
+vi.mock('../MobileStaffActionSheet', () => ({
+  MobileStaffActionSheet: ({ isOpen, onClose, staffName }: any) => (
+    isOpen ? (
+      <div data-testid="mobile-action-sheet">
+        <span>{staffName}</span>
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null
+  ),
+}));
+
+vi.mock('../AddStaffNoteModal', () => ({
+  AddStaffNoteModal: ({ isOpen, onClose, staffName }: any) => (
+    isOpen ? (
+      <div data-testid="add-note-modal">
+        <span>{staffName}</span>
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null
   ),
 }));
 
@@ -38,7 +70,60 @@ import { haptics } from '../../../utils/haptics';
 
 const mockUseTickets = useTickets as ReturnType<typeof vi.fn>;
 
+// ============================================================================
+// TEST HELPERS
+// ============================================================================
+
+// Create a mock Redux store with frontDeskSettings
+const createTestStore = (overrides: any = {}) => {
+  return configureStore({
+    reducer: {
+      frontDeskSettings: () => ({
+        settings: {
+          organizeBy: 'busyStatus',
+          showTurnCount: true,
+          showNextAppointment: true,
+          showServicedAmount: true,
+          showTicketCount: true,
+          showLastDone: true,
+          showMoreOptionsButton: true,
+          showAddTicketAction: true,
+          showAddNoteAction: true,
+          showEditTeamAction: true,
+          showQuickCheckoutAction: true,
+          showClockInOutAction: true,
+          ...overrides,
+        },
+        isLoading: false,
+        error: null,
+      }),
+      team: () => ({
+        selectedMember: null,
+        members: [],
+      }),
+      timesheets: () => ({
+        entries: [],
+      }),
+    },
+  });
+};
+
+// Wrapper component that provides Redux store
+const renderWithRedux = (ui: React.ReactElement, storeOverrides: any = {}) => {
+  const store = createTestStore(storeOverrides);
+  return {
+    ...render(
+      <Provider store={store}>
+        {ui}
+      </Provider>
+    ),
+    store,
+  };
+};
+
 describe('MobileTeamSection', () => {
+  // Note: convertToStaffMember parses IDs like 'staff-1' to get the numeric part (1)
+  // So test IDs become: staff-1 -> 1, staff-2 -> 2, staff-3 -> 3
   const mockStaff = [
     { id: 'staff-1', name: 'Jane Stylist', status: 'ready', specialty: 'hair' },
     { id: 'staff-2', name: 'John Barber', status: 'busy', specialty: 'hair' },
@@ -48,7 +133,7 @@ describe('MobileTeamSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    mockUseTickets.mockReturnValue({ staff: mockStaff });
+    mockUseTickets.mockReturnValue({ staff: mockStaff, serviceTickets: [] });
   });
 
   afterEach(() => {
@@ -57,59 +142,54 @@ describe('MobileTeamSection', () => {
 
   describe('filter buttons', () => {
     it('renders All filter button', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('All')).toBeInTheDocument();
     });
 
-    it('renders Ready filter button', () => {
-      render(<MobileTeamSection />);
+    it('renders Ready filter button in busyStatus mode', () => {
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('Ready')).toBeInTheDocument();
     });
 
-    it('renders Busy filter button', () => {
-      render(<MobileTeamSection />);
+    it('renders Busy filter button in busyStatus mode', () => {
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('Busy')).toBeInTheDocument();
     });
 
-    it('renders Off filter button', () => {
-      render(<MobileTeamSection />);
-      expect(screen.getByText('Off')).toBeInTheDocument();
+    it('renders In/Out filter buttons in clockedStatus mode', () => {
+      renderWithRedux(<MobileTeamSection />, { organizeBy: 'clockedStatus' });
+      expect(screen.getByText('In')).toBeInTheDocument();
+      expect(screen.getByText('Out')).toBeInTheDocument();
     });
 
     it('shows correct count for All', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       // 3 staff total - appears in badge and metrics row
       const threeElements = screen.getAllByText('3');
       expect(threeElements.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows correct count for Ready', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       // Count appears as a badge inside Ready button
       const readyButton = screen.getByText('Ready').closest('button');
       expect(readyButton?.textContent).toContain('1');
     });
 
     it('shows correct count for Busy', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       const busyButton = screen.getByText('Busy').closest('button');
       expect(busyButton?.textContent).toContain('1');
     });
 
-    it('shows correct count for Off', () => {
-      render(<MobileTeamSection />);
-      const offButton = screen.getByText('Off').closest('button');
-      expect(offButton?.textContent).toContain('1');
-    });
-
     it('All filter is active by default', () => {
-      const { container } = render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       const allButton = screen.getByText('All').closest('button');
       expect(allButton).toHaveClass('bg-gray-800', 'text-white');
     });
 
     it('changes filter on click', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Ready'));
 
@@ -118,7 +198,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('calls haptics on filter change', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Ready'));
 
@@ -126,48 +206,40 @@ describe('MobileTeamSection', () => {
     });
 
     it('Busy filter has rose color when active', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Busy'));
 
       const busyButton = screen.getByText('Busy').closest('button');
       expect(busyButton).toHaveClass('bg-rose-500');
     });
-
-    it('Off filter has gray color when active', () => {
-      render(<MobileTeamSection />);
-
-      fireEvent.click(screen.getByText('Off'));
-
-      const offButton = screen.getByText('Off').closest('button');
-      expect(offButton).toHaveClass('bg-gray-500');
-    });
   });
 
   describe('metrics row', () => {
     it('shows member count', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       // 3 members shown - appears in multiple places
       const threeElements = screen.getAllByText('3');
       expect(threeElements.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows "members" text (plural)', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('members')).toBeInTheDocument();
     });
 
     it('shows "member" text (singular) for 1', () => {
       mockUseTickets.mockReturnValue({
         staff: [{ id: 'staff-1', name: 'Jane', status: 'ready' }],
+        serviceTickets: [],
       });
 
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('member')).toBeInTheDocument();
     });
 
     it('updates count when filter changes', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Ready'));
 
@@ -180,14 +252,14 @@ describe('MobileTeamSection', () => {
 
   describe('view mode toggle', () => {
     it('defaults to compact mode', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const toggleButton = container.querySelector('.bg-orange-100');
       expect(toggleButton).toBeInTheDocument();
     });
 
     it('loads view mode from localStorage', () => {
       localStorage.setItem('mobileTeamViewMode', 'normal');
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       // Normal mode has gray background
       const toggleButton = container.querySelector('.bg-gray-200');
@@ -195,7 +267,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('toggles view mode on click', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       // Find button containing ChevronDown icon (in compact mode)
       const chevronDown = container.querySelector('svg.lucide-chevron-down');
@@ -211,7 +283,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('toggles back to compact mode on second click', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       // Find toggle button
       const chevronDown = container.querySelector('svg.lucide-chevron-down');
@@ -227,7 +299,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('calls haptics on toggle', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       const toggleButton = container.querySelector('button.p-2.rounded-lg');
       fireEvent.click(toggleButton!);
@@ -236,13 +308,13 @@ describe('MobileTeamSection', () => {
     });
 
     it('shows ChevronDown icon in compact mode', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const chevronDown = container.querySelector('svg.lucide-chevron-down');
       expect(chevronDown).toBeInTheDocument();
     });
 
     it('shows ChevronUp icon in normal mode', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       // Toggle to normal mode first
       const chevronDown = container.querySelector('svg.lucide-chevron-down');
@@ -258,18 +330,18 @@ describe('MobileTeamSection', () => {
 
   describe('search', () => {
     it('renders search input', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByPlaceholderText('Search team...')).toBeInTheDocument();
     });
 
     it('shows search icon', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const searchIcon = container.querySelector('svg.lucide-search');
       expect(searchIcon).toBeInTheDocument();
     });
 
     it('filters staff by search query', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.change(screen.getByPlaceholderText('Search team...'), {
         target: { value: 'Jane' },
@@ -281,7 +353,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('shows clear button when search has value', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       fireEvent.change(screen.getByPlaceholderText('Search team...'), {
         target: { value: 'test' },
@@ -292,7 +364,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('clears search on clear button click', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       fireEvent.change(screen.getByPlaceholderText('Search team...'), {
         target: { value: 'test' },
@@ -305,7 +377,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('does not show clear button when search is empty', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const xIcon = container.querySelector('svg.lucide-x');
       expect(xIcon).not.toBeInTheDocument();
     });
@@ -313,15 +385,17 @@ describe('MobileTeamSection', () => {
 
   describe('staff display', () => {
     it('shows all staff when All filter selected', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
+      // In busyStatus mode (default), Ready and Busy staff are shown
       expect(screen.getByText('Jane Stylist')).toBeInTheDocument();
       expect(screen.getByText('John Barber')).toBeInTheDocument();
-      expect(screen.getByText('Alice Nail')).toBeInTheDocument();
+      // Note: In busyStatus mode, only Ready and Busy groups are rendered (no Off group)
+      // Alice Nail has status 'off' so won't be shown in busyStatus mode's All view
     });
 
     it('shows only ready staff when Ready filter selected', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Ready'));
 
@@ -331,7 +405,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('shows only busy staff when Busy filter selected', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Busy'));
 
@@ -340,29 +414,21 @@ describe('MobileTeamSection', () => {
       expect(screen.queryByText('Alice Nail')).not.toBeInTheDocument();
     });
 
-    it('shows only off staff when Off filter selected', () => {
-      render(<MobileTeamSection />);
-
-      fireEvent.click(screen.getByText('Off'));
-
-      expect(screen.queryByText('Jane Stylist')).not.toBeInTheDocument();
-      expect(screen.queryByText('John Barber')).not.toBeInTheDocument();
-      expect(screen.getByText('Alice Nail')).toBeInTheDocument();
-    });
-
     it('passes viewMode to staff cards', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
+      // Note: staff-1 becomes numeric ID 1 after convertToStaffMember
       const staffCard = screen.getByTestId('staff-card-1');
       expect(staffCard).toHaveAttribute('data-view-mode', 'compact');
     });
 
     it('updates card viewMode after toggle', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       const toggleButton = container.querySelector('button.p-2.rounded-lg');
       fireEvent.click(toggleButton!);
 
+      // Note: staff-1 becomes numeric ID 1 after convertToStaffMember
       const staffCard = screen.getByTestId('staff-card-1');
       expect(staffCard).toHaveAttribute('data-view-mode', 'normal');
     });
@@ -370,15 +436,15 @@ describe('MobileTeamSection', () => {
 
   describe('empty state', () => {
     it('shows empty state when no staff', () => {
-      mockUseTickets.mockReturnValue({ staff: [] });
-      render(<MobileTeamSection />);
+      mockUseTickets.mockReturnValue({ staff: [], serviceTickets: [] });
+      renderWithRedux(<MobileTeamSection />);
 
       expect(screen.getByText('No team members found')).toBeInTheDocument();
     });
 
     it('shows Users icon in empty state', () => {
-      mockUseTickets.mockReturnValue({ staff: [] });
-      const { container } = render(<MobileTeamSection />);
+      mockUseTickets.mockReturnValue({ staff: [], serviceTickets: [] });
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       const usersIcon = container.querySelector('svg.lucide-users');
       // Multiple Users icons - one in All button and one in empty state
@@ -388,8 +454,9 @@ describe('MobileTeamSection', () => {
     it('shows empty state when filter has no results', () => {
       mockUseTickets.mockReturnValue({
         staff: [{ id: 'staff-1', name: 'Jane', status: 'ready' }],
+        serviceTickets: [],
       });
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Busy'));
 
@@ -397,7 +464,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('shows empty state when search has no results', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.change(screen.getByPlaceholderText('Search team...'), {
         target: { value: 'nonexistent' },
@@ -409,22 +476,17 @@ describe('MobileTeamSection', () => {
 
   describe('grouped view', () => {
     it('shows Ready section header in All view', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('Ready (1)')).toBeInTheDocument();
     });
 
     it('shows Busy section header in All view', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       expect(screen.getByText('Busy (1)')).toBeInTheDocument();
     });
 
-    it('shows Off section header in All view', () => {
-      render(<MobileTeamSection />);
-      expect(screen.getByText('Off (1)')).toBeInTheDocument();
-    });
-
     it('shows status indicator dots', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
 
       const greenDot = container.querySelector('.bg-emerald-500.rounded-full');
       expect(greenDot).toBeInTheDocument();
@@ -434,7 +496,7 @@ describe('MobileTeamSection', () => {
     });
 
     it('does not show section headers when filter is not All', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
 
       fireEvent.click(screen.getByText('Ready'));
 
@@ -442,48 +504,85 @@ describe('MobileTeamSection', () => {
     });
   });
 
+  describe('FrontDeskSettings integration', () => {
+    it('passes displayConfig with showTurnCount from settings', () => {
+      renderWithRedux(<MobileTeamSection />, { showTurnCount: true });
+
+      // Note: staff-1 becomes numeric ID 1 after convertToStaffMember
+      const staffCard = screen.getByTestId('staff-card-1');
+      expect(staffCard).toHaveAttribute('data-show-turn-count', 'true');
+    });
+
+    it('passes displayConfig with showTurnCount=false when disabled', () => {
+      renderWithRedux(<MobileTeamSection />, { showTurnCount: false });
+
+      // Note: staff-1 becomes numeric ID 1 after convertToStaffMember
+      const staffCard = screen.getByTestId('staff-card-1');
+      expect(staffCard).toHaveAttribute('data-show-turn-count', 'false');
+    });
+
+    it('shows clockedStatus groups when organizeBy is clockedStatus', () => {
+      renderWithRedux(<MobileTeamSection />, { organizeBy: 'clockedStatus' });
+
+      // Should show Clocked In section (ready + busy staff = 2)
+      expect(screen.getByText('Clocked In (2)')).toBeInTheDocument();
+      // Should show Clocked Out section (off staff = 1)
+      expect(screen.getByText('Clocked Out (1)')).toBeInTheDocument();
+    });
+
+    it('shows busyStatus groups when organizeBy is busyStatus', () => {
+      renderWithRedux(<MobileTeamSection />, { organizeBy: 'busyStatus' });
+
+      // Should show Ready section (ready staff = 1)
+      expect(screen.getByText('Ready (1)')).toBeInTheDocument();
+      // Should show Busy section (busy staff = 1)
+      expect(screen.getByText('Busy (1)')).toBeInTheDocument();
+    });
+  });
+
   describe('styling', () => {
     it('has white background', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       expect(container.firstChild).toHaveClass('bg-white');
     });
 
     it('has flex column layout', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       expect(container.firstChild).toHaveClass('flex', 'flex-col');
     });
 
     it('applies custom className', () => {
-      const { container } = render(<MobileTeamSection className="custom-class" />);
+      const { container } = renderWithRedux(<MobileTeamSection className="custom-class" />);
       expect(container.firstChild).toHaveClass('custom-class');
     });
 
     it('filter buttons have rounded corners', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const filterButton = container.querySelector('.rounded-xl');
       expect(filterButton).toBeInTheDocument();
     });
 
-    it('filter grid has 4 columns', () => {
-      const { container } = render(<MobileTeamSection />);
-      const filterGrid = container.querySelector('.grid.grid-cols-4');
+    it('filter grid has 3 columns', () => {
+      const { container } = renderWithRedux(<MobileTeamSection />);
+      // US-007: Changed from 4 columns to 3 columns
+      const filterGrid = container.querySelector('.grid.grid-cols-3');
       expect(filterGrid).toBeInTheDocument();
     });
 
     it('staff grid has 2 columns', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const staffGrid = container.querySelector('.grid.grid-cols-2');
       expect(staffGrid).toBeInTheDocument();
     });
 
     it('search input has focus ring styling', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const input = container.querySelector('input.focus\\:ring-2');
       expect(input).toBeInTheDocument();
     });
 
     it('view toggle has minimum 40px touch target', () => {
-      const { container } = render(<MobileTeamSection />);
+      const { container } = renderWithRedux(<MobileTeamSection />);
       const toggleButton = container.querySelector('.min-w-\\[40px\\].min-h-\\[40px\\]');
       expect(toggleButton).toBeInTheDocument();
     });
@@ -491,7 +590,7 @@ describe('MobileTeamSection', () => {
 
   describe('accessibility', () => {
     it('filter buttons are focusable', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((btn) => {
         expect(btn).not.toBeDisabled();
@@ -499,10 +598,40 @@ describe('MobileTeamSection', () => {
     });
 
     it('search input is focusable', () => {
-      render(<MobileTeamSection />);
+      renderWithRedux(<MobileTeamSection />);
       const input = screen.getByPlaceholderText('Search team...');
       input.focus();
       expect(document.activeElement).toBe(input);
+    });
+  });
+
+  describe('action callbacks', () => {
+    it('opens action sheet when staff card is clicked', () => {
+      renderWithRedux(<MobileTeamSection />);
+
+      // Note: staff-1 becomes numeric ID 1 after convertToStaffMember
+      // Click on a staff card (Jane Stylist is 'ready' status, shown first in Ready group)
+      const staffCard = screen.getByTestId('staff-card-1');
+      fireEvent.click(staffCard);
+
+      // Action sheet should open - look for Jane's name in the action sheet
+      expect(screen.getByTestId('mobile-action-sheet')).toBeInTheDocument();
+      // Jane Stylist should appear in the action sheet title
+      const actionSheet = screen.getByTestId('mobile-action-sheet');
+      expect(actionSheet).toHaveTextContent('Jane Stylist');
+    });
+
+    it('closes action sheet when close button is clicked', () => {
+      renderWithRedux(<MobileTeamSection />);
+
+      // Open action sheet
+      const staffCard = screen.getByTestId('staff-card-1');
+      fireEvent.click(staffCard);
+      expect(screen.getByTestId('mobile-action-sheet')).toBeInTheDocument();
+
+      // Close action sheet
+      fireEvent.click(screen.getByText('Close'));
+      expect(screen.queryByTestId('mobile-action-sheet')).not.toBeInTheDocument();
     });
   });
 });
