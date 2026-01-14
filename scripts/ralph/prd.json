@@ -1,37 +1,489 @@
 {
   "project": "Mango POS Offline V2",
   "branchName": "ralph/frontdesk-update",
-  "description": "Complete FrontDesk Module - Team Section + Tickets P0 gaps",
+  "description": "Complete FrontDesk Module - Team Section features and Tickets P0 gaps (Coming, Waiting, In-Service, Pending)",
   "userStories": [
-    {"id": "US-001", "title": "Connect StaffCard displayConfig to FrontDeskSettings", "priority": 1, "passes": true, "notes": "Already completed"},
-    {"id": "US-002", "title": "Add More Options dropdown menu to StaffCard", "priority": 2, "passes": false, "notes": "StaffCardVertical.tsx"},
-    {"id": "US-003", "title": "Implement Add Ticket action on staff cards", "priority": 3, "passes": false, "notes": ""},
-    {"id": "US-004", "title": "Implement Add Note action on staff cards", "priority": 4, "passes": false, "notes": ""},
-    {"id": "US-005", "title": "Implement Edit Team Member action on staff cards", "priority": 5, "passes": false, "notes": ""},
-    {"id": "US-006", "title": "Implement Quick Checkout action on staff cards", "priority": 6, "passes": false, "notes": ""},
-    {"id": "US-007", "title": "Apply FrontDeskSettings to MobileTeamSection", "priority": 7, "passes": false, "notes": ""},
-    {"id": "US-008", "title": "Connect StaffCard to real ticket data", "priority": 8, "passes": false, "notes": ""},
-    {"id": "US-009", "title": "Connect StaffCard to real appointment data", "priority": 9, "passes": false, "notes": ""},
-    {"id": "US-010", "title": "Add staff card click handler for details", "priority": 10, "passes": false, "notes": ""},
-    {"id": "US-011", "title": "Add Mobile staff card actions", "priority": 11, "passes": false, "notes": ""},
-    {"id": "US-012", "title": "Add staff clock in/out action", "priority": 12, "passes": false, "notes": ""},
-    {"id": "US-013", "title": "Add unit tests for Team Section components", "priority": 13, "passes": false, "notes": ""},
-    {"id": "US-014", "title": "Add No-Show action for late appointments", "priority": 14, "passes": false, "notes": "ComingAppointments.tsx"},
-    {"id": "US-015", "title": "Implement drag and drop for Waiting Queue", "priority": 15, "passes": false, "notes": "WaitListSection.tsx"},
-    {"id": "US-016", "title": "Update In-Service progress bar to Light Blue", "priority": 16, "passes": false, "notes": "ServiceTicketCard.tsx"},
-    {"id": "US-017", "title": "Update urgency thresholds (5/10/20)", "priority": 17, "passes": false, "notes": "urgencyUtils.ts"},
-    {"id": "US-018", "title": "Add urgency color-coding to PendingTicketCard", "priority": 18, "passes": false, "notes": ""},
-    {"id": "US-019", "title": "Add wait time display to PendingTicketCard", "priority": 19, "passes": false, "notes": ""},
-    {"id": "US-020", "title": "Add First Visit badge to Coming Appointments", "priority": 20, "passes": false, "notes": ""},
-    {"id": "US-021", "title": "Add client photo to Coming Appointment cards", "priority": 21, "passes": false, "notes": ""},
-    {"id": "US-022", "title": "Add staff photo to ticket cards", "priority": 22, "passes": false, "notes": ""},
-    {"id": "US-023", "title": "Persist view mode preferences", "priority": 23, "passes": false, "notes": ""},
-    {"id": "US-024", "title": "Add section count badges to Coming header", "priority": 24, "passes": false, "notes": ""},
-    {"id": "US-025", "title": "Add live status update indicator", "priority": 25, "passes": false, "notes": ""},
-    {"id": "US-026", "title": "Add new ticket notification indicator", "priority": 26, "passes": false, "notes": ""},
-    {"id": "US-027", "title": "Add Edit Ticket action to menus", "priority": 27, "passes": false, "notes": ""},
-    {"id": "US-028", "title": "Add Remove from Pending action", "priority": 28, "passes": false, "notes": ""},
-    {"id": "US-029", "title": "Implement sort by setting for In-Service", "priority": 29, "passes": false, "notes": ""},
-    {"id": "US-030", "title": "Add View Full Details to PendingTicketCard", "priority": 30, "passes": false, "notes": ""}
+    {
+      "id": "US-001",
+      "title": "Connect StaffCard displayConfig to FrontDeskSettings",
+      "description": "As a salon manager, I want the staff card display options from FrontDesk Settings to actually control what's shown on staff cards, so that my configuration preferences are applied.",
+      "acceptanceCriteria": [
+        "StaffSidebar reads showTurnCount, showNextAppointment, showServicedAmount, showTicketCount, showLastDone, showMoreOptionsButton from FrontDeskSettings",
+        "StaffSidebar passes these settings to StaffCardVertical via displayConfig prop",
+        "Toggling settings in FrontDesk Settings panel immediately updates staff card display",
+        "pnpm run typecheck passes",
+        "Verify in browser: toggle showTurnCount off in FrontDesk Settings and confirm turn count disappears from staff cards"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/frontdesk/StaffSidebar.tsx"
+    },
+    {
+      "id": "US-002",
+      "title": "Add More Options dropdown menu to StaffCard",
+      "description": "As a front desk coordinator, I want a More Options menu on staff cards that shows contextual actions, so that I can quickly perform team-related tasks.",
+      "acceptanceCriteria": [
+        "StaffCardVertical shows a MoreVertical icon button that opens a dropdown menu on click",
+        "Dropdown menu uses Radix UI DropdownMenu component",
+        "Menu items are controlled by showAddTicketAction, showAddNoteAction, showEditTeamAction, showQuickCheckoutAction settings from displayConfig",
+        "Menu shows placeholder text for each action (actual functionality in later stories)",
+        "Menu closes when clicking outside or pressing Escape",
+        "pnpm run typecheck passes",
+        "Verify in browser: click More Options button and see dropdown menu with enabled action items"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/StaffCard/StaffCardVertical.tsx. More button exists but has no menu. Add DropdownMenu from @radix-ui/react-dropdown-menu."
+    },
+    {
+      "id": "US-003",
+      "title": "Implement Add Ticket action on staff cards",
+      "description": "As a front desk coordinator, I want to quickly add a new ticket for a staff member from their card, so that I can assign walk-in clients efficiently.",
+      "acceptanceCriteria": [
+        "Add Ticket option appears in More Options menu when showAddTicketAction is true",
+        "Clicking Add Ticket triggers onAddTicket callback passed to StaffCardVertical",
+        "StaffSidebar handles onAddTicket by opening the existing walk-in flow with staff pre-selected",
+        "The action is hidden when showAddTicketAction is false in settings",
+        "pnpm run typecheck passes",
+        "Verify in browser: click Add Ticket on a staff card and see the create ticket flow initiated with that staff pre-selected"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Reuse existing CreateTicketButton or WalkInFlow components. Pass staffId to pre-select the staff member."
+    },
+    {
+      "id": "US-004",
+      "title": "Implement Add Note action on staff cards",
+      "description": "As a front desk coordinator, I want to add a note to a staff member from their card, so that I can communicate important information.",
+      "acceptanceCriteria": [
+        "Add Note option appears in More Options menu when showAddNoteAction is true",
+        "Clicking Add Note triggers onAddNote callback passed to StaffCardVertical",
+        "StaffSidebar handles onAddNote by opening the AddNoteModal for that staff member",
+        "The action is hidden when showAddNoteAction is false in settings",
+        "pnpm run typecheck passes",
+        "Verify in browser: click Add Note on a staff card and see the note modal open"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/frontdesk/AddNoteModal.tsx exists. Need to add state for selected staff and pass to modal."
+    },
+    {
+      "id": "US-005",
+      "title": "Implement Edit Team Member action on staff cards",
+      "description": "As a salon manager, I want to quickly edit a team member's details from their card, so that I can update information without navigating away.",
+      "acceptanceCriteria": [
+        "Edit Team Member option appears in More Options menu when showEditTeamAction is true",
+        "Clicking triggers onEditTeam callback passed to StaffCardVertical",
+        "StaffSidebar handles onEditTeam by navigating to /team/[staffId] or opening a side panel",
+        "The action is hidden when showEditTeamAction is false in settings",
+        "pnpm run typecheck passes",
+        "Verify in browser: click Edit Team Member and navigate to team settings for that staff"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Can use React Router navigate to /team/settings with staff ID, or open TeamSettingsPanel with pre-selected staff."
+    },
+    {
+      "id": "US-006",
+      "title": "Implement Quick Checkout action on staff cards",
+      "description": "As a front desk coordinator, I want to quickly checkout a staff member's current ticket, so that I can process payments faster.",
+      "acceptanceCriteria": [
+        "Quick Checkout option appears in More Options menu when showQuickCheckoutAction is true AND staff has active tickets",
+        "Clicking triggers onQuickCheckout callback with the staff's current ticketId",
+        "StaffSidebar handles onQuickCheckout by opening the checkout panel for that ticket",
+        "Option is disabled/hidden when staff has no active tickets",
+        "The action is hidden when showQuickCheckoutAction is false in settings",
+        "pnpm run typecheck passes",
+        "Verify in browser: click Quick Checkout on a busy staff member's card and see checkout open"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Link to existing checkout flow. Only show for busy staff with activeTickets. Use the first in-service ticket."
+    },
+    {
+      "id": "US-007",
+      "title": "Apply FrontDeskSettings to MobileTeamSection",
+      "description": "As a mobile user, I want the FrontDesk Settings to apply to the mobile team view, so that my preferences are consistent across devices.",
+      "acceptanceCriteria": [
+        "MobileTeamSection reads settings from FrontDeskSettings Redux slice using useAppSelector",
+        "organizeBy setting controls grouping (busyStatus shows Ready/Busy groups, clockedStatus shows Clocked In/Out)",
+        "Card data toggles (showTurnCount, showNextAppointment, showServicedAmount, showTicketCount, showLastDone) apply to mobile staff cards via displayConfig",
+        "pnpm run typecheck passes",
+        "Verify on mobile viewport: toggle showTurnCount off in FrontDesk Settings and confirm it updates mobile team view"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/frontdesk/MobileTeamSection.tsx. Currently ignores FrontDeskSettings."
+    },
+    {
+      "id": "US-008",
+      "title": "Connect StaffCard to real ticket data",
+      "description": "As a front desk coordinator, I want staff cards to show real current client and service information for busy staff, so that I have accurate floor visibility.",
+      "acceptanceCriteria": [
+        "StaffSidebar uses useAppSelector to get tickets from ticketsSlice",
+        "For each staff member, find their assigned in-service ticket",
+        "Pass real currentTicketInfo to StaffCardVertical: clientName, serviceName, startTime, progress",
+        "Removes hardcoded dummy ticket data",
+        "Progress is calculated from ticket service startTime vs estimated duration",
+        "pnpm run typecheck passes",
+        "Verify in browser: create a ticket for a staff member and see their card update with real client/service data"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Currently StaffSidebar adds dummy ticket info for busy staff. Need to integrate with ticketsSlice."
+    },
+    {
+      "id": "US-009",
+      "title": "Connect StaffCard to real appointment data",
+      "description": "As a front desk coordinator, I want staff cards to show real next appointment times, so that I can see upcoming workload.",
+      "acceptanceCriteria": [
+        "StaffSidebar uses useAppSelector to get appointments from appointmentsSlice",
+        "For each staff member, find their next upcoming appointment",
+        "Pass real nextAppointmentTime to StaffCardVertical from actual appointment data",
+        "Last service time is calculated from most recent completed ticket for that staff",
+        "Removes hardcoded lastServiceTime and nextAppointmentTime mock values",
+        "pnpm run typecheck passes",
+        "Verify in browser: book an appointment for a staff member and see their card update with real next appointment time"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Currently uses mock data ('10:30 AM', '2:00 PM'). Need to integrate with appointmentsSlice."
+    },
+    {
+      "id": "US-010",
+      "title": "Add staff card click handler for details",
+      "description": "As a front desk coordinator, I want to click a staff card to see their full details and current workload.",
+      "acceptanceCriteria": [
+        "Clicking anywhere on staff card (not on action buttons) triggers onClick callback",
+        "StaffSidebar handles onClick by opening a staff details panel/modal",
+        "Details panel shows: current tickets, upcoming appointments, today's stats, quick actions",
+        "Panel can be closed with X button or clicking outside",
+        "pnpm run typecheck passes",
+        "Verify in browser: click a staff card and see details panel open"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Currently clicking staff card does nothing useful. Should show expanded staff view."
+    },
+    {
+      "id": "US-011",
+      "title": "Add Mobile staff card actions",
+      "description": "As a mobile user, I want to access staff actions from mobile team view, so that I have the same functionality as desktop.",
+      "acceptanceCriteria": [
+        "MobileTeamSection passes action callbacks to StaffCardVertical",
+        "Long-press or tap on staff card shows action sheet (mobile-friendly alternative to dropdown)",
+        "Action sheet includes: Add Ticket, Add Note, Edit Team Member, Quick Checkout",
+        "Actions respect the same settings as desktop (showAddTicketAction, etc.)",
+        "pnpm run typecheck passes",
+        "Verify on mobile viewport: tap/long-press a staff card and see action sheet"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "MobileTeamSection currently has no action handlers. Use Radix UI AlertDialog or Sheet for mobile action sheet."
+    },
+    {
+      "id": "US-012",
+      "title": "Add staff clock in/out action",
+      "description": "As a salon manager, I want to quickly clock staff in or out from their card, so that I can manage attendance efficiently.",
+      "acceptanceCriteria": [
+        "More Options menu shows 'Clock In' for off/clocked-out staff",
+        "More Options menu shows 'Clock Out' for ready/busy staff",
+        "Clicking triggers clock in/out action via staffSlice or timesheetSlice",
+        "Staff status updates immediately after clock in/out",
+        "Confirmation dialog shown before clock out if staff has active tickets",
+        "pnpm run typecheck passes",
+        "Verify in browser: clock in an off staff member and see their status change to ready"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Useful for managers to manage team attendance from FrontDesk without navigating to Team module."
+    },
+    {
+      "id": "US-013",
+      "title": "Add unit tests for Team Section components",
+      "description": "As a developer, I want unit tests for Team Section components, so that we can prevent regressions.",
+      "acceptanceCriteria": [
+        "StaffSidebar.test.tsx created with tests for: rendering, filtering, settings integration",
+        "StaffCardVertical.test.tsx created with tests for: display modes, action callbacks, displayConfig",
+        "MobileTeamSection.test.tsx created with tests for: rendering, filtering, settings integration",
+        "Tests use existing test utilities from src/testing/",
+        "All tests pass with pnpm test",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Current test coverage is ~3.5%. Add basic tests for the main Team Section components."
+    },
+    {
+      "id": "US-014",
+      "title": "Add No-Show action for late appointments",
+      "description": "As a front desk coordinator, I want to mark appointments as no-show when clients are 15+ minutes late so that I can accurately track attendance and free up staff.",
+      "acceptanceCriteria": [
+        "No-Show action button appears in appointment action menu when appointment is 15+ minutes past scheduled time",
+        "No-Show action changes appointment status to 'no-show'",
+        "No-Show action removes appointment from Coming section",
+        "Confirmation dialog appears before marking as no-show",
+        "pnpm run typecheck passes",
+        "Verify in browser: Open Front Desk, find late appointment, click action menu, see No-Show option"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "FD-BR-007. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Late appointments already grouped with minutesUntil < 0."
+    },
+    {
+      "id": "US-015",
+      "title": "Implement drag and drop for Waiting Queue reordering",
+      "description": "As a front desk coordinator, I want to drag and drop tickets in the Waiting Queue to reorder them so that I can prioritize clients based on business needs.",
+      "acceptanceCriteria": [
+        "When enableDragAndDrop setting is true, waiting tickets can be dragged to reorder",
+        "Drag handle or grab cursor indicates draggable items",
+        "Visual feedback shows drag state and drop target",
+        "Order persists after reordering (stored in Redux state)",
+        "Drag and drop works in both grid and list view modes",
+        "pnpm run typecheck passes",
+        "Verify in browser: Enable drag and drop in settings, drag a ticket card to reorder"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "FD-P0-102. File: apps/store-app/src/components/frontdesk/WaitListSection.tsx. Use @dnd-kit/core. enableDragAndDrop setting exists in frontDeskSettingsSlice."
+    },
+    {
+      "id": "US-016",
+      "title": "Update In-Service progress bar base color to Light Blue",
+      "description": "As a salon manager, I want in-service ticket progress bars to show Light Blue color by default so that the visual design matches the PRD specification.",
+      "acceptanceCriteria": [
+        "Progress bars show Light Blue color when progress is 0-79%",
+        "Progress bars show Green color when progress is 80-100%",
+        "Progress bars show Red color when progress exceeds 100% (overdue)",
+        "Color applies consistently in ServiceTicketCard and ServiceTicketCardRefactored",
+        "pnpm run typecheck passes",
+        "Verify in browser: Navigate to In-Service section, observe progress bar colors"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "FD-P0-003/004. File: apps/store-app/src/components/tickets/ServiceTicketCard.tsx. Currently uses Purple, should use Light Blue per PRD."
+    },
+    {
+      "id": "US-017",
+      "title": "Update urgency thresholds to match Pending PRD specification",
+      "description": "As a product owner, I want urgency thresholds to match the PRD specification so that visual escalation happens at the correct wait times.",
+      "acceptanceCriteria": [
+        "DEFAULT_URGENCY_THRESHOLDS in urgencyUtils.ts updated to: attention: 5, urgent: 10, critical: 20",
+        "URGENCY_COLORS updated to match PRD: normal=white/neutral, attention=yellow, urgent=orange, critical=red",
+        "getUrgencyLevel function returns correct level for each threshold",
+        "Existing urgency sorting functions continue to work correctly",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "File: apps/store-app/src/utils/urgencyUtils.ts. Current thresholds (10/15/20) don't match PRD (5/10/20). Dependency for US-018."
+    },
+    {
+      "id": "US-018",
+      "title": "Add urgency color-coding to PendingTicketCard based on wait time",
+      "description": "As a front desk coordinator, I want pending ticket cards to change color based on how long they've been waiting so that I can quickly identify clients who need immediate attention.",
+      "acceptanceCriteria": [
+        "Pending ticket cards show White/neutral theme when waiting <5 minutes",
+        "Pending ticket cards show Yellow theme when waiting 5-10 minutes",
+        "Pending ticket cards show Orange theme when waiting 10-20 minutes",
+        "Pending ticket cards show Red theme when waiting 20+ minutes",
+        "Theme affects card border, background gradient, and accent colors",
+        "pnpm run typecheck passes",
+        "Verify in browser: Navigate to Pending footer, see different colors based on wait time"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "PND-P0-004. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. Depends on US-017 for correct thresholds."
+    },
+    {
+      "id": "US-019",
+      "title": "Add wait time display to PendingTicketCard in collapsed footer",
+      "description": "As a front desk coordinator, I want to see how long each pending ticket has been waiting directly on the card so that I can quickly prioritize checkouts.",
+      "acceptanceCriteria": [
+        "Wait time displayed on ticket cards in collapsed footer mode (e.g., '5m', '12m', '25m')",
+        "Wait time updates periodically (every 30 seconds minimum)",
+        "Wait time uses formatWaitingTime from urgencyUtils.ts",
+        "Wait time display is visually distinct (badge or label format)",
+        "pnpm run typecheck passes",
+        "Verify in browser: Navigate to Pending footer, see wait time on each ticket card"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "PND-P0-003. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. completedAt field exists on tickets for calculating wait time."
+    },
+    {
+      "id": "US-020",
+      "title": "Add First Visit badge to Coming Appointments",
+      "description": "As a front desk coordinator, I want to see a 'First Visit' badge on appointments for new clients so that I can provide extra attention to first-time visitors.",
+      "acceptanceCriteria": [
+        "First Visit badge displays on appointments where client is new (no previous visits)",
+        "Badge is visually distinct (e.g., 'NEW' badge) next to client name",
+        "Badge appears in all timeframe buckets (late, next hour, later)",
+        "Badge styling is consistent with existing VIP badge",
+        "pnpm run typecheck passes",
+        "Verify in browser: See First Visit badge on new client appointments"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "FD-P1-007. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Check isFirstVisit logic in client data."
+    },
+    {
+      "id": "US-021",
+      "title": "Add client photo to Coming Appointment cards",
+      "description": "As a front desk coordinator, I want to see client photos on appointment cards so that I can recognize clients when they arrive.",
+      "acceptanceCriteria": [
+        "Client photo displayed on appointment cards when available",
+        "Default avatar shown when no photo available",
+        "Photo size is appropriate for card layout (32px)",
+        "Photo is circular with subtle border",
+        "pnpm run typecheck passes",
+        "Verify in browser: See client photos on appointment cards"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "FD-P0-006. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. clientPhoto field in appointment/client data."
+    },
+    {
+      "id": "US-022",
+      "title": "Add staff photo to ticket cards",
+      "description": "As a front desk coordinator, I want to see staff photos on ticket cards so that I can quickly identify which technician is assigned.",
+      "acceptanceCriteria": [
+        "Staff photo displayed on ticket cards in Waiting and In-Service sections",
+        "Photo shown as circular avatar (32px) next to staff name badge",
+        "Default avatar with staff initial when no photo available",
+        "Photo integrated with existing staff color badge design",
+        "pnpm run typecheck passes",
+        "Verify in browser: See staff photos on ticket cards"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "FD-P0-005. Files: apps/store-app/src/components/tickets/WaitListTicketCard.tsx, ServiceTicketCard.tsx. Staff data includes photo field."
+    },
+    {
+      "id": "US-023",
+      "title": "Persist view mode preferences across sessions",
+      "description": "As a user, I want my view mode preferences (grid/list, compact/normal) to persist across browser sessions.",
+      "acceptanceCriteria": [
+        "View mode (grid/list) persists to localStorage on change",
+        "Card view mode (compact/normal) persists to localStorage on change",
+        "Settings restored from localStorage on component mount",
+        "Each section (Waiting, In-Service) has independent preferences",
+        "pnpm run typecheck passes",
+        "Verify in browser: Change view mode, refresh page, view mode persisted"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "FD-P0-015. File: apps/store-app/src/hooks/useTicketSection.ts. useTicketSection hook may have localStorage logic - verify it works."
+    },
+    {
+      "id": "US-024",
+      "title": "Add section count badges to collapsed Coming section header",
+      "description": "As a front desk coordinator, I want to see count badges on the collapsed Coming section header.",
+      "acceptanceCriteria": [
+        "Total appointment count shown in header badge when collapsed",
+        "Late count shown separately when > 0 (red badge)",
+        "Badges update in real-time as appointments check in",
+        "pnpm run typecheck passes",
+        "Verify in browser: Collapse Coming section, verify count badges visible"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "FD-P0-021. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Some metrics already displayed - verify collapsed state."
+    },
+    {
+      "id": "US-025",
+      "title": "Add live status update indicator to ticket cards",
+      "description": "As a salon manager, I want visual feedback when ticket status changes in real-time.",
+      "acceptanceCriteria": [
+        "Brief highlight animation when ticket status changes",
+        "Animation subtle but noticeable (pulse or border flash)",
+        "Works for: check-in, start service, mark done transitions",
+        "Animation duration ~500ms",
+        "pnpm run typecheck passes",
+        "Verify in browser: Check in appointment, see visual feedback"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "FD-P0-067. Files: Various ticket card components. Enhances real-time update visibility."
+    },
+    {
+      "id": "US-026",
+      "title": "Add new ticket notification visual indicator",
+      "description": "As a front desk coordinator, I want a visual notification when new bookings arrive.",
+      "acceptanceCriteria": [
+        "New ticket indicator appears when appointment added to Coming section",
+        "Indicator is a badge or highlight on the section header",
+        "Indicator clears when section is viewed/expanded",
+        "pnpm run typecheck passes",
+        "Verify in browser: Add new appointment, see notification"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "FD-P0-070. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Visual alert for new bookings."
+    },
+    {
+      "id": "US-027",
+      "title": "Add Edit Ticket action to all ticket card menus",
+      "description": "As a front desk coordinator, I want to edit ticket details directly from the ticket card menu.",
+      "acceptanceCriteria": [
+        "Edit action available in ticket card dropdown menu",
+        "Edit action opens EditTicketModal with ticket data pre-filled",
+        "Works in Waiting, In-Service, and Pending sections",
+        "Modal allows adding/removing services",
+        "pnpm run typecheck passes",
+        "Verify in browser: Open ticket menu, click Edit, see modal"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "FD-P0-042. Files: Various ticket card components. EditTicketModal exists - verify integration."
+    },
+    {
+      "id": "US-028",
+      "title": "Add Remove from Pending action",
+      "description": "As a front desk coordinator, I want to remove a ticket from pending when a client leaves without paying.",
+      "acceptanceCriteria": [
+        "Remove from Pending action available on PendingTicketCard",
+        "Action requires confirmation dialog with reason selection",
+        "Reason options: Client Left, Cancelled, Other",
+        "Removed ticket logged for audit trail",
+        "pnpm run typecheck passes",
+        "Verify in browser: Click Remove action, see confirmation dialog"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "PND-P0-014. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. Critical for queue management."
+    },
+    {
+      "id": "US-029",
+      "title": "Implement sort by setting for In-Service section",
+      "description": "As a front desk coordinator, I want to sort In-Service tickets by either queue order or time.",
+      "acceptanceCriteria": [
+        "Sort option in In-Service section header dropdown",
+        "Options: Queue order (turn tracker) or Time (chronological)",
+        "sortBy setting in frontDeskSettings controls sort behavior",
+        "Sort preference persists to localStorage",
+        "pnpm run typecheck passes",
+        "Verify in browser: Change sort setting, see tickets reorder"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "FD-P0-095. File: apps/store-app/src/components/frontdesk/ServiceSection.tsx. sortBy setting exists in frontDeskSettingsSlice."
+    },
+    {
+      "id": "US-030",
+      "title": "Add View Full Details action to PendingTicketCard",
+      "description": "As a front desk coordinator, I want to view full ticket details from a pending ticket.",
+      "acceptanceCriteria": [
+        "View Details action available on PendingTicketCard menu",
+        "Action opens TicketDetailsModal with full ticket information",
+        "Modal shows all services, prices, staff assignments",
+        "Works in both expanded and collapsed footer modes",
+        "pnpm run typecheck passes",
+        "Verify in browser: Click view details, see modal"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "PND-P0-012. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. TicketDetailsModal exists - add integration."
+    }
   ]
 }
