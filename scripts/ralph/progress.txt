@@ -240,3 +240,41 @@ Commit: 3d9c52d
   - Action handlers should be extracted to shared hooks if they're duplicated across desktop/mobile
   - Pre-existing typecheck errors in test files don't block implementation commits
 ---
+
+## 2026-01-14 - US-012: Add staff clock in/out action
+Commit: 6542101
+- Added Clock In/Clock Out menu items to StaffCardVertical dropdown
+  - Clock Out (with LogOut icon) shows for clocked-in staff (status !== 'off')
+  - Clock In (with Clock icon) shows for clocked-out staff (status === 'off')
+  - Menu items separated from other actions with DropdownMenuSeparator
+- Added showClockInOutAction to FrontDeskSettingsData type and defaults
+- Added onClockIn and onClockOut callbacks to StaffCardVerticalProps interface
+- Imported clockIn/clockOut async thunks from timesheetSlice
+- Implemented handleClockIn handler in StaffSidebar:
+  - Finds staff by numeric ID
+  - Dispatches clockIn action with staffId
+- Implemented handleClockOut handler in StaffSidebar:
+  - Shows confirmation dialog if staff has active tickets (uses window.confirm)
+  - Dispatches clockOut action with staffId and current timestamp
+- Updated MobileStaffActionSheet with Clock In/Out action buttons:
+  - Different styling for each (green for Clock In, red for Clock Out)
+  - Respects showClockInOutAction setting
+- Updated test mock in frontDeskSettingsSlice.test.ts with new field
+- Files changed:
+  - apps/store-app/src/components/StaffCard/hooks/useStaffCardDisplay.ts
+  - apps/store-app/src/components/StaffCard/StaffCardVertical.tsx
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+  - apps/store-app/src/components/frontdesk/MobileStaffActionSheet.tsx
+  - apps/store-app/src/components/frontdesk/MobileTeamSection.tsx
+  - apps/store-app/src/components/frontdesk-settings/types.ts
+  - apps/store-app/src/components/frontdesk-settings/constants.ts
+  - apps/store-app/src/store/slices/__tests__/frontDeskSettingsSlice.test.ts
+- **Learnings for future iterations:**
+  - timesheetSlice exports clockIn/clockOut async thunks (not staffSlice)
+  - ClockInParams: { staffId: number | string }
+  - ClockOutParams: { staffId: number | string, clockOutTime: Date }
+  - isClockedIn derived from staff.status !== 'off' (off = clocked out)
+  - window.confirm() is simplest confirmation for urgent actions (can be replaced with modal later)
+  - FrontDeskSettingsData type must be updated when adding new settings
+  - Test mocks must include all fields from FrontDeskSettingsData to pass typecheck
+---
