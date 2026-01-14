@@ -8,6 +8,8 @@ import { TurnTracker } from '@/components/TurnTracker/TurnTracker';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { useAppSelector } from '@/store/hooks';
+import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
 
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;
@@ -35,12 +37,17 @@ export const determineStaffStatus = (staff: any, inServiceTickets: any[]) => {
     status: hasActiveTickets ? 'busy' : 'ready'
   };
 };
-export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undefined }) {
+export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { settings: undefined }) {
   // ⚙️ FEATURE FLAG - Set to false to revert to original styling
   const USE_NEW_TEAM_STYLING = true;
 
   // Check if Turn Tracker feature is enabled for this license tier
   const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker');
+
+  // Get FrontDeskSettings from Redux (US-001: Connect to Redux settings)
+  const reduxSettings = useAppSelector(selectFrontDeskSettings);
+  // Use Redux settings as primary, prop settings as fallback
+  const settings = reduxSettings || propSettings;
 
   // Get context data including resetStaffStatus function
   const {
@@ -854,13 +861,14 @@ export function StaffSidebar({ settings }: StaffSidebarProps = { settings: undef
                       showName: true,
                       showQueueNumber: true,
                       showAvatar: true,
-                      showTurnCount: true,
+                      // US-001: Connect to FrontDeskSettings from Redux
+                      showTurnCount: settings?.showTurnCount ?? true,
                       showStatus: true,
                       showClockedInTime: true,
-                      showNextAppointment: true,
-                      showSalesAmount: true,
-                      showTickets: true,
-                      showLastService: true,
+                      showNextAppointment: settings?.showNextAppointment ?? true,
+                      showSalesAmount: settings?.showServicedAmount ?? true,
+                      showTickets: settings?.showTicketCount ?? true,
+                      showLastService: settings?.showLastDone ?? true,
                     }}
                   />
                 </div>
