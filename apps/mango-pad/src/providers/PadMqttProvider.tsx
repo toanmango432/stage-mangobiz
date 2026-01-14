@@ -86,6 +86,35 @@ const HEARTBEAT_TIMEOUT_MS = 15000; // 15 seconds
 // How often Mango Pad sends its heartbeat to Store App
 const PAD_HEARTBEAT_INTERVAL_MS = 5000; // 5 seconds
 
+// Dev mode fixed station ID - MUST match DEV_MODE_STATION_ID in store-app deviceRegistration.ts
+// This enables automatic pairing in development without manual code entry
+const DEV_MODE_STATION_ID = 'demo-station-001';
+const DEV_MODE_SALON_ID = 'demo-salon';
+const DEV_MODE_DEVICE_ID = 'demo-mango-pad-001';
+
+/**
+ * Get or create device ID for Mango Pad
+ * In dev mode, uses a fixed device ID for consistent heartbeat publishing
+ */
+function getOrCreateDeviceId(): string {
+  const isDevMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+  if (isDevMode) {
+    // In dev mode, always use the fixed device ID
+    // Also store it in localStorage so it's available everywhere
+    localStorage.setItem('mango_pad_device_id', DEV_MODE_DEVICE_ID);
+    return DEV_MODE_DEVICE_ID;
+  }
+
+  // Production mode: get existing or generate new UUID
+  let deviceId = localStorage.getItem('mango_pad_device_id');
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem('mango_pad_device_id', deviceId);
+  }
+  return deviceId;
+}
+
 // Context for unpair events (used by useUnpairEvent hook)
 interface UnpairContextValue {
   unpairReceived: boolean;
@@ -214,15 +243,32 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const brokerUrl = config.mqttBrokerUrl;
 
   // Load salonId and stationId from pairing info on mount
+  // In dev mode, ALWAYS use fixed IDs for automatic connection (ignoring localStorage)
   useEffect(() => {
-    const pairing = getPairingInfo();
-    if (pairing) {
-      setStationId(pairing.stationId);
-      setSalonId(pairing.salonId);
-      console.log('[PadMqttProvider] Loaded pairing info:', {
-        stationId: pairing.stationId,
-        salonId: pairing.salonId,
+    const isDevMode = import.meta.env.DEV || import.meta.env.MODE === 'development';
+
+    if (isDevMode) {
+      // Dev mode: ALWAYS use fixed IDs to match Store App's dev mode
+      // This ensures consistent pairing without manual configuration
+      console.log('[PadMqttProvider] Dev mode - using fixed IDs (ignoring localStorage):', {
+        stationId: DEV_MODE_STATION_ID,
+        salonId: DEV_MODE_SALON_ID,
       });
+      setStationId(DEV_MODE_STATION_ID);
+      setSalonId(DEV_MODE_SALON_ID);
+    } else {
+      // Production mode: use pairing info from localStorage
+      const pairing = getPairingInfo();
+      if (pairing) {
+        setStationId(pairing.stationId);
+        setSalonId(pairing.salonId);
+        console.log('[PadMqttProvider] Loaded pairing info:', {
+          stationId: pairing.stationId,
+          salonId: pairing.salonId,
+        });
+      } else {
+        console.log('[PadMqttProvider] No pairing found - waiting for user to pair via code');
+      }
     }
   }, []);
 
@@ -417,8 +463,8 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   useEffect(() => {
     if (!salonId || !stationId || connectionStatus !== 'connected') return;
 
-    const deviceId = localStorage.getItem('mango_pad_device_id');
-    if (!deviceId) return;
+    // Get or create device ID (ensures dev mode always has a device ID)
+    const deviceId = getOrCreateDeviceId();
 
     const pairing = getPairingInfo();
     const deviceName = pairing?.stationName

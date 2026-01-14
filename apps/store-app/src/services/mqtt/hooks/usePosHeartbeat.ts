@@ -28,8 +28,11 @@ export function usePosHeartbeat() {
   const reduxStoreId = useAppSelector(selectStoreId);
   const reduxStoreName = useAppSelector(selectStoreName);
 
-  // Fallback to env variable for dev mode (when not logged in)
-  const storeId = reduxStoreId || import.meta.env.VITE_STORE_ID || null;
+  // In dev mode, ALWAYS use VITE_STORE_ID (demo-salon) for consistent pairing with Mango Pad
+  // After login, Redux storeId becomes the database ID which won't match Mango Pad's expected salonId
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+  const envStoreId = import.meta.env.VITE_STORE_ID;
+  const storeId = (isDevMode && envStoreId) ? envStoreId : (reduxStoreId || envStoreId || null);
   const storeName = reduxStoreName || 'Dev Store';
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientRef = useRef<MqttClient | null>(null);

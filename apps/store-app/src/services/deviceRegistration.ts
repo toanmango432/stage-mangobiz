@@ -12,6 +12,10 @@ import type { SalonDeviceRow, SalonDeviceInsert, SalonDeviceRole } from './supab
 const DEVICE_ID_KEY = 'mango_store_device_id';
 const PAIRING_CODE_KEY = 'mango_store_pairing_code';
 
+// Dev mode fixed station ID - used when VITE_DEV_MODE=true for consistent pairing with Mango Pad
+// CRITICAL: This must match DEV_MODE_STATION_ID in mango-pad/src/providers/PadMqttProvider.tsx
+const DEV_MODE_STATION_ID = 'demo-station-001';
+
 // Default values
 const DEFAULT_STATION_NAME = 'Checkout Station';
 const DEFAULT_DEVICE_ROLE: SalonDeviceRole = 'store-app';
@@ -66,8 +70,18 @@ export function parsePairingCode(input: string): string {
 
 /**
  * Get or create the device ID for this Store App instance
+ * In dev mode (VITE_DEV_MODE=true), returns a fixed ID for consistent pairing with Mango Pad
  */
 export function getOrCreateDeviceId(): string {
+  // In dev mode, ALWAYS use fixed station ID for consistent pairing with Mango Pad
+  // This ensures both Store App and Mango Pad use the same stationId without manual pairing
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+  if (isDevMode) {
+    console.log('[DeviceRegistration] Dev mode - using fixed station ID:', DEV_MODE_STATION_ID);
+    return DEV_MODE_STATION_ID;
+  }
+
+  // Production mode: use persistent device ID from localStorage
   let deviceId = localStorage.getItem(DEVICE_ID_KEY);
 
   if (!deviceId) {

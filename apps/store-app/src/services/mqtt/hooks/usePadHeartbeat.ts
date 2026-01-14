@@ -31,7 +31,12 @@ const STATION_HEARTBEAT_INTERVAL = 5000; // Send heartbeat every 5 seconds
 
 export function usePadHeartbeat() {
   const dispatch = useAppDispatch();
-  const storeId = useAppSelector(selectStoreId);
+  const reduxStoreId = useAppSelector(selectStoreId);
+
+  // In dev mode, ALWAYS use VITE_STORE_ID (demo-salon) for consistent pairing with Mango Pad
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+  const envStoreId = import.meta.env.VITE_STORE_ID;
+  const storeId = (isDevMode && envStoreId) ? envStoreId : (reduxStoreId || envStoreId || null);
   const padDevices = useAppSelector(selectAllPadDevices);
   const clientRef = useRef<MqttClient | null>(null);
   const offlineCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
