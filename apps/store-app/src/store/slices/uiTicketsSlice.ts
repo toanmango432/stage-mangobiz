@@ -1253,6 +1253,19 @@ const uiTicketsSlice = createSlice({
     setPendingTickets: (state, action: PayloadAction<PendingTicket[]>) => {
       state.pendingTickets = action.payload;
     },
+    // Reorder waitlist via drag and drop
+    reorderWaitlist: (state, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
+      const { oldIndex, newIndex } = action.payload;
+      if (oldIndex < 0 || newIndex < 0 || oldIndex >= state.waitlist.length || newIndex >= state.waitlist.length) {
+        return;
+      }
+      const [movedTicket] = state.waitlist.splice(oldIndex, 1);
+      state.waitlist.splice(newIndex, 0, movedTicket);
+    },
+    // Direct set of waitlist order (for @dnd-kit arrayMove result)
+    setWaitlistOrder: (state, action: PayloadAction<UITicket[]>) => {
+      state.waitlist = action.payload;
+    },
     // Real-time update from Socket.io
     ticketUpdated: (state, action: PayloadAction<UITicket>) => {
       const ticket = action.payload;
@@ -1493,7 +1506,7 @@ const uiTicketsSlice = createSlice({
   },
 });
 
-export const { clearError, ticketUpdated, setPendingTickets } = uiTicketsSlice.actions;
+export const { clearError, ticketUpdated, setPendingTickets, reorderWaitlist, setWaitlistOrder } = uiTicketsSlice.actions;
 
 // Selectors
 export const selectWaitlist = (state: RootState) => state.uiTickets.waitlist;
