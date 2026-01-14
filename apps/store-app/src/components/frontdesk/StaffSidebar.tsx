@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { Search, Filter, Users, ChevronUp, ChevronDown, Settings } from 'lucide-react';
@@ -10,6 +10,7 @@ import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppSelector } from '@/store/hooks';
 import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
+import { useTicketPanel } from '@/contexts/TicketPanelContext';
 
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;
@@ -54,6 +55,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     resetStaffStatus,
     staff
   } = useTickets();
+
+  // US-003: Get ticket panel context for Add Ticket action
+  const { openTicketWithData } = useTicketPanel();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -317,6 +321,27 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     resetStaffStatus();
     setShowResetConfirmation(false);
   };
+
+  // US-003: Handle Add Ticket action from staff card
+  // Opens the ticket panel with the selected staff pre-selected
+  const handleAddTicket = useCallback((staffId: number) => {
+    // Find the staff member by ID
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      // Open ticket panel with staff pre-selected
+      openTicketWithData({
+        id: '', // New ticket
+        clientName: '', // Will be filled by user
+        techId: String(staffId),
+        technician: staffMember.name,
+      });
+    }
+  }, [staff, openTicketWithData]);
+
   // Determine responsive grid class based on sidebar width and view mode
   const getGridColumns = () => {
     // Special case for ultra compact width
@@ -869,7 +894,15 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                       showSalesAmount: settings?.showServicedAmount ?? true,
                       showTickets: settings?.showTicketCount ?? true,
                       showLastService: settings?.showLastDone ?? true,
+                      // US-002/US-003: More Options menu action settings
+                      showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                      showAddTicketAction: settings?.showAddTicketAction ?? true,
+                      showAddNoteAction: settings?.showAddNoteAction ?? true,
+                      showEditTeamAction: settings?.showEditTeamAction ?? true,
+                      showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
                     }}
+                    // US-003: Handle Add Ticket action
+                    onAddTicket={handleAddTicket}
                   />
                 </div>
               </Tippy>
