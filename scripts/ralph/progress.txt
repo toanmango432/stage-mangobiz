@@ -498,3 +498,24 @@ Commit: 44dbbf7
   - Use renderStaffAvatar pattern for consistent avatar display across components
 ---
 
+## 2026-01-14 02:15 - US-023: Persist view mode preferences across sessions
+Commit: (already implemented - no changes needed)
+- Verified existing implementation in useViewModePreference hook
+- localStorage persistence is already implemented with:
+  - useState callback reads from localStorage on mount
+  - setViewMode/setCardViewMode write to localStorage on change
+  - Each section has unique storage key (waitList, service, pendingFooter)
+- Browser verification confirmed: changed view mode, refreshed page, settings persisted
+- Files verified (no changes needed):
+  - apps/store-app/src/hooks/frontdesk/useViewModePreference.ts
+  - apps/store-app/src/hooks/frontdesk/useTicketSection.ts
+  - apps/store-app/src/components/frontdesk/WaitListSection.tsx (uses sectionKey: 'waitList')
+  - apps/store-app/src/components/frontdesk/ServiceSection.tsx (uses sectionKey: 'service')
+  - apps/store-app/src/components/frontdesk/PendingSectionFooter.tsx (uses STORAGE_KEYS)
+- **Learnings for future iterations:**
+  - useViewModePreference already handles all localStorage persistence
+  - Storage keys: {sectionKey}ViewMode, {sectionKey}CardViewMode, {sectionKey}MinimizedLineView
+  - Pre-existing typecheck errors in Book module tests are infrastructure issues (not blockers)
+  - Sometimes stories are already implemented - verify before making changes
+---
+

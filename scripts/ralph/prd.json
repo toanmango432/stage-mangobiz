@@ -372,7 +372,7 @@
         "Verify in browser: Change view mode, refresh page, view mode persisted"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "FD-P0-015. File: apps/store-app/src/hooks/useTicketSection.ts. useTicketSection hook may have localStorage logic - verify it works."
     },
     {
