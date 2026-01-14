@@ -341,8 +341,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": "Complex inline logic should be extracted per codebase patterns."
+      "passes": true,
+      "notes": "Already implemented in US-009 (StaffSidebar module split). Hook exists at StaffSidebar/hooks/useStaffTicketInfo.ts (112 lines). Used in StaffSidebar.tsx line 85."
     },
     {
       "id": "US-022",

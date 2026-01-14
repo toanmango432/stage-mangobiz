@@ -1067,3 +1067,37 @@ export function dispatchStaffSidebarEvent<K extends keyof StaffSidebarCustomEven
 
 ---
 
+## 2026-01-14 16:10 - US-021: Extract getStaffTicketInfo to useStaffTicketInfo hook
+Commit: N/A (No code changes - already implemented)
+
+### Analysis
+US-021 was already fully implemented in US-009 (StaffSidebar module split). Verification confirmed:
+
+**Hook File:** `apps/store-app/src/components/frontdesk/StaffSidebar/hooks/useStaffTicketInfo.ts`
+- 112 lines of extracted logic
+- Contains `calculateTimeInfo()` helper (lines 16-36)
+- Contains `formatStartTime()` helper (lines 41-48)
+- Main `useStaffTicketInfo()` hook (lines 62-112)
+- Returns `(staffId: string | number) => StaffTicketInfoResult | null`
+
+**Usage in StaffSidebar.tsx:**
+- Line 54: Imported from `'./StaffSidebar/hooks'`
+- Line 85: `const getStaffTicketInfo = useStaffTicketInfo();`
+
+### Files Changed
+- None (already implemented)
+
+### Quality Checklist
+- [x] Create useStaffTicketInfo.ts hook ✅
+- [x] Move 60+ lines of logic (112 lines extracted) ✅
+- [x] Hook returns { getStaffTicketInfo } function ✅
+- [x] Main component imports and uses hook ✅
+- [x] Logic is testable in isolation ✅ (separate file, uses Redux selector)
+- [x] pnpm run typecheck passes ✅
+
+### Learnings
+- PRD notes can become outdated when work is done across multiple stories
+- US-009 Phase 1 extracted hooks including useStaffTicketInfo
+
+---
+
