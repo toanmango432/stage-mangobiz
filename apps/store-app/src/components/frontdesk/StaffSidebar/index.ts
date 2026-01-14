@@ -39,7 +39,11 @@ export type {
   LocalAppointment,
   TeamSettings,
   FrontDeskSettingsData,
+  StaffSidebarCustomEvents,
 } from './types';
+
+// US-020: Type-safe custom event dispatcher
+export { dispatchStaffSidebarEvent } from './types';
 
 // Constants
 export { STAFF_STATUS_OPTIONS, DEFAULT_SIDEBAR_WIDTH, WIDTH_PRESETS, STORAGE_KEYS } from './constants';

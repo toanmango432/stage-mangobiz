@@ -81,3 +81,28 @@ export type StaffMemberWithInfo = Omit<UIStaff, 'activeTickets' | 'currentTicket
   activeTickets?: ActiveTicket[];
   currentTicketInfo?: CurrentTicketInfo;
 };
+
+/**
+ * US-020: Custom event type declarations for StaffSidebar
+ *
+ * Extend WindowEventMap to add type-safe custom events used in the module.
+ * This allows TypeScript to properly type event listeners and dispatchers.
+ */
+export interface StaffSidebarCustomEvents {
+  'open-turn-tracker': Event;
+}
+
+// Extend global WindowEventMap
+declare global {
+  interface WindowEventMap extends StaffSidebarCustomEvents {}
+}
+
+/**
+ * Type-safe event dispatcher for StaffSidebar custom events
+ */
+export function dispatchStaffSidebarEvent<K extends keyof StaffSidebarCustomEvents>(
+  eventName: K,
+  event?: StaffSidebarCustomEvents[K]
+): void {
+  window.dispatchEvent(event || new Event(eventName));
+}

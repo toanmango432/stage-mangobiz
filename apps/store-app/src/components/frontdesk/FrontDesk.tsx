@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useAppDispatch } from '@/store/hooks';
 import { useDeviceDetection } from '@/hooks/frontdesk';
 import { StaffSidebar } from './StaffSidebar';
+import { dispatchStaffSidebarEvent } from './StaffSidebar/types';
 import { ServiceSection } from './ServiceSection';
 import { WaitListSection } from './WaitListSection';
 import { ComingAppointments } from './ComingAppointments';
@@ -909,8 +910,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       {/* Global Turn Tracker Floating Action Button - Only show if feature is enabled */}
       {isTurnTrackerEnabled && (
         <TurnTrackerFab onClick={() => {
-          // Use a custom event so StaffSidebar can open its TurnTracker modal
-          window.dispatchEvent(new Event('open-turn-tracker'));
+          // US-020: Type-safe custom event dispatcher
+          dispatchStaffSidebarEvent('open-turn-tracker');
         }} />
       )}
       {/* Add the new FrontDeskSettings component */}
