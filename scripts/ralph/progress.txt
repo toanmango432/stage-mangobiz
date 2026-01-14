@@ -438,3 +438,26 @@ Commit: 9cfe306
   - Badge styling uses Tailwind classes (not inline styles) for consistent theming
   - Wait time badge placed differently per view mode for optimal layout
 ---
+
+## 2026-01-14 - US-020: Add First Visit badge to Coming Appointments
+Commit: a832741
+- Updated useTicketsCompat.ts to import selectClients and enrich coming appointments:
+  - Added isFirstVisit flag (true when client.totalVisits === 0)
+  - Added isVip flag from client.isVip
+  - Added clientPhoto from client.avatar
+- Updated ComingAppointments.tsx to display "NEW" badge:
+  - Added Sparkles icon import from lucide-react
+  - Added emerald-themed badge (bg-emerald-100, text-emerald-700)
+  - Badge displays in all 3 timeframe buckets (late, next hour, later)
+  - Badge also displays in action menu modal header
+  - Badge styling consistent with existing VIP badge pattern
+- Files changed:
+  - apps/store-app/src/hooks/useTicketsCompat.ts
+  - apps/store-app/src/components/frontdesk/ComingAppointments.tsx
+- **Learnings for future iterations:**
+  - Client data is available via selectClients from clientsSlice
+  - totalVisits stored in either client.visitSummary.totalVisits or client.totalVisits
+  - First visit = totalVisits === 0 (the appointment will be their first)
+  - useTicketsCompat enriches appointment data for ComingAppointments
+  - Pre-existing typecheck errors in test files are unrelated infrastructure issues
+---

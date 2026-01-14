@@ -324,7 +324,7 @@
         "Verify in browser: See First Visit badge on new client appointments"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "FD-P1-007. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Check isFirstVisit logic in client data."
     },
     {
