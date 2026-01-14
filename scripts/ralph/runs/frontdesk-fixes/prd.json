@@ -233,8 +233,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "Lines 86-230 have extensive localStorage usage. Should use Redux per CLAUDE.md architecture."
+      "passes": true,
+      "notes": "Migrated useViewMode and useSidebarWidth hooks to Redux. Added staff sidebar state to FrontDeskSettings viewState. Added initialization effect in StaffSidebar.tsx to sync teamSettings.viewWidth → Redux on mount."
     },
     {
       "id": "US-015",
@@ -249,8 +249,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": "MobileTeamSection.tsx line 205 has TODO: 'Integrate with staff notes storage/API'"
+      "passes": true,
+      "notes": "Implemented using Redux setStaffNote action. Added hasNote field to StaffMember interface and note indicator badge to StaffCardVertical."
     },
     {
       "id": "US-016",
@@ -264,8 +264,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": "Line 70 imports Redux selectors but also uses useTickets() hook - confusing."
+      "passes": true,
+      "notes": "Added JSDoc documentation to StaffSidebar.tsx and useTicketsCompat.ts. Clarified that useTicketsCompat IS Redux-backed (compatibility wrapper), so there's no conflict - all data comes from Redux."
     },
     {
       "id": "US-017",
@@ -279,8 +279,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": "Two sources of truth: local teamSettings AND Redux FrontDeskSettings."
+      "passes": true,
+      "notes": "Added TeamSettings interface and reducers to frontDeskSettingsSlice. StaffSidebar now uses Redux selector instead of local state. TeamSettingsPanel re-exports types for backward compatibility."
     },
     {
       "id": "US-018",

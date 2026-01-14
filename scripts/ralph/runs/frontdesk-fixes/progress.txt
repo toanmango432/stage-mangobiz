@@ -729,3 +729,209 @@ US-013 was already resolved in a previous iteration (likely US-009 when StaffSid
 - US-009 module split introduced `gridHelpers.ts` with proper CSS Grid auto-fit approach
 - No code changes needed - just verification and documentation
 
+---
+
+## 2026-01-14 14:55 - US-014: Migrate localStorage state to Redux
+Commit: 386eb97
+
+### Implementation
+Migrated StaffSidebar localStorage state to Redux for centralized state management:
+
+**Redux State Added to frontDeskSettingsSlice:**
+- `staffSidebarViewMode`: 'normal' | 'compact'
+- `staffSidebarWidth`: number (pixel width)
+- `staffSidebarWidthType`: 'fixed' | 'percentage' | 'customPercentage'
+- `staffSidebarWidthPercentage`: number
+
+**New Redux Actions:**
+- `setStaffSidebarViewMode(mode)`
+- `setStaffSidebarWidth(width)`
+- `setStaffSidebarWidthType(type)`
+- `setStaffSidebarWidthPercentage(percentage)`
+- `setStaffSidebarWidthSettings({ width, widthType, widthPercentage })` - batch action
+
+**New Redux Selectors:**
+- `selectStaffSidebarViewMode`
+- `selectStaffSidebarWidth`
+- `selectStaffSidebarWidthType`
+- `selectStaffSidebarWidthPercentage`
+
+**Hook Migrations:**
+- `useViewMode.ts`: Now uses Redux selectors/actions instead of localStorage
+- `useSidebarWidth.ts`: Now uses Redux selectors/actions instead of localStorage
+
+**Initialization Pattern:**
+- Added effect in StaffSidebar.tsx to sync `teamSettings.viewWidth` → Redux on mount
+- This resolves the dual settings source issue (teamSettings localStorage JSON vs individual Redux keys)
+
+### Files Changed
+- `apps/store-app/src/store/slices/frontDeskSettingsSlice.ts` (+62 lines)
+- `apps/store-app/src/components/frontdesk/StaffSidebar/hooks/useViewMode.ts` (25 lines modified)
+- `apps/store-app/src/components/frontdesk/StaffSidebar/hooks/useSidebarWidth.ts` (149 lines modified)
+- `apps/store-app/src/components/frontdesk/StaffSidebar.tsx` (+9 lines)
+
+### Browser Verification (REQUIRED - DO NOT OMIT)
+- Dev server: ✅ Running on localhost:5174
+- URL tested: http://localhost:5174/frontdesk
+- Settings changed: Team Settings → View Width → "Compact (300px)"
+- Page reloaded: ✅
+- Settings persisted: ✅ Verified via localStorage inspection:
+  - `staffSidebarWidth: "300"`
+  - `staffSidebarWidthType: "fixed"`
+- Visual verification: ✅ Screenshot confirms compact sidebar width
+- Typecheck: ✅ Passes (no StaffSidebar errors)
+- **Result: PASSED ✅**
+
+### Quality Checklist
+- [x] Move viewMode state to FrontDeskSettings Redux slice ✅
+- [x] Move sidebarWidth to viewState/FrontDeskSettings slice ✅
+- [x] Settings persist after page reload (via Redux viewState persistence) ✅
+- [x] No `as any` type casts added
+- [x] pnpm run typecheck passes
+
+### Key Pattern Discovered
+**Dual Settings Architecture:** StaffSidebar has TWO settings sources:
+1. `teamSettings` - JSON object stored in localStorage key `teamSettings`
+2. Redux `viewState` - Individual localStorage keys (`staffSidebarWidth`, `staffSidebarWidthType`, etc.)
+
+On page load, `teamSettings.viewWidth` must be synced to Redux to ensure consistency. This is handled by the initialization effect in StaffSidebar.tsx.
+
+### Learnings
+- localStorage usage in hooks can be migrated to Redux by:
+  1. Adding state/actions/selectors to slice
+  2. Using `loadViewState()` pattern for initialization from localStorage
+  3. Dispatch actions in reducers that also persist to localStorage
+- Dual settings sources require careful initialization to stay in sync
+- Preview mode (original width save/restore) can remain as local state since it's transient UI state
+
+---
+
+## 2026-01-14 15:05 - US-015: Implement staff note persistence in MobileTeamSection
+Commit: 6486bee
+
+### Implementation
+Wired staff note persistence to Redux for MobileTeamSection:
+
+**Changes to MobileTeamSection.tsx:**
+- Import `selectAllStaffNotes` selector and `setStaffNote` action from frontDeskSettingsSlice
+- Get `staffNotes` from Redux using `useAppSelector`
+- Update `handleSaveStaffNote` to dispatch `setStaffNote` action instead of just logging
+- Pass `currentNote` prop to AddStaffNoteModal for edit mode support
+- Update `convertToStaffMember` function to accept `staffNotes` parameter and set `hasNote` flag
+
+**Changes to StaffCardVertical.tsx:**
+- Add `hasNote?: boolean` optional field to `StaffMember` interface
+- Add note indicator badge (amber StickyNote icon) in top-right corner when `hasNote` is true
+- Indicator shows on normal and compact view modes (not ultra-compact)
+
+### Files Changed
+- `apps/store-app/src/components/frontdesk/MobileTeamSection.tsx` (+21 lines, -13 lines)
+- `apps/store-app/src/components/StaffCard/StaffCardVertical.tsx` (+22 lines)
+
+### Quality Checklist
+- [x] Notes dispatch Redux action to save (not just local state)
+- [x] Load existing notes when staff selected (via currentNote prop)
+- [x] Show note indicator on staff cards with notes (amber StickyNote badge)
+- [x] Remove TODO comment on line 205 (replaced with actual implementation)
+- [x] pnpm run typecheck passes (no errors in changed files)
+- [x] No `as any` type casts added
+- [x] No mock data introduced
+
+### Learnings
+- Staff notes system already existed in frontDeskSettingsSlice from US-006
+- Converting function to accept staffNotes parameter enables note indicator without prop drilling
+- Note indicator position needs to avoid conflicting with more options button (hover-revealed)
+- Using hasNote boolean is cleaner than passing full notes map to StaffCardVertical
+
+---
+
+## 2026-01-14 15:15 - US-016: Clarify staff data source (Redux vs useTickets)
+Commit: 7fa5879
+
+### Implementation
+Added comprehensive JSDoc documentation to clarify data sources:
+
+**StaffSidebar.tsx Documentation:**
+- Staff list: `selectAllStaff` from uiStaffSlice (via useTicketsCompat)
+- Service tickets: `selectServiceTickets` from uiTicketsSlice
+- Appointments: `selectAllAppointments` from appointmentsSlice
+- Completed tickets: `selectCompletedTickets` from uiTicketsSlice
+- Display settings: `selectFrontDeskSettings` from frontDeskSettingsSlice
+- Staff notes: `selectAllStaffNotes` from frontDeskSettingsSlice
+
+**useTicketsCompat.ts Documentation:**
+- Documented that this hook IS Redux-backed (compatibility wrapper)
+- Listed all returned data and their source Redux selectors
+- Explained the migration bridge purpose
+- Listed authoritative Redux slices
+
+### Files Changed
+- `apps/store-app/src/components/frontdesk/StaffSidebar.tsx` (+30 lines JSDoc)
+- `apps/store-app/src/hooks/useTicketsCompat.ts` (+25 lines JSDoc)
+
+### Quality Checklist
+- [x] Document which selectors are authoritative for staff list
+- [x] Clarify that useTickets hook IS Redux (no conflict)
+- [x] Add JSDoc comments explaining data flow
+- [x] No redundant data fetching (useTicketsCompat is single source)
+- [x] pnpm run typecheck passes
+
+### Key Finding
+The PRD note "Line 70 imports Redux selectors but also uses useTickets() hook - confusing" was based on outdated understanding. `useTicketsCompat` IS fully Redux-backed - it's a compatibility wrapper that provides the legacy TicketContext API while using Redux selectors internally. There is no conflict or redundancy.
+
+### Learnings
+- Documentation clarifies architecture better than code changes
+- useTicketsCompat is the official migration bridge from Context → Redux
+- All staff-related data flows through Redux selectors
+- Module hooks (useStaffTicketInfo, etc.) also use Redux directly
+
+---
+
+## 2026-01-14 15:25 - US-017: Consolidate teamSettings with FrontDeskSettings Redux slice
+Commit: c3ef043
+
+### Implementation
+Consolidated teamSettings state management into Redux frontDeskSettingsSlice:
+
+**Redux State Added:**
+- `TeamSettings` interface with all team section settings
+- `defaultTeamSettings` constant with sensible defaults
+- `teamSettings` field added to `ViewState` interface
+- `loadTeamSettings()` function to initialize from localStorage
+
+**New Redux Reducers:**
+- `setTeamSettings(settings)` - Replace entire settings object
+- `updateTeamSettings(partial)` - Merge partial settings update
+
+**New Redux Selectors:**
+- `selectTeamSettings` - Get full teamSettings object
+- `selectTeamOrganizeBy` - Get organizeBy setting
+- `selectTeamViewWidth` - Get viewWidth setting
+- `selectTeamCustomWidthPercentage` - Get customWidthPercentage
+
+**Migration Changes:**
+- StaffSidebar.tsx now uses `selectTeamSettings` selector instead of local state
+- `handleTeamSettingsChange` dispatches `updateTeamSettings` action
+- TeamSettingsPanel.tsx re-exports `TeamSettings` type from Redux slice for backward compatibility
+
+### Files Changed
+- `apps/store-app/src/store/slices/frontDeskSettingsSlice.ts` (+76 lines)
+- `apps/store-app/src/components/frontdesk/StaffSidebar.tsx` (-25 lines, +15 lines)
+- `apps/store-app/src/components/TeamSettingsPanel.tsx` (+5 lines, -45 lines type definition)
+
+### Quality Checklist
+- [x] Remove local teamSettings state - now uses Redux selector
+- [x] Use FrontDeskSettings slice for all team section settings
+- [x] TeamSettingsPanel updates Redux (via parent dispatch), not localStorage directly
+- [x] Settings changes reflect immediately across components
+- [x] TeamSettings type re-exported for backward compatibility
+- [x] pnpm run typecheck passes (no errors in changed files)
+
+### Learnings
+- Consolidating local state to Redux requires careful re-export for backward compatibility
+- Types can be exported from slice and re-exported from components that previously owned them
+- Redux viewState pattern with localStorage backing provides persistence
+- updateTeamSettings with Partial<TeamSettings> allows incremental updates
+
+---
+
