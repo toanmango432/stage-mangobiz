@@ -1172,6 +1172,10 @@ export const ServiceSection = memo(function ServiceSection({
                   onPause={(id: string) => pauseTicket?.(id)}
                   onResume={(id: string) => resumeTicket?.(id)}
                   onDelete={(id: string) => openDeleteConfirmation(id)}
+                  onEdit={(id: string) => {
+                    setTicketToEdit(parseInt(id));
+                    setShowEditModal(true);
+                  }}
                   onClick={(id: string) => {
                     // Open ticket in checkout panel
                     const clickedTicket = filteredServiceTickets.find(t => t.id === id);
@@ -1215,6 +1219,10 @@ export const ServiceSection = memo(function ServiceSection({
                   onPause={(id: string) => pauseTicket?.(id)}
                   onResume={(id: string) => resumeTicket?.(id)}
                   onDelete={(id: string) => openDeleteConfirmation(id)}
+                  onEdit={(id: string) => {
+                    setTicketToEdit(parseInt(id));
+                    setShowEditModal(true);
+                  }}
                   onClick={(id: string) => {
                     // Open ticket in checkout panel
                     const clickedTicket = filteredServiceTickets.find(t => t.id === id);

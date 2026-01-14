@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Clock } from 'lucide-react';
+import { DollarSign, Clock, MoreVertical, Edit2, StickyNote } from 'lucide-react';
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 import {
   UnpaidWatermark,
 } from './pending';
@@ -58,6 +60,8 @@ interface PendingTicketCardProps {
   ticket: PendingTicket;
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onMarkPaid: (id: string) => void;
+  onEdit?: (ticketId: string) => void;
+  onViewDetails?: (ticketId: string) => void;
   onClick?: (ticketId: string) => void;
 }
 
@@ -74,8 +78,11 @@ export function PendingTicketCard({
   ticket,
   viewMode = 'grid-normal',
   onMarkPaid,
+  onEdit,
+  onViewDetails,
   onClick,
 }: PendingTicketCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
 
   // Helper flags
   const isFirstVisit = !ticket.lastVisitDate || ticket.clientType?.toLowerCase().includes('first');
@@ -326,6 +333,32 @@ export function PendingTicketCard({
               >
                 <DollarSign size={12} strokeWidth={2.5} />
               </button>
+
+              {/* More menu */}
+              <Tippy
+                content={
+                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[100px]">
+                    <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
+                      <Edit2 size={11} /> Edit
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
+                      <StickyNote size={11} /> Details
+                    </button>
+                  </div>
+                }
+                visible={showMenu}
+                onClickOutside={() => setShowMenu(false)}
+                interactive={true}
+                placement="bottom-end"
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                  className="flex items-center justify-center text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 transition-colors rounded"
+                  style={{ width: '24px', height: '24px' }}
+                >
+                  <MoreVertical size={12} />
+                </button>
+              </Tippy>
             </div>
           </div>
         </div>
@@ -418,7 +451,7 @@ export function PendingTicketCard({
               )}
             </div>
 
-            {/* Staff badges + Pay button */}
+            {/* Staff badges + Pay button + More menu */}
             <div className="flex-shrink-0 flex items-center gap-2">
               <div className="flex items-center gap-1">
                 {staffList.map((staff, i) => (
@@ -436,6 +469,32 @@ export function PendingTicketCard({
               >
                 <DollarSign size={16} strokeWidth={2.5} />
               </button>
+
+              {/* More menu */}
+              <Tippy
+                content={
+                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]">
+                    <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
+                      <Edit2 size={12} /> Edit
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
+                      <StickyNote size={12} /> Details
+                    </button>
+                  </div>
+                }
+                visible={showMenu}
+                onClickOutside={() => setShowMenu(false)}
+                interactive={true}
+                placement="bottom-end"
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                  className="flex items-center justify-center text-[#6b5d52] hover:text-[#2d2520] hover:bg-[#f5f0eb]/50 transition-colors rounded"
+                  style={{ width: '30px', height: '30px' }}
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </Tippy>
             </div>
           </div>
         </div>
@@ -503,6 +562,30 @@ export function PendingTicketCard({
             </div>
             <div className="text-2xs text-[#8b7968] font-medium">{getLastVisitText()}</div>
           </div>
+          {/* More menu */}
+          <Tippy
+            content={
+              <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[100px]">
+                <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
+                  <Edit2 size={11} /> Edit
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center gap-2">
+                  <StickyNote size={11} /> Details
+                </button>
+              </div>
+            }
+            visible={showMenu}
+            onClickOutside={() => setShowMenu(false)}
+            interactive={true}
+            placement="bottom-end"
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+              className="text-[#6b5d52] hover:text-[#2d2520] p-0.5 rounded-md hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"
+            >
+              <MoreVertical size={14} />
+            </button>
+          </Tippy>
         </div>
 
         {/* Service - compact */}
@@ -638,6 +721,30 @@ export function PendingTicketCard({
           </div>
           <div className="text-[#6b5d52] font-medium tracking-wide" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>{getLastVisitText()}</div>
         </div>
+        {/* More menu */}
+        <Tippy
+          content={
+            <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px]">
+              <button onClick={(e) => { e.stopPropagation(); onEdit?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                <Edit2 size={14} /> Edit
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onViewDetails?.(ticket.id); setShowMenu(false); }} className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                <StickyNote size={14} /> Details
+              </button>
+            </div>
+          }
+          visible={showMenu}
+          onClickOutside={() => setShowMenu(false)}
+          interactive={true}
+          placement="bottom-end"
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            className="text-[#6b5d52] hover:text-[#2d2520] p-1 rounded-lg hover:bg-[#f5f0eb]/50 transition-colors flex-shrink-0"
+          >
+            <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
+          </button>
+        </Tippy>
       </div>
 
       {/* Service name + Wait time */}

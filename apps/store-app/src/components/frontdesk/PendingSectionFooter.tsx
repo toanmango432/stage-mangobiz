@@ -5,6 +5,8 @@ import { selectPendingTickets } from '../../store/slices/uiTicketsSlice';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import { selectFrontDeskSettings } from '../../store/slices/frontDeskSettingsSlice';
 import { PendingTicketCard } from '../tickets/PendingTicketCard';
+import { EditTicketModal } from '../tickets/EditTicketModal';
+import { TicketDetailsModal } from '../tickets/TicketDetailsModal';
 import { Pending } from '../modules/Pending';
 import TicketPanel from '../checkout/TicketPanel';
 import type { StaffMember } from '../checkout/ServiceList';
@@ -154,6 +156,12 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartY = useRef(0);
   const resizeStartHeight = useRef(0);
+
+  // Edit and Details modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [ticketToEdit, setTicketToEdit] = useState<number | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [ticketToView, setTicketToView] = useState<number | null>(null);
 
   // Update CSS variable for pending section height so FrontDesk can adjust its padding
   useEffect(() => {
@@ -483,6 +491,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                       setIsCheckoutPanelOpen(true);
                     }
                   }}
+                  onEdit={(id) => {
+                    setTicketToEdit(parseInt(id));
+                    setShowEditModal(true);
+                  }}
+                  onViewDetails={(id) => {
+                    setTicketToView(parseInt(id));
+                    setShowDetailsModal(true);
+                  }}
                   onClick={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
@@ -507,6 +523,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
                       setIsCheckoutPanelOpen(true);
                     }
                   }}
+                  onEdit={(id) => {
+                    setTicketToEdit(parseInt(id));
+                    setShowEditModal(true);
+                  }}
+                  onViewDetails={(id) => {
+                    setTicketToView(parseInt(id));
+                    setShowDetailsModal(true);
+                  }}
                   onClick={(id) => {
                     const t = pendingTickets.find(pt => pt.id === id);
                     if (t) {
@@ -528,6 +552,14 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
             { id: 'staff-1', name: 'Staff Member', available: true },
           ]}
         />
+
+        {/* Edit and Details Modals */}
+        <EditTicketModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} ticketId={ticketToEdit} />
+        <TicketDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} ticketId={ticketToView} onEdit={(id) => {
+          setShowDetailsModal(false);
+          setTicketToEdit(id);
+          setShowEditModal(true);
+        }} />
       </div>
     );
   }
