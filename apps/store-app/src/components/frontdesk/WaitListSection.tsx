@@ -78,18 +78,10 @@ export const WaitListSection = memo(function WaitListSection({
   setMinimizedLineView: externalSetMinimizedLineView,
   isCombinedView = false,
   hideHeader = false,
-  headerStyles: _headerStyles,
+  // headerStyles - intentionally not used in this component (parent styling applies)
   settings
 }: WaitListSectionProps) {
-  // Check if section should be hidden based on settings
-  if (settings && (!settings.waitListActive || !settings.showWaitList)) {
-    return null;
-  }
-
-  // BUG-009 FIX: Derive cardViewMode from settings.viewStyle when not in combined view
-  // This ensures settings.viewStyle affects individual sections in non-combined (three-column) view
-  const settingsCardViewMode = settings?.viewStyle === 'compact' ? 'compact' : 'normal';
-  const effectiveExternalCardViewMode = externalCardViewMode ?? (isCombinedView ? undefined : settingsCardViewMode);
+  // IMPORTANT: All hooks must be called before any conditional returns (React Rules of Hooks)
 
   // Get waitlist from context
   const {
@@ -101,10 +93,14 @@ export const WaitListSection = memo(function WaitListSection({
   // Get ticket panel context for opening tickets
   const { openTicketWithData } = useTicketPanel();
 
+  // BUG-009 FIX: Derive cardViewMode from settings.viewStyle when not in combined view
+  // This ensures settings.viewStyle affects individual sections in non-combined (three-column) view
+  const settingsCardViewMode = settings?.viewStyle === 'compact' ? 'compact' : 'normal';
+  const effectiveExternalCardViewMode = externalCardViewMode ?? (isCombinedView ? undefined : settingsCardViewMode);
+
   // Handler to open a ticket in the Ticket Control Center
   const handleOpenTicket = (ticket: any, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    console.log('🎫 handleOpenTicket called with ticket:', ticket);
     const ticketData: TicketData = {
       id: ticket.id,
       number: ticket.number,
@@ -130,7 +126,6 @@ export const WaitListSection = memo(function WaitListSection({
       time: ticket.time,
       status: 'waiting',
     };
-    console.log('🎫 Calling openTicketWithData with:', ticketData);
     openTicketWithData(ticketData);
     setOpenDropdownId(null);
   };
@@ -191,12 +186,9 @@ export const WaitListSection = memo(function WaitListSection({
   const {
     viewMode,
     setViewMode,
-    toggleViewMode: _toggleViewMode,
     cardViewMode,
-    setCardViewMode: _setCardViewMode,
     toggleCardViewMode,
     minimizedLineView,
-    setMinimizedLineView: _setMinimizedLineView,
     toggleMinimizedLineView
   } = useTicketSection({
     sectionKey: 'waitList',
@@ -360,6 +352,11 @@ export const WaitListSection = memo(function WaitListSection({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Check if section should be hidden based on settings (after all hooks)
+  if (settings && (!settings.waitListActive || !settings.showWaitList)) {
+    return null;
+  }
 
   // Open assign ticket modal
   const handleAssignTicket = (ticketId: string) => {
