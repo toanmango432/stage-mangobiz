@@ -140,3 +140,26 @@ Commit: 4c147ad
   - useMemo should include all dependencies (organizeBy was added as dependency)
   - The desktop StaffSidebar pattern was used as reference for settings integration
 ---
+
+## 2026-01-13 - US-008: Connect StaffCard to real ticket data
+Commit: 35b6c98
+- Added selectServiceTickets selector import from uiTicketsSlice
+- Added inServiceTickets state from Redux using useAppSelector
+- Created getStaffTicketInfo helper function (useCallback memoized) that:
+  1. Filters inServiceTickets by staff ID (matches techId or assignedTo.id)
+  2. Calculates real progress from createdAt time vs duration string
+  3. Formats start time for display (e.g., "10:15AM")
+  4. Returns activeTickets array and currentTicketInfo object
+- Replaced hardcoded dummy ticket data (Test Client, Test Service, 67% progress)
+- Staff cards now show real client name, service name, start time, and calculated progress
+- Removed mock lastServiceTime and nextAppointmentTime (will be real data in US-009)
+- Files changed:
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - selectServiceTickets from uiTicketsSlice returns UITicket[] for in-service tickets
+  - UITicket has: techId, assignedTo?.id, clientName, service, duration, createdAt
+  - Duration is stored as string like "30min" - parse with parseInt(duration.replace(/\D/g, ''))
+  - Progress calculation: elapsed time / total duration, capped 0-1
+  - Use useCallback with [inServiceTickets] dependency for performance
+  - Type compatibility: use `?? undefined` to convert null to undefined
+---

@@ -129,7 +129,7 @@
         "Verify in browser: create a ticket for a staff member and see their card update with real client/service data"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Currently StaffSidebar adds dummy ticket info for busy staff. Need to integrate with ticketsSlice."
     },
     {
