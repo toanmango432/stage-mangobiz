@@ -418,8 +418,8 @@
         "Verify in browser: Add new appointment, see notification"
       ],
       "priority": 26,
-      "passes": false,
-      "notes": "FD-P0-070. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Visual alert for new bookings."
+      "passes": true,
+      "notes": "FD-P0-070. Added hasNewAppointments state + previousAppointmentCount ref. Blue 'New' badge with pulse animation shows when count increases and section is collapsed. Clears on expand."
     },
     {
       "id": "US-027",

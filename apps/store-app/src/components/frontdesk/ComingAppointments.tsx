@@ -51,6 +51,27 @@ export const ComingAppointments = memo(function ComingAppointments({
   const [showNoShowConfirm, setShowNoShowConfirm] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
+  // New appointment notification indicator
+  const [hasNewAppointments, setHasNewAppointments] = useState(false);
+  const previousAppointmentCount = useRef<number>(comingAppointments.length);
+
+  // Track new appointments - show indicator when count increases
+  useEffect(() => {
+    const currentCount = comingAppointments.length;
+    if (currentCount > previousAppointmentCount.current) {
+      // New appointments arrived
+      setHasNewAppointments(true);
+    }
+    previousAppointmentCount.current = currentCount;
+  }, [comingAppointments.length]);
+
+  // Clear notification when section is expanded
+  useEffect(() => {
+    if (!isMinimized && hasNewAppointments) {
+      setHasNewAppointments(false);
+    }
+  }, [isMinimized, hasNewAppointments]);
+
   // BUG-003 FIX: Check if component should be hidden based on settings
   // This must come AFTER all hooks to comply with React rules
   const shouldHide = settings && settings.showComingAppointments === false;
@@ -239,6 +260,12 @@ export const ComingAppointments = memo(function ComingAppointments({
               <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold">
                 {comingAppointments.filter(appt => appt.status?.toLowerCase() !== 'checked-in' && appt.status?.toLowerCase() !== 'in-service').length}
               </span>
+              {/* New appointment indicator */}
+              {hasNewAppointments && isMinimized && (
+                <span className="px-1.5 py-0.5 rounded-md bg-sky-500 text-white text-xs font-semibold animate-pulse">
+                  New
+                </span>
+              )}
               {/* Compact metrics: late (if any) • next 1hr count */}
               <div className="flex items-center gap-1.5 text-xs font-medium">
                 {lateCount > 0 && (

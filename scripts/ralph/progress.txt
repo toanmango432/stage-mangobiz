@@ -558,3 +558,23 @@ Commit: (already implemented - no changes needed)
 - PendingTicketCard is implicitly "pending payment" - status change animation less relevant
 - Animation uses CSS keyframes via Tailwind for performance (GPU-accelerated)
 ---
+
+## 2026-01-14 02:26 - US-026: Add new ticket notification visual indicator
+**Status:** Implemented
+**Files changed:**
+- apps/store-app/src/components/frontdesk/ComingAppointments.tsx
+
+**Implementation:**
+1. Added `hasNewAppointments` state to track new appointment notifications
+2. Added `previousAppointmentCount` ref to track previous count
+3. useEffect tracks when comingAppointments.length increases
+4. useEffect clears notification when section is expanded (!isMinimized)
+5. Blue "New" badge with pulse animation shows in header when:
+   - hasNewAppointments is true AND section is collapsed (isMinimized)
+
+**Learnings for future iterations:**
+- React rules of hooks require all hooks at top level - can't conditionally call
+- useRef for tracking previous values avoids re-renders
+- Notification clears on expand for natural UX flow
+- animate-pulse from Tailwind provides subtle pulsing animation
+---
