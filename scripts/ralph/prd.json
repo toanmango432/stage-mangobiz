@@ -260,7 +260,7 @@
         "Verify in browser: Navigate to In-Service section, observe progress bar colors"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "FD-P0-003/004. File: apps/store-app/src/components/tickets/ServiceTicketCard.tsx. Currently uses Purple, should use Light Blue per PRD."
     },
     {

@@ -362,3 +362,21 @@ Commit: 950d0b7
   - When filtering is active, need to find actual indices in original array
   - noop function avoids lint errors for intentionally empty callbacks in overlay
 ---
+
+## 2026-01-14 - US-016: Update In-Service progress bar base color to Light Blue
+Commit: 401abc7
+- Changed progress bar color from Purple (#9B7EAE, #7E5F93) to Light Blue (#60A5FA, #3B82F6)
+- Updated getStatusColor function in ServiceTicketCard.tsx and ServiceTicketCardRefactored.tsx
+- Updated getProgressColor function in StateIndicators.tsx (changed from-purple-500/600 to from-blue-400/500)
+- Color thresholds: 0-79% = Light Blue, 80-100% = Green, >100% = Red (overdue)
+- Files changed:
+  - apps/store-app/src/components/tickets/ServiceTicketCard.tsx
+  - apps/store-app/src/components/tickets/ServiceTicketCardRefactored.tsx
+  - apps/store-app/src/components/tickets/paper/StateIndicators.tsx
+- **Learnings for future iterations:**
+  - Progress bar colors are defined in getStatusColor function (returns { progress: gradient, text: color })
+  - ServiceTicketCard uses hex colors with linear-gradient for progress bars
+  - StateIndicators uses Tailwind classes (bg-gradient-to-r from-X to-Y)
+  - Both components need to be updated for consistent progress bar styling
+  - Pre-existing typecheck errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx) are unrelated infrastructure issues
+---
