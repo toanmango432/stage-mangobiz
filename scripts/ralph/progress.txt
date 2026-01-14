@@ -647,3 +647,22 @@ Commit: 8bc859e
   - Sorting in useMemo should create new array with spread to avoid mutating original
   - Pre-existing typecheck errors in Book module tests and TicketPanel/ServiceSection.tsx don't block commits
 ---
+
+## 2026-01-14 - US-030: Add View Full Details action to PendingTicketCard
+Commit: 8a432eb
+- PendingTicketCard.tsx already had onViewDetails callback and Details button in all 4 view modes
+- PendingSectionFooter.tsx (collapsed footer) already had full TicketDetailsModal integration
+- Added missing integration to modules/Pending.tsx (fullView drawer mode):
+  - Imported TicketDetailsModal and EditTicketModal
+  - Added state: showDetailsModal, ticketToView, showEditModal, ticketToEdit
+  - Added handlers: handleViewDetails and handleEdit
+  - Passed onEdit and onViewDetails to both grid and list view PendingTicketCard
+  - Rendered TicketDetailsModal and EditTicketModal at component end
+- Files changed:
+  - apps/store-app/src/components/modules/Pending.tsx
+- **Learnings for future iterations:**
+  - PendingTicketCard already has Details button but callers must pass onViewDetails handler
+  - PendingSectionFooter has full modal integration, modules/Pending.tsx was missing it
+  - ticketId state type is number | null for modal props
+  - TicketDetailsModal has onEdit callback that can transition to EditTicketModal
+---

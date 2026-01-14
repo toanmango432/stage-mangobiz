@@ -482,8 +482,8 @@
         "Verify in browser: Click view details, see modal"
       ],
       "priority": 30,
-      "passes": false,
-      "notes": "PND-P0-012. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. TicketDetailsModal exists - add integration."
+      "passes": true,
+      "notes": "PND-P0-012. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. TicketDetailsModal exists - add integration. Added full integration to modules/Pending.tsx for fullView drawer mode."
     }
   ]
 }
