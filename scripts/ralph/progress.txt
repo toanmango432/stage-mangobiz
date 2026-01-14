@@ -335,3 +335,30 @@ Commit: d58df6b
   - updateAppointmentInSupabase persists to Supabase
   - useTicketsCompat already filters out no-show appointments from comingAppointments
 ---
+
+## 2026-01-14 - US-015: Implement drag and drop for Waiting Queue reordering
+Commit: 950d0b7
+- Installed @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities packages
+- Created SortableListItem wrapper component for list view drag support
+- Created SortableGridItem wrapper component for grid view drag support
+- Added DndContext with PointerSensor (8px distance activation) and KeyboardSensor
+- Implemented drag handles with GripVertical icon (visible on hover)
+- Added visual feedback: 50% opacity during drag, shadow and rotation on overlay
+- Added reorderWaitlist and setWaitlistOrder reducers to uiTicketsSlice
+- Support both list and grid view modes using verticalListSortingStrategy and rectSortingStrategy
+- Respects enableDragAndDrop setting from FrontDeskSettings (isDragDisabled prop)
+- Handles reordering with filtered list (maps filtered indices to full waitlist indices)
+- Files changed:
+  - apps/store-app/package.json (@dnd-kit packages added)
+  - apps/store-app/src/components/frontdesk/WaitListSection.tsx
+  - apps/store-app/src/store/slices/uiTicketsSlice.ts
+  - pnpm-lock.yaml
+- **Learnings for future iterations:**
+  - @dnd-kit uses useSortable hook for each draggable item
+  - DragOverlay renders the dragged item outside normal flow for smooth animation
+  - Use CSS.Transform.toString(transform) for proper transform handling
+  - Drag handle should have attributes and listeners spread, not the whole item
+  - arrayMove from @dnd-kit/sortable handles array reordering
+  - When filtering is active, need to find actual indices in original array
+  - noop function avoids lint errors for intentionally empty callbacks in overlay
+---

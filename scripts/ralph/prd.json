@@ -244,7 +244,7 @@
         "Verify in browser: Enable drag and drop in settings, drag a ticket card to reorder"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "FD-P0-102. File: apps/store-app/src/components/frontdesk/WaitListSection.tsx. Use @dnd-kit/core. enableDragAndDrop setting exists in frontDeskSettingsSlice."
     },
     {
