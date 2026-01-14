@@ -519,3 +519,18 @@ Commit: (already implemented - no changes needed)
   - Sometimes stories are already implemented - verify before making changes
 ---
 
+
+## 2026-01-14 02:15 - US-024: Add section count badges to collapsed Coming section header
+**Status:** Already implemented - verified existing code
+- ComingAppointments.tsx header (lines 231-265) renders regardless of isMinimized state
+- Total count badge shown always (line 239-241)
+- Late count shown conditionally when lateCount > 0 (lines 244-246) in red text
+- Next hour count shown conditionally when nextHourCount > 0 (lines 250-252) in sky-blue text
+- Header shows in both collapsed and expanded states - content area collapses, not header
+- Browser verification: Collapsed Coming section shows "Coming" + "12" badge + expand button
+- No code changes needed - feature was already fully implemented
+- **Learnings for future iterations:**
+  - ComingAppointments header and content are separate - only content area is conditionally rendered based on isMinimized
+  - appointmentBuckets computed from live comingAppointments data provides real-time badge updates
+  - Conditional badge rendering is correct behavior - only show late/next hr when counts > 0
+---

@@ -387,8 +387,8 @@
         "Verify in browser: Collapse Coming section, verify count badges visible"
       ],
       "priority": 24,
-      "passes": false,
-      "notes": "FD-P0-021. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Some metrics already displayed - verify collapsed state."
+      "passes": true,
+      "notes": "FD-P0-021. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Verified: header badges already implemented - total count shown always, late count shown in red when > 0. Header renders in both collapsed and expanded states."
     },
     {
       "id": "US-025",
