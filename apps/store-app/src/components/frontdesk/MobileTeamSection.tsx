@@ -8,13 +8,17 @@
  * - Compact/Normal view toggle
  */
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { Users, Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
 import { StaffCardVertical, type StaffMember, type ViewMode } from '../StaffCard/index';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
+import { setSelectedMember } from '@/store/slices/teamSlice';
+import { useTicketPanel } from '@/contexts/TicketPanelContext';
+import { MobileStaffActionSheet } from './MobileStaffActionSheet';
+import { AddStaffNoteModal } from './AddStaffNoteModal';
 
 interface MobileTeamSectionProps {
   className?: string;
@@ -67,10 +71,16 @@ const convertToStaffMember = (staff: any): StaffMember => {
 export const MobileTeamSection = memo(function MobileTeamSection({
   className = '',
 }: MobileTeamSectionProps) {
-  const { staff = [] } = useTickets();
+  const { staff = [], serviceTickets = [] } = useTickets();
 
   // US-007: Read FrontDeskSettings from Redux
   const settings = useAppSelector(selectFrontDeskSettings);
+
+  // US-011: Get dispatch for Edit Team Member action
+  const dispatch = useAppDispatch();
+
+  // US-011: Get ticket panel context for Add Ticket and Quick Checkout actions
+  const { openTicketWithData } = useTicketPanel();
 
   // US-007: Use organizeBy setting from FrontDeskSettings
   // 'busyStatus' shows Ready/Busy groups, 'clockedStatus' shows Clocked In/Out groups
@@ -78,6 +88,14 @@ export const MobileTeamSection = memo(function MobileTeamSection({
 
   const [filter, setFilter] = useState<'all' | 'ready' | 'busy' | 'off' | 'clockedIn' | 'clockedOut'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // US-011: State for mobile action sheet
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [selectedStaffForAction, setSelectedStaffForAction] = useState<StaffMember | null>(null);
+
+  // US-011: State for Add Staff Note modal
+  const [showStaffNoteModal, setShowStaffNoteModal] = useState(false);
+  const [selectedStaffForNote, setSelectedStaffForNote] = useState<{ id: number; name: string } | null>(null);
 
   // View mode state - persisted in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -143,6 +161,105 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     haptics.selection();
     setFilter(newFilter);
   };
+
+  // US-011: Handle staff card click to open action sheet
+  const handleStaffCardClick = useCallback((staffMember: StaffMember) => {
+    haptics.selection();
+    setSelectedStaffForAction(staffMember);
+    setShowActionSheet(true);
+  }, []);
+
+  // US-011: Handle Add Ticket action from action sheet
+  const handleAddTicket = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      openTicketWithData({
+        id: '',
+        clientName: '',
+        techId: String(staffId),
+        technician: staffMember.name,
+      });
+    }
+  }, [staff, openTicketWithData]);
+
+  // US-011: Handle Add Note action from action sheet
+  const handleAddNote = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      setSelectedStaffForNote({ id: staffId, name: staffMember.name });
+      setShowStaffNoteModal(true);
+    }
+  }, [staff]);
+
+  // US-011: Handle saving staff note
+  const handleSaveStaffNote = useCallback((staffId: number, note: string) => {
+    // TODO: Integrate with staff notes storage/API
+    console.log(`Staff note saved for ${staffId}:`, note);
+  }, []);
+
+  // US-011: Handle Edit Team Member action from action sheet
+  const handleEditTeam = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      dispatch(setSelectedMember(staffMember.id));
+      window.dispatchEvent(new CustomEvent('navigate-to-module', {
+        detail: 'team-settings'
+      }));
+    }
+  }, [staff, dispatch]);
+
+  // US-011: Handle Quick Checkout action from action sheet
+  const handleQuickCheckout = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) return;
+
+    const staffInServiceTicket = serviceTickets.find((ticket: any) => {
+      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
+      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
+    });
+
+    if (!staffInServiceTicket) return;
+
+    const ticketData = {
+      id: staffInServiceTicket.id,
+      number: staffInServiceTicket.number,
+      clientId: staffInServiceTicket.clientId,
+      clientName: staffInServiceTicket.clientName,
+      clientType: staffInServiceTicket.clientType,
+      service: staffInServiceTicket.service,
+      services: staffInServiceTicket.checkoutServices || (staffInServiceTicket.service ? [{
+        serviceName: staffInServiceTicket.service,
+        name: staffInServiceTicket.service,
+        duration: parseInt(String(staffInServiceTicket.duration)) || 30,
+        status: staffInServiceTicket.serviceStatus || 'in_progress',
+        staffId: staffInServiceTicket.techId,
+        staffName: staffInServiceTicket.technician,
+      }] : []),
+      technician: staffInServiceTicket.technician,
+      techId: staffInServiceTicket.techId,
+      duration: staffInServiceTicket.duration,
+      status: staffInServiceTicket.status,
+      notes: staffInServiceTicket.notes,
+    };
+
+    openTicketWithData(ticketData);
+  }, [staff, serviceTickets, openTicketWithData]);
 
   // US-007: Get current count based on filter and organizeBy mode
   const currentCount = useMemo(() => {
@@ -330,26 +447,39 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                       </h3>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      {groupedStaff.ready.map((s: any) => (
-                        <StaffCardVertical
-                          key={s.id}
-                          staff={convertToStaffMember(s)}
-                          viewMode={viewMode}
-                          onClick={() => haptics.selection()}
-                          displayConfig={{
-                            showName: true,
-                            showQueueNumber: true,
-                            showAvatar: true,
-                            showTurnCount: settings?.showTurnCount ?? true,
-                            showStatus: true,
-                            showClockedInTime: true,
-                            showNextAppointment: settings?.showNextAppointment ?? true,
-                            showSalesAmount: settings?.showServicedAmount ?? true,
-                            showTickets: settings?.showTicketCount ?? true,
-                            showLastService: settings?.showLastDone ?? true,
-                          }}
-                        />
-                      ))}
+                      {groupedStaff.ready.map((s: any) => {
+                        const staffMember = convertToStaffMember(s);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -364,26 +494,39 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                       </h3>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      {groupedStaff.busy.map((s: any) => (
-                        <StaffCardVertical
-                          key={s.id}
-                          staff={convertToStaffMember(s)}
-                          viewMode={viewMode}
-                          onClick={() => haptics.selection()}
-                          displayConfig={{
-                            showName: true,
-                            showQueueNumber: true,
-                            showAvatar: true,
-                            showTurnCount: settings?.showTurnCount ?? true,
-                            showStatus: true,
-                            showClockedInTime: true,
-                            showNextAppointment: settings?.showNextAppointment ?? true,
-                            showSalesAmount: settings?.showServicedAmount ?? true,
-                            showTickets: settings?.showTicketCount ?? true,
-                            showLastService: settings?.showLastDone ?? true,
-                          }}
-                        />
-                      ))}
+                      {groupedStaff.busy.map((s: any) => {
+                        const staffMember = convertToStaffMember(s);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -400,26 +543,39 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                       </h3>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      {groupedStaff.clockedIn.map((s: any) => (
-                        <StaffCardVertical
-                          key={s.id}
-                          staff={convertToStaffMember(s)}
-                          viewMode={viewMode}
-                          onClick={() => haptics.selection()}
-                          displayConfig={{
-                            showName: true,
-                            showQueueNumber: true,
-                            showAvatar: true,
-                            showTurnCount: settings?.showTurnCount ?? true,
-                            showStatus: true,
-                            showClockedInTime: true,
-                            showNextAppointment: settings?.showNextAppointment ?? true,
-                            showSalesAmount: settings?.showServicedAmount ?? true,
-                            showTickets: settings?.showTicketCount ?? true,
-                            showLastService: settings?.showLastDone ?? true,
-                          }}
-                        />
-                      ))}
+                      {groupedStaff.clockedIn.map((s: any) => {
+                        const staffMember = convertToStaffMember(s);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -434,26 +590,39 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                       </h3>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      {groupedStaff.clockedOut.map((s: any) => (
-                        <StaffCardVertical
-                          key={s.id}
-                          staff={convertToStaffMember(s)}
-                          viewMode={viewMode}
-                          onClick={() => haptics.selection()}
-                          displayConfig={{
-                            showName: true,
-                            showQueueNumber: true,
-                            showAvatar: true,
-                            showTurnCount: settings?.showTurnCount ?? true,
-                            showStatus: true,
-                            showClockedInTime: true,
-                            showNextAppointment: settings?.showNextAppointment ?? true,
-                            showSalesAmount: settings?.showServicedAmount ?? true,
-                            showTickets: settings?.showTicketCount ?? true,
-                            showLastService: settings?.showLastDone ?? true,
-                          }}
-                        />
-                      ))}
+                      {groupedStaff.clockedOut.map((s: any) => {
+                        const staffMember = convertToStaffMember(s);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -463,29 +632,79 @@ export const MobileTeamSection = memo(function MobileTeamSection({
         ) : (
           // Grid view for filtered results - US-007: Apply displayConfig from settings
           <div className="grid grid-cols-2 gap-3">
-            {filteredStaff.map((s: any) => (
-              <StaffCardVertical
-                key={s.id}
-                staff={convertToStaffMember(s)}
-                viewMode={viewMode}
-                onClick={() => haptics.selection()}
-                displayConfig={{
-                  showName: true,
-                  showQueueNumber: true,
-                  showAvatar: true,
-                  showTurnCount: settings?.showTurnCount ?? true,
-                  showStatus: true,
-                  showClockedInTime: true,
-                  showNextAppointment: settings?.showNextAppointment ?? true,
-                  showSalesAmount: settings?.showServicedAmount ?? true,
-                  showTickets: settings?.showTicketCount ?? true,
-                  showLastService: settings?.showLastDone ?? true,
-                }}
-              />
-            ))}
+            {filteredStaff.map((s: any) => {
+              const staffMember = convertToStaffMember(s);
+              return (
+                <StaffCardVertical
+                  key={s.id}
+                  staff={staffMember}
+                  viewMode={viewMode}
+                  onClick={() => handleStaffCardClick(staffMember)}
+                  displayConfig={{
+                    showName: true,
+                    showQueueNumber: true,
+                    showAvatar: true,
+                    showTurnCount: settings?.showTurnCount ?? true,
+                    showStatus: true,
+                    showClockedInTime: true,
+                    showNextAppointment: settings?.showNextAppointment ?? true,
+                    showSalesAmount: settings?.showServicedAmount ?? true,
+                    showTickets: settings?.showTicketCount ?? true,
+                    showLastService: settings?.showLastDone ?? true,
+                    // US-011: Action settings from FrontDeskSettings
+                    showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                    showAddTicketAction: settings?.showAddTicketAction ?? true,
+                    showAddNoteAction: settings?.showAddNoteAction ?? true,
+                    showEditTeamAction: settings?.showEditTeamAction ?? true,
+                    showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                  }}
+                  onAddTicket={handleAddTicket}
+                  onAddNote={handleAddNote}
+                  onEditTeam={handleEditTeam}
+                  onQuickCheckout={handleQuickCheckout}
+                />
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* US-011: Mobile Action Sheet */}
+      {selectedStaffForAction && (
+        <MobileStaffActionSheet
+          isOpen={showActionSheet}
+          onClose={() => {
+            setShowActionSheet(false);
+            setSelectedStaffForAction(null);
+          }}
+          staffName={selectedStaffForAction.name}
+          staffId={selectedStaffForAction.id}
+          isBusy={selectedStaffForAction.status === 'busy'}
+          hasActiveTicket={!!selectedStaffForAction.activeTickets?.length}
+          showAddTicketAction={settings?.showAddTicketAction ?? true}
+          showAddNoteAction={settings?.showAddNoteAction ?? true}
+          showEditTeamAction={settings?.showEditTeamAction ?? true}
+          showQuickCheckoutAction={settings?.showQuickCheckoutAction ?? true}
+          onAddTicket={handleAddTicket}
+          onAddNote={handleAddNote}
+          onEditTeam={handleEditTeam}
+          onQuickCheckout={handleQuickCheckout}
+        />
+      )}
+
+      {/* US-011: Add Staff Note Modal */}
+      {selectedStaffForNote && (
+        <AddStaffNoteModal
+          isOpen={showStaffNoteModal}
+          onClose={() => {
+            setShowStaffNoteModal(false);
+            setSelectedStaffForNote(null);
+          }}
+          staffName={selectedStaffForNote.name}
+          staffId={selectedStaffForNote.id}
+          onSave={handleSaveStaffNote}
+        />
+      )}
     </div>
   );
 });
