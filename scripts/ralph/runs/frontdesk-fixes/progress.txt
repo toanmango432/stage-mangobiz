@@ -1016,3 +1016,54 @@ Created `useModalStack` hook to consolidate 5 separate modal state pairs into a 
 
 ---
 
+## 2026-01-14 16:00 - US-020: Fix window event type safety
+Commit: 9f61fe3
+
+### Implementation
+Added type-safe custom event system for StaffSidebar module:
+
+**Type Definitions (types.ts):**
+```typescript
+export interface StaffSidebarCustomEvents {
+  'open-turn-tracker': Event;
+}
+
+// Extend global WindowEventMap
+declare global {
+  interface WindowEventMap extends StaffSidebarCustomEvents {}
+}
+
+export function dispatchStaffSidebarEvent<K extends keyof StaffSidebarCustomEvents>(
+  eventName: K,
+  event?: StaffSidebarCustomEvents[K]
+): void {
+  window.dispatchEvent(event || new Event(eventName));
+}
+```
+
+**Changes:**
+- Added `StaffSidebarCustomEvents` interface for custom event types
+- Extended global `WindowEventMap` to include 'open-turn-tracker' event
+- Created `dispatchStaffSidebarEvent()` type-safe dispatcher function
+- Updated FrontDesk.tsx to use `dispatchStaffSidebarEvent('open-turn-tracker')` instead of raw `window.dispatchEvent(new Event('open-turn-tracker'))`
+- Exported new types and function from StaffSidebar module index
+
+### Files Changed
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar/types.ts` (+22 lines)
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar/index.ts` (+6 lines)
+- MODIFIED: `apps/store-app/src/components/frontdesk/FrontDesk.tsx` (+2 lines, -2 lines)
+
+### Quality Checklist
+- [x] Create typed CustomEvent interface for 'open-turn-tracker' ✅
+- [x] Extend WindowEventMap globally for type safety ✅
+- [x] Use proper event listener typing (addEventListener now auto-typed) ✅
+- [x] pnpm run typecheck passes (no errors in changed files) ✅
+
+### Learnings
+- Extending global WindowEventMap allows TypeScript to type custom events automatically
+- Generic dispatcher function with keyof provides compile-time event name checking
+- `declare global` blocks can extend built-in interfaces like WindowEventMap
+- This pattern is reusable for other modules with custom events
+
+---
+

@@ -325,8 +325,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": "Part of type safety cleanup but separate from US-008 for focused change."
+      "passes": true,
+      "notes": "Added StaffSidebarCustomEvents interface, extended WindowEventMap globally, and created dispatchStaffSidebarEvent() type-safe function. FrontDesk.tsx now uses the type-safe dispatcher."
     },
     {
       "id": "US-021",
