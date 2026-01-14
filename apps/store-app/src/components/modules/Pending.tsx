@@ -15,6 +15,8 @@ import { haptics } from '../../utils/haptics';
 import { useAppSelector } from '../../store/hooks';
 import { selectAllStaff } from '../../store/slices/uiStaffSlice';
 import type { StaffMember } from '../checkout/ServiceList';
+import { TicketDetailsModal } from '../tickets/TicketDetailsModal';
+import { EditTicketModal } from '../tickets/EditTicketModal';
 
 type SortOption = 'newest' | 'oldest' | 'amount-high' | 'amount-low' | 'client-name';
 
@@ -72,6 +74,12 @@ export function Pending() {
 
   // Checkout panel state - for full checkout experience
   const [isCheckoutPanelOpen, setIsCheckoutPanelOpen] = useState(false);
+
+  // Ticket details and edit modal state
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [ticketToView, setTicketToView] = useState<number | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [ticketToEdit, setTicketToEdit] = useState<number | null>(null);
 
   // Filter and sort tickets
   const filteredTickets = useMemo(() => {
@@ -175,6 +183,17 @@ export function Pending() {
     localStorage.removeItem('checkout-pending-ticket');
   };
 
+  // View details handlers
+  const handleViewDetails = (ticketId: string) => {
+    setTicketToView(parseInt(ticketId));
+    setShowDetailsModal(true);
+  };
+
+  // Edit ticket handlers
+  const handleEdit = (ticketId: string) => {
+    setTicketToEdit(parseInt(ticketId));
+    setShowEditModal(true);
+  };
 
   return (
     <div className="h-full bg-gray-50 flex flex-col">
@@ -233,6 +252,8 @@ export function Pending() {
                   ticket={ticket}
                   viewMode={isMobile ? 'normal' : (cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal')}
                   onMarkPaid={handleOpenPaymentModal}
+                  onEdit={handleEdit}
+                  onViewDetails={handleViewDetails}
                   onClick={handleOpenCheckoutPanel}
                 />
               ))}
@@ -245,6 +266,8 @@ export function Pending() {
                   ticket={ticket}
                   viewMode={cardViewMode === 'compact' ? 'compact' : 'normal'}
                   onMarkPaid={handleOpenPaymentModal}
+                  onEdit={handleEdit}
+                  onViewDetails={handleViewDetails}
                   onClick={handleOpenCheckoutPanel}
                 />
               ))}
@@ -272,6 +295,25 @@ export function Pending() {
         staffMembers={staffMembers.length > 0 ? staffMembers : [
           { id: 'staff-1', name: 'Staff Member', available: true },
         ]}
+      />
+
+      {/* Ticket Details Modal */}
+      <TicketDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        ticketId={ticketToView}
+        onEdit={(id) => {
+          setShowDetailsModal(false);
+          setTicketToEdit(id);
+          setShowEditModal(true);
+        }}
+      />
+
+      {/* Edit Ticket Modal */}
+      <EditTicketModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        ticketId={ticketToEdit}
       />
     </div>
   );
