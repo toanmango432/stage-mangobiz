@@ -11,6 +11,7 @@ import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
+import { selectServiceTickets, type UITicket } from '@/store/slices/uiTicketsSlice';
 import { setSelectedMember } from '@/store/slices/teamSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
 
@@ -51,6 +52,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   const reduxSettings = useAppSelector(selectFrontDeskSettings);
   // Use Redux settings as primary, prop settings as fallback
   const settings = reduxSettings || propSettings;
+
+  // US-008: Get in-service tickets from Redux for real ticket data on staff cards
+  const inServiceTickets = useAppSelector(selectServiceTickets);
 
   // Get context data including resetStaffStatus function
   const {
@@ -894,6 +898,69 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   void _saveOriginalWidth;
   void _handleResetClick;
   void _getDisplayPriorityTiers;
+
+  // US-008: Helper to find staff's in-service ticket and calculate progress
+  const getStaffTicketInfo = useCallback((staffId: string | number): {
+    activeTickets: Array<{ id: number; clientName: string; serviceName: string; status: string }>;
+    currentTicketInfo: { ticketId: string; clientName: string; serviceName: string; startTime: string; progress: number } | null;
+  } | null => {
+    // Match tickets by staffId (could be UUID string) or by assignedTo.id
+    const staffInServiceTickets = inServiceTickets.filter((ticket: UITicket) => {
+      const ticketStaffId = ticket.techId || ticket.assignedTo?.id;
+      // Handle both string and number IDs
+      return ticketStaffId === String(staffId) || ticketStaffId === staffId;
+    });
+
+    if (staffInServiceTickets.length === 0) {
+      return null;
+    }
+
+    // Get the first (primary) ticket for current ticket info
+    const primaryTicket = staffInServiceTickets[0];
+
+    // Calculate progress based on start time and duration
+    const calculateProgress = (ticket: UITicket): number => {
+      const durationStr = ticket.duration || '30min';
+      const durationMinutes = parseInt(durationStr.replace(/\D/g, '')) || 30;
+
+      // Use createdAt as the start time (when service started)
+      const startTime = ticket.createdAt instanceof Date ? ticket.createdAt : new Date(ticket.createdAt);
+      const now = new Date();
+      const elapsedMs = now.getTime() - startTime.getTime();
+      const elapsedMinutes = elapsedMs / (1000 * 60);
+
+      // Progress is elapsed time / total duration, capped between 0 and 1
+      // Allow up to 100% - over 100% indicates overtime
+      const progress = Math.min(1, Math.max(0, elapsedMinutes / durationMinutes));
+      return progress;
+    };
+
+    // Format time for display (e.g., "10:15AM")
+    const formatStartTime = (ticket: UITicket): string => {
+      const startTime = ticket.createdAt instanceof Date ? ticket.createdAt : new Date(ticket.createdAt);
+      return startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase().replace(' ', '');
+    };
+
+    // Build active tickets array for StaffCard
+    const activeTickets = staffInServiceTickets.map((ticket, idx) => ({
+      id: idx + 1, // Use sequential IDs for display
+      clientName: ticket.clientName || 'Walk-in',
+      serviceName: ticket.service || 'Service',
+      status: 'in-service' as const,
+    }));
+
+    // Build current ticket info for display
+    const currentTicketInfo = {
+      ticketId: primaryTicket.id,
+      clientName: primaryTicket.clientName || 'Walk-in',
+      serviceName: primaryTicket.service || 'Service',
+      startTime: formatStartTime(primaryTicket),
+      progress: calculateProgress(primaryTicket),
+    };
+
+    return { activeTickets, currentTicketInfo };
+  }, [inServiceTickets]);
+
   // 🎨 TEAM STYLING - Strong distinction from ticket sections
   const teamSidebarClasses = USE_NEW_TEAM_STYLING
     ? "relative h-full border-r-[3px] border-teal-300/60 bg-gradient-to-b from-teal-50/95 via-teal-50/95 to-teal-100/90 flex flex-col overflow-hidden transition-all duration-300"
@@ -931,29 +998,26 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
           // Use vertical card layout
           const CardComponent = StaffCardVertical;
 
-          // For testing, add dummy ticket info for busy staff
-          if (staffMember.status === 'busy') {
-            // Note: Cast to any as the underlying StaffMember type has string[] activeTickets
-            // but StaffCardProps expects activeTickets?: Array<{id: number; ...}>
-            (modifiedStaffMember as any).activeTickets = [{
-              id: 1000 + staffIdNumber,
-              clientName: 'Test Client',
-              serviceName: 'Test Service',
-              status: 'in-service' as const,
-            }];
-            modifiedStaffMember.currentTicketInfo = {
-              ticketId: String(1000 + staffIdNumber),
-              clientName: 'Test Client',
-              serviceName: 'Test Service',
-              startTime: '10:15AM',
-              progress: 0.67,
-            };
+          // US-008: Get real ticket data for this staff member
+          // Use the staff member's original ID (UUID string) to match with tickets
+          const ticketInfo = getStaffTicketInfo(staffMember.id);
+
+          if (ticketInfo) {
+            // Staff has active in-service tickets - use real data
+            (modifiedStaffMember as any).activeTickets = ticketInfo.activeTickets;
+            // Convert null to undefined for type compatibility
+            modifiedStaffMember.currentTicketInfo = ticketInfo.currentTicketInfo ?? undefined;
           }
 
-          // Add mock data for Last Service and Next Appointment
-          // In a real app, this would come from the backend
-          modifiedStaffMember.lastServiceTime = '10:30 AM';
-          modifiedStaffMember.nextAppointmentTime = '2:00 PM';
+          // Note: lastServiceTime and nextAppointmentTime will be implemented in US-009
+          // For now, only show them if the staff member already has these values from backend
+          // This avoids showing mock data while we transition to real data
+          if (!modifiedStaffMember.lastServiceTime) {
+            modifiedStaffMember.lastServiceTime = undefined;
+          }
+          if (!modifiedStaffMember.nextAppointmentTime) {
+            modifiedStaffMember.nextAppointmentTime = undefined;
+          }
 
           const getTooltipContent = () => (
             <div className="p-2 max-w-xs">
@@ -966,10 +1030,10 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                 {modifiedStaffMember.clockInTime && (
                   <p><span className="font-medium">Clocked in:</span> {typeof modifiedStaffMember.clockInTime === 'string' ? new Date(modifiedStaffMember.clockInTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : String(modifiedStaffMember.clockInTime)}</p>
                 )}
-                {modifiedStaffMember.status === 'busy' && modifiedStaffMember.currentTicketInfo && (
+                {modifiedStaffMember.currentTicketInfo && (
                   <>
-                    <p><span className="font-medium">Current service:</span> {modifiedStaffMember.currentTicketInfo.serviceName || 'Test Service'}</p>
-                    <p><span className="font-medium">Client:</span> {modifiedStaffMember.currentTicketInfo.clientName || 'Test Client'}</p>
+                    <p><span className="font-medium">Current service:</span> {modifiedStaffMember.currentTicketInfo.serviceName}</p>
+                    <p><span className="font-medium">Client:</span> {modifiedStaffMember.currentTicketInfo.clientName}</p>
                     <p><span className="font-medium">Started:</span> {modifiedStaffMember.currentTicketInfo.startTime}</p>
                     <p><span className="font-medium">Progress:</span> {Math.round((modifiedStaffMember.currentTicketInfo.progress ?? 0) * 100)}%</p>
                   </>
