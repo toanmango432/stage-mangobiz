@@ -89,8 +89,30 @@ export function getUrgencyLevel(
 }
 
 /**
- * Format waiting time for display
- * Examples: "5m", "15m+", "Just now"
+ * Format waiting time in minutes to a human-readable string.
+ *
+ * Converts raw minutes into a compact display format suitable for UI.
+ * Uses abbreviated time format (m for minutes, h for hours).
+ *
+ * @param minutes - The number of minutes to format. Can be 0 or negative
+ *                  (treated as "Just now") or any positive integer.
+ * @returns A formatted string representing the wait time:
+ *          - "Just now" for 0 or negative minutes
+ *          - "Xm" for 1-59 minutes (e.g., "5m", "45m")
+ *          - "Xh Ym" for 60+ minutes (e.g., "1h 5m", "2h 30m")
+ *
+ * @example
+ * // Basic usage
+ * formatWaitingTime(0);   // Returns: "Just now"
+ * formatWaitingTime(5);   // Returns: "5m"
+ * formatWaitingTime(45);  // Returns: "45m"
+ * formatWaitingTime(65);  // Returns: "1h 5m"
+ * formatWaitingTime(120); // Returns: "2h 0m"
+ *
+ * @example
+ * // Typical usage with calculateWaitingMinutes
+ * const minutes = calculateWaitingMinutes(ticket.completedAt);
+ * const display = formatWaitingTime(minutes); // "15m"
  */
 export function formatWaitingTime(minutes: number): string {
   if (minutes <= 0) return 'Just now';
