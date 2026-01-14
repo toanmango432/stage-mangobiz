@@ -1,6 +1,8 @@
-import { useEffect, useState, useRef, memo } from 'react';
+import { useEffect, useState, useRef, memo, useCallback } from 'react';
 import { useTickets } from '@/hooks/useTicketsCompat';
-import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil, AlertCircle } from 'lucide-react';
+import { useAppDispatch } from '@/store/hooks';
+import { updateLocalAppointment, updateAppointmentInSupabase } from '@/store/slices/appointmentsSlice';
+import { Clock, User, Calendar, Star, CreditCard, MessageSquare, ChevronDown, ChevronUp, MoreVertical, FileText, Pencil, AlertCircle, UserX } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
@@ -31,6 +33,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   headerStyles: _headerStyles
 }: ComingAppointmentsProps) {
   // All hooks must be called unconditionally (React rules of hooks)
+  const dispatch = useAppDispatch();
   const {
     comingAppointments = [],
     checkInAppointment
@@ -45,6 +48,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   });
   const [activeAppointment, setActiveAppointment] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showNoShowConfirm, setShowNoShowConfirm] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // BUG-003 FIX: Check if component should be hidden based on settings
@@ -93,6 +97,33 @@ export const ComingAppointments = memo(function ComingAppointments({
     event.stopPropagation();
     setActiveAppointment(appointment);
     setShowActionMenu(true);
+  };
+
+  // Handle marking appointment as no-show
+  const handleNoShow = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Update local state immediately for optimistic UI
+    dispatch(updateLocalAppointment({
+      id: activeAppointment.id,
+      updates: { status: 'no-show' }
+    }));
+
+    // Persist to Supabase
+    dispatch(updateAppointmentInSupabase({
+      id: activeAppointment.id,
+      updates: { status: 'no-show' }
+    }));
+
+    // Close dialogs
+    setShowNoShowConfirm(false);
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [dispatch, activeAppointment]);
+
+  // Check if appointment is 15+ minutes late (eligible for no-show)
+  const isEligibleForNoShow = (appointment: any): boolean => {
+    return appointment.minutesUntil !== undefined && appointment.minutesUntil <= -15;
   };
   // Close action menu when clicking outside
   useEffect(() => {
@@ -564,6 +595,18 @@ export const ComingAppointments = memo(function ComingAppointments({
                 </div>
                 Cancel / Reschedule
               </button>
+              {/* No-Show (Orange, only for 15+ minutes late) */}
+              {isEligibleForNoShow(activeAppointment) && (
+                <button
+                  className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF9500] hover:bg-[#FFF8F0] transition-colors flex items-center border-t border-gray-100"
+                  onClick={() => setShowNoShowConfirm(true)}
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#FF9500]/10 flex items-center justify-center mr-3">
+                    <UserX size={18} className="text-[#FF9500]" />
+                  </div>
+                  Mark as No-Show
+                </button>
+              )}
               {/* Add Note (Gray, Neutral) */}
               <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#8E8E93] hover:bg-gray-50 transition-colors flex items-center border-t border-gray-100">
                 <div className="w-10 h-10 rounded-full bg-[#8E8E93]/10 flex items-center justify-center mr-3">
@@ -580,6 +623,49 @@ export const ComingAppointments = memo(function ComingAppointments({
             </div>
           </div>
         </div>}
+
+      {/* No-Show Confirmation Dialog */}
+      {showNoShowConfirm && activeAppointment && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center transition-all duration-200"
+          onClick={() => setShowNoShowConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 text-center">
+              <div className="w-14 h-14 rounded-full bg-[#FF9500]/10 flex items-center justify-center mx-auto mb-4">
+                <UserX size={28} className="text-[#FF9500]" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-2">
+                Mark as No-Show?
+              </h3>
+              <p className="text-[15px] text-gray-600">
+                <span className="font-medium">{activeAppointment.clientName?.split(' ')[0] || 'Guest'}</span>
+                {' '}is {Math.abs(activeAppointment.minutesUntil || 0)} minutes late for their{' '}
+                <span className="font-medium">{activeAppointment.service}</span> appointment.
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="px-6 pb-6 space-y-3">
+              <button
+                className="w-full py-3 rounded-xl bg-[#FF9500] text-white text-[15px] font-semibold hover:bg-[#E68A00] transition-colors"
+                onClick={handleNoShow}
+              >
+                Yes, Mark as No-Show
+              </button>
+              <button
+                className="w-full py-3 rounded-xl bg-gray-100 text-[#1C1C1E] text-[15px] font-medium hover:bg-gray-200 transition-colors"
+                onClick={() => setShowNoShowConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>}
     </div>;
 });
