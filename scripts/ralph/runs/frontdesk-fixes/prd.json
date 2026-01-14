@@ -133,7 +133,7 @@
         "pnpm run typecheck passes with strict mode"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "At least 15 instances of 'as any' in StaffSidebar. Each must be replaced with proper typing."
     },
     {

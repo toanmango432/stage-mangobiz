@@ -12,56 +12,23 @@ import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings, setStaffNote, selectAllStaffNotes } from '@/store/slices/frontDeskSettingsSlice';
-import { selectServiceTickets, selectCompletedTickets, type UITicket } from '@/store/slices/uiTicketsSlice';
+import { selectServiceTickets } from '@/store/slices/uiTicketsSlice';
 import { type UIStaff } from '@/store/slices/uiStaffSlice';
-import { selectAllAppointments } from '@/store/slices/appointmentsSlice';
-import type { LocalAppointment } from '@/types/appointment';
 import { setSelectedMember } from '@/store/slices/teamSlice';
 import { clockIn, clockOut } from '@/store/slices/timesheetSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
 
-interface StaffSidebarProps {
-  settings?: FrontDeskSettingsData;
-}
+// Import from StaffSidebar module
+import {
+  findStaffByNumericId,
+  isTicketForStaff,
+  getStaffImage,
+} from './StaffSidebar/utils';
+import { useStaffTicketInfo, useStaffNextAppointment, useStaffLastServiceTime } from './StaffSidebar/hooks';
+import type { UITicket, StaffSidebarProps } from './StaffSidebar/types';
 
-// Helper to find staff by numeric ID (StaffCardVertical passes numeric IDs)
-// UIStaff.id is a UUID string, so we need to match differently
-const findStaffByNumericId = (staffList: UIStaff[], numericId: number): UIStaff | undefined => {
-  return staffList.find((s) => {
-    // Try to extract numeric portion from UUID if possible, or match as string
-    const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : Number(s.id);
-    return id === numericId;
-  });
-};
-
-// Helper to check if a ticket belongs to a staff member
-const isTicketForStaff = (ticket: UITicket, staff: UIStaff, numericStaffId: number): boolean => {
-  const ticketStaffId = ticket.techId || ticket.assignedTo?.id;
-  return ticketStaffId === staff.id || ticketStaffId === String(numericStaffId);
-};
-// Function to get staff image - uses actual staff image from backend data,
-// or generates an avatar using ui-avatars.com based on staff name
-const getStaffImage = (staffMember: { image?: string; name?: string }): string => {
-  // If staff has an image from backend, use it
-  if (staffMember.image) {
-    return staffMember.image;
-  }
-  // Otherwise generate an initials-based avatar
-  const name = staffMember.name || 'Staff';
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=200`;
-};
-// Utility function to determine staff status based on active tickets
-export const determineStaffStatus = (staff: UIStaff, inServiceTickets: UITicket[]): UIStaff => {
-  // Keep 'off' status unchanged
-  if (staff.status === 'off') return staff;
-  // Check if this staff member has any tickets in service
-  const hasActiveTickets = inServiceTickets.some((ticket) => ticket.assignedTo?.id === staff.id);
-  // Update status based on active tickets
-  return {
-    ...staff,
-    status: hasActiveTickets ? 'busy' : 'ready'
-  };
-};
+// Re-export determineStaffStatus for backwards compatibility
+export { determineStaffStatus } from './StaffSidebar/utils/staffHelpers';
 export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { settings: undefined }) {
   // ⚙️ FEATURE FLAG - Set to false to revert to original styling
   const USE_NEW_TEAM_STYLING = true;
@@ -77,11 +44,10 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // US-008: Get in-service tickets from Redux for real ticket data on staff cards
   const inServiceTickets = useAppSelector(selectServiceTickets);
 
-  // US-009: Get appointments from Redux for next appointment times
-  const allAppointments = useAppSelector(selectAllAppointments);
-
-  // US-009: Get completed tickets from Redux for last service times
-  const completedTickets = useAppSelector(selectCompletedTickets);
+  // US-009: Use hooks from StaffSidebar module for ticket/appointment data
+  const getStaffTicketInfo = useStaffTicketInfo();
+  const getStaffNextAppointment = useStaffNextAppointment();
+  const getStaffLastServiceTime = useStaffLastServiceTime();
 
   // US-006: Get staff notes from Redux
   const staffNotes = useAppSelector(selectAllStaffNotes);
@@ -895,182 +861,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     }
   };
 
-  // US-002: Helper to find staff's in-service ticket and calculate progress
-  // Returns real ticket data from Redux serviceTickets selector
-  // Type matches StaffCardVertical's ActiveTicket and CurrentTicketInfo interfaces
-  const getStaffTicketInfo = useCallback((staffId: string | number): {
-    activeTickets: Array<{ id: number; ticketNumber?: string | number; clientName: string; serviceName: string; status: 'in-service' | 'pending' }>;
-    currentTicketInfo: { timeLeft: number; totalTime: number; progress: number; startTime: string; serviceName?: string; clientName?: string } | null;
-  } | null => {
-    // US-002: Match tickets by techId, staffId, or assignedTo.id (handle all three)
-    const staffInServiceTickets = inServiceTickets.filter((ticket: UITicket) => {
-      // Check all possible staff ID fields on the ticket
-      const ticketStaffId = ticket.techId || (ticket as { staffId?: string }).staffId || ticket.assignedTo?.id;
-      // Handle both string and number IDs with proper type guard
-      const staffIdStr = String(staffId);
-      return ticketStaffId === staffIdStr || ticketStaffId === staffId;
-    });
-
-    if (staffInServiceTickets.length === 0) {
-      return null;
-    }
-
-    // Get the first (primary) ticket for current ticket info
-    const primaryTicket = staffInServiceTickets[0];
-
-    // Calculate time values based on start time and duration
-    const calculateTimeInfo = (ticket: UITicket): { timeLeft: number; totalTime: number; progress: number } => {
-      const durationStr = ticket.duration || '30min';
-      const totalTimeMinutes = parseInt(durationStr.replace(/\D/g, '')) || 30;
-
-      // Use createdAt as the start time (when service started)
-      const startTime = ticket.createdAt instanceof Date ? ticket.createdAt : new Date(ticket.createdAt);
-      const now = new Date();
-      const elapsedMs = now.getTime() - startTime.getTime();
-      const elapsedMinutes = elapsedMs / (1000 * 60);
-
-      // Calculate time left (can be negative if overtime)
-      const timeLeft = Math.max(0, totalTimeMinutes - elapsedMinutes);
-
-      // Progress is elapsed time / total duration, capped between 0 and 1
-      const progress = Math.min(1, Math.max(0, elapsedMinutes / totalTimeMinutes));
-
-      return { timeLeft, totalTime: totalTimeMinutes, progress };
-    };
-
-    // Format time for display (e.g., "10:15AM")
-    const formatStartTime = (ticket: UITicket): string => {
-      const startTime = ticket.createdAt instanceof Date ? ticket.createdAt : new Date(ticket.createdAt);
-      return startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase().replace(' ', '');
-    };
-
-    // Build active tickets array for StaffCard - matches StaffCardVertical.ActiveTicket type
-    const activeTickets = staffInServiceTickets.map((ticket, idx) => ({
-      id: idx + 1, // Sequential numeric ID for display (ActiveTicket expects number)
-      ticketNumber: ticket.number, // Actual ticket number for reference
-      clientName: ticket.clientName || 'Walk-in',
-      serviceName: ticket.service || 'Service',
-      status: 'in-service' as const, // Type-safe status literal
-    }));
-
-    // Build current ticket info for display - matches StaffCardVertical.CurrentTicketInfo type
-    const timeInfo = calculateTimeInfo(primaryTicket);
-    const currentTicketInfo = {
-      timeLeft: timeInfo.timeLeft,
-      totalTime: timeInfo.totalTime,
-      progress: timeInfo.progress,
-      startTime: formatStartTime(primaryTicket),
-      serviceName: primaryTicket.service || 'Service',
-      clientName: primaryTicket.clientName || 'Walk-in',
-    };
-
-    return { activeTickets, currentTicketInfo };
-  }, [inServiceTickets]);
-
-  // US-009: Helper to find staff's next upcoming appointment
-  const getStaffNextAppointment = useCallback((staffId: string | number): string | undefined => {
-    const now = new Date();
-
-    // Filter appointments for this staff that are:
-    // 1. In the future (or within next few hours)
-    // 2. Status is 'scheduled' or 'confirmed' (not cancelled, completed, etc.)
-    const upcomingAppointments = allAppointments.filter((apt: LocalAppointment) => {
-      // Match by staffId
-      if (apt.staffId !== String(staffId) && apt.staffId !== staffId) {
-        return false;
-      }
-
-      // Check status - only include scheduled/confirmed appointments
-      const validStatuses = ['scheduled', 'confirmed', 'pending'];
-      if (!validStatuses.includes(apt.status)) {
-        return false;
-      }
-
-      // Check if appointment is in the future
-      // LocalAppointment.scheduledStartTime is always a string (ISO format)
-      const aptTime = new Date(apt.scheduledStartTime);
-      return aptTime > now;
-    });
-
-    if (upcomingAppointments.length === 0) {
-      return undefined;
-    }
-
-    // Sort by start time and get the earliest one
-    // LocalAppointment.scheduledStartTime is always a string (ISO format)
-    const sortedAppointments = upcomingAppointments.sort((a, b) => {
-      const timeA = new Date(a.scheduledStartTime).getTime();
-      const timeB = new Date(b.scheduledStartTime).getTime();
-      return timeA - timeB;
-    });
-
-    const nextApt = sortedAppointments[0];
-    const aptTime = new Date(nextApt.scheduledStartTime);
-
-    // Format as "10:30 AM" style
-    return aptTime.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  }, [allAppointments]);
-
-  // US-009: Helper to find staff's last completed service time
-  const getStaffLastServiceTime = useCallback((staffId: string | number): string | undefined => {
-    // Filter completed tickets for this staff
-    const staffCompletedTickets = completedTickets.filter((ticket: UITicket) => {
-      const ticketStaffId = ticket.techId || ticket.assignedTo?.id;
-      return ticketStaffId === String(staffId) || ticketStaffId === staffId;
-    });
-
-    if (staffCompletedTickets.length === 0) {
-      return undefined;
-    }
-
-    // Sort by updated time (most recent first) to get the latest completed ticket
-    // Use time field which contains the ticket time, or createdAt/updatedAt
-    const sortedTickets = staffCompletedTickets.sort((a, b) => {
-      // Try to get a timestamp from the ticket
-      const getTimestamp = (t: UITicket): number => {
-        // updatedAt is when the ticket was marked as paid/completed
-        if (t.updatedAt) {
-          const time = typeof t.updatedAt === 'string' ? new Date(t.updatedAt) : t.updatedAt;
-          return time.getTime();
-        }
-        if (t.createdAt) {
-          const time = typeof t.createdAt === 'string' ? new Date(t.createdAt) : t.createdAt;
-          return time.getTime();
-        }
-        return 0;
-      };
-      return getTimestamp(b) - getTimestamp(a);
-    });
-
-    const lastTicket = sortedTickets[0];
-
-    // Get the completion/update time
-    let lastTime: Date | undefined;
-    if (lastTicket.updatedAt) {
-      lastTime = typeof lastTicket.updatedAt === 'string'
-        ? new Date(lastTicket.updatedAt)
-        : lastTicket.updatedAt;
-    } else if (lastTicket.createdAt) {
-      lastTime = typeof lastTicket.createdAt === 'string'
-        ? new Date(lastTicket.createdAt)
-        : lastTicket.createdAt;
-    }
-
-    if (!lastTime) {
-      return undefined;
-    }
-
-    // Format as "10:30 AM" style
-    return lastTime.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  }, [completedTickets]);
+  // US-002, US-009: Ticket and appointment info now provided by hooks from StaffSidebar module
+  // See: ./StaffSidebar/hooks/useStaffTicketInfo.ts, useStaffAppointments.ts
 
   // 🎨 TEAM STYLING - Strong distinction from ticket sections
   const teamSidebarClasses = USE_NEW_TEAM_STYLING

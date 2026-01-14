@@ -327,3 +327,45 @@ All four callbacks are passed to StaffDetailsPanel (lines 1282-1285) and StaffCa
 
 ---
 
+## 2026-01-14 07:30 - US-008: Replace as any type casts with proper type guards
+Commit: 5cc97f5
+
+### Implementation
+- Added `UIStaff` type import from uiStaffSlice
+- Created `findStaffByNumericId` helper function for type-safe staff lookup by numeric ID
+- Created `isTicketForStaff` helper function for type-safe ticket-staff matching
+- Typed `determineStaffStatus` function: `(staff: UIStaff, inServiceTickets: UITicket[]): UIStaff`
+- Changed `selectedStaffForDetails` state from `any` to `UIStaff | null`
+- Removed `(window as any)` casts - window.addEventListener works with custom event names
+- Typed `handleStaffClick` callback parameter as `UIStaff`
+- Replaced 6 occurrences of `staff.find((s: any) => ...)` with `findStaffByNumericId(staff, staffId)`
+- Replaced 2 occurrences of `serviceTickets.find/some((ticket: any) => ...)` with `isTicketForStaff`
+- Removed dead code for 'ultra-compact' viewMode (type is `'normal' | 'compact'`, so comparison was always false)
+- Fixed handleStaffClick to pass original `staffMember` instead of `modifiedStaffMember` (which had incompatible `id: number`)
+
+### Files Changed
+- `apps/store-app/src/components/frontdesk/StaffSidebar.tsx` (added 16 lines of helpers, replaced ~50 lines of any-typed code)
+
+### Browser Verification (REQUIRED - DO NOT OMIT)
+- Dev server: ✅ Running on localhost:5175
+- URL tested: http://localhost:5175/frontdesk
+- Page renders: ✅ No errors in console
+- Typecheck: ✅ Passes (only pre-existing Book module test errors)
+- **Result: PASSED ✅**
+
+### Quality Checklist
+- [x] No `as any` type casts remaining in StaffSidebar (verified via grep)
+- [x] No `: any` parameter types remaining (all replaced with UIStaff or UITicket)
+- [x] Helper functions are properly typed and reusable
+- [x] Dead code removed (ultra-compact viewMode branch)
+- [x] pnpm run typecheck passes (only pre-existing test errors)
+
+### Learnings
+- UIStaff.id is a UUID string, but StaffCardVertical passes numeric IDs in callbacks
+- Creating typed helper functions (findStaffByNumericId, isTicketForStaff) is cleaner than inline type guards
+- window.addEventListener accepts string event names without (window as any) cast
+- viewMode type was `'normal' | 'compact'` so 'ultra-compact' check was dead code
+- modifiedStaffMember has `id: number` (converted for StaffCard) but handleStaffClick expects UIStaff with `id: string`
+
+---
+
