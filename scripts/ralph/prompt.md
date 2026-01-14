@@ -15,14 +15,21 @@ You are an autonomous coding agent working on the Mango POS monorepo.
 2. Read the progress log at `scripts/ralph/progress.txt` (check Codebase Patterns section first)
 3. Read `.claude/rules/codebase-patterns.md` for accumulated patterns (auto-loaded but review for context)
 4. Check you're on the correct branch from PRD `branchName`. If not, check it out.
-5. Pick the **highest priority** user story where `passes: false`
-6. Implement that single user story
-7. Run **Quality Checklist** (see below) - ALL items must pass
-8. Run quality checks (typecheck, lint)
-9. **Update `.claude/rules/codebase-patterns.md`** with any reusable patterns discovered
-10. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
-11. Update the PRD to set `passes: true` for the completed story
-12. Append your progress to `scripts/ralph/progress.txt`
+5. **START DEV SERVER FIRST:** `cd apps/store-app && pnpm run dev` (REQUIRED for UI stories)
+6. Pick the **highest priority** user story where `passes: false`
+7. **Take BEFORE snapshot:** Navigate to http://localhost:5173/frontdesk, take snapshot
+8. Implement that single user story
+9. Run **Quality Checklist** (see below) - ALL items must pass
+10. Run quality checks: `pnpm run typecheck`
+11. **BROWSER VERIFICATION (MANDATORY):**
+    - Refresh page, take AFTER snapshot
+    - Verify no mock data ("Test Client", "10:30 AM") in snapshot
+    - Test click handlers and modals work
+    - Document results in progress report
+12. **Update `.claude/rules/codebase-patterns.md`** with any reusable patterns discovered
+13. If ALL checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
+14. Update the PRD to set `passes: true` for the completed story
+15. Append your progress to `scripts/ralph/progress.txt` (MUST include browser verification results)
 
 ---
 
@@ -43,11 +50,17 @@ You are an autonomous coding agent working on the Mango POS monorepo.
 - [ ] **Real data displays correctly** - Not mock/placeholder data
 - [ ] **State changes persist** - Changes save to Redux/storage, not just local state
 
-### UI Verification (Frontend Stories)
-- [ ] **Browser tested** - Start dev server, navigate to feature, verify it works
-- [ ] **Click handlers work** - Buttons/links trigger expected actions
-- [ ] **Modals open and close** - Modal state properly managed
-- [ ] **Mobile responsive** - Test on smaller viewports if applicable
+### UI Verification (MANDATORY for ALL Frontend Stories)
+- [ ] **Dev server running** - `cd apps/store-app && pnpm run dev` started BEFORE implementing
+- [ ] **BEFORE snapshot taken** - Captured page state before changes
+- [ ] **AFTER snapshot taken** - Captured page state after changes
+- [ ] **No forbidden strings in snapshot:**
+  - [ ] No "Test Client" found
+  - [ ] No "Test Service" found
+  - [ ] No hardcoded "10:30 AM" or "2:00 PM" found
+- [ ] **Click handlers verified** - Actually clicked buttons/links via MCP tools
+- [ ] **Modals tested** - Opened and closed via MCP tools
+- [ ] **Progress report includes browser verification section** - REQUIRED
 
 ### Anti-Patterns to AVOID
 - [ ] **Don't import selectors without using them** - Every import must be used in render
@@ -86,25 +99,79 @@ cd apps/store-app && pnpm run typecheck # Store App typecheck
 
 ---
 
-## Browser Testing (REQUIRED for Frontend Stories)
+## Browser Testing (MANDATORY - DO NOT SKIP)
 
-For any story that changes UI, you MUST verify it works in the browser:
+**⚠️ CRITICAL: Every UI story MUST include browser verification. Stories that skip this step will have bugs.**
 
-1. Start the dev server: `cd apps/[app-name] && pnpm run dev`
-2. Use browser MCP tools to navigate and verify:
-   - `mcp__chrome-devtools__navigate_page` - Go to a URL
-   - `mcp__chrome-devtools__take_snapshot` - Get page accessibility tree
-   - `mcp__chrome-devtools__click` - Click an element by uid
-   - `mcp__chrome-devtools__fill` - Fill form inputs
-   - `mcp__chrome-devtools__take_screenshot` - Capture screenshot
+### Step 1: Start Dev Server (REQUIRED FIRST)
 
-3. **Verify these specific things:**
-   - Real data displays (not "Test Client" or mock timestamps)
-   - Click handlers trigger correct actions
-   - Modals open with correct data
-   - State persists after actions
+```bash
+# For Front Desk stories (US-001 through US-024):
+cd apps/store-app && pnpm run dev
+# Wait for "Local: http://localhost:5173" message
+```
 
-**A frontend story is NOT complete until browser verification passes.**
+**DO NOT proceed with implementation until dev server is running.**
+
+### Step 2: Navigate to Feature
+
+```bash
+# Front Desk module URL:
+http://localhost:5173/frontdesk
+```
+
+Use browser MCP tools:
+- `mcp__chrome-devtools__navigate_page` with url: "http://localhost:5173/frontdesk"
+- `mcp__chrome-devtools__take_snapshot` to see current page state
+- `mcp__chrome-devtools__take_screenshot` to capture visual state
+
+### Step 3: Verify Implementation (MANDATORY CHECKS)
+
+**For EVERY UI story, you MUST:**
+
+1. **Take a snapshot BEFORE implementation** - Capture baseline state
+2. **Implement the change**
+3. **Refresh the page** - Navigate to URL again
+4. **Take a snapshot AFTER implementation** - Verify change is visible
+5. **Search snapshot for forbidden strings:**
+   - ❌ "Test Client" - Mock data not removed
+   - ❌ "Test Service" - Mock data not removed
+   - ❌ "10:30 AM" (hardcoded) - Mock timestamp
+   - ❌ "2:00 PM" (hardcoded) - Mock timestamp
+6. **Click interactive elements** - Verify handlers work
+7. **Take final screenshot** - Document the working feature
+
+### Step 4: Document Results in Progress Report
+
+```
+Browser verification: PASSED ✅
+- Dev server: Started on localhost:5173
+- URL tested: http://localhost:5173/frontdesk
+- Snapshot taken: [describe what was verified]
+- Screenshot saved: [if applicable]
+- No mock data found in snapshot: ✅
+```
+
+**OR if verification fails:**
+
+```
+Browser verification: FAILED ❌
+- Issue found: [describe the problem]
+- Action taken: [how you fixed it]
+- Re-verified: [PASSED/FAILED]
+```
+
+### FAILURE CONDITIONS (Story NOT Complete If Any Apply)
+
+- ❌ Dev server not started
+- ❌ Page not navigated to
+- ❌ No snapshot taken
+- ❌ Mock data strings found in snapshot ("Test Client", "10:30 AM", etc.)
+- ❌ Click handlers don't trigger actions
+- ❌ Modals don't open/close properly
+- ❌ Progress report missing browser verification section
+
+**A frontend story is NOT complete until browser verification PASSES and is DOCUMENTED.**
 
 ---
 
@@ -146,15 +213,31 @@ APPEND to `scripts/ralph/progress.txt` (never replace, always append):
 ```
 ## [Date/Time] - [Story ID]: [Story Title]
 Commit: [git commit hash]
+
+### Implementation
 - What was implemented
 - Files changed
-- Browser verification: [PASSED/FAILED] - [what was tested]
-- **Learnings for future iterations:**
-  - Patterns discovered (e.g., "this codebase uses X for Y")
-  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
-  - Useful context (e.g., "the settings panel is in component X")
+
+### Browser Verification (REQUIRED - DO NOT OMIT)
+- Dev server: ✅ Started on localhost:5173
+- URL tested: http://localhost:5173/frontdesk
+- BEFORE snapshot: ✅ Taken before implementation
+- AFTER snapshot: ✅ Taken after implementation
+- Mock data check:
+  - "Test Client" found: ❌ No
+  - "Test Service" found: ❌ No
+  - Hardcoded times found: ❌ No
+- Click handlers tested: ✅ [which elements clicked]
+- Modals tested: ✅ [which modals opened/closed]
+- **Result: PASSED ✅** (or FAILED ❌ with explanation)
+
+### Learnings
+- Patterns discovered
+- Gotchas encountered
 ---
 ```
+
+**⚠️ Progress reports WITHOUT the Browser Verification section are INCOMPLETE. The story should NOT be marked as `passes: true` without this section.**
 
 ---
 
@@ -189,12 +272,18 @@ If ALL stories have `passes: true`, reply with:
 4. **Read Codebase Patterns first** - Avoid repeating past mistakes
 5. **Update PRD after commit** - Set `passes: true` for completed story
 6. **Append progress** - Never delete existing progress entries
-7. **Browser verify UI changes** - Frontend stories require visual confirmation
+7. **⚠️ BROWSER TESTING IS MANDATORY** - You MUST:
+   - Start dev server BEFORE implementing
+   - Take BEFORE and AFTER snapshots
+   - Search snapshots for forbidden mock data strings
+   - Document verification in progress report
+   - **DO NOT mark story complete without browser verification**
 8. **Use pnpm** - This monorepo uses pnpm, not npm
 9. **Update codebase-patterns.md** - Add discovered patterns so ALL future sessions benefit
 10. **Run Quality Checklist** - ALL items must pass before marking story complete
 11. **No mock data in production** - Remove ALL hardcoded test/placeholder data
 12. **Wire all imports** - Every imported selector/function must be USED
+13. **Progress report MUST include browser verification section** - Missing = story incomplete
 
 ---
 
