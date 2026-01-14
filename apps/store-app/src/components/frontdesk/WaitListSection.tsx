@@ -8,7 +8,7 @@ import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { AssignTicketModal } from '@/components/tickets/AssignTicketModal';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
 import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
-import { WaitListTicketCard, WaitListTicketCardRefactored } from '@/components/tickets';
+import { WaitListTicketCard } from '@/components/tickets';
 import { headerContentSpacer, waitingHeaderTheme } from './headerTokens';
 import { FrontDeskHeader, HeaderActionButton } from './FrontDeskHeader';
 import { FrontDeskEmptyState } from './FrontDeskEmptyState';
@@ -811,7 +811,7 @@ export const WaitListSection = memo(function WaitListSection({
               {activeTicket ? (
                 <div className="opacity-90 shadow-2xl rotate-2 scale-105">
                   {viewMode === 'grid' ? (
-                    <WaitListTicketCardRefactored
+                    <WaitListTicketCard
                       ticket={{
                         id: activeTicket.id,
                         number: activeTicket.number,

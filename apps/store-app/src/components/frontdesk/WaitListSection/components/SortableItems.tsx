@@ -9,7 +9,7 @@ import { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
-import { WaitListTicketCard, WaitListTicketCardRefactored } from '@/components/tickets';
+import { WaitListTicketCard } from '@/components/tickets';
 import type { SortableListItemProps, SortableGridItemProps } from '../types';
 
 /**
@@ -118,7 +118,7 @@ export const SortableGridItem = memo(function SortableGridItem({
           <GripVertical size={14} className="text-gray-400" />
         </div>
       )}
-      <WaitListTicketCardRefactored
+      <WaitListTicketCard
         ticket={{
           id: ticket.id,
           number: ticket.number,
