@@ -1101,3 +1101,37 @@ US-021 was already fully implemented in US-009 (StaffSidebar module split). Veri
 
 ---
 
+## 2026-01-14 16:15 - US-022: Remove unused determineStaffStatus export
+Commit: 2c1457b
+
+### Implementation
+Searched codebase and confirmed `determineStaffStatus` was never imported/used anywhere. Removed the function and all its exports:
+
+**Files Modified:**
+- `staffHelpers.ts`: Removed 18-line `determineStaffStatus` function
+- `utils/index.ts`: Removed export from barrel
+- `StaffSidebar.tsx`: Removed re-export comment and line
+- `StaffSidebar/index.ts`: Removed from component re-export
+
+**Verification:**
+- `grep -r "import.*determineStaffStatus"` - No matches
+- Function was exported but never imported anywhere in codebase
+
+### Files Changed
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar/utils/staffHelpers.ts` (-18 lines)
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar/utils/index.ts` (-1 line)
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar.tsx` (-3 lines)
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar/index.ts` (-1 word)
+
+### Quality Checklist
+- [x] Search codebase for usages - confirmed no imports ✅
+- [x] Function deleted completely ✅
+- [x] pnpm run typecheck passes ✅
+
+### Learnings
+- PRD note said "(status: any) typing" but the function was actually properly typed with UIStaff
+- Always verify with grep before assuming dead code
+- Dead exports can accumulate when code is refactored but cleanup is forgotten
+
+---
+

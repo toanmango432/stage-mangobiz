@@ -355,8 +355,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": "Exported function with (status: any) typing, appears unused."
+      "passes": true,
+      "notes": "Function was exported but never imported - verified with grep. Removed 18-line function and all re-exports from staffHelpers.ts, utils/index.ts, StaffSidebar.tsx, and module index.ts."
     },
     {
       "id": "US-023",
