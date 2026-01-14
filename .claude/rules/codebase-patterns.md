@@ -142,3 +142,215 @@ window.dispatchEvent(new CustomEvent('navigate-to-module', {
 - Include `@returns` describing the output format and possible values
 - Include `@example` blocks showing typical usage patterns
 - See `urgencyUtils.ts` for reference implementation
+
+---
+
+## Anti-Patterns to AVOID
+
+> These patterns caused issues in previous Ralph runs. DO NOT repeat them.
+
+### 1. Mock Data in Production Code
+**BAD:**
+```typescript
+// DON'T DO THIS - hardcoded test data in render loop
+if (staffMember.status === 'busy') {
+  modifiedStaffMember.currentTicketInfo = {
+    clientName: 'Test Client',  // WRONG - hardcoded
+    serviceName: 'Test Service',
+  };
+}
+modifiedStaffMember.lastServiceTime = '10:30 AM';  // WRONG - hardcoded
+```
+
+**GOOD:**
+```typescript
+// Use real data from Redux selectors
+const serviceTickets = useAppSelector(selectServiceTickets);
+const staffTicket = serviceTickets.find(t => t.techId === staffMember.id);
+if (staffTicket) {
+  modifiedStaffMember.currentTicketInfo = {
+    clientName: staffTicket.clientName,  // Real data
+    serviceName: staffTicket.service,
+  };
+}
+```
+
+### 2. Importing Selectors Without Using Them
+**BAD:**
+```typescript
+// DON'T DO THIS - import but never use
+const allAppointments = useAppSelector(selectAllAppointments);
+const completedTickets = useAppSelector(selectCompletedTickets);
+// ... these are never used in rendering
+```
+
+**GOOD:**
+```typescript
+// Import AND use in rendering
+const allAppointments = useAppSelector(selectAllAppointments);
+const nextAppointment = allAppointments.find(
+  apt => apt.staffId === staff.id && new Date(apt.scheduledStartTime) > new Date()
+);
+// Use nextAppointment in JSX
+```
+
+### 3. Suppressing Unused Variables with `void`
+**BAD:**
+```typescript
+// DON'T DO THIS - hiding unused code
+void _saveOriginalWidth;
+void _handleResetClick;
+void _getDisplayPriorityTiers;
+```
+
+**GOOD:**
+```typescript
+// Either DELETE the unused code or IMPLEMENT the feature
+// If not needed, remove completely
+// If needed later, implement it now or create a story for it
+```
+
+### 4. Modal Callbacks Without Implementation
+**BAD:**
+```typescript
+// DON'T DO THIS - callback prop declared but undefined
+<StaffDetailsPanel
+  onAddNote={onAddNote}  // undefined - will crash
+  onEditTeam={onEditTeam}  // undefined - will crash
+/>
+```
+
+**GOOD:**
+```typescript
+// Implement the callback that dispatches Redux action
+const handleAddNote = (staffId: string, note: string) => {
+  dispatch(addStaffNote({ staffId, note }));
+  setShowNoteModal(false);
+};
+<StaffDetailsPanel onAddNote={handleAddNote} />
+```
+
+### 5. Type Casts with `as any`
+**BAD:**
+```typescript
+// DON'T DO THIS - masks type errors
+(modifiedStaffMember as any).activeTickets = [{...}];
+staff.find((s: any) => s.id === staffId);
+```
+
+**GOOD:**
+```typescript
+// Use proper type guards
+interface StaffWithTickets extends Staff {
+  activeTickets?: UITicket[];
+}
+const modifiedStaff: StaffWithTickets = { ...staffMember };
+modifiedStaff.activeTickets = tickets;
+
+// Or use type assertion only when necessary with explanation
+const staffId = typeof id === 'string' ? parseInt(id, 10) : id;
+```
+
+### 6. Large Files Without Splitting
+**BAD:**
+```typescript
+// 900+ lines in a single component file
+// StaffSidebar.tsx - 902 lines (TOO BIG)
+```
+
+**GOOD:**
+```
+// Split into module structure
+StaffSidebar/
+├── index.ts
+├── StaffSidebar.tsx        # ~250 lines - main component
+├── StaffCardGrid.tsx       # ~150 lines - card rendering
+├── StaffSidebarHeader.tsx  # ~100 lines - header/controls
+├── hooks/
+│   ├── useStaffFiltering.ts
+│   └── useStaffCardDisplay.ts
+└── types.ts
+```
+
+---
+
+## Real Data Integration Pattern
+
+When connecting components to real Redux data:
+
+```typescript
+// 1. Import the selector
+import { selectServiceTickets, selectAllAppointments } from '@/store/slices';
+
+// 2. Use in component
+const serviceTickets = useAppSelector(selectServiceTickets);
+const appointments = useAppSelector(selectAllAppointments);
+
+// 3. Filter/transform for specific staff
+const staffData = useMemo(() => {
+  return staffList.map(staff => {
+    const activeTicket = serviceTickets.find(t =>
+      String(t.techId) === String(staff.id) ||
+      String(t.staffId) === String(staff.id)
+    );
+    const nextApt = appointments.find(a =>
+      String(a.staffId) === String(staff.id) &&
+      new Date(a.scheduledStartTime) > new Date()
+    );
+    return {
+      ...staff,
+      currentTicket: activeTicket,
+      nextAppointment: nextApt,
+    };
+  });
+}, [staffList, serviceTickets, appointments]);
+
+// 4. Use transformed data in render
+{staffData.map(staff => (
+  <StaffCard
+    currentTicket={staff.currentTicket}  // Real data!
+    nextAppointment={staff.nextAppointment}
+  />
+))}
+```
+
+---
+
+## Modal State Management Pattern
+
+Complete pattern for modal with selected item:
+
+```typescript
+// 1. State for modal visibility and selected item
+const [showModal, setShowModal] = useState(false);
+const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+
+// 2. Handler to open modal with item
+const handleOpenModal = (item: Item) => {
+  setSelectedItem(item);
+  setShowModal(true);
+};
+
+// 3. Handler for modal confirm (MUST dispatch Redux action)
+const handleConfirm = (data: ConfirmData) => {
+  if (!selectedItem) return;
+  dispatch(someAction({ itemId: selectedItem.id, ...data }));
+  setShowModal(false);
+  setSelectedItem(null);
+};
+
+// 4. Handler for modal close
+const handleClose = () => {
+  setShowModal(false);
+  setSelectedItem(null);
+};
+
+// 5. Render modal with all handlers
+{showModal && selectedItem && (
+  <MyModal
+    item={selectedItem}
+    onConfirm={handleConfirm}
+    onClose={handleClose}
+  />
+)}
+```

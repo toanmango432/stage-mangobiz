@@ -1,23 +1,202 @@
 {
   "project": "Mango POS Offline V2",
-  "branchName": "ralph/learning-loop-test",
-  "description": "Test that Ralph learning loop works - patterns are read and updated",
+  "branchName": "ralph/frontdesk-fixes",
+  "description": "Fix critical issues from previous Ralph run and improve Front Desk module quality. Addresses mock data, unused selectors, incomplete modal handlers, and code organization.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add JSDoc comment to formatWaitingTime utility",
-      "description": "As a developer, I want formatWaitingTime to have a JSDoc comment explaining its usage so that future developers understand how to use it.",
+      "title": "Remove hardcoded mock data from StaffSidebar",
+      "description": "As a developer, I want all hardcoded test data removed from StaffSidebar.tsx so that staff cards display real client and ticket information.",
       "acceptanceCriteria": [
-        "formatWaitingTime function in urgencyUtils.ts has a JSDoc comment",
-        "JSDoc includes @param for minutes parameter",
-        "JSDoc includes @returns describing the output format",
-        "JSDoc includes @example showing sample usage",
-        "pnpm run typecheck passes",
-        "Update .claude/rules/codebase-patterns.md with any new patterns discovered about the urgency system"
+        "Remove hardcoded 'Test Client' and 'Test Service' from lines ~791-813",
+        "Remove hardcoded lastServiceTime '10:30 AM' mock value",
+        "Remove hardcoded nextAppointmentTime '2:00 PM' mock value",
+        "Staff cards should show empty/null when no real data exists (not mock data)",
+        "Verify in browser: busy staff card shows no fake data",
+        "pnpm run typecheck passes for store-app"
       ],
       "priority": 1,
-      "passes": true,
-      "notes": "File: apps/store-app/src/utils/urgencyUtils.ts. This is a test story to verify the learning loop works."
+      "passes": false,
+      "notes": "File: apps/store-app/src/components/frontdesk/StaffSidebar.tsx. This is the most critical fix - mock data was shipped in production code."
+    },
+    {
+      "id": "US-002",
+      "title": "Wire Redux serviceTickets selector to staff cards",
+      "description": "As a user, I want to see real current ticket information on staff cards so I know what each staff member is working on.",
+      "acceptanceCriteria": [
+        "Use selectServiceTickets from uiTicketsSlice (already imported)",
+        "Match tickets to staff using techId, staffId, or assignedTo.id (handle all three)",
+        "Display real clientName and serviceName from matched ticket",
+        "Handle both string and number staff IDs with proper type guards (no as any)",
+        "Verify in browser: create ticket for staff → card shows real client name",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "The selector is already imported but not used in the render loop. Wire it to the staff card mapping."
+    },
+    {
+      "id": "US-003",
+      "title": "Wire Redux appointments selector for next appointment times",
+      "description": "As a user, I want to see upcoming appointment times on staff cards so I can plan accordingly.",
+      "acceptanceCriteria": [
+        "Use selectAllAppointments from appointmentsSlice (already imported)",
+        "Find next scheduled appointment for each staff member (scheduledStartTime > now)",
+        "Display formatted time on staff card nextAppointmentTime field",
+        "Handle staff with no upcoming appointments gracefully (show nothing, not mock time)",
+        "Verify in browser: book appointment → staff card shows real appointment time",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "selectAllAppointments is imported but never used. Wire it to staff card rendering."
+    },
+    {
+      "id": "US-004",
+      "title": "Wire Redux completedTickets selector for last service times",
+      "description": "As a user, I want to see when each staff member last completed a service.",
+      "acceptanceCriteria": [
+        "Use selectCompletedTickets to find paid tickets for each staff",
+        "Find most recent completed ticket (by completedAt timestamp)",
+        "Display formatted time on staff card lastServiceTime field",
+        "Handle staff with no completed tickets gracefully",
+        "Verify in browser: complete checkout → staff card shows real last service time",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "completedTickets = status 'paid' (not 'completed' which means pending checkout)."
+    },
+    {
+      "id": "US-005",
+      "title": "Remove suppressed unused variables from StaffSidebar",
+      "description": "As a developer, I want clean code without suppressed unused variables so the codebase is maintainable.",
+      "acceptanceCriteria": [
+        "Remove 'void _saveOriginalWidth' and the unused function",
+        "Remove 'void _handleResetClick' and the unused function",
+        "Remove 'void _getDisplayPriorityTiers' and the unused function",
+        "If any of these features are needed, create separate stories for them",
+        "No void statements to suppress unused variables",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Lines ~977-979 have void statements hiding unused code. Delete the unused functions entirely."
+    },
+    {
+      "id": "US-006",
+      "title": "Implement AddStaffNoteModal onConfirm handler",
+      "description": "As a user, I want to add notes to staff members so I can track important information.",
+      "acceptanceCriteria": [
+        "AddStaffNoteModal onConfirm must dispatch Redux action to save note",
+        "Create or use existing staff note action in staffSlice",
+        "Close modal and reset selectedStaffForNote after save",
+        "Show success feedback (toast or visual confirmation)",
+        "Verify in browser: open modal → add note → confirm → note is saved",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Modal exists but onConfirm callback doesn't dispatch any Redux action."
+    },
+    {
+      "id": "US-007",
+      "title": "Implement StaffDetailsPanel action callbacks",
+      "description": "As a user, I want staff detail panel actions to work so I can manage staff from the panel.",
+      "acceptanceCriteria": [
+        "onAddTicket callback opens ticket panel with staff pre-selected",
+        "onAddNote callback opens AddStaffNoteModal with staff selected",
+        "onEditTeam callback navigates to team settings for that staff member",
+        "onQuickCheckout callback triggers checkout flow if staff has active ticket",
+        "All callbacks must be implemented (not undefined)",
+        "Verify in browser: click each action button → correct action happens",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "StaffDetailsPanel has callback props but handlers are not implemented in parent."
+    },
+    {
+      "id": "US-008",
+      "title": "Replace as any type casts with proper type guards",
+      "description": "As a developer, I want type-safe code so TypeScript can catch errors at compile time.",
+      "acceptanceCriteria": [
+        "Replace (modifiedStaffMember as any) with proper interface extension",
+        "Replace staff.find((s: any) => ...) with typed staff array",
+        "Create StaffWithTicketInfo interface extending base Staff type",
+        "Use typeof checks for string/number staff ID handling",
+        "No as any casts without documented reason in comment",
+        "pnpm run typecheck passes with strict mode"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "At least 15 instances of 'as any' in StaffSidebar. Each must be replaced with proper typing."
+    },
+    {
+      "id": "US-009",
+      "title": "Split StaffSidebar into module structure",
+      "description": "As a developer, I want StaffSidebar split into smaller files so the code is maintainable.",
+      "acceptanceCriteria": [
+        "Create StaffSidebar/ directory with module structure",
+        "Extract StaffCardGrid component (~150 lines) for card rendering",
+        "Extract StaffSidebarHeader component (~100 lines) for controls",
+        "Extract useStaffFiltering hook for filter logic",
+        "Main StaffSidebar.tsx should be under 300 lines",
+        "All imports/exports work correctly",
+        "Verify in browser: Front Desk page renders correctly after split",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Current file is 902 lines. Target is <300 lines per file. Follow module structure in codebase-patterns.md."
+    },
+    {
+      "id": "US-010",
+      "title": "Wire MobileStaffActionSheet to MobileTeamSection",
+      "description": "As a mobile user, I want staff action sheet to appear when I tap a staff card so I can perform actions.",
+      "acceptanceCriteria": [
+        "MobileTeamSection renders MobileStaffActionSheet component",
+        "Tapping staff card opens action sheet with correct staff selected",
+        "Action sheet buttons trigger actual actions (not just log/close)",
+        "onAddTicket opens ticket panel, onAddNote opens note modal",
+        "Verify in browser (mobile viewport): tap staff → action sheet opens → actions work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "MobileStaffActionSheet was created but not integrated into MobileTeamSection."
+    },
+    {
+      "id": "US-011",
+      "title": "Add integration tests for real data flow",
+      "description": "As a developer, I want tests that verify real Redux data displays correctly on staff cards.",
+      "acceptanceCriteria": [
+        "Test: mock Redux state with service tickets → verify card shows real client name",
+        "Test: mock Redux state with appointments → verify card shows real appointment time",
+        "Test: mock Redux state with completed tickets → verify card shows real last service",
+        "Tests use Redux Provider wrapper with configured store",
+        "Tests do not rely on hardcoded 'Test Client' strings",
+        "All new tests pass: pnpm test StaffSidebar"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Current tests mock useTickets hook but don't test the Redux selector integration."
+    },
+    {
+      "id": "US-012",
+      "title": "Verify and fix mobile responsiveness for staff cards",
+      "description": "As a mobile user, I want staff cards to display properly on smaller screens.",
+      "acceptanceCriteria": [
+        "Staff cards adapt to viewport width (no horizontal overflow)",
+        "Touch targets are at least 44x44px for mobile",
+        "Text is readable at mobile sizes (no truncation hiding important info)",
+        "Action sheet is usable on small screens",
+        "Verify in browser at 375px width: all cards render correctly",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Mobile view should use Sheet with side='bottom' for action menus."
     }
   ]
 }

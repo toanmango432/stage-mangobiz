@@ -6,18 +6,20 @@ See .claude/rules/codebase-patterns.md for accumulated patterns (auto-loaded by 
 
 # Ralph Progress Log
 Started: 2026-01-14
-Branch: ralph/learning-loop-test
+Branch: ralph/frontdesk-fixes
+Purpose: Fix critical issues from previous Ralph run (mock data, unused selectors, incomplete handlers)
+
+## Pre-Run Notes
+
+**Issues to fix from previous run (ralph/frontdesk-update):**
+1. Mock data in production code (StaffSidebar lines 791-813)
+2. Redux selectors imported but never used
+3. Modal callbacks not implemented
+4. Unused variables suppressed with void statements
+5. Type safety violations (as any casts)
+6. Large file (902 lines) needs splitting
+
+**Quality checklist added to prompt.md - follow it for EVERY story.**
 
 <!-- Ralph appends entries below -->
 
-## 2026-01-14 - US-001: Add JSDoc comment to formatWaitingTime utility
-Commit: ceac28f
-- Added comprehensive JSDoc to `formatWaitingTime` in `apps/store-app/src/utils/urgencyUtils.ts`
-- JSDoc includes @param, @returns with all output formats, and @example blocks
-- Files changed: `apps/store-app/src/utils/urgencyUtils.ts`
-- **Learnings for future iterations:**
-  - Pre-existing typecheck failures in Book module tests (AgendaView.test.tsx) are infrastructure issues - use targeted file checks
-  - Monorepo typecheck has config issues (TS6310 errors) - run app-specific checks instead
-  - JSDoc standard: @param, @returns, @example for utilities
-- **Updated .claude/rules/codebase-patterns.md** with Documentation Standards section
----
