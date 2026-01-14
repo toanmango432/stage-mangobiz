@@ -184,8 +184,8 @@
         "All new tests pass: pnpm test StaffSidebar"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "Current tests mock useTickets hook but don't test the Redux selector integration."
+      "passes": true,
+      "notes": "Added staffHooksIntegration.test.ts with 20 tests verifying real Redux data flow through hooks."
     },
     {
       "id": "US-012",
@@ -200,8 +200,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "Mobile view should use Sheet with side='bottom' for action menus."
+      "passes": true,
+      "notes": "Added Off section to busyStatus grouped view and removed hardcoded '2:00p' fallback in compact mode."
     },
     {
       "id": "US-013",
@@ -216,8 +216,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "CRITICAL: Dynamic class names like grid-cols-${n} are purged by Tailwind. Use CSS Grid auto-fit instead."
+      "passes": true,
+      "notes": "Already resolved in US-009 module split. gridHelpers.ts uses CSS Grid auto-fit/minmax with static classes. Production build verified - all custom grid classes present in CSS."
     },
     {
       "id": "US-014",
