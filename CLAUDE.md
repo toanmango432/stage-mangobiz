@@ -41,6 +41,25 @@ pnpm test
 
 ---
 
+## Post-Merge Checklist
+
+**IMPORTANT:** After merging any branch into main (or switching branches), always run:
+
+```bash
+pnpm install
+```
+
+This ensures new dependencies added by the merged branch are installed. Missing this step causes "Failed to resolve import" errors at runtime.
+
+| After this action... | Run this command |
+|---------------------|------------------|
+| `git merge <branch>` | `pnpm install` |
+| `git checkout <branch>` | `pnpm install` |
+| `git pull` | `pnpm install` |
+| Switching worktrees | `pnpm install` |
+
+---
+
 ## Environment Setup
 
 Copy `.env.example` to `.env` and configure:
