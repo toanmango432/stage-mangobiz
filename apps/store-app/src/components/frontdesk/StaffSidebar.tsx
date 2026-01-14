@@ -6,6 +6,7 @@ import { StaffCardVertical } from '@/components/StaffCard';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from '@/components/TeamSettingsPanel';
 import { TurnTracker } from '@/components/TurnTracker/TurnTracker';
 import { AddStaffNoteModal } from '@/components/frontdesk/AddStaffNoteModal';
+import { StaffDetailsPanel } from '@/components/frontdesk/StaffDetailsPanel';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -119,6 +120,10 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // US-004: State for Add Staff Note modal
   const [showStaffNoteModal, setShowStaffNoteModal] = useState(false);
   const [selectedStaffForNote, setSelectedStaffForNote] = useState<{ id: number; name: string } | null>(null);
+
+  // US-010: State for Staff Details Panel
+  const [showStaffDetails, setShowStaffDetails] = useState(false);
+  const [selectedStaffForDetails, setSelectedStaffForDetails] = useState<any>(null);
   // Listen for global FAB event to open Turn Tracker
   useEffect(() => {
     const onOpen = () => setShowTurnTracker(true);
@@ -408,6 +413,13 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       }));
     }
   }, [staff, dispatch]);
+
+  // US-010: Handle staff card click to open details panel
+  // Opens the StaffDetailsPanel with staff info, tickets, appointments, and stats
+  const handleStaffClick = useCallback((staffMember: any) => {
+    setSelectedStaffForDetails(staffMember);
+    setShowStaffDetails(true);
+  }, []);
 
   // US-006: Handle Quick Checkout action from staff card
   // Opens the checkout panel for the staff's current in-service ticket
@@ -1196,6 +1208,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                       showEditTeamAction: settings?.showEditTeamAction ?? true,
                       showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
                     }}
+                    // US-010: Handle staff card click to open details panel
+                    onClick={() => handleStaffClick(modifiedStaffMember)}
                     // US-003: Handle Add Ticket action
                     onAddTicket={handleAddTicket}
                     // US-004: Handle Add Note action
@@ -1251,6 +1265,20 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
         staffId={selectedStaffForNote.id}
         staffName={selectedStaffForNote.name}
         onSave={handleSaveStaffNote}
+      />
+    )}
+    {/* US-010: Staff Details Panel */}
+    {showStaffDetails && selectedStaffForDetails && (
+      <StaffDetailsPanel
+        staff={selectedStaffForDetails}
+        onClose={() => {
+          setShowStaffDetails(false);
+          setSelectedStaffForDetails(null);
+        }}
+        onAddTicket={handleAddTicket}
+        onAddNote={handleAddNote}
+        onEditTeam={handleEditTeam}
+        onQuickCheckout={handleQuickCheckout}
       />
     )}
   </div>;
