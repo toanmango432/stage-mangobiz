@@ -11,7 +11,7 @@ import { useTickets } from '@/hooks/useTicketsCompat';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
+import { selectFrontDeskSettings, setStaffNote, selectAllStaffNotes } from '@/store/slices/frontDeskSettingsSlice';
 import { selectServiceTickets, selectCompletedTickets, type UITicket } from '@/store/slices/uiTicketsSlice';
 import { selectAllAppointments } from '@/store/slices/appointmentsSlice';
 import type { LocalAppointment } from '@/types/appointment';
@@ -65,6 +65,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
   // US-009: Get completed tickets from Redux for last service times
   const completedTickets = useAppSelector(selectCompletedTickets);
+
+  // US-006: Get staff notes from Redux
+  const staffNotes = useAppSelector(selectAllStaffNotes);
 
   // Get context data including resetStaffStatus function
   const {
@@ -375,13 +378,11 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     }
   }, [staff]);
 
-  // US-004: Handle saving staff note
+  // US-006: Handle saving staff note - dispatches to Redux (persisted to localStorage)
   const handleSaveStaffNote = useCallback((staffId: number, note: string) => {
-    // TODO: Integrate with staff notes storage/API
-    // For now, log to console as placeholder
-    console.log(`Staff note saved for ${staffId}:`, note);
-    // In production, this would dispatch to Redux or call an API
-  }, []);
+    dispatch(setStaffNote({ staffId, note }));
+    // Note is persisted to localStorage via the slice
+  }, [dispatch]);
 
   // US-005: Handle Edit Team Member action from staff card
   // Pre-selects the staff member in teamSlice and navigates to team-settings module
@@ -1256,7 +1257,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     {isTurnTrackerEnabled && (
       <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
     )}
-    {/* US-004: Add Staff Note Modal */}
+    {/* US-006: Add/Edit Staff Note Modal */}
     {selectedStaffForNote && (
       <AddStaffNoteModal
         isOpen={showStaffNoteModal}
@@ -1266,6 +1267,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
         }}
         staffId={selectedStaffForNote.id}
         staffName={selectedStaffForNote.name}
+        currentNote={staffNotes[String(selectedStaffForNote.id)] || ''}
         onSave={handleSaveStaffNote}
       />
     )}

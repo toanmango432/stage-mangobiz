@@ -47,6 +47,9 @@ interface ViewState {
   serviceColumnWidth: number;
 }
 
+// Staff notes stored by staff ID (persisted to localStorage)
+type StaffNotesMap = Record<string, string>;
+
 // Load view state from localStorage on init
 const loadViewState = (): ViewState => ({
   activeMobileSection: localStorage.getItem('activeMobileSection') || 'waitList',
@@ -56,9 +59,25 @@ const loadViewState = (): ViewState => ({
   serviceColumnWidth: parseInt(localStorage.getItem('serviceColumnWidth') || '50', 10),
 });
 
+// Load staff notes from localStorage
+const loadStaffNotes = (): StaffNotesMap => {
+  try {
+    const stored = localStorage.getItem('staffNotes');
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+// Save staff notes to localStorage
+const saveStaffNotes = (notes: StaffNotesMap): void => {
+  localStorage.setItem('staffNotes', JSON.stringify(notes));
+};
+
 interface FrontDeskSettingsState {
   settings: FrontDeskSettingsData;
   viewState: ViewState;
+  staffNotes: StaffNotesMap;
   hasUnsavedChanges: boolean;
   lastSaved: number | null;
   isLoading: boolean;
@@ -69,6 +88,7 @@ interface FrontDeskSettingsState {
 const initialState: FrontDeskSettingsState = {
   settings: defaultFrontDeskSettings,
   viewState: loadViewState(),
+  staffNotes: loadStaffNotes(),
   hasUnsavedChanges: false,
   lastSaved: null,
   isLoading: false,
@@ -207,6 +227,30 @@ const frontDeskSettingsSlice = createSlice({
       state.viewState.serviceColumnWidth = action.payload;
       localStorage.setItem('serviceColumnWidth', String(action.payload));
     },
+    // Staff notes actions
+    setStaffNote: (
+      state: FrontDeskSettingsState,
+      action: PayloadAction<{ staffId: string | number; note: string }>
+    ) => {
+      const { staffId, note } = action.payload;
+      const id = String(staffId);
+      if (note.trim()) {
+        state.staffNotes[id] = note.trim();
+      } else {
+        // Remove note if empty
+        delete state.staffNotes[id];
+      }
+      // Persist to localStorage
+      saveStaffNotes(state.staffNotes);
+    },
+    deleteStaffNote: (
+      state: FrontDeskSettingsState,
+      action: PayloadAction<string | number>
+    ) => {
+      const id = String(action.payload);
+      delete state.staffNotes[id];
+      saveStaffNotes(state.staffNotes);
+    },
   },
   extraReducers: (builder) => {
     // Load settings
@@ -260,6 +304,9 @@ export const {
   setCombinedViewMode,
   setCombinedMinimizedLineView,
   setServiceColumnWidth,
+  // Staff notes actions
+  setStaffNote,
+  deleteStaffNote,
 } = frontDeskSettingsSlice.actions;
 
 // Legacy export for backwards compatibility
@@ -321,6 +368,11 @@ export const selectActiveCombinedTab = (state: RootState) => state.frontDeskSett
 export const selectCombinedViewMode = (state: RootState) => state.frontDeskSettings.viewState.combinedViewMode;
 export const selectCombinedMinimizedLineView = (state: RootState) => state.frontDeskSettings.viewState.combinedMinimizedLineView;
 export const selectServiceColumnWidth = (state: RootState) => state.frontDeskSettings.viewState.serviceColumnWidth;
+
+// Staff notes selectors
+export const selectAllStaffNotes = (state: RootState) => state.frontDeskSettings.staffNotes;
+export const selectStaffNote = (staffId: string | number) => (state: RootState) =>
+  state.frontDeskSettings.staffNotes[String(staffId)] || '';
 
 // Export the subscription function for cross-tab sync setup
 export { subscribeToSettingsChanges };
