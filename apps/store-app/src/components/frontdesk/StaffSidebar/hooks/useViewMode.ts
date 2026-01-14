@@ -2,12 +2,17 @@
  * useViewMode Hook
  *
  * Manages the staff sidebar view mode (normal or compact).
- * Persists to localStorage and respects team settings.
+ * US-014: Migrated from localStorage to Redux for centralized state management.
+ * Respects team settings for toggle functionality.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  selectStaffSidebarViewMode,
+  setStaffSidebarViewMode,
+} from '@/store/slices/frontDeskSettingsSlice';
 import type { TeamSettings } from '@/components/TeamSettingsPanel';
-import { STORAGE_KEYS } from '../constants';
 import type { ViewMode } from '../types';
 
 export interface ViewModeState {
@@ -20,17 +25,13 @@ export interface ViewModeActions {
 }
 
 export function useViewMode(teamSettings: TeamSettings): ViewModeState & ViewModeActions {
-  // Initialize view mode from localStorage, default to 'normal'
-  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.viewMode);
-    return saved === 'normal' || saved === 'compact' ? (saved as ViewMode) : 'normal';
-  });
+  const dispatch = useAppDispatch();
+  const viewMode = useAppSelector(selectStaffSidebarViewMode);
 
-  // Set view mode and persist to localStorage
+  // Set view mode via Redux
   const setViewMode = useCallback((mode: ViewMode) => {
-    setViewModeState(mode);
-    localStorage.setItem(STORAGE_KEYS.viewMode, mode);
-  }, []);
+    dispatch(setStaffSidebarViewMode(mode));
+  }, [dispatch]);
 
   // Toggle between view modes (normal, compact)
   const toggleViewMode = useCallback(() => {

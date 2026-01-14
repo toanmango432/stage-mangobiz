@@ -92,6 +92,15 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     }
   }, [settings?.viewWidth, settings?.customWidthPercentage, applyWidthSettings]);
 
+  // US-014: Initialize sidebar width from teamSettings on mount
+  // This syncs teamSettings.viewWidth (localStorage) → Redux sidebar width
+  useEffect(() => {
+    if (teamSettings.viewWidth) {
+      applyWidthSettings(teamSettings.viewWidth, teamSettings.customWidthPercentage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
   useEffect(() => {
     const onOpen = () => setShowTurnTracker(true);
     window.addEventListener('open-turn-tracker', onOpen);

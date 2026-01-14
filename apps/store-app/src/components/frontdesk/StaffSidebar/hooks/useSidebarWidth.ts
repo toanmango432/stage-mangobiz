@@ -6,12 +6,23 @@
  * - Percentage-based width
  * - Custom percentage width
  * - Preview mode for width changes
- * - LocalStorage persistence
  * - CSS custom property updates for PendingSectionFooter positioning
+ *
+ * US-014: Migrated from localStorage to Redux for centralized state management.
+ * State is persisted via Redux viewState (which still uses localStorage for persistence).
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DEFAULT_SIDEBAR_WIDTH, STORAGE_KEYS } from '../constants';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  selectStaffSidebarWidth,
+  selectStaffSidebarWidthType,
+  selectStaffSidebarWidthPercentage,
+  setStaffSidebarWidth,
+  setStaffSidebarWidthType,
+  setStaffSidebarWidthPercentage,
+  setStaffSidebarWidthSettings,
+} from '@/store/slices/frontDeskSettingsSlice';
 
 export interface SidebarWidthState {
   sidebarWidth: number;
@@ -33,33 +44,35 @@ export interface SidebarWidthActions {
 }
 
 export function useSidebarWidth(): SidebarWidthState & SidebarWidthActions {
-  // Initialize sidebar width from localStorage
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const savedWidth = localStorage.getItem(STORAGE_KEYS.width);
-    return savedWidth ? parseInt(savedWidth) : DEFAULT_SIDEBAR_WIDTH;
-  });
+  const dispatch = useAppDispatch();
 
-  // Initialize width type from localStorage
-  const [widthType, setWidthType] = useState(() => {
-    const savedWidthType = localStorage.getItem(STORAGE_KEYS.widthType);
-    return savedWidthType || 'fixed';
-  });
+  // Get sidebar width state from Redux
+  const sidebarWidth = useAppSelector(selectStaffSidebarWidth);
+  const widthType = useAppSelector(selectStaffSidebarWidthType);
+  const widthPercentage = useAppSelector(selectStaffSidebarWidthPercentage);
 
-  // Initialize width percentage from localStorage
-  const [widthPercentage, setWidthPercentage] = useState(() => {
-    const savedPercentage = localStorage.getItem(STORAGE_KEYS.widthPercentage);
-    return savedPercentage ? parseInt(savedPercentage) : 0;
-  });
-
-  // Custom width popup state
+  // Custom width popup state (local UI state, not persisted)
   const [showCustomWidthPopup, setShowCustomWidthPopup] = useState(false);
   const customWidthPopupRef = useRef<HTMLDivElement>(null);
 
-  // Original width values for preview mode
+  // Original width values for preview mode (local state)
   const [originalWidth, setOriginalWidth] = useState(0);
   const [originalWidthType, setOriginalWidthType] = useState('');
   const [originalWidthPercentage, setOriginalWidthPercentage] = useState(0);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  // Wrapper functions to dispatch Redux actions
+  const setSidebarWidth = useCallback((width: number) => {
+    dispatch(setStaffSidebarWidth(width));
+  }, [dispatch]);
+
+  const setWidthType = useCallback((type: string) => {
+    dispatch(setStaffSidebarWidthType(type as 'fixed' | 'percentage' | 'customPercentage'));
+  }, [dispatch]);
+
+  const setWidthPercentage = useCallback((percentage: number) => {
+    dispatch(setStaffSidebarWidthPercentage(percentage));
+  }, [dispatch]);
 
   // Save original width before preview
   const saveOriginalWidth = useCallback(() => {
@@ -71,11 +84,13 @@ export function useSidebarWidth(): SidebarWidthState & SidebarWidthActions {
 
   // Restore original width when cancelling preview
   const restoreOriginalWidth = useCallback(() => {
-    setSidebarWidth(originalWidth);
-    setWidthType(originalWidthType);
-    setWidthPercentage(originalWidthPercentage);
+    dispatch(setStaffSidebarWidthSettings({
+      width: originalWidth,
+      widthType: originalWidthType as 'fixed' | 'percentage' | 'customPercentage',
+      widthPercentage: originalWidthPercentage,
+    }));
     setIsPreviewMode(false);
-  }, [originalWidth, originalWidthType, originalWidthPercentage]);
+  }, [dispatch, originalWidth, originalWidthType, originalWidthPercentage]);
 
   // Apply width settings based on the selected view width
   const applyWidthSettings = useCallback((viewWidth: string, customPercentage: number) => {
@@ -83,55 +98,50 @@ export function useSidebarWidth(): SidebarWidthState & SidebarWidthActions {
 
     switch (viewWidth) {
       case 'ultraCompact':
-        setWidthType('fixed');
-        setSidebarWidth(100);
-        setWidthPercentage(0);
-        localStorage.setItem(STORAGE_KEYS.widthType, 'fixed');
-        localStorage.setItem(STORAGE_KEYS.width, '100');
-        localStorage.setItem(STORAGE_KEYS.widthPercentage, '0');
+        dispatch(setStaffSidebarWidthSettings({
+          width: 100,
+          widthType: 'fixed',
+          widthPercentage: 0,
+        }));
         break;
 
       case 'compact':
-        setWidthType('fixed');
-        setSidebarWidth(300);
-        setWidthPercentage(0);
-        localStorage.setItem(STORAGE_KEYS.widthType, 'fixed');
-        localStorage.setItem(STORAGE_KEYS.width, '300');
-        localStorage.setItem(STORAGE_KEYS.widthPercentage, '0');
+        dispatch(setStaffSidebarWidthSettings({
+          width: 300,
+          widthType: 'fixed',
+          widthPercentage: 0,
+        }));
         break;
 
       case 'wide':
-        setWidthType('percentage');
-        setWidthPercentage(40);
-        setSidebarWidth(Math.round(windowWidth * 0.4));
-        localStorage.setItem(STORAGE_KEYS.widthType, 'percentage');
-        localStorage.setItem(STORAGE_KEYS.widthPercentage, '40');
-        localStorage.setItem(STORAGE_KEYS.width, Math.round(windowWidth * 0.4).toString());
+        dispatch(setStaffSidebarWidthSettings({
+          width: Math.round(windowWidth * 0.4),
+          widthType: 'percentage',
+          widthPercentage: 40,
+        }));
         break;
 
       case 'fullScreen':
-        setWidthType('percentage');
-        setWidthPercentage(100);
-        setSidebarWidth(windowWidth);
-        localStorage.setItem(STORAGE_KEYS.widthType, 'percentage');
-        localStorage.setItem(STORAGE_KEYS.widthPercentage, '100');
-        localStorage.setItem(STORAGE_KEYS.width, windowWidth.toString());
+        dispatch(setStaffSidebarWidthSettings({
+          width: windowWidth,
+          widthType: 'percentage',
+          widthPercentage: 100,
+        }));
         break;
 
       case 'custom':
         if (customPercentage >= 10 && customPercentage <= 80) {
-          setWidthType('customPercentage');
-          setWidthPercentage(customPercentage);
-          setSidebarWidth(Math.round(windowWidth * customPercentage / 100));
-          localStorage.setItem(STORAGE_KEYS.widthType, 'customPercentage');
-          localStorage.setItem(STORAGE_KEYS.widthPercentage, customPercentage.toString());
-          localStorage.setItem(STORAGE_KEYS.width, Math.round(windowWidth * customPercentage / 100).toString());
+          dispatch(setStaffSidebarWidthSettings({
+            width: Math.round(windowWidth * customPercentage / 100),
+            widthType: 'customPercentage',
+            widthPercentage: customPercentage,
+          }));
         }
         break;
     }
 
     setIsPreviewMode(false);
-  }, []);
+  }, [dispatch]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -162,7 +172,10 @@ export function useSidebarWidth(): SidebarWidthState & SidebarWidthActions {
       if (widthType === 'percentage' || widthType === 'customPercentage') {
         const windowWidth = window.innerWidth;
         const newWidth = Math.round(windowWidth * widthPercentage / 100);
-        setSidebarWidth(newWidth);
+        // Only dispatch if the width actually changed to avoid loops
+        if (newWidth !== sidebarWidth) {
+          dispatch(setStaffSidebarWidth(newWidth));
+        }
       }
     };
 
@@ -172,28 +185,12 @@ export function useSidebarWidth(): SidebarWidthState & SidebarWidthActions {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [widthType, widthPercentage]);
+  }, [dispatch, widthType, widthPercentage, sidebarWidth]);
 
   // Initialize CSS custom property on mount for PendingSectionFooter positioning
   useEffect(() => {
     document.documentElement.style.setProperty('--staff-sidebar-width', `${sidebarWidth}px`);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Save sidebar width settings to localStorage when they change
-  useEffect(() => {
-    // Only save to localStorage if not in preview mode
-    if (!isPreviewMode) {
-      localStorage.setItem(STORAGE_KEYS.width, sidebarWidth.toString());
-      localStorage.setItem(STORAGE_KEYS.widthType, widthType);
-      localStorage.setItem(STORAGE_KEYS.widthPercentage, widthPercentage.toString());
-
-      // Update CSS custom property for PendingSectionFooter positioning
-      document.documentElement.style.setProperty('--staff-sidebar-width', `${sidebarWidth}px`);
-
-      // Dispatch event so PendingSectionFooter can update its position
-      window.dispatchEvent(new Event('staffSidebarWidthChanged'));
-    }
-  }, [sidebarWidth, widthType, widthPercentage, isPreviewMode]);
+  }, [sidebarWidth]);
 
   return {
     // State
