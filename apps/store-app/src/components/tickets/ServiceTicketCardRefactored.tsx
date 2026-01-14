@@ -115,11 +115,12 @@ function ServiceTicketCardComponent({
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
-  // PROGRESS COLOR SYSTEM (Purple/Green/Red)
+  // PROGRESS COLOR SYSTEM (Light Blue/Green/Red)
+  // 0-79%: Light Blue, 80-100%: Green, >100%: Red (overdue)
   const getStatusColor = (percentage: number) => {
     if (percentage > 100) return { progress: 'linear-gradient(to right, #D9534F, #C9302C)', text: '#C9302C' };
     if (percentage >= 80) return { progress: 'linear-gradient(to right, #5CB85C, #449D44)', text: '#449D44' };
-    return { progress: 'linear-gradient(to right, #9B7EAE, #7E5F93)', text: '#7E5F93' };
+    return { progress: 'linear-gradient(to right, #60A5FA, #3B82F6)', text: '#3B82F6' };
   };
   const currentStatus = getStatusColor(progress);
 
