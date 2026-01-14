@@ -36,8 +36,9 @@ import {
   verticalListSortingStrategy,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setWaitlistOrder } from '@/store/slices/uiTicketsSlice';
+import { selectClients } from '@/store/slices/clientsSlice';
 
 // No-op function for drag overlay callbacks (intentionally does nothing)
 const noop = () => { /* intentionally empty for drag overlay */ };
@@ -85,10 +86,32 @@ export const WaitListSection = memo(function WaitListSection({
 
   // Get waitlist from context
   const {
-    waitlist,
+    waitlist: rawWaitlist,
     assignTicket,
     deleteTicket
   } = useTickets();
+
+  // Get clients for first visit lookup
+  const clients = useAppSelector(selectClients);
+
+  // Enrich waitlist with isFirstVisit calculated from client data
+  const waitlist = useMemo(() => {
+    return rawWaitlist.map(ticket => {
+      // Look up client by clientId to get visit count
+      const client = ticket.clientId
+        ? clients.find(c => c.id === ticket.clientId)
+        : null;
+
+      // Client is first visit if they have 0 completed visits
+      const totalVisits = client?.visitSummary?.totalVisits ?? client?.totalVisits ?? 0;
+      const isFirstVisit = totalVisits === 0;
+
+      return {
+        ...ticket,
+        isFirstVisit,
+      };
+    });
+  }, [rawWaitlist, clients]);
 
   // Get ticket panel context for opening tickets
   const { openTicketWithData } = useTicketPanel();
@@ -802,6 +825,7 @@ export const WaitListSection = memo(function WaitListSection({
                         createdAt: activeTicket.createdAt,
                         lastVisitDate: activeTicket.lastVisitDate ?? undefined,
                         checkoutServices: activeTicket.checkoutServices,
+                        isFirstVisit: activeTicket.isFirstVisit,
                       }}
                       viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                       onAssign={noop}
@@ -822,6 +846,7 @@ export const WaitListSection = memo(function WaitListSection({
                         status: 'waiting',
                         notes: activeTicket.notes,
                         checkoutServices: activeTicket.checkoutServices,
+                        isFirstVisit: activeTicket.isFirstVisit,
                       }}
                       viewMode={minimizedLineView ? 'compact' : 'normal'}
                       onAssign={noop}

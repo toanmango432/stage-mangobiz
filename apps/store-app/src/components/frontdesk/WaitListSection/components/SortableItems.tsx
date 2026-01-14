@@ -65,6 +65,7 @@ export const SortableListItem = memo(function SortableListItem({
           status: 'waiting',
           notes: ticket.notes,
           checkoutServices: ticket.checkoutServices,
+          isFirstVisit: ticket.isFirstVisit,
         }}
         viewMode={viewMode}
         onAssign={onAssign}
@@ -131,6 +132,7 @@ export const SortableGridItem = memo(function SortableGridItem({
           createdAt: ticket.createdAt,
           lastVisitDate: ticket.lastVisitDate ?? undefined,
           checkoutServices: ticket.checkoutServices,
+          isFirstVisit: ticket.isFirstVisit,
         }}
         viewMode={viewMode}
         onAssign={onAssign}
