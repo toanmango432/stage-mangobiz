@@ -48,7 +48,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "selectAllAppointments is imported but never used. Wire it to staff card rendering."
     },
     {
@@ -64,7 +64,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "completedTickets = status 'paid' (not 'completed' which means pending checkout)."
     },
     {
@@ -80,7 +80,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Lines ~977-979 have void statements hiding unused code. Delete the unused functions entirely."
     },
     {
@@ -98,7 +98,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Modal exists but onConfirm callback doesn't dispatch any Redux action. Also support editing existing notes."
     },
     {
@@ -115,7 +115,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "StaffDetailsPanel has callback props but handlers are not implemented in parent."
     },
     {

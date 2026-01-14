@@ -13,6 +13,7 @@ import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings, setStaffNote, selectAllStaffNotes } from '@/store/slices/frontDeskSettingsSlice';
 import { selectServiceTickets, selectCompletedTickets, type UITicket } from '@/store/slices/uiTicketsSlice';
+import { type UIStaff } from '@/store/slices/uiStaffSlice';
 import { selectAllAppointments } from '@/store/slices/appointmentsSlice';
 import type { LocalAppointment } from '@/types/appointment';
 import { setSelectedMember } from '@/store/slices/teamSlice';
@@ -22,6 +23,22 @@ import { useTicketPanel } from '@/contexts/TicketPanelContext';
 interface StaffSidebarProps {
   settings?: FrontDeskSettingsData;
 }
+
+// Helper to find staff by numeric ID (StaffCardVertical passes numeric IDs)
+// UIStaff.id is a UUID string, so we need to match differently
+const findStaffByNumericId = (staffList: UIStaff[], numericId: number): UIStaff | undefined => {
+  return staffList.find((s) => {
+    // Try to extract numeric portion from UUID if possible, or match as string
+    const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : Number(s.id);
+    return id === numericId;
+  });
+};
+
+// Helper to check if a ticket belongs to a staff member
+const isTicketForStaff = (ticket: UITicket, staff: UIStaff, numericStaffId: number): boolean => {
+  const ticketStaffId = ticket.techId || ticket.assignedTo?.id;
+  return ticketStaffId === staff.id || ticketStaffId === String(numericStaffId);
+};
 // Function to get staff image - uses actual staff image from backend data,
 // or generates an avatar using ui-avatars.com based on staff name
 const getStaffImage = (staffMember: { image?: string; name?: string }): string => {
@@ -34,11 +51,11 @@ const getStaffImage = (staffMember: { image?: string; name?: string }): string =
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=200`;
 };
 // Utility function to determine staff status based on active tickets
-export const determineStaffStatus = (staff: any, inServiceTickets: any[]) => {
+export const determineStaffStatus = (staff: UIStaff, inServiceTickets: UITicket[]): UIStaff => {
   // Keep 'off' status unchanged
   if (staff.status === 'off') return staff;
   // Check if this staff member has any tickets in service
-  const hasActiveTickets = inServiceTickets.some((ticket: any) => ticket.assignedTo?.id === staff.id);
+  const hasActiveTickets = inServiceTickets.some((ticket) => ticket.assignedTo?.id === staff.id);
   // Update status based on active tickets
   return {
     ...staff,
@@ -127,13 +144,13 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
   // US-010: State for Staff Details Panel
   const [showStaffDetails, setShowStaffDetails] = useState(false);
-  const [selectedStaffForDetails, setSelectedStaffForDetails] = useState<any>(null);
+  const [selectedStaffForDetails, setSelectedStaffForDetails] = useState<UIStaff | null>(null);
   // Listen for global FAB event to open Turn Tracker
   useEffect(() => {
     const onOpen = () => setShowTurnTracker(true);
-    (window as any).addEventListener('open-turn-tracker', onOpen);
+    window.addEventListener('open-turn-tracker', onOpen);
     return () => {
-      (window as any).removeEventListener('open-turn-tracker', onOpen);
+      window.removeEventListener('open-turn-tracker', onOpen);
     };
   }, []);
   // Initialize sidebar width from localStorage to ensure persistence
@@ -347,10 +364,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Opens the ticket panel with the selected staff pre-selected
   const handleAddTicket = useCallback((staffId: number) => {
     // Find the staff member by ID
-    const staffMember = staff.find((s: any) => {
-      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
-      return id === staffId;
-    });
+    const staffMember = findStaffByNumericId(staff, staffId);
 
     if (staffMember) {
       // Open ticket panel with staff pre-selected
@@ -367,10 +381,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Opens the staff note modal for the selected staff member
   const handleAddNote = useCallback((staffId: number) => {
     // Find the staff member by ID
-    const staffMember = staff.find((s: any) => {
-      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
-      return id === staffId;
-    });
+    const staffMember = findStaffByNumericId(staff, staffId);
 
     if (staffMember) {
       setSelectedStaffForNote({ id: staffId, name: staffMember.name });
@@ -388,10 +399,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Pre-selects the staff member in teamSlice and navigates to team-settings module
   const handleEditTeam = useCallback((staffId: number) => {
     // Find the staff member by ID to get their team member UUID
-    const staffMember = staff.find((s: any) => {
-      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
-      return id === staffId;
-    });
+    const staffMember = findStaffByNumericId(staff, staffId);
 
     if (staffMember) {
       // Pre-select the staff member in Redux teamSlice
@@ -408,7 +416,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
   // US-010: Handle staff card click to open details panel
   // Opens the StaffDetailsPanel with staff info, tickets, appointments, and stats
-  const handleStaffClick = useCallback((staffMember: any) => {
+  const handleStaffClick = useCallback((staffMember: UIStaff) => {
     setSelectedStaffForDetails(staffMember);
     setShowStaffDetails(true);
   }, []);
@@ -417,10 +425,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Opens the checkout panel for the staff's current in-service ticket
   const handleQuickCheckout = useCallback((staffId: number, ticketId?: number) => {
     // Find the staff member by ID
-    const staffMember = staff.find((s: any) => {
-      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
-      return id === staffId;
-    });
+    const staffMember = findStaffByNumericId(staff, staffId);
 
     if (!staffMember) {
       console.warn('[StaffSidebar] Staff member not found for Quick Checkout:', staffId);
@@ -429,11 +434,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
     // Find the staff's in-service ticket from serviceTickets
     // Match by staffId (UUID) or by the ticket's assignedTo.id
-    const staffInServiceTicket = serviceTickets.find((ticket: any) => {
-      // Check if ticket has this staff assigned
-      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
-      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
-    });
+    const staffInServiceTicket = serviceTickets.find((ticket) =>
+      isTicketForStaff(ticket, staffMember, staffId)
+    );
 
     if (!staffInServiceTicket) {
       console.warn('[StaffSidebar] No in-service ticket found for staff:', staffMember.name);
@@ -473,10 +476,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Clocks in a staff member via timesheetSlice
   const handleClockIn = useCallback((staffId: number) => {
     // Find the staff member by ID to get their UUID
-    const staffMember = staff.find((s: any) => {
-      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
-      return id === staffId;
-    });
+    const staffMember = findStaffByNumericId(staff, staffId);
 
     if (!staffMember) {
       console.warn('[StaffSidebar] Staff member not found for Clock In:', staffId);
@@ -495,10 +495,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   // Shows confirmation if staff has active tickets, then clocks out
   const handleClockOut = useCallback((staffId: number) => {
     // Find the staff member by ID to get their UUID
-    const staffMember = staff.find((s: any) => {
-      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
-      return id === staffId;
-    });
+    const staffMember = findStaffByNumericId(staff, staffId);
 
     if (!staffMember) {
       console.warn('[StaffSidebar] Staff member not found for Clock Out:', staffId);
@@ -506,10 +503,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     }
 
     // Check if staff has active tickets
-    const hasActiveTickets = serviceTickets.some((ticket: any) => {
-      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
-      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
-    });
+    const hasActiveTickets = serviceTickets.some((ticket) =>
+      isTicketForStaff(ticket, staffMember, staffId)
+    );
 
     if (hasActiveTickets) {
       // Show confirmation dialog before clocking out
@@ -536,18 +532,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
     // Use CSS Grid auto-fit for true responsive behavior
     // This eliminates the need for dynamic class generation
-    if ((viewMode as any) === 'ultra-compact') {
-      // Ultra-compact cards: Maximum density (6-8 columns for wide screens)
-      if (sidebarWidth < 200) {
-        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]'; // 90px min
-      } else if (sidebarWidth < 400) {
-        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]';
-      } else if (sidebarWidth < 600) {
-        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]';
-      } else {
-        return 'grid-cols-[repeat(auto-fit,minmax(90px,1fr))]'; // Allow 6-8 columns
-      }
-    } else if (viewMode === 'compact') {
+    if (viewMode === 'compact') {
       // Compact cards: Aggressive density (4-5 columns preference)
       if (sidebarWidth < 200) {
         return 'grid-cols-[repeat(auto-fit,minmax(110px,1fr))]'; // 110px min
@@ -1209,7 +1194,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                       showClockInOutAction: settings?.showClockInOutAction ?? true,
                     }}
                     // US-010: Handle staff card click to open details panel
-                    onClick={() => handleStaffClick(modifiedStaffMember)}
+                    onClick={() => handleStaffClick(staffMember)}
                     // US-003: Handle Add Ticket action
                     onAddTicket={handleAddTicket}
                     // US-004: Handle Add Note action
