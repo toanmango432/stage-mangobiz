@@ -461,3 +461,21 @@ Commit: a832741
   - useTicketsCompat enriches appointment data for ComingAppointments
   - Pre-existing typecheck errors in test files are unrelated infrastructure issues
 ---
+
+## 2026-01-14 - US-021: Add client photo to Coming Appointment cards
+Commit: 64410b0
+- Added client photo/avatar display to all appointment cards in Coming section
+- Implemented 32px circular photo with subtle gray border for all timeframe buckets (Late, Next Hour, Later)
+- Default avatar shows client's first initial in gray circle when no photo available
+- Added 40px client photo to action menu modal header
+- Photo data sourced from clientPhoto field (set from client.avatar in useTicketsCompat)
+- Restructured appointment row layout to flex container with photo + content layout
+- Files changed:
+  - apps/store-app/src/components/frontdesk/ComingAppointments.tsx
+- **Learnings for future iterations:**
+  - clientPhoto is already enriched in useTicketsCompat from client.avatar
+  - Use w-8 h-8 (32px) for list items, w-10 h-10 (40px) for modal headers
+  - Tailwind classes: rounded-full object-cover border border-gray-200 flex-shrink-0
+  - Default avatar: bg-gray-100 with text-gray-600 initial
+  - Pre-existing typecheck errors in Book module test files are infrastructure issues
+---

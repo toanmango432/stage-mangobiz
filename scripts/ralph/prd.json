@@ -340,7 +340,7 @@
         "Verify in browser: See client photos on appointment cards"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "FD-P0-006. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. clientPhoto field in appointment/client data."
     },
     {
