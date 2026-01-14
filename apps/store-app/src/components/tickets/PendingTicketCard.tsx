@@ -3,6 +3,10 @@ import {
   UnpaidWatermark,
 } from './pending';
 import { PremiumTypography } from '../../constants/premiumDesignTokens';
+import {
+  getUrgencyLevel,
+  type UrgencyLevel,
+} from '../../utils/urgencyUtils';
 
 // Checkout service type for displaying actual services
 interface CheckoutService {
@@ -132,6 +136,54 @@ export function PendingTicketCard({
 
   // Payment type is chosen during payment, not displayed on pending tickets
 
+  // Calculate urgency level based on wait time
+  const urgencyLevel = getUrgencyLevel(ticket.completedAt);
+
+  // Urgency-based color scheme for paper design
+  // These colors are designed to work with the paper/ticket aesthetic
+  const getUrgencyColors = (level: UrgencyLevel) => {
+    switch (level) {
+      case 'attention': // 5-10 minutes - Yellow theme
+        return {
+          borderLeft: '#EAB308', // Yellow-500
+          borderColor: 'rgba(234, 179, 8, 0.4)',
+          backgroundGradient: 'linear-gradient(145deg, #FEFCE8 0%, #FEF9C3 50%, #FEF08A 100%)',
+          glowShadow: '0 0 20px rgba(234, 179, 8, 0.3)',
+          badgeBg: 'rgba(234, 179, 8, 0.15)',
+          badgeBorder: '#CA8A04', // Yellow-600
+        };
+      case 'urgent': // 10-20 minutes - Orange theme
+        return {
+          borderLeft: '#F97316', // Orange-500
+          borderColor: 'rgba(249, 115, 22, 0.4)',
+          backgroundGradient: 'linear-gradient(145deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%)',
+          glowShadow: '0 0 25px rgba(249, 115, 22, 0.4)',
+          badgeBg: 'rgba(249, 115, 22, 0.15)',
+          badgeBorder: '#EA580C', // Orange-600
+        };
+      case 'critical': // 20+ minutes - Red theme
+        return {
+          borderLeft: '#EF4444', // Red-500
+          borderColor: 'rgba(239, 68, 68, 0.4)',
+          backgroundGradient: 'linear-gradient(145deg, #FEF2F2 0%, #FEE2E2 50%, #FECACA 100%)',
+          glowShadow: '0 0 30px rgba(239, 68, 68, 0.5)',
+          badgeBg: 'rgba(239, 68, 68, 0.15)',
+          badgeBorder: '#DC2626', // Red-600
+        };
+      default: // normal - White/neutral (original gold paper theme)
+        return {
+          borderLeft: '#B8860B', // Original gold
+          borderColor: 'rgba(212, 175, 55, 0.3)',
+          backgroundGradient: 'linear-gradient(145deg, #FFFEF8 0%, #FFFDF5 50%, #FFFCF0 100%)',
+          glowShadow: '0 0 20px rgba(184, 134, 11, 0.25), 0 0 40px rgba(184, 134, 11, 0.15)',
+          badgeBg: 'rgba(184, 134, 11, 0.12)',
+          badgeBorder: '#B8860B',
+        };
+    }
+  };
+
+  const urgencyColors = getUrgencyColors(urgencyLevel);
+
   // ====================
   // COMPACT LIST VIEW
   // ====================
@@ -145,11 +197,11 @@ export function PendingTicketCard({
         aria-label={`Pending payment ticket ${ticket.number} for ${ticket.clientName}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
-          background: 'linear-gradient(145deg, #FFFEF8 0%, #FFFDF5 50%, #FFFCF0 100%)',
-          border: '1.5px solid rgba(212, 175, 55, 0.3)',
-          borderLeft: '4px solid #B8860B',
+          background: urgencyColors.backgroundGradient,
+          border: `1.5px solid ${urgencyColors.borderColor}`,
+          borderLeft: `4px solid ${urgencyColors.borderLeft}`,
           borderRadius: '10px',
-          boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05), 0 0 20px rgba(184, 134, 11, 0.25), 0 0 40px rgba(184, 134, 11, 0.15)'
+          boxShadow: `inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05), ${urgencyColors.glowShadow}`
         }}
       >
         {/* UNPAID Watermark */}
@@ -167,13 +219,13 @@ export function PendingTicketCard({
         <div className="absolute left-0 top-1.5 w-7 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
           style={{
             height: '24px',
-            background: 'rgba(184, 134, 11, 0.12)',
+            background: urgencyColors.badgeBg,
             borderTopRightRadius: '6px',
             borderBottomRightRadius: '6px',
-            borderTop: '2px solid #B8860B',
-            borderRight: '2px solid #B8860B',
-            borderBottom: '2px solid #B8860B',
-            boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+            borderTop: `2px solid ${urgencyColors.badgeBorder}`,
+            borderRight: `2px solid ${urgencyColors.badgeBorder}`,
+            borderBottom: `2px solid ${urgencyColors.badgeBorder}`,
+            boxShadow: `2px 0 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)`,
             letterSpacing: '-0.02em',
             transform: 'translateX(-2px)'
           }}>
@@ -252,11 +304,11 @@ export function PendingTicketCard({
         aria-label={`Pending payment ticket ${ticket.number} for ${ticket.clientName}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
-          background: 'linear-gradient(145deg, #FFFEF8 0%, #FFFDF5 50%, #FFFCF0 100%)',
-          border: '1.5px solid rgba(212, 175, 55, 0.3)',
-          borderLeft: '4px solid #B8860B',
+          background: urgencyColors.backgroundGradient,
+          border: `1.5px solid ${urgencyColors.borderColor}`,
+          borderLeft: `4px solid ${urgencyColors.borderLeft}`,
           borderRadius: '10px',
-          boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06), 0 0 20px rgba(184, 134, 11, 0.25), 0 0 40px rgba(184, 134, 11, 0.15)'
+          boxShadow: `inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06), ${urgencyColors.glowShadow}`
         }}
       >
         {/* UNPAID Watermark */}
@@ -273,13 +325,13 @@ export function PendingTicketCard({
         {/* Wrap-around ticket number badge at Row 1 height */}
         <div className="absolute left-0 top-2 w-9 min-h-[30px] text-[#1a1614] flex items-center justify-center font-black text-sm z-20"
           style={{
-            background: 'rgba(184, 134, 11, 0.12)',
+            background: urgencyColors.badgeBg,
             borderTopRightRadius: '8px',
             borderBottomRightRadius: '8px',
-            borderTop: '2px solid #B8860B',
-            borderRight: '2px solid #B8860B',
-            borderBottom: '2px solid #B8860B',
-            boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+            borderTop: `2px solid ${urgencyColors.badgeBorder}`,
+            borderRight: `2px solid ${urgencyColors.badgeBorder}`,
+            borderBottom: `2px solid ${urgencyColors.badgeBorder}`,
+            boxShadow: `2px 0 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)`,
             letterSpacing: '-0.02em',
             transform: 'translateX(-3px)'
           }}>
@@ -357,11 +409,11 @@ export function PendingTicketCard({
         aria-label={`Pending payment ticket ${ticket.number} for ${ticket.clientName}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(ticket.id); } }}
         style={{
-          background: 'linear-gradient(145deg, #FFFEF8 0%, #FFFDF5 50%, #FFFCF0 100%)',
-          border: '1.5px solid rgba(212, 175, 55, 0.3)',
-          borderLeft: '4px solid #B8860B',
+          background: urgencyColors.backgroundGradient,
+          border: `1.5px solid ${urgencyColors.borderColor}`,
+          borderLeft: `4px solid ${urgencyColors.borderLeft}`,
           borderRadius: '10px',
-          boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05), 0 0 20px rgba(184, 134, 11, 0.25), 0 0 40px rgba(184, 134, 11, 0.15)'
+          boxShadow: `inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05), ${urgencyColors.glowShadow}`
         }}
       >
         {/* UNPAID Watermark */}
@@ -379,13 +431,13 @@ export function PendingTicketCard({
         <div className="absolute left-0 top-1.5 w-7 text-[#1a1614] flex items-center justify-center font-black text-xs z-20"
           style={{
             height: isFirstVisit ? 'clamp(1.4rem, 3vw, 1.6rem)' : 'clamp(1.3rem, 2.8vw, 1.5rem)',
-            background: 'rgba(184, 134, 11, 0.12)',
+            background: urgencyColors.badgeBg,
             borderTopRightRadius: '6px',
             borderBottomRightRadius: '6px',
-            borderTop: '2px solid #B8860B',
-            borderRight: '2px solid #B8860B',
-            borderBottom: '2px solid #B8860B',
-            boxShadow: '2px 0 4px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+            borderTop: `2px solid ${urgencyColors.badgeBorder}`,
+            borderRight: `2px solid ${urgencyColors.badgeBorder}`,
+            borderBottom: `2px solid ${urgencyColors.badgeBorder}`,
+            boxShadow: `2px 0 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)`,
             letterSpacing: '-0.02em',
             transform: 'translateX(-2.5px)'
           }}>
@@ -482,11 +534,11 @@ export function PendingTicketCard({
         }
       }}
       style={{
-        background: 'linear-gradient(145deg, #FFFEF8 0%, #FFFDF5 50%, #FFFCF0 100%)',
-        border: '1.5px solid rgba(212, 175, 55, 0.3)',
-        borderLeft: '4px solid #B8860B',
+        background: urgencyColors.backgroundGradient,
+        border: `1.5px solid ${urgencyColors.borderColor}`,
+        borderLeft: `4px solid ${urgencyColors.borderLeft}`,
         borderRadius: '10px',
-        boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06), 0 0 20px rgba(184, 134, 11, 0.25), 0 0 40px rgba(184, 134, 11, 0.15)'
+        boxShadow: `inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06), ${urgencyColors.glowShadow}`
       }}
     >
       {/* UNPAID Watermark */}
@@ -508,13 +560,13 @@ export function PendingTicketCard({
           width: 'clamp(40px, 5.5vw, 56px)',
           fontSize: 'clamp(16px, 2.25vw, 24px)',
           height: isFirstVisit ? 'clamp(2rem, 4.5vw, 2.75rem)' : 'clamp(1.85rem, 4vw, 2.5rem)',
-          background: 'rgba(184, 134, 11, 0.12)',
+          background: urgencyColors.badgeBg,
           borderTopRightRadius: '8px',
           borderBottomRightRadius: '8px',
-          borderTop: '2px solid #B8860B',
-          borderRight: '2px solid #B8860B',
-          borderBottom: '2px solid #B8860B',
-          boxShadow: `3px 0 6px rgba(184, 134, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)`,
+          borderTop: `2px solid ${urgencyColors.badgeBorder}`,
+          borderRight: `2px solid ${urgencyColors.badgeBorder}`,
+          borderBottom: `2px solid ${urgencyColors.badgeBorder}`,
+          boxShadow: `3px 0 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)`,
           letterSpacing: '-0.02em',
           transform: 'translateX(-4px)',
         }}
