@@ -162,7 +162,7 @@
         "Verify in browser: click a staff card and see details panel open"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Currently clicking staff card does nothing useful. Should show expanded staff view."
     },
     {
@@ -178,7 +178,7 @@
         "Verify on mobile viewport: tap/long-press a staff card and see action sheet"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "MobileTeamSection currently has no action handlers. Use Radix UI AlertDialog or Sheet for mobile action sheet."
     },
     {

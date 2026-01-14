@@ -190,3 +190,53 @@ Commit: 11cd707
   - UITicket.updatedAt is when ticket was marked as paid/completed
   - toLocaleTimeString with hour12: true gives "10:30 AM" format
 ---
+
+## 2026-01-14 - US-010: Add staff card click handler for details
+Commit: 5610310
+- Created StaffDetailsPanel component (apps/store-app/src/components/frontdesk/StaffDetailsPanel.tsx)
+  - Side panel with slide-in animation and backdrop
+  - Shows today's stats (tickets completed, pending appointments, total services)
+  - Lists current in-service tickets for the staff member
+  - Shows upcoming appointments with service name and time
+  - Includes quick action buttons (Add Ticket, Add Note, Edit Team)
+- Added state management in StaffSidebar: showStaffDetails, selectedStaffForDetails
+- Created handleStaffClick callback that opens the details panel
+- Connected onClick to StaffCardVertical component
+- Files changed:
+  - apps/store-app/src/components/frontdesk/StaffDetailsPanel.tsx (new)
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - LocalAppointment has a `services` array of AppointmentService[], not individual serviceName/duration fields
+  - Access service data via `apt.services?.[0]?.serviceName` and `apt.services?.reduce()` for duration
+  - Staff details panel should reuse existing action handlers (handleAddTicket, handleAddNote, etc.)
+  - Use z-50 for modal overlays to ensure proper stacking over other UI elements
+---
+
+## 2026-01-14 - US-011: Add Mobile staff card actions
+Commit: 3d9c52d
+- Created MobileStaffActionSheet component (apps/store-app/src/components/frontdesk/MobileStaffActionSheet.tsx)
+  - Uses Radix UI Sheet component with side="bottom" for mobile-friendly bottom sheet pattern
+  - Large touch targets (48px minimum) with icon + label + description for each action
+  - Actions: Add Ticket, Add Note, Edit Team Member, Quick Checkout (conditional on busy status)
+  - Integrated haptics for feedback on interactions
+- Added state management in MobileTeamSection: showActionSheet, selectedStaffForAction, showStaffNoteModal, selectedStaffForNote
+- Created action handlers matching desktop StaffSidebar pattern:
+  - handleStaffCardClick: Opens action sheet with staff context
+  - handleAddTicket: Opens ticket panel with staff pre-selected
+  - handleAddNote: Opens AddStaffNoteModal for staff notes
+  - handleEditTeam: Navigates to team-settings with staff pre-selected
+  - handleQuickCheckout: Opens ticket panel with staff's current ticket
+- Updated all StaffCardVertical instances to:
+  - Call handleStaffCardClick on tap
+  - Pass displayConfig with action settings from FrontDeskSettings
+  - Pass action callbacks (onAddTicket, onAddNote, onEditTeam, onQuickCheckout)
+- Files changed:
+  - apps/store-app/src/components/frontdesk/MobileStaffActionSheet.tsx (new)
+  - apps/store-app/src/components/frontdesk/MobileTeamSection.tsx
+- **Learnings for future iterations:**
+  - Use Sheet component with side="bottom" for mobile action sheets (better UX than dropdown)
+  - Mobile components need useTicketPanel and useAppDispatch same as desktop
+  - convertToStaffMember helper creates StaffMember objects - use this before passing to callbacks
+  - Action handlers should be extracted to shared hooks if they're duplicated across desktop/mobile
+  - Pre-existing typecheck errors in test files don't block implementation commits
+---
