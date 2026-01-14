@@ -11,7 +11,9 @@ import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
-import { selectServiceTickets, type UITicket } from '@/store/slices/uiTicketsSlice';
+import { selectServiceTickets, selectCompletedTickets, type UITicket } from '@/store/slices/uiTicketsSlice';
+import { selectAllAppointments } from '@/store/slices/appointmentsSlice';
+import type { LocalAppointment } from '@/types/appointment';
 import { setSelectedMember } from '@/store/slices/teamSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
 
@@ -55,6 +57,12 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
   // US-008: Get in-service tickets from Redux for real ticket data on staff cards
   const inServiceTickets = useAppSelector(selectServiceTickets);
+
+  // US-009: Get appointments from Redux for next appointment times
+  const allAppointments = useAppSelector(selectAllAppointments);
+
+  // US-009: Get completed tickets from Redux for last service times
+  const completedTickets = useAppSelector(selectCompletedTickets);
 
   // Get context data including resetStaffStatus function
   const {
@@ -961,6 +969,111 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     return { activeTickets, currentTicketInfo };
   }, [inServiceTickets]);
 
+  // US-009: Helper to find staff's next upcoming appointment
+  const getStaffNextAppointment = useCallback((staffId: string | number): string | undefined => {
+    const now = new Date();
+
+    // Filter appointments for this staff that are:
+    // 1. In the future (or within next few hours)
+    // 2. Status is 'scheduled' or 'confirmed' (not cancelled, completed, etc.)
+    const upcomingAppointments = allAppointments.filter((apt: LocalAppointment) => {
+      // Match by staffId
+      if (apt.staffId !== String(staffId) && apt.staffId !== staffId) {
+        return false;
+      }
+
+      // Check status - only include scheduled/confirmed appointments
+      const validStatuses = ['scheduled', 'confirmed', 'pending'];
+      if (!validStatuses.includes(apt.status)) {
+        return false;
+      }
+
+      // Check if appointment is in the future
+      // LocalAppointment.scheduledStartTime is always a string (ISO format)
+      const aptTime = new Date(apt.scheduledStartTime);
+      return aptTime > now;
+    });
+
+    if (upcomingAppointments.length === 0) {
+      return undefined;
+    }
+
+    // Sort by start time and get the earliest one
+    // LocalAppointment.scheduledStartTime is always a string (ISO format)
+    const sortedAppointments = upcomingAppointments.sort((a, b) => {
+      const timeA = new Date(a.scheduledStartTime).getTime();
+      const timeB = new Date(b.scheduledStartTime).getTime();
+      return timeA - timeB;
+    });
+
+    const nextApt = sortedAppointments[0];
+    const aptTime = new Date(nextApt.scheduledStartTime);
+
+    // Format as "10:30 AM" style
+    return aptTime.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }, [allAppointments]);
+
+  // US-009: Helper to find staff's last completed service time
+  const getStaffLastServiceTime = useCallback((staffId: string | number): string | undefined => {
+    // Filter completed tickets for this staff
+    const staffCompletedTickets = completedTickets.filter((ticket: UITicket) => {
+      const ticketStaffId = ticket.techId || ticket.assignedTo?.id;
+      return ticketStaffId === String(staffId) || ticketStaffId === staffId;
+    });
+
+    if (staffCompletedTickets.length === 0) {
+      return undefined;
+    }
+
+    // Sort by updated time (most recent first) to get the latest completed ticket
+    // Use time field which contains the ticket time, or createdAt/updatedAt
+    const sortedTickets = staffCompletedTickets.sort((a, b) => {
+      // Try to get a timestamp from the ticket
+      const getTimestamp = (t: UITicket): number => {
+        // updatedAt is when the ticket was marked as paid/completed
+        if (t.updatedAt) {
+          const time = typeof t.updatedAt === 'string' ? new Date(t.updatedAt) : t.updatedAt;
+          return time.getTime();
+        }
+        if (t.createdAt) {
+          const time = typeof t.createdAt === 'string' ? new Date(t.createdAt) : t.createdAt;
+          return time.getTime();
+        }
+        return 0;
+      };
+      return getTimestamp(b) - getTimestamp(a);
+    });
+
+    const lastTicket = sortedTickets[0];
+
+    // Get the completion/update time
+    let lastTime: Date | undefined;
+    if (lastTicket.updatedAt) {
+      lastTime = typeof lastTicket.updatedAt === 'string'
+        ? new Date(lastTicket.updatedAt)
+        : lastTicket.updatedAt;
+    } else if (lastTicket.createdAt) {
+      lastTime = typeof lastTicket.createdAt === 'string'
+        ? new Date(lastTicket.createdAt)
+        : lastTicket.createdAt;
+    }
+
+    if (!lastTime) {
+      return undefined;
+    }
+
+    // Format as "10:30 AM" style
+    return lastTime.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }, [completedTickets]);
+
   // 🎨 TEAM STYLING - Strong distinction from ticket sections
   const teamSidebarClasses = USE_NEW_TEAM_STYLING
     ? "relative h-full border-r-[3px] border-teal-300/60 bg-gradient-to-b from-teal-50/95 via-teal-50/95 to-teal-100/90 flex flex-col overflow-hidden transition-all duration-300"
@@ -1009,15 +1122,16 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
             modifiedStaffMember.currentTicketInfo = ticketInfo.currentTicketInfo ?? undefined;
           }
 
-          // Note: lastServiceTime and nextAppointmentTime will be implemented in US-009
-          // For now, only show them if the staff member already has these values from backend
-          // This avoids showing mock data while we transition to real data
-          if (!modifiedStaffMember.lastServiceTime) {
-            modifiedStaffMember.lastServiceTime = undefined;
-          }
-          if (!modifiedStaffMember.nextAppointmentTime) {
-            modifiedStaffMember.nextAppointmentTime = undefined;
-          }
+          // US-009: Get real appointment and completed ticket data for this staff member
+          // Use the staff member's original ID (UUID string) to match with appointments/tickets
+          const nextAppointment = getStaffNextAppointment(staffMember.id);
+          const lastService = getStaffLastServiceTime(staffMember.id);
+
+          // Set real nextAppointmentTime from appointments data
+          modifiedStaffMember.nextAppointmentTime = nextAppointment;
+
+          // Set real lastServiceTime from completed tickets data
+          modifiedStaffMember.lastServiceTime = lastService;
 
           const getTooltipContent = () => (
             <div className="p-2 max-w-xs">
@@ -1037,6 +1151,12 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                     <p><span className="font-medium">Started:</span> {modifiedStaffMember.currentTicketInfo.startTime}</p>
                     <p><span className="font-medium">Progress:</span> {Math.round((modifiedStaffMember.currentTicketInfo.progress ?? 0) * 100)}%</p>
                   </>
+                )}
+                {modifiedStaffMember.nextAppointmentTime && (
+                  <p><span className="font-medium">Next Appt:</span> {modifiedStaffMember.nextAppointmentTime}</p>
+                )}
+                {modifiedStaffMember.lastServiceTime && (
+                  <p><span className="font-medium">Last Done:</span> {modifiedStaffMember.lastServiceTime}</p>
                 )}
               </div>
             </div>
