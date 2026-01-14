@@ -311,8 +311,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": "4 modal state pairs: showTurnTracker, showStaffNoteModal, showStaffDetails, showTeamSettings"
+      "passes": true,
+      "notes": "Created useModalStack hook managing 5 modals (teamSettings, turnTracker, staffNote, staffDetails, resetConfirmation). Provides both compatibility API and typed open/close methods."
     },
     {
       "id": "US-020",

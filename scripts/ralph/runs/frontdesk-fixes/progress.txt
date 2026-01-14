@@ -969,3 +969,50 @@ US-018 was already fully implemented in previous iterations (US-006 and US-015).
 
 ---
 
+## 2026-01-14 15:45 - US-019: Consolidate modal state with useModalStack hook
+Commit: 708ebf6
+
+### Implementation
+Created `useModalStack` hook to consolidate 5 separate modal state pairs into a single hook:
+
+**Hook File:** `apps/store-app/src/components/frontdesk/StaffSidebar/hooks/useModalStack.ts`
+
+**Modal Types Managed:**
+1. `teamSettings` - Team settings panel
+2. `turnTracker` - Turn tracker modal
+3. `staffNote` - Add/edit staff note modal (with selectedStaff data)
+4. `staffDetails` - Staff details panel (with selectedStaff data)
+5. `resetConfirmation` - Reset confirmation dialog
+
+**Hook API:**
+- State accessors: `showTeamSettings`, `showTurnTracker`, `showStaffNoteModal`, etc.
+- Setter-style API for compatibility: `setShowTeamSettings(bool)`, etc.
+- Typed open/close methods: `openStaffNote(staff)`, `closeStaffNote()`, etc.
+
+**StaffSidebar.tsx Changes:**
+- Removed 6 useState declarations (lines 93-99)
+- Added single `useModalStack()` hook call
+- Simplified `useStaffActions` callbacks: `onSelectStaffForNote: openStaffNote`
+- Replaced inline close handlers with `closeStaffNote`, `closeStaffDetails`
+
+### Files Changed
+- NEW: `apps/store-app/src/components/frontdesk/StaffSidebar/hooks/useModalStack.ts` (145 lines)
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar/hooks/index.ts` (+3 lines)
+- MODIFIED: `apps/store-app/src/components/frontdesk/StaffSidebar.tsx` (-6 lines, +14 lines)
+
+### Quality Checklist
+- [x] Create useModalStack hook for managing multiple modals ✅
+- [x] Replace separate state pairs with single hook call ✅
+- [x] Single hook manages all modal visibility and selected items ✅
+- [x] Modals still work correctly after refactor ✅
+- [x] Easier to test modal interactions (hook is isolated) ✅
+- [x] pnpm run typecheck passes (no errors in changed files) ✅
+
+### Learnings
+- Providing both setter-style API (`setShowX`) and typed methods (`openX/closeX`) maximizes compatibility
+- useCallback for all functions prevents unnecessary re-renders
+- Generic modal state can be typed to enforce correct payloads for different modal types
+- Modals with associated data (staffNote, staffDetails) need special handling vs simple open/close
+
+---
+
