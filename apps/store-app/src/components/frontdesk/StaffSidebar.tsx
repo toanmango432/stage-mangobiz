@@ -9,8 +9,9 @@ import { AddStaffNoteModal } from '@/components/frontdesk/AddStaffNoteModal';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
+import { setSelectedMember } from '@/store/slices/teamSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
 
 interface StaffSidebarProps {
@@ -59,6 +60,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
 
   // US-003: Get ticket panel context for Add Ticket action
   const { openTicketWithData } = useTicketPanel();
+
+  // US-005: Get dispatch for Edit Team Member action
+  const dispatch = useAppDispatch();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -369,6 +373,28 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     console.log(`Staff note saved for ${staffId}:`, note);
     // In production, this would dispatch to Redux or call an API
   }, []);
+
+  // US-005: Handle Edit Team Member action from staff card
+  // Pre-selects the staff member in teamSlice and navigates to team-settings module
+  const handleEditTeam = useCallback((staffId: number) => {
+    // Find the staff member by ID to get their team member UUID
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      // Pre-select the staff member in Redux teamSlice
+      // UIStaff.id is already the team member ID (UUID string from TeamMemberSettings)
+      dispatch(setSelectedMember(staffMember.id));
+
+      // Navigate to team-settings module via custom event
+      // AppShell listens for 'navigate-to-module' events
+      window.dispatchEvent(new CustomEvent('navigate-to-module', {
+        detail: 'team-settings'
+      }));
+    }
+  }, [staff, dispatch]);
 
   // Determine responsive grid class based on sidebar width and view mode
   const getGridColumns = () => {
@@ -933,6 +959,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                     onAddTicket={handleAddTicket}
                     // US-004: Handle Add Note action
                     onAddNote={handleAddNote}
+                    // US-005: Handle Edit Team Member action
+                    onEditTeam={handleEditTeam}
                   />
                 </div>
               </Tippy>
