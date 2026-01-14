@@ -38,6 +38,50 @@ const applyDependencies = (settings: FrontDeskSettingsData): FrontDeskSettingsDa
   return result;
 };
 
+/**
+ * US-017: TeamSettings interface (consolidated from TeamSettingsPanel)
+ * These settings control the Staff Sidebar behavior and display
+ */
+export interface TeamSettings {
+  // Workflow Preferences
+  onCardClick: 'openOptions' | 'createTicket';
+  filterWaitingList: boolean;
+  allowSelectActiveTicket: boolean;
+  // Team Display Structure
+  organizeBy: 'clockedStatus' | 'busyStatus';
+  // Card Data Toggles
+  showTurnCount: boolean;
+  showNextAppointment: boolean;
+  showServicedAmount: boolean;
+  showTicketCount: boolean;
+  showLastDone: boolean;
+  showMoreOptionsButton: boolean;
+  // UI Controls
+  showSearch: boolean;
+  showMinimizeExpandIcon: boolean;
+  // Views & Widths
+  viewWidth: 'ultraCompact' | 'compact' | 'wide' | 'fullScreen' | 'custom';
+  customWidthPercentage: number;
+}
+
+/** Default team settings values */
+export const defaultTeamSettings: TeamSettings = {
+  onCardClick: 'openOptions',
+  filterWaitingList: false,
+  allowSelectActiveTicket: false,
+  organizeBy: 'busyStatus',
+  showTurnCount: true,
+  showNextAppointment: true,
+  showServicedAmount: true,
+  showTicketCount: true,
+  showLastDone: true,
+  showMoreOptionsButton: true,
+  showSearch: true,
+  showMinimizeExpandIcon: true,
+  viewWidth: 'wide',
+  customWidthPercentage: 25,
+};
+
 // View state that persists to localStorage (UI preferences, not settings)
 interface ViewState {
   activeMobileSection: string;
@@ -50,10 +94,27 @@ interface ViewState {
   staffSidebarWidth: number;
   staffSidebarWidthType: 'fixed' | 'percentage' | 'customPercentage';
   staffSidebarWidthPercentage: number;
+  // US-017: Team settings (consolidated from TeamSettingsPanel localStorage)
+  teamSettings: TeamSettings;
 }
 
 // Staff notes stored by staff ID (persisted to localStorage)
 type StaffNotesMap = Record<string, string>;
+
+// US-017: Load team settings from localStorage
+const loadTeamSettings = (): TeamSettings => {
+  try {
+    const stored = localStorage.getItem('teamSettings');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Merge with defaults to handle any missing properties
+      return { ...defaultTeamSettings, ...parsed };
+    }
+  } catch {
+    // Return defaults on parse error
+  }
+  return defaultTeamSettings;
+};
 
 // Load view state from localStorage on init
 const loadViewState = (): ViewState => ({
@@ -67,6 +128,8 @@ const loadViewState = (): ViewState => ({
   staffSidebarWidth: parseInt(localStorage.getItem('staffSidebarWidth') || '256', 10),
   staffSidebarWidthType: (localStorage.getItem('staffSidebarWidthType') as 'fixed' | 'percentage' | 'customPercentage') || 'fixed',
   staffSidebarWidthPercentage: parseInt(localStorage.getItem('staffSidebarWidthPercentage') || '0', 10),
+  // US-017: Team settings
+  teamSettings: loadTeamSettings(),
 });
 
 // Load staff notes from localStorage
@@ -301,6 +364,22 @@ const frontDeskSettingsSlice = createSlice({
       delete state.staffNotes[id];
       saveStaffNotes(state.staffNotes);
     },
+    // US-017: Team settings actions
+    setTeamSettings: (
+      state: FrontDeskSettingsState,
+      action: PayloadAction<TeamSettings>
+    ) => {
+      state.viewState.teamSettings = action.payload;
+      localStorage.setItem('teamSettings', JSON.stringify(action.payload));
+    },
+    updateTeamSettings: (
+      state: FrontDeskSettingsState,
+      action: PayloadAction<Partial<TeamSettings>>
+    ) => {
+      const updated = { ...state.viewState.teamSettings, ...action.payload };
+      state.viewState.teamSettings = updated;
+      localStorage.setItem('teamSettings', JSON.stringify(updated));
+    },
   },
   extraReducers: (builder) => {
     // Load settings
@@ -363,6 +442,9 @@ export const {
   // Staff notes actions
   setStaffNote,
   deleteStaffNote,
+  // US-017: Team settings actions
+  setTeamSettings,
+  updateTeamSettings,
 } = frontDeskSettingsSlice.actions;
 
 // Legacy export for backwards compatibility
@@ -435,6 +517,12 @@ export const selectStaffSidebarWidthPercentage = (state: RootState) => state.fro
 export const selectAllStaffNotes = (state: RootState) => state.frontDeskSettings.staffNotes;
 export const selectStaffNote = (staffId: string | number) => (state: RootState) =>
   state.frontDeskSettings.staffNotes[String(staffId)] || '';
+
+// US-017: Team settings selectors
+export const selectTeamSettings = (state: RootState) => state.frontDeskSettings.viewState.teamSettings;
+export const selectTeamOrganizeBy = (state: RootState) => state.frontDeskSettings.viewState.teamSettings.organizeBy;
+export const selectTeamViewWidth = (state: RootState) => state.frontDeskSettings.viewState.teamSettings.viewWidth;
+export const selectTeamCustomWidthPercentage = (state: RootState) => state.frontDeskSettings.viewState.teamSettings.customWidthPercentage;
 
 // Export the subscription function for cross-tab sync setup
 export { subscribeToSettingsChanges };

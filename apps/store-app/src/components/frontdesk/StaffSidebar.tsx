@@ -32,14 +32,20 @@ import { useEffect, useState, useCallback } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { StaffCardVertical, type StaffMember } from '@/components/StaffCard';
-import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from '@/components/TeamSettingsPanel';
+import { TeamSettingsPanel } from '@/components/TeamSettingsPanel';
 import { TurnTracker } from '@/components/TurnTracker/TurnTracker';
 import { AddStaffNoteModal } from '@/components/frontdesk/AddStaffNoteModal';
 import { StaffDetailsPanel } from '@/components/frontdesk/StaffDetailsPanel';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { useAppSelector } from '@/store/hooks';
-import { selectFrontDeskSettings, selectAllStaffNotes } from '@/store/slices/frontDeskSettingsSlice';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import {
+  selectFrontDeskSettings,
+  selectAllStaffNotes,
+  selectTeamSettings,
+  updateTeamSettings,
+  type TeamSettings,
+} from '@/store/slices/frontDeskSettingsSlice';
 import { type UIStaff } from '@/store/slices/uiStaffSlice';
 
 // Import from StaffSidebar module
@@ -64,9 +70,12 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker');
 
   // Redux state
+  const dispatch = useAppDispatch();
   const reduxSettings = useAppSelector(selectFrontDeskSettings);
   const settings = reduxSettings || propSettings;
   const staffNotes = useAppSelector(selectAllStaffNotes);
+  // US-017: Team settings from Redux (consolidated from localStorage)
+  const teamSettings = useAppSelector(selectTeamSettings);
 
   // Context data
   const { resetStaffStatus, staff, serviceTickets } = useTickets();
@@ -77,7 +86,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   const getStaffLastServiceTime = useStaffLastServiceTime();
   const { sidebarWidth, applyWidthSettings } = useSidebarWidth();
 
-  // Local state
+  // Local state (UI-only, not persisted)
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -88,11 +97,6 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   const [selectedStaffForNote, setSelectedStaffForNote] = useState<{ id: number; name: string } | null>(null);
   const [showStaffDetails, setShowStaffDetails] = useState(false);
   const [selectedStaffForDetails, setSelectedStaffForDetails] = useState<UIStaff | null>(null);
-
-  const [teamSettings, setTeamSettings] = useState<TeamSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.teamSettings);
-    return saved ? JSON.parse(saved) : defaultTeamSettings;
-  });
 
   const { viewMode, setViewMode, toggleViewMode } = useViewMode(teamSettings);
   const effectiveOrganizeBy = settings?.organizeBy || teamSettings.organizeBy;
@@ -122,8 +126,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     }
   }, [settings?.viewWidth, settings?.customWidthPercentage, applyWidthSettings]);
 
-  // US-014: Initialize sidebar width from teamSettings on mount
-  // This syncs teamSettings.viewWidth (localStorage) → Redux sidebar width
+  // US-017: Initialize sidebar width from Redux teamSettings on mount
+  // This ensures the sidebar width matches the team settings preference
   useEffect(() => {
     if (teamSettings.viewWidth) {
       applyWidthSettings(teamSettings.viewWidth, teamSettings.customWidthPercentage);
@@ -153,17 +157,18 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     return () => { document.head.removeChild(style); };
   }, []);
 
-  // Handlers
+  // US-017: Handlers - dispatch Redux action instead of local state
   const handleTeamSettingsChange = useCallback((newSettings: Partial<TeamSettings>) => {
+    // Dispatch Redux action to update team settings (persists to localStorage)
+    dispatch(updateTeamSettings(newSettings));
+    // Calculate updated values for immediate effects
     const updated = { ...teamSettings, ...newSettings };
-    setTeamSettings(updated);
-    localStorage.setItem(STORAGE_KEYS.teamSettings, JSON.stringify(updated));
     if (newSettings.viewWidth) applyWidthSettings(newSettings.viewWidth, updated.customWidthPercentage);
     else if (newSettings.customWidthPercentage && updated.viewWidth === 'custom') applyWidthSettings('custom', newSettings.customWidthPercentage);
     if (newSettings.showSearch !== undefined) setShowSearch(newSettings.showSearch);
     if (newSettings.showMinimizeExpandIcon !== undefined && !newSettings.showMinimizeExpandIcon) setViewMode('normal');
     if (newSettings.organizeBy !== undefined && newSettings.organizeBy !== teamSettings.organizeBy) setStatusFilter(null);
-  }, [teamSettings, applyWidthSettings, setViewMode]);
+  }, [dispatch, teamSettings, applyWidthSettings, setViewMode]);
 
   // Grid styling computed from utilities
   const gridColumns = getGridColumns(sidebarWidth, viewMode);

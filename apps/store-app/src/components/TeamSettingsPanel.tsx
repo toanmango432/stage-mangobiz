@@ -3,54 +3,21 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, Info, X, Settings, Users, Layout, Eye, Sliders, Keyboard, ArrowRight, HelpCircle, CheckCircle2, Circle } from 'lucide-react';
 import 'tippy.js/dist/tippy.css';
 import FocusTrap from 'focus-trap-react';
+// US-017: Re-export from Redux slice for backward compatibility
+// The canonical TeamSettings type and defaults are now in frontDeskSettingsSlice
+import {
+  type TeamSettings,
+  defaultTeamSettings,
+} from '@/store/slices/frontDeskSettingsSlice';
+export type { TeamSettings };
+export { defaultTeamSettings };
+
 interface TeamSettingsProps {
   isOpen: boolean;
   onClose: () => void;
   currentSettings: TeamSettings;
   onSettingsChange: (settings: Partial<TeamSettings>) => void;
 }
-export interface TeamSettings {
-  // Workflow Preferences
-  onCardClick: 'openOptions' | 'createTicket';
-  filterWaitingList: boolean;
-  allowSelectActiveTicket: boolean;
-  // Team Display Structure
-  organizeBy: 'clockedStatus' | 'busyStatus';
-  // Card Data Toggles
-  showTurnCount: boolean;
-  showNextAppointment: boolean;
-  showServicedAmount: boolean;
-  showTicketCount: boolean;
-  showLastDone: boolean;
-  showMoreOptionsButton: boolean;
-  // UI Controls
-  showSearch: boolean;
-  showMinimizeExpandIcon: boolean;
-  // Views & Widths
-  viewWidth: 'ultraCompact' | 'compact' | 'wide' | 'fullScreen' | 'custom';
-  customWidthPercentage: number;
-}
-export const defaultTeamSettings: TeamSettings = {
-  // Workflow Preferences
-  onCardClick: 'openOptions',
-  filterWaitingList: false,
-  allowSelectActiveTicket: false,
-  // Team Display Structure
-  organizeBy: 'busyStatus',
-  // Card Data Toggles
-  showTurnCount: true,
-  showNextAppointment: true,
-  showServicedAmount: true,
-  showTicketCount: true,
-  showLastDone: true,
-  showMoreOptionsButton: true,
-  // UI Controls
-  showSearch: true,
-  showMinimizeExpandIcon: true,
-  // Views & Widths
-  viewWidth: 'wide',
-  customWidthPercentage: 25
-};
 // Apple-style Toggle Switch Component
 const ToggleSwitch: React.FC<{
   checked: boolean;
