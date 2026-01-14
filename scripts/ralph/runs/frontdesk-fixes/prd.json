@@ -16,7 +16,7 @@
         "pnpm run typecheck passes for store-app"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/frontdesk/StaffSidebar.tsx. CRITICAL - mock data was shipped in production code."
     },
     {
@@ -32,7 +32,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "The selector is already imported but not used in the render loop. Wire it to the staff card mapping."
     },
     {

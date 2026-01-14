@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { Search, Filter, Users, ChevronUp, ChevronDown, Settings } from 'lucide-react';
-import { StaffCardVertical } from '@/components/StaffCard';
+import { StaffCardVertical, type StaffMember } from '@/components/StaffCard';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from '@/components/TeamSettingsPanel';
 import { TurnTracker } from '@/components/TurnTracker/TurnTracker';
 import { AddStaffNoteModal } from '@/components/frontdesk/AddStaffNoteModal';
@@ -978,16 +978,20 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   void _handleResetClick;
   void _getDisplayPriorityTiers;
 
-  // US-008: Helper to find staff's in-service ticket and calculate progress
+  // US-002: Helper to find staff's in-service ticket and calculate progress
+  // Returns real ticket data from Redux serviceTickets selector
+  // Type matches StaffCardVertical's ActiveTicket and CurrentTicketInfo interfaces
   const getStaffTicketInfo = useCallback((staffId: string | number): {
-    activeTickets: Array<{ id: number; clientName: string; serviceName: string; status: string }>;
-    currentTicketInfo: { ticketId: string; clientName: string; serviceName: string; startTime: string; progress: number } | null;
+    activeTickets: Array<{ id: number; ticketNumber?: string | number; clientName: string; serviceName: string; status: 'in-service' | 'pending' }>;
+    currentTicketInfo: { timeLeft: number; totalTime: number; progress: number; startTime: string; serviceName?: string; clientName?: string } | null;
   } | null => {
-    // Match tickets by staffId (could be UUID string) or by assignedTo.id
+    // US-002: Match tickets by techId, staffId, or assignedTo.id (handle all three)
     const staffInServiceTickets = inServiceTickets.filter((ticket: UITicket) => {
-      const ticketStaffId = ticket.techId || ticket.assignedTo?.id;
-      // Handle both string and number IDs
-      return ticketStaffId === String(staffId) || ticketStaffId === staffId;
+      // Check all possible staff ID fields on the ticket
+      const ticketStaffId = ticket.techId || (ticket as { staffId?: string }).staffId || ticket.assignedTo?.id;
+      // Handle both string and number IDs with proper type guard
+      const staffIdStr = String(staffId);
+      return ticketStaffId === staffIdStr || ticketStaffId === staffId;
     });
 
     if (staffInServiceTickets.length === 0) {
@@ -997,10 +1001,10 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     // Get the first (primary) ticket for current ticket info
     const primaryTicket = staffInServiceTickets[0];
 
-    // Calculate progress based on start time and duration
-    const calculateProgress = (ticket: UITicket): number => {
+    // Calculate time values based on start time and duration
+    const calculateTimeInfo = (ticket: UITicket): { timeLeft: number; totalTime: number; progress: number } => {
       const durationStr = ticket.duration || '30min';
-      const durationMinutes = parseInt(durationStr.replace(/\D/g, '')) || 30;
+      const totalTimeMinutes = parseInt(durationStr.replace(/\D/g, '')) || 30;
 
       // Use createdAt as the start time (when service started)
       const startTime = ticket.createdAt instanceof Date ? ticket.createdAt : new Date(ticket.createdAt);
@@ -1008,10 +1012,13 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       const elapsedMs = now.getTime() - startTime.getTime();
       const elapsedMinutes = elapsedMs / (1000 * 60);
 
+      // Calculate time left (can be negative if overtime)
+      const timeLeft = Math.max(0, totalTimeMinutes - elapsedMinutes);
+
       // Progress is elapsed time / total duration, capped between 0 and 1
-      // Allow up to 100% - over 100% indicates overtime
-      const progress = Math.min(1, Math.max(0, elapsedMinutes / durationMinutes));
-      return progress;
+      const progress = Math.min(1, Math.max(0, elapsedMinutes / totalTimeMinutes));
+
+      return { timeLeft, totalTime: totalTimeMinutes, progress };
     };
 
     // Format time for display (e.g., "10:15AM")
@@ -1020,21 +1027,24 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       return startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase().replace(' ', '');
     };
 
-    // Build active tickets array for StaffCard
+    // Build active tickets array for StaffCard - matches StaffCardVertical.ActiveTicket type
     const activeTickets = staffInServiceTickets.map((ticket, idx) => ({
-      id: idx + 1, // Use sequential IDs for display
+      id: idx + 1, // Sequential numeric ID for display (ActiveTicket expects number)
+      ticketNumber: ticket.number, // Actual ticket number for reference
       clientName: ticket.clientName || 'Walk-in',
       serviceName: ticket.service || 'Service',
-      status: 'in-service' as const,
+      status: 'in-service' as const, // Type-safe status literal
     }));
 
-    // Build current ticket info for display
+    // Build current ticket info for display - matches StaffCardVertical.CurrentTicketInfo type
+    const timeInfo = calculateTimeInfo(primaryTicket);
     const currentTicketInfo = {
-      ticketId: primaryTicket.id,
-      clientName: primaryTicket.clientName || 'Walk-in',
-      serviceName: primaryTicket.service || 'Service',
+      timeLeft: timeInfo.timeLeft,
+      totalTime: timeInfo.totalTime,
+      progress: timeInfo.progress,
       startTime: formatStartTime(primaryTicket),
-      progress: calculateProgress(primaryTicket),
+      serviceName: primaryTicket.service || 'Service',
+      clientName: primaryTicket.clientName || 'Walk-in',
     };
 
     return { activeTickets, currentTicketInfo };
@@ -1167,9 +1177,14 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
         {filteredStaff.map((staffMember, index) => {
           // Convert string ID to number for compatibility
           const staffIdNumber = typeof staffMember.id === 'string'
-            ? parseInt(staffMember.id.replace(/\\D/g, '')) || index + 1
+            ? parseInt(staffMember.id.replace(/\D/g, '')) || index + 1
             : staffMember.id;
 
+          // US-002: Get real ticket data for this staff member from Redux
+          // Use the staff member's original ID (UUID string) to match with tickets
+          const ticketInfo = getStaffTicketInfo(staffMember.id);
+
+          // Build modified staff member with real ticket data (no mock data)
           const modifiedStaffMember = {
             ...staffMember,
             id: staffIdNumber,
@@ -1177,21 +1192,13 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
             time: (typeof staffMember.clockInTime === 'string' ? new Date(staffMember.clockInTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : undefined), // Clock-in time for metrics display - undefined when not clocked in
             revenue: staffMember.revenue ?? null, // Ensure revenue is explicitly set
             count: staffMember.turnCount ?? 0, // Add count property for StaffCard
+            // US-002: Wire real ticket data from Redux serviceTickets selector
+            activeTickets: ticketInfo?.activeTickets,
+            currentTicketInfo: ticketInfo?.currentTicketInfo ?? undefined,
           };
 
           // Use vertical card layout
           const CardComponent = StaffCardVertical;
-
-          // US-008: Get real ticket data for this staff member
-          // Use the staff member's original ID (UUID string) to match with tickets
-          const ticketInfo = getStaffTicketInfo(staffMember.id);
-
-          if (ticketInfo) {
-            // Staff has active in-service tickets - use real data
-            (modifiedStaffMember as any).activeTickets = ticketInfo.activeTickets;
-            // Convert null to undefined for type compatibility
-            modifiedStaffMember.currentTicketInfo = ticketInfo.currentTicketInfo ?? undefined;
-          }
 
           // US-009: Get real appointment and completed ticket data for this staff member
           // Use the staff member's original ID (UUID string) to match with appointments/tickets
@@ -1246,7 +1253,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
               >
                 <div>
                   <CardComponent
-                    staff={modifiedStaffMember as any}
+                    staff={modifiedStaffMember as StaffMember}
                     viewMode={getCardViewMode()}
                     displayConfig={{
                       showName: true,
