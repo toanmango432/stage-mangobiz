@@ -602,3 +602,30 @@ Commit: 7b12a67
   - PendingTicketCard previously had no dropdown menu - added Tippy menus to all view modes
   - EditTicketModal already exists at apps/store-app/src/components/tickets/EditTicketModal.tsx
 ---
+
+## 2026-01-14 - US-028: Add Remove from Pending action
+Commit: 3b79a67
+- Added Remove action button to PendingTicketCard dropdown menus (all 4 view modes: compact, normal, grid-compact, grid-normal)
+- Created RemoveFromPendingModal component with reason selection:
+  - Reason options: Client Left, Cancelled, Other
+  - Optional notes field for additional details
+  - Red-themed UI to indicate destructive action
+- Added removePendingTicket reducer to uiTicketsSlice:
+  - Removes ticket from pendingTickets array
+  - Logs removal with reason and notes for audit trail
+- Updated PendingSectionFooter:
+  - Added dispatch hook for Redux actions
+  - Added modal state (showRemoveModal, ticketToRemove)
+  - Created handleRemoveTicket handler
+  - Passed onRemove callback to PendingTicketCard components
+- Files changed:
+  - apps/store-app/src/components/tickets/PendingTicketCard.tsx
+  - apps/store-app/src/components/tickets/RemoveFromPendingModal.tsx (new)
+  - apps/store-app/src/components/frontdesk/PendingSectionFooter.tsx
+  - apps/store-app/src/store/slices/uiTicketsSlice.ts
+- **Learnings for future iterations:**
+  - Use red color scheme for destructive actions (bg-red-50, text-red-600, hover:bg-red-100)
+  - Confirmation dialogs should require a reason selection before enabling submit
+  - Audit trail logging can be added via console.log for now, with database persistence added later
+  - Pre-existing typecheck errors in Book module tests don't block commits (infrastructure issues)
+---
