@@ -356,7 +356,7 @@
         "Verify in browser: See staff photos on ticket cards"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "FD-P0-005. Files: apps/store-app/src/components/tickets/WaitListTicketCard.tsx, ServiceTicketCard.tsx. Staff data includes photo field."
     },
     {

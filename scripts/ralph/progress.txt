@@ -479,3 +479,22 @@ Commit: 64410b0
   - Default avatar: bg-gray-100 with text-gray-600 initial
   - Pre-existing typecheck errors in Book module test files are infrastructure issues
 ---
+
+## 2026-01-14 02:05 - US-022: Add staff photo to ticket cards
+Commit: 44dbbf7
+- Added photo field to assignedTo/assignedStaff interfaces in uiTicketsSlice.ts (DBTicket, UITicket, PendingTicket)
+- Added staffPhoto field to CheckoutTicketService interface
+- Updated assignedStaff building logic to include photo from services
+- Added renderStaffAvatar helper function to ServiceTicketCard.tsx
+- Displays circular staff photo (20px/32px) next to staff name badge in all view modes
+- Shows default avatar with staff initial when no photo available
+- Files changed:
+  - apps/store-app/src/store/slices/uiTicketsSlice.ts
+  - apps/store-app/src/components/tickets/ServiceTicketCard.tsx
+- **Learnings for future iterations:**
+  - Staff photo is stored in staff.avatar field, need to pass it through service assignments
+  - CheckoutTicketService is the interface for services passed to ticket cards
+  - ServiceTicketCard has 4 view modes: compact, normal, grid-normal, grid-compact
+  - Use renderStaffAvatar pattern for consistent avatar display across components
+---
+
