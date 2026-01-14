@@ -10,7 +10,7 @@ import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Chev
 import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
 import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
-import { ServiceTicketCard, ServiceTicketCardRefactored } from '@/components/tickets';
+import { ServiceTicketCard } from '@/components/tickets';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { SearchBar } from './SearchBar';
 import { FrontDeskSubTabs, SubTab } from './FrontDeskSubTabs';
@@ -516,7 +516,7 @@ export const ServiceSection = memo(function ServiceSection({
           }}
         >
               {filteredServiceTickets.map(ticket => (
-                <ServiceTicketCardRefactored
+                <ServiceTicketCard
                   key={ticket.id}
                   ticket={{
                     id: ticket.id,
