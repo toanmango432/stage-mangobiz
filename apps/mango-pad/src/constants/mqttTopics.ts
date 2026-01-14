@@ -13,6 +13,11 @@ export const PAD_TOPICS = {
   READY_TO_PAY: 'salon/{salonId}/station/{stationId}/pad/ready_to_pay',
   PAYMENT_RESULT: 'salon/{salonId}/station/{stationId}/pad/payment_result',
   CANCEL: 'salon/{salonId}/station/{stationId}/pad/cancel',
+  // NEW: Staff control messages from POS
+  POS_SKIP_TIP: 'salon/{salonId}/station/{stationId}/pos/skip_tip',
+  POS_SKIP_SIGNATURE: 'salon/{salonId}/station/{stationId}/pos/skip_signature',
+  POS_FORCE_COMPLETE: 'salon/{salonId}/station/{stationId}/pos/force_complete',
+  POS_UPDATE_ORDER: 'salon/{salonId}/station/{stationId}/pos/update_order',
 
   // Pad -> Station (publish)
   TIP_SELECTED: 'salon/{salonId}/station/{stationId}/pad/tip_selected',
@@ -21,6 +26,10 @@ export const PAD_TOPICS = {
   TRANSACTION_COMPLETE: 'salon/{salonId}/station/{stationId}/pad/transaction_complete',
   HELP_REQUESTED: 'salon/{salonId}/station/{stationId}/pad/help_requested',
   SPLIT_PAYMENT: 'salon/{salonId}/station/{stationId}/pad/split_payment',
+  // NEW: Screen sync messages to POS
+  SCREEN_CHANGED: 'salon/{salonId}/station/{stationId}/pad/screen_changed',
+  CUSTOMER_STARTED: 'salon/{salonId}/station/{stationId}/pad/customer_started',
+  CUSTOMER_IDLE: 'salon/{salonId}/station/{stationId}/pad/customer_idle',
 
   // Heartbeat topics
   PAD_HEARTBEAT: 'salon/{salonId}/station/{stationId}/pad/heartbeat',  // Pad -> Station
@@ -61,6 +70,11 @@ export function getSubscribeTopics(salonId: string, stationId: string): string[]
     buildPadTopic(PAD_TOPICS.PAYMENT_RESULT, params),
     buildPadTopic(PAD_TOPICS.CANCEL, params),
     buildPadTopic(PAD_TOPICS.STATION_HEARTBEAT, params),
+    // NEW: Staff control topics
+    buildPadTopic(PAD_TOPICS.POS_SKIP_TIP, params),
+    buildPadTopic(PAD_TOPICS.POS_SKIP_SIGNATURE, params),
+    buildPadTopic(PAD_TOPICS.POS_FORCE_COMPLETE, params),
+    buildPadTopic(PAD_TOPICS.POS_UPDATE_ORDER, params),
   ];
 }
 
@@ -77,5 +91,9 @@ export function getPublishTopics(salonId: string, stationId: string) {
     helpRequested: buildPadTopic(PAD_TOPICS.HELP_REQUESTED, params),
     splitPayment: buildPadTopic(PAD_TOPICS.SPLIT_PAYMENT, params),
     padHeartbeat: buildPadTopic(PAD_TOPICS.PAD_HEARTBEAT, params),
+    // NEW: Screen sync topics
+    screenChanged: buildPadTopic(PAD_TOPICS.SCREEN_CHANGED, params),
+    customerStarted: buildPadTopic(PAD_TOPICS.CUSTOMER_STARTED, params),
+    customerIdle: buildPadTopic(PAD_TOPICS.CUSTOMER_IDLE, params),
   };
 }

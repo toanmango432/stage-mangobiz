@@ -123,8 +123,13 @@ function StatusBadge({ status }: { status: 'online' | 'offline' | 'testing' }) {
 // =============================================================================
 
 export function MangoPadSettings() {
-  const storeId = useSelector(selectStoreId);
+  const reduxStoreId = useSelector(selectStoreId);
   const storeName = useSelector(selectStoreName);
+
+  // In dev mode, ALWAYS use VITE_STORE_ID (demo-salon) for consistent pairing with Mango Pad
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+  const envStoreId = import.meta.env.VITE_STORE_ID;
+  const storeId = (isDevMode && envStoreId) ? envStoreId : (reduxStoreId || envStoreId || null);
   const allPadDevices = useSelector(selectAllPadDevices);
   const hasConnectedPad = useSelector(selectHasConnectedPad);
   const connectedPads = useSelector(getConnectedPads);

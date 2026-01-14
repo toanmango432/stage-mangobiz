@@ -113,7 +113,8 @@ export class MangoPadService {
     if (!this.stationId) {
       this.stationId = getOrCreateDeviceId();
     }
-    return { storeId: this.storeId, stationId: this.stationId };
+    // TypeScript doesn't narrow class fields after control flow, so use assertion
+    return { storeId: this.storeId as string, stationId: this.stationId as string };
   }
 
   private ensureMqttEnabled(): void {
@@ -129,11 +130,13 @@ export class MangoPadService {
   async connect(): Promise<void> {
     // Return existing connection promise if already connecting
     if (this.connectionPromise) {
+      console.log('[MangoPadService] Already connecting, reusing promise');
       return this.connectionPromise;
     }
 
     // Already connected
     if (this.client?.connected) {
+      console.log('[MangoPadService] Already connected');
       return Promise.resolve();
     }
 
@@ -141,7 +144,7 @@ export class MangoPadService {
     const { stationId } = this.ensureIds();
     const brokerUrl = getCloudBrokerUrl();
 
-    console.log('[MangoPadService] Connecting to cloud broker:', brokerUrl);
+    console.log('[MangoPadService] Connecting to cloud broker:', brokerUrl, 'stationId:', stationId);
 
     this.connectionPromise = new Promise((resolve, reject) => {
       const client = mqtt.connect(brokerUrl, {
@@ -228,6 +231,11 @@ export class MangoPadService {
       await this.connect();
     }
 
+    // Safety check - if still not connected after connect(), throw
+    if (!this.client) {
+      throw new Error('MangoPadService: Failed to connect to MQTT broker');
+    }
+
     const message = this.wrapPayload(payload);
 
     return new Promise((resolve, reject) => {
@@ -300,6 +308,59 @@ export class MangoPadService {
 
     console.log('[MangoPadService] Sending cancel to station:', stationId);
     await this.publishMessage(topic, payload);
+  }
+
+  /**
+   * Send a staff control action to Mango Pad
+   * Common helper for skip/force actions
+   */
+  private async sendStaffControl(
+    transactionId: string,
+    topicPattern: string,
+    timestampField: string
+  ): Promise<void> {
+    this.ensureMqttEnabled();
+    const { storeId, stationId } = this.ensureIds();
+
+    const topic = buildTopic(topicPattern, { storeId, stationId });
+    const payload = {
+      transactionId,
+      [timestampField]: new Date().toISOString(),
+    };
+
+    await this.publishMessage(topic, payload);
+  }
+
+  /**
+   * Skip the tip step on Mango Pad (staff override)
+   */
+  async skipTip(transactionId: string): Promise<void> {
+    await this.sendStaffControl(transactionId, TOPIC_PATTERNS.POS_SKIP_TIP, 'skippedAt');
+  }
+
+  /**
+   * Skip the signature step on Mango Pad (staff override)
+   */
+  async skipSignature(transactionId: string): Promise<void> {
+    await this.sendStaffControl(transactionId, TOPIC_PATTERNS.POS_SKIP_SIGNATURE, 'skippedAt');
+  }
+
+  /**
+   * Force complete the transaction on Mango Pad (staff override)
+   */
+  async forceComplete(transactionId: string): Promise<void> {
+    await this.sendStaffControl(transactionId, TOPIC_PATTERNS.POS_FORCE_COMPLETE, 'forcedAt');
+  }
+
+  /**
+   * Cancel a transaction on Mango Pad (convenience wrapper)
+   */
+  async cancelTransaction(ticketId: string, transactionId: string, reason?: string): Promise<void> {
+    await this.sendCancel({
+      transactionId,
+      ticketId,
+      reason: reason || 'Cancelled by staff',
+    });
   }
 }
 

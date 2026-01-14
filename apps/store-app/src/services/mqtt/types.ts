@@ -124,7 +124,7 @@ export type MqttEventType =
   | 'device:offline'
   | 'device:discovered'
   | 'device:heartbeat'
-  // Mango Pad events
+  // Mango Pad events (Pad → Store App)
   | 'pad:ready_to_pay'
   | 'pad:payment_result'
   | 'pad:cancel'
@@ -134,7 +134,15 @@ export type MqttEventType =
   | 'pad:transaction_complete'
   | 'pad:help_requested'
   | 'pad:heartbeat'
+  | 'pad:screen_changed'      // New: Pad notifies Store App of screen changes
+  | 'pad:customer_started'    // New: Customer began interacting with Pad
+  | 'pad:customer_idle'       // New: Customer inactive for X seconds
+  // Store App events (Store App → Pad)
   | 'pos:heartbeat'
+  | 'pos:skip_tip'            // New: Staff skips tip step
+  | 'pos:skip_signature'      // New: Staff skips signature step
+  | 'pos:force_complete'      // New: Staff forces transaction completion
+  | 'pos:update_order'        // New: Order updated after sending to Pad
   // Check-in events
   | 'checkin:walkin'
   | 'checkin:staff'
@@ -308,6 +316,105 @@ export interface CheckinStaffPayload {
   staffId: string;
   action: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
   timestamp: string;
+}
+
+// =============================================================================
+// Pad Screen Sync Types (NEW - Phase 1 Integration)
+// =============================================================================
+
+/**
+ * All possible screens on Mango Pad
+ * Used for real-time state sync between Store App and Pad
+ */
+export type PadScreen =
+  | 'waiting'           // Idle, waiting for transaction
+  | 'order-review'      // Customer reviewing order
+  | 'tip'               // Tip selection
+  | 'signature'         // Signature capture
+  | 'payment'           // Waiting for card / processing
+  | 'receipt'           // Receipt preference selection
+  | 'processing'        // Payment processing
+  | 'complete'          // Transaction successful
+  | 'failed'            // Transaction failed
+  | 'cancelled';        // Transaction cancelled
+
+/**
+ * Pad → Store App: Customer started interacting
+ * Sent when customer first touches the Pad after receiving transaction
+ */
+export interface PadCustomerStartedPayload {
+  transactionId: string;
+  ticketId: string;
+  screen: 'order-review';
+  startedAt: string;
+}
+
+/**
+ * Pad → Store App: Screen changed
+ * Sent every time customer navigates to a new screen
+ */
+export interface PadScreenChangedPayload {
+  transactionId: string;
+  ticketId: string;
+  screen: PadScreen;
+  previousScreen: PadScreen;
+  changedAt: string;
+}
+
+/**
+ * Pad → Store App: Customer idle
+ * Sent when customer hasn't interacted for X seconds
+ */
+export interface PadCustomerIdlePayload {
+  transactionId: string;
+  ticketId: string;
+  idleSeconds: number;
+  currentScreen: PadScreen;
+  idleAt: string;
+}
+
+/**
+ * Store App → Pad: Skip tip step
+ * Staff can skip tip selection for customer
+ */
+export interface PosSkipTipPayload {
+  transactionId: string;
+  ticketId: string;
+  reason?: string;
+}
+
+/**
+ * Store App → Pad: Skip signature step
+ * Staff can skip signature capture for customer
+ */
+export interface PosSkipSignaturePayload {
+  transactionId: string;
+  ticketId: string;
+  reason?: string;
+}
+
+/**
+ * Store App → Pad: Force complete
+ * Staff forces transaction to complete (e.g., customer left)
+ */
+export interface PosForceCompletePayload {
+  transactionId: string;
+  ticketId: string;
+  reason?: string;
+}
+
+/**
+ * Store App → Pad: Update order
+ * Sent when order is modified after already sent to Pad
+ */
+export interface PosUpdateOrderPayload {
+  transactionId: string;
+  ticketId: string;
+  items: PadTransactionItem[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
 }
 
 // =============================================================================

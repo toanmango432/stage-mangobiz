@@ -28,6 +28,11 @@ import { giftCardDB } from "@/db/giftCardOperations";
 import { useAppSelector } from "@/store/hooks";
 import SendToPadButton from "./SendToPadButton";
 import PadTransactionStatus from "./PadTransactionStatus";
+import PadCheckoutOverlay from "./PadCheckoutOverlay";
+import {
+  selectActivePadTransaction,
+  selectCustomerStarted,
+} from "@/store/slices/padTransactionSlice";
 
 export interface PaymentMethod {
   type: "card" | "cash" | "gift_card" | "custom";
@@ -170,6 +175,14 @@ export default function PaymentModal({
 
   // Get auth context for gift card redemption
   const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
+
+  // Pad transaction state for overlay
+  const activePadTransaction = useAppSelector(selectActivePadTransaction);
+  const customerStarted = useAppSelector(selectCustomerStarted);
+  const showPadOverlay = activePadTransaction &&
+    activePadTransaction.ticketId === ticketId &&
+    customerStarted &&
+    !['complete', 'failed', 'cancelled'].includes(activePadTransaction.status);
   const userId = useAppSelector((state) => state.auth.member?.memberId || state.auth.user?.id);
   const deviceId = useAppSelector((state) => state.auth.device?.id) || 'web-device';
 
@@ -1004,6 +1017,14 @@ export default function PaymentModal({
       onApplyGiftCard={handleApplyGiftCard}
       onRemoveGiftCard={handleRemoveGiftCard}
     />
+
+    {/* Pad Checkout Overlay - shows when customer is actively checking out on Mango Pad */}
+    {showPadOverlay && ticketId && (
+      <PadCheckoutOverlay
+        ticketId={ticketId}
+        onCancelled={() => setSentToPadTransactionId(null)}
+      />
+    )}
     </>
   );
 }

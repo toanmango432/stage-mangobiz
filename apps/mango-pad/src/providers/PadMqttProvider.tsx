@@ -21,7 +21,7 @@ import { mqttService, type MqttMessage } from '@/services/mqttClient';
 import { syncQueueService } from '@/services/syncQueue';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setMqttConnectionStatus, setScreen, resetToIdle } from '@/store/slices/padSlice';
-import { setTransaction, setPaymentResult, clearTransaction } from '@/store/slices/transactionSlice';
+import { setTransaction, setPaymentResult, clearTransaction, setTip } from '@/store/slices/transactionSlice';
 import {
   setShowReconnecting,
   setOfflineSince,
@@ -72,6 +72,8 @@ interface PadMqttContextValue {
   publishSplitPayment: (payload: Omit<SplitPaymentPayload, 'transactionId'>) => Promise<void>;
   setCurrentScreen: (screen: PadScreen) => void;
   reconnect: () => Promise<void>;
+  // NEW: Screen sync for bi-directional communication
+  publishScreenChanged: (newScreen: PadScreen, previousScreen: PadScreen) => Promise<void>;
 }
 
 const PadMqttContext = createContext<PadMqttContextValue | null>(null);
@@ -200,6 +202,8 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const [salonId, setSalonId] = useState<string | null>(null);
   const offlineAlertSentRef = useRef(false);
   const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousScreenRef = useRef<PadScreen>('waiting');
+  const customerStartedRef = useRef(false); // Track if customer_started has been sent
 
   // Compute activeTransaction from Redux state
   const activeTransaction: ActiveTransaction | null = transactionState.current
@@ -397,12 +401,42 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     const unsubCancel = mqttService.subscribe(cancelTopic, () => {
       dispatch(clearTransaction());
       dispatch(resetToIdle());
+      // Reset customer started flag for next transaction
+      customerStartedRef.current = false;
+      previousScreenRef.current = 'waiting';
+    });
+
+    // NEW: Subscribe to POS skip commands for staff override
+    const skipTipTopic = buildPadTopic(PAD_TOPICS.POS_SKIP_TIP, topicParams);
+    const skipSignatureTopic = buildPadTopic(PAD_TOPICS.POS_SKIP_SIGNATURE, topicParams);
+    const forceCompleteTopic = buildPadTopic(PAD_TOPICS.POS_FORCE_COMPLETE, topicParams);
+
+    const unsubSkipTip = mqttService.subscribe(skipTipTopic, () => {
+      // Set tip to 0 and skip to next screen
+      dispatch(setTip({ tipAmount: 0, tipPercent: null, selectedAt: new Date().toISOString() }));
+      dispatch(setScreen('signature'));
+    });
+
+    const unsubSkipSignature = mqttService.subscribe(skipSignatureTopic, () => {
+      // Skip signature and go to payment/receipt
+      dispatch(setScreen('receipt'));
+    });
+
+    const unsubForceComplete = mqttService.subscribe(forceCompleteTopic, () => {
+      // Force complete the transaction
+      dispatch(clearTransaction());
+      dispatch(resetToIdle());
+      customerStartedRef.current = false;
+      previousScreenRef.current = 'waiting';
     });
 
     return () => {
       unsubReadyToPay();
       unsubPaymentResult();
       unsubCancel();
+      unsubSkipTip();
+      unsubSkipSignature();
+      unsubForceComplete();
     };
   }, [salonId, stationId, connectionStatus, dispatch]);
 
@@ -549,14 +583,6 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     [dispatch]
   );
 
-  // Set current screen via Redux
-  const setCurrentScreen = useCallback(
-    (screen: PadScreen) => {
-      dispatch(setScreen(screen));
-    },
-    [dispatch]
-  );
-
   // All publish functions now use stationId for device-to-device communication
   const publishTipSelected = useCallback(
     async (payload: Omit<TipSelectedPayload, 'transactionId'>) => {
@@ -618,6 +644,70 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     [salonId, stationId, transactionId]
   );
 
+  // NEW: Publish screen changed to Store App for real-time sync
+  const publishScreenChanged = useCallback(
+    async (newScreen: PadScreen, previousScreen: PadScreen) => {
+      if (!salonId || !stationId) return;
+      const topic = buildPadTopic(PAD_TOPICS.SCREEN_CHANGED, { salonId, stationId });
+      const payload = {
+        transactionId: transactionId ?? undefined,
+        ticketId: transactionId ?? undefined, // Use transactionId as ticketId
+        screen: newScreen,
+        previousScreen,
+        changedAt: new Date().toISOString(),
+      };
+      await mqttService.publish(topic, payload);
+    },
+    [salonId, stationId, transactionId]
+  );
+
+  // Publish customer_started when customer first interacts
+  const publishCustomerStarted = useCallback(
+    async () => {
+      if (!salonId || !stationId || !transactionId || customerStartedRef.current) return;
+      customerStartedRef.current = true;
+      const topic = buildPadTopic(PAD_TOPICS.CUSTOMER_STARTED, { salonId, stationId });
+      const payload = {
+        transactionId,
+        ticketId: transactionId,
+        screen: 'order-review' as const,
+        startedAt: new Date().toISOString(),
+      };
+      await mqttService.publish(topic, payload);
+    },
+    [salonId, stationId, transactionId]
+  );
+
+  // Set current screen via Redux and publish to Store App
+  // NOTE: This must be defined AFTER publishScreenChanged and publishCustomerStarted
+  const setCurrentScreen = useCallback(
+    (screen: PadScreen) => {
+      const prevScreen = previousScreenRef.current;
+
+      // Only publish if screen actually changed
+      if (screen !== prevScreen) {
+        // Update the ref first
+        previousScreenRef.current = screen;
+
+        // Dispatch to Redux
+        dispatch(setScreen(screen));
+
+        // Fire-and-forget: Screen sync is informational, not transactional.
+        // Store App will recover state from next heartbeat if publish fails.
+        publishScreenChanged(screen, prevScreen);
+
+        // If moving from waiting/idle to order-review, publish customer_started
+        if ((prevScreen === 'waiting' || prevScreen === 'idle') && screen === 'order-review') {
+          publishCustomerStarted();
+        }
+      } else {
+        // Just dispatch if same screen (shouldn't happen often)
+        dispatch(setScreen(screen));
+      }
+    },
+    [dispatch, publishScreenChanged, publishCustomerStarted]
+  );
+
   const reconnect = useCallback(async () => {
     if (!brokerUrl) return;
     mqttService.disconnect();
@@ -643,6 +733,8 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     publishSplitPayment,
     setCurrentScreen,
     reconnect,
+    // NEW: Screen sync
+    publishScreenChanged,
   };
 
   const unpairContextValue: UnpairContextValue = {

@@ -3,10 +3,12 @@
  * Tracks the state of transactions sent to Mango Pad for real-time status display.
  *
  * Part of: Mango Pad Integration (US-007)
+ * Updated: Phase 1 Integration - Added real-time screen sync
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
+import type { PadScreen } from '@/services/mqtt/types';
 
 /**
  * Status of a transaction on the Mango Pad
@@ -26,6 +28,12 @@ export interface ActivePadTransaction {
   transactionId: string;
   ticketId: string;
   status: PadTransactionStatus;
+  // NEW: Real-time screen sync
+  currentPadScreen: PadScreen;
+  previousPadScreen?: PadScreen;
+  customerStarted: boolean;   // Has customer begun interacting?
+  screenChangedAt?: string;   // When last screen change occurred
+  // Existing fields
   tipAmount?: number;
   tipPercent?: number | null;
   signatureCaptured: boolean;
@@ -58,9 +66,49 @@ const padTransactionSlice = createSlice({
         transactionId: action.payload.transactionId,
         ticketId: action.payload.ticketId,
         status: 'waiting',
+        // NEW: Initialize screen sync state
+        currentPadScreen: 'waiting',
+        customerStarted: false,
         signatureCaptured: false,
         startedAt: new Date().toISOString(),
       };
+    },
+
+    /**
+     * NEW: Update Pad screen from screen_changed message
+     */
+    setPadScreenChanged: (
+      state,
+      action: PayloadAction<{
+        transactionId: string;
+        screen: PadScreen;
+        previousScreen: PadScreen;
+        changedAt: string;
+      }>
+    ) => {
+      if (
+        state.activeTransaction &&
+        state.activeTransaction.transactionId === action.payload.transactionId
+      ) {
+        state.activeTransaction.currentPadScreen = action.payload.screen;
+        state.activeTransaction.previousPadScreen = action.payload.previousScreen;
+        state.activeTransaction.screenChangedAt = action.payload.changedAt;
+      }
+    },
+
+    /**
+     * NEW: Mark that customer has started interacting
+     */
+    setCustomerStarted: (
+      state,
+      action: PayloadAction<{ transactionId: string }>
+    ) => {
+      if (
+        state.activeTransaction &&
+        state.activeTransaction.transactionId === action.payload.transactionId
+      ) {
+        state.activeTransaction.customerStarted = true;
+      }
     },
 
     /**
@@ -195,6 +243,8 @@ const padTransactionSlice = createSlice({
 
 export const {
   startPadTransaction,
+  setPadScreenChanged,
+  setCustomerStarted,
   setTipSelected,
   setSignatureCaptured,
   setReceiptPreference,
@@ -219,5 +269,23 @@ export const selectPadTransactionByTicketId = (ticketId: string) => (state: Root
   state.padTransaction.activeTransaction?.ticketId === ticketId
     ? state.padTransaction.activeTransaction
     : null;
+
+// NEW: Screen sync selectors
+export const selectCurrentPadScreen = (state: RootState) =>
+  state.padTransaction.activeTransaction?.currentPadScreen ?? 'waiting';
+
+export const selectCustomerStarted = (state: RootState) =>
+  state.padTransaction.activeTransaction?.customerStarted ?? false;
+
+export const selectPadScreenInfo = (state: RootState) => {
+  const tx = state.padTransaction.activeTransaction;
+  if (!tx) return null;
+  return {
+    currentScreen: tx.currentPadScreen,
+    previousScreen: tx.previousPadScreen,
+    customerStarted: tx.customerStarted,
+    screenChangedAt: tx.screenChangedAt,
+  };
+};
 
 export default padTransactionSlice.reducer;

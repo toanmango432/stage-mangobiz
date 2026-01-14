@@ -61,6 +61,15 @@ export const TOPIC_PATTERNS = {
   STATION_HEARTBEAT: 'salon/{storeId}/station/{stationId}/heartbeat',  // Station -> Pad
   // Device pairing notifications (US-012, US-013)
   PAD_UNPAIRED: 'salon/{storeId}/station/{stationId}/pad/{deviceId}/unpaired',
+  // NEW: Screen sync messages (Phase 1 Integration)
+  PAD_SCREEN_CHANGED: 'salon/{storeId}/station/{stationId}/pad/screen_changed',  // Pad -> Store App
+  PAD_CUSTOMER_STARTED: 'salon/{storeId}/station/{stationId}/pad/customer_started',  // Pad -> Store App
+  PAD_CUSTOMER_IDLE: 'salon/{storeId}/station/{stationId}/pad/customer_idle',  // Pad -> Store App
+  // NEW: Staff control messages (Phase 1 Integration)
+  POS_SKIP_TIP: 'salon/{storeId}/station/{stationId}/pos/skip_tip',  // Store App -> Pad
+  POS_SKIP_SIGNATURE: 'salon/{storeId}/station/{stationId}/pos/skip_signature',  // Store App -> Pad
+  POS_FORCE_COMPLETE: 'salon/{storeId}/station/{stationId}/pos/force_complete',  // Store App -> Pad
+  POS_UPDATE_ORDER: 'salon/{storeId}/station/{stationId}/pos/update_order',  // Store App -> Pad
 
   // Check-In App
   CHECKIN_ALL: 'mango/{storeId}/checkin/#',
@@ -258,6 +267,15 @@ export const QOS_BY_TOPIC: Record<string, MqttQoS> = {
   [TOPIC_PATTERNS.PAD_HEARTBEAT]: 0,
   [TOPIC_PATTERNS.STATION_HEARTBEAT]: 0,
   [TOPIC_PATTERNS.PAD_UNPAIRED]: 1, // Guaranteed delivery for unpair notification
+  // NEW: Screen sync (QoS 1 for reliable state sync)
+  [TOPIC_PATTERNS.PAD_SCREEN_CHANGED]: 1,
+  [TOPIC_PATTERNS.PAD_CUSTOMER_STARTED]: 1,
+  [TOPIC_PATTERNS.PAD_CUSTOMER_IDLE]: 0, // Can miss idle notifications
+  // NEW: Staff controls (QoS 1 for reliable delivery)
+  [TOPIC_PATTERNS.POS_SKIP_TIP]: 1,
+  [TOPIC_PATTERNS.POS_SKIP_SIGNATURE]: 1,
+  [TOPIC_PATTERNS.POS_FORCE_COMPLETE]: 1,
+  [TOPIC_PATTERNS.POS_UPDATE_ORDER]: 1,
   [TOPIC_PATTERNS.CHECKIN_WALKIN]: 1,
   [TOPIC_PATTERNS.CHECKIN_STAFF]: 1,
   [TOPIC_PATTERNS.BOOKING_CREATED]: 1,
