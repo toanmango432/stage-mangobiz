@@ -57,6 +57,7 @@ import {
   useSidebarWidth,
   useViewMode,
   useStaffActions,
+  useModalStack,
 } from './StaffSidebar/hooks';
 import { StaffSidebarHeader, StaffTooltip } from './StaffSidebar/components';
 import { STORAGE_KEYS } from './StaffSidebar/constants';
@@ -90,13 +91,24 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
-  const [showTeamSettings, setShowTeamSettings] = useState(false);
-  const [showTurnTracker, setShowTurnTracker] = useState(false);
-  const [showStaffNoteModal, setShowStaffNoteModal] = useState(false);
-  const [selectedStaffForNote, setSelectedStaffForNote] = useState<{ id: number; name: string } | null>(null);
-  const [showStaffDetails, setShowStaffDetails] = useState(false);
-  const [selectedStaffForDetails, setSelectedStaffForDetails] = useState<UIStaff | null>(null);
+
+  // US-019: Consolidated modal state management
+  const {
+    showTeamSettings,
+    setShowTeamSettings,
+    showTurnTracker,
+    setShowTurnTracker,
+    showStaffNoteModal,
+    selectedStaffForNote,
+    showStaffDetails,
+    selectedStaffForDetails,
+    showResetConfirmation,
+    setShowResetConfirmation,
+    openStaffNote,
+    closeStaffNote,
+    openStaffDetails,
+    closeStaffDetails,
+  } = useModalStack();
 
   const { viewMode, setViewMode, toggleViewMode } = useViewMode(teamSettings);
   const effectiveOrganizeBy = settings?.organizeBy || teamSettings.organizeBy;
@@ -114,8 +126,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   } = useStaffActions({
     staff,
     serviceTickets,
-    onSelectStaffForNote: (s) => { setSelectedStaffForNote(s); setShowStaffNoteModal(true); },
-    onSelectStaffForDetails: (s) => { setSelectedStaffForDetails(s); setShowStaffDetails(true); },
+    onSelectStaffForNote: openStaffNote,
+    onSelectStaffForDetails: openStaffDetails,
   });
 
   // Effects
@@ -310,7 +322,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       {selectedStaffForNote && (
         <AddStaffNoteModal
           isOpen={showStaffNoteModal}
-          onClose={() => { setShowStaffNoteModal(false); setSelectedStaffForNote(null); }}
+          onClose={closeStaffNote}
           staffId={selectedStaffForNote.id}
           staffName={selectedStaffForNote.name}
           currentNote={staffNotes[String(selectedStaffForNote.id)] || ''}
@@ -321,7 +333,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       {showStaffDetails && selectedStaffForDetails && (
         <StaffDetailsPanel
           staff={selectedStaffForDetails}
-          onClose={() => { setShowStaffDetails(false); setSelectedStaffForDetails(null); }}
+          onClose={closeStaffDetails}
           onAddTicket={handleAddTicket}
           onAddNote={handleAddNote}
           onEditTeam={handleEditTeam}
