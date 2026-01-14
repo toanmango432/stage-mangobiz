@@ -64,7 +64,7 @@
         "Verify in browser: click Add Note on a staff card and see the note modal open"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/frontdesk/AddNoteModal.tsx exists. Need to add state for selected staff and pass to modal."
     },
     {

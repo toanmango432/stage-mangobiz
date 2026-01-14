@@ -64,3 +64,21 @@ Commit: 365a845
   - Staff IDs may be strings or numbers - need to handle both when finding staff member
   - Action settings from FrontDeskSettings are passed through displayConfig to StaffCardVertical
 ---
+
+## 2026-01-13 - US-004: Implement Add Note action on staff cards
+Commit: 5fac7c6
+- Created AddStaffNoteModal component for staff-specific notes (apps/store-app/src/components/frontdesk/AddStaffNoteModal.tsx)
+- Added state management for staff note modal in StaffSidebar: showStaffNoteModal, selectedStaffForNote
+- Created handleAddNote callback that finds staff member and opens note modal
+- Created handleSaveStaffNote callback (placeholder for API integration)
+- Passed onAddNote callback to StaffCardVertical component
+- Modal uses teal color scheme to match Team Section styling
+- Files changed:
+  - apps/store-app/src/components/frontdesk/AddStaffNoteModal.tsx (new)
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - Existing AddNoteModal is for tickets (requires ticketId, ticketNumber, clientName)
+  - Created separate AddStaffNoteModal for staff notes to avoid coupling
+  - Staff notes need their own storage/API integration (TODO in handleSaveStaffNote)
+  - Use selectedStaffForNote state to track which staff member the modal is for
+---
