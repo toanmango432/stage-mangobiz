@@ -7,28 +7,29 @@
 
 export type UrgencyLevel = 'normal' | 'attention' | 'urgent' | 'critical';
 
-// Default thresholds (can be overridden by settings)
+// Default thresholds per PRD (can be overridden by settings)
 export const DEFAULT_URGENCY_THRESHOLDS = {
-  attention: 10,  // 10+ minutes
-  urgent: 15,     // 15+ minutes
+  attention: 5,   // 5+ minutes
+  urgent: 10,     // 10+ minutes
   critical: 20,   // 20+ minutes
 };
 
-// Color classes for each urgency level (Tailwind)
+// Color classes for each urgency level per PRD (Tailwind)
+// normal = white/neutral, attention = yellow, urgent = orange, critical = red
 export const URGENCY_COLORS = {
   normal: {
-    border: 'border-amber-200',
-    bg: 'bg-amber-50',
-    dot: 'bg-amber-400',
-    text: 'text-amber-700',
+    border: 'border-gray-200',
+    bg: 'bg-white',
+    dot: 'bg-gray-400',
+    text: 'text-gray-700',
     glow: '',
   },
   attention: {
-    border: 'border-amber-400',
-    bg: 'bg-amber-100',
-    dot: 'bg-amber-500',
-    text: 'text-amber-800',
-    glow: 'shadow-[0_0_20px_rgba(245,158,11,0.3)]',
+    border: 'border-yellow-400',
+    bg: 'bg-yellow-50',
+    dot: 'bg-yellow-500',
+    text: 'text-yellow-800',
+    glow: 'shadow-[0_0_20px_rgba(234,179,8,0.3)]',
   },
   urgent: {
     border: 'border-orange-400',
