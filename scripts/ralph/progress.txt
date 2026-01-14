@@ -578,3 +578,27 @@ Commit: (already implemented - no changes needed)
 - Notification clears on expand for natural UX flow
 - animate-pulse from Tailwind provides subtle pulsing animation
 ---
+
+## 2026-01-14 - US-027: Add Edit Ticket action to all ticket card menus
+Commit: 7b12a67
+- Added Edit button with Edit2 icon to ServiceTicketCard dropdown menus (normal, grid-normal, grid-compact views)
+- Added Edit button to ServiceTicketCardRefactored dropdown menus (grid-compact, grid-normal views)
+- Added Edit button and MoreVertical menu to PendingTicketCard (all 4 view modes: compact, normal, grid-compact, grid-normal)
+- Added onEdit prop to ServiceTicketCard, ServiceTicketCardRefactored interfaces
+- Added onEdit and onViewDetails props to PendingTicketCard interface
+- Updated ServiceSection to pass onEdit handler to both ServiceTicketCard and ServiceTicketCardRefactored
+- Updated PendingSectionFooter to include EditTicketModal and TicketDetailsModal with proper handlers
+- WaitListTicketCard already had Edit action implemented (verified existing)
+- Files changed:
+  - apps/store-app/src/components/tickets/ServiceTicketCard.tsx
+  - apps/store-app/src/components/tickets/ServiceTicketCardRefactored.tsx
+  - apps/store-app/src/components/tickets/PendingTicketCard.tsx
+  - apps/store-app/src/components/frontdesk/ServiceSection.tsx
+  - apps/store-app/src/components/frontdesk/PendingSectionFooter.tsx
+- **Learnings for future iterations:**
+  - Ticket card components have different view modes that each need separate menu implementations
+  - ServiceSection has two types of ServiceTicketCard usage: ServiceTicketCard (list view) and ServiceTicketCardRefactored (grid view)
+  - EditTicketModal requires ticketId as number, need to parseInt when passing string IDs
+  - PendingTicketCard previously had no dropdown menu - added Tippy menus to all view modes
+  - EditTicketModal already exists at apps/store-app/src/components/tickets/EditTicketModal.tsx
+---

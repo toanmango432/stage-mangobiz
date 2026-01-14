@@ -434,8 +434,8 @@
         "Verify in browser: Open ticket menu, click Edit, see modal"
       ],
       "priority": 27,
-      "passes": false,
-      "notes": "FD-P0-042. Files: Various ticket card components. EditTicketModal exists - verify integration."
+      "passes": true,
+      "notes": "FD-P0-042. Added Edit button with Edit2 icon to all ticket card dropdown menus: ServiceTicketCard (normal, grid-normal, grid-compact), ServiceTicketCardRefactored (grid-compact, grid-normal), PendingTicketCard (all 4 view modes). WaitListTicketCard already had Edit action. ServiceSection and PendingSectionFooter now pass onEdit handlers that open EditTicketModal."
     },
     {
       "id": "US-028",
