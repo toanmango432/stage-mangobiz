@@ -48,7 +48,7 @@
         "Verify in browser: click Add Ticket on a staff card and see the create ticket flow initiated with that staff pre-selected"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Reuse existing CreateTicketButton or WalkInFlow components. Pass staffId to pre-select the staff member."
     },
     {

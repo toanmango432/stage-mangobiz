@@ -48,3 +48,19 @@ Commit: 0413b05
   - Action settings from FrontDeskSettingsData should map to DisplayConfig for consistency
   - Callbacks use staffId parameter so parent component can identify which staff triggered the action
 ---
+
+## 2026-01-13 23:45 - US-003: Implement Add Ticket action on staff cards
+Commit: 365a845
+- Added useTicketPanel hook import to StaffSidebar for ticket creation flow
+- Created handleAddTicket callback that opens ticket panel with staff pre-selected
+- Passes techId and technician name to openTicketWithData for pre-selection
+- Connected action settings (showAddTicketAction, showAddNoteAction, etc.) from FrontDeskSettings to displayConfig
+- Passed onAddTicket callback to StaffCardVertical component
+- Files changed:
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - useTicketPanel provides openTicketWithData(ticket) to open ticket panel with pre-filled data
+  - TicketData interface includes techId and technician fields for staff pre-selection
+  - Staff IDs may be strings or numbers - need to handle both when finding staff member
+  - Action settings from FrontDeskSettings are passed through displayConfig to StaffCardVertical
+---
