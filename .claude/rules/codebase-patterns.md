@@ -131,3 +131,14 @@ window.dispatchEvent(new CustomEvent('navigate-to-module', {
 - Supabase uses snake_case, app uses camelCase
 - Check `src/services/supabase/adapters/` for type converters
 - Always convert between SupabaseRow and AppType when crossing boundaries
+
+---
+
+## Documentation Standards
+
+### JSDoc for Utility Functions
+- All public utility functions should have JSDoc comments
+- Include `@param` with type and description for each parameter
+- Include `@returns` describing the output format and possible values
+- Include `@example` blocks showing typical usage patterns
+- See `urgencyUtils.ts` for reference implementation
