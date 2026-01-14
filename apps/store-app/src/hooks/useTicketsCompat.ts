@@ -1,7 +1,30 @@
 /**
  * Compatibility hook for migrating from TicketContext to Redux
  * This provides the same API as the old useTickets() hook
- * but uses Redux + IndexedDB under the hood
+ * but uses Redux + IndexedDB under the hood.
+ *
+ * ## US-016: Data Source Documentation
+ *
+ * ### Important: This hook IS Redux-backed
+ * All data returned by this hook comes from Redux selectors:
+ * - `staff`: UIStaff[] from `selectAllStaff` (uiStaffSlice)
+ * - `serviceTickets`: UITicket[] from `selectServiceTickets` (uiTicketsSlice)
+ * - `waitlist`: UITicket[] from `selectWaitlist` (uiTicketsSlice)
+ * - `completedTickets`: UITicket[] from `selectCompletedTickets` (uiTicketsSlice)
+ * - `pendingTickets`: UITicket[] from `selectPendingTickets` (uiTicketsSlice)
+ * - `allAppointments`: Appointment[] from `selectAllAppointments` (appointmentsSlice)
+ *
+ * ### Why use this hook?
+ * Components that previously used TicketContext can use this hook without
+ * code changes. It's a migration bridge that maintains API compatibility
+ * while using Redux for state management.
+ *
+ * ### Authoritative Redux Slices
+ * - Staff: uiStaffSlice (loaded from teamSlice members)
+ * - Tickets: uiTicketsSlice (in-service, waiting, completed, pending)
+ * - Appointments: appointmentsSlice (upcoming bookings)
+ *
+ * @returns Object with staff, tickets, and action methods
  */
 
 import { useEffect, useMemo, useCallback } from 'react';

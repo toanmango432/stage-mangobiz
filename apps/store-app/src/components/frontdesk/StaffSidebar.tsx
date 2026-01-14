@@ -1,3 +1,33 @@
+/**
+ * StaffSidebar - Main staff management sidebar for Front Desk module
+ *
+ * ## US-016: Data Source Documentation
+ *
+ * ### Staff Data Flow (Redux-backed)
+ * All staff data comes from Redux via the `useTicketsCompat` hook:
+ * - `staff`: UIStaff[] from `selectAllStaff` (uiStaffSlice)
+ * - `serviceTickets`: UITicket[] from `selectServiceTickets` (uiTicketsSlice)
+ *
+ * `useTicketsCompat` is a compatibility wrapper that provides the same API
+ * as the legacy TicketContext but is fully Redux-backed under the hood.
+ *
+ * ### Authoritative Selectors
+ * - Staff list: `selectAllStaff` from uiStaffSlice (via useTicketsCompat)
+ * - Service tickets: `selectServiceTickets` from uiTicketsSlice
+ * - Appointments: `selectAllAppointments` from appointmentsSlice
+ * - Completed tickets: `selectCompletedTickets` from uiTicketsSlice
+ *
+ * ### Derived Data (Module Hooks)
+ * - `useStaffTicketInfo()`: Provides activeTickets and currentTicketInfo
+ * - `useStaffNextAppointment()`: Provides next scheduled appointment time
+ * - `useStaffLastServiceTime()`: Provides last completed service time
+ *
+ * ### Settings
+ * - Display settings: `selectFrontDeskSettings` from frontDeskSettingsSlice
+ * - Staff notes: `selectAllStaffNotes` from frontDeskSettingsSlice
+ * - Team settings: Local `teamSettings` state (localStorage) - see US-017 for consolidation
+ */
+
 import { useEffect, useState, useCallback } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
