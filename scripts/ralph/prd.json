@@ -292,7 +292,7 @@
         "Verify in browser: Navigate to Pending footer, see different colors based on wait time"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "PND-P0-004. File: apps/store-app/src/components/tickets/PendingTicketCard.tsx. Depends on US-017 for correct thresholds."
     },
     {

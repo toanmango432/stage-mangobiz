@@ -398,3 +398,24 @@ Commit: 452669f
   - No need to update calling code when thresholds change - they use defaults from the utils file
   - This is a dependency for US-018 (urgency color-coding in PendingTicketCard)
 ---
+
+## 2026-01-14 - US-018: Add urgency color-coding to PendingTicketCard based on wait time
+Commit: f56a1ef
+- Imported getUrgencyLevel and UrgencyLevel type from urgencyUtils.ts
+- Created getUrgencyColors function that returns urgency-themed colors for paper design:
+  - normal (0-5 min): White/neutral with original gold accents
+  - attention (5-10 min): Yellow theme with yellow glow
+  - urgent (10-20 min): Orange theme with orange glow
+  - critical (20+ min): Red theme with red glow
+- Applied urgency colors to all 4 view modes: compact, normal, grid-compact, grid-normal
+- Urgency affects: border-left color, border color, background gradient, glow shadow, badge background, badge border
+- Colors are designed to work with the premium paper ticket aesthetic
+- Files changed:
+  - apps/store-app/src/components/tickets/PendingTicketCard.tsx
+- **Learnings for future iterations:**
+  - PendingTicket has completedAt field for calculating wait time
+  - getUrgencyLevel returns 'normal' | 'attention' | 'urgent' | 'critical'
+  - Paper design requires hex colors and gradients (not Tailwind classes) for inline styles
+  - Each view mode has its own style block that needs to be updated for consistency
+  - Pre-existing typecheck errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx) are unrelated infrastructure issues
+---
