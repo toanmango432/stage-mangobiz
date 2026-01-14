@@ -1135,3 +1135,50 @@ Searched codebase and confirmed `determineStaffStatus` was never imported/used a
 
 ---
 
+## 2026-01-14 16:30 - US-023: Split WaitListSection into module structure (Phase 1)
+Commit: 32ed1a7 (WIP)
+
+### Implementation (Phase 1 - Module Infrastructure)
+Created module directory structure for WaitListSection:
+
+**Files Created:**
+- `WaitListSection/types.ts` (63 lines) - Type definitions
+- `WaitListSection/components/SortableItems.tsx` (128 lines) - Sortable wrappers
+- `WaitListSection/components/index.ts` (6 lines) - Component barrel
+- `WaitListSection/index.ts` (28 lines) - Module barrel
+
+**Types Defined:**
+- `WaitListSectionProps`, `ListViewMode`, `GridViewMode`
+- `WaitListViewMode`, `WaitListSortBy`, `WaitListFilterTab`
+- `SortableListItemProps`, `SortableGridItemProps`
+
+**Components Extracted:**
+- `SortableListItem` - Drag-and-drop wrapper for list view
+- `SortableGridItem` - Drag-and-drop wrapper for grid view
+
+### Status: INCOMPLETE
+Main file is still 1658 lines (requirement: <300 lines).
+
+**Phase 2 Required Work:**
+1. Update main WaitListSection.tsx to import from module
+2. Extract WaitListHeader component (~200 lines)
+3. Extract WaitListGrid/WaitListList view components (~300 lines each)
+4. Extract useWaitListFiltering hook (~100 lines)
+5. Extract useWaitListDragDrop hook (~150 lines)
+6. Extract WaitListCard transformations (~100 lines)
+
+### Quality Checklist
+- [x] Create WaitListSection/ directory ✅
+- [ ] Extract WaitListCard component - Partial (SortableItems created, not integrated)
+- [ ] Extract useWaitListFiltering hook - Not started
+- [x] Extract types to types.ts ✅
+- [ ] Main file under 300 lines - Not achieved (still 1658)
+- [x] pnpm run typecheck passes ✅
+
+### Learnings
+- 1600+ line files require multiple phases to split safely
+- Module infrastructure can be created first without modifying main file
+- SortableItems extraction ready but integration would require careful refactoring
+
+---
+
