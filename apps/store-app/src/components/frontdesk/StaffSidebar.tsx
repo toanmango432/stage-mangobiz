@@ -1174,7 +1174,7 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
             ...staffMember,
             id: staffIdNumber,
             image: staffMember.name === 'Jane' ? '' : getStaffImage(staffMember), // Force empty image for Jane to test Add Photo UI
-            time: (typeof staffMember.clockInTime === 'string' ? new Date(staffMember.clockInTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '10:30a'), // Add time field for metrics display
+            time: (typeof staffMember.clockInTime === 'string' ? new Date(staffMember.clockInTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : undefined), // Clock-in time for metrics display - undefined when not clocked in
             revenue: staffMember.revenue ?? null, // Ensure revenue is explicitly set
             count: staffMember.turnCount ?? 0, // Add count property for StaffCard
           };
