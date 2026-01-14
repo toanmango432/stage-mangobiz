@@ -112,7 +112,7 @@
         "Verify on mobile viewport: toggle showTurnCount off in FrontDesk Settings and confirm it updates mobile team view"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/frontdesk/MobileTeamSection.tsx. Currently ignores FrontDeskSettings."
     },
     {

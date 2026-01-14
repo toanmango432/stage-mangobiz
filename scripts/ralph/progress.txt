@@ -119,3 +119,24 @@ Commit: 9a69a44
   - openTicketWithData() accepts TicketData and stores in localStorage for TicketPanel to load
   - Staff can be matched by techId, staffId, or assignedTo.id fields on the ticket
 ---
+
+## 2026-01-13 - US-007: Apply FrontDeskSettings to MobileTeamSection
+Commit: 4c147ad
+- Added useAppSelector import and read FrontDeskSettings from Redux
+- Implemented organizeBy setting to control grouping: busyStatus shows Ready/Busy, clockedStatus shows Clocked In/Out
+- Updated filter state type to include clockedIn/clockedOut options
+- Added clockedIn/clockedOut counts to the counts calculation
+- Updated filteredStaff logic to handle both organizeBy modes
+- Updated groupedStaff to include clockedIn/clockedOut groups
+- Updated currentCount to handle both organizeBy modes
+- Filter buttons now show different options based on organizeBy (Ready/Busy vs In/Out)
+- Added displayConfig to all StaffCardVertical components with settings:
+  - showTurnCount, showNextAppointment, showServicedAmount (showSalesAmount), showTicketCount, showLastDone
+- Files changed:
+  - apps/store-app/src/components/frontdesk/MobileTeamSection.tsx
+- **Learnings for future iterations:**
+  - MobileTeamSection uses a simpler 3-column filter layout (All + 2 status filters)
+  - Filter state should include all possible filter values across both modes
+  - useMemo should include all dependencies (organizeBy was added as dependency)
+  - The desktop StaffSidebar pattern was used as reference for settings integration
+---
