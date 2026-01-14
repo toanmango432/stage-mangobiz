@@ -15,7 +15,7 @@
         "Verify in browser: toggle showTurnCount off in FrontDesk Settings and confirm turn count disappears from staff cards"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/frontdesk/StaffSidebar.tsx"
     },
     {
@@ -32,7 +32,7 @@
         "Verify in browser: click More Options button and see dropdown menu with enabled action items"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "File: apps/store-app/src/components/StaffCard/StaffCardVertical.tsx. More button exists but has no menu. Add DropdownMenu from @radix-ui/react-dropdown-menu."
     },
     {

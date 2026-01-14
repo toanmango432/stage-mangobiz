@@ -17,3 +17,34 @@ Started: 2026-01-13
 Branch: ralph/frontdesk-update
 
 <!-- Ralph appends entries below -->
+
+## 2026-01-13 22:59 - US-001: Connect StaffCard displayConfig to FrontDeskSettings
+Commit: ae9347b
+- Added imports for useAppSelector and selectFrontDeskSettings from Redux
+- StaffSidebar now reads settings from Redux frontDeskSettingsSlice
+- Connected displayConfig to FrontDeskSettings: showTurnCount, showNextAppointment, showServicedAmount, showTicketCount, showLastDone
+- Redux settings take priority, prop settings as fallback for backwards compatibility
+- Files changed: apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - StaffSidebar has TWO settings systems: TeamSettingsPanel (localStorage) and FrontDeskSettings (Redux)
+  - FrontDeskSettings is the main settings panel accessed via More > Front Desk Layout
+  - TeamSettingsPanel is a legacy local settings (accessed via gear icon in Team section header)
+  - Redux settings should be the single source of truth for card display options
+---
+
+## 2026-01-13 23:15 - US-002: Add More Options dropdown menu to StaffCard
+Commit: 0413b05
+- Added action settings to DisplayConfig interface: showMoreOptionsButton, showAddTicketAction, showAddNoteAction, showEditTeamAction, showQuickCheckoutAction
+- Added action callbacks to StaffCardVerticalProps: onAddTicket, onAddNote, onEditTeam, onQuickCheckout
+- Implemented DropdownMenu using Radix UI components from @/components/ui/dropdown-menu
+- Menu items respect displayConfig settings (conditional rendering)
+- Quick Checkout only visible when staff is busy and has activeTicket
+- Files changed:
+  - apps/store-app/src/components/StaffCard/hooks/useStaffCardDisplay.ts
+  - apps/store-app/src/components/StaffCard/StaffCardVertical.tsx
+- **Learnings for future iterations:**
+  - Use existing DropdownMenu component from @/components/ui/dropdown-menu (shadcn/radix wrapper)
+  - DisplayConfig interface in useStaffCardDisplay.ts is the central config for StaffCard display options
+  - Action settings from FrontDeskSettingsData should map to DisplayConfig for consistency
+  - Callbacks use staffId parameter so parent component can identify which staff triggered the action
+---
