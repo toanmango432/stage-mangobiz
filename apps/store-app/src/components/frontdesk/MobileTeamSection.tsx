@@ -8,11 +8,18 @@
  * - Compact/Normal view toggle
  */
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { Users, Search, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTickets } from '../../hooks/useTicketsCompat';
 import { haptics } from '../../utils/haptics';
 import { StaffCardVertical, type StaffMember, type ViewMode } from '../StaffCard/index';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { selectFrontDeskSettings, selectAllStaffNotes, setStaffNote } from '@/store/slices/frontDeskSettingsSlice';
+import { setSelectedMember } from '@/store/slices/teamSlice';
+import { clockIn, clockOut } from '@/store/slices/timesheetSlice';
+import { useTicketPanel } from '@/contexts/TicketPanelContext';
+import { MobileStaffActionSheet } from './MobileStaffActionSheet';
+import { AddStaffNoteModal } from './AddStaffNoteModal';
 
 interface MobileTeamSectionProps {
   className?: string;
@@ -33,7 +40,8 @@ const mapSpecialty = (specialty?: string): 'neutral' | 'nails' | 'hair' | 'massa
 };
 
 // Convert UIStaff to StaffMember format for StaffCardVertical
-const convertToStaffMember = (staff: any): StaffMember => {
+// US-015: Added staffNotes param to check if staff has a note
+const convertToStaffMember = (staff: any, staffNotes: Record<string, string> = {}): StaffMember => {
   const staffId = typeof staff.id === 'string' ? parseInt(staff.id.replace(/\D/g, '')) || 1 : staff.id;
 
   // Convert activeTickets format
@@ -45,6 +53,9 @@ const convertToStaffMember = (staff: any): StaffMember => {
     status: t.status === 'in-service' ? 'in-service' : 'pending',
   })) || undefined;
 
+  // US-015: Check if staff has a note (check both string ID and original ID)
+  const hasNote = !!(staffNotes[String(staffId)] || staffNotes[String(staff.id)]);
+
   return {
     id: staffId,
     name: staff.name,
@@ -55,19 +66,45 @@ const convertToStaffMember = (staff: any): StaffMember => {
     count: staff.count || 0,
     specialty: mapSpecialty(staff.specialty),
     turnCount: staff.turnCount ?? 0,
-    // Ensure last/next times are always present (matching desktop behavior)
-    lastServiceTime: staff.lastServiceTime || '10:30 AM',
-    nextAppointmentTime: staff.nextAppointmentTime || '2:00 PM',
+    // Only show times when real data exists - no mock fallbacks
+    lastServiceTime: staff.lastServiceTime,
+    nextAppointmentTime: staff.nextAppointmentTime,
     activeTickets,
+    hasNote,
   };
 };
 
 export const MobileTeamSection = memo(function MobileTeamSection({
   className = '',
 }: MobileTeamSectionProps) {
-  const { staff = [] } = useTickets();
-  const [filter, setFilter] = useState<'all' | 'ready' | 'busy' | 'off'>('all');
+  const { staff = [], serviceTickets = [] } = useTickets();
+
+  // US-007: Read FrontDeskSettings from Redux
+  const settings = useAppSelector(selectFrontDeskSettings);
+
+  // US-015: Get staff notes from Redux for persistence
+  const staffNotes = useAppSelector(selectAllStaffNotes);
+
+  // US-011: Get dispatch for Edit Team Member action
+  const dispatch = useAppDispatch();
+
+  // US-011: Get ticket panel context for Add Ticket and Quick Checkout actions
+  const { openTicketWithData } = useTicketPanel();
+
+  // US-007: Use organizeBy setting from FrontDeskSettings
+  // 'busyStatus' shows Ready/Busy groups, 'clockedStatus' shows Clocked In/Out groups
+  const organizeBy = settings?.organizeBy || 'busyStatus';
+
+  const [filter, setFilter] = useState<'all' | 'ready' | 'busy' | 'off' | 'clockedIn' | 'clockedOut'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // US-011: State for mobile action sheet
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [selectedStaffForAction, setSelectedStaffForAction] = useState<StaffMember | null>(null);
+
+  // US-011: State for Add Staff Note modal
+  const [showStaffNoteModal, setShowStaffNoteModal] = useState(false);
+  const [selectedStaffForNote, setSelectedStaffForNote] = useState<{ id: number; name: string } | null>(null);
 
   // View mode state - persisted in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -82,31 +119,51 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     localStorage.setItem('mobileTeamViewMode', newMode);
   };
 
-  // Calculate staff counts
+  // US-007: Calculate staff counts based on organizeBy setting
   const counts = useMemo(() => {
     const all = staff.length;
     const ready = staff.filter((s: any) => s.status === 'ready').length;
     const busy = staff.filter((s: any) => s.status === 'busy').length;
     const off = staff.filter((s: any) => s.status === 'off').length;
-    return { all, ready, busy, off };
+    // For clockedStatus mode
+    const clockedIn = staff.filter((s: any) => s.status === 'ready' || s.status === 'busy').length;
+    const clockedOut = off;
+    return { all, ready, busy, off, clockedIn, clockedOut };
   }, [staff]);
 
-  // Filter staff
+  // US-007: Filter staff based on organizeBy mode
   const filteredStaff = useMemo(() => {
     return staff.filter((s: any) => {
-      const matchesFilter = filter === 'all' || s.status === filter;
       const matchesSearch = !searchQuery ||
         s.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [staff, filter, searchQuery]);
 
-  // Group by status for grid view
+      if (filter === 'all') return matchesSearch;
+
+      if (organizeBy === 'busyStatus') {
+        // Ready/Busy mode - filter by actual status
+        return matchesSearch && s.status === filter;
+      } else {
+        // Clocked In/Out mode
+        if (filter === 'clockedIn') {
+          return matchesSearch && (s.status === 'ready' || s.status === 'busy');
+        } else if (filter === 'clockedOut') {
+          return matchesSearch && s.status === 'off';
+        }
+        // Fallback for legacy filters
+        return matchesSearch && s.status === filter;
+      }
+    });
+  }, [staff, filter, searchQuery, organizeBy]);
+
+  // US-007: Group by status based on organizeBy setting
   const groupedStaff = useMemo(() => {
     const ready = filteredStaff.filter((s: any) => s.status === 'ready');
     const busy = filteredStaff.filter((s: any) => s.status === 'busy');
     const off = filteredStaff.filter((s: any) => s.status === 'off');
-    return { ready, busy, off };
+    // For clockedStatus mode
+    const clockedIn = filteredStaff.filter((s: any) => s.status === 'ready' || s.status === 'busy');
+    const clockedOut = filteredStaff.filter((s: any) => s.status === 'off');
+    return { ready, busy, off, clockedIn, clockedOut };
   }, [filteredStaff]);
 
   const handleFilterChange = (newFilter: typeof filter) => {
@@ -114,17 +171,169 @@ export const MobileTeamSection = memo(function MobileTeamSection({
     setFilter(newFilter);
   };
 
-  // Get current count based on filter
-  const currentCount = filter === 'all' ? counts.all :
-                       filter === 'ready' ? counts.ready :
-                       filter === 'busy' ? counts.busy : counts.off;
+  // US-011: Handle staff card click to open action sheet
+  const handleStaffCardClick = useCallback((staffMember: StaffMember) => {
+    haptics.selection();
+    setSelectedStaffForAction(staffMember);
+    setShowActionSheet(true);
+  }, []);
+
+  // US-011: Handle Add Ticket action from action sheet
+  const handleAddTicket = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      openTicketWithData({
+        id: '',
+        clientName: '',
+        techId: String(staffId),
+        technician: staffMember.name,
+      });
+    }
+  }, [staff, openTicketWithData]);
+
+  // US-011: Handle Add Note action from action sheet
+  const handleAddNote = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      setSelectedStaffForNote({ id: staffId, name: staffMember.name });
+      setShowStaffNoteModal(true);
+    }
+  }, [staff]);
+
+  // US-015: Handle saving staff note - dispatch Redux action for persistence
+  const handleSaveStaffNote = useCallback((staffId: number, note: string) => {
+    dispatch(setStaffNote({ staffId: String(staffId), note }));
+  }, [dispatch]);
+
+  // US-011: Handle Edit Team Member action from action sheet
+  const handleEditTeam = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      dispatch(setSelectedMember(staffMember.id));
+      window.dispatchEvent(new CustomEvent('navigate-to-module', {
+        detail: 'team-settings'
+      }));
+    }
+  }, [staff, dispatch]);
+
+  // US-011: Handle Quick Checkout action from action sheet
+  const handleQuickCheckout = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) return;
+
+    const staffInServiceTicket = serviceTickets.find((ticket: any) => {
+      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
+      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
+    });
+
+    if (!staffInServiceTicket) return;
+
+    const ticketData = {
+      id: staffInServiceTicket.id,
+      number: staffInServiceTicket.number,
+      clientId: staffInServiceTicket.clientId,
+      clientName: staffInServiceTicket.clientName,
+      clientType: staffInServiceTicket.clientType,
+      service: staffInServiceTicket.service,
+      services: staffInServiceTicket.checkoutServices || (staffInServiceTicket.service ? [{
+        serviceName: staffInServiceTicket.service,
+        name: staffInServiceTicket.service,
+        duration: parseInt(String(staffInServiceTicket.duration)) || 30,
+        status: staffInServiceTicket.serviceStatus || 'in_progress',
+        staffId: staffInServiceTicket.techId,
+        staffName: staffInServiceTicket.technician,
+      }] : []),
+      technician: staffInServiceTicket.technician,
+      techId: staffInServiceTicket.techId,
+      duration: staffInServiceTicket.duration,
+      status: staffInServiceTicket.status,
+      notes: staffInServiceTicket.notes,
+    };
+
+    openTicketWithData(ticketData);
+  }, [staff, serviceTickets, openTicketWithData]);
+
+  // US-012: Handle Clock In action from action sheet
+  const handleClockIn = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) return;
+
+    dispatch(clockIn({
+      params: {
+        staffId: staffMember.id,
+      }
+    }));
+  }, [staff, dispatch]);
+
+  // US-012: Handle Clock Out action from action sheet
+  const handleClockOut = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) return;
+
+    // Check if staff has active tickets
+    const hasActiveTickets = serviceTickets.some((ticket: any) => {
+      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
+      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
+    });
+
+    if (hasActiveTickets) {
+      const confirmed = window.confirm(
+        `${staffMember.name} has active tickets. Are you sure you want to clock them out?`
+      );
+      if (!confirmed) return;
+    }
+
+    dispatch(clockOut({
+      params: {
+        staffId: staffMember.id,
+      }
+    }));
+  }, [staff, serviceTickets, dispatch]);
+
+  // US-007: Get current count based on filter and organizeBy mode
+  const currentCount = useMemo(() => {
+    if (filter === 'all') return counts.all;
+    if (organizeBy === 'busyStatus') {
+      if (filter === 'ready') return counts.ready;
+      if (filter === 'busy') return counts.busy;
+      return counts.off;
+    } else {
+      if (filter === 'clockedIn') return counts.clockedIn;
+      if (filter === 'clockedOut') return counts.clockedOut;
+      return counts.all;
+    }
+  }, [filter, organizeBy, counts]);
 
   return (
     <div className={`flex flex-col bg-white overflow-hidden ${className}`}>
-      {/* Row 1: Filter pills as tabs */}
+      {/* Row 1: Filter pills as tabs - US-007: Show different filters based on organizeBy */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-2 py-2">
-        <div className="grid grid-cols-4 gap-1">
-          {/* All filter */}
+        <div className="grid grid-cols-3 gap-1">
+          {/* All filter - always shown */}
           <button
             onClick={() => handleFilterChange('all')}
             className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
@@ -142,56 +351,79 @@ export const MobileTeamSection = memo(function MobileTeamSection({
             </span>
           </button>
 
-          {/* Ready filter */}
-          <button
-            onClick={() => handleFilterChange('ready')}
-            className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              filter === 'ready'
-                ? 'bg-emerald-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="truncate">Ready</span>
-            <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === 'ready' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {counts.ready}
-            </span>
-          </button>
+          {organizeBy === 'busyStatus' ? (
+            <>
+              {/* Ready filter - busyStatus mode */}
+              <button
+                onClick={() => handleFilterChange('ready')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'ready'
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">Ready</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'ready' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.ready}
+                </span>
+              </button>
 
-          {/* Busy filter */}
-          <button
-            onClick={() => handleFilterChange('busy')}
-            className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              filter === 'busy'
-                ? 'bg-rose-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="truncate">Busy</span>
-            <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === 'busy' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {counts.busy}
-            </span>
-          </button>
+              {/* Busy filter - busyStatus mode */}
+              <button
+                onClick={() => handleFilterChange('busy')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'busy'
+                    ? 'bg-rose-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">Busy</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'busy' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.busy}
+                </span>
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Clocked In filter - clockedStatus mode */}
+              <button
+                onClick={() => handleFilterChange('clockedIn')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'clockedIn'
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">In</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'clockedIn' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.clockedIn}
+                </span>
+              </button>
 
-          {/* Off filter */}
-          <button
-            onClick={() => handleFilterChange('off')}
-            className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              filter === 'off'
-                ? 'bg-gray-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <span className="truncate">Off</span>
-            <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === 'off' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {counts.off}
-            </span>
-          </button>
+              {/* Clocked Out filter - clockedStatus mode */}
+              <button
+                onClick={() => handleFilterChange('clockedOut')}
+                className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  filter === 'clockedOut'
+                    ? 'bg-gray-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="truncate">Out</span>
+                <span className={`min-w-[18px] px-1 py-0.5 rounded-full text-[10px] font-bold ${
+                  filter === 'clockedOut' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {counts.clockedOut}
+                </span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -246,6 +478,7 @@ export const MobileTeamSection = memo(function MobileTeamSection({
       </div>
 
       {/* Staff content - Grid of vertical staff cards */}
+      {/* US-007: Render staff card with displayConfig from FrontDeskSettings */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-3 bg-white">
         {filteredStaff.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500">
@@ -253,88 +486,330 @@ export const MobileTeamSection = memo(function MobileTeamSection({
             <p className="text-sm">No team members found</p>
           </div>
         ) : filter === 'all' ? (
-          // Grouped view when "All" is selected
+          // Grouped view when "All" is selected - US-007: Show groups based on organizeBy
           <div className="space-y-5">
-            {/* Ready section */}
-            {groupedStaff.ready.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Ready ({groupedStaff.ready.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {groupedStaff.ready.map((s: any) => (
-                    <StaffCardVertical
-                      key={s.id}
-                      staff={convertToStaffMember(s)}
-                      viewMode={viewMode}
-                      onClick={() => haptics.selection()}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {organizeBy === 'busyStatus' ? (
+              <>
+                {/* Ready section - busyStatus mode */}
+                {groupedStaff.ready.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Ready ({groupedStaff.ready.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.ready.map((s: any) => {
+                        const staffMember = convertToStaffMember(s, staffNotes);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            {/* Busy section */}
-            {groupedStaff.busy.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Busy ({groupedStaff.busy.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {groupedStaff.busy.map((s: any) => (
-                    <StaffCardVertical
-                      key={s.id}
-                      staff={convertToStaffMember(s)}
-                      viewMode={viewMode}
-                      onClick={() => haptics.selection()}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+                {/* Busy section - busyStatus mode */}
+                {groupedStaff.busy.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-rose-500" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Busy ({groupedStaff.busy.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.busy.map((s: any) => {
+                        const staffMember = convertToStaffMember(s, staffNotes);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            {/* Off section */}
-            {groupedStaff.off.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Off ({groupedStaff.off.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {groupedStaff.off.map((s: any) => (
-                    <StaffCardVertical
-                      key={s.id}
-                      staff={convertToStaffMember(s)}
-                      viewMode={viewMode}
-                      onClick={() => haptics.selection()}
-                    />
-                  ))}
-                </div>
-              </div>
+                {/* US-012: Off section - busyStatus mode (shows staff not clocked in) */}
+                {groupedStaff.off.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Off ({groupedStaff.off.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.off.map((s: any) => {
+                        const staffMember = convertToStaffMember(s, staffNotes);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Clocked In section - clockedStatus mode */}
+                {groupedStaff.clockedIn.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Clocked In ({groupedStaff.clockedIn.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.clockedIn.map((s: any) => {
+                        const staffMember = convertToStaffMember(s, staffNotes);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Clocked Out section - clockedStatus mode */}
+                {groupedStaff.clockedOut.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Clocked Out ({groupedStaff.clockedOut.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.clockedOut.map((s: any) => {
+                        const staffMember = convertToStaffMember(s, staffNotes);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
-          // Grid view for filtered results
+          // Grid view for filtered results - US-007: Apply displayConfig from settings
           <div className="grid grid-cols-2 gap-3">
-            {filteredStaff.map((s: any) => (
-              <StaffCardVertical
-                key={s.id}
-                staff={convertToStaffMember(s)}
-                viewMode={viewMode}
-                onClick={() => haptics.selection()}
-              />
-            ))}
+            {filteredStaff.map((s: any) => {
+              const staffMember = convertToStaffMember(s, staffNotes);
+              return (
+                <StaffCardVertical
+                  key={s.id}
+                  staff={staffMember}
+                  viewMode={viewMode}
+                  onClick={() => handleStaffCardClick(staffMember)}
+                  displayConfig={{
+                    showName: true,
+                    showQueueNumber: true,
+                    showAvatar: true,
+                    showTurnCount: settings?.showTurnCount ?? true,
+                    showStatus: true,
+                    showClockedInTime: true,
+                    showNextAppointment: settings?.showNextAppointment ?? true,
+                    showSalesAmount: settings?.showServicedAmount ?? true,
+                    showTickets: settings?.showTicketCount ?? true,
+                    showLastService: settings?.showLastDone ?? true,
+                    // US-011: Action settings from FrontDeskSettings
+                    showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                    showAddTicketAction: settings?.showAddTicketAction ?? true,
+                    showAddNoteAction: settings?.showAddNoteAction ?? true,
+                    showEditTeamAction: settings?.showEditTeamAction ?? true,
+                    showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                  }}
+                  onAddTicket={handleAddTicket}
+                  onAddNote={handleAddNote}
+                  onEditTeam={handleEditTeam}
+                  onQuickCheckout={handleQuickCheckout}
+                />
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* US-011: Mobile Action Sheet */}
+      {selectedStaffForAction && (
+        <MobileStaffActionSheet
+          isOpen={showActionSheet}
+          onClose={() => {
+            setShowActionSheet(false);
+            setSelectedStaffForAction(null);
+          }}
+          staffName={selectedStaffForAction.name}
+          staffId={selectedStaffForAction.id}
+          isBusy={selectedStaffForAction.status === 'busy'}
+          hasActiveTicket={!!selectedStaffForAction.activeTickets?.length}
+          isClockedIn={selectedStaffForAction.status !== 'off'}
+          showAddTicketAction={settings?.showAddTicketAction ?? true}
+          showAddNoteAction={settings?.showAddNoteAction ?? true}
+          showEditTeamAction={settings?.showEditTeamAction ?? true}
+          showQuickCheckoutAction={settings?.showQuickCheckoutAction ?? true}
+          showClockInOutAction={settings?.showClockInOutAction ?? true}
+          onAddTicket={handleAddTicket}
+          onAddNote={handleAddNote}
+          onEditTeam={handleEditTeam}
+          onQuickCheckout={handleQuickCheckout}
+          onClockIn={handleClockIn}
+          onClockOut={handleClockOut}
+        />
+      )}
+
+      {/* US-015: Add Staff Note Modal with Redux persistence */}
+      {selectedStaffForNote && (
+        <AddStaffNoteModal
+          isOpen={showStaffNoteModal}
+          onClose={() => {
+            setShowStaffNoteModal(false);
+            setSelectedStaffForNote(null);
+          }}
+          staffName={selectedStaffForNote.name}
+          staffId={selectedStaffForNote.id}
+          currentNote={staffNotes[String(selectedStaffForNote.id)] || ''}
+          onSave={handleSaveStaffNote}
+        />
+      )}
     </div>
   );
 });

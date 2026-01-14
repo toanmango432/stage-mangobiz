@@ -31,6 +31,8 @@ interface WaitListTicketCardProps {
     lastVisitDate?: Date;
     // Actual services from checkout panel (auto-saved)
     checkoutServices?: CheckoutService[];
+    // Client visit data for first visit detection
+    isFirstVisit?: boolean;
   };
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onAssign?: (ticketId: string) => void;
@@ -114,7 +116,8 @@ function WaitListTicketCardComponent({
 
   // Get last visit text similar to service tickets
   const getLastVisitText = () => {
-    if (ticket.clientType === 'New') return 'First visit';
+    // Use isFirstVisit prop if provided (from client lookup), fallback to clientType check
+    if (ticket.isFirstVisit || ticket.clientType === 'New') return 'First visit';
     if (!ticket.lastVisitDate) return 'Returning client';
 
     const now = new Date();
@@ -136,7 +139,7 @@ function WaitListTicketCardComponent({
   const hasNote = ticket.notes && ticket.notes.length > 0;
 
   // Check if this is a first visit (star indicator)
-  const isFirstVisit = ticket.clientType === 'New';
+  const isFirstVisit = ticket.isFirstVisit || ticket.clientType === 'New';
 
   // Compute actual service display from checkoutServices if available
   const hasCheckoutServices = ticket.checkoutServices && ticket.checkoutServices.length > 0;

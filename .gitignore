@@ -29,6 +29,14 @@ dist-ssr
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+.playwright-mcp/
+
+# Claude Code (local settings, keep rules tracked)
+.claude/commands/
+.claude/settings.local.json
+
+# Ralph local config (use config.example as template)
+scripts/ralph/config
 
 # E2E test artifacts (tests themselves are tracked)
 # e2e/

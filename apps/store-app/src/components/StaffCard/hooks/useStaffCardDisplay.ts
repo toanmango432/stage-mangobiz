@@ -18,6 +18,13 @@ export interface DisplayConfig {
   showLastService?: boolean;
   enhancedSeparator?: boolean;
   notchOverlapsAvatar?: boolean;
+  // More Options menu action settings
+  showMoreOptionsButton?: boolean;
+  showAddTicketAction?: boolean;
+  showAddNoteAction?: boolean;
+  showEditTeamAction?: boolean;
+  showQuickCheckoutAction?: boolean;
+  showClockInOutAction?: boolean;
 }
 
 const DEFAULT_DISPLAY_CONFIG: Required<DisplayConfig> = {
@@ -33,6 +40,13 @@ const DEFAULT_DISPLAY_CONFIG: Required<DisplayConfig> = {
   showLastService: true,
   enhancedSeparator: true,
   notchOverlapsAvatar: false,
+  // More Options menu action settings (default to true)
+  showMoreOptionsButton: true,
+  showAddTicketAction: true,
+  showAddNoteAction: true,
+  showEditTeamAction: true,
+  showQuickCheckoutAction: true,
+  showClockInOutAction: true,
 };
 
 interface UseStaffCardDisplayProps {

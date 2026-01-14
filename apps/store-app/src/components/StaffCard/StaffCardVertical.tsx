@@ -4,7 +4,14 @@
  */
 
 import React, { useMemo } from 'react';
-import { MoreVertical, Camera } from 'lucide-react';
+import { MoreVertical, Camera, Plus, StickyNote, UserCog, CreditCard, Clock, LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   SPECIALTY_COLORS,
   STATUS_COLORS,
@@ -63,6 +70,8 @@ export interface StaffMember {
   nextAppointmentTime?: string;
   activeTickets?: ActiveTicket[];
   currentTicketInfo?: CurrentTicketInfo;
+  /** US-015: Indicates if staff member has a note attached */
+  hasNote?: boolean;
 }
 
 export interface StaffCardVerticalProps {
@@ -73,6 +82,13 @@ export interface StaffCardVerticalProps {
   displayConfig?: DisplayConfig;
   onClick?: () => void;
   onTicketClick?: (ticketId: number) => void;
+  // More Options menu action callbacks
+  onAddTicket?: (staffId: number) => void;
+  onAddNote?: (staffId: number) => void;
+  onEditTeam?: (staffId: number) => void;
+  onQuickCheckout?: (staffId: number, ticketId?: number) => void;
+  onClockIn?: (staffId: number) => void;
+  onClockOut?: (staffId: number) => void;
 }
 
 // ============================================================================
@@ -88,6 +104,12 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
     displayConfig,
     onClick,
     onTicketClick,
+    onAddTicket,
+    onAddNote,
+    onEditTeam,
+    onQuickCheckout,
+    onClockIn,
+    onClockOut,
   }) => {
     // ========================================
     // Hooks & Memoized Values
@@ -95,6 +117,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
     const status = STATUS_COLORS[staff.status] || STATUS_COLORS.ready;
     const isBusy = status.isBusy;
+    const isClockedIn = staff.status !== 'off'; // Staff is clocked in if status is 'ready' or 'busy'
 
     const layout = useStaffCardLayout({ viewMode, isBusy });
     const config = useStaffCardDisplay({ displayConfig });
@@ -220,19 +243,122 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
               </div>
             )}
 
-            {/* More Options Button - Relocated to Top Right */}
-            {!layout.isUltra && (
-              <div className="absolute top-2 right-2 z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                  className="p-1.5 rounded-full hover:bg-black/5 text-gray-400 hover:text-gray-600 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle menu click
+            {/* US-015: Note Indicator Badge - shows when staff has a note attached */}
+            {staff.hasNote && !layout.isUltra && (
+              <div className={`absolute ${layout.isCompact ? 'top-5 right-10' : 'top-5 right-10'} z-30`}>
+                <div
+                  className="flex items-center justify-center backdrop-blur-md transition-all duration-300"
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(251, 191, 36, 0.9)', // amber-400
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
                   }}
+                  title="Has note"
                 >
-                  <MoreVertical size={16} />
-                </button>
-              </div>)}
+                  <StickyNote size={12} className="text-amber-900" />
+                </div>
+              </div>
+            )}
+
+            {/* More Options Button - Relocated to Top Right */}
+            {!layout.isUltra && config.showMoreOptionsButton && (
+              <div className="absolute top-2 right-2 z-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-1.5 rounded-full hover:bg-black/5 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="More options"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={5}>
+                    {config.showAddTicketAction && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddTicket?.(staff.id);
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Ticket
+                      </DropdownMenuItem>
+                    )}
+                    {config.showAddNoteAction && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddNote?.(staff.id);
+                        }}
+                      >
+                        <StickyNote className="mr-2 h-4 w-4" />
+                        Add Note
+                      </DropdownMenuItem>
+                    )}
+                    {(config.showAddTicketAction || config.showAddNoteAction) &&
+                      (config.showEditTeamAction || config.showQuickCheckoutAction) && (
+                        <DropdownMenuSeparator />
+                      )}
+                    {config.showEditTeamAction && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditTeam?.(staff.id);
+                        }}
+                      >
+                        <UserCog className="mr-2 h-4 w-4" />
+                        Edit Team Member
+                      </DropdownMenuItem>
+                    )}
+                    {config.showQuickCheckoutAction && isBusy && activeTicket && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onQuickCheckout?.(staff.id, activeTicket.id);
+                        }}
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Quick Checkout
+                      </DropdownMenuItem>
+                    )}
+                    {config.showClockInOutAction && (
+                      <>
+                        {(config.showEditTeamAction || config.showQuickCheckoutAction) && (
+                          <DropdownMenuSeparator />
+                        )}
+                        {isClockedIn ? (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClockOut?.(staff.id);
+                            }}
+                            className="text-rose-600"
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Clock Out
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClockIn?.(staff.id);
+                            }}
+                            className="text-emerald-600"
+                          >
+                            <Clock className="mr-2 h-4 w-4" />
+                            Clock In
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
 
             {/* Avatar or Add Photo */}
             {config.showAvatar && (
@@ -357,15 +483,21 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                   )}
               </div>
             ) : layout.isCompact ? (
-              // Compact Mode: Single Row "Next"
-              <div className="flex items-center justify-center gap-2 w-full">
-                <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
-                  Next
-                </span>
-                <span className="text-xs font-bold text-gray-700 font-mono">
-                  {staff.nextAppointmentTime || '2:00p'}
-                </span>
-              </div>
+              // Compact Mode: Single Row "Next" - US-012: Only show if real data exists
+              staff.nextAppointmentTime ? (
+                <div className="flex items-center justify-center gap-2 w-full">
+                  <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
+                    Next
+                  </span>
+                  <span className="text-xs font-bold text-gray-700 font-mono">
+                    {staff.nextAppointmentTime}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-full">
+                  <span className="text-[10px] text-gray-400">No upcoming</span>
+                </div>
+              )
             ) : (
               // Normal Mode: Full Timeline
               <StaffCardTimeline

@@ -12,7 +12,7 @@
  * - payment_result: Send payment success/failure to Pad
  * - cancel: Cancel current transaction on Pad
  *
- * Connection: Uses direct MQTT connection to cloud broker (same as heartbeat hooks)
+ * Connection: Uses direct MQTT connection to cloud broker (same as usePadHeartbeat hook)
  */
 
 import mqtt, { type MqttClient } from 'mqtt';
@@ -125,7 +125,7 @@ export class MangoPadService {
 
   /**
    * Connect to the cloud MQTT broker
-   * Uses the same approach as heartbeat hooks for consistency
+   * Uses the same approach as usePadHeartbeat hook for consistency
    */
   async connect(): Promise<void> {
     // Return existing connection promise if already connecting

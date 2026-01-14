@@ -271,10 +271,12 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   showLabel = false,
   position = 'bottom',
 }) => {
+  // PROGRESS COLOR SYSTEM (Light Blue/Green/Red)
+  // 0-79%: Light Blue, 80-100%: Green, >100%: Red (overdue)
   const getProgressColor = () => {
     if (percentage > 100) return 'bg-gradient-to-r from-red-500 to-red-600';
     if (percentage >= 80) return 'bg-gradient-to-r from-green-500 to-green-600';
-    return 'bg-gradient-to-r from-purple-500 to-purple-600';
+    return 'bg-gradient-to-r from-blue-400 to-blue-500';
   };
 
   const positionClasses = position === 'bottom'

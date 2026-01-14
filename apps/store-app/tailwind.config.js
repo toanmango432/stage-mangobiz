@@ -171,6 +171,9 @@ export default {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'pulse-subtle': 'pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
 
+        // Status change highlight animation
+        'status-flash': 'statusFlash 500ms ease-out',
+
         // Loading skeletons
         'shimmer': 'shimmer 2s infinite',
       },
@@ -215,6 +218,11 @@ export default {
         pulseSubtle: {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
           '50%': { opacity: '0.92', transform: 'scale(1.005)' },
+        },
+        // Status change flash animation - subtle ring highlight that fades
+        statusFlash: {
+          '0%': { boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.6), 0 0 8px rgba(34, 197, 94, 0.4)' },
+          '100%': { boxShadow: '0 0 0 0px rgba(34, 197, 94, 0), 0 0 0px rgba(34, 197, 94, 0)' },
         },
       },
 

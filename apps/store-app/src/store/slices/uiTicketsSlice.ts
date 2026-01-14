@@ -46,11 +46,13 @@ interface DBTicket {
     id: string;
     name: string;
     color: string;
+    photo?: string;
   };
   assignedStaff?: Array<{
     id: string;
     name: string;
     color: string;
+    photo?: string;
   }>;
   createdAt: Date | string;
   updatedAt?: Date | string;
@@ -81,12 +83,14 @@ export interface UITicket {
     id: string;
     name: string;
     color: string;
+    photo?: string;
   };
   // Multi-staff support
   assignedStaff?: Array<{
     id: string;
     name: string;
     color: string;
+    photo?: string;
   }>;
   notes?: string;
   priority?: 'normal' | 'high';
@@ -126,6 +130,7 @@ export interface PendingTicket {
     id: string;
     name: string;
     color: string;
+    photo?: string;
   }>;
   lastVisitDate?: Date | null;
   // When service was marked done (for urgency calculation)
@@ -159,6 +164,7 @@ export interface CheckoutTicketService {
   staffId?: string;
   staffName?: string;
   staffColor?: string;
+  staffPhoto?: string;
   startTime?: Date;
   endTime?: Date;
 }
@@ -942,10 +948,11 @@ export const createCheckoutTicket = createAsyncThunk(
             id: s.staffId!,
             name: s.staffName || 'Staff',
             color: s.staffColor || '#6B7280',
+            photo: s.staffPhoto,
           });
         }
         return acc;
-      }, [] as Array<{ id: string; name: string; color: string }>);
+      }, [] as Array<{ id: string; name: string; color: string; photo?: string }>);
 
     const newTicket: UITicketWithServices = {
       id: uuidv4(),
@@ -961,6 +968,7 @@ export const createCheckoutTicket = createAsyncThunk(
         id: primaryStaff.staffId!,
         name: primaryStaff.staffName || 'Staff',
         color: primaryStaff.staffColor || '#6B7280',
+        photo: primaryStaff.staffPhoto,
       } : undefined,
       assignedStaff,
       technician: primaryStaff?.staffName,
@@ -1089,10 +1097,11 @@ export const updateCheckoutTicket = createAsyncThunk(
               id: s.staffId!,
               name: s.staffName || 'Staff',
               color: s.staffColor || '#6B7280',
+              photo: s.staffPhoto,
             });
           }
           return acc;
-        }, [] as Array<{ id: string; name: string; color: string }>);
+        }, [] as Array<{ id: string; name: string; color: string; photo?: string }>);
 
       ticketUpdates.assignedStaff = assignedStaff;
       if (primaryStaff) {
@@ -1100,6 +1109,7 @@ export const updateCheckoutTicket = createAsyncThunk(
           id: primaryStaff.staffId!,
           name: primaryStaff.staffName || 'Staff',
           color: primaryStaff.staffColor || '#6B7280',
+          photo: primaryStaff.staffPhoto,
         };
         ticketUpdates.technician = primaryStaff.staffName;
         ticketUpdates.techId = primaryStaff.staffId;
@@ -1252,6 +1262,30 @@ const uiTicketsSlice = createSlice({
     // Dev/testing: Set pending tickets directly
     setPendingTickets: (state, action: PayloadAction<PendingTicket[]>) => {
       state.pendingTickets = action.payload;
+    },
+    // Reorder waitlist via drag and drop
+    reorderWaitlist: (state, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
+      const { oldIndex, newIndex } = action.payload;
+      if (oldIndex < 0 || newIndex < 0 || oldIndex >= state.waitlist.length || newIndex >= state.waitlist.length) {
+        return;
+      }
+      const [movedTicket] = state.waitlist.splice(oldIndex, 1);
+      state.waitlist.splice(newIndex, 0, movedTicket);
+    },
+    // Direct set of waitlist order (for @dnd-kit arrayMove result)
+    setWaitlistOrder: (state, action: PayloadAction<UITicket[]>) => {
+      state.waitlist = action.payload;
+    },
+    // Remove a pending ticket (e.g., client left, cancelled)
+    removePendingTicket: (state, action: PayloadAction<{ ticketId: string; reason: string; notes?: string }>) => {
+      const { ticketId } = action.payload;
+      const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+      if (ticketIndex !== -1) {
+        state.pendingTickets.splice(ticketIndex, 1);
+        // Note: In a production implementation, we would also log this removal
+        // to an audit trail via a thunk that persists to the database
+        console.log(`Pending ticket ${ticketId} removed. Reason: ${action.payload.reason}${action.payload.notes ? `, Notes: ${action.payload.notes}` : ''}`);
+      }
     },
     // Real-time update from Socket.io
     ticketUpdated: (state, action: PayloadAction<UITicket>) => {
@@ -1493,7 +1527,7 @@ const uiTicketsSlice = createSlice({
   },
 });
 
-export const { clearError, ticketUpdated, setPendingTickets } = uiTicketsSlice.actions;
+export const { clearError, ticketUpdated, setPendingTickets, reorderWaitlist, setWaitlistOrder, removePendingTicket } = uiTicketsSlice.actions;
 
 // Selectors
 export const selectWaitlist = (state: RootState) => state.uiTickets.waitlist;
