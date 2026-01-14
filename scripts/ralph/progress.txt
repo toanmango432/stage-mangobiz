@@ -100,3 +100,22 @@ Commit: 96528c3
   - teamSlice's setSelectedMember expects a string ID matching TeamMemberSettings.id
   - Navigation pattern: dispatch Redux action first, then trigger module navigation event
 ---
+
+## 2026-01-13 - US-006: Implement Quick Checkout action on staff cards
+Commit: 9a69a44
+- Added serviceTickets to useTickets() destructuring to get in-service tickets
+- Created handleQuickCheckout callback that:
+  1. Finds staff member by numeric ID (handles string/number conversion)
+  2. Finds the staff's in-service ticket by matching techId/staffId/assignedTo.id
+  3. Converts UITicket to TicketData format for the checkout panel
+  4. Opens the ticket panel with openTicketWithData()
+- Passed onQuickCheckout callback to StaffCardVertical component
+- Quick Checkout only visible when staff is busy AND has activeTicket (existing StaffCardVertical logic)
+- Files changed:
+  - apps/store-app/src/components/frontdesk/StaffSidebar.tsx
+- **Learnings for future iterations:**
+  - UITicket uses `number` (not ticketNumber), `service` (singular string), `checkoutServices` (detailed array)
+  - useTickets() returns `serviceTickets` for in-service tickets
+  - openTicketWithData() accepts TicketData and stores in localStorage for TicketPanel to load
+  - Staff can be matched by techId, staffId, or assignedTo.id fields on the ticket
+---

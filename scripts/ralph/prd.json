@@ -97,7 +97,7 @@
         "Verify in browser: click Quick Checkout on a busy staff member's card and see checkout open"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Link to existing checkout flow. Only show for busy staff with activeTickets. Use the first in-service ticket."
     },
     {
