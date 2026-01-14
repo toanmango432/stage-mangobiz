@@ -5,11 +5,17 @@
  * Split into smaller files for maintainability (target: <300 lines per file).
  *
  * Module Structure:
- * - StaffSidebar.tsx: Main component
+ * - StaffSidebar.tsx: Main component (~300 lines after split)
  * - types.ts: TypeScript interfaces
+ * - constants.ts: Configuration values and status definitions
  * - hooks/: Custom React hooks
  *   - useStaffTicketInfo: Get ticket info for staff cards
  *   - useStaffAppointments: Get appointment & last service times
+ *   - useSidebarWidth: Width management with localStorage persistence
+ *   - useViewMode: View mode (normal/compact) management
+ * - components/: Sub-components
+ *   - StatusPills: Filter pills for staff status
+ *   - StaffSidebarHeader: Header with controls and search
  * - utils/: Pure utility functions
  *   - staffHelpers: ID matching, image generation, status determination
  */
@@ -35,9 +41,18 @@ export type {
   FrontDeskSettingsData,
 } from './types';
 
+// Constants
+export { STAFF_STATUS_OPTIONS, DEFAULT_SIDEBAR_WIDTH, WIDTH_PRESETS, STORAGE_KEYS } from './constants';
+
 // Hooks
 export { useStaffTicketInfo } from './hooks/useStaffTicketInfo';
 export { useStaffNextAppointment, useStaffLastServiceTime } from './hooks/useStaffAppointments';
+export { useSidebarWidth } from './hooks/useSidebarWidth';
+export { useViewMode } from './hooks/useViewMode';
+
+// Components
+export { StatusPills } from './components/StatusPills';
+export { StaffSidebarHeader } from './components/StaffSidebarHeader';
 
 // Utils
 export {
