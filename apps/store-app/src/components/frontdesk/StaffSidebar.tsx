@@ -5,6 +5,7 @@ import { Search, Filter, Users, ChevronUp, ChevronDown, Settings } from 'lucide-
 import { StaffCardVertical } from '@/components/StaffCard';
 import { TeamSettingsPanel, TeamSettings, defaultTeamSettings } from '@/components/TeamSettingsPanel';
 import { TurnTracker } from '@/components/TurnTracker/TurnTracker';
+import { AddStaffNoteModal } from '@/components/frontdesk/AddStaffNoteModal';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
@@ -97,6 +98,10 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
   }, [settings?.viewWidth, settings?.customWidthPercentage]);
   // New state for Turn Tracker modal
   const [showTurnTracker, setShowTurnTracker] = useState(false);
+
+  // US-004: State for Add Staff Note modal
+  const [showStaffNoteModal, setShowStaffNoteModal] = useState(false);
+  const [selectedStaffForNote, setSelectedStaffForNote] = useState<{ id: number; name: string } | null>(null);
   // Listen for global FAB event to open Turn Tracker
   useEffect(() => {
     const onOpen = () => setShowTurnTracker(true);
@@ -341,6 +346,29 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
       });
     }
   }, [staff, openTicketWithData]);
+
+  // US-004: Handle Add Note action from staff card
+  // Opens the staff note modal for the selected staff member
+  const handleAddNote = useCallback((staffId: number) => {
+    // Find the staff member by ID
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (staffMember) {
+      setSelectedStaffForNote({ id: staffId, name: staffMember.name });
+      setShowStaffNoteModal(true);
+    }
+  }, [staff]);
+
+  // US-004: Handle saving staff note
+  const handleSaveStaffNote = useCallback((staffId: number, note: string) => {
+    // TODO: Integrate with staff notes storage/API
+    // For now, log to console as placeholder
+    console.log(`Staff note saved for ${staffId}:`, note);
+    // In production, this would dispatch to Redux or call an API
+  }, []);
 
   // Determine responsive grid class based on sidebar width and view mode
   const getGridColumns = () => {
@@ -903,6 +931,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                     }}
                     // US-003: Handle Add Ticket action
                     onAddTicket={handleAddTicket}
+                    // US-004: Handle Add Note action
+                    onAddNote={handleAddNote}
                   />
                 </div>
               </Tippy>
@@ -938,6 +968,19 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     {/* Turn Tracker Modal - Only show if feature is enabled for license tier */}
     {isTurnTrackerEnabled && (
       <TurnTracker isOpen={showTurnTracker} onClose={() => setShowTurnTracker(false)} />
+    )}
+    {/* US-004: Add Staff Note Modal */}
+    {selectedStaffForNote && (
+      <AddStaffNoteModal
+        isOpen={showStaffNoteModal}
+        onClose={() => {
+          setShowStaffNoteModal(false);
+          setSelectedStaffForNote(null);
+        }}
+        staffId={selectedStaffForNote.id}
+        staffName={selectedStaffForNote.name}
+        onSave={handleSaveStaffNote}
+      />
     )}
   </div>;
 }
