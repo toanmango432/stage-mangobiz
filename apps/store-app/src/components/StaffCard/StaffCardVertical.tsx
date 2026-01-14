@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { MoreVertical, Camera, Plus, StickyNote, UserCog, CreditCard } from 'lucide-react';
+import { MoreVertical, Camera, Plus, StickyNote, UserCog, CreditCard, Clock, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +85,8 @@ export interface StaffCardVerticalProps {
   onAddNote?: (staffId: number) => void;
   onEditTeam?: (staffId: number) => void;
   onQuickCheckout?: (staffId: number, ticketId?: number) => void;
+  onClockIn?: (staffId: number) => void;
+  onClockOut?: (staffId: number) => void;
 }
 
 // ============================================================================
@@ -104,6 +106,8 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
     onAddNote,
     onEditTeam,
     onQuickCheckout,
+    onClockIn,
+    onClockOut,
   }) => {
     // ========================================
     // Hooks & Memoized Values
@@ -111,6 +115,7 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
 
     const status = STATUS_COLORS[staff.status] || STATUS_COLORS.ready;
     const isBusy = status.isBusy;
+    const isClockedIn = staff.status !== 'off'; // Staff is clocked in if status is 'ready' or 'busy'
 
     const layout = useStaffCardLayout({ viewMode, isBusy });
     const config = useStaffCardDisplay({ displayConfig });
@@ -297,6 +302,36 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                         <CreditCard className="mr-2 h-4 w-4" />
                         Quick Checkout
                       </DropdownMenuItem>
+                    )}
+                    {config.showClockInOutAction && (
+                      <>
+                        {(config.showEditTeamAction || config.showQuickCheckoutAction) && (
+                          <DropdownMenuSeparator />
+                        )}
+                        {isClockedIn ? (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClockOut?.(staff.id);
+                            }}
+                            className="text-rose-600"
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Clock Out
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClockIn?.(staff.id);
+                            }}
+                            className="text-emerald-600"
+                          >
+                            <Clock className="mr-2 h-4 w-4" />
+                            Clock In
+                          </DropdownMenuItem>
+                        )}
+                      </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

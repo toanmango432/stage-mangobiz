@@ -24,6 +24,7 @@ export interface DisplayConfig {
   showAddNoteAction?: boolean;
   showEditTeamAction?: boolean;
   showQuickCheckoutAction?: boolean;
+  showClockInOutAction?: boolean;
 }
 
 const DEFAULT_DISPLAY_CONFIG: Required<DisplayConfig> = {
@@ -45,6 +46,7 @@ const DEFAULT_DISPLAY_CONFIG: Required<DisplayConfig> = {
   showAddNoteAction: true,
   showEditTeamAction: true,
   showQuickCheckoutAction: true,
+  showClockInOutAction: true,
 };
 
 interface UseStaffCardDisplayProps {

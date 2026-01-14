@@ -16,6 +16,7 @@ import { StaffCardVertical, type StaffMember, type ViewMode } from '../StaffCard
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
 import { setSelectedMember } from '@/store/slices/teamSlice';
+import { clockIn, clockOut } from '@/store/slices/timesheetSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
 import { MobileStaffActionSheet } from './MobileStaffActionSheet';
 import { AddStaffNoteModal } from './AddStaffNoteModal';
@@ -260,6 +261,51 @@ export const MobileTeamSection = memo(function MobileTeamSection({
 
     openTicketWithData(ticketData);
   }, [staff, serviceTickets, openTicketWithData]);
+
+  // US-012: Handle Clock In action from action sheet
+  const handleClockIn = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) return;
+
+    dispatch(clockIn({
+      params: {
+        staffId: staffMember.id,
+      }
+    }));
+  }, [staff, dispatch]);
+
+  // US-012: Handle Clock Out action from action sheet
+  const handleClockOut = useCallback((staffId: number) => {
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) return;
+
+    // Check if staff has active tickets
+    const hasActiveTickets = serviceTickets.some((ticket: any) => {
+      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
+      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
+    });
+
+    if (hasActiveTickets) {
+      const confirmed = window.confirm(
+        `${staffMember.name} has active tickets. Are you sure you want to clock them out?`
+      );
+      if (!confirmed) return;
+    }
+
+    dispatch(clockOut({
+      params: {
+        staffId: staffMember.id,
+      }
+    }));
+  }, [staff, serviceTickets, dispatch]);
 
   // US-007: Get current count based on filter and organizeBy mode
   const currentCount = useMemo(() => {
@@ -681,14 +727,18 @@ export const MobileTeamSection = memo(function MobileTeamSection({
           staffId={selectedStaffForAction.id}
           isBusy={selectedStaffForAction.status === 'busy'}
           hasActiveTicket={!!selectedStaffForAction.activeTickets?.length}
+          isClockedIn={selectedStaffForAction.status !== 'off'}
           showAddTicketAction={settings?.showAddTicketAction ?? true}
           showAddNoteAction={settings?.showAddNoteAction ?? true}
           showEditTeamAction={settings?.showEditTeamAction ?? true}
           showQuickCheckoutAction={settings?.showQuickCheckoutAction ?? true}
+          showClockInOutAction={settings?.showClockInOutAction ?? true}
           onAddTicket={handleAddTicket}
           onAddNote={handleAddNote}
           onEditTeam={handleEditTeam}
           onQuickCheckout={handleQuickCheckout}
+          onClockIn={handleClockIn}
+          onClockOut={handleClockOut}
         />
       )}
 

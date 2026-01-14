@@ -46,6 +46,7 @@ export interface FrontDeskSettingsData {
   showAddNoteAction: boolean;
   showEditTeamAction: boolean;
   showQuickCheckoutAction: boolean;
+  showClockInOutAction: boolean;
 
   // UI Controls - Ticket
   showApplyDiscountAction: boolean;

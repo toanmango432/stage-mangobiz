@@ -8,7 +8,7 @@
  * - Actions respect FrontDeskSettings
  */
 
-import { Plus, StickyNote, UserCog, CreditCard, X } from 'lucide-react';
+import { Plus, StickyNote, UserCog, CreditCard, X, Clock, LogOut } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -24,16 +24,20 @@ interface MobileStaffActionSheetProps {
   staffId: number;
   isBusy: boolean;
   hasActiveTicket: boolean;
+  isClockedIn: boolean;
   // Action visibility settings
   showAddTicketAction?: boolean;
   showAddNoteAction?: boolean;
   showEditTeamAction?: boolean;
   showQuickCheckoutAction?: boolean;
+  showClockInOutAction?: boolean;
   // Action callbacks
   onAddTicket?: (staffId: number) => void;
   onAddNote?: (staffId: number) => void;
   onEditTeam?: (staffId: number) => void;
   onQuickCheckout?: (staffId: number) => void;
+  onClockIn?: (staffId: number) => void;
+  onClockOut?: (staffId: number) => void;
 }
 
 export function MobileStaffActionSheet({
@@ -43,14 +47,18 @@ export function MobileStaffActionSheet({
   staffId,
   isBusy,
   hasActiveTicket,
+  isClockedIn,
   showAddTicketAction = true,
   showAddNoteAction = true,
   showEditTeamAction = true,
   showQuickCheckoutAction = true,
+  showClockInOutAction = true,
   onAddTicket,
   onAddNote,
   onEditTeam,
   onQuickCheckout,
+  onClockIn,
+  onClockOut,
 }: MobileStaffActionSheetProps) {
   const handleAction = (action: () => void) => {
     haptics.selection();
@@ -137,6 +145,37 @@ export function MobileStaffActionSheet({
                 <p className="text-sm text-emerald-600">Process payment for current ticket</p>
               </div>
             </button>
+          )}
+
+          {/* Clock In/Out Action */}
+          {showClockInOutAction && (
+            isClockedIn ? (
+              <button
+                onClick={() => handleAction(() => onClockOut?.(staffId))}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                  <LogOut size={20} className="text-rose-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-rose-900">Clock Out</p>
+                  <p className="text-sm text-rose-600">End shift for this staff member</p>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleAction(() => onClockIn?.(staffId))}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <Clock size={20} className="text-emerald-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-emerald-900">Clock In</p>
+                  <p className="text-sm text-emerald-600">Start shift for this staff member</p>
+                </div>
+              </button>
+            )
           )}
         </div>
       </SheetContent>

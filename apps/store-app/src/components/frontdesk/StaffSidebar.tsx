@@ -16,6 +16,7 @@ import { selectServiceTickets, selectCompletedTickets, type UITicket } from '@/s
 import { selectAllAppointments } from '@/store/slices/appointmentsSlice';
 import type { LocalAppointment } from '@/types/appointment';
 import { setSelectedMember } from '@/store/slices/teamSlice';
+import { clockIn, clockOut } from '@/store/slices/timesheetSlice';
 import { useTicketPanel } from '@/contexts/TicketPanelContext';
 
 interface StaffSidebarProps {
@@ -476,6 +477,64 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
     // Open the ticket panel with the checkout data
     openTicketWithData(ticketData);
   }, [staff, serviceTickets, openTicketWithData]);
+
+  // US-012: Handle Clock In action from staff card
+  // Clocks in a staff member via timesheetSlice
+  const handleClockIn = useCallback((staffId: number) => {
+    // Find the staff member by ID to get their UUID
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) {
+      console.warn('[StaffSidebar] Staff member not found for Clock In:', staffId);
+      return;
+    }
+
+    // Dispatch clock in action with staff UUID
+    dispatch(clockIn({
+      params: {
+        staffId: staffMember.id, // UUID string
+      }
+    }));
+  }, [staff, dispatch]);
+
+  // US-012: Handle Clock Out action from staff card
+  // Shows confirmation if staff has active tickets, then clocks out
+  const handleClockOut = useCallback((staffId: number) => {
+    // Find the staff member by ID to get their UUID
+    const staffMember = staff.find((s: any) => {
+      const id = typeof s.id === 'string' ? parseInt(s.id.replace(/\D/g, '')) || 0 : s.id;
+      return id === staffId;
+    });
+
+    if (!staffMember) {
+      console.warn('[StaffSidebar] Staff member not found for Clock Out:', staffId);
+      return;
+    }
+
+    // Check if staff has active tickets
+    const hasActiveTickets = serviceTickets.some((ticket: any) => {
+      const ticketStaffId = ticket.techId || ticket.staffId || ticket.assignedTo?.id;
+      return ticketStaffId === staffMember.id || ticketStaffId === String(staffId);
+    });
+
+    if (hasActiveTickets) {
+      // Show confirmation dialog before clocking out
+      const confirmed = window.confirm(
+        `${staffMember.name} has active tickets. Are you sure you want to clock them out?`
+      );
+      if (!confirmed) return;
+    }
+
+    // Dispatch clock out action with staff UUID
+    dispatch(clockOut({
+      params: {
+        staffId: staffMember.id, // UUID string
+      }
+    }));
+  }, [staff, serviceTickets, dispatch]);
 
   // Determine responsive grid class based on sidebar width and view mode
   const getGridColumns = () => {
@@ -1207,6 +1266,8 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                       showAddNoteAction: settings?.showAddNoteAction ?? true,
                       showEditTeamAction: settings?.showEditTeamAction ?? true,
                       showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                      // US-012: Clock In/Out action
+                      showClockInOutAction: settings?.showClockInOutAction ?? true,
                     }}
                     // US-010: Handle staff card click to open details panel
                     onClick={() => handleStaffClick(modifiedStaffMember)}
@@ -1218,6 +1279,9 @@ export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { s
                     onEditTeam={handleEditTeam}
                     // US-006: Handle Quick Checkout action
                     onQuickCheckout={handleQuickCheckout}
+                    // US-012: Handle Clock In/Out actions
+                    onClockIn={handleClockIn}
+                    onClockOut={handleClockOut}
                   />
                 </div>
               </Tippy>

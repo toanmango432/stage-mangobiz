@@ -41,6 +41,7 @@ export const defaultFrontDeskSettings: FrontDeskSettingsData = {
   showAddNoteAction: true,
   showEditTeamAction: true,
   showQuickCheckoutAction: true,
+  showClockInOutAction: true,
 
   // UI Controls - Ticket
   showApplyDiscountAction: true,
