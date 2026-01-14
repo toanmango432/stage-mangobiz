@@ -304,6 +304,8 @@ export const ComingAppointments = memo(function ComingAppointments({
                     {appointmentBuckets['late'].map((appointment, index) => {
               const appointmentTime = new Date(appointment.appointmentTime);
               const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
+              const clientInitial = clientFirstName.charAt(0).toUpperCase();
               return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-red-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
                           {/* Single action button - hover only */}
                           <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
@@ -312,27 +314,45 @@ export const ComingAppointments = memo(function ComingAppointments({
                     }}>
                             <MoreVertical size={12} className="text-gray-400" />
                           </button>
-                          {/* Time - smaller, quieter */}
-                          <div className="text-xs text-gray-500 mb-0.5">
-                            {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • Late {Math.abs(appointment.minutesUntil)}m
-                          </div>
-                          {/* Name - compact */}
-                          <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                            {appointment.clientName?.split(' ')[0] || 'Guest'}
-                            {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                            {appointment.isFirstVisit && (
-                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-                                <Sparkles size={8} />
-                                NEW
-                              </span>
+                          {/* Client info row with photo */}
+                          <div className="flex items-start gap-2.5">
+                            {/* Client photo/avatar - 32px circle */}
+                            {appointment.clientPhoto ? (
+                              <img
+                                src={appointment.clientPhoto}
+                                alt={clientFirstName}
+                                className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
+                              </div>
                             )}
-                          </div>
-                          {/* Service + Staff */}
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                            {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                                {technicianFirstName}
-                              </span>}
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              {/* Time - smaller, quieter */}
+                              <div className="text-xs text-gray-500 mb-0.5">
+                                {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • Late {Math.abs(appointment.minutesUntil)}m
+                              </div>
+                              {/* Name - compact */}
+                              <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+                                {clientFirstName}
+                                {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                                {appointment.isFirstVisit && (
+                                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                    <Sparkles size={8} />
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              {/* Service + Staff */}
+                              <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
+                                {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
+                                    {technicianFirstName}
+                                  </span>}
+                              </div>
+                            </div>
                           </div>
                         </div>;
             })}
@@ -360,6 +380,8 @@ export const ComingAppointments = memo(function ComingAppointments({
                     {appointmentBuckets['within1Hour'].map((appointment, index) => {
               const appointmentTime = new Date(appointment.appointmentTime);
               const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
+              const clientInitial = clientFirstName.charAt(0).toUpperCase();
               return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-blue-50/30 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
                             {/* Single action button - hover only */}
                             <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
@@ -368,27 +390,45 @@ export const ComingAppointments = memo(function ComingAppointments({
                     }}>
                               <MoreVertical size={12} className="text-gray-400" />
                             </button>
-                            {/* Time - smaller, quieter */}
-                            <div className="text-xs text-gray-500 mb-0.5">
-                              {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • in {appointment.minutesUntil}m
-                            </div>
-                            {/* Name - compact */}
-                            <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                              {appointment.clientName?.split(' ')[0] || 'Guest'}
-                              {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                              {appointment.isFirstVisit && (
-                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-                                  <Sparkles size={8} />
-                                  NEW
-                                </span>
+                            {/* Client info row with photo */}
+                            <div className="flex items-start gap-2.5">
+                              {/* Client photo/avatar - 32px circle */}
+                              {appointment.clientPhoto ? (
+                                <img
+                                  src={appointment.clientPhoto}
+                                  alt={clientFirstName}
+                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
+                                </div>
                               )}
-                            </div>
-                            {/* Service + Staff */}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                              {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                                  {technicianFirstName}
-                                </span>}
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                {/* Time - smaller, quieter */}
+                                <div className="text-xs text-gray-500 mb-0.5">
+                                  {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • in {appointment.minutesUntil}m
+                                </div>
+                                {/* Name - compact */}
+                                <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+                                  {clientFirstName}
+                                  {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                                  {appointment.isFirstVisit && (
+                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                      <Sparkles size={8} />
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Service + Staff */}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
+                                  {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
+                                      {technicianFirstName}
+                                    </span>}
+                                </div>
+                              </div>
                             </div>
                           </div>;
             })}
@@ -416,6 +456,8 @@ export const ComingAppointments = memo(function ComingAppointments({
                     {[...appointmentBuckets['within3Hours'], ...appointmentBuckets['moreThan3Hours']].map((appointment, index) => {
               const appointmentTime = new Date(appointment.appointmentTime);
               const technicianFirstName = appointment.technician ? appointment.technician.split(' ')[0].toUpperCase() : '';
+              const clientFirstName = appointment.clientName?.split(' ')[0] || 'Guest';
+              const clientInitial = clientFirstName.charAt(0).toUpperCase();
               return <div key={appointment.id || index} className="group px-3 py-2.5 hover:bg-gray-50/80 transition-all duration-150 cursor-pointer relative" onClick={e => handleAppointmentClick(appointment, e)}>
                             {/* Single action button - hover only */}
                             <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
@@ -424,27 +466,45 @@ export const ComingAppointments = memo(function ComingAppointments({
                     }}>
                               <MoreVertical size={12} className="text-gray-400" />
                             </button>
-                            {/* Time - smaller, quieter */}
-                            <div className="text-xs text-gray-500 mb-0.5">
-                              {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {formatMinutesUntil(appointment.minutesUntil)}
-                            </div>
-                            {/* Name - compact */}
-                            <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
-                              {appointment.clientName?.split(' ')[0] || 'Guest'}
-                              {appointment.isVip && <Star size={10} className="text-yellow-500" />}
-                              {appointment.isFirstVisit && (
-                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
-                                  <Sparkles size={8} />
-                                  NEW
-                                </span>
+                            {/* Client info row with photo */}
+                            <div className="flex items-start gap-2.5">
+                              {/* Client photo/avatar - 32px circle */}
+                              {appointment.clientPhoto ? (
+                                <img
+                                  src={appointment.clientPhoto}
+                                  alt={clientFirstName}
+                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-medium text-gray-600">{clientInitial}</span>
+                                </div>
                               )}
-                            </div>
-                            {/* Service + Staff */}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
-                              {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
-                                  {technicianFirstName}
-                                </span>}
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                {/* Time - smaller, quieter */}
+                                <div className="text-xs text-gray-500 mb-0.5">
+                                  {appointmentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} • {formatMinutesUntil(appointment.minutesUntil)}
+                                </div>
+                                {/* Name - compact */}
+                                <div className="text-sm text-gray-900 mb-0.5 flex items-center gap-1">
+                                  {clientFirstName}
+                                  {appointment.isVip && <Star size={10} className="text-yellow-500" />}
+                                  {appointment.isFirstVisit && (
+                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-medium">
+                                      <Sparkles size={8} />
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Service + Staff */}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  <span className="truncate max-w-[150px]">{appointment.service} • {appointment.duration || '45m'}</span>
+                                  {appointment.technician && <span className="text-xs px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: appointment.techColor || '#9CA3AF' }}>
+                                      {technicianFirstName}
+                                    </span>}
+                                </div>
+                              </div>
                             </div>
                           </div>;
             })}
@@ -565,27 +625,46 @@ export const ComingAppointments = memo(function ComingAppointments({
           <div ref={actionMenuRef} className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all duration-300 ease-in-out animate-slide-up sm:animate-fade-in" style={{
         maxWidth: '380px'
       }} onClick={e => e.stopPropagation()}>
-            {/* Modal header with client name, service and time */}
+            {/* Modal header with client photo, name, service and time */}
             <div className="px-6 py-5 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1 flex items-center gap-1.5">
-                {activeAppointment.clientName?.split(' ')[0] || 'Guest'}
-                {activeAppointment.isVip && <Star size={14} className="text-[#FF9500]" />}
-                {activeAppointment.isFirstVisit && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-medium">
-                    <Sparkles size={10} />
-                    NEW
-                  </span>
+              <div className="flex items-start gap-3">
+                {/* Client photo/avatar - 40px circle for modal */}
+                {activeAppointment.clientPhoto ? (
+                  <img
+                    src={activeAppointment.clientPhoto}
+                    alt={activeAppointment.clientName?.split(' ')[0] || 'Guest'}
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-base font-medium text-gray-600">
+                      {(activeAppointment.clientName?.split(' ')[0] || 'G').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
                 )}
-              </h3>
-              <div className="text-[15px] text-gray-700 font-medium">
-                {/* Truncate service name if too long */}
-                {activeAppointment.service?.length > 25 ? `${activeAppointment.service.substring(0, 25)}...` : activeAppointment.service}{' '}
-                •{' '}
-                {new Date(activeAppointment.appointmentTime).toLocaleTimeString([], {
-              hour: 'numeric',
-              minute: '2-digit'
-            })}
-                {activeAppointment.duration && ` (${activeAppointment.duration})`}
+                {/* Client info */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1 flex items-center gap-1.5">
+                    {activeAppointment.clientName?.split(' ')[0] || 'Guest'}
+                    {activeAppointment.isVip && <Star size={14} className="text-[#FF9500]" />}
+                    {activeAppointment.isFirstVisit && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-medium">
+                        <Sparkles size={10} />
+                        NEW
+                      </span>
+                    )}
+                  </h3>
+                  <div className="text-[15px] text-gray-700 font-medium">
+                    {/* Truncate service name if too long */}
+                    {activeAppointment.service?.length > 25 ? `${activeAppointment.service.substring(0, 25)}...` : activeAppointment.service}{' '}
+                    •{' '}
+                    {new Date(activeAppointment.appointmentTime).toLocaleTimeString([], {
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+                    {activeAppointment.duration && ` (${activeAppointment.duration})`}
+                  </div>
+                </div>
               </div>
             </div>
             {/* Action buttons with icons */}
