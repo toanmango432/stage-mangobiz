@@ -63,9 +63,6 @@ import { StaffSidebarHeader, StaffTooltip } from './StaffSidebar/components';
 import { STORAGE_KEYS } from './StaffSidebar/constants';
 import type { StaffSidebarProps, StaffCounts } from './StaffSidebar/types';
 
-// Re-export determineStaffStatus for backwards compatibility
-export { determineStaffStatus } from './StaffSidebar/utils/staffHelpers';
-
 export function StaffSidebar({ settings: propSettings }: StaffSidebarProps = { settings: undefined }) {
   const USE_NEW_TEAM_STYLING = true;
   const { isEnabled: isTurnTrackerEnabled } = useFeatureFlag('turn-tracker');

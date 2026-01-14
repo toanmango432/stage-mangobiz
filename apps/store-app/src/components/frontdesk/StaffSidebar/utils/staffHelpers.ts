@@ -58,30 +58,6 @@ export const getStaffImage = (staffMember: {
 };
 
 /**
- * Determine staff status based on active tickets
- * Returns staff with status updated to 'busy' if they have active tickets,
- * 'ready' if not, or unchanged if already 'off'
- */
-export const determineStaffStatus = (
-  staff: UIStaff,
-  inServiceTickets: UITicket[]
-): UIStaff => {
-  // Keep 'off' status unchanged
-  if (staff.status === 'off') return staff;
-
-  // Check if this staff member has any tickets in service
-  const hasActiveTickets = inServiceTickets.some(
-    (ticket) => ticket.assignedTo?.id === staff.id
-  );
-
-  // Update status based on active tickets
-  return {
-    ...staff,
-    status: hasActiveTickets ? 'busy' : 'ready',
-  };
-};
-
-/**
  * Convert string ID to number for StaffCard compatibility
  * Extracts numeric portion from UUID or uses index as fallback
  */

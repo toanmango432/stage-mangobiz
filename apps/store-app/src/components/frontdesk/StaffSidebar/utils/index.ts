@@ -6,7 +6,6 @@ export {
   findStaffByNumericId,
   isTicketForStaff,
   getStaffImage,
-  determineStaffStatus,
   staffIdToNumber,
 } from './staffHelpers';
 

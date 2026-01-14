@@ -22,7 +22,7 @@
 
 // Main component - re-export from original location for backwards compatibility
 // TODO: Move StaffSidebar.tsx into this directory after verifying hooks work
-export { StaffSidebar, determineStaffStatus } from '../StaffSidebar';
+export { StaffSidebar } from '../StaffSidebar';
 
 // Types
 export type {
