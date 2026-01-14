@@ -227,7 +227,7 @@
         "Verify in browser: Open Front Desk, find late appointment, click action menu, see No-Show option"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "FD-BR-007. File: apps/store-app/src/components/frontdesk/ComingAppointments.tsx. Late appointments already grouped with minutesUntil < 0."
     },
     {

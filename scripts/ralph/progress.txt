@@ -318,3 +318,20 @@ Commit: fac5490
   - Pre-existing test failures in topics.test.ts and padCheckoutFlow.test.ts are unrelated infrastructure issues
   - DisplayConfig uses showLastService (not showLastDone) for the property name
 ---
+
+## 2026-01-14 - US-014: Add No-Show action for late appointments
+Commit: d58df6b
+- Added No-Show action button to appointment action menu in ComingAppointments.tsx
+- Button only appears for appointments 15+ minutes late (minutesUntil <= -15)
+- Added confirmation dialog with orange color scheme before marking as no-show
+- Connected to appointmentsSlice via updateLocalAppointment and updateAppointmentInSupabase
+- Appointment is removed from Coming section after marking as no-show (filtered in useTicketsCompat)
+- Files changed:
+  - apps/store-app/src/components/frontdesk/ComingAppointments.tsx
+- **Learnings for future iterations:**
+  - Late appointments have minutesUntil < 0 (negative = minutes past due)
+  - Use z-[60] for confirmation dialog to appear above action menu (z-50)
+  - updateLocalAppointment provides optimistic UI update
+  - updateAppointmentInSupabase persists to Supabase
+  - useTicketsCompat already filters out no-show appointments from comingAppointments
+---
