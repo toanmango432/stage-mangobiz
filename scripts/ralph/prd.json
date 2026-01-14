@@ -466,8 +466,8 @@
         "Verify in browser: Change sort setting, see tickets reorder"
       ],
       "priority": 29,
-      "passes": false,
-      "notes": "FD-P0-095. File: apps/store-app/src/components/frontdesk/ServiceSection.tsx. sortBy setting exists in frontDeskSettingsSlice."
+      "passes": true,
+      "notes": "FD-P0-095. File: apps/store-app/src/components/frontdesk/ServiceSection.tsx. sortBy setting exists in frontDeskSettingsSlice. Added Sort By dropdown with Queue Order and Time options."
     },
     {
       "id": "US-030",

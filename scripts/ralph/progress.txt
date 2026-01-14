@@ -629,3 +629,21 @@ Commit: 3b79a67
   - Audit trail logging can be added via console.log for now, with database persistence added later
   - Pre-existing typecheck errors in Book module tests don't block commits (infrastructure issues)
 ---
+
+## 2026-01-14 - US-029: Implement sort by setting for In-Service section
+Commit: 8bc859e
+- Added sortBy setting integration from FrontDeskSettings Redux slice (selectSortBy, updateSetting, saveFrontDeskSettings)
+- Added Sort By dropdown section in header menu between View Mode and Card Size sections
+- Two sort options: Queue Order (sorts by ticket number) and Time (sorts by createdAt chronologically)
+- Updated filteredServiceTickets useMemo to include sorting logic based on sortBy setting
+- Sort preference persists to IndexedDB via saveFrontDeskSettings dispatch
+- Added ArrowUpDown icon import for queue order option
+- Files changed:
+  - apps/store-app/src/components/frontdesk/ServiceSection.tsx
+- **Learnings for future iterations:**
+  - sortBy setting already exists in FrontDeskSettingsData type ('queue' | 'time')
+  - selectSortBy selector available from frontDeskSettingsSlice
+  - saveFrontDeskSettings thunk persists settings to IndexedDB (not just localStorage)
+  - Sorting in useMemo should create new array with spread to avoid mutating original
+  - Pre-existing typecheck errors in Book module tests and TicketPanel/ServiceSection.tsx don't block commits
+---
