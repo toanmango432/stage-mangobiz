@@ -6,7 +6,7 @@ import { serviceHeaderTheme } from './headerTokens';
 import { FrontDeskEmptyState } from './FrontDeskEmptyState';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity, Trash2, AlertCircle, ExternalLink } from 'lucide-react';
+import { FileText, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, ChevronRight, Tag, User, Clock, Calendar, Edit2, Info, CheckCircle, Star, MessageSquare, PlusCircle, Activity, Trash2, AlertCircle, ExternalLink, ArrowUpDown } from 'lucide-react';
 import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
 import { TicketDetailsModal } from '@/components/tickets/TicketDetailsModal';
@@ -14,6 +14,8 @@ import { ServiceTicketCard, ServiceTicketCardRefactored } from '@/components/tic
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { SearchBar } from './SearchBar';
 import { FrontDeskSubTabs, SubTab } from './FrontDeskSubTabs';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectSortBy, updateSetting, saveFrontDeskSettings } from '@/store/slices/frontDeskSettingsSlice';
 // Shared time utilities
 import { formatTime, parseDuration, getEstimatedEndTime } from './shared';
 
@@ -60,6 +62,10 @@ export const ServiceSection = memo(function ServiceSection({
   if (settings && (!settings.inServiceActive || !settings.showInService)) {
     return null;
   }
+
+  // Redux hooks for sort setting
+  const dispatch = useAppDispatch();
+  const sortBy = useAppSelector(selectSortBy);
 
   // BUG-009 FIX: Derive cardViewMode from settings.viewStyle when not in combined view
   // This ensures settings.viewStyle affects individual sections in non-combined (three-column) view
@@ -203,7 +209,7 @@ export const ServiceSection = memo(function ServiceSection({
     return tabs;
   }, [serviceTickets]);
 
-  // Filter service tickets based on search query and category
+  // Filter and sort service tickets based on search query, category, and sortBy setting
   const filteredServiceTickets = useMemo(() => {
     let filtered = serviceTickets;
 
@@ -226,8 +232,23 @@ export const ServiceSection = memo(function ServiceSection({
       );
     }
 
+    // Sort based on sortBy setting
+    // 'queue' = sort by ticket number (turn tracker order)
+    // 'time' = sort by createdAt (chronological order)
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === 'time') {
+        // Sort by createdAt (oldest first = service started first)
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      } else {
+        // Default: sort by ticket number (queue order)
+        return (a.number || 0) - (b.number || 0);
+      }
+    });
+
     return filtered;
-  }, [serviceTickets, searchQuery, selectedCategory]);
+  }, [serviceTickets, searchQuery, selectedCategory, sortBy]);
 
   // Track expanded tickets
   const [expandedTickets, setExpandedTickets] = useState<Record<number, boolean>>({});
@@ -1060,6 +1081,49 @@ export const ServiceSection = memo(function ServiceSection({
                           <span>List View</span>
                         </div>
                         {viewMode === 'list' && <Check size={14} />}
+                      </button>
+                    </div>
+
+                    {/* Sort By Section */}
+                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Sort By
+                      </h3>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          dispatch(updateSetting({ key: 'sortBy', value: 'queue' }));
+                          dispatch(saveFrontDeskSettings());
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          sortBy === 'queue'
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <ArrowUpDown size={14} className="mr-2" />
+                          <span>Queue Order</span>
+                        </div>
+                        {sortBy === 'queue' && <Check size={14} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          dispatch(updateSetting({ key: 'sortBy', value: 'time' }));
+                          dispatch(saveFrontDeskSettings());
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          sortBy === 'time'
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Clock size={14} className="mr-2" />
+                          <span>Time (Chronological)</span>
+                        </div>
+                        {sortBy === 'time' && <Check size={14} />}
                       </button>
                     </div>
 
