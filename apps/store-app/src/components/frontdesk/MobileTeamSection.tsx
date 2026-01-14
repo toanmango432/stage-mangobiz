@@ -62,9 +62,9 @@ const convertToStaffMember = (staff: any): StaffMember => {
     count: staff.count || 0,
     specialty: mapSpecialty(staff.specialty),
     turnCount: staff.turnCount ?? 0,
-    // Ensure last/next times are always present (matching desktop behavior)
-    lastServiceTime: staff.lastServiceTime || '10:30 AM',
-    nextAppointmentTime: staff.nextAppointmentTime || '2:00 PM',
+    // Only show times when real data exists - no mock fallbacks
+    lastServiceTime: staff.lastServiceTime,
+    nextAppointmentTime: staff.nextAppointmentTime,
     activeTickets,
   };
 };

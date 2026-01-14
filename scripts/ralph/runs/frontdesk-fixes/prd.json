@@ -152,7 +152,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Current file is 902+ lines. Target is <300 lines per file. Follow module structure in codebase-patterns.md."
     },
     {
@@ -168,8 +168,8 @@
         "pnpm run typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "MobileStaffActionSheet was created but not integrated into MobileTeamSection."
+      "passes": true,
+      "notes": "MobileStaffActionSheet was already integrated. This iteration fixed mock data fallbacks in convertToStaffMember function."
     },
     {
       "id": "US-011",
