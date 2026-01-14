@@ -461,15 +461,21 @@ export const StaffCardVertical = React.memo<StaffCardVerticalProps>(
                   )}
               </div>
             ) : layout.isCompact ? (
-              // Compact Mode: Single Row "Next"
-              <div className="flex items-center justify-center gap-2 w-full">
-                <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
-                  Next
-                </span>
-                <span className="text-xs font-bold text-gray-700 font-mono">
-                  {staff.nextAppointmentTime || '2:00p'}
-                </span>
-              </div>
+              // Compact Mode: Single Row "Next" - US-012: Only show if real data exists
+              staff.nextAppointmentTime ? (
+                <div className="flex items-center justify-center gap-2 w-full">
+                  <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
+                    Next
+                  </span>
+                  <span className="text-xs font-bold text-gray-700 font-mono">
+                    {staff.nextAppointmentTime}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-full">
+                  <span className="text-[10px] text-gray-400">No upcoming</span>
+                </div>
+              )
             ) : (
               // Normal Mode: Full Timeline
               <StaffCardTimeline

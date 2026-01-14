@@ -576,6 +576,53 @@ export const MobileTeamSection = memo(function MobileTeamSection({
                     </div>
                   </div>
                 )}
+
+                {/* US-012: Off section - busyStatus mode (shows staff not clocked in) */}
+                {groupedStaff.off.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Off ({groupedStaff.off.length})
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {groupedStaff.off.map((s: any) => {
+                        const staffMember = convertToStaffMember(s);
+                        return (
+                          <StaffCardVertical
+                            key={s.id}
+                            staff={staffMember}
+                            viewMode={viewMode}
+                            onClick={() => handleStaffCardClick(staffMember)}
+                            displayConfig={{
+                              showName: true,
+                              showQueueNumber: true,
+                              showAvatar: true,
+                              showTurnCount: settings?.showTurnCount ?? true,
+                              showStatus: true,
+                              showClockedInTime: true,
+                              showNextAppointment: settings?.showNextAppointment ?? true,
+                              showSalesAmount: settings?.showServicedAmount ?? true,
+                              showTickets: settings?.showTicketCount ?? true,
+                              showLastService: settings?.showLastDone ?? true,
+                              // US-011: Action settings from FrontDeskSettings
+                              showMoreOptionsButton: settings?.showMoreOptionsButton ?? true,
+                              showAddTicketAction: settings?.showAddTicketAction ?? true,
+                              showAddNoteAction: settings?.showAddNoteAction ?? true,
+                              showEditTeamAction: settings?.showEditTeamAction ?? true,
+                              showQuickCheckoutAction: settings?.showQuickCheckoutAction ?? true,
+                            }}
+                            onAddTicket={handleAddTicket}
+                            onAddNote={handleAddNote}
+                            onEditTeam={handleEditTeam}
+                            onQuickCheckout={handleQuickCheckout}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <>
