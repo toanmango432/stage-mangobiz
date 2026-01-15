@@ -1,0 +1,584 @@
+{
+  "project": "Mango POS Offline V2",
+  "branchName": "ralph/frontdesk-tickets",
+  "description": "Front Desk Tickets Module - Complete Workflow. Fix data consistency, connect ticket modals to Redux, implement status transitions, ticket creation, search/filtering, urgency indicators, staff conflict detection, enhanced notes, and ticket history.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Display technician on WaitListTicketCard",
+      "description": "As a front desk staff, I want to see the assigned technician on waiting tickets so I know who will serve the client.",
+      "acceptanceCriteria": [
+        "Add technician props to interface: technician?, techColor?, techId?, assignedTo?, assignedStaff?",
+        "Display technician avatar (colored circle with initials) if assigned",
+        "Display technician name beside avatar",
+        "Handle both single technician (assignedTo) and multiple (assignedStaff)",
+        "Show empty state if no technician assigned",
+        "Styling matches ServiceTicketCard's technician display",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/WaitListTicketCard.tsx"
+      ],
+      "notes": "Reference ServiceTicketCard.tsx lines 32-46 for prop interface pattern. Use Tailwind: rounded-full, bg-{color}, text-white, text-xs. WaitListTicketCard is 873 lines - add to existing structure.",
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Display technician on PendingTicketCard",
+      "description": "As a front desk staff, I want to see which technician completed the service on pending (checkout) tickets.",
+      "acceptanceCriteria": [
+        "Interface already has technician props at lines ~31-51 - add rendering JSX only",
+        "Display technician avatar and name in card header area",
+        "Follow same pattern as WaitListTicketCard from US-001",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/PendingTicketCard.tsx"
+      ],
+      "notes": "Interface already defined - this story only adds rendering JSX. Add to existing card layout in header section near client name.",
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Create updateTicket thunk and make EditTicketModal functional",
+      "description": "As a front desk staff, I want my edits in the Edit Ticket modal to actually save and persist.",
+      "acceptanceCriteria": [
+        "Create updateTicket async thunk accepting { ticketId: string, updates: Partial<UITicket> }",
+        "Thunk updates ticket via dataService.tickets.update() with IndexedDB fallback",
+        "Add reducer case in extraReducers to update tickets, waitlist, inService, checkoutTickets",
+        "In EditTicketModal: import updateTicket and useAppDispatch",
+        "Replace console.log at lines ~82-91 with dispatch(updateTicket(...))",
+        "Use existing isSubmitting state for loading indicator",
+        "Close modal only after successful save",
+        "Handle errors with try/catch and unwrap()",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: edit ticket -> save -> card reflects changes"
+      ],
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts",
+        "apps/store-app/src/components/tickets/EditTicketModal.tsx"
+      ],
+      "notes": "Follow assignTicket thunk pattern at lines ~431-498 in uiTicketsSlice. Current handleSubmit only logs and closes - replace entirely. Export the new thunk from the slice.",
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Connect TicketActions.handleAssign to Redux",
+      "description": "As a front desk staff, I want assigning a technician from ticket actions to actually work.",
+      "acceptanceCriteria": [
+        "Import assignTicket from @/store/slices/uiTicketsSlice",
+        "Import useAppDispatch from @/store/hooks",
+        "In handleAssign (line ~35-38), replace console.log with dispatch call",
+        "Pass: { ticketId: String(ticketId), staffId: techId, staffName: techName, staffColor: techColor }",
+        "Add loading state during dispatch",
+        "Close modal after successful assignment",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: assign tech -> card updates immediately"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "assignTicket thunk already exists in uiTicketsSlice - just connect it. Convert ticketId to string if it's a number. TicketActions is only 60 lines.",
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "title": "Implement bidirectional status transitions",
+      "description": "As a front desk staff, I want to move tickets between statuses (waiting <-> in-service <-> pending) when needed.",
+      "acceptanceCriteria": [
+        "Create moveToWaiting thunk: sets status to 'waiting', clears serviceStartTime",
+        "Create moveToInService thunk: sets status to 'in-service', sets serviceStartTime to now",
+        "Create moveToPending thunk: sets status to 'completed', sets completedAt to now",
+        "Each thunk updates via dataService with IndexedDB fallback and sync queue",
+        "Add reducer cases for all three thunks",
+        "Export all three thunks",
+        "In TicketActions: Waiting tickets get 'Start Service' -> moveToInService",
+        "In TicketActions: In-service tickets get 'Move to Waiting' and 'Complete Service'",
+        "In TicketActions: Support 'pending' section with 'Back to Service'",
+        "Show confirmation dialog (AlertDialog) before status change",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: move ticket waiting -> service -> pending -> back to service"
+      ],
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts",
+        "apps/store-app/src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "Status values: 'waiting' | 'in-service' | 'completed' | 'paid'. 'completed' = pending checkout. Reference pauseTicket/resumeTicket for thunk pattern. Use AlertDialog from @/components/ui/alert-dialog.",
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "Implement daily-resetting check-in numbers",
+      "description": "As a front desk staff, I want check-in numbers to reset to 1 each day for easy call-outs.",
+      "acceptanceCriteria": [
+        "Add to uiTicketsSlice state: lastCheckInDate: string | null, lastCheckInNumber: number",
+        "Add checkInNumber?: number to UITicket interface if not present",
+        "Modify checkInAppointment thunk: get today's date as ISO string (YYYY-MM-DD)",
+        "If lastCheckInDate !== today: reset to 1, update date",
+        "Else: increment lastCheckInNumber",
+        "Store checkInNumber on ticket (separate from ticket.number)",
+        "In WaitListTicketCard: display checkInNumber with '#' prefix prominently",
+        "In ServiceTicketCard: display checkInNumber similarly",
+        "ticket.number remains permanent ID (for receipts)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify: check-in first client -> #1, second -> #2, next day -> resets to #1"
+      ],
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts",
+        "apps/store-app/src/components/tickets/WaitListTicketCard.tsx",
+        "apps/store-app/src/components/tickets/ServiceTicketCard.tsx"
+      ],
+      "notes": "Current bug: uses lastTicketNumber which doesn't reset daily. Check-in number for vocal call-outs: 'Number 5, you're up!' Ticket ID is permanent record number for receipts.",
+      "priority": 6,
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "title": "Implement soft delete with categorized reasons",
+      "description": "As a manager, I want deleted tickets to have categorized reasons for accurate reporting.",
+      "acceptanceCriteria": [
+        "Create DeleteReason type: 'testing' | 'client_left' | 'duplicate' | 'mistake' | 'other'",
+        "Add to UITicket: deletedAt?: string, deletedReason?: DeleteReason, deletedNote?: string",
+        "Modify deleteTicket thunk to soft delete (set fields, don't remove)",
+        "Create DeleteTicketModal.tsx with radio buttons for reasons",
+        "Include optional text field for notes",
+        "'Testing' shows helper: 'Will not be counted as client loss'",
+        "Delete dispatches deleteTicket({ ticketId, reason, note })",
+        "In TicketActions: add 'Delete Ticket' with red/destructive styling",
+        "After delete, ticket filtered from view (by deletedAt)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: delete with 'Testing' reason -> ticket disappears"
+      ],
+      "files": [
+        "apps/store-app/src/types/ticket.ts",
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts",
+        "apps/store-app/src/components/tickets/DeleteTicketModal.tsx",
+        "apps/store-app/src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "Follow EditTicketModal.tsx pattern for modal structure. Use RadioGroup from @/components/ui/radio-group. Soft delete = mark as deleted, keep in DB for reporting.",
+      "priority": 7,
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "title": "Add manager PIN verification for sensitive actions",
+      "description": "As an owner, I want certain actions (like status reversal) to optionally require manager PIN.",
+      "acceptanceCriteria": [
+        "Create ManagerPinModal.tsx with 4-digit PIN input (masked with dots)",
+        "For development: accept PIN '1234' as valid",
+        "Error state for invalid PIN with shake animation",
+        "Max 3 attempts, then show 'Contact manager' message",
+        "onSuccess callback with manager ID (hardcode 'manager-1' for dev)",
+        "onCancel callback",
+        "Add setting check: requirePinForStatusReversal (default: false)",
+        "If enabled: show ManagerPinModal before status reversal",
+        "Only proceed after PIN verified",
+        "If disabled: proceed without PIN (current behavior)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: enable setting -> try status reversal -> PIN prompt"
+      ],
+      "files": [
+        "apps/store-app/src/components/common/ManagerPinModal.tsx",
+        "apps/store-app/src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "Hardcode PIN validation for now (real auth is separate PRD). Use Dialog from @/components/ui/dialog for modal. Setting can be boolean constant for dev.",
+      "priority": 8,
+      "passes": false
+    },
+    {
+      "id": "US-009",
+      "title": "Connect CreateTicketModal to Front Desk with Redux",
+      "description": "As a front desk staff, I want to create tickets directly from Front Desk without navigating to checkout.",
+      "acceptanceCriteria": [
+        "In CreateTicketModal: import createCheckoutTicket from uiTicketsSlice",
+        "Replace createTicket(ticketData) with dispatch to Redux thunk",
+        "Set status to 'waiting' for new walk-in tickets",
+        "In CreateTicketButton: open CreateTicketModal instead of navigating to checkout",
+        "Add success toast after ticket creation",
+        "New ticket appears in WaitListSection immediately",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: click '+' -> fill form -> submit -> ticket in waitlist"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/CreateTicketModal.tsx",
+        "apps/store-app/src/components/frontdesk/CreateTicketButton.tsx"
+      ],
+      "notes": "CreateTicketModal exists at 324 lines - uses useTickets().createTicket which may need to connect to Redux. Follow pattern from other ticket modals for Redux integration.",
+      "priority": 9,
+      "passes": false
+    },
+    {
+      "id": "US-010",
+      "title": "Add client search/selection to CreateTicketModal",
+      "description": "As a front desk staff, I want to search for existing clients when creating a ticket.",
+      "acceptanceCriteria": [
+        "Add client search input with autocomplete dropdown",
+        "Fetch clients from Redux: useAppSelector(selectClients)",
+        "Filter clients by name as user types (minimum 2 characters)",
+        "Show matching clients with name and phone number",
+        "Selecting a client populates: clientName, clientId, clientType (Regular/VIP)",
+        "Show 'First Visit' badge if client has no previous visits",
+        "Allow 'Create New Client' option if no match",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: type client name -> see matches -> select -> form populated"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/CreateTicketModal.tsx"
+      ],
+      "notes": "Use existing selectClients selector from clientsSlice. Follow Command/Combobox pattern from @/components/ui/command. Debounce search input.",
+      "priority": 10,
+      "passes": false
+    },
+    {
+      "id": "US-011",
+      "title": "Add service selection to CreateTicketModal",
+      "description": "As a front desk staff, I want to select services from the service list when creating a ticket.",
+      "acceptanceCriteria": [
+        "Replace free-text service input with searchable dropdown",
+        "Fetch services from Redux: useAppSelector(selectServices)",
+        "Group services by category if available",
+        "Show service name, duration, and price",
+        "Selecting service populates: service name, duration (auto-filled)",
+        "Allow multiple service selection for combo tickets",
+        "Show total estimated duration",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: click service field -> see service list -> select -> duration auto-filled"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/CreateTicketModal.tsx"
+      ],
+      "notes": "Use existing services selector from servicesSlice. Follow Select/Combobox pattern from @/components/ui/select. Keep backward compatibility with free-text entry.",
+      "priority": 11,
+      "passes": false
+    },
+    {
+      "id": "US-012",
+      "title": "Connect ComingAppointments Edit action to appointment edit flow",
+      "description": "As a front desk staff, I want the Edit Appointment button to open the appointment editor.",
+      "acceptanceCriteria": [
+        "Add onEditAppointment callback prop",
+        "'Edit Appointment' button calls onEditAppointment(appointmentId)",
+        "Dispatch navigation event: window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: { module: 'book', appointmentId } }))",
+        "Close action menu after clicking Edit",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: click appointment -> Edit -> navigates to Book module with appointment"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/ComingAppointments.tsx"
+      ],
+      "notes": "Currently 'Edit Appointment' button just logs to console. Follow navigation pattern from codebase-patterns.md. ComingAppointments is 801 lines.",
+      "priority": 12,
+      "passes": false
+    },
+    {
+      "id": "US-013",
+      "title": "Connect ComingAppointments Cancel action to appointment cancellation",
+      "description": "As a front desk staff, I want the Cancel/Reschedule button to cancel or reschedule appointments.",
+      "acceptanceCriteria": [
+        "Add cancel confirmation dialog (AlertDialog)",
+        "'Cancel / Reschedule' button opens confirmation",
+        "Confirmation shows: 'Cancel this appointment?' with appointment details",
+        "Cancel button dispatches updateAppointmentInSupabase({ id, updates: { status: 'cancelled' } })",
+        "Reschedule button navigates to Book module (same as Edit)",
+        "Remove cancelled appointment from Coming list",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: click Cancel -> confirm -> appointment removed from list"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/ComingAppointments.tsx"
+      ],
+      "notes": "Currently button just logs to console. updateAppointmentInSupabase already imported. Use AlertDialog from @/components/ui/alert-dialog.",
+      "priority": 13,
+      "passes": false
+    },
+    {
+      "id": "US-014",
+      "title": "Create TicketFilterBar component",
+      "description": "As a front desk staff, I want to filter tickets by various criteria.",
+      "acceptanceCriteria": [
+        "Create TicketFilterBar with filter buttons/chips",
+        "Filter options: All | Priority | VIP | First Visit | Long Wait (10+ min)",
+        "Support multiple active filters (toggle on/off)",
+        "Show active filter count badge",
+        "Export filter state for parent component to apply",
+        "In WaitListSection: import and render TicketFilterBar above ticket list",
+        "Apply filters to displayed tickets",
+        "Clear all filters button",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: click 'VIP' filter -> only VIP tickets shown"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/TicketFilterBar.tsx",
+        "apps/store-app/src/components/frontdesk/WaitListSection.tsx"
+      ],
+      "notes": "Follow chip/toggle button pattern from existing UI. Use Tailwind: rounded-full, bg-slate-100, bg-slate-900. Filters are local component state, not Redux.",
+      "priority": 14,
+      "passes": false
+    },
+    {
+      "id": "US-015",
+      "title": "Add service type filter to TicketFilterBar",
+      "description": "As a front desk staff, I want to filter tickets by service type.",
+      "acceptanceCriteria": [
+        "Add service type dropdown filter",
+        "Populate dropdown with unique services from visible tickets",
+        "Show count of tickets per service type",
+        "Filter by exact service name match",
+        "Combine with other active filters (AND logic)",
+        "Clear service filter when selecting 'All Services'",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: select 'Manicure' -> only manicure tickets shown"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/TicketFilterBar.tsx"
+      ],
+      "notes": "Derive service list from current tickets, not global services. Use Select from @/components/ui/select. Keep simple - just single service selection.",
+      "priority": 15,
+      "passes": false
+    },
+    {
+      "id": "US-016",
+      "title": "Apply urgency coloring to WaitListTicketCard",
+      "description": "As a front desk staff, I want to see visual urgency indicators on waiting tickets based on wait time.",
+      "acceptanceCriteria": [
+        "Import getUrgencyLevel, URGENCY_COLORS from @/utils/urgencyUtils",
+        "Calculate urgency from createdAt (check-in time) instead of completedAt",
+        "Apply urgency border color: normal (gray), attention (yellow), urgent (orange), critical (red)",
+        "Apply urgency background tint",
+        "Show urgency dot indicator in card header",
+        "Thresholds: attention 10min, urgent 15min, critical 25min (different from pending)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: wait 10+ minutes -> card turns yellow"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/WaitListTicketCard.tsx"
+      ],
+      "notes": "urgencyUtils.ts already has all the helpers (200 lines). Use different thresholds than pending section. Add custom thresholds parameter to getUrgencyLevel call.",
+      "priority": 16,
+      "passes": false
+    },
+    {
+      "id": "US-017",
+      "title": "Add urgency sorting to WaitListSection",
+      "description": "As a front desk staff, I want urgent tickets to appear at the top of the waitlist.",
+      "acceptanceCriteria": [
+        "Import sortByUrgency from @/utils/urgencyUtils",
+        "Add toggle: 'Sort by: Queue Order | Urgency'",
+        "When 'Urgency' selected, sort tickets using sortByUrgency()",
+        "Show sort indicator in header",
+        "Persist sort preference in localStorage",
+        "Default to 'Queue Order' (current drag-and-drop order)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: switch to 'Urgency' -> critical tickets at top"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/WaitListSection.tsx"
+      ],
+      "notes": "Use sortByUrgency with custom thresholds for waiting (not pending). Toggle disables drag-and-drop when urgency sort is active. WaitListSection is 886 lines.",
+      "priority": 17,
+      "passes": false
+    },
+    {
+      "id": "US-018",
+      "title": "Add conflict detection to assignTicket thunk",
+      "description": "As a system, I want to warn when assigning a staff member who is already serving another client.",
+      "acceptanceCriteria": [
+        "In assignTicket thunk: before assignment, check if staff has active in-service ticket",
+        "Use inService state to find tickets with matching techId or assignedTo.id",
+        "If conflict found: return { conflict: true, conflictingTicket: UITicket }",
+        "If no conflict: proceed with assignment",
+        "Add conflictWarning?: string to thunk return type",
+        "Export checkStaffConflict helper for UI use",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "notes": "This story only adds backend detection logic. UI warning handled in US-019. Don't block assignment - just warn.",
+      "priority": 18,
+      "passes": false
+    },
+    {
+      "id": "US-019",
+      "title": "Show conflict warning in AssignTicketModal",
+      "description": "As a front desk staff, I want to see a warning if the technician I'm assigning is already serving someone.",
+      "acceptanceCriteria": [
+        "Import checkStaffConflict from uiTicketsSlice",
+        "Before showing staff list, check each staff for conflicts",
+        "Mark conflicting staff with orange warning badge: 'Currently serving [Client Name]'",
+        "Allow assignment anyway with confirmation: 'Assign anyway? This will queue the client.'",
+        "Show conflict indicator next to staff name in list",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: try to assign busy staff -> see warning -> confirm -> assigned"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/AssignTicketModal.tsx"
+      ],
+      "notes": "Use useAppSelector(selectServiceTickets) to get current in-service tickets. Add visual indicator without blocking the action. Follow existing modal patterns.",
+      "priority": 19,
+      "passes": false
+    },
+    {
+      "id": "US-020",
+      "title": "Add timestamp and author to ticket notes",
+      "description": "As a staff member, I want to see when notes were added and by whom.",
+      "acceptanceCriteria": [
+        "Create TicketNote interface: { id, text, authorId, authorName, createdAt, updatedAt? }",
+        "Add notes: TicketNote[] to UITicket (array instead of single string)",
+        "Create addTicketNote thunk: adds new note with current user info and timestamp",
+        "In TicketDetailsModal: display notes as list with author and time",
+        "Format time as relative: '2 minutes ago', 'Yesterday at 3:45 PM'",
+        "Show author avatar/initials with name",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: view ticket details -> see notes with timestamps"
+      ],
+      "files": [
+        "apps/store-app/src/types/ticket.ts",
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts",
+        "apps/store-app/src/components/tickets/TicketDetailsModal.tsx"
+      ],
+      "notes": "Migrate existing string notes to array format in reducer. Use date-fns formatDistanceToNow for relative time. Author comes from auth/session state.",
+      "priority": 20,
+      "passes": false
+    },
+    {
+      "id": "US-021",
+      "title": "Connect AddStaffNoteModal to Redux",
+      "description": "As a staff member, I want the Add Note modal to actually save notes to the ticket.",
+      "acceptanceCriteria": [
+        "Import addTicketNote from uiTicketsSlice",
+        "Import useAppDispatch from store hooks",
+        "On submit: dispatch addTicketNote({ ticketId, text: noteText })",
+        "Close modal after successful save",
+        "Show loading state during save",
+        "Handle errors with toast notification",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: add note -> submit -> note appears in ticket details"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/AddStaffNoteModal.tsx",
+        "apps/store-app/src/components/frontdesk/AddNoteModal.tsx"
+      ],
+      "notes": "AddStaffNoteModal and AddNoteModal may be similar - update both. Follow pattern from other modals with Redux dispatch. Modal props should include ticketId.",
+      "priority": 21,
+      "passes": false
+    },
+    {
+      "id": "US-022",
+      "title": "Add status history tracking to UITicket",
+      "description": "As a manager, I want to see the history of status changes for audit purposes.",
+      "acceptanceCriteria": [
+        "Create StatusChange interface: { from, to, changedAt, changedBy?, reason? }",
+        "Add statusHistory: StatusChange[] to UITicket",
+        "Modify all status-changing thunks to append to statusHistory",
+        "Include: assignTicket, moveToWaiting, moveToInService, moveToPending, completeTicket",
+        "Record changedBy from current user if available",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/types/ticket.ts",
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "notes": "This story only adds data tracking. UI display handled in US-023. Keep statusHistory array lightweight (only essential fields).",
+      "priority": 22,
+      "passes": false
+    },
+    {
+      "id": "US-023",
+      "title": "Display status history in TicketDetailsModal",
+      "description": "As a manager, I want to see the timeline of status changes in ticket details.",
+      "acceptanceCriteria": [
+        "Add 'History' tab or section to TicketDetailsModal",
+        "Display statusHistory as vertical timeline",
+        "Show: status change (from -> to), timestamp, changed by (if available)",
+        "Use icons for each status type (waiting, in-service, completed, paid)",
+        "Format timestamps as relative time",
+        "Empty state: 'No history available'",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: open ticket details -> see History section with timeline"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/TicketDetailsModal.tsx"
+      ],
+      "notes": "Use simple vertical timeline layout with dots and lines. Status icons: Clock (waiting), Wrench (in-service), CheckCircle (completed), DollarSign (paid). Follow existing tab pattern if present.",
+      "priority": 23,
+      "passes": false
+    },
+    {
+      "id": "US-024",
+      "title": "Add keyboard shortcuts for common ticket actions",
+      "description": "As a front desk staff, I want keyboard shortcuts for quick ticket operations.",
+      "acceptanceCriteria": [
+        "Create useTicketKeyboardShortcuts hook with keyboard event listeners",
+        "Shortcuts: N = New ticket, S = Search focus, 1/2/3 = Switch sections",
+        "Escape = Close any open modal",
+        "Only active when no input is focused",
+        "Show shortcuts hint on hover over toolbar icons",
+        "In FrontDesk: import and use the hook",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: press N -> CreateTicketModal opens"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/FrontDesk.tsx",
+        "apps/store-app/src/hooks/useTicketKeyboardShortcuts.ts"
+      ],
+      "notes": "Use useEffect with keydown event listener. Check document.activeElement to avoid triggering in inputs. Clean up listener on unmount.",
+      "priority": 24,
+      "passes": false
+    },
+    {
+      "id": "US-025",
+      "title": "Add real-time ticket count badges to section headers",
+      "description": "As a front desk staff, I want to see the count of tickets in each section at a glance.",
+      "acceptanceCriteria": [
+        "Add ticket count badge next to section title",
+        "WaitList: show count from Redux waitlist.length",
+        "Pending: show count from Redux checkoutTickets.length",
+        "Badge styling: rounded pill with background color matching section",
+        "Animate count changes (brief pulse on update)",
+        "Show '0' when section is empty",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: add ticket -> count updates immediately"
+      ],
+      "files": [
+        "apps/store-app/src/components/frontdesk/WaitListSection.tsx",
+        "apps/store-app/src/components/frontdesk/PendingSectionFooter.tsx"
+      ],
+      "notes": "ServiceSection already shows count - follow that pattern. Use Tailwind animate-pulse for brief highlight on change. Keep badge small and unobtrusive.",
+      "priority": 25,
+      "passes": false
+    }
+  ]
+}
