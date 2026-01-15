@@ -23,6 +23,8 @@ interface ComingAppointmentsProps {
     counterBg: string;
     counterText: string;
   };
+  /** Callback when Edit Appointment is clicked */
+  onEditAppointment?: (appointmentId: string) => void;
 }
 export const ComingAppointments = memo(function ComingAppointments({
   isMinimized = false,
@@ -30,7 +32,8 @@ export const ComingAppointments = memo(function ComingAppointments({
   isMobile: _isMobile = false,
   hideHeader = false,
   settings,
-  headerStyles: _headerStyles
+  headerStyles: _headerStyles,
+  onEditAppointment
 }: ComingAppointmentsProps) {
   // All hooks must be called unconditionally (React rules of hooks)
   const dispatch = useAppDispatch();
@@ -141,6 +144,25 @@ export const ComingAppointments = memo(function ComingAppointments({
     setShowActionMenu(false);
     setActiveAppointment(null);
   }, [dispatch, activeAppointment]);
+
+  // Handle editing an appointment - navigate to Book module
+  const handleEditAppointment = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Call the callback prop if provided
+    if (onEditAppointment) {
+      onEditAppointment(activeAppointment.id);
+    }
+
+    // Dispatch navigation event for module navigation
+    window.dispatchEvent(new CustomEvent('navigate-to-module', {
+      detail: { module: 'book', appointmentId: activeAppointment.id }
+    }));
+
+    // Close the action menu
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [activeAppointment, onEditAppointment]);
 
   // Check if appointment is 15+ minutes late (eligible for no-show)
   const isEligibleForNoShow = (appointment: any): boolean => {
@@ -712,7 +734,10 @@ export const ComingAppointments = memo(function ComingAppointments({
                 Check-In
               </button>
               {/* Edit Appointment (Blue, Neutral) */}
-              <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#007AFF] hover:bg-[#F0F7FF] transition-colors flex items-center border-t border-gray-100">
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#007AFF] hover:bg-[#F0F7FF] transition-colors flex items-center border-t border-gray-100"
+                onClick={handleEditAppointment}
+              >
                 <div className="w-10 h-10 rounded-full bg-[#007AFF]/10 flex items-center justify-center mr-3">
                   <Calendar size={18} className="text-[#007AFF]" />
                 </div>
