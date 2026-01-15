@@ -455,3 +455,65 @@ Added client search/selection functionality to CreateTicketModal, allowing front
 `30b36ed` - feat: [US-010] - Add client search/selection to CreateTicketModal
 
 ---
+
+## Iteration 11 - US-011: Add service selection to CreateTicketModal
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Added service selection dropdown to CreateTicketModal, allowing front desk staff to select services from the catalog instead of typing free-text. Features include searchable dropdown with services grouped by category, multi-service selection for combo tickets, and automatic duration calculation.
+
+### Key Discovery
+- `catalogSlice` is deprecated - services come from `useCatalog` hook via Dexie live queries
+- `useCatalog({ storeId })` returns `services` (MenuServiceWithEmbeddedVariants[]) and `categories`
+- `selectStoreId` selector is available in authSlice for getting the store ID
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/CreateTicketModal.tsx`
+   - Added imports: `selectStoreId` from authSlice, `useCatalog` hook, `MenuServiceWithEmbeddedVariants` type
+   - Added icons: `ChevronDown`, `X`, `Plus` from lucide-react
+   - Created `SelectedService` interface for multi-service support
+   - Added catalog hook: `const { services: catalogServices, categories } = useCatalog({ storeId })`
+   - Added state: `selectedServices`, `serviceSearchQuery`, `showServiceDropdown`
+   - Added refs: `serviceInputRef`, `serviceDropdownRef`
+   - Added helper functions:
+     - `servicesByCategory` - groups services by category name
+     - `filteredServices` - filters services based on search query
+     - `totalEstimatedDuration` - calculates total duration from selected services
+     - `formatDuration` - formats minutes to display string (e.g., "1h 30m")
+     - `handleSelectService` - handles service selection with multi-select support
+     - `handleRemoveService` - handles removing a selected service chip
+   - Updated click-outside handler to close both client and service dropdowns
+   - Updated form reset to include new service state
+   - Updated validation to check both `service` and `selectedServices.length`
+   - Updated submit to use `selectedServices` if available, otherwise free-text
+   - Replaced simple service input with searchable dropdown UI:
+     - Selected services displayed as chips with X button
+     - Search input with placeholder text
+     - Dropdown with services grouped by category headers
+     - Each service shows name, duration (formatted), and price
+     - Already-selected services appear disabled with checkmark
+     - "Use custom" option at bottom for free-text backward compatibility
+
+### Key Implementation Details
+- **Category grouping**: Services grouped by category using Map lookup from categories array
+- **Multi-select**: Users can select multiple services for combo tickets
+- **Duration auto-calc**: Total duration updates as services are added/removed
+- **Backward compatibility**: "Use custom service" option allows free-text entry when needed
+- **Visual feedback**: Chips show count and total duration, disabled state for already-selected items
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+
+### Browser Verification
+Note: Verified in previous session before context compaction:
+- Clicked service input → Dropdown appeared with services grouped by category
+- Selected "Basic Manicure" → Chip appeared showing "(1 selected • 30 min)"
+- Clicked input again → Dropdown showed Basic Manicure as disabled with checkmark
+- Implementation confirmed working per the summary
+
+### Commit
+`0c27823` - feat: [US-011] - Add service selection to CreateTicketModal
+
+---

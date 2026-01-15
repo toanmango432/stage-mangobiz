@@ -267,7 +267,7 @@
       ],
       "notes": "Use existing services selector from servicesSlice. Follow Select/Combobox pattern from @/components/ui/select. Keep backward compatibility with free-text entry.",
       "priority": 11,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012",
