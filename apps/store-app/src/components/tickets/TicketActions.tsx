@@ -4,6 +4,8 @@ import { UserCheck, CheckCircle, X } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { useAppDispatch } from '@/store/hooks';
+import { assignTicket } from '@/store/slices/uiTicketsSlice';
 interface TicketActionsProps {
   ticketId: number;
   section: 'waitlist' | 'in-service';
@@ -15,6 +17,8 @@ export function TicketActions({
   compact = false
 }: TicketActionsProps) {
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const dispatch = useAppDispatch();
   const {
     completeTicket,
     cancelTicket,
@@ -32,10 +36,21 @@ export function TicketActions({
     cancelTicket(String(ticketId));
   };
   // Handle assign ticket
-  const handleAssign = (techId: string, techName: string, _techColor: string) => {
-    // Assignment logic would go here in production
-    console.log('Assigned ticket', ticketId, 'to', techName, 'tech ID:', techId);
-    setShowAssignModal(false);
+  const handleAssign = async (techId: string, techName: string, techColor: string) => {
+    setIsAssigning(true);
+    try {
+      await dispatch(assignTicket({
+        ticketId: String(ticketId),
+        staffId: techId,
+        staffName: techName,
+        staffColor: techColor
+      })).unwrap();
+      setShowAssignModal(false);
+    } catch (error) {
+      // Error handling - keep modal open on failure
+    } finally {
+      setIsAssigning(false);
+    }
   };
   return <>
       <div className={`flex ${compact ? 'gap-1' : 'gap-2'}`}>
