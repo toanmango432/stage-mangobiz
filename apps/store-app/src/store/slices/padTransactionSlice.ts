@@ -76,6 +76,7 @@ const padTransactionSlice = createSlice({
 
     /**
      * NEW: Update Pad screen from screen_changed message
+     * Also updates status based on screen for progress tracking
      */
     setPadScreenChanged: (
       state,
@@ -93,6 +94,35 @@ const padTransactionSlice = createSlice({
         state.activeTransaction.currentPadScreen = action.payload.screen;
         state.activeTransaction.previousPadScreen = action.payload.previousScreen;
         state.activeTransaction.screenChangedAt = action.payload.changedAt;
+
+        // Map screen to status for progress tracking
+        const screenToStatus: Record<PadScreen, PadTransactionStatus | null> = {
+          'idle': null,
+          'waiting': 'waiting',
+          'order-review': 'waiting',
+          'tip': 'tip_selected',
+          'signature': 'signature',
+          'receipt': 'receipt',
+          'payment': 'processing',
+          'result': null, // Let payment_result handler set this
+          'thank-you': 'complete',
+          'split-selection': 'tip_selected',
+          'split-status': 'processing',
+          'settings': null,
+        };
+
+        const newStatus = screenToStatus[action.payload.screen];
+        if (newStatus && state.activeTransaction.status !== newStatus) {
+          // Only advance status, never go backwards (except for special cases)
+          const statusOrder: PadTransactionStatus[] = [
+            'idle', 'waiting', 'tip_selected', 'signature', 'receipt', 'processing', 'complete'
+          ];
+          const currentIndex = statusOrder.indexOf(state.activeTransaction.status);
+          const newIndex = statusOrder.indexOf(newStatus);
+          if (newIndex > currentIndex) {
+            state.activeTransaction.status = newStatus;
+          }
+        }
       }
     },
 

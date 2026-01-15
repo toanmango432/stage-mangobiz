@@ -4,21 +4,74 @@
  *
  * Displays a spinner animation while waiting for payment result from Store App.
  * Auto-navigates to /complete or /failed when transaction step changes.
+ *
+ * In demo mode, automatically simulates successful payment after a short delay
+ * since no MQTT payment_result message will be sent from Store App.
  */
 
+import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard } from 'lucide-react';
 import { usePadMqtt } from '@/providers/PadMqttProvider';
 import { useTransactionNavigation } from '@/hooks/useTransactionNavigation';
 import { formatCurrency } from '@/utils/formatting';
 import { createDemoTransaction } from '@/constants/demoData';
+import { isDemoMode } from '@/components/DemoBanner';
+import { useAppDispatch } from '@/store/hooks';
+import { setPaymentResult } from '@/store/slices/transactionSlice';
+import { setScreen } from '@/store/slices/padSlice';
 
 export function ProcessingPage() {
   const { activeTransaction } = usePadMqtt();
+  const dispatch = useAppDispatch();
+  const hasSimulatedRef = useRef(false);
 
   // Enable auto-navigation on transaction step changes
   // Will navigate to /complete or /failed when payment result arrives
   useTransactionNavigation({ skipInitialNavigation: true });
+
+  // In standalone demo mode (demo transaction, not real from Store App),
+  // simulate successful payment after a short delay.
+  // Only auto-complete if:
+  // 1. In Demo Mode (localStorage flag)
+  // 2. AND transaction is a demo transaction (ID starts with "demo-")
+  //    OR no active transaction at all
+  useEffect(() => {
+    // Check if this is a demo transaction (created locally, not from Store App)
+    const isDemoTransaction = activeTransaction?.transactionId?.startsWith('demo-') ?? false;
+    const isStandaloneDemo = isDemoMode() && (isDemoTransaction || !activeTransaction);
+
+    if (!isStandaloneDemo || hasSimulatedRef.current) {
+      return;
+    }
+
+    console.log('[ProcessingPage] Demo transaction detected - will auto-complete in 2.5s', {
+      transactionId: activeTransaction?.transactionId,
+      isDemoTransaction,
+    });
+
+    const timer = setTimeout(() => {
+      if (hasSimulatedRef.current) return;
+      hasSimulatedRef.current = true;
+
+      console.log('[ProcessingPage] Demo mode: Simulating successful payment');
+
+      // Dispatch payment result to transaction slice
+      dispatch(
+        setPaymentResult({
+          success: true,
+          cardLast4: '4242',
+          authCode: 'DEMO123',
+          processedAt: new Date().toISOString(),
+        })
+      );
+
+      // Navigate to result screen
+      dispatch(setScreen('result'));
+    }, 2500); // 2.5 second delay to show processing animation
+
+    return () => clearTimeout(timer);
+  }, [dispatch, activeTransaction]);
 
   // Use activeTransaction from context, fallback to demo data for demo mode
   const transaction = activeTransaction ?? createDemoTransaction('waiting_payment', {

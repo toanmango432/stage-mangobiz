@@ -24,12 +24,12 @@ export function FailedPage() {
   const transaction = activeTransaction ?? createDemoTransaction('failed', {
     paymentResult: {
       success: false,
-      errorMessage: 'Card declined - insufficient funds',
+      failureReason: 'Card declined - insufficient funds',
     },
   });
 
-  // Get error message from payment result
-  const errorMessage = transaction.paymentResult?.errorMessage ?? 'An unknown error occurred during payment processing.';
+  // Get error message from payment result (failureReason is the field name in PaymentResult type)
+  const errorMessage = transaction.paymentResult?.failureReason ?? 'An unknown error occurred during payment processing.';
   const clientName = transaction.clientName ?? 'Customer';
 
   // Calculate attempted total including tip

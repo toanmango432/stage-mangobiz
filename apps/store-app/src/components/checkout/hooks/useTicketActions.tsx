@@ -6,7 +6,10 @@
  */
 
 import { useRef, useCallback } from "react";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectActivePadTransaction, clearPadTransaction } from "@/store/slices/padTransactionSlice";
+import { getMangoPadService } from "@/services/mangoPadService";
+import { isMqttEnabled } from "@/services/mqtt/featureFlags";
 import {
   createCheckoutTicket,
   updateCheckoutTicket,
@@ -121,6 +124,7 @@ export function useTicketActions({
   checkoutCloseTimeoutRef,
 }: UseTicketActionsParams): UseTicketActionsResult {
   const reduxDispatch = useAppDispatch();
+  const activePadTransaction = useAppSelector(selectActivePadTransaction);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -926,6 +930,37 @@ export function useTicketActions({
         console.log("✅ Ticket marked as paid and moved to closed");
       }
 
+      // Send payment result to Mango Pad (if transaction was sent to Pad)
+      const padTxId = payment.padTransactionId || activePadTransaction?.transactionId;
+      console.log('📱 [Pad Payment] Checking conditions:', {
+        'payment.padTransactionId': payment.padTransactionId,
+        'activePadTransaction?.transactionId': activePadTransaction?.transactionId,
+        padTxId,
+        effectiveTicketId,
+        mqttEnabled: isMqttEnabled(),
+      });
+      if (padTxId && effectiveTicketId && isMqttEnabled()) {
+        try {
+          console.log('📱 Sending payment result to Mango Pad:', padTxId);
+          const mangoPadService = getMangoPadService();
+          const cardPayment = payment.methods?.find((m: any) => m.type === 'card');
+          await mangoPadService.sendPaymentResult({
+            transactionId: padTxId,
+            ticketId: effectiveTicketId,
+            success: true,
+            cardLast4: cardPayment?.cardLast4,
+            cardBrand: cardPayment?.cardBrand,
+            authCode: cardPayment?.authCode || cardPayment?.authorization_code,
+          });
+          console.log('✅ Payment result sent to Mango Pad');
+          // Clear the pad transaction from Redux after successful send
+          reduxDispatch(clearPadTransaction());
+        } catch (padError) {
+          console.error('❌ Failed to send payment result to Mango Pad:', padError);
+          // Don't fail the whole payment flow for this
+        }
+      }
+
       toast({
         title: "Payment Complete!",
         description: `Successfully processed payment of $${total.toFixed(2)}. Ticket closed.`,
@@ -950,7 +985,7 @@ export function useTicketActions({
       clearTimeout(checkoutCloseTimeoutRef.current);
     }
     checkoutCloseTimeoutRef.current = closeTimeout;
-  }, [services, selectedClient, ticketId, discount, subtotal, tax, total, convertToCheckoutServices, processGiftCardSales, reduxDispatch, dispatch, toast, onClose, checkoutCloseTimeoutRef]);
+  }, [services, selectedClient, ticketId, discount, subtotal, tax, total, convertToCheckoutServices, processGiftCardSales, reduxDispatch, dispatch, toast, onClose, checkoutCloseTimeoutRef, activePadTransaction]);
 
   const handleReset = useCallback(() => {
     if (services.length > 0) {

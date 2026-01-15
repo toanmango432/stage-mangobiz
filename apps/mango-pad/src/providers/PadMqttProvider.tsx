@@ -237,7 +237,7 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
           ? {
               success: transactionState.paymentResult.success,
               cardLast4: transactionState.paymentResult.cardLast4,
-              errorMessage: transactionState.paymentResult.failureReason,
+              failureReason: transactionState.paymentResult.failureReason,
             }
           : undefined,
       }
@@ -347,10 +347,12 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     const paymentResultTopic = buildPadTopic(PAD_TOPICS.PAYMENT_RESULT, topicParams);
     const cancelTopic = buildPadTopic(PAD_TOPICS.CANCEL, topicParams);
 
-    console.log('[PadMqttProvider] Subscribing to station-specific topics:', {
+    console.log('[PadMqttProvider] 🔔 Subscribing to station-specific topics:', {
       readyToPayTopic,
       paymentResultTopic,
       cancelTopic,
+      salonId,
+      stationId,
     });
 
     const unsubReadyToPay = mqttService.subscribe<ReadyToPayPayload>(
@@ -384,6 +386,7 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     const unsubPaymentResult = mqttService.subscribe<PaymentResultPayload>(
       paymentResultTopic,
       (_topic, msg: MqttMessage<PaymentResultPayload>) => {
+        console.log('[PadMqttProvider] ✅ Received payment_result:', msg);
         const payload = msg.payload;
         dispatch(
           setPaymentResult({
@@ -395,6 +398,7 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
           })
         );
         dispatch(setScreen('result'));
+        console.log('[PadMqttProvider] Dispatched setPaymentResult and setScreen(result)');
       }
     );
 
@@ -542,6 +546,50 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const clearUnpairReceived = useCallback(() => {
     setUnpairReceived(false);
   }, []);
+
+  // Watch Redux currentScreen and publish screen changes
+  // This catches ALL screen changes, including direct Redux dispatches
+  useEffect(() => {
+    if (!salonId || !stationId || connectionStatus !== 'connected') return;
+
+    const prevScreen = previousScreenRef.current;
+    if (currentScreen !== prevScreen) {
+      console.log('[PadMqttProvider] 📱 Screen changed (Redux):', prevScreen, '->', currentScreen);
+      previousScreenRef.current = currentScreen;
+
+      // Publish the screen change
+      const topic = buildPadTopic(PAD_TOPICS.SCREEN_CHANGED, { salonId, stationId });
+      const payload = {
+        transactionId: transactionId ?? '',
+        ticketId: transactionId ?? '',
+        screen: currentScreen,
+        previousScreen: prevScreen,
+        changedAt: new Date().toISOString(),
+      };
+
+      mqttService.publish(topic, payload).then(() => {
+        console.log('[PadMqttProvider] ✅ screen_changed published:', currentScreen);
+      }).catch((err) => {
+        console.warn('[PadMqttProvider] ⚠️ Failed to publish screen_changed:', err);
+      });
+
+      // If moving from waiting/idle to order-review, also publish customer_started
+      if ((prevScreen === 'waiting' || prevScreen === 'idle') && currentScreen === 'order-review') {
+        if (transactionId && !customerStartedRef.current) {
+          customerStartedRef.current = true;
+          const customerStartedTopic = buildPadTopic(PAD_TOPICS.CUSTOMER_STARTED, { salonId, stationId });
+          mqttService.publish(customerStartedTopic, {
+            transactionId,
+            ticketId: transactionId,
+            screen: 'order-review',
+            startedAt: new Date().toISOString(),
+          }).catch((err) => {
+            console.warn('[PadMqttProvider] ⚠️ Failed to publish customer_started:', err);
+          });
+        }
+      }
+    }
+  }, [salonId, stationId, connectionStatus, currentScreen, transactionId]);
 
   // Set active transaction - converts ActiveTransaction to TransactionPayload and dispatches to Redux
   const setActiveTransactionFn = useCallback(
