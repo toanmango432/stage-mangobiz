@@ -1,0 +1,12 @@
+## Codebase Patterns
+
+See patterns.md for accumulated patterns from previous runs.
+
+---
+
+# Ralph Progress Log
+Started: 2026-01-14
+Branch: ralph/frontdesk-tickets
+Run: frontdesk-tickets
+
+<!-- Ralph appends entries below -->
