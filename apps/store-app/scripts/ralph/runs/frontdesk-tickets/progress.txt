@@ -1,0 +1,72 @@
+# Ralph Progress Log - Front Desk Tickets
+Started: $(date)
+
+## Codebase Patterns
+
+### Ticket Data Patterns
+- `UITicket.number` (not ticketNumber) for ticket number
+- `UITicket.service` (singular string) vs `checkoutServices` (detailed array)
+- Duration stored as string "30min" - parse: `parseInt(duration.replace(/\D/g, ''))`
+- `completedTickets` = status 'paid' (not 'completed' which means pending checkout)
+- Staff can be matched by `techId`, `staffId`, or `assignedTo.id` fields on ticket
+
+### Redux Patterns
+- Follow `assignTicket` thunk pattern at lines ~431-498 in uiTicketsSlice
+- Always export new thunks from the slice
+- Use `unwrap()` with try/catch for error handling
+
+### Urgency System
+- `urgencyUtils.ts` - thresholds (5/10/20 min) and color mappings
+- `getUrgencyLevel(waitMinutes)` returns 'normal' | 'attention' | 'urgent' | 'critical'
+- `URGENCY_COLORS` provides border, bg, dot, text, glow Tailwind classes
+
+### Modal Patterns
+- Use Dialog from `@/components/ui/dialog`
+- Use AlertDialog for confirmations
+- Import useAppDispatch and dispatch Redux actions
+
+---
+
+## 2026-01-15 - US-001: Display technician on WaitListTicketCard
+Commit: bbdc847
+- Added technician props to WaitListTicketCardProps interface
+- Added staffList, getStaffColor, getFirstName, renderStaffAvatar helpers
+- Implemented technician display in all 4 view modes (compact, normal, grid-normal, grid-compact)
+- Styling matches ServiceTicketCard pattern
+- Files changed:
+  - src/components/tickets/WaitListTicketCard.tsx (+121 lines)
+- **Learnings for future iterations:**
+  - WaitListTicketCard is in `src/components/tickets/` not `src/components/frontdesk/` (PRD path was incorrect)
+  - ServiceTicketCard pattern at lines 32-46, 106, 136-159 are the reference implementations
+  - Pre-existing Book module test errors are infrastructure issues - don't block
+---
+
+## 2026-01-15 - Plan Update: Focused Phase 1 (10 Stories)
+
+**Scope reduced from 25 stories to 11 (10 remaining):**
+- Removed US-012 through US-025 (deferred to Phase 2)
+- Focus on core ticket workflow functionality
+- Target: Make Front Desk tickets fully functional
+
+**Phase 1 Stories (10 remaining):**
+1. US-002: Display technician on PendingTicketCard (Low)
+2. US-003: Create updateTicket thunk + EditTicketModal (Medium)
+3. US-004: Connect TicketActions.handleAssign to Redux (Low)
+4. US-005: Bidirectional status transitions (High)
+5. US-006: Daily-resetting check-in numbers (Medium)
+6. US-007: Soft delete with categorized reasons (Medium)
+7. US-008: Manager PIN verification (Medium)
+8. US-009: Connect CreateTicketModal to Redux (Low)
+9. US-010: Client search in CreateTicketModal (Medium)
+10. US-011: Service selection in CreateTicketModal (Medium)
+
+**Key file path corrections:**
+- WaitListTicketCard.tsx is in `src/components/tickets/` not `frontdesk/`
+- PendingTicketCard.tsx is in `src/components/tickets/` not `frontdesk/`
+- ServiceTicketCard.tsx is in `src/components/tickets/` not `frontdesk/`
+
+**Run command:**
+```bash
+./scripts/ralph/ralph.sh 15 frontdesk-tickets
+```
+---
