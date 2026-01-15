@@ -3,6 +3,7 @@ import { useTickets } from '@/hooks/useTicketsCompat';
 import { UserCheck, CheckCircle, X, Play, Pause, RotateCcw, Trash2 } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
 import { DeleteTicketModal } from './DeleteTicketModal';
+import { ManagerPinModal } from '@/components/common/ManagerPinModal';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -24,6 +25,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// Setting: require manager PIN for status reversals (back-to-waiting, back-to-service)
+// In production, this would come from store settings
+const REQUIRE_PIN_FOR_STATUS_REVERSAL = false;
+
 interface TicketActionsProps {
   ticketId: number | string;
   section: 'waitlist' | 'in-service' | 'pending';
@@ -39,6 +44,8 @@ export function TicketActions({
 }: TicketActionsProps) {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingReversalAction, setPendingReversalAction] = useState<'back-to-waiting' | 'back-to-service' | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -133,7 +140,20 @@ export function TicketActions({
     }
   };
 
+  // Check if PIN is required for reversal actions
+  const isReversalAction = (action: ConfirmAction): action is 'back-to-waiting' | 'back-to-service' => {
+    return action === 'back-to-waiting' || action === 'back-to-service';
+  };
+
   const handleConfirmAction = () => {
+    // Check if this is a reversal action that requires PIN
+    if (REQUIRE_PIN_FOR_STATUS_REVERSAL && isReversalAction(confirmAction)) {
+      setPendingReversalAction(confirmAction);
+      setConfirmAction(null);
+      setShowPinModal(true);
+      return;
+    }
+
     switch (confirmAction) {
       case 'start-service':
         handleStartService();
@@ -148,6 +168,25 @@ export function TicketActions({
         handleBackToService();
         break;
     }
+  };
+
+  // Handle PIN verification success
+  const handlePinSuccess = (managerId: string) => {
+    // Log the manager ID for audit purposes
+    console.log(`Status reversal authorized by manager: ${managerId}`);
+
+    // Execute the pending reversal action
+    if (pendingReversalAction === 'back-to-waiting') {
+      handleBackToWaiting();
+    } else if (pendingReversalAction === 'back-to-service') {
+      handleBackToService();
+    }
+
+    setPendingReversalAction(null);
+  };
+
+  const handlePinCancel = () => {
+    setPendingReversalAction(null);
   };
 
   const getConfirmationContent = () => {
@@ -309,6 +348,16 @@ export function TicketActions({
         onClose={() => setShowDeleteModal(false)}
         ticketId={String(ticketId)}
         clientName={ticket?.clientName}
+      />
+
+      {/* Manager PIN Verification Modal (for status reversals when enabled) */}
+      <ManagerPinModal
+        isOpen={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onSuccess={handlePinSuccess}
+        onCancel={handlePinCancel}
+        title="Manager Authorization Required"
+        description="Enter manager PIN to reverse ticket status"
       />
     </>;
 }
