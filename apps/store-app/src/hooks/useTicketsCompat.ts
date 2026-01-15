@@ -46,6 +46,7 @@ import {
   type UITicket,
   type CompletionDetails,
 } from '../store/slices/uiTicketsSlice';
+import type { DeleteReason } from '../types';
 import {
   selectAllStaff,
   loadStaff,
@@ -171,8 +172,8 @@ export function useTicketsCompat() {
     console.log('Cancel ticket:', ticketId);
   }, []);
 
-  const deleteTicket = useCallback((ticketId: string, reason: string) => {
-    dispatch(deleteTicketThunk({ ticketId, reason }));
+  const deleteTicket = useCallback((ticketId: string, reason: DeleteReason, note?: string) => {
+    dispatch(deleteTicketThunk({ ticketId, reason, note }));
   }, [dispatch]);
 
   const resetStaffStatus = useCallback(() => {

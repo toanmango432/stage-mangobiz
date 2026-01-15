@@ -1,6 +1,16 @@
 import { TicketStatus, SyncStatus, ServiceStatus, ServiceStatusChange } from './common';
 
 // ============================================
+// SOFT DELETE TYPES
+// ============================================
+
+/**
+ * Reason for deleting a ticket.
+ * Used for soft delete with categorized reasons for accurate reporting.
+ */
+export type DeleteReason = 'testing' | 'client_left' | 'duplicate' | 'mistake' | 'other';
+
+// ============================================
 // SERVICE-LEVEL INTERFACES
 // ============================================
 

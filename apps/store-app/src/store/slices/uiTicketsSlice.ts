@@ -3,7 +3,7 @@ import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
-import type { CreateTicketInput } from '../../types';
+import type { CreateTicketInput, DeleteReason } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
 // NOTE: Do NOT import thunks from transactionsSlice directly - causes circular dependency
@@ -109,6 +109,10 @@ export interface UITicket {
   // Signature capture (from Mango Pad)
   signatureBase64?: string;
   signatureTimestamp?: string;
+  // Soft delete fields
+  deletedAt?: string;
+  deletedReason?: DeleteReason;
+  deletedNote?: string;
 }
 
 export interface PendingTicket {
@@ -149,6 +153,10 @@ export interface PendingTicket {
   // Signature capture (from Mango Pad)
   signatureBase64?: string;
   signatureTimestamp?: string;
+  // Soft delete fields
+  deletedAt?: string;
+  deletedReason?: DeleteReason;
+  deletedNote?: string;
 }
 
 export interface CompletionDetails {
@@ -1000,25 +1008,64 @@ export const checkInAppointment = createAsyncThunk(
   }
 );
 
-// Delete ticket
+// Delete ticket (soft delete with categorized reason)
 export const deleteTicket = createAsyncThunk(
   'uiTickets/delete',
-  async ({ ticketId, reason }: { ticketId: string; reason: string }) => {
-    // Soft delete in IndexedDB
-    await ticketsDB.delete(ticketId);
+  async ({ ticketId, reason, note }: {
+    ticketId: string;
+    reason: DeleteReason;
+    note?: string;
+  }, { getState }) => {
+    const state = getState() as RootState;
+    const now = new Date();
 
-    // Queue for sync
-    await syncQueueDB.add({
-      type: 'delete',
-      entity: 'ticket',
-      entityId: ticketId,
-      action: 'DELETE',
-      payload: { reason },
-      priority: 2,
-      maxAttempts: 5,
-    });
+    // Find ticket in any array
+    const ticket =
+      state.uiTickets.waitlist.find(t => t.id === ticketId) ||
+      state.uiTickets.serviceTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.pendingTickets.find(t => t.id === ticketId);
 
-    return ticketId;
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    const deleteData = {
+      deletedAt: now.toISOString(),
+      deletedReason: reason,
+      deletedNote: note,
+      updatedAt: now,
+    };
+
+    try {
+      // Soft delete in Supabase - update with delete fields
+      await dataService.tickets.update(ticketId, {
+        deletedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      } as any);
+      console.log('✅ Ticket soft deleted in Supabase:', ticketId, 'Reason:', reason);
+    } catch (error) {
+      console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
+      // Soft delete in IndexedDB
+      await ticketsDB.update(ticketId, deleteData as any, 'current-user');
+
+      // Queue for sync
+      await syncQueueDB.add({
+        type: 'update',
+        entity: 'ticket',
+        entityId: ticketId,
+        action: 'UPDATE',
+        payload: deleteData,
+        priority: 2,
+        maxAttempts: 5,
+      });
+    }
+
+    return {
+      ticketId,
+      reason,
+      note,
+      deletedAt: now.toISOString(),
+    };
   }
 );
 
@@ -1771,12 +1818,14 @@ const uiTicketsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to process payment';
       })
-      // Delete ticket
+      // Delete ticket (soft delete - filter from view by deletedAt)
       .addCase(deleteTicket.fulfilled, (state, action) => {
-        const ticketId = action.payload;
+        const { ticketId } = action.payload;
+        // Filter deleted tickets from all arrays (they're soft-deleted with deletedAt field)
         state.waitlist = state.waitlist.filter(t => t.id !== ticketId);
         state.serviceTickets = state.serviceTickets.filter(t => t.id !== ticketId);
         state.completedTickets = state.completedTickets.filter(t => t.id !== ticketId);
+        state.pendingTickets = state.pendingTickets.filter(t => t.id !== ticketId);
       })
       // Pause ticket - update serviceStatus
       .addCase(pauseTicket.fulfilled, (state, action) => {

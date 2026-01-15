@@ -423,7 +423,8 @@ export const WaitListSection = memo(function WaitListSection({
   // Handle ticket deletion
   const handleDeleteTicket = () => {
     if (ticketToDelete && deleteReason.trim() !== '') {
-      deleteTicket(ticketToDelete, deleteReason);
+      // Use 'other' as reason type with the text as the note for backward compatibility
+      deleteTicket(ticketToDelete, 'other', deleteReason);
       setShowDeleteModal(false);
       setTicketToDelete(null);
       setDeleteReason('');

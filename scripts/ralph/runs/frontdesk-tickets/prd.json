@@ -67,7 +67,7 @@
       ],
       "notes": "Follow assignTicket thunk pattern at lines ~431-498 in uiTicketsSlice. Current handleSubmit only logs and closes - replace entirely. Export the new thunk from the slice.",
       "priority": 3,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-004",
@@ -89,7 +89,7 @@
       ],
       "notes": "assignTicket thunk already exists in uiTicketsSlice - just connect it. Convert ticketId to string if it's a number. TicketActions is only 60 lines.",
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-005",
@@ -116,7 +116,7 @@
       ],
       "notes": "Status values: 'waiting' | 'in-service' | 'completed' | 'paid'. 'completed' = pending checkout. Reference pauseTicket/resumeTicket for thunk pattern. Use AlertDialog from @/components/ui/alert-dialog.",
       "priority": 5,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-006",
@@ -143,7 +143,7 @@
       ],
       "notes": "Current bug: uses lastTicketNumber which doesn't reset daily. Check-in number for vocal call-outs: 'Number 5, you're up!' Ticket ID is permanent record number for receipts.",
       "priority": 6,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007",

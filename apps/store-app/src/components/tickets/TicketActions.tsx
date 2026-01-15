@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTickets } from '@/hooks/useTicketsCompat';
-import { UserCheck, CheckCircle, X, Play, Pause, RotateCcw } from 'lucide-react';
+import { UserCheck, CheckCircle, X, Play, Pause, RotateCcw, Trash2 } from 'lucide-react';
 import { AssignTicketModal } from './AssignTicketModal';
+import { DeleteTicketModal } from './DeleteTicketModal';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -37,6 +38,7 @@ export function TicketActions({
   compact = false
 }: TicketActionsProps) {
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -202,13 +204,13 @@ export function TicketActions({
                 <UserCheck size={compact ? 16 : 18} />
               </button>
             </Tippy>
-            <Tippy content="Cancel ticket">
+            <Tippy content="Delete Ticket">
               <button
-                onClick={handleCancel}
-                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors`}
-                aria-label="Cancel ticket"
+                onClick={() => setShowDeleteModal(true)}
+                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors`}
+                aria-label="Delete ticket"
               >
-                <X size={compact ? 16 : 18} />
+                <Trash2 size={compact ? 16 : 18} />
               </button>
             </Tippy>
           </>
@@ -237,21 +239,41 @@ export function TicketActions({
                 <Pause size={compact ? 16 : 18} />
               </button>
             </Tippy>
+            <Tippy content="Delete Ticket">
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors`}
+                aria-label="Delete ticket"
+              >
+                <Trash2 size={compact ? 16 : 18} />
+              </button>
+            </Tippy>
           </>
         )}
 
         {/* Pending actions */}
         {section === 'pending' && (
-          <Tippy content="Back to Service">
-            <button
-              onClick={() => setConfirmAction('back-to-service')}
-              disabled={isTransitioning}
-              className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50`}
-              aria-label="Back to service"
-            >
-              <RotateCcw size={compact ? 16 : 18} />
-            </button>
-          </Tippy>
+          <>
+            <Tippy content="Back to Service">
+              <button
+                onClick={() => setConfirmAction('back-to-service')}
+                disabled={isTransitioning}
+                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50`}
+                aria-label="Back to service"
+              >
+                <RotateCcw size={compact ? 16 : 18} />
+              </button>
+            </Tippy>
+            <Tippy content="Delete Ticket">
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors`}
+                aria-label="Delete ticket"
+              >
+                <Trash2 size={compact ? 16 : 18} />
+              </button>
+            </Tippy>
+          </>
         )}
       </div>
 
@@ -280,5 +302,13 @@ export function TicketActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Ticket Modal */}
+      <DeleteTicketModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        ticketId={String(ticketId)}
+        clientName={ticket?.clientName}
+      />
     </>;
 }

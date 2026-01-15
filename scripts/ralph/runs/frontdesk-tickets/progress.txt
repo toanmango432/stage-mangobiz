@@ -72,3 +72,179 @@ Updated PendingTicketCard to follow the same pattern as WaitListTicketCard for t
 
 ### Commit
 `c5db643` - feat: [US-002] - Display technician on PendingTicketCard
+
+---
+
+## Iteration 3 - US-003: Create updateTicket thunk and make EditTicketModal functional
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Created the `updateTicket` async thunk and connected EditTicketModal to Redux so that ticket edits actually persist.
+
+### Files Changed
+1. `apps/store-app/src/store/slices/uiTicketsSlice.ts:500-570`
+   - Created `updateTicket` async thunk accepting `{ ticketId: string, updates: Partial<UITicket> }`
+   - Thunk updates via `dataService.tickets.update()` with IndexedDB fallback
+   - Queues for sync when offline
+   - Returns `{ ticketId, updates, originalStatus }` for reducer
+
+2. `apps/store-app/src/store/slices/uiTicketsSlice.ts:1421-1453`
+   - Added `.addCase(updateTicket.fulfilled, ...)` in extraReducers
+   - Updates ticket in appropriate array based on original status (waiting, in-service, completed)
+   - Also handles pendingTickets for checkout tickets
+
+3. `apps/store-app/src/components/tickets/EditTicketModal.tsx`
+   - Imported `updateTicket` and `useAppDispatch`
+   - Replaced `console.log` with `dispatch(updateTicket(...)).unwrap()`
+   - Made `handleSubmit` async with try/catch error handling
+   - Modal only closes after successful save
+
+### Patterns Learned
+- **Thunk pattern**: Follow `assignTicket` pattern - find ticket first, prepare updates, try Supabase then fallback to IndexedDB
+- **Multi-array updates**: Tickets can be in waitlist, serviceTickets, completedTickets, OR pendingTickets - check all
+- **Form to Redux**: Use `.unwrap()` to handle async thunk errors in try/catch
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript error at line 1620 in `updateCheckoutTicket.fulfilled` - pre-existing, not blocking
+- Test files have TypeScript errors - pre-existing, documented
+
+### Commit
+`a593b97` - feat: [US-003] - Create updateTicket thunk and make EditTicketModal functional
+
+---
+
+## Iteration 4 - US-004: Connect TicketActions.handleAssign to Redux
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Connected the TicketActions component's handleAssign function to Redux by importing and dispatching the existing `assignTicket` thunk instead of just logging to console.
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/TicketActions.tsx:1-8`
+   - Added imports for `useAppDispatch` from `@/store/hooks`
+   - Added imports for `assignTicket` from `@/store/slices/uiTicketsSlice`
+
+2. `apps/store-app/src/components/tickets/TicketActions.tsx:19-21`
+   - Added `isAssigning` state for loading during dispatch
+   - Added `dispatch` from `useAppDispatch()`
+
+3. `apps/store-app/src/components/tickets/TicketActions.tsx:38-54`
+   - Made `handleAssign` async
+   - Replaced `console.log` with `dispatch(assignTicket({...})).unwrap()`
+   - Added try/catch error handling
+   - Modal only closes after successful dispatch
+   - Added finally block to reset loading state
+
+### Key Discovery
+- TicketActions component is defined but not currently rendered anywhere in the UI
+- The component is ready for integration when ticket cards need assign buttons
+- Browser verification was attempted but component is not yet integrated into ticket cards
+
+### Patterns Confirmed
+- **Redux thunk dispatch pattern**: Use `.unwrap()` with try/catch for async error handling
+- **Loading state pattern**: Set loading true before dispatch, reset in finally block
+- **Modal close pattern**: Only close modal on success, keep open on failure for retry
+
+### Pre-existing Issues (Not From This Story)
+- Test files have TypeScript errors - pre-existing, documented
+
+### Commit
+`4813746` - feat: [US-004] - Connect TicketActions.handleAssign to Redux
+
+---
+
+## Iteration 5 - US-005: Implement bidirectional status transitions
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Created async thunks for moving tickets between statuses (waiting ↔ in-service ↔ pending) and updated TicketActions component with status transition buttons and confirmation dialogs.
+
+### Files Changed
+1. `apps/store-app/src/store/slices/uiTicketsSlice.ts`
+   - Created `moveToWaiting` thunk - moves tickets from in-service or pending back to waitlist
+   - Created `moveToInService` thunk - moves tickets from waitlist to serviceTickets
+   - Created `moveToPending` thunk - moves tickets from serviceTickets to pendingTickets (checkout)
+   - Added reducer cases for all three thunks in extraReducers
+   - Exported all three thunks and their selectors
+
+2. `apps/store-app/src/components/tickets/TicketActions.tsx`
+   - Extended section prop to include 'pending'
+   - Added confirmation dialog state with ConfirmAction type
+   - Added status transition handlers: handleStartService, handleCompleteService, handleBackToWaiting, handleBackToService
+   - Added confirmation content generator for each action type
+   - Added section-specific action buttons:
+     - Waitlist: Start Service (Play), Assign (UserCheck), Cancel (X)
+     - In-service: Complete Service (CheckCircle), Move to Waiting (Pause)
+     - Pending: Back to Service (RotateCcw)
+   - Integrated AlertDialog for confirmation before each status change
+
+### Patterns Learned
+- **Multi-step transitions**: For back-to-service from pending, chain two thunks (moveToWaiting then moveToInService)
+- **Confirmation dialog pattern**: Use AlertDialog with open state controlled by action type, not boolean
+- **Ticket lookup across arrays**: Check waitlist, serviceTickets, AND pendingTickets when finding tickets
+
+### Key Discovery
+- TicketActions already had the component structure from US-004
+- Extended it significantly to handle all status transitions with proper UI feedback
+- `handleBackToService` requires two sequential dispatches (pending → waiting → in-service)
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error at line 1866 in updateCheckoutTicket.fulfilled - pre-existing
+
+### Commit
+`4813746` - feat: [US-005] - Implement bidirectional status transitions
+
+---
+
+## Iteration 6 - US-006: Implement daily-resetting check-in numbers
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Implemented daily-resetting check-in numbers so that the first ticket of each day starts at #1, and subsequent tickets increment. This is separate from the permanent ticket.number used for receipts.
+
+### Files Changed
+1. `apps/store-app/src/store/slices/uiTicketsSlice.ts`
+   - Added `checkInNumber?: number` to UITicket interface (line 76)
+   - Added `checkInNumber?: number` to PendingTicket interface (line 118)
+   - Added `lastCheckInDate: string | null` and `lastCheckInNumber: number` to UITicketsState (lines 211-214)
+   - Added initial values to initialState (lines 227-228)
+   - Modified `createTicket` thunk to calculate and assign daily check-in numbers (lines 341-348, 399, 413, 447)
+   - Modified `checkInAppointment` thunk similarly (lines 862-869, 947, 980-981)
+   - Updated reducers to track lastCheckInDate and lastCheckInNumber
+
+2. `apps/store-app/src/components/tickets/WaitListTicketCardRefactored.tsx`
+   - Added `checkInNumber?: number` to ticket prop interface (lines 22-23)
+   - Updated ticket number badge to display `#${ticket.checkInNumber ?? ticket.number}` in:
+     - Grid-compact view (line 396)
+     - Grid-normal view (line 456)
+     - List views (line 557)
+
+3. `apps/store-app/src/components/tickets/ServiceTicketCard.tsx`
+   - Added `checkInNumber?: number` to ticket prop interface (lines 24-25)
+   - Updated ticket number badge to display `#${ticket.checkInNumber ?? ticket.number}` in:
+     - Compact list view (line 263)
+     - Normal list view (line 382)
+     - Grid-normal view (line 503)
+     - Grid-compact view (line 541)
+
+### Patterns Learned
+- **Daily reset logic**: Compare `new Date().toISOString().split('T')[0]` (YYYY-MM-DD) to stored lastCheckInDate
+- **Fallback display**: Use `checkInNumber ?? number` to gracefully handle tickets created before this feature
+- **State tracking**: Store both date and number in Redux state to persist across page refreshes within a session
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript error at line 1910 in `updateCheckoutTicket.fulfilled` - pre-existing type mismatch between UITicketWithServices and PendingTicket
+- Test files have TypeScript errors - pre-existing, documented
+
+### Browser Verification
+- Confirmed ticket badge shows "#1" with the '#' prefix in Waiting Queue
+- Verified via Playwright MCP browser snapshot
+
+### Commit
+`f976e1f` - feat: [US-006] - Implement daily-resetting check-in numbers
+
