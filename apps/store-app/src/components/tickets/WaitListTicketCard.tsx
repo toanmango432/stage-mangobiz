@@ -23,6 +23,23 @@ interface WaitListTicketCardProps {
     time: string;
     notes?: string;
     priority?: 'normal' | 'high';
+    // Technician assignment
+    technician?: string;
+    techColor?: string;
+    techId?: string;
+    assignedTo?: {
+      id: string;
+      name: string;
+      color: string;
+      photo?: string;
+    };
+    // Multi-staff support
+    assignedStaff?: Array<{
+      id: string;
+      name: string;
+      color: string;
+      photo?: string;
+    }>;
     // Actual services from checkout panel (auto-saved)
     checkoutServices?: CheckoutService[];
     // Whether this is the client's first visit (from client lookup)
@@ -130,6 +147,44 @@ export function WaitListTicketCard({
   // Use isFirstVisit prop if provided (from client lookup), fallback to clientType check
   const isFirstVisit = ticket.isFirstVisit || ticket.clientType === 'New';
   const hasNote = !!ticket.notes;
+
+  // Get staff info - support multiple staff
+  const staffList = ticket.assignedStaff || (ticket.assignedTo ? [ticket.assignedTo] : []);
+  const hasAssignedStaff = staffList.length > 0;
+
+  // Use exact staff color for badge
+  const getStaffColor = (staff: { color?: string }) => staff.color || '#6B7280';
+
+  // Helper to get first name only
+  const getFirstName = (fullName: string) => {
+    return fullName.split(' ')[0].toUpperCase();
+  };
+
+  // Render staff avatar with photo or initial
+  const renderStaffAvatar = (staff: { name: string; color?: string; photo?: string }, size: 'sm' | 'md' = 'sm') => {
+    const sizeClasses = size === 'sm' ? 'w-5 h-5' : 'w-8 h-8';
+    const textSize = size === 'sm' ? 'text-2xs' : 'text-xs';
+
+    if (staff.photo) {
+      return (
+        <img
+          src={staff.photo}
+          alt={staff.name}
+          className={`${sizeClasses} rounded-full object-cover border border-white/50 flex-shrink-0`}
+          style={{ boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}
+        />
+      );
+    }
+    // Default avatar with initial
+    return (
+      <div
+        className={`${sizeClasses} rounded-full flex items-center justify-center ${textSize} font-semibold text-white flex-shrink-0`}
+        style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)' }}
+      >
+        {staff.name.charAt(0).toUpperCase()}
+      </div>
+    );
+  };
 
   // Compute actual service display from checkoutServices if available
   const hasCheckoutServices = ticket.checkoutServices && ticket.checkoutServices.length > 0;
@@ -241,8 +296,23 @@ export function WaitListTicketCard({
                 </div>
               </div>
 
-              {/* Right: Wait time */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Right: Staff badges + Wait time */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Staff badges (max 2) */}
+                {hasAssignedStaff && (
+                  <div className="flex items-center gap-1">
+                    {staffList.slice(0, 2).map((staff, i) => (
+                      <div key={i} className="flex items-center gap-0.5">
+                        {renderStaffAvatar(staff, 'sm')}
+                        <div className="text-white text-2xs font-semibold px-1 py-0.5 rounded"
+                             style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}>
+                          {getFirstName(staff.name)}
+                        </div>
+                      </div>
+                    ))}
+                    {staffList.length > 2 && <span className="text-2xs text-[#6b5d52]">+{staffList.length - 2}</span>}
+                  </div>
+                )}
                 <span className="text-2xs whitespace-nowrap flex items-center gap-0.5" style={{ color: getWaitTimeColor() }}>
                   {isLongWait && <span className="inline-block w-1 h-1 rounded-full bg-current animate-pulse" />}
                   {formatWaitTime(waitTime)}
@@ -345,7 +415,7 @@ export function WaitListTicketCard({
           {/* Divider - spans full content width */}
           <div className="border-t border-[#e8dcc8]/50" />
 
-          {/* Row 2: Service + Assign button */}
+          {/* Row 2: Service + Staff badges + Assign button */}
           <div className="flex items-center justify-between gap-1.5 mt-0.5">
             <div className="text-sm text-[#1a1614] font-semibold leading-snug flex-1 min-w-0 flex items-center gap-1.5">
               <span className="truncate">{serviceDisplay}</span>
@@ -356,8 +426,23 @@ export function WaitListTicketCard({
               )}
             </div>
 
-            {/* Assign button */}
-            <div className="flex-shrink-0">
+            {/* Staff badges + Assign button */}
+            <div className="relative flex-shrink-0 flex items-center gap-2">
+              {/* Staff badges */}
+              {hasAssignedStaff && (
+                <div className="flex items-center gap-1.5">
+                  {staffList.map((staff, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      {renderStaffAvatar(staff, 'sm')}
+                      <div className="text-white text-xs font-semibold px-2 py-0.5 rounded-md border border-white/30 tracking-wide"
+                           style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                        {getFirstName(staff.name)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Assign button */}
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
                 className="w-11 h-11 sm:w-10 sm:h-10 min-w-[44px] sm:min-w-[40px] min-h-[44px] sm:min-h-[40px] flex items-center justify-center bg-white border-2 border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 hover:scale-105 active:scale-95 transition-all duration-250 rounded-full flex-shrink-0"
@@ -679,8 +764,20 @@ export function WaitListTicketCard({
         {/* Spacer to push footer to bottom */}
         <div className="flex-grow" />
 
-        {/* Footer Row: Action chip (assign) */}
-        <div className="flex items-center justify-end gap-2">
+        {/* Footer Row: Staff badges + Action chip (assign) */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Staff badges */}
+          <div className="flex items-center flex-wrap gap-1.5 min-w-0 flex-1">
+            {hasAssignedStaff && staffList.map((staff, index) => (
+              <div key={index} className="flex items-center gap-1 cursor-pointer hover:scale-105 transition-transform">
+                {renderStaffAvatar(staff, 'md')}
+                <div className="text-white text-2xs sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/30 tracking-wide"
+                     style={{ background: getStaffColor(staff), boxShadow: '0 3px 6px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5)', textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)' }}>
+                  {getFirstName(staff.name)}
+                </div>
+              </div>
+            ))}
+          </div>
           {/* Action chip - assign */}
           <button
             onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
@@ -814,8 +911,23 @@ export function WaitListTicketCard({
           </div>
         </div>
 
-        {/* Row 3: Assign Button */}
-        <div className="flex items-center gap-0.5 mb-1">
+        {/* Row 3: Staff badges + Assign Button */}
+        <div className="flex items-center gap-1 mb-1">
+          {/* Staff badges (max 2) */}
+          {hasAssignedStaff && (
+            <div className="flex items-center gap-0.5 min-w-0 flex-1">
+              {staffList.slice(0, 2).map((staff, i) => (
+                <div key={i} className="flex items-center gap-0.5">
+                  {renderStaffAvatar(staff, 'sm')}
+                  <div className="text-white text-2xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border border-white/30 tracking-wide"
+                       style={{ background: getStaffColor(staff), boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5)' }}>
+                    {getFirstName(staff.name)}
+                  </div>
+                </div>
+              ))}
+              {staffList.length > 2 && <span className="text-2xs text-[#6b5d52] font-medium">+{staffList.length - 2}</span>}
+            </div>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
             className="p-0.5 rounded bg-white hover:bg-blue-50 active:bg-blue-100 transition-all flex-shrink-0"
