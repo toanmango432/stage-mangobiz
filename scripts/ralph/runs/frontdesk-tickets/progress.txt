@@ -517,3 +517,41 @@ Note: Verified in previous session before context compaction:
 `0c27823` - feat: [US-011] - Add service selection to CreateTicketModal
 
 ---
+
+## Iteration 12 - US-012: Connect ComingAppointments Edit action to appointment edit flow
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Connected the Edit Appointment button in ComingAppointments action menu to actually navigate to the Book module with the appointment ID. Added `onEditAppointment` callback prop and implemented `handleEditAppointment` function that dispatches a navigation event.
+
+### Files Changed
+1. `apps/store-app/src/components/frontdesk/ComingAppointments.tsx`
+   - Added `onEditAppointment?: (appointmentId: string) => void` to interface (line 27)
+   - Added `onEditAppointment` to destructured props (line 37)
+   - Created `handleEditAppointment` function using `useCallback` (lines 148-165):
+     - Calls `onEditAppointment(appointmentId)` if callback provided
+     - Dispatches `CustomEvent('navigate-to-module', { detail: { module: 'book', appointmentId } })`
+     - Closes action menu and clears active appointment
+   - Added `onClick={handleEditAppointment}` to Edit Appointment button (line 739)
+
+### Key Implementation Details
+- **Event dispatch pattern**: Uses `window.dispatchEvent(new CustomEvent(...))` for module navigation
+- **Callback prop pattern**: Optional callback allows parent components to hook into the action
+- **Cleanup**: Closes menu and clears state after action
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+- Walk-in appointment creation has bug: "clientId: client with id 'walk-in' does not exist"
+
+### Browser Verification
+- Navigated to Tickets module → Coming tab
+- Verified Coming section UI structure exists with timeframe tabs
+- Could not create test appointment due to pre-existing walk-in client bug
+- Code implementation verified correct through reading source
+
+### Commit
+`f0b6814` - feat: [US-012] - Connect ComingAppointments Edit action to appointment edit flow
+
+---

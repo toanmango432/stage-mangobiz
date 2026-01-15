@@ -287,7 +287,7 @@
       ],
       "notes": "Currently 'Edit Appointment' button just logs to console. Follow navigation pattern from codebase-patterns.md. ComingAppointments is 801 lines.",
       "priority": 12,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-013",
