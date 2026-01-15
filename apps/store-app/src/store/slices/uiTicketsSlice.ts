@@ -986,6 +986,217 @@ export const deleteTicket = createAsyncThunk(
 );
 
 // ============================================================================
+// STATUS TRANSITION THUNKS (Bidirectional)
+// ============================================================================
+
+// Move ticket back to waiting (from in-service or pending)
+export const moveToWaiting = createAsyncThunk(
+  'uiTickets/moveToWaiting',
+  async (ticketId: string, { getState }) => {
+    const state = getState() as RootState;
+    const now = new Date();
+
+    // Find ticket in any array
+    const serviceTicket = state.uiTickets.serviceTickets.find(t => t.id === ticketId);
+    const pendingTicket = state.uiTickets.pendingTickets.find(t => t.id === ticketId);
+    const ticket = serviceTicket || pendingTicket;
+
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    const previousStatus = serviceTicket ? 'in-service' : 'completed';
+
+    const updates = {
+      status: 'waiting' as const,
+      serviceStatus: 'not_started' as ServiceStatus,
+      updatedAt: now,
+    };
+
+    try {
+      // Update in Supabase - use 'pending' which maps to 'waiting' in UI
+      await dataService.tickets.updateStatus(ticketId, 'pending');
+      console.log('✅ Ticket moved to waiting in Supabase:', ticketId);
+    } catch (error) {
+      console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
+      await ticketsDB.update(ticketId, {
+        status: 'waiting',
+        updatedAt: now,
+      } as any, 'current-user');
+
+      await syncQueueDB.add({
+        type: 'update',
+        entity: 'ticket',
+        entityId: ticketId,
+        action: 'UPDATE',
+        payload: updates,
+        priority: 2,
+        maxAttempts: 5,
+      });
+    }
+
+    return {
+      ticketId,
+      updates,
+      previousStatus,
+      ticket: serviceTicket ? {
+        ...serviceTicket,
+        ...updates,
+      } : {
+        // Convert PendingTicket to UITicket
+        id: pendingTicket!.id,
+        number: pendingTicket!.number,
+        clientName: pendingTicket!.clientName,
+        clientType: pendingTicket!.clientType,
+        service: pendingTicket!.service,
+        time: pendingTicket!.time,
+        duration: pendingTicket!.duration,
+        status: 'waiting' as const,
+        serviceStatus: 'not_started' as ServiceStatus,
+        technician: pendingTicket!.technician,
+        techColor: pendingTicket!.techColor,
+        techId: pendingTicket!.techId,
+        assignedStaff: pendingTicket!.assignedStaff,
+        notes: pendingTicket!.notes,
+        createdAt: now,
+        updatedAt: now,
+        lastVisitDate: pendingTicket!.lastVisitDate,
+      },
+    };
+  }
+);
+
+// Move ticket to in-service (from waiting)
+export const moveToInService = createAsyncThunk(
+  'uiTickets/moveToInService',
+  async (ticketId: string, { getState }) => {
+    const state = getState() as RootState;
+    const now = new Date();
+
+    // Find ticket in waitlist
+    const ticket = state.uiTickets.waitlist.find(t => t.id === ticketId);
+
+    if (!ticket) {
+      throw new Error('Ticket not found in waitlist');
+    }
+
+    const updates = {
+      status: 'in-service' as const,
+      serviceStatus: 'in_progress' as ServiceStatus,
+      updatedAt: now,
+    };
+
+    try {
+      // Update in Supabase
+      await dataService.tickets.updateStatus(ticketId, 'in-service');
+      console.log('✅ Ticket moved to in-service in Supabase:', ticketId);
+    } catch (error) {
+      console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
+      await ticketsDB.update(ticketId, {
+        status: 'in-service',
+        updatedAt: now,
+      } as any, 'current-user');
+
+      await syncQueueDB.add({
+        type: 'update',
+        entity: 'ticket',
+        entityId: ticketId,
+        action: 'UPDATE',
+        payload: updates,
+        priority: 2,
+        maxAttempts: 5,
+      });
+    }
+
+    return {
+      ticketId,
+      updates,
+      ticket: {
+        ...ticket,
+        ...updates,
+      },
+    };
+  }
+);
+
+// Move ticket to pending/completed (from in-service)
+export const moveToPending = createAsyncThunk(
+  'uiTickets/moveToPending',
+  async (ticketId: string, { getState }) => {
+    const state = getState() as RootState;
+    const now = new Date();
+
+    // Find ticket in service tickets
+    const ticket = state.uiTickets.serviceTickets.find(t => t.id === ticketId);
+
+    if (!ticket) {
+      throw new Error('Ticket not found in service');
+    }
+
+    const updates = {
+      status: 'completed' as const,
+      serviceStatus: 'completed' as ServiceStatus,
+      completedAt: now.toISOString(),
+      updatedAt: now,
+    };
+
+    try {
+      // Update in Supabase
+      await dataService.tickets.updateStatus(ticketId, 'completed');
+      console.log('✅ Ticket moved to pending in Supabase:', ticketId);
+    } catch (error) {
+      console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
+      await ticketsDB.update(ticketId, {
+        status: 'completed',
+        updatedAt: now,
+      } as any, 'current-user');
+
+      await syncQueueDB.add({
+        type: 'update',
+        entity: 'ticket',
+        entityId: ticketId,
+        action: 'UPDATE',
+        payload: updates,
+        priority: 2,
+        maxAttempts: 5,
+      });
+    }
+
+    // Create pending ticket data
+    const pendingTicket: PendingTicket = {
+      id: ticket.id,
+      number: ticket.number,
+      clientName: ticket.clientName,
+      clientType: ticket.clientType,
+      service: ticket.service,
+      additionalServices: 0,
+      subtotal: 0,
+      tax: 0,
+      tip: 0,
+      paymentType: 'card',
+      time: ticket.time,
+      duration: ticket.duration,
+      notes: ticket.notes,
+      technician: ticket.technician,
+      techColor: ticket.techColor,
+      techId: ticket.techId,
+      assignedStaff: ticket.assignedStaff,
+      lastVisitDate: ticket.lastVisitDate,
+      status: 'completed',
+      completedAt: now.toISOString(),
+      checkoutServices: ticket.checkoutServices,
+      clientId: ticket.clientId,
+    };
+
+    return {
+      ticketId,
+      updates,
+      pendingTicket,
+    };
+  }
+);
+
+// ============================================================================
 // CHECKOUT → FRONT DESK INTEGRATION THUNKS
 // ============================================================================
 
@@ -1546,6 +1757,41 @@ const uiTicketsSlice = createSlice({
             updatedAt: updates.updatedAt,
           };
         }
+      })
+      // Move ticket to waiting - from in-service or pending
+      .addCase(moveToWaiting.fulfilled, (state, action) => {
+        const { ticketId, previousStatus, ticket } = action.payload;
+
+        if (previousStatus === 'in-service') {
+          // Remove from service tickets
+          state.serviceTickets = state.serviceTickets.filter(t => t.id !== ticketId);
+        } else {
+          // Remove from pending tickets
+          state.pendingTickets = state.pendingTickets.filter(t => t.id !== ticketId);
+        }
+
+        // Add to waitlist
+        state.waitlist.push(ticket);
+      })
+      // Move ticket to in-service - from waiting
+      .addCase(moveToInService.fulfilled, (state, action) => {
+        const { ticketId, ticket } = action.payload;
+
+        // Remove from waitlist
+        state.waitlist = state.waitlist.filter(t => t.id !== ticketId);
+
+        // Add to service tickets
+        state.serviceTickets.push(ticket);
+      })
+      // Move ticket to pending - from in-service
+      .addCase(moveToPending.fulfilled, (state, action) => {
+        const { ticketId, pendingTicket } = action.payload;
+
+        // Remove from service tickets
+        state.serviceTickets = state.serviceTickets.filter(t => t.id !== ticketId);
+
+        // Add to pending tickets
+        state.pendingTickets.push(pendingTicket);
       })
       // Create checkout ticket - add to appropriate array based on status
       .addCase(createCheckoutTicket.fulfilled, (state, action) => {
