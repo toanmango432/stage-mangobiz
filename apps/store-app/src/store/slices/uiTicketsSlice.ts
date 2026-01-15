@@ -71,6 +71,9 @@ export type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'complete
 export interface UITicket {
   id: string;
   number: number;
+  // Daily-resetting check-in number for vocal call-outs (e.g., "Number 5, you're up!")
+  // Separate from ticket.number which is the permanent receipt/record ID
+  checkInNumber?: number;
   clientName: string;
   clientType: string;
   service: string;
@@ -111,6 +114,8 @@ export interface UITicket {
 export interface PendingTicket {
   id: string;
   number: number;
+  // Daily-resetting check-in number for vocal call-outs (e.g., "Number 5, you're up!")
+  checkInNumber?: number;
   clientName: string;
   clientType: string;
   service: string;
@@ -204,6 +209,11 @@ interface UITicketsState {
   loading: boolean;
   error: string | null;
   lastTicketNumber: number;
+  // Daily-resetting check-in number tracking
+  // lastCheckInDate: ISO date string (YYYY-MM-DD) of when lastCheckInNumber was last used
+  // lastCheckInNumber: The most recent check-in number assigned today
+  lastCheckInDate: string | null;
+  lastCheckInNumber: number;
 }
 
 // Start with empty state - tickets load from IndexedDB
@@ -215,6 +225,9 @@ const initialState: UITicketsState = {
   loading: false,
   error: null,
   lastTicketNumber: 0,
+  // Daily check-in number tracking
+  lastCheckInDate: null,
+  lastCheckInNumber: 0,
 };
 
 // Async Thunks
@@ -327,6 +340,15 @@ export const createTicket = createAsyncThunk(
     const state = getState() as RootState;
     const ticketNumber = state.uiTickets.lastTicketNumber + 1;
 
+    // Calculate daily-resetting check-in number
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const { lastCheckInDate, lastCheckInNumber } = state.uiTickets;
+
+    // Reset to 1 if new day, otherwise increment
+    const checkInNumber = lastCheckInDate === today
+      ? lastCheckInNumber + 1
+      : 1;
+
     try {
       // Build ticket for Supabase using CreateTicketInput
       const ticketInput: CreateTicketInput = {
@@ -376,12 +398,13 @@ export const createTicket = createAsyncThunk(
         ...ticketData,
         id: createdTicket.id,
         number: ticketNumber, // Use local numbering for display
+        checkInNumber, // Daily-resetting check-in number for call-outs
         status: 'waiting', // UI uses 'waiting'
         createdAt: new Date(createdTicket.createdAt || new Date()),
         updatedAt: new Date(createdTicket.updatedAt || new Date()),
       };
 
-      return newTicket;
+      return { ticket: newTicket, checkInDate: today, checkInNumber };
     } catch (error) {
       console.error('❌ Failed to create ticket in Supabase:', error);
       // Fallback to IndexedDB for offline
@@ -389,6 +412,7 @@ export const createTicket = createAsyncThunk(
         ...ticketData,
         id: uuidv4(),
         number: ticketNumber,
+        checkInNumber, // Daily-resetting check-in number for call-outs
         status: 'waiting',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -422,7 +446,7 @@ export const createTicket = createAsyncThunk(
         maxAttempts: 5,
       });
 
-      return newTicket;
+      return { ticket: newTicket, checkInDate: today, checkInNumber };
     }
   }
 );
@@ -848,6 +872,15 @@ export const checkInAppointment = createAsyncThunk(
     const state = getState() as RootState;
     const ticketNumber = state.uiTickets.lastTicketNumber + 1;
 
+    // Calculate daily-resetting check-in number
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const { lastCheckInDate, lastCheckInNumber } = state.uiTickets;
+
+    // Reset to 1 if new day, otherwise increment
+    const checkInNumber = lastCheckInDate === today
+      ? lastCheckInNumber + 1
+      : 1;
+
     // Get appointment from the store
     const appointment = state.appointments.appointments.find(apt => apt.id === appointmentId);
 
@@ -924,6 +957,7 @@ export const checkInAppointment = createAsyncThunk(
       const newTicket: UITicket = {
         id: createdTicket.id,
         number: ticketNumber,
+        checkInNumber, // Daily-resetting check-in number for call-outs
         clientName: appointment.clientName || 'Guest',
         clientType: appointment.clientId ? 'appointment' : 'walk-in',
         service: primaryService.serviceName || 'Service',
@@ -955,6 +989,9 @@ export const checkInAppointment = createAsyncThunk(
       return {
         ticket: newTicket,
         appointmentId: String(appointmentServerId),
+        // Include check-in tracking for reducer to update state
+        checkInDate: today,
+        checkInNumber,
       };
     } catch (error) {
       console.error('❌ Failed to check-in appointment:', error);
@@ -1608,14 +1645,21 @@ const uiTicketsSlice = createSlice({
       })
       // Create ticket
       .addCase(createTicket.fulfilled, (state, action) => {
-        state.waitlist.push(action.payload);
-        state.lastTicketNumber = action.payload.number;
+        const { ticket, checkInDate, checkInNumber } = action.payload;
+        state.waitlist.push(ticket);
+        state.lastTicketNumber = ticket.number;
+        // Update daily check-in tracking
+        state.lastCheckInDate = checkInDate;
+        state.lastCheckInNumber = checkInNumber;
       })
       // Check-in appointment - add ticket to waitlist
       .addCase(checkInAppointment.fulfilled, (state, action) => {
-        const { ticket } = action.payload;
+        const { ticket, checkInDate, checkInNumber } = action.payload;
         state.waitlist.push(ticket);
         state.lastTicketNumber = ticket.number;
+        // Update daily check-in tracking
+        state.lastCheckInDate = checkInDate;
+        state.lastCheckInNumber = checkInNumber;
       })
       // Assign ticket
       .addCase(assignTicket.fulfilled, (state, action) => {
