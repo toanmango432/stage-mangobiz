@@ -203,7 +203,13 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
   const offlineAlertSentRef = useRef(false);
   const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousScreenRef = useRef<PadScreen>('waiting');
+  const currentScreenRef = useRef<PadScreen>(currentScreen); // Track current screen for heartbeat
   const customerStartedRef = useRef(false); // Track if customer_started has been sent
+
+  // Keep currentScreenRef in sync with Redux state (for use in heartbeat interval)
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
+  }, [currentScreen]);
 
   // Compute activeTransaction from Redux state
   const activeTransaction: ActiveTransaction | null = transactionState.current
@@ -514,8 +520,8 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
     console.log('[PadMqttProvider] Will publish heartbeats to:', heartbeatTopic);
 
     const publishHeartbeat = () => {
-      // Get current screen from Redux state
-      const currentScreen = (window as unknown as { __REDUX_STORE__?: { getState: () => { pad: { currentScreen: string } } } }).__REDUX_STORE__?.getState?.()?.pad?.currentScreen || 'idle';
+      // Get current screen from ref (updated by separate effect to avoid stale closure)
+      const screen = currentScreenRef.current;
 
       const payload = {
         deviceId,
@@ -523,7 +529,7 @@ export function PadMqttProvider({ children }: PadMqttProviderProps) {
         salonId,
         pairedTo: stationId,
         timestamp: new Date().toISOString(),
-        screen: currentScreen,
+        screen,
       };
 
       mqttService.publish(heartbeatTopic, payload).catch((err) => {
