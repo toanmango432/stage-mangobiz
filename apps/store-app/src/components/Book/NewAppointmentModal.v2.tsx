@@ -4,7 +4,7 @@
  */
 
 import { useEffect } from 'react';
-import { X, Calendar, Clock, Plus, PanelRightClose, Maximize, Check, ArrowDownToLine, LayoutPanelLeft, Lock } from 'lucide-react';
+import { X, Calendar, Clock, Plus, PanelRightClose, Maximize, Check, ArrowDownToLine, LayoutPanelLeft, Lock, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { menuServicesDB } from '../../db/database';
 import toast from 'react-hot-toast';
@@ -561,6 +561,21 @@ export function NewAppointmentModalV2({
             {formState.bookingMode === 'group' ? (
               <div className="flex-1 overflow-y-auto p-5">
                 <p className="text-sm text-gray-500">Group booking mode - coming soon</p>
+              </div>
+            ) : formState.selectedClients.length === 0 ? (
+              /* Step 1: Choose Client message when no client selected */
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="text-center max-w-sm">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-100 flex items-center justify-center">
+                    <User className="w-8 h-8 text-brand-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Step 1: Choose Client
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Select an existing client, add a new one, or choose walk-in to continue
+                  </p>
+                </div>
               </div>
             ) : (
               <>
