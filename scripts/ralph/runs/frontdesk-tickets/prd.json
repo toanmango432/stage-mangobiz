@@ -221,7 +221,7 @@
       ],
       "notes": "CreateTicketModal exists at 324 lines - uses useTickets().createTicket which may need to connect to Redux. Follow pattern from other ticket modals for Redux integration.",
       "priority": 9,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010",

@@ -354,3 +354,50 @@ Created ManagerPinModal component for manager PIN verification and integrated it
 `d6cdedd` - feat: [US-008] - Add manager PIN verification for sensitive actions
 
 ---
+
+## Iteration 9 - US-009: Connect CreateTicketModal to Front Desk with Redux
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Connected CreateTicketModal to Redux and added CreateTicketButton FAB to Front Desk. Discovered that useTickets().createTicket already dispatches the Redux createTicket thunk - so the Redux connection was already working. Added success toast and rendered the FAB button.
+
+### Key Discovery
+- `useTickets().createTicket` (from useTicketsCompat.ts:158-160) **already dispatches the Redux thunk**
+- The `createTicket` thunk in uiTicketsSlice.ts already sets status to 'waiting' (line 410)
+- The modal was already Redux-connected via the compat hook - just needed UI additions
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/CreateTicketModal.tsx:3`
+   - Added `import toast from 'react-hot-toast'`
+   - Added `toast.success()` call after ticket creation (line 103)
+
+2. `apps/store-app/src/components/frontdesk/CreateTicketButton.tsx`
+   - Changed onClick prop from required to optional
+   - Added useState for modal open/close
+   - Added CreateTicketModal component with internal state management
+   - When onClick is not provided, clicking opens the modal (default behavior)
+
+3. `apps/store-app/src/components/frontdesk/FrontDesk.tsx:12,917-918`
+   - Imported CreateTicketButton component
+   - Rendered CreateTicketButton FAB after TurnTrackerFab
+
+### Patterns Learned
+- **useTicketsCompat is the Redux bridge**: Components using `useTickets()` are already Redux-connected
+- **FAB self-contained pattern**: Make FABs manage their own modal state for easier reuse
+- **Backward compatibility**: Keep onClick prop optional to support custom handlers
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+
+### Browser Verification
+- Clicked green FAB → CreateTicketModal opened
+- Filled "Jane Test" as client, "Pedicure" as service
+- Submitted → Ticket appeared in WaitListSection with #2 check-in number
+- Console showed: "✅ Ticket created in Supabase: 0050023d-..."
+
+### Commit
+`cf9df85` - feat: [US-009] - Connect CreateTicketModal to Front Desk with Redux
+
+---
