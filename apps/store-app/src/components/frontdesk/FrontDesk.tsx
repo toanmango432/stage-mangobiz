@@ -9,7 +9,7 @@ import { WaitListSection } from './WaitListSection';
 import { ComingAppointments } from './ComingAppointments';
 import { TurnTrackerFab } from '@/components/TurnTracker/TurnTrackerFab';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-// CreateTicketModal removed - now navigating to Checkout page instead
+import { CreateTicketButton } from './CreateTicketButton';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
@@ -914,6 +914,8 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
           dispatchStaffSidebarEvent('open-turn-tracker');
         }} />
       )}
+      {/* US-009: Create Ticket FAB - Opens CreateTicketModal for walk-in tickets */}
+      <CreateTicketButton />
       {/* Add the new FrontDeskSettings component */}
       <SettingsErrorBoundary>
         <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />

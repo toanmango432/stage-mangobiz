@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, Tag, User, AlertCircle, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { MobileSheet, MobileSheetContent, MobileSheetFooter, MobileSheetButton } from '@/components/layout/MobileSheet';
 import { useBreakpoint } from '@/hooks/useMobileModal';
@@ -97,8 +98,9 @@ export function CreateTicketModal({
       createTicket(ticketData);
     }
 
-    // Success feedback and close
+    // Success feedback with toast and close
     haptics.success();
+    toast.success(`Ticket created for ${clientName}`);
     onClose();
   };
 
