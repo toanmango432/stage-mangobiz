@@ -87,7 +87,7 @@ export interface ActiveTransaction {
     success: boolean;
     cardLast4?: string;
     cardBrand?: string;
-    errorMessage?: string;
+    failureReason?: string;  // Aligned with PaymentResult interface
   };
 }
 
@@ -269,6 +269,8 @@ export interface PairingInfo {
   stationName: string;
   deviceId: string;
   pairedAt: string;
+  /** Custom name for this pad (e.g., "Front Desk Pad", "Station 2") */
+  padName?: string;
 }
 
 /**

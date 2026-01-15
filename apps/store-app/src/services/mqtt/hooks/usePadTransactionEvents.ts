@@ -18,11 +18,13 @@ import {
   setReceiptPreference,
   setTransactionComplete,
   setTransactionFailed,
+  setPadScreenChanged,
+  setCustomerStarted,
 } from '@/store/slices/padTransactionSlice';
 import { setTip, setCheckoutStep } from '@/store/slices/checkoutSlice';
 import { updateTicketInSupabase } from '@/store/slices/ticketsSlice';
 import { addNotification } from '@/store/slices/uiSlice';
-import { useMqttContext } from '../MqttProvider';
+import { useMqttContextOptional } from '../MqttProvider';
 import { buildTopic, TOPIC_PATTERNS } from '../topics';
 import { isMqttEnabled } from '../featureFlags';
 import { getOrCreateDeviceId } from '@/services/deviceRegistration';
@@ -32,6 +34,8 @@ import type {
   PadSignaturePayload,
   PadReceiptPreferencePayload,
   PadTransactionCompletePayload,
+  PadScreenChangedPayload,
+  PadCustomerStartedPayload,
 } from '../types';
 
 /**
@@ -58,7 +62,9 @@ function getReceiptNotificationMessage(
 
 export function usePadTransactionEvents() {
   const dispatch = useAppDispatch();
-  const { subscribe, connection } = useMqttContext();
+  const mqttContext = useMqttContextOptional();
+  const subscribe = mqttContext?.subscribe;
+  const connection = mqttContext?.connection;
   const storeId = useAppSelector(selectStoreId);
 
   // Get station ID (this device's fingerprint) for device-to-device communication
@@ -148,10 +154,49 @@ export function usePadTransactionEvents() {
     [dispatch]
   );
 
+  // Handle screen change events from Mango Pad (real-time sync)
+  const handleScreenChanged = useCallback(
+    (_topic: string, message: MqttMessage<PadScreenChangedPayload>) => {
+      const { transactionId, screen, previousScreen, changedAt } = message.payload;
+
+      console.log(`[PadTransactionEvents] Screen changed: ${previousScreen} -> ${screen}`);
+
+      dispatch(
+        setPadScreenChanged({
+          transactionId,
+          screen,
+          previousScreen,
+          changedAt,
+        })
+      );
+    },
+    [dispatch]
+  );
+
+  // Handle customer started event (when customer first interacts with Pad)
+  const handleCustomerStarted = useCallback(
+    (_topic: string, message: MqttMessage<PadCustomerStartedPayload>) => {
+      const { transactionId, screen } = message.payload;
+
+      console.log(`[PadTransactionEvents] Customer started interacting on screen: ${screen}`);
+
+      dispatch(setCustomerStarted({ transactionId }));
+
+      dispatch(
+        addNotification({
+          type: 'info',
+          message: 'Customer is viewing checkout on Pad',
+        })
+      );
+    },
+    [dispatch]
+  );
+
   useEffect(() => {
     if (!isMqttEnabled()) return;
-    if (connection.state !== 'connected') return;
-    if (!storeId) return;
+    if (!mqttContext) return; // MQTT context not available (e.g., rendered outside MqttProvider)
+    if (connection?.state !== 'connected') return;
+    if (!storeId || !subscribe) return;
 
     console.log('[usePadTransactionEvents] Subscribing to station-specific topics');
     console.log('[usePadTransactionEvents] Station ID:', stationId);
@@ -161,22 +206,36 @@ export function usePadTransactionEvents() {
     const signatureTopic = buildTopic(TOPIC_PATTERNS.PAD_SIGNATURE_CAPTURED, { storeId, stationId });
     const receiptTopic = buildTopic(TOPIC_PATTERNS.PAD_RECEIPT_PREFERENCE, { storeId, stationId });
     const completeTopic = buildTopic(TOPIC_PATTERNS.PAD_TRANSACTION_COMPLETE, { storeId, stationId });
+    const screenChangedTopic = buildTopic(TOPIC_PATTERNS.PAD_SCREEN_CHANGED, { storeId, stationId });
+    const customerStartedTopic = buildTopic(TOPIC_PATTERNS.PAD_CUSTOMER_STARTED, { storeId, stationId });
 
-    console.log('[usePadTransactionEvents] Topic patterns:', { tipTopic, signatureTopic, receiptTopic, completeTopic });
+    console.log('[usePadTransactionEvents] Topic patterns:', {
+      tipTopic,
+      signatureTopic,
+      receiptTopic,
+      completeTopic,
+      screenChangedTopic,
+      customerStartedTopic,
+    });
 
     const unsubTip = subscribe(tipTopic, handleTipSelected as any);
     const unsubSignature = subscribe(signatureTopic, handleSignatureCaptured as any);
     const unsubReceipt = subscribe(receiptTopic, handleReceiptPreference as any);
     const unsubComplete = subscribe(completeTopic, handleTransactionComplete as any);
+    const unsubScreenChanged = subscribe(screenChangedTopic, handleScreenChanged as any);
+    const unsubCustomerStarted = subscribe(customerStartedTopic, handleCustomerStarted as any);
 
     return () => {
       unsubTip();
       unsubSignature();
       unsubReceipt();
       unsubComplete();
+      unsubScreenChanged();
+      unsubCustomerStarted();
     };
   }, [
-    connection.state,
+    mqttContext,
+    connection?.state,
     storeId,
     stationId,
     subscribe,
@@ -184,6 +243,8 @@ export function usePadTransactionEvents() {
     handleSignatureCaptured,
     handleReceiptPreference,
     handleTransactionComplete,
+    handleScreenChanged,
+    handleCustomerStarted,
   ]);
 }
 

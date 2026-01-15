@@ -1,11 +1,12 @@
 import { useRef, useCallback } from 'react';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useToast } from '@/hooks/use-toast';
 import {
   createCheckoutTicket,
   markTicketAsPaid,
   type CheckoutTicketService,
 } from '@/store/slices/uiTicketsSlice';
+import { selectActivePadTransaction, clearPadTransaction } from '@/store/slices/padTransactionSlice';
 import { dataService } from '@/services/dataService';
 import { getMangoPadService } from '@/services/mangoPadService';
 import { isMqttEnabled } from '@/services/mqtt/featureFlags';
@@ -72,6 +73,9 @@ export function useTicketPayment({
   const reduxDispatch = useAppDispatch();
   const { toast } = useToast();
   const checkoutCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get active pad transaction from Redux as fallback for padTransactionId
+  const activePadTransaction = useAppSelector(selectActivePadTransaction);
 
   // Convert local TicketService to CheckoutTicketService for Redux
   const convertToCheckoutServices = useCallback((localServices: TicketService[]): CheckoutTicketService[] => {
@@ -213,13 +217,22 @@ export function useTicketPayment({
       }
 
       // 5. Send payment result to Mango Pad (if transaction was sent to Pad)
-      if (payment.padTransactionId && effectiveTicketId && isMqttEnabled()) {
+      // Use padTransactionId from payment data, OR fall back to Redux state
+      const padTxId = payment.padTransactionId || activePadTransaction?.transactionId;
+      console.log('📱 [Pad Payment] Checking conditions:', {
+        'payment.padTransactionId': payment.padTransactionId,
+        'activePadTransaction?.transactionId': activePadTransaction?.transactionId,
+        padTxId,
+        effectiveTicketId,
+        mqttEnabled: isMqttEnabled(),
+      });
+      if (padTxId && effectiveTicketId && isMqttEnabled()) {
         try {
-          console.log('📱 Sending payment result to Mango Pad:', payment.padTransactionId);
+          console.log('📱 Sending payment result to Mango Pad:', padTxId);
           const mangoPadService = getMangoPadService();
           const cardPayment = payment.methods?.find(m => m.type === 'card');
           await mangoPadService.sendPaymentResult({
-            transactionId: payment.padTransactionId,
+            transactionId: padTxId,
             ticketId: effectiveTicketId,
             success: true,
             cardLast4: cardPayment?.cardLast4,
@@ -227,6 +240,8 @@ export function useTicketPayment({
             authCode: cardPayment?.authCode || cardPayment?.authorization_code,
           });
           console.log('✅ Payment result sent to Mango Pad');
+          // Clear the pad transaction from Redux after successful send
+          reduxDispatch(clearPadTransaction());
         } catch (error) {
           console.error('❌ Failed to send payment result to Mango Pad:', error);
           // Don't fail the whole payment flow for this
@@ -243,15 +258,17 @@ export function useTicketPayment({
       console.error('❌ Error completing ticket:', error);
 
       // Send failure to Mango Pad if transaction was sent there
-      if (payment.padTransactionId && isMqttEnabled()) {
+      const padTxIdForError = payment.padTransactionId || activePadTransaction?.transactionId;
+      if (padTxIdForError && isMqttEnabled()) {
         try {
           const mangoPadService = getMangoPadService();
           await mangoPadService.sendPaymentResult({
-            transactionId: payment.padTransactionId,
+            transactionId: padTxIdForError,
             ticketId: ticketId || 'unknown',
             success: false,
             errorMessage: error instanceof Error ? error.message : 'Payment processing failed',
           });
+          reduxDispatch(clearPadTransaction());
         } catch (padError) {
           console.error('❌ Failed to send failure to Mango Pad:', padError);
         }
@@ -290,6 +307,7 @@ export function useTicketPayment({
     onTogglePaymentModal,
     onResetTicket,
     onClose,
+    activePadTransaction,
   ]);
 
   // Handle refund

@@ -132,8 +132,14 @@ export const selectPadDeviceById = (state: RootState, deviceId: string) =>
 export const getConnectedPads = (state: RootState) =>
   Object.values(state.padDevices.devices).filter((d) => d.status === 'online');
 
-export const selectHasConnectedPad = (state: RootState) =>
-  getConnectedPads(state).length > 0;
+export const selectHasConnectedPad = (state: RootState) => {
+  // In dev mode, always return true to allow testing without heartbeat detection
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+  if (isDevMode) {
+    return true;
+  }
+  return getConnectedPads(state).length > 0;
+};
 
 export const selectOfflinePads = (state: RootState) =>
   Object.values(state.padDevices.devices).filter((d) => d.status === 'offline');

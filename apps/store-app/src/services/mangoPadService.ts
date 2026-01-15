@@ -251,6 +251,28 @@ export class MangoPadService {
     });
   }
 
+  /**
+   * Publish message with retry logic to handle timing race conditions
+   * Retries sending the message multiple times with delays to give
+   * Mango Pad time to subscribe after connecting to the broker
+   */
+  private async publishWithRetry<T>(
+    topic: string,
+    payload: T,
+    retries = 3,
+    delayMs = 500
+  ): Promise<void> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      await this.publishMessage(topic, payload);
+      console.log(`[MangoPadService] Sent message (attempt ${attempt}/${retries})`);
+
+      // Don't delay after the last attempt
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
   async sendReadyToPay(transaction: PadTransaction): Promise<void> {
     this.ensureMqttEnabled();
     const { storeId, stationId } = this.ensureIds();
@@ -273,14 +295,19 @@ export class MangoPadService {
     };
 
     console.log('[MangoPadService] Sending ready_to_pay to station:', stationId);
-    await this.publishMessage(topic, payload);
+    // Use retry logic to handle race condition where Mango Pad may not be
+    // subscribed yet when using a public broker without message retention
+    await this.publishWithRetry(topic, payload, 3, 500);
   }
 
   async sendPaymentResult(result: PaymentResult): Promise<void> {
+    console.log('[MangoPadService] 📤 sendPaymentResult called with:', result);
     this.ensureMqttEnabled();
     const { storeId, stationId } = this.ensureIds();
 
     const topic = buildTopic(TOPIC_PATTERNS.PAD_PAYMENT_RESULT, { storeId, stationId });
+    console.log('[MangoPadService] 📤 Publishing to topic:', topic);
+
     const payload: PadPaymentResultPayload = {
       transactionId: result.transactionId,
       ticketId: result.ticketId,
@@ -288,11 +315,13 @@ export class MangoPadService {
       cardLast4: result.cardLast4,
       cardBrand: result.cardBrand,
       authCode: result.authCode,
-      errorMessage: result.errorMessage,
+      failureReason: result.errorMessage,  // Map to failureReason for Mango Pad compatibility
     };
 
     console.log('[MangoPadService] Sending payment_result to station:', stationId);
+    // No retry needed - Mango Pad is already subscribed and waiting on Processing page
     await this.publishMessage(topic, payload);
+    console.log('[MangoPadService] ✅ payment_result sent successfully');
   }
 
   async sendCancel(cancel: CancelTransaction): Promise<void> {

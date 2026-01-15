@@ -230,7 +230,7 @@ export interface PadPaymentResultPayload {
   cardLast4?: string;
   cardBrand?: string;
   authCode?: string;
-  errorMessage?: string;
+  failureReason?: string;  // Aligned with Mango Pad's PaymentResultPayload
 }
 
 export interface PadCancelPayload {

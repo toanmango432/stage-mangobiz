@@ -65,14 +65,8 @@ export function ResultPage() {
     };
   }, [paymentResult?.success, config.thankYouDelay, handleContinue]);
 
-  if (!transaction) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-xl text-gray-500">No transaction data</p>
-      </div>
-    );
-  }
-
+  // If we have payment result but no transaction, still show the result
+  // and auto-advance (the transaction data might have been cleared)
   if (!paymentResult) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -82,6 +76,36 @@ export function ResultPage() {
   }
 
   const isSuccess = paymentResult.success;
+
+  // If transaction is missing but we have payment result, show minimal result
+  // The auto-advance useEffect will handle navigation
+  if (!transaction) {
+    return (
+      <div
+        className={`min-h-screen flex flex-col items-center justify-center ${
+          isSuccess ? 'bg-gradient-to-b from-green-50 to-white' : 'bg-gradient-to-b from-red-50 to-white'
+        }`}
+      >
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-center"
+        >
+          {isSuccess ? (
+            <CheckCircle className="w-32 h-32 text-green-500 mx-auto mb-6" />
+          ) : (
+            <XCircle className="w-32 h-32 text-red-500 mx-auto mb-6" />
+          )}
+          <h1 className={`text-4xl font-bold ${isSuccess ? 'text-green-700' : 'text-red-700'}`}>
+            {isSuccess ? 'Payment Successful!' : 'Payment Failed'}
+          </h1>
+          <p className="text-lg text-gray-500 mt-4">
+            {isSuccess ? 'Continuing shortly...' : 'Please try again'}
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div

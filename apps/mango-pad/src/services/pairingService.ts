@@ -108,9 +108,10 @@ export function clearPairingInfo(): void {
  * 4. Save pairing info to localStorage
  *
  * @param code - 6-character pairing code (e.g., "A7X92K")
+ * @param padName - Optional custom name for this pad (e.g., "Front Desk Pad")
  * @returns PairingResult with success/error info
  */
-export async function verifyPairingCode(code: string): Promise<PairingResult> {
+export async function verifyPairingCode(code: string, padName?: string): Promise<PairingResult> {
   // Normalize code to uppercase
   const normalizedCode = code.toUpperCase().replace(/[-\s]/g, '');
 
@@ -127,8 +128,11 @@ export async function verifyPairingCode(code: string): Promise<PairingResult> {
         stationName: 'Demo Checkout Station',
         deviceId: deviceId,
         pairedAt: new Date().toISOString(),
+        padName: padName || 'Demo Pad',
       };
       savePairingInfo(pairing);
+      // Set demo mode flag so UI shows "Demo Mode" status
+      localStorage.setItem('mango_pad_demo_mode', 'true');
       console.log('[PairingService] Demo mode pairing successful:', pairing);
       return { success: true, pairing };
     }
@@ -173,7 +177,7 @@ export async function verifyPairingCode(code: string): Promise<PairingResult> {
       {
         store_id: stationDevice.store_id,
         device_fingerprint: deviceId,
-        device_name: 'Mango Pad',
+        device_name: padName || 'Mango Pad',
         device_type: deviceType,
         device_role: 'mango-pad',
         paired_to_device_id: stationDevice.device_fingerprint,
@@ -197,6 +201,7 @@ export async function verifyPairingCode(code: string): Promise<PairingResult> {
       stationName: stationDevice.station_name || 'Checkout Station',
       deviceId: deviceId,
       pairedAt: new Date().toISOString(),
+      padName: padName || 'Mango Pad',
     };
 
     savePairingInfo(pairing);
@@ -217,6 +222,39 @@ export function isPaired(): boolean {
   const pairing = getPairingInfo();
   // Require stationId for device-to-device architecture (US-010)
   return pairing !== null && Boolean(pairing.stationId) && Boolean(pairing.salonId);
+}
+
+/**
+ * Update the pad name for this device
+ * Updates both localStorage and Supabase
+ */
+export async function updatePadName(newName: string): Promise<void> {
+  const pairing = getPairingInfo();
+  if (!pairing) {
+    console.warn('[PairingService] Cannot update pad name: not paired');
+    return;
+  }
+
+  // Update localStorage
+  const updatedPairing: PairingInfo = {
+    ...pairing,
+    padName: newName,
+  };
+  savePairingInfo(updatedPairing);
+
+  // Update Supabase if configured
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase
+        .from('salon_devices')
+        .update({ device_name: newName })
+        .eq('store_id', pairing.salonId)
+        .eq('device_fingerprint', pairing.deviceId);
+      console.log('[PairingService] Pad name updated:', newName);
+    } catch (err) {
+      console.error('[PairingService] Error updating pad name in Supabase:', err);
+    }
+  }
 }
 
 /**
@@ -244,5 +282,7 @@ export async function unpairDevice(): Promise<void> {
   }
 
   clearPairingInfo();
+  // Also clear demo mode flag
+  localStorage.removeItem('mango_pad_demo_mode');
   console.log('[PairingService] Device unpaired');
 }
