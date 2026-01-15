@@ -248,3 +248,109 @@ Implemented daily-resetting check-in numbers so that the first ticket of each da
 ### Commit
 `f976e1f` - feat: [US-006] - Implement daily-resetting check-in numbers
 
+---
+
+## Iteration 7 - US-007: Implement soft delete with categorized reasons
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Implemented soft delete functionality for tickets with categorized deletion reasons (testing, client_left, duplicate, mistake, other) for accurate reporting. Created DeleteTicketModal with radio button selection and integrated delete buttons across all ticket sections.
+
+### Files Changed
+1. `apps/store-app/src/types/Ticket.ts`
+   - Added `DeleteReason` type: `'testing' | 'client_left' | 'duplicate' | 'mistake' | 'other'`
+
+2. `apps/store-app/src/store/slices/uiTicketsSlice.ts`
+   - Added soft delete fields to UITicket interface: `deletedAt`, `deletedReason`, `deletedNote`
+   - Added same fields to PendingTicket interface
+   - Modified `deleteTicket` thunk to accept `{ ticketId, reason, note }` and perform soft delete
+   - Updated reducer to filter deleted tickets from all arrays
+
+3. `apps/store-app/src/components/tickets/DeleteTicketModal.tsx` (NEW)
+   - Created modal with RadioGroup for delete reason selection
+   - Includes optional notes textarea
+   - Dispatches to Redux deleteTicket thunk
+
+4. `apps/store-app/src/components/tickets/TicketActions.tsx`
+   - Added Trash2 delete button to all sections (waitlist, in-service, pending)
+   - Integrated DeleteTicketModal
+
+5. `apps/store-app/src/hooks/useTicketsCompat.ts`
+   - Updated deleteTicket signature to accept `DeleteReason` type instead of string
+
+6. `apps/store-app/src/components/frontdesk/ServiceSection.tsx`
+   - Updated legacy delete call to use 'other' reason with text as note
+
+7. `apps/store-app/src/components/frontdesk/WaitListSection.tsx`
+   - Updated legacy delete call to use 'other' reason with text as note
+
+8. `apps/store-app/src/components/PaymentProcessModal.tsx`
+   - Fixed incorrect use of deleteTicket for payment completion
+   - Changed to use markTicketAsPaid (correct function)
+   - Mapped payment methods properly (mobile → digital-wallet)
+
+### Key Discovery
+- PaymentProcessModal was incorrectly using `deleteTicket` with 'payment_completed' reason for payment completion
+- This was semantically wrong - payment completion should use `markTicketAsPaid`, not delete
+- Fixed by switching to the correct function with proper payment method mapping
+
+### Patterns Learned
+- **Soft delete pattern**: Set `deletedAt`, `deletedReason`, `deletedNote` fields instead of hard delete
+- **Backward compatibility**: When changing function signatures, use valid default values for legacy callers
+- **Payment method mapping**: Local UI values may differ from API types (mobile → digital-wallet)
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+
+### Commit
+`c2d631f` - feat: [US-007] - Implement soft delete with categorized reasons
+
+## Iteration 8 - US-008: Add manager PIN verification for sensitive actions
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Created ManagerPinModal component for manager PIN verification and integrated it into TicketActions for status reversal actions. The modal features a 4-digit masked PIN input with shake animation on error and max 3 attempts.
+
+### Files Changed
+1. `apps/store-app/src/components/common/ManagerPinModal.tsx` (NEW)
+   - Created 4-digit PIN input modal with masked dots
+   - Dev PIN '1234' accepted for development
+   - Shake animation on invalid PIN
+   - Max 3 attempts with "Contact manager" lockout message
+   - onSuccess callback returns 'manager-1' for dev
+   - onCancel callback for modal dismissal
+   - Uses Dialog from @/components/ui/dialog
+
+2. `apps/store-app/src/components/tickets/TicketActions.tsx`
+   - Added import for ManagerPinModal
+   - Added REQUIRE_PIN_FOR_STATUS_REVERSAL constant (default: false)
+   - Added showPinModal and pendingReversalAction state
+   - Added isReversalAction type guard helper
+   - Modified handleConfirmAction to check for PIN requirement before status reversals
+   - Added handlePinSuccess to execute pending action after PIN verified
+   - Added handlePinCancel to clear pending action
+   - Added ManagerPinModal to JSX
+
+### Key Implementation Details
+- **Status reversal actions**: 'back-to-waiting' and 'back-to-service'
+- **PIN flow**: Confirm dialog → (if setting enabled) PIN modal → execute action
+- **Setting default false**: Per acceptance criteria, disabled by default
+- **PIN verification**: Simulates 300ms delay, validates against '1234'
+- **Lockout**: After 3 failed attempts, shows "Contact manager" message
+
+### Patterns Learned
+- **Gated action pattern**: Store pending action in state, show verification modal, execute on success
+- **Dev PIN strategy**: Hardcode PIN for development, real auth in separate PRD
+- **Shake animation**: Use CSS keyframes with setTimeout to reset state
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+
+### Commit
+`d6cdedd` - feat: [US-008] - Add manager PIN verification for sensitive actions
+
+---

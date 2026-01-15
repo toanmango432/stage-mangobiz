@@ -171,7 +171,7 @@
       ],
       "notes": "Follow EditTicketModal.tsx pattern for modal structure. Use RadioGroup from @/components/ui/radio-group. Soft delete = mark as deleted, keep in DB for reporting.",
       "priority": 7,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-008",
@@ -198,7 +198,7 @@
       ],
       "notes": "Hardcode PIN validation for now (real auth is separate PRD). Use Dialog from @/components/ui/dialog for modal. Setting can be boolean constant for dev.",
       "priority": 8,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-009",
