@@ -244,7 +244,7 @@
       ],
       "notes": "Use existing selectClients selector from clientsSlice. Follow Command/Combobox pattern from @/components/ui/command. Debounce search input.",
       "priority": 10,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011",

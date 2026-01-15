@@ -401,3 +401,57 @@ Connected CreateTicketModal to Redux and added CreateTicketButton FAB to Front D
 `cf9df85` - feat: [US-009] - Connect CreateTicketModal to Front Desk with Redux
 
 ---
+
+## Iteration 10 - US-010: Add client search/selection to CreateTicketModal
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Added client search/selection functionality to CreateTicketModal, allowing front desk staff to search for existing clients when creating a ticket. Features autocomplete dropdown with client names, phone numbers, VIP badges, and First Visit indicators.
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/CreateTicketModal.tsx`
+   - Added imports: `useAppSelector`, `selectClients`, `Client` type, plus Lucide icons (Search, UserPlus, Sparkles, Phone)
+   - Added Redux client selector: `const clients = useAppSelector(selectClients)`
+   - Added new state: `selectedClientId`, `clientSearchQuery`, `showClientDropdown`
+   - Added refs: `clientInputRef`, `dropdownRef` for click-outside detection
+   - Added `filteredClients` useMemo to filter clients by name/phone (min 2 chars)
+   - Added `isFirstVisit()` helper to check if client has no previous visits
+   - Added `handleSelectClient()` to populate form from selected client
+   - Added `handleCreateNewClient()` to handle new client creation option
+   - Added click-outside useEffect to close dropdown
+   - Updated form reset to include new state
+   - Updated ticketData to conditionally include clientId
+   - Replaced plain input with search input + autocomplete dropdown UI
+
+### Key Implementation Details
+- **Search threshold**: Requires minimum 2 characters to show results
+- **Filter logic**: Searches firstName, lastName, displayName, and phone
+- **Result limit**: Shows max 10 matching clients
+- **Auto client type**: Sets VIP if `client.isVip`, New if first visit, Regular otherwise
+- **clientId handling**: Uses spread operator `...(selectedClientId && { clientId })` to avoid null/undefined
+
+### UI Features
+- Search icon in input field
+- Checkmark icon when client is selected
+- Client avatars with fallback to User icon
+- VIP badge (amber)
+- First Visit badge (blue with Sparkles icon)
+- Phone number display
+- "Create New Client" option always visible
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+
+### Browser Verification
+- Typed "Jo" → Dropdown showed "No clients found" + Create New Client option
+- Typed "Sa" → Dropdown showed "No clients found" + Create New Client option
+- Clicked "Create New Client" → Client name set to "Sa", Client Type set to "New"
+- Filled service "Pedicure" and submitted
+- Ticket created: "#2 Sa - Pedicure" appeared in Waiting Queue
+
+### Commit
+`30b36ed` - feat: [US-010] - Add client search/selection to CreateTicketModal
+
+---
