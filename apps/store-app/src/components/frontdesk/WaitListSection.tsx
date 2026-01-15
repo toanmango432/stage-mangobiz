@@ -820,12 +820,17 @@ export const WaitListSection = memo(function WaitListSection({
                         service: activeTicket.service,
                         duration: activeTicket.duration || '30min',
                         time: activeTicket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                        status: 'waiting' as const,
                         notes: activeTicket.notes,
                         createdAt: activeTicket.createdAt,
                         lastVisitDate: activeTicket.lastVisitDate ?? undefined,
                         checkoutServices: activeTicket.checkoutServices,
                         isFirstVisit: activeTicket.isFirstVisit,
+                        // Technician assignment fields
+                        technician: activeTicket.technician,
+                        techColor: activeTicket.techColor,
+                        techId: activeTicket.techId,
+                        assignedTo: activeTicket.assignedTo,
+                        assignedStaff: activeTicket.assignedStaff,
                       }}
                       viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                       onAssign={noop}
@@ -843,10 +848,15 @@ export const WaitListSection = memo(function WaitListSection({
                         service: activeTicket.service,
                         duration: activeTicket.duration || '30min',
                         time: activeTicket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                        status: 'waiting',
                         notes: activeTicket.notes,
                         checkoutServices: activeTicket.checkoutServices,
                         isFirstVisit: activeTicket.isFirstVisit,
+                        // Technician assignment fields
+                        technician: activeTicket.technician,
+                        techColor: activeTicket.techColor,
+                        techId: activeTicket.techId,
+                        assignedTo: activeTicket.assignedTo,
+                        assignedStaff: activeTicket.assignedStaff,
                       }}
                       viewMode={minimizedLineView ? 'compact' : 'normal'}
                       onAssign={noop}

@@ -24,7 +24,7 @@ interface WaitListTicketCardProps {
     service: string;
     duration: string;
     time: string;
-    status: 'waiting' | 'in-service' | 'completed';
+    status?: 'waiting' | 'in-service' | 'completed';
     notes?: string;
     priority?: 'normal' | 'high';
     createdAt?: Date;
@@ -33,6 +33,23 @@ interface WaitListTicketCardProps {
     checkoutServices?: CheckoutService[];
     // Client visit data for first visit detection
     isFirstVisit?: boolean;
+    // Technician assignment
+    technician?: string;
+    techColor?: string;
+    techId?: string;
+    assignedTo?: {
+      id: string;
+      name: string;
+      color: string;
+      photo?: string;
+    };
+    // Multi-staff support
+    assignedStaff?: Array<{
+      id: string;
+      name: string;
+      color: string;
+      photo?: string;
+    }>;
   };
   viewMode?: 'compact' | 'normal' | 'grid-normal' | 'grid-compact';
   onAssign?: (ticketId: string) => void;
@@ -157,6 +174,42 @@ function WaitListTicketCardComponent({
   };
   const serviceDisplay = getServiceDisplay();
 
+  // Get staff info - support multiple staff (assignedStaff) or single (assignedTo)
+  const staffList = ticket.assignedStaff || (ticket.assignedTo ? [ticket.assignedTo] : []);
+  const hasAssignedStaff = staffList.length > 0;
+
+  // Get staff color for avatar/badge
+  const getStaffColor = (staff: { color?: string }) => staff.color || '#6B7280';
+
+  // Get first name only for compact display
+  const getFirstName = (fullName: string) => fullName.split(' ')[0].toUpperCase();
+
+  // Render staff avatar with photo or initial
+  const renderStaffAvatar = (staff: { name: string; color?: string; photo?: string }, size: 'sm' | 'md' = 'sm') => {
+    const sizeClasses = size === 'sm' ? 'w-5 h-5' : 'w-8 h-8';
+    const textSize = size === 'sm' ? 'text-[9px]' : 'text-xs';
+
+    if (staff.photo) {
+      return (
+        <img
+          src={staff.photo}
+          alt={staff.name}
+          className={`${sizeClasses} rounded-full object-cover border border-white/50 flex-shrink-0`}
+          style={{ boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)' }}
+        />
+      );
+    }
+    // Default avatar with initial
+    return (
+      <div
+        className={`${sizeClasses} rounded-full flex items-center justify-center ${textSize} font-semibold text-white flex-shrink-0`}
+        style={{ background: getStaffColor(staff), boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)', border: '1px solid rgba(255, 255, 255, 0.3)' }}
+      >
+        {staff.name.charAt(0).toUpperCase()}
+      </div>
+    );
+  };
+
   // Handle keyboard interaction
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -206,16 +259,34 @@ function WaitListTicketCardComponent({
               </div>
 
               <div className="flex-shrink-0">
-                {/* Assign button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                  className="px-2 py-0.5 flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded shadow-sm hover:shadow font-medium"
-                  style={{ height: '24px' }}
-                  title="Assign"
-                >
-                  <UserPlus style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
-                  <span style={{ fontSize: '10px' }}>Assign</span>
-                </button>
+                {/* Staff badge or Assign button */}
+                {hasAssignedStaff ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                    style={{ height: '24px' }}
+                    title="Click to reassign"
+                  >
+                    {staffList.slice(0, 2).map((staff, idx) => (
+                      <div key={staff.id} className="flex items-center gap-1" style={{ marginLeft: idx > 0 ? '-4px' : 0 }}>
+                        {renderStaffAvatar(staff, 'sm')}
+                      </div>
+                    ))}
+                    <span className="text-[10px] font-medium text-gray-700 truncate max-w-[60px]">
+                      {staffList.length === 1 ? getFirstName(staffList[0].name) : `${staffList.length} staff`}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
+                    className="px-2 py-0.5 flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded shadow-sm hover:shadow font-medium"
+                    style={{ height: '24px' }}
+                    title="Assign"
+                  >
+                    <UserPlus style={{ width: '12px', height: '12px' }} strokeWidth={2.5} />
+                    <span style={{ fontSize: '10px' }}>Assign</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -268,17 +339,37 @@ function WaitListTicketCardComponent({
                 )}
               </div>
 
-              {/* Assign button */}
+              {/* Staff badge or Assign button */}
               <div className="flex-shrink-0">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
-                  className="px-3 flex items-center justify-center gap-1.5 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-semibold"
-                  style={{ height: '30px' }}
-                  title="Assign"
-                >
-                  <UserPlus style={{ width: '14px', height: '14px' }} strokeWidth={2.5} />
-                  <span style={{ fontSize: '11px' }}>Assign</span>
-                </button>
+                {hasAssignedStaff ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
+                    className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                    style={{ height: '30px' }}
+                    title="Click to reassign"
+                  >
+                    <div className="flex items-center -space-x-1">
+                      {staffList.slice(0, 3).map((staff) => (
+                        <div key={staff.id}>
+                          {renderStaffAvatar(staff, 'sm')}
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[11px] font-semibold text-gray-700 truncate max-w-[80px]">
+                      {staffList.length === 1 ? getFirstName(staffList[0].name) : `${staffList.length} staff`}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }}
+                    className="px-3 flex items-center justify-center gap-1.5 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-semibold"
+                    style={{ height: '30px' }}
+                    title="Assign"
+                  >
+                    <UserPlus style={{ width: '14px', height: '14px' }} strokeWidth={2.5} />
+                    <span style={{ fontSize: '11px' }}>Assign</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -327,10 +418,23 @@ function WaitListTicketCardComponent({
 
           {/* Footer - compact */}
           <div className="mt-auto px-1 py-1 rounded-md" style={{ marginLeft: 'clamp(4px, 1vw, 16px)', marginRight: 'clamp(4px, 1vw, 16px)', marginBottom: 'clamp(4px, 1vw, 8px)', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
-            <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-semibold" style={{ height: 'clamp(32px, 4.5vw, 40px)' }} title="Assign Staff">
-              <UserPlus style={{ width: 'clamp(13px, 1.85vw, 16px)', height: 'clamp(13px, 1.85vw, 16px)' }} strokeWidth={2.5} />
-              <span style={{ fontSize: 'clamp(10px, 1.4vw, 12px)' }}>Assign</span>
-            </button>
+            {hasAssignedStaff ? (
+              <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-2 bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors rounded-md" style={{ height: 'clamp(32px, 4.5vw, 40px)' }} title="Click to reassign">
+                <div className="flex items-center -space-x-1">
+                  {staffList.slice(0, 2).map((staff) => (
+                    <div key={staff.id}>{renderStaffAvatar(staff, 'sm')}</div>
+                  ))}
+                </div>
+                <span style={{ fontSize: 'clamp(10px, 1.4vw, 12px)' }} className="font-semibold text-gray-700 truncate max-w-[80px]">
+                  {staffList.length === 1 ? getFirstName(staffList[0].name) : `${staffList.length} staff`}
+                </span>
+              </button>
+            ) : (
+              <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-semibold" style={{ height: 'clamp(32px, 4.5vw, 40px)' }} title="Assign Staff">
+                <UserPlus style={{ width: 'clamp(13px, 1.85vw, 16px)', height: 'clamp(13px, 1.85vw, 16px)' }} strokeWidth={2.5} />
+                <span style={{ fontSize: 'clamp(10px, 1.4vw, 12px)' }}>Assign</span>
+              </button>
+            )}
           </div>
 
           {/* Paper texture - enhanced for more tangibility */}
@@ -362,9 +466,22 @@ function WaitListTicketCardComponent({
           <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 md:mb-4 border-t border-[#e8dcc8]/50" />
           <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>{isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}Waited {formatWaitTime(waitTime)}</div><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>In at {ticket.time}</div></div>
 
-          {/* Footer with Assign button inside */}
+          {/* Footer with Staff badge or Assign button */}
           <div className="mt-auto px-2 py-1.5 rounded-md" style={{ marginLeft: 'clamp(8px, 1.5vw, 16px)', marginRight: 'clamp(8px, 1.5vw, 16px)', marginBottom: 'clamp(8px, 1.5vw, 16px)', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
-            <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-bold" style={{ height: 'clamp(36px, 5vw, 44px)', background: 'linear-gradient(to bottom, #ffffff 0%, #fefefe 100%)', boxShadow: '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)' }} title="Assign Staff"><UserPlus style={{ width: 'clamp(15px, 2.1vw, 18px)', height: 'clamp(15px, 2.1vw, 18px)' }} strokeWidth={2.5} /><span style={{ fontSize: 'clamp(12px, 1.6vw, 15px)' }}>Assign</span></button>
+            {hasAssignedStaff ? (
+              <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-2 bg-white/80 border border-gray-200 hover:border-blue-400 transition-colors rounded-md" style={{ height: 'clamp(36px, 5vw, 44px)' }} title="Click to reassign">
+                <div className="flex items-center -space-x-1.5">
+                  {staffList.slice(0, 3).map((staff) => (
+                    <div key={staff.id}>{renderStaffAvatar(staff, 'md')}</div>
+                  ))}
+                </div>
+                <span style={{ fontSize: 'clamp(12px, 1.6vw, 15px)' }} className="font-bold text-gray-700 truncate max-w-[100px]">
+                  {staffList.length === 1 ? getFirstName(staffList[0].name) : `${staffList.length} staff`}
+                </span>
+              </button>
+            ) : (
+              <button onClick={(e) => { e.stopPropagation(); onAssign?.(ticket.id); }} className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-300 text-gray-600 hover:border-blue-500 hover:text-white hover:bg-blue-500 transition-all rounded-md shadow-sm hover:shadow-md font-bold" style={{ height: 'clamp(36px, 5vw, 44px)', background: 'linear-gradient(to bottom, #ffffff 0%, #fefefe 100%)', boxShadow: '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)' }} title="Assign Staff"><UserPlus style={{ width: 'clamp(15px, 2.1vw, 18px)', height: 'clamp(15px, 2.1vw, 18px)' }} strokeWidth={2.5} /><span style={{ fontSize: 'clamp(12px, 1.6vw, 15px)' }}>Assign</span></button>
+            )}
           </div>
           <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/white-paper.png")', backgroundSize: '200px 200px', borderRadius: '10px', zIndex: 1 }} />
         </div>
