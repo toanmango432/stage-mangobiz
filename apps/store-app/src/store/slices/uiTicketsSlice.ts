@@ -497,6 +497,75 @@ export const assignTicket = createAsyncThunk(
   }
 );
 
+// Update ticket via Supabase (for EditTicketModal)
+export const updateTicket = createAsyncThunk(
+  'uiTickets/update',
+  async ({ ticketId, updates }: {
+    ticketId: string;
+    updates: Partial<UITicket>;
+  }, { getState }) => {
+    const state = getState() as RootState;
+    const now = new Date();
+
+    // Find the ticket in any of the arrays
+    const ticket =
+      state.uiTickets.waitlist.find(t => t.id === ticketId) ||
+      state.uiTickets.serviceTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.completedTickets.find(t => t.id === ticketId);
+
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    const ticketUpdates = {
+      ...updates,
+      updatedAt: now,
+    };
+
+    try {
+      // Update in Supabase
+      await dataService.tickets.update(ticketId, {
+        clientName: updates.clientName,
+        notes: updates.notes,
+        updatedAt: now.toISOString(),
+        // Map service name to services array if provided
+        ...(updates.service && {
+          services: [{
+            serviceName: updates.service,
+            duration: updates.duration ? parseInt(updates.duration) || 30 : undefined,
+          }],
+        }),
+      } as any);
+      console.log('✅ Ticket updated in Supabase:', ticketId);
+    } catch (error) {
+      console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
+      // Fallback to IndexedDB
+      await ticketsDB.update(ticketId, {
+        clientName: updates.clientName,
+        notes: updates.notes,
+        updatedAt: now,
+      } as any, 'current-user');
+
+      // Queue for sync
+      await syncQueueDB.add({
+        type: 'update',
+        entity: 'ticket',
+        entityId: ticketId,
+        action: 'UPDATE',
+        payload: ticketUpdates,
+        priority: 2,
+        maxAttempts: 5,
+      });
+    }
+
+    return {
+      ticketId,
+      updates: ticketUpdates,
+      originalStatus: ticket.status,
+    };
+  }
+);
+
 // Complete ticket (moves to pending for checkout) via Supabase
 export const completeTicket = createAsyncThunk(
   'uiTickets/complete',
@@ -1340,13 +1409,47 @@ const uiTicketsSlice = createSlice({
       // Assign ticket
       .addCase(assignTicket.fulfilled, (state, action) => {
         const { ticketId, updates } = action.payload;
-        
+
         // Move from waitlist to service
         const ticketIndex = state.waitlist.findIndex(t => t.id === ticketId);
         if (ticketIndex !== -1) {
           const ticket = { ...state.waitlist[ticketIndex], ...updates };
           state.waitlist.splice(ticketIndex, 1);
           state.serviceTickets.push(ticket);
+        }
+      })
+      // Update ticket (from EditTicketModal)
+      .addCase(updateTicket.fulfilled, (state, action) => {
+        const { ticketId, updates, originalStatus } = action.payload;
+
+        // Update ticket in the appropriate array based on its original status
+        if (originalStatus === 'waiting') {
+          const index = state.waitlist.findIndex(t => t.id === ticketId);
+          if (index !== -1) {
+            state.waitlist[index] = { ...state.waitlist[index], ...updates };
+          }
+        } else if (originalStatus === 'in-service') {
+          const index = state.serviceTickets.findIndex(t => t.id === ticketId);
+          if (index !== -1) {
+            state.serviceTickets[index] = { ...state.serviceTickets[index], ...updates };
+          }
+        } else if (originalStatus === 'completed') {
+          const index = state.completedTickets.findIndex(t => t.id === ticketId);
+          if (index !== -1) {
+            state.completedTickets[index] = { ...state.completedTickets[index], ...updates };
+          }
+        }
+
+        // Also check pendingTickets (checkout tickets with 'completed' status)
+        const pendingIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+        if (pendingIndex !== -1) {
+          state.pendingTickets[pendingIndex] = {
+            ...state.pendingTickets[pendingIndex],
+            clientName: updates.clientName || state.pendingTickets[pendingIndex].clientName,
+            clientType: updates.clientType || state.pendingTickets[pendingIndex].clientType,
+            service: updates.service || state.pendingTickets[pendingIndex].service,
+            notes: updates.notes,
+          };
         }
       })
       // Complete ticket - move to pending for checkout

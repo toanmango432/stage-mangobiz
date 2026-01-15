@@ -10,3 +10,65 @@ Branch: ralph/frontdesk-tickets
 Run: frontdesk-tickets
 
 <!-- Ralph appends entries below -->
+
+## Iteration 1 - US-001: Display technician on WaitListTicketCard
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Implemented technician display on WaitListTicketCard showing staff avatar and name when a technician is assigned.
+
+### Key Discovery
+The exported `WaitListTicketCard` comes from `WaitListTicketCardRefactored.tsx` (473 lines), NOT `WaitListTicketCard.tsx` (986 lines). Found via index.ts barrel export.
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/WaitListTicketCardRefactored.tsx`
+   - Added technician props to interface (technician, techColor, techId, assignedTo, assignedStaff)
+   - Made `status` field optional (was required but not always passed)
+   - Added helper functions: staffList, hasAssignedStaff, getStaffColor, getFirstName, renderStaffAvatar
+   - Updated all 4 view modes (compact, normal, grid-compact, grid-normal) to show staff badge
+
+2. `apps/store-app/src/components/frontdesk/WaitListSection/components/SortableItems.tsx`
+   - Pass technician fields through to WaitListTicketCard in both SortableListItem and SortableGridItem
+
+3. `apps/store-app/src/components/frontdesk/WaitListSection.tsx`
+   - Pass technician fields in DragOverlay for both grid and list views
+
+### Patterns Learned
+- **Barrel exports can redirect**: Check index.ts to find actual exported component
+- **Multi-staff support**: Use `assignedStaff` array OR `assignedTo` object fallback pattern
+- **View mode consistency**: WaitListTicketCard has 4 modes (compact, normal, grid-compact, grid-normal) - update all
+
+### Commit
+`c7a8865` - feat: [US-001] - Display technician on WaitListTicketCard
+
+---
+
+## Iteration 2 - US-002: Display technician on PendingTicketCard
+**Date:** 2026-01-15
+**Status:** COMPLETE
+
+### Summary
+Updated PendingTicketCard to follow the same pattern as WaitListTicketCard for technician display. The rendering code already existed - only needed to add the `assignedTo` fallback support.
+
+### Key Discovery
+- PRD stated "Interface already has technician props - add rendering JSX only"
+- Upon inspection, rendering was ALREADY implemented in all 4 view modes (lines 317-327, 462-468, 631-641, 810-818)
+- Missing piece was the `assignedTo` fallback in staffList helper (only used `assignedStaff`)
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/PendingTicketCard.tsx:52-57`
+   - Added `assignedTo` property to PendingTicket interface (matching WaitListTicketCard)
+
+2. `apps/store-app/src/components/tickets/PendingTicketCard.tsx:99-100`
+   - Updated staffList helper from `ticket.assignedStaff || []` to `ticket.assignedStaff || (ticket.assignedTo ? [ticket.assignedTo] : [])`
+
+### Patterns Confirmed
+- **PRD vs Reality check**: PRD notes can be outdated - always verify current implementation
+- **Staff fallback pattern**: `assignedStaff || (assignedTo ? [assignedTo] : [])` is the standard
+
+### Pre-existing Issues (Not From This Story)
+- Test files have TypeScript errors (test data missing required fields) - documented, not blocking
+
+### Commit
+`c5db643` - feat: [US-002] - Display technician on PendingTicketCard

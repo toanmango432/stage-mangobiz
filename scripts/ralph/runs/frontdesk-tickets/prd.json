@@ -23,7 +23,7 @@
       ],
       "notes": "Reference ServiceTicketCard.tsx lines 32-46 for prop interface pattern. Use Tailwind: rounded-full, bg-{color}, text-white, text-xs. WaitListTicketCard is 873 lines - add to existing structure.",
       "priority": 1,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-002",
@@ -42,7 +42,7 @@
       ],
       "notes": "Interface already defined - this story only adds rendering JSX. Add to existing card layout in header section near client name.",
       "priority": 2,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-003",
