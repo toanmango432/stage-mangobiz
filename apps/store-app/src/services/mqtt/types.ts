@@ -432,10 +432,10 @@ export interface MqttContextValue {
     payload: T,
     options?: MqttPublishOptions
   ) => Promise<void>;
-  /** Subscribe to a topic */
-  subscribe: (
+  /** Subscribe to a topic with typed message handler */
+  subscribe: <T = unknown>(
     topic: string,
-    handler: MqttMessageHandler
+    handler: MqttMessageHandler<T>
   ) => () => void;
   /** Manually reconnect */
   reconnect: () => Promise<void>;
