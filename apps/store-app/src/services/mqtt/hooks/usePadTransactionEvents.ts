@@ -218,12 +218,12 @@ export function usePadTransactionEvents() {
       customerStartedTopic,
     });
 
-    const unsubTip = subscribe(tipTopic, handleTipSelected as any);
-    const unsubSignature = subscribe(signatureTopic, handleSignatureCaptured as any);
-    const unsubReceipt = subscribe(receiptTopic, handleReceiptPreference as any);
-    const unsubComplete = subscribe(completeTopic, handleTransactionComplete as any);
-    const unsubScreenChanged = subscribe(screenChangedTopic, handleScreenChanged as any);
-    const unsubCustomerStarted = subscribe(customerStartedTopic, handleCustomerStarted as any);
+    const unsubTip = subscribe<PadTipPayload>(tipTopic, handleTipSelected);
+    const unsubSignature = subscribe<PadSignaturePayload>(signatureTopic, handleSignatureCaptured);
+    const unsubReceipt = subscribe<PadReceiptPreferencePayload>(receiptTopic, handleReceiptPreference);
+    const unsubComplete = subscribe<PadTransactionCompletePayload>(completeTopic, handleTransactionComplete);
+    const unsubScreenChanged = subscribe<PadScreenChangedPayload>(screenChangedTopic, handleScreenChanged);
+    const unsubCustomerStarted = subscribe<PadCustomerStartedPayload>(customerStartedTopic, handleCustomerStarted);
 
     return () => {
       unsubTip();
