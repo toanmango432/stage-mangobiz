@@ -632,3 +632,122 @@ Verified that US-013 was already fully implemented in ComingAppointments.tsx. Th
 US-014 (Create TicketFilterBar component) - next lowest priority among incomplete stories
 
 ---
+
+## Iteration 15 - US-014: Create TicketFilterBar component
+**Date:** 2026-01-16
+**Status:** COMPLETE
+
+### Summary
+Created TicketFilterBar component with filter chips (All, Priority, VIP, First Visit, Long Wait) and integrated it into WaitListSection. The filter bar allows filtering tickets by multiple attributes with toggle on/off support.
+
+**Why this story?** US-014 had the lowest priority number (14) among incomplete stories and is independent (no dependencies). It also unblocks US-015 (Add service type filter).
+
+### Files Changed
+1. `apps/store-app/src/components/frontdesk/TicketFilterBar.tsx` (NEW - 248 lines)
+   - Created `TicketFilterType` type: `'priority' | 'vip' | 'firstVisit' | 'longWait'`
+   - Created `TicketFilter` interface for filter configuration
+   - Created `TicketFilterBarProps` interface
+   - Implemented `calculateFilterCounts()` helper - counts tickets matching each filter
+   - Implemented `applyTicketFilters()` helper - filters tickets by active filters (OR logic)
+   - Created `TicketFilterBar` component with:
+     - "All" button (active when no filters)
+     - Filter chips for Priority, VIP, First Visit, Long Wait
+     - Count badges on filters
+     - Disabled state for filters with zero matches
+     - "Clear" button when filters are active
+
+2. `apps/store-app/src/components/frontdesk/WaitListSection.tsx`
+   - Line 18: Added import for TicketFilterBar components and types
+   - Line 256: Added `activeFilters` state using `Set<TicketFilterType>`
+   - Line 292: Updated `isFiltered` check to include `activeFilters.size > 0`
+   - Line 313: Added `activeFilters` to `handleDragEnd` dependency array
+   - Line 342: Added `filterCounts` useMemo using `calculateFilterCounts()`
+   - Lines 366-369: Updated `filteredWaitlist` to apply ticket attribute filters
+   - Lines 707-714: Rendered TicketFilterBar component
+   - Lines 725, 728-732: Updated filter indicator to include activeFilters
+
+### Key Implementation Details
+- **OR logic for filters**: Tickets matching ANY active filter are shown (not AND)
+- **Disabled filters**: Filters with zero matching tickets are disabled and greyed out
+- **Count badges**: Show number of matching tickets for each filter
+- **Long Wait threshold**: 10 minutes from createdAt/time field
+- **VIP detection**: Checks `clientType?.toLowerCase() === 'vip'`
+- **First Visit detection**: Uses existing `isFirstVisit` field from ticket enrichment
+
+### Patterns Learned
+- **Filter state with Set**: Use `Set<FilterType>` for multi-select filter state
+- **Helper function export**: Export `calculateFilterCounts` and `applyTicketFilters` for reuse
+- **Conditional disabled state**: Disable buttons with `count === 0 && !isActive`
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+
+### Browser Verification
+- Navigated to localhost:5173 -> Front Desk
+- TicketFilterBar visible with filter chips: All, Priority, VIP, First Visit, Long Wait
+- "First Visit" filter shows count badge "1" (one first-visit ticket)
+- Clicked "First Visit" -> filter became active, ticket still visible (matches filter)
+- "Clear" button appeared when filter was active
+
+### Commit
+`f51ef15` - feat: [US-014] - Create TicketFilterBar component
+
+### Next story suggestion
+US-015 (Add service type filter to TicketFilterBar) - direct continuation of TicketFilterBar work
+
+---
+
+## Iteration 16 - US-015: Add service type filter to TicketFilterBar
+**Date:** 2026-01-16
+**Status:** COMPLETE
+
+### Summary
+Added a service type dropdown filter to TicketFilterBar. The dropdown displays unique services from visible tickets with counts, allowing exact service name filtering combined with other active filters using AND logic.
+
+**Why this story?** US-015 had the lowest priority number (15) among incomplete stories and directly builds on US-014 (TicketFilterBar). Same file being modified means code is fresh in context.
+
+### Files Changed
+1. `apps/store-app/src/components/frontdesk/TicketFilterBar.tsx`
+   - Added import for Select component from @/components/ui/Select
+   - Added `ServiceCount` interface for service dropdown entries
+   - Added props: `selectedService`, `onServiceChange`, `serviceCounts`
+   - Created `calculateServiceCounts()` helper - extracts unique services with counts
+   - Added `handleServiceChange` callback - converts 'all' to empty string
+   - Added `isServiceFilterActive` computed value
+   - Updated `activeFilterCount` to include service filter
+   - Updated `clearAllFilters` to also clear service selection
+   - Added Select dropdown after filter chips
+
+2. `apps/store-app/src/components/frontdesk/WaitListSection.tsx`
+   - Added import for `calculateServiceCounts`
+   - Added `selectedService` state
+   - Updated `isFiltered` check to include `selectedService`
+   - Added `serviceCounts` useMemo calculation
+   - Added service filter in `filteredWaitlist` (exact match, AND logic)
+   - Updated filter indicator to include `selectedService`
+   - Added props to TicketFilterBar: `selectedService`, `onServiceChange`, `serviceCounts`
+
+### Key Implementation Details
+- **AND logic for service filter**: Service filter combines with other filters using AND logic
+- **Exact service match**: Uses `ticket.service === selectedService` for precise filtering
+- **Service counts derived from tickets**: Uses `calculateServiceCounts(waitlist)` to get unique services
+- **All Services option**: Value 'all' converts to empty string to clear filter
+- **Rounded pill styling**: Matches existing filter chips with `rounded-full` classes
+- **Active state styling**: Uses same `bg-slate-900 text-white` as other active filters
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+
+### Browser Verification
+- Waitlist shows 0 tickets, filter bar hidden (by design)
+- Code review confirms all acceptance criteria met:
+  - Service dropdown with unique services from tickets
+  - Counts shown per service type
+  - Exact service name matching
+  - AND logic with other filters
+  - Clear service filter with 'All Services'
+
+### Next story suggestion
+US-016 (Apply urgency coloring to WaitListTicketCard) - next lowest priority, independent story
+
+---

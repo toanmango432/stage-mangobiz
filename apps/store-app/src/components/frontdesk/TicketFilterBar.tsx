@@ -4,10 +4,18 @@
  * Allows filtering by: All | Priority | VIP | First Visit | Long Wait (10+ min)
  * Supports multiple active filters (toggle on/off)
  * Shows active filter count badge and clear all button
+ * Includes service type dropdown filter (US-015)
  */
 
 import { memo, useCallback, useMemo } from 'react';
-import { Star, Crown, Sparkles, Clock, X } from 'lucide-react';
+import { Star, Crown, Sparkles, Clock, X, ChevronDown } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 
 // Filter types that can be active
 export type TicketFilterType = 'priority' | 'vip' | 'firstVisit' | 'longWait';
@@ -18,6 +26,12 @@ export interface TicketFilter {
   label: string;
   icon: React.ReactNode;
   description?: string;
+}
+
+// Service count entry for the dropdown
+export interface ServiceCount {
+  service: string;
+  count: number;
 }
 
 // Props for the filter bar
@@ -32,6 +46,12 @@ export interface TicketFilterBarProps {
   totalCount?: number;
   /** Whether the component is in a compact mode */
   compact?: boolean;
+  /** Currently selected service type (empty string = All Services) */
+  selectedService?: string;
+  /** Callback when service filter changes */
+  onServiceChange?: (service: string) => void;
+  /** Service counts for the dropdown (derived from visible tickets) */
+  serviceCounts?: ServiceCount[];
 }
 
 // Filter definitions with icons
@@ -61,6 +81,27 @@ const FILTERS: TicketFilter[] = [
     description: 'Waiting 10+ minutes',
   },
 ];
+
+/**
+ * Calculate service counts from a list of tickets
+ * Returns array of services with their counts, sorted by count descending
+ */
+export function calculateServiceCounts(
+  tickets: Array<{ service?: string }>
+): ServiceCount[] {
+  const serviceMap = new Map<string, number>();
+
+  tickets.forEach((ticket) => {
+    if (ticket.service) {
+      const current = serviceMap.get(ticket.service) || 0;
+      serviceMap.set(ticket.service, current + 1);
+    }
+  });
+
+  return Array.from(serviceMap.entries())
+    .map(([service, count]) => ({ service, count }))
+    .sort((a, b) => b.count - a.count); // Sort by count descending
+}
 
 /**
  * Calculate filter counts from a list of tickets
@@ -174,6 +215,9 @@ export const TicketFilterBar = memo(function TicketFilterBar({
   filterCounts = {},
   totalCount = 0,
   compact = false,
+  selectedService = '',
+  onServiceChange,
+  serviceCounts = [],
 }: TicketFilterBarProps) {
   // Toggle a filter on/off
   const toggleFilter = useCallback(
@@ -189,13 +233,30 @@ export const TicketFilterBar = memo(function TicketFilterBar({
     [activeFilters, onFiltersChange]
   );
 
-  // Clear all filters
+  // Clear all filters (including service)
   const clearAllFilters = useCallback(() => {
     onFiltersChange(new Set());
-  }, [onFiltersChange]);
+    if (onServiceChange) {
+      onServiceChange('');
+    }
+  }, [onFiltersChange, onServiceChange]);
 
-  // Count of active filters
-  const activeFilterCount = activeFilters.size;
+  // Handle service selection
+  const handleServiceChange = useCallback(
+    (value: string) => {
+      if (onServiceChange) {
+        // 'all' value means clear the service filter
+        onServiceChange(value === 'all' ? '' : value);
+      }
+    },
+    [onServiceChange]
+  );
+
+  // Check if service filter is active
+  const isServiceFilterActive = selectedService !== '';
+
+  // Count of active filters (including service filter)
+  const activeFilterCount = activeFilters.size + (isServiceFilterActive ? 1 : 0);
 
   // Check if any filter has non-zero count
   const hasFilterableTickets = useMemo(() => {
@@ -284,6 +345,45 @@ export const TicketFilterBar = memo(function TicketFilterBar({
           </button>
         );
       })}
+
+      {/* Service type dropdown filter (US-015) */}
+      {onServiceChange && serviceCounts.length > 0 && (
+        <Select
+          value={selectedService || 'all'}
+          onValueChange={handleServiceChange}
+        >
+          <SelectTrigger
+            className={`
+              h-auto px-3 py-1.5 rounded-full text-sm font-medium
+              border transition-all duration-150 w-auto min-w-[140px]
+              ${isServiceFilterActive
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+              }
+            `}
+          >
+            <SelectValue placeholder="All Services" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-sm">
+              <span className="flex items-center justify-between w-full">
+                All Services
+                <span className="ml-2 text-xs text-slate-500">
+                  {serviceCounts.reduce((sum, s) => sum + s.count, 0)}
+                </span>
+              </span>
+            </SelectItem>
+            {serviceCounts.map(({ service, count }) => (
+              <SelectItem key={service} value={service} className="text-sm">
+                <span className="flex items-center justify-between w-full">
+                  {service}
+                  <span className="ml-2 text-xs text-slate-500">{count}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Clear filters button (shows when filters are active) */}
       {activeFilterCount > 0 && (

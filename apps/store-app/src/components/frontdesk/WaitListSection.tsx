@@ -15,7 +15,7 @@ import { FrontDeskEmptyState } from './FrontDeskEmptyState';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { SearchBar } from './SearchBar';
 import { FrontDeskSubTabs, SubTab } from './FrontDeskSubTabs';
-import { TicketFilterBar, TicketFilterType, calculateFilterCounts, applyTicketFilters } from './TicketFilterBar';
+import { TicketFilterBar, TicketFilterType, calculateFilterCounts, calculateServiceCounts, applyTicketFilters } from './TicketFilterBar';
 // Module components - US-023
 import { SortableListItem, SortableGridItem } from './WaitListSection/components';
 // Drag and drop
@@ -254,6 +254,8 @@ export const WaitListSection = memo(function WaitListSection({
   const [selectedCategory, setSelectedCategory] = useState('all');
   // Ticket attribute filters (Priority, VIP, First Visit, Long Wait)
   const [activeFilters, setActiveFilters] = useState<Set<TicketFilterType>>(new Set());
+  // Service type filter (US-015)
+  const [selectedService, setSelectedService] = useState('');
 
   // Drag and drop state
   const dispatch = useAppDispatch();
@@ -289,7 +291,7 @@ export const WaitListSection = memo(function WaitListSection({
     }
 
     // When filtering is active, we need to map indices from filtered list to full waitlist
-    const isFiltered = searchQuery.trim() || selectedCategory !== 'all' || activeFilters.size > 0;
+    const isFiltered = searchQuery.trim() || selectedCategory !== 'all' || activeFilters.size > 0 || selectedService !== '';
 
     if (isFiltered) {
       // Get the actual indices in the full waitlist
@@ -310,7 +312,7 @@ export const WaitListSection = memo(function WaitListSection({
         dispatch(setWaitlistOrder(newOrder));
       }
     }
-  }, [dispatch, waitlist, searchQuery, selectedCategory, activeFilters]);
+  }, [dispatch, waitlist, searchQuery, selectedCategory, activeFilters, selectedService]);
 
   // Get the ticket being dragged for the overlay
   const activeTicket = useMemo(() => {
@@ -341,7 +343,10 @@ export const WaitListSection = memo(function WaitListSection({
   // Calculate filter counts for the filter bar badges
   const filterCounts = useMemo(() => calculateFilterCounts(waitlist), [waitlist]);
 
-  // Filter waitlist based on search query, category, and ticket attribute filters
+  // Calculate service counts for the service type dropdown (US-015)
+  const serviceCounts = useMemo(() => calculateServiceCounts(waitlist), [waitlist]);
+
+  // Filter waitlist based on search query, category, service, and ticket attribute filters
   const filteredWaitlist = useMemo(() => {
     let filtered = waitlist;
 
@@ -368,8 +373,13 @@ export const WaitListSection = memo(function WaitListSection({
       filtered = applyTicketFilters(filtered, activeFilters);
     }
 
+    // Filter by service type (US-015) - exact match
+    if (selectedService) {
+      filtered = filtered.filter(ticket => ticket.service === selectedService);
+    }
+
     return filtered;
-  }, [waitlist, searchQuery, selectedCategory, activeFilters]);
+  }, [waitlist, searchQuery, selectedCategory, activeFilters, selectedService]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -704,13 +714,16 @@ export const WaitListSection = memo(function WaitListSection({
               placeholder="Search by client name, service, or notes..."
               size="sm"
             />
-            {/* Ticket attribute filters (Priority, VIP, First Visit, Long Wait) */}
+            {/* Ticket attribute filters (Priority, VIP, First Visit, Long Wait) + Service filter (US-015) */}
             <TicketFilterBar
               activeFilters={activeFilters}
               onFiltersChange={setActiveFilters}
               filterCounts={filterCounts}
               totalCount={waitlist.length}
               compact={isMobile}
+              selectedService={selectedService}
+              onServiceChange={setSelectedService}
+              serviceCounts={serviceCounts}
             />
             {/* Category filter tabs - only show if there are multiple categories */}
             {categoryTabs.length > 2 && (
@@ -722,14 +735,15 @@ export const WaitListSection = memo(function WaitListSection({
               />
             )}
             {/* Filter indicator */}
-            {(searchQuery || selectedCategory !== 'all' || activeFilters.size > 0) && filteredWaitlist.length !== waitlist.length && (
+            {(searchQuery || selectedCategory !== 'all' || activeFilters.size > 0 || selectedService) && filteredWaitlist.length !== waitlist.length && (
               <p className="text-xs text-gray-500">
                 Showing {filteredWaitlist.length} of {waitlist.length} tickets
-                {(selectedCategory !== 'all' || activeFilters.size > 0) && !searchQuery && (
+                {(selectedCategory !== 'all' || activeFilters.size > 0 || selectedService) && !searchQuery && (
                   <button
                     onClick={() => {
                       setSelectedCategory('all');
                       setActiveFilters(new Set());
+                      setSelectedService('');
                     }}
                     className="ml-2 text-rose-600 hover:text-rose-700 font-medium"
                   >

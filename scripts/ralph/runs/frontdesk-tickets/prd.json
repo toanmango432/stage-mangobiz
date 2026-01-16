@@ -358,7 +358,7 @@
       ],
       "notes": "Follow chip/toggle button pattern from existing UI. Use Tailwind: rounded-full, bg-slate-100, bg-slate-900. Filters are local component state, not Redux.",
       "priority": 14,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-015",
@@ -380,7 +380,7 @@
       ],
       "notes": "Derive service list from current tickets, not global services. Use Select from @/components/ui/select. Keep simple - just single service selection.",
       "priority": 15,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-016",
