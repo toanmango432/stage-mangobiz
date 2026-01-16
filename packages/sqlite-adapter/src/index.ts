@@ -8,6 +8,9 @@
 // Core types - will be implemented
 export type { SQLiteAdapter, SQLiteConfig, Migration, MigrationRecord } from './types';
 
+// Database abstraction interfaces (platform-agnostic)
+export type { DatabaseAdapter, QueryOptions, QueryResult } from './interfaces';
+
 // Factory - will be implemented
 export { createSQLiteAdapter } from './factory';
 
