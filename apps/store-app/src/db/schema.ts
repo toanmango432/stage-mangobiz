@@ -773,6 +773,60 @@ export class MangoPOSDatabase extends Dexie {
     }).upgrade(() => {
       console.log('✅ Database upgraded to version 15: Added full Gift Card Module tables (giftCards, giftCardTransactions, giftCardDesigns)');
     });
+
+    // Version 16: Add compound indexes for tickets (Turn Queue & Aggregation optimization)
+    // See: scripts/ralph/runs/sqlite-migration/prd.json US-004
+    // These indexes optimize:
+    // - [storeId+status+createdAt]: Turn queue queries filtering by status and sorting by time
+    // - [storeId+staffId+createdAt]: Staff performance queries for ticket counts per staff
+    this.version(16).stores({
+      // All existing tables unchanged
+      appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
+      // Updated tickets with new compound indexes for turn queue and aggregation queries
+      tickets: 'id, storeId, clientId, status, createdAt, syncStatus, appointmentId, [storeId+status], [storeId+createdAt], [clientId+createdAt], [storeId+status+createdAt], [storeId+staffId+createdAt]',
+      transactions: 'id, storeId, ticketId, clientId, createdAt, syncStatus, status, [storeId+createdAt], [clientId+createdAt]',
+      staff: 'id, storeId, status, syncStatus, [storeId+status]',
+      clients: 'id, storeId, phone, email, firstName, lastName, isBlocked, isVip, syncStatus, createdAt, [storeId+lastName], [storeId+isBlocked], [storeId+isVip], [storeId+createdAt]',
+      services: 'id, storeId, category, syncStatus, [storeId+category]',
+      settings: 'key',
+      syncQueue: 'id, priority, createdAt, status, entity, [status+createdAt]',
+      teamMembers: 'id, storeId, isActive, syncStatus, isDeleted, createdAt, updatedAt, [storeId+isActive], [storeId+isDeleted], [storeId+syncStatus]',
+      serviceCategories: 'id, storeId, parentCategoryId, displayOrder, isActive, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      menuServices: 'id, storeId, categoryId, status, displayOrder, syncStatus, [storeId+categoryId], [storeId+status], [categoryId+displayOrder]',
+      serviceVariants: 'id, storeId, serviceId, displayOrder, isActive, syncStatus, [serviceId+isActive], [serviceId+displayOrder]',
+      servicePackages: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      addOnGroups: 'id, storeId, isActive, displayOrder, syncStatus, [storeId+isActive]',
+      addOnOptions: 'id, storeId, groupId, isActive, displayOrder, syncStatus, [groupId+isActive], [groupId+displayOrder]',
+      staffServiceAssignments: 'id, storeId, staffId, serviceId, isActive, syncStatus, [storeId+staffId], [storeId+serviceId], [staffId+serviceId]',
+      catalogSettings: 'id, storeId, syncStatus',
+      timeOffTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      timeOffRequests: 'id, storeId, staffId, typeId, status, startDate, endDate, syncStatus, [storeId+status], [storeId+startDate], [staffId+status], [staffId+startDate], [storeId+staffId+status]',
+      blockedTimeTypes: 'id, storeId, code, isActive, displayOrder, isSystemDefault, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      blockedTimeEntries: 'id, storeId, staffId, typeId, startDateTime, endDateTime, frequency, seriesId, syncStatus, [storeId+staffId], [staffId+startDateTime], [storeId+startDateTime], [seriesId]',
+      businessClosedPeriods: 'id, storeId, startDate, endDate, isAnnual, syncStatus, [storeId+startDate], [storeId+endDate]',
+      resources: 'id, storeId, category, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+category]',
+      resourceBookings: 'id, storeId, resourceId, appointmentId, startDateTime, syncStatus, [resourceId+startDateTime], [appointmentId], [storeId+startDateTime]',
+      staffSchedules: 'id, storeId, staffId, effectiveFrom, effectiveUntil, syncStatus, [storeId+staffId], [staffId+effectiveFrom]',
+      deviceSettings: 'deviceId',
+      patchTests: 'id, clientId, serviceId, testDate, result, expiresAt, syncStatus, [clientId+serviceId], [clientId+expiresAt]',
+      formTemplates: 'id, storeId, name, isActive, syncStatus, [storeId+isActive]',
+      formResponses: 'id, formTemplateId, clientId, appointmentId, status, completedAt, syncStatus, [clientId+status], [clientId+completedAt]',
+      referrals: 'id, referrerClientId, referredClientId, createdAt, syncStatus, [referrerClientId+createdAt]',
+      clientReviews: 'id, clientId, appointmentId, staffId, rating, platform, createdAt, syncStatus, [clientId+createdAt], [staffId+rating]',
+      loyaltyRewards: 'id, clientId, type, redeemedAt, expiresAt, syncStatus, [clientId+redeemedAt]',
+      timesheets: 'id, storeId, staffId, date, status, syncStatus, isDeleted, [storeId+date], [staffId+date], [storeId+staffId], [storeId+status], [storeId+syncStatus]',
+      payRuns: 'id, storeId, periodStart, periodEnd, status, syncStatus, isDeleted, [storeId+periodStart], [storeId+status], [storeId+syncStatus]',
+      reviewRequests: 'id, storeId, clientId, appointmentId, staffId, status, sentAt, createdAt, syncStatus, [storeId+status], [clientId+status], [storeId+createdAt], [staffId+createdAt]',
+      customSegments: 'id, storeId, name, isActive, createdAt, syncStatus, [storeId+isActive], [storeId+createdAt]',
+      products: 'id, storeId, sku, barcode, category, isRetail, isBackbar, isActive, syncStatus, [storeId+isActive], [storeId+category], [storeId+isRetail], [storeId+sku]',
+      giftCardDenominations: 'id, storeId, amount, isActive, displayOrder, syncStatus, [storeId+isActive], [storeId+displayOrder]',
+      giftCardSettings: 'id, storeId, syncStatus',
+      giftCards: 'id, storeId, code, status, currentBalance, purchaserId, recipientEmail, issuedAt, expiresAt, syncStatus, isDeleted, [storeId+status], [storeId+code], [storeId+isDeleted], [purchaserId]',
+      giftCardTransactions: 'id, storeId, giftCardId, type, amount, ticketId, createdAt, syncStatus, isDeleted, [giftCardId+createdAt], [storeId+createdAt], [storeId+type], [ticketId]',
+      giftCardDesigns: 'id, storeId, name, category, isActive, isDefault, syncStatus, isDeleted, [storeId+isActive], [storeId+category], [storeId+isDefault]'
+    }).upgrade(() => {
+      console.log('✅ Database upgraded to version 16: Added compound indexes for tickets (Turn Queue & Aggregation optimization)');
+    });
   }
 }
 
