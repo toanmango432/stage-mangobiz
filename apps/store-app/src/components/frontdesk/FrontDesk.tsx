@@ -10,6 +10,8 @@ import { ComingAppointments } from './ComingAppointments';
 import { TurnTrackerFab } from '@/components/TurnTracker/TurnTrackerFab';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { CreateTicketButton } from './CreateTicketButton';
+import { CreateTicketModal } from '@/components/tickets/CreateTicketModal';
+import { useTicketKeyboardShortcuts, getShortcutHint } from '@/hooks/useTicketKeyboardShortcuts';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
@@ -137,6 +139,9 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
   // New state for ticket config settings
   const [showTicketSettings, setShowTicketSettings] = useState(false);
 
+  // US-024: State for keyboard-triggered CreateTicketModal
+  const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
+
   // ISSUE-002: Removed duplicate useState for ticketSortOrder, showUpcomingAppointments,
   // isCombinedView, and combinedCardViewMode. These now come from Redux selectors.
   // Helper callbacks to update Redux settings when user changes view modes:
@@ -170,6 +175,31 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setShowFrontDeskSettings]);
+
+  // US-024: Keyboard shortcuts for ticket operations
+  useTicketKeyboardShortcuts({
+    enabled: true,
+    onNewTicket: useCallback(() => {
+      setShowCreateTicketModal(true);
+    }, []),
+    onSectionChange: useCallback((section: 'team' | 'service' | 'waitList') => {
+      if (deviceInfo.isMobile || deviceInfo.isTablet) {
+        setActiveMobileSection(section);
+      } else if (isCombinedView) {
+        if (section === 'service' || section === 'waitList') {
+          setActiveCombinedTab(section);
+        }
+      }
+    }, [deviceInfo.isMobile, deviceInfo.isTablet, isCombinedView, setActiveMobileSection, setActiveCombinedTab]),
+    onEscape: useCallback(() => {
+      // Close any open modal
+      setShowFrontDeskSettings(false);
+      setShowCreateTicketModal(false);
+      setShowServiceDropdown(false);
+      setShowWaitListDropdown(false);
+      setShowTicketSettings(false);
+    }, [setShowFrontDeskSettings]),
+  });
 
   const ticketSettingsRef = useRef<HTMLDivElement>(null);
 
@@ -916,6 +946,11 @@ function FrontDeskComponent({ showFrontDeskSettings: externalShowSettings, setSh
       )}
       {/* US-009: Create Ticket FAB - Opens CreateTicketModal for walk-in tickets */}
       <CreateTicketButton />
+      {/* US-024: Keyboard-triggered CreateTicketModal (N key) */}
+      <CreateTicketModal
+        isOpen={showCreateTicketModal}
+        onClose={() => setShowCreateTicketModal(false)}
+      />
       {/* Add the new FrontDeskSettings component */}
       <SettingsErrorBoundary>
         <FrontDeskSettings isOpen={showFrontDeskSettings} onClose={() => setShowFrontDeskSettings(false)} currentSettings={frontDeskSettings} onSettingsChange={handleFrontDeskSettingsChange} />
