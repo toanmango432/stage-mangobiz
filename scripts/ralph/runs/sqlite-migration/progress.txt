@@ -9,3 +9,50 @@
 ## Progress Entries
 
 <!-- Ralph will append progress entries below this line -->
+
+## 2026-01-16 - US-001: Add performance benchmarking utility
+Commit: 0a49c99
+- Created `apps/store-app/src/utils/performanceBenchmark.ts` with:
+  - `measureAsync<T>()` - times async functions with optional threshold warnings
+  - `measureSync<T>()` - times sync functions with optional threshold warnings
+  - Uses `performance.now()` for high-resolution timing
+  - Logs results with `[PERF]` prefix, warnings with `[PERF WARNING]`
+- Created `apps/store-app/src/utils/index.ts` barrel export
+- Fixed `packages/sqlite-adapter/package.json`: wa-sqlite peer dependency version `^0.9.0` -> `^1.0.0`
+- **Learnings for future iterations:**
+  - Pre-existing typecheck errors in test files (AgendaView.test.tsx, staffSlice.test.ts, etc.) - these are unrelated to this migration
+  - The `performance.ts` util file exists but is React-specific (hooks, memoization); `performanceBenchmark.ts` is for general function timing
+  - No `utils/index.ts` existed previously - future utils can be added to this barrel
+---
+
+## 2026-01-16 - US-002: Create database abstraction interface
+Commit: c356777
+- Created `packages/sqlite-adapter/src/interfaces/DatabaseAdapter.ts` with:
+  - `DatabaseAdapter<T>` interface: `findById`, `findMany`, `create`, `update`, `delete`
+  - `QueryResult<T>` type: `{ data: T[]; total: number }`
+  - `QueryOptions` type: `{ where?, orderBy?, limit?, offset? }`
+  - All methods return Promises for consistency across Dexie/SQLite
+- Created `packages/sqlite-adapter/src/interfaces/index.ts` barrel export
+- Updated `packages/sqlite-adapter/src/index.ts` to export new interfaces
+- **Learnings for future iterations:**
+  - Pre-existing typecheck errors in sqlite-adapter package (adapters/, factory.ts) - unrelated to this work
+  - The `types.ts` already has `PaginatedResult<T>` but `QueryResult<T>` was added for semantic clarity in the adapter interface
+  - Used `Record<string, unknown>` instead of `Record<string, any>` for `where` clause to avoid forbidden `any`
+---
+
+## 2026-01-16 - US-003: Fix client filtering to use Dexie indexes
+Commit: 9a962bf
+- Modified `apps/store-app/src/db/database.ts`:
+  - Imported `measureAsync` from `../utils` for performance tracking
+  - Refactored `clientsDB.getFiltered()` to use Dexie `.filter()` on Collection instead of `.toArray().filter()`
+  - Wrapped entire function with `measureAsync('clientsDB.getFiltered', ...)`
+  - Dexie `.filter()` on Collection is more efficient - allows skipping non-matching items without full deserialization
+  - Added `filteredCollection.count()` for efficient total counting before pagination
+- **Performance improvement:**
+  - Before: `collection.toArray()` → load ALL clients → JS `.filter()`
+  - After: `collection.filter(filterFn)` → Dexie processes filter during iteration → only matching items fully materialized
+- **Learnings for future iterations:**
+  - Dexie's `.filter()` on Collection is different from JS Array `.filter()` - it's applied during cursor iteration
+  - Still need `.toArray()` after filtering for sorting (Dexie doesn't support custom sort on filtered collections)
+  - The `measureAsync` utility is now available via `import { measureAsync } from '../utils'`
+---

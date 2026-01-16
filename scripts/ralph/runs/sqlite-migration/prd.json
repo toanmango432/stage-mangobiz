@@ -22,7 +22,7 @@
       ],
       "notes": "Use performance.now() for high-resolution timing. Follow pattern from existing utils in apps/store-app/src/utils/. Keep it simple - no external dependencies.",
       "priority": 1,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-002",
@@ -44,7 +44,7 @@
       ],
       "notes": "Reference existing SQLiteAdapter interface in packages/sqlite-adapter/src/types.ts. Design should work for both Dexie (async) and SQLite (sync wrapped in Promise).",
       "priority": 2,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-003",
@@ -64,7 +64,7 @@
       ],
       "notes": "Current issue at line 602: const filteredClients = await collection.toArray(); loads ALL clients. Dexie .filter() on Collection is more efficient than .toArray().filter(). Pattern reference: appointmentsDB.getByStatus uses compound index correctly.",
       "priority": 3,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-004",

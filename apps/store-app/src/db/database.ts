@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './schema';
 import { TAX_RATE } from '../constants/checkoutConfig';
+import { measureAsync } from '../utils';
 import type {
   Appointment,
   CreateAppointmentInput,
@@ -596,111 +597,121 @@ export const clientsDB = {
     limit: number = 100,
     offset: number = 0
   ): Promise<{ clients: Client[]; total: number }> {
-    let collection = db.clients.where('storeId').equals(storeId);
-
-    // Apply filters
-    const filteredClients = await collection.toArray();
-    let results = filteredClients.filter(client => {
-      // Search query
-      if (filters.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
-        const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
-        if (!fullName.includes(query) &&
-            !client.phone.includes(filters.searchQuery) &&
-            !(client.email?.toLowerCase().includes(query))) {
-          return false;
+    return measureAsync('clientsDB.getFiltered', async () => {
+      // Build filter function to apply on indexed collection
+      const filterFn = (client: Client): boolean => {
+        // Search query
+        if (filters.searchQuery) {
+          const query = filters.searchQuery.toLowerCase();
+          const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
+          if (!fullName.includes(query) &&
+              !client.phone.includes(filters.searchQuery) &&
+              !(client.email?.toLowerCase().includes(query))) {
+            return false;
+          }
         }
-      }
 
-      // Status filter
-      if (filters.status && filters.status !== 'all') {
-        if (filters.status === 'blocked' && !client.isBlocked) return false;
-        if (filters.status === 'vip' && !client.isVip) return false;
-        if (filters.status === 'active' && client.isBlocked) return false;
-      }
-
-      // Loyalty tier filter
-      if (filters.loyaltyTier && filters.loyaltyTier !== 'all') {
-        if (client.loyaltyInfo?.tier !== filters.loyaltyTier) return false;
-      }
-
-      // Tags filter
-      if (filters.tags && filters.tags.length > 0) {
-        const clientTagIds = client.tags?.map(t => t.id) || [];
-        if (!filters.tags.some(tag => clientTagIds.includes(tag))) return false;
-      }
-
-      // Source filter
-      if (filters.source) {
-        if (client.source !== filters.source) return false;
-      }
-
-      // Preferred staff filter
-      if (filters.preferredStaff && filters.preferredStaff.length > 0) {
-        const preferredIds = client.preferences?.preferredStaffIds || [];
-        if (!filters.preferredStaff.some(id => preferredIds.includes(id))) return false;
-      }
-
-      // Last visit range filter
-      if (filters.lastVisitRange && client.visitSummary?.lastVisitDate) {
-        const lastVisit = new Date(client.visitSummary.lastVisitDate);
-        const now = new Date();
-        const daysSinceVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
-
-        switch (filters.lastVisitRange) {
-          case 'week': if (daysSinceVisit > 7) return false; break;
-          case 'month': if (daysSinceVisit > 30) return false; break;
-          case 'quarter': if (daysSinceVisit > 90) return false; break;
-          case 'year': if (daysSinceVisit > 365) return false; break;
-          case 'over_year': if (daysSinceVisit <= 365) return false; break;
+        // Status filter
+        if (filters.status && filters.status !== 'all') {
+          if (filters.status === 'blocked' && !client.isBlocked) return false;
+          if (filters.status === 'vip' && !client.isVip) return false;
+          if (filters.status === 'active' && client.isBlocked) return false;
         }
-      }
 
-      return true;
+        // Loyalty tier filter
+        if (filters.loyaltyTier && filters.loyaltyTier !== 'all') {
+          if (client.loyaltyInfo?.tier !== filters.loyaltyTier) return false;
+        }
+
+        // Tags filter
+        if (filters.tags && filters.tags.length > 0) {
+          const clientTagIds = client.tags?.map(t => t.id) || [];
+          if (!filters.tags.some(tag => clientTagIds.includes(tag))) return false;
+        }
+
+        // Source filter
+        if (filters.source) {
+          if (client.source !== filters.source) return false;
+        }
+
+        // Preferred staff filter
+        if (filters.preferredStaff && filters.preferredStaff.length > 0) {
+          const preferredIds = client.preferences?.preferredStaffIds || [];
+          if (!filters.preferredStaff.some(id => preferredIds.includes(id))) return false;
+        }
+
+        // Last visit range filter
+        if (filters.lastVisitRange && client.visitSummary?.lastVisitDate) {
+          const lastVisit = new Date(client.visitSummary.lastVisitDate);
+          const now = new Date();
+          const daysSinceVisit = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
+
+          switch (filters.lastVisitRange) {
+            case 'week': if (daysSinceVisit > 7) return false; break;
+            case 'month': if (daysSinceVisit > 30) return false; break;
+            case 'quarter': if (daysSinceVisit > 90) return false; break;
+            case 'year': if (daysSinceVisit > 365) return false; break;
+            case 'over_year': if (daysSinceVisit <= 365) return false; break;
+          }
+        }
+
+        return true;
+      };
+
+      // Use Dexie .filter() on indexed collection (more efficient than .toArray().filter())
+      // This allows Dexie to skip non-matching items without full deserialization
+      const collection = db.clients.where('storeId').equals(storeId);
+      const filteredCollection = collection.filter(filterFn);
+
+      // Get total count of filtered results (Dexie counts efficiently)
+      const total = await filteredCollection.count();
+
+      // Sort and paginate
+      // Note: Dexie doesn't support custom sort on filtered collections,
+      // so we need to retrieve all filtered results for sorting
+      const allFiltered = await filteredCollection.toArray();
+
+      allFiltered.sort((a, b) => {
+        let aVal: string | number | undefined;
+        let bVal: string | number | undefined;
+
+        switch (sort.field) {
+          case 'name':
+            aVal = `${a.lastName} ${a.firstName}`.toLowerCase();
+            bVal = `${b.lastName} ${b.firstName}`.toLowerCase();
+            break;
+          case 'lastVisit':
+            aVal = a.visitSummary?.lastVisitDate || '';
+            bVal = b.visitSummary?.lastVisitDate || '';
+            break;
+          case 'totalSpent':
+            aVal = a.visitSummary?.totalSpent || 0;
+            bVal = b.visitSummary?.totalSpent || 0;
+            break;
+          case 'visitCount':
+            aVal = a.visitSummary?.totalVisits || 0;
+            bVal = b.visitSummary?.totalVisits || 0;
+            break;
+          case 'createdAt':
+            aVal = a.createdAt;
+            bVal = b.createdAt;
+            break;
+          default:
+            aVal = `${a.lastName} ${a.firstName}`.toLowerCase();
+            bVal = `${b.lastName} ${b.firstName}`.toLowerCase();
+        }
+
+        if (aVal === undefined || aVal === null) return sort.order === 'asc' ? 1 : -1;
+        if (bVal === undefined || bVal === null) return sort.order === 'asc' ? -1 : 1;
+
+        const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        return sort.order === 'asc' ? comparison : -comparison;
+      });
+
+      const paginatedResults = allFiltered.slice(offset, offset + limit);
+
+      return { clients: paginatedResults, total };
     });
-
-    // Sort results
-    results.sort((a, b) => {
-      let aVal: string | number | undefined;
-      let bVal: string | number | undefined;
-
-      switch (sort.field) {
-        case 'name':
-          aVal = `${a.lastName} ${a.firstName}`.toLowerCase();
-          bVal = `${b.lastName} ${b.firstName}`.toLowerCase();
-          break;
-        case 'lastVisit':
-          aVal = a.visitSummary?.lastVisitDate || '';
-          bVal = b.visitSummary?.lastVisitDate || '';
-          break;
-        case 'totalSpent':
-          aVal = a.visitSummary?.totalSpent || 0;
-          bVal = b.visitSummary?.totalSpent || 0;
-          break;
-        case 'visitCount':
-          aVal = a.visitSummary?.totalVisits || 0;
-          bVal = b.visitSummary?.totalVisits || 0;
-          break;
-        case 'createdAt':
-          aVal = a.createdAt;
-          bVal = b.createdAt;
-          break;
-        default:
-          aVal = `${a.lastName} ${a.firstName}`.toLowerCase();
-          bVal = `${b.lastName} ${b.firstName}`.toLowerCase();
-      }
-
-      if (aVal === undefined || aVal === null) return sort.order === 'asc' ? 1 : -1;
-      if (bVal === undefined || bVal === null) return sort.order === 'asc' ? -1 : 1;
-
-      const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-      return sort.order === 'asc' ? comparison : -comparison;
-    });
-
-    const total = results.length;
-    const paginatedResults = results.slice(offset, offset + limit);
-
-    return { clients: paginatedResults, total };
   },
 
   // Blocking operations (PRD 2.3.2)
