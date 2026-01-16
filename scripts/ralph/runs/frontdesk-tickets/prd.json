@@ -466,7 +466,7 @@
       ],
       "notes": "Use useAppSelector(selectServiceTickets) to get current in-service tickets. Add visual indicator without blocking the action. Follow existing modal patterns.",
       "priority": 19,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-020",

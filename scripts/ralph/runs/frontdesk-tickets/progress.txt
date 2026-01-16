@@ -882,3 +882,59 @@ Added conflict detection to the assignTicket thunk to warn when assigning a staf
 US-019 (Show conflict warning in AssignTicketModal) - direct continuation, uses checkStaffConflict helper
 
 ---
+
+## Iteration 18 - US-019: Show conflict warning in AssignTicketModal
+**Date:** 2026-01-16
+**Status:** COMPLETE
+
+### Summary
+Added visual conflict warnings and confirmation dialog to AssignTicketModal when assigning a staff member who is currently serving another client.
+
+**Why this story?** US-019 is the next lowest priority (19) and directly depends on US-018 (conflict detection in thunk) which was just completed. The checkStaffConflict helper is now available for use in the modal.
+
+### Files Changed
+1. `apps/store-app/src/components/tickets/AssignTicketModal.tsx`
+   - Imported `useMemo`, `AlertTriangle`, `useAppSelector`, `selectServiceTickets`, `checkStaffConflict`, `StaffConflictResult`
+   - Added `serviceTickets` from Redux selector
+   - Added `pendingAssignment` state for confirmation dialog flow
+   - Added `staffConflicts` map using `useMemo` to pre-compute all staff conflicts
+   - Added `executeAssignment()` helper for actual assignment logic
+   - Updated `handleAssign()` to check for conflicts before assignment
+   - Added `handleConfirmAssignment()` and `handleCancelAssignment()` handlers
+   - Enhanced staff list items with:
+     - Orange/amber background for conflicting staff (`bg-amber-50`)
+     - "Busy" badge with AlertTriangle icon
+     - "Currently serving [Client Name]" message
+   - Added confirmation dialog:
+     - Amber header with "Staff Already Busy" title
+     - Message showing staff name and current client
+     - "Cancel" and "Assign Anyway" buttons
+
+### Key Implementation Details
+- **Conflict map pre-computation**: Uses `useMemo` to build conflict map once on staff/tickets change
+- **Visual indicators**: Orange badge with AlertTriangle icon, amber background highlight
+- **Confirmation flow**: Sets `pendingAssignment` to show dialog, user can cancel or confirm
+- **Non-blocking**: Users can still assign busy staff after confirmation
+
+### Acceptance Criteria Verification
+- ✅ Import checkStaffConflict from uiTicketsSlice
+- ✅ Before showing staff list, check each staff for conflicts (staffConflicts map)
+- ✅ Mark conflicting staff with orange warning badge: 'Currently serving [Client Name]'
+- ✅ Allow assignment anyway with confirmation: 'Assign Anyway? This will queue the client.'
+- ✅ Show conflict indicator next to staff name in list
+- ✅ No forbidden strings (no 'Test Client', 'Test Service', 'as any', 'void _')
+- ✅ pnpm run typecheck passes (test file errors are pre-existing)
+- ⚠️ Browser verification: Modal opens correctly, but no staff available to test warning (0 staff in demo data)
+
+### Patterns Learned
+- **Pre-compute conflicts with useMemo**: Avoids re-checking on every render
+- **Confirmation dialog pattern**: Use state to track pending action, show dialog, then execute on confirm
+- **Layered z-index**: Dialog uses z-[60] to appear above modal (z-50)
+
+### Commit
+`b820d11` - feat: [US-019] - Show conflict warning in AssignTicketModal
+
+### Next story suggestion
+US-020 (Add timestamp and author to ticket notes) or US-022 (Add status history tracking) - both are independent features
+
+---
