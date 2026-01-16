@@ -3,7 +3,7 @@ import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
-import type { CreateTicketInput, DeleteReason } from '../../types';
+import type { CreateTicketInput, DeleteReason, TicketNote } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
 // NOTE: Do NOT import thunks from transactionsSlice directly - causes circular dependency
@@ -96,6 +96,8 @@ export interface UITicket {
     photo?: string;
   }>;
   notes?: string;
+  // Enhanced notes with timestamp and author tracking (array format)
+  ticketNotes?: TicketNote[];
   priority?: 'normal' | 'high';
   technician?: string;
   techColor?: string;
@@ -131,6 +133,8 @@ export interface PendingTicket {
   time: string;
   duration?: string;
   notes?: string;
+  // Enhanced notes with timestamp and author tracking (array format)
+  ticketNotes?: TicketNote[];
   technician?: string;
   techColor?: string;
   techId?: string;
@@ -1091,6 +1095,90 @@ export const deleteTicket = createAsyncThunk(
 );
 
 // ============================================================================
+// TICKET NOTES THUNKS
+// ============================================================================
+
+// Add a note to a ticket with author and timestamp tracking
+export const addTicketNote = createAsyncThunk(
+  'uiTickets/addNote',
+  async ({ ticketId, text }: {
+    ticketId: string;
+    text: string;
+  }, { getState }) => {
+    const state = getState() as RootState;
+    const now = new Date();
+
+    // Find ticket in any array
+    const ticket =
+      state.uiTickets.waitlist.find(t => t.id === ticketId) ||
+      state.uiTickets.serviceTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.pendingTickets.find(t => t.id === ticketId) ||
+      state.uiTickets.completedTickets.find(t => t.id === ticketId);
+
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    // Get current user from auth state (fallback to defaults for development)
+    const authState = state.auth;
+    const authorId = authState?.user?.id || 'staff-1';
+    const authorName = authState?.user?.name || authState?.user?.email || 'Staff Member';
+
+    // Create new note
+    const newNote: TicketNote = {
+      id: uuidv4(),
+      text,
+      authorId,
+      authorName,
+      createdAt: now.toISOString(),
+    };
+
+    // Get existing notes and append new one
+    const existingNotes = (ticket as UITicket).ticketNotes || [];
+    const updatedNotes = [...existingNotes, newNote];
+
+    try {
+      // Update in Supabase
+      await dataService.tickets.update(ticketId, {
+        notes: text, // Keep legacy notes field updated with latest note
+        updatedAt: now.toISOString(),
+      } as any);
+      console.log('✅ Note added to ticket in Supabase:', ticketId);
+    } catch (error) {
+      console.warn('⚠️ Supabase update failed, using IndexedDB:', error);
+      await ticketsDB.update(ticketId, {
+        notes: text,
+        updatedAt: now,
+      } as any, 'current-user');
+
+      // Queue for sync
+      await syncQueueDB.add({
+        type: 'update',
+        entity: 'ticket',
+        entityId: ticketId,
+        action: 'UPDATE',
+        payload: { ticketNotes: updatedNotes, notes: text },
+        priority: 2,
+        maxAttempts: 5,
+      });
+    }
+
+    // Determine which array the ticket is in for the reducer
+    const ticketLocation = state.uiTickets.waitlist.find(t => t.id === ticketId) ? 'waitlist'
+      : state.uiTickets.serviceTickets.find(t => t.id === ticketId) ? 'serviceTickets'
+      : state.uiTickets.completedTickets.find(t => t.id === ticketId) ? 'completedTickets'
+      : 'pendingTickets';
+
+    return {
+      ticketId,
+      note: newNote,
+      ticketNotes: updatedNotes,
+      ticketLocation,
+    };
+  }
+);
+
+// ============================================================================
 // STATUS TRANSITION THUNKS (Bidirectional)
 // ============================================================================
 
@@ -1852,6 +1940,41 @@ const uiTicketsSlice = createSlice({
         state.serviceTickets = state.serviceTickets.filter(t => t.id !== ticketId);
         state.completedTickets = state.completedTickets.filter(t => t.id !== ticketId);
         state.pendingTickets = state.pendingTickets.filter(t => t.id !== ticketId);
+      })
+      // Add ticket note - append note to ticket's notes array
+      .addCase(addTicketNote.fulfilled, (state, action) => {
+        const { ticketId, note, ticketLocation } = action.payload;
+
+        // Helper function to add note to a ticket
+        const addNoteToTicket = (ticket: UITicket | PendingTicket) => {
+          const existingNotes = ticket.ticketNotes || [];
+          ticket.ticketNotes = [...existingNotes, note];
+          // Also update legacy notes field with latest note text
+          ticket.notes = note.text;
+        };
+
+        // Find and update ticket in appropriate array based on location
+        if (ticketLocation === 'waitlist') {
+          const index = state.waitlist.findIndex(t => t.id === ticketId);
+          if (index !== -1) {
+            addNoteToTicket(state.waitlist[index]);
+          }
+        } else if (ticketLocation === 'serviceTickets') {
+          const index = state.serviceTickets.findIndex(t => t.id === ticketId);
+          if (index !== -1) {
+            addNoteToTicket(state.serviceTickets[index]);
+          }
+        } else if (ticketLocation === 'completedTickets') {
+          const completedIndex = state.completedTickets.findIndex(t => t.id === ticketId);
+          if (completedIndex !== -1) {
+            addNoteToTicket(state.completedTickets[completedIndex]);
+          }
+        } else if (ticketLocation === 'pendingTickets') {
+          const pendingIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+          if (pendingIndex !== -1) {
+            addNoteToTicket(state.pendingTickets[pendingIndex]);
+          }
+        }
       })
       // Pause ticket - update serviceStatus
       .addCase(pauseTicket.fulfilled, (state, action) => {

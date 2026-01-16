@@ -1,6 +1,8 @@
-import { X, User, Tag, Clock, Timer, Calendar, Info, Edit2, Trash2 } from 'lucide-react';
+import { X, User, Tag, Clock, Timer, Calendar, Info, Edit2, Trash2, MessageSquare } from 'lucide-react';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { SignatureDisplay } from '@/components/common/SignatureDisplay';
+import { formatDistanceToNow } from 'date-fns';
+import type { TicketNote } from '@/types';
 interface TicketDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -156,13 +158,34 @@ export function TicketDetailsModal({
                   </div>
                 </div>}
               {/* Notes (if any) */}
-              {ticket.notes && <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              {(ticket.notes || (ticket as any).ticketNotes?.length > 0) && <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                   <div className="flex items-center mb-3">
-                    <Info size={18} className="text-gray-500 mr-2" />
+                    <MessageSquare size={18} className="text-gray-500 mr-2" />
                     <h3 className="text-sm font-bold text-gray-700">Notes</h3>
                   </div>
-                  <div className="ml-7">
-                    <p className="text-sm text-gray-700">{ticket.notes}</p>
+                  <div className="ml-7 space-y-3">
+                    {/* Display ticketNotes array if available */}
+                    {(ticket as any).ticketNotes && (ticket as any).ticketNotes.length > 0 ? (
+                      (ticket as any).ticketNotes.map((note: TicketNote) => (
+                        <div key={note.id} className="border-l-2 border-gray-200 pl-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            {/* Author avatar with initials */}
+                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium">
+                              {note.authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-xs font-medium text-gray-700">{note.authorName}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">
+                              {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700">{note.text}</p>
+                        </div>
+                      ))
+                    ) : (
+                      /* Fallback to legacy notes string */
+                      <p className="text-sm text-gray-700">{ticket.notes}</p>
+                    )}
                   </div>
                 </div>}
               {/* Customer signature (if captured via Mango Pad) */}

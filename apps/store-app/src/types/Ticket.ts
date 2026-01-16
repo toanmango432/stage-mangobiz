@@ -11,6 +11,23 @@ import { TicketStatus, SyncStatus, ServiceStatus, ServiceStatusChange } from './
 export type DeleteReason = 'testing' | 'client_left' | 'duplicate' | 'mistake' | 'other';
 
 // ============================================
+// TICKET NOTES TYPES
+// ============================================
+
+/**
+ * Individual note on a ticket with author and timestamp tracking.
+ * Used for displaying notes as a list with attribution.
+ */
+export interface TicketNote {
+  id: string;
+  text: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;  // ISO 8601 string
+  updatedAt?: string; // ISO 8601 string
+}
+
+// ============================================
 // SERVICE-LEVEL INTERFACES
 // ============================================
 
