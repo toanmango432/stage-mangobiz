@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTickets } from '@/hooks/useTicketsCompat';
-import { UserCheck, CheckCircle, X, Play, Pause, RotateCcw, Trash2 } from 'lucide-react';
+import { UserCheck, CheckCircle, X, Play, Pause, RotateCcw, Trash2, DollarSign } from 'lucide-react';
+import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { AssignTicketModal } from './AssignTicketModal';
 import { DeleteTicketModal } from './DeleteTicketModal';
 import { ManagerPinModal } from '@/components/common/ManagerPinModal';
@@ -57,6 +58,9 @@ export function TicketActions({
     waitlist
   } = useTickets();
 
+  // Checkout panel for direct checkout
+  const { openTicketWithData } = useTicketPanel();
+
   // Find ticket based on section
   const ticket = section === 'waitlist'
     ? waitlist.find(t => t.id === String(ticketId))
@@ -70,6 +74,48 @@ export function TicketActions({
   const handleCancel = () => {
     cancelTicket(String(ticketId));
   };
+
+  // Handle direct checkout - opens checkout panel with ticket data
+  const handleCheckout = useCallback(() => {
+    if (!ticket) return;
+
+    // Type guard to check if ticket is UITicket (has assignedTo)
+    const isUITicket = (t: typeof ticket): t is typeof ticket & { assignedTo?: { id: string; name: string; color: string } } => {
+      return 'assignedTo' in t || 'status' in t && t.status !== undefined;
+    };
+
+    // Build ticket data for checkout panel
+    // Handle differences between UITicket and PendingTicket
+    const ticketData: TicketData = {
+      id: String(ticketId),
+      number: ticket.number,
+      clientId: 'clientId' in ticket ? ticket.clientId : undefined,
+      clientName: ticket.clientName,
+      clientType: ticket.clientType,
+      service: ticket.service,
+      // Build checkoutServices from ticket.service for single-service tickets
+      checkoutServices: 'checkoutServices' in ticket && ticket.checkoutServices
+        ? ticket.checkoutServices
+        : [{
+            id: `service-${Date.now()}`,
+            serviceName: ticket.service,
+            price: 'subtotal' in ticket ? ticket.subtotal : 0,
+            duration: 'duration' in ticket && ticket.duration ? parseInt(ticket.duration) : 30,
+            status: 'not_started',
+            staffId: ticket.techId,
+            staffName: ticket.technician,
+          }],
+      technician: ticket.technician,
+      techId: ticket.techId || (isUITicket(ticket) ? ticket.assignedTo?.id : undefined),
+      duration: 'duration' in ticket ? ticket.duration : undefined,
+      subtotal: 'subtotal' in ticket ? ticket.subtotal : undefined,
+      notes: 'notes' in ticket ? ticket.notes : undefined,
+      time: ticket.time,
+      status: 'status' in ticket ? ticket.status : undefined,
+    };
+
+    openTicketWithData(ticketData);
+  }, [ticket, ticketId, openTicketWithData]);
 
   // Handle assign ticket
   const handleAssign = async (techId: string, techName: string, techColor: string) => {
@@ -243,6 +289,15 @@ export function TicketActions({
                 <UserCheck size={compact ? 16 : 18} />
               </button>
             </Tippy>
+            <Tippy content="Checkout Now">
+              <button
+                onClick={handleCheckout}
+                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors`}
+                aria-label="Checkout now"
+              >
+                <DollarSign size={compact ? 16 : 18} />
+              </button>
+            </Tippy>
             <Tippy content="Delete Ticket">
               <button
                 onClick={() => setShowDeleteModal(true)}
@@ -276,6 +331,15 @@ export function TicketActions({
                 aria-label="Move to waiting"
               >
                 <Pause size={compact ? 16 : 18} />
+              </button>
+            </Tippy>
+            <Tippy content="Checkout Now">
+              <button
+                onClick={handleCheckout}
+                className={`${compact ? 'p-1' : 'p-1.5'} rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors`}
+                aria-label="Checkout now"
+              >
+                <DollarSign size={compact ? 16 : 18} />
               </button>
             </Tippy>
             <Tippy content="Delete Ticket">
