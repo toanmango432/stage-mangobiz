@@ -3,7 +3,8 @@ import { useTickets } from '@/hooks/useTicketsCompat';
 import { useTicketSection } from '@/hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Trash2, AlertCircle, ChevronRight, Hourglass, Maximize2 } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Trash2, AlertCircle, ChevronRight, Hourglass, Maximize2, ArrowUpDown, Clock } from 'lucide-react';
+import { sortWaitingByUrgency } from '@/utils/urgencyUtils';
 import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { AssignTicketModal } from '@/components/tickets/AssignTicketModal';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
@@ -256,13 +257,28 @@ export const WaitListSection = memo(function WaitListSection({
   const [activeFilters, setActiveFilters] = useState<Set<TicketFilterType>>(new Set());
   // Service type filter (US-015)
   const [selectedService, setSelectedService] = useState('');
+  // Sort mode: 'queue' (drag order) or 'urgency' (most urgent first) - US-017
+  const [sortMode, setSortMode] = useState<'queue' | 'urgency'>(() => {
+    const saved = localStorage.getItem('waitListSortMode');
+    return saved === 'urgency' ? 'urgency' : 'queue';
+  });
 
   // Drag and drop state
   const dispatch = useAppDispatch();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Check if drag and drop is enabled from settings
-  const isDragEnabled = settings?.enableDragAndDrop ?? true;
+  // Disable when urgency sort is active (US-017)
+  const isDragEnabled = (settings?.enableDragAndDrop ?? true) && sortMode === 'queue';
+
+  // Toggle sort mode and persist to localStorage (US-017)
+  const toggleSortMode = useCallback(() => {
+    setSortMode(current => {
+      const newMode = current === 'queue' ? 'urgency' : 'queue';
+      localStorage.setItem('waitListSortMode', newMode);
+      return newMode;
+    });
+  }, []);
 
   // Sensors for drag and drop (with delay to prevent accidental drags)
   const sensors = useSensors(
@@ -346,7 +362,7 @@ export const WaitListSection = memo(function WaitListSection({
   // Calculate service counts for the service type dropdown (US-015)
   const serviceCounts = useMemo(() => calculateServiceCounts(waitlist), [waitlist]);
 
-  // Filter waitlist based on search query, category, service, and ticket attribute filters
+  // Filter and sort waitlist based on search query, category, service, filters, and sort mode
   const filteredWaitlist = useMemo(() => {
     let filtered = waitlist;
 
@@ -378,8 +394,13 @@ export const WaitListSection = memo(function WaitListSection({
       filtered = filtered.filter(ticket => ticket.service === selectedService);
     }
 
+    // Apply urgency sorting when enabled (US-017)
+    if (sortMode === 'urgency') {
+      filtered = sortWaitingByUrgency(filtered);
+    }
+
     return filtered;
-  }, [waitlist, searchQuery, selectedCategory, activeFilters, selectedService]);
+  }, [waitlist, searchQuery, selectedCategory, activeFilters, selectedService, sortMode]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -603,6 +624,16 @@ export const WaitListSection = memo(function WaitListSection({
           subtitle={waitlist.length > 0 ? `Avg ${avgWaitTime}m` : undefined}
           rightActions={
             <>
+              {/* Sort mode toggle (US-017) */}
+              <Tippy content={sortMode === 'queue' ? 'Sort by: Queue Order (click for Urgency)' : 'Sort by: Urgency (click for Queue Order)'}>
+                <HeaderActionButton
+                  onClick={toggleSortMode}
+                  className={sortMode === 'urgency' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : ''}
+                >
+                  {sortMode === 'urgency' ? <Clock size={16} /> : <ArrowUpDown size={16} />}
+                </HeaderActionButton>
+              </Tippy>
+
               {viewMode === 'grid' ? (
                 <Tippy content={cardViewMode === 'compact' ? 'Switch to Normal' : 'Switch to Compact'}>
                   <HeaderActionButton onClick={toggleCardViewMode}>
@@ -666,6 +697,56 @@ export const WaitListSection = memo(function WaitListSection({
                         </div>
                         {viewMode === 'list' && <Check size={14} />}
                       </button>
+                    </div>
+
+                    {/* Sort Mode Section (US-017) */}
+                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Sort Order
+                      </h3>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setSortMode('queue');
+                          localStorage.setItem('waitListSortMode', 'queue');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          sortMode === 'queue'
+                            ? 'bg-violet-50 text-violet-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <ArrowUpDown size={14} className="mr-2" />
+                          <span>Queue Order</span>
+                        </div>
+                        {sortMode === 'queue' && <Check size={14} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortMode('urgency');
+                          localStorage.setItem('waitListSortMode', 'urgency');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          sortMode === 'urgency'
+                            ? 'bg-orange-50 text-orange-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Clock size={14} className="mr-2" />
+                          <span>Urgency</span>
+                        </div>
+                        {sortMode === 'urgency' && <Check size={14} />}
+                      </button>
+                      {sortMode === 'urgency' && (
+                        <p className="px-4 py-1 text-xs text-orange-600">
+                          Drag-and-drop disabled
+                        </p>
+                      )}
                     </div>
 
                     {/* Card Size Section */}
