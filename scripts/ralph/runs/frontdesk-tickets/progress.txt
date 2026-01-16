@@ -991,3 +991,37 @@ None - AddNoteModal.tsx was already properly implemented with Redux integration 
 **Next story suggestion:** US-022 (Add status history tracking to UITicket) - creates StatusChange interface and statusHistory array
 
 ---
+
+## Iteration 22 - US-022: Add status history tracking to UITicket
+**Date:** 2026-01-16
+**Status:** COMPLETE
+Commit: 2d8b53e
+
+**Why this story?** US-022 had the lowest priority (22) among incomplete stories and is required by US-023 (Display status history) which depends on the statusHistory array.
+
+**Changes:**
+- `apps/store-app/src/types/Ticket.ts:30-49`: Added TicketStatusValue type and StatusChange interface with from, to, changedAt, changedBy?, and reason? fields
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:6`: Added StatusChange to imports from types
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:70-84`: Added createStatusHistoryEntry helper function for consistent history entry creation
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:118-119`: Added statusHistory?: StatusChange[] to UITicket interface
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:166-167`: Added statusHistory?: StatusChange[] to PendingTicket interface
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:428-438`: Updated createTicket Supabase path to initialize statusHistory with initial 'waiting' status
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:444-455`: Updated createTicket IndexedDB fallback to initialize statusHistory
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1251-1257`: Updated moveToWaiting thunk to track status history
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1334-1337`: Updated moveToInService thunk to track waiting -> in-service transition
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1394-1397`: Updated moveToPending thunk to track in-service -> completed transition
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1851-1865`: Updated assignTicket.fulfilled reducer to track status history
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1905-1920`: Updated completeTicket.fulfilled reducer to track status history
+
+**Learnings:**
+- **Helper function pattern**: createStatusHistoryEntry helper centralizes logic for consistent history entries
+- **Thunk vs reducer updates**: Thunks prepare the data, reducers update state with history
+- **from: null for initial**: Initial status history entry uses null for 'from' field
+
+**Pre-existing Issues (Not From This Story):**
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled (line 2170) - pre-existing type incompatibility
+
+**Next story suggestion:** US-023 (Display status history in TicketDetailsModal) - directly uses the statusHistory array added here
+
+---

@@ -534,7 +534,7 @@
       ],
       "notes": "This story only adds data tracking. UI display handled in US-023. Keep statusHistory array lightweight (only essential fields).",
       "priority": 22,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-023",
