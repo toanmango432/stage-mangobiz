@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo } from 'react';
-import { StickyNote, MessageSquare } from 'lucide-react';
+import { StickyNote, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   Dialog,
@@ -7,6 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import toast from 'react-hot-toast';
+import { useAppDispatch } from '@/store/hooks';
+import { addTicketNote } from '@/store/slices/uiTicketsSlice';
 
 interface AddNoteModalProps {
   isOpen: boolean;
@@ -15,7 +18,8 @@ interface AddNoteModalProps {
   ticketNumber: number;
   clientName: string;
   currentNote?: string;
-  onSave: (ticketId: string, note: string) => void;
+  /** @deprecated Use Redux dispatch instead. Kept for backward compatibility. */
+  onSave?: (ticketId: string, note: string) => void;
 }
 
 function AddNoteModalComponent({
@@ -27,13 +31,16 @@ function AddNoteModalComponent({
   currentNote = '',
   onSave,
 }: AddNoteModalProps) {
+  const dispatch = useAppDispatch();
   const [note, setNote] = useState(currentNote);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Reset note when modal opens with new content
   useEffect(() => {
     if (isOpen) {
       setNote(currentNote);
+      setIsSubmitting(false);
       // Focus textarea after modal opens
       setTimeout(() => {
         textareaRef.current?.focus();
@@ -41,9 +48,28 @@ function AddNoteModalComponent({
     }
   }, [isOpen, currentNote]);
 
-  const handleSave = () => {
-    onSave(ticketId, note.trim());
-    onClose();
+  const handleSave = async () => {
+    const trimmedNote = note.trim();
+    if (!trimmedNote) return;
+
+    setIsSubmitting(true);
+    try {
+      // Dispatch to Redux
+      await dispatch(addTicketNote({ ticketId, text: trimmedNote })).unwrap();
+      toast.success('Note added successfully');
+
+      // Call legacy onSave callback if provided (backward compatibility)
+      if (onSave) {
+        onSave(ticketId, trimmedNote);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Failed to add note:', error);
+      toast.error('Failed to add note. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -86,7 +112,8 @@ function AddNoteModalComponent({
               onChange={(e) => setNote(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Add a note about this ticket..."
-              className="w-full h-32 px-3 py-2 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              disabled={isSubmitting}
+              className="w-full h-32 px-3 py-2 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
               maxLength={500}
             />
             <div className="absolute bottom-2 right-2 text-xs text-gray-400">
@@ -105,16 +132,24 @@ function AddNoteModalComponent({
             <Button
               variant="outline"
               onClick={onClose}
+              disabled={isSubmitting}
               className="px-4"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!hasChanges && !note.trim()}
-              className="px-4 bg-amber-600 hover:bg-amber-700 text-white"
+              disabled={isSubmitting || (!hasChanges && !note.trim())}
+              className="px-4 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
             >
-              {currentNote ? 'Update Note' : 'Add Note'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                currentNote ? 'Update Note' : 'Add Note'
+              )}
             </Button>
           </div>
         </div>

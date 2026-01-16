@@ -513,7 +513,7 @@
       ],
       "notes": "AddStaffNoteModal and AddNoteModal may be similar - update both. Follow pattern from other modals with Redux dispatch. Modal props should include ticketId.",
       "priority": 21,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-022",
