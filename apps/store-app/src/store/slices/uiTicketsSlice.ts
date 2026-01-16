@@ -473,6 +473,24 @@ export const assignTicket = createAsyncThunk(
     // Get the ticket to find service info
     const ticket = state.uiTickets.waitlist.find(t => t.id === ticketId);
 
+    // Check for staff conflict (staff already has an active in-service ticket)
+    const conflictResult = checkStaffConflict(staffId, state.uiTickets.serviceTickets);
+    if (conflictResult.hasConflict && conflictResult.conflictingTicket) {
+      // Return conflict info - UI can decide whether to proceed or warn
+      return {
+        ticketId,
+        conflict: true,
+        conflictingTicket: conflictResult.conflictingTicket,
+        conflictWarning: `${staffName} is currently serving ${conflictResult.clientName}`,
+        updates: null,
+        staffId,
+        ticketInfo: ticket ? {
+          clientName: ticket.clientName,
+          serviceName: ticket.service,
+        } : null
+      };
+    }
+
     const updates = {
       assignedTo: { id: staffId, name: staffName, color: staffColor },
       technician: staffName,
@@ -519,6 +537,9 @@ export const assignTicket = createAsyncThunk(
 
     return {
       ticketId,
+      conflict: false,
+      conflictingTicket: null,
+      conflictWarning: undefined,
       updates,
       staffId,
       ticketInfo: ticket ? {
@@ -1710,7 +1731,12 @@ const uiTicketsSlice = createSlice({
       })
       // Assign ticket
       .addCase(assignTicket.fulfilled, (state, action) => {
-        const { ticketId, updates } = action.payload;
+        const { ticketId, updates, conflict } = action.payload;
+
+        // If conflict detected, don't update state - UI will handle the warning
+        if (conflict || !updates) {
+          return;
+        }
 
         // Move from waitlist to service
         const ticketIndex = state.waitlist.findIndex(t => t.id === ticketId);
@@ -1978,5 +2004,53 @@ export const selectCompletedTickets = (state: RootState) => state.uiTickets.comp
 export const selectPendingTickets = (state: RootState) => state.uiTickets.pendingTickets;
 export const selectTicketsLoading = (state: RootState) => state.uiTickets.loading;
 export const selectTicketsError = (state: RootState) => state.uiTickets.error;
+
+// ============================================================================
+// CONFLICT DETECTION HELPERS
+// ============================================================================
+
+/**
+ * Staff conflict detection result
+ */
+export interface StaffConflictResult {
+  hasConflict: boolean;
+  conflictingTicket?: UITicket;
+  clientName?: string;
+  serviceName?: string;
+}
+
+/**
+ * Check if a staff member has an active in-service ticket
+ * Checks all three ways staff can be associated with a ticket:
+ * 1. techId - direct technician assignment
+ * 2. staffId - staff ID field (legacy)
+ * 3. assignedTo.id - structured assignment object
+ *
+ * @param staffId - The staff member ID to check
+ * @param serviceTickets - Array of current in-service tickets
+ * @returns StaffConflictResult with conflict details if found
+ */
+export function checkStaffConflict(
+  staffId: string,
+  serviceTickets: UITicket[]
+): StaffConflictResult {
+  // Find ticket where staff is assigned (check all three ID fields)
+  const conflictingTicket = serviceTickets.find(ticket =>
+    String(ticket.techId) === String(staffId) ||
+    String((ticket as any).staffId) === String(staffId) ||
+    String(ticket.assignedTo?.id) === String(staffId)
+  );
+
+  if (conflictingTicket) {
+    return {
+      hasConflict: true,
+      conflictingTicket,
+      clientName: conflictingTicket.clientName,
+      serviceName: conflictingTicket.service,
+    };
+  }
+
+  return { hasConflict: false };
+}
 
 export default uiTicketsSlice.reducer;
