@@ -28,6 +28,27 @@ export interface TicketNote {
 }
 
 // ============================================
+// STATUS HISTORY TYPES
+// ============================================
+
+/**
+ * Status values for ticket status history tracking.
+ */
+export type TicketStatusValue = 'waiting' | 'in-service' | 'completed' | 'paid';
+
+/**
+ * Record of a status change for audit/history purposes.
+ * Tracks who changed the status, when, and optionally why.
+ */
+export interface StatusChange {
+  from: TicketStatusValue | null;  // null for initial status
+  to: TicketStatusValue;
+  changedAt: string;    // ISO 8601 string
+  changedBy?: string;   // User ID who made the change (optional)
+  reason?: string;      // Optional reason for the change
+}
+
+// ============================================
 // SERVICE-LEVEL INTERFACES
 // ============================================
 

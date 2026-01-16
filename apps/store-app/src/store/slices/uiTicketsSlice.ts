@@ -3,7 +3,7 @@ import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
-import type { CreateTicketInput, DeleteReason, TicketNote } from '../../types';
+import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange } from '../../types';
 import type { RootState } from '../index';
 import { v4 as uuidv4 } from 'uuid';
 // NOTE: Do NOT import thunks from transactionsSlice directly - causes circular dependency
@@ -67,6 +67,22 @@ interface DBTicket {
 // Service status for individual services within a ticket
 export type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
 
+// Helper function to create a status change entry for history tracking
+function createStatusHistoryEntry(
+  from: 'waiting' | 'in-service' | 'completed' | 'paid' | null,
+  to: 'waiting' | 'in-service' | 'completed' | 'paid',
+  changedBy?: string,
+  reason?: string
+): StatusChange {
+  return {
+    from,
+    to,
+    changedAt: new Date().toISOString(),
+    ...(changedBy && { changedBy }),
+    ...(reason && { reason }),
+  };
+}
+
 // UI-specific ticket interfaces (matching existing TicketContext)
 export interface UITicket {
   id: string;
@@ -115,6 +131,8 @@ export interface UITicket {
   deletedAt?: string;
   deletedReason?: DeleteReason;
   deletedNote?: string;
+  // Status history for audit tracking
+  statusHistory?: StatusChange[];
 }
 
 export interface PendingTicket {
@@ -161,6 +179,8 @@ export interface PendingTicket {
   deletedAt?: string;
   deletedReason?: DeleteReason;
   deletedNote?: string;
+  // Status history for audit tracking
+  statusHistory?: StatusChange[];
 }
 
 export interface CompletionDetails {
@@ -405,7 +425,8 @@ export const createTicket = createAsyncThunk(
         },
       }).catch((err) => console.warn('[Audit] createTicket log failed:', err));
 
-      // Convert to UITicket format
+      // Convert to UITicket format with initial status history
+      const initialStatusEntry = createStatusHistoryEntry(null, 'waiting');
       const newTicket: UITicket = {
         ...ticketData,
         id: createdTicket.id,
@@ -414,12 +435,14 @@ export const createTicket = createAsyncThunk(
         status: 'waiting', // UI uses 'waiting'
         createdAt: new Date(createdTicket.createdAt || new Date()),
         updatedAt: new Date(createdTicket.updatedAt || new Date()),
+        statusHistory: [initialStatusEntry],
       };
 
       return { ticket: newTicket, checkInDate: today, checkInNumber };
     } catch (error) {
       console.error('❌ Failed to create ticket in Supabase:', error);
-      // Fallback to IndexedDB for offline
+      // Fallback to IndexedDB for offline with initial status history
+      const initialStatusEntry = createStatusHistoryEntry(null, 'waiting');
       const newTicket: UITicket = {
         ...ticketData,
         id: uuidv4(),
@@ -428,6 +451,7 @@ export const createTicket = createAsyncThunk(
         status: 'waiting',
         createdAt: new Date(),
         updatedAt: new Date(),
+        statusHistory: [initialStatusEntry],
       };
 
       await ticketsDB.create({
@@ -1228,6 +1252,14 @@ export const moveToWaiting = createAsyncThunk(
       });
     }
 
+    // Create status history entry
+    const existingHistory = serviceTicket?.statusHistory || pendingTicket?.statusHistory || [];
+    const statusEntry = createStatusHistoryEntry(
+      previousStatus as 'in-service' | 'completed',
+      'waiting'
+    );
+    const newStatusHistory = [...existingHistory, statusEntry];
+
     return {
       ticketId,
       updates,
@@ -1235,6 +1267,7 @@ export const moveToWaiting = createAsyncThunk(
       ticket: serviceTicket ? {
         ...serviceTicket,
         ...updates,
+        statusHistory: newStatusHistory,
       } : {
         // Convert PendingTicket to UITicket
         id: pendingTicket!.id,
@@ -1254,6 +1287,7 @@ export const moveToWaiting = createAsyncThunk(
         createdAt: now,
         updatedAt: now,
         lastVisitDate: pendingTicket!.lastVisitDate,
+        statusHistory: newStatusHistory,
       },
     };
   }
@@ -1301,12 +1335,18 @@ export const moveToInService = createAsyncThunk(
       });
     }
 
+    // Create status history entry
+    const existingHistory = ticket.statusHistory || [];
+    const statusEntry = createStatusHistoryEntry('waiting', 'in-service');
+    const newStatusHistory = [...existingHistory, statusEntry];
+
     return {
       ticketId,
       updates,
       ticket: {
         ...ticket,
         ...updates,
+        statusHistory: newStatusHistory,
       },
     };
   }
@@ -1355,6 +1395,11 @@ export const moveToPending = createAsyncThunk(
       });
     }
 
+    // Create status history entry
+    const existingHistory = ticket.statusHistory || [];
+    const statusEntry = createStatusHistoryEntry('in-service', 'completed');
+    const newStatusHistory = [...existingHistory, statusEntry];
+
     // Create pending ticket data
     const pendingTicket: PendingTicket = {
       id: ticket.id,
@@ -1379,6 +1424,7 @@ export const moveToPending = createAsyncThunk(
       completedAt: now.toISOString(),
       checkoutServices: ticket.checkoutServices,
       clientId: ticket.clientId,
+      statusHistory: newStatusHistory,
     };
 
     return {
@@ -1829,7 +1875,17 @@ const uiTicketsSlice = createSlice({
         // Move from waitlist to service
         const ticketIndex = state.waitlist.findIndex(t => t.id === ticketId);
         if (ticketIndex !== -1) {
-          const ticket = { ...state.waitlist[ticketIndex], ...updates };
+          const existingTicket = state.waitlist[ticketIndex];
+          // Create status history entry
+          const statusEntry = createStatusHistoryEntry(
+            existingTicket.status as 'waiting' | 'in-service' | 'completed' | null,
+            'in-service'
+          );
+          const ticket = {
+            ...existingTicket,
+            ...updates,
+            statusHistory: [...(existingTicket.statusHistory || []), statusEntry],
+          };
           state.waitlist.splice(ticketIndex, 1);
           state.serviceTickets.push(ticket);
         }
@@ -1872,15 +1928,21 @@ const uiTicketsSlice = createSlice({
       .addCase(completeTicket.fulfilled, (state, action) => {
         const { ticketId, pendingTicket } = action.payload;
 
-        // Remove from service tickets
+        // Remove from service tickets and get existing ticket for history
         const ticketIndex = state.serviceTickets.findIndex(t => t.id === ticketId);
+        let existingStatusHistory: StatusChange[] = [];
         if (ticketIndex !== -1) {
+          existingStatusHistory = state.serviceTickets[ticketIndex].statusHistory || [];
           state.serviceTickets.splice(ticketIndex, 1);
         }
 
-        // Add to pending tickets for checkout
+        // Add to pending tickets for checkout with status history
         if (pendingTicket) {
-          state.pendingTickets.push(pendingTicket);
+          const statusEntry = createStatusHistoryEntry('in-service', 'completed');
+          state.pendingTickets.push({
+            ...pendingTicket,
+            statusHistory: [...existingStatusHistory, statusEntry],
+          });
         }
       })
       // Mark ticket as paid - remove from pending (transaction created via thunk)
