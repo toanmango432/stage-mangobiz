@@ -1,0 +1,11 @@
+# SQLite Migration Progress Log
+
+## Codebase Patterns
+
+<!-- Add reusable patterns discovered during implementation here -->
+
+---
+
+## Progress Entries
+
+<!-- Ralph will append progress entries below this line -->

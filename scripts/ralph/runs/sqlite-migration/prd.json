@@ -1,0 +1,173 @@
+{
+  "project": "Mango POS Offline V2 - SQLite Migration",
+  "branchName": "ralph/sqlite-migration",
+  "description": "Data layer performance optimization through architecture fixes and SQLite migration. Phase 1 fixes N+1 patterns and adds indexes. Phase 2 implements SQLite for Electron.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add performance benchmarking utility",
+      "description": "As a developer, I need a performance measurement utility to establish baselines and validate improvements.",
+      "acceptanceCriteria": [
+        "measureAsync<T>(name: string, fn: () => Promise<T>, threshold?: number): Promise<T> function exists",
+        "measureSync<T>(name: string, fn: () => T, threshold?: number): T function exists",
+        "Results logged with [PERF] prefix: [PERF] {name}: {duration}ms",
+        "If threshold provided and exceeded, logs warning: [PERF WARNING] {name} exceeded threshold",
+        "Export both functions from utils/index.ts",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/utils/performanceBenchmark.ts",
+        "apps/store-app/src/utils/index.ts"
+      ],
+      "notes": "Use performance.now() for high-resolution timing. Follow pattern from existing utils in apps/store-app/src/utils/. Keep it simple - no external dependencies.",
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Create database abstraction interface",
+      "description": "As a developer, I need a platform-agnostic database interface to support both Dexie and SQLite backends.",
+      "acceptanceCriteria": [
+        "DatabaseAdapter<T> interface with methods: findById, findMany, create, update, delete",
+        "QueryResult<T> generic type: { data: T[]; total: number }",
+        "QueryOptions type: { where?: Record<string, any>; orderBy?: string; limit?: number; offset?: number }",
+        "All methods return Promises",
+        "Export from packages/sqlite-adapter/src/index.ts",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/interfaces/DatabaseAdapter.ts",
+        "packages/sqlite-adapter/src/interfaces/index.ts",
+        "packages/sqlite-adapter/src/index.ts"
+      ],
+      "notes": "Reference existing SQLiteAdapter interface in packages/sqlite-adapter/src/types.ts. Design should work for both Dexie (async) and SQLite (sync wrapped in Promise).",
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Fix client filtering to use Dexie indexes",
+      "description": "As a user, I want faster client filtering by using database indexes instead of JS filtering.",
+      "acceptanceCriteria": [
+        "Remove .toArray() call at line ~602 before filtering",
+        "Use Dexie .where('storeId').equals(storeId) as base query",
+        "For searchQuery filter: use .filter() on indexed collection (not full array)",
+        "Keep pagination working with .offset(offset).limit(limit)",
+        "Wrap function with measureAsync('clientsDB.getFiltered', ...)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/database.ts"
+      ],
+      "notes": "Current issue at line 602: const filteredClients = await collection.toArray(); loads ALL clients. Dexie .filter() on Collection is more efficient than .toArray().filter(). Pattern reference: appointmentsDB.getByStatus uses compound index correctly.",
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Add missing compound indexes for tickets",
+      "description": "As a developer, I need additional ticket indexes to optimize turn queue and aggregation queries.",
+      "acceptanceCriteria": [
+        "Add new schema version (increment from current highest version)",
+        "Add compound index [storeId+status+createdAt] to tickets table",
+        "Add compound index [storeId+staffId+createdAt] to tickets table",
+        "Include upgrade function with console.log",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/schema.ts"
+      ],
+      "notes": "Follow pattern from existing version upgrades (see lines 146-230 in schema.ts). CRITICAL: Copy ALL existing table definitions in new version, only modify tickets line.",
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "title": "Add helper method for staff ticket counts",
+      "description": "As a developer, I need an optimized method to get ticket counts per staff member for turn queue.",
+      "acceptanceCriteria": [
+        "Add ticketsDB.getStaffTicketCounts(storeId: string, staffIds: string[], since: Date): Promise<Map<string, number>>",
+        "Method fetches tickets once with compound index query",
+        "Counts tickets per staffId by iterating ticket.services array",
+        "Returns Map<staffId, count> for O(1) lookups",
+        "Wrap with measureAsync",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/database.ts"
+      ],
+      "notes": "This replaces multiple getAll() calls in turn queue calculation. Staff ID is in ticket.services[].staffId, not on ticket directly.",
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "Fix turn queue N+1 - pre-fetch tickets",
+      "description": "As a user, I want faster turn queue calculation by eliminating N+1 query pattern.",
+      "acceptanceCriteria": [
+        "In findBestStaff(): fetch all recent tickets ONCE before the Promise.all loop",
+        "Pass pre-fetched tickets to scoreStaff() as new parameter",
+        "Modify calculateTurnScore() to use passed tickets instead of calling ticketsDB.getAll()",
+        "Modify calculateLoadScore() to use passed tickets",
+        "Remove ticketsDB.getAll() call at line ~145",
+        "Wrap findBestStaff() with measureAsync",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/turnQueueService.ts"
+      ],
+      "notes": "Current N+1: line 145 ticketsDB.getAll(storeId) called per staff. Also line 200 in getTurnQueueStats() has same issue. Pre-fetch once, filter in memory.",
+      "priority": 6,
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "title": "Add turn queue result caching",
+      "description": "As a user, I want turn queue results cached to avoid recalculation on every request.",
+      "acceptanceCriteria": [
+        "Create TurnQueueCache class with private cache: Map<string, { result: Staff | null; timestamp: number }>",
+        "get(key: string): Staff | null | undefined - returns undefined if not cached or expired",
+        "set(key: string, result: Staff | null): void - stores with current timestamp",
+        "invalidate(storeId: string): void - clears all entries for store",
+        "TTL constant: CACHE_TTL_MS = 30000 (30 seconds)",
+        "In findBestStaff(): check cache before calculation, store result after",
+        "Export invalidateTurnQueueCache(storeId: string) function",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/turnQueueCache.ts",
+        "apps/store-app/src/services/turnQueueService.ts"
+      ],
+      "notes": "Simple in-memory cache with Map. 30-second TTL balances freshness vs performance.",
+      "priority": 7,
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "title": "Fix performance metrics N+1 query pattern",
+      "description": "As a user, I want faster performance reports by eliminating per-client queries.",
+      "acceptanceCriteria": [
+        "Remove the for-loop at lines 154-167 that queries previousVisits per clientId",
+        "Replace with single batch query: supabase.from('tickets').select('client_id').in('client_id', Array.from(clientIds))",
+        "Process results in memory: create Set<string> of clientIds with previous visits",
+        "Update newClientIds logic using the batch results",
+        "Wrap getStaffPerformanceMetrics() with measureAsync",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/performanceOperations.ts"
+      ],
+      "notes": "Current issue: lines 154-167 make N queries for N clients. Supabase .in() supports arrays up to 100 items efficiently.",
+      "priority": 8,
+      "passes": false
+    }
+  ]
+}
