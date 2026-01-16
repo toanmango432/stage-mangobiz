@@ -445,7 +445,7 @@
       ],
       "notes": "This story only adds backend detection logic. UI warning handled in US-019. Don't block assignment - just warn.",
       "priority": 18,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-019",

@@ -830,3 +830,55 @@ Implemented urgency-based sorting for the WaitListSection. Users can now toggle 
 US-018 (Add conflict detection to assignTicket thunk) - next lowest priority, backend logic for staff conflict detection
 
 ---
+
+## Iteration 19 - US-018: Add conflict detection to assignTicket thunk
+**Date:** 2026-01-16
+**Status:** COMPLETE
+
+### Summary
+Added conflict detection to the assignTicket thunk to warn when assigning a staff member who is already serving another client. The thunk now checks for conflicts before assignment and returns conflict details for the UI to handle.
+
+**Why this story?** US-018 had the lowest priority number (18) among incomplete stories and is a backend-only change that unblocks US-019 (UI warning).
+
+### Files Changed
+1. `apps/store-app/src/store/slices/uiTicketsSlice.ts`
+   - Added `StaffConflictResult` interface for type-safe conflict handling
+   - Added `checkStaffConflict()` helper function that checks techId, staffId, and assignedTo.id
+   - Updated `assignTicket` thunk to:
+     - Call `checkStaffConflict()` before assignment
+     - Return conflict details if staff is busy: `{ conflict: true, conflictingTicket, conflictWarning }`
+     - Return `conflict: false` on successful assignment
+   - Updated reducer to skip state update when conflict detected
+
+### Key Implementation Details
+- **Conflict check fields**: Checks techId, staffId (legacy), and assignedTo.id
+- **Return type extension**: Added conflict, conflictingTicket, conflictWarning to thunk return
+- **Non-blocking**: Conflict doesn't throw error - UI decides whether to proceed or warn
+- **String comparison**: Uses `String()` for safe ID comparison (handles number vs string)
+
+### Acceptance Criteria Verification
+- ✅ In assignTicket thunk: before assignment, check if staff has active in-service ticket
+- ✅ Use inService state to find tickets with matching techId or assignedTo.id
+- ✅ If conflict found: return { conflict: true, conflictingTicket: UITicket }
+- ✅ If no conflict: proceed with assignment
+- ✅ Add conflictWarning?: string to thunk return type
+- ✅ Export checkStaffConflict helper for UI use
+- ✅ No forbidden strings (no 'Test Client', 'Test Service', 'as any', 'void _')
+- ✅ pnpm run typecheck passes (test file errors are pre-existing)
+
+### Patterns Learned
+- **Non-blocking conflict detection**: Return conflict info instead of throwing, let UI decide
+- **Multiple ID field checks**: Staff can be identified by techId, staffId, or assignedTo.id
+- **Safe string comparison**: Use `String()` wrapper for ID comparisons
+
+### Pre-existing Issues (Not From This Story)
+- TypeScript errors in test files - pre-existing, documented
+- TypeScript error in updateCheckoutTicket.fulfilled - pre-existing
+
+### Commit
+`f5359cc` - feat: [US-018] - Add conflict detection to assignTicket thunk
+
+### Next story suggestion
+US-019 (Show conflict warning in AssignTicketModal) - direct continuation, uses checkStaffConflict helper
+
+---
