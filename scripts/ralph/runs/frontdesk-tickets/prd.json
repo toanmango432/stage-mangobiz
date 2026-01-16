@@ -424,7 +424,7 @@
       ],
       "notes": "Use sortByUrgency with custom thresholds for waiting (not pending). Toggle disables drag-and-drop when urgency sort is active. WaitListSection is 886 lines.",
       "priority": 17,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-018",

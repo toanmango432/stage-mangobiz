@@ -751,3 +751,46 @@ Added a service type dropdown filter to TicketFilterBar. The dropdown displays u
 US-016 (Apply urgency coloring to WaitListTicketCard) - next lowest priority, independent story
 
 ---
+
+## Iteration 17 - US-016: Apply urgency coloring to WaitListTicketCard
+**Date:** 2026-01-16
+**Status:** COMPLETE (Already Implemented)
+
+### Summary
+Verified that US-016 was already fully implemented in WaitListTicketCardRefactored.tsx. All urgency coloring features (border colors, background tints, dot indicators, custom thresholds) were present.
+
+**Why this story?** US-016 had the lowest priority number (16) among incomplete stories and was independent with no dependencies.
+
+### Verification
+1. **Code Review**: WaitListTicketCardRefactored.tsx contains:
+   - Lines 7-12: `getUrgencyLevel`, `URGENCY_COLORS`, `UrgencyLevel`, `UrgencyThresholds` imported
+   - Lines 16-20: `WAITING_URGENCY_THRESHOLDS` (attention 10min, urgent 15min, critical 25min)
+   - Lines 23-44: `URGENCY_INLINE_COLORS` for border, bg, text colors per level
+   - Lines 150-152: `useMemo` computing `urgencyLevel` from `createdAt`
+   - Lines 162-175: Helper functions for border color, width, time color, bg tint
+   - Lines 287, 363, 461, 518: Urgency dot indicator (`animate-pulse`)
+   - Lines 431-432, 497-499: Background tint overlay for urgency
+
+2. **Acceptance Criteria Met**:
+   - ✅ Import getUrgencyLevel, URGENCY_COLORS from @/utils/urgencyUtils
+   - ✅ Calculate urgency from createdAt (check-in time)
+   - ✅ Apply urgency border color (normal/attention/urgent/critical)
+   - ✅ Apply urgency background tint
+   - ✅ Show urgency dot indicator in card header
+   - ✅ Thresholds: attention 10min, urgent 15min, critical 25min
+   - ✅ No forbidden strings
+   - ✅ TypeScript passes (no errors in WaitListTicketCardRefactored.tsx)
+
+3. **TypeScript**: No errors in WaitListTicketCardRefactored.tsx
+
+### Learnings
+- **Check component barrel exports**: The exported `WaitListTicketCard` comes from `WaitListTicketCardRefactored.tsx`, not `WaitListTicketCard.tsx`
+- **PRD can reference old file names**: PRD listed `WaitListTicketCard.tsx` but actual implementation is in refactored version
+
+### Commit
+`251beb2` - chore: [US-016] - Mark urgency coloring as complete (already implemented)
+
+### Next story suggestion
+US-017 (Add urgency sorting to WaitListSection) - next lowest priority, builds on urgency feature
+
+---
