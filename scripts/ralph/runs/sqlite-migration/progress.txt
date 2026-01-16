@@ -164,3 +164,22 @@ Commit: e7780d5
   - Use `undefined` return to distinguish "not cached" from "cached null value"
   - Invalidate by prefix (storeId:) allows clearing all entries for a store without tracking exact keys
 ---
+
+## 2026-01-16 - US-008: Fix performance metrics N+1 query pattern
+Commit: 4914881
+- Modified `apps/store-app/src/db/performanceOperations.ts`:
+  - Replaced N+1 for-loop (lines 154-167) that queried previousVisits per clientId
+  - New implementation uses single batch query with Supabase `.in('client_id', clientIdArray)`
+  - Builds `Set<string>` of clients with previous visits from batch results
+  - New clients = clientIds NOT in clientsWithPreviousVisits set
+  - Wrapped `getStaffPerformanceMetrics()` with `measureAsync('performanceDB.getStaffPerformanceMetrics', ...)`
+  - Added import for `measureAsync` from `@/utils`
+- **Performance improvement:**
+  - Before: N queries for N unique clients to check previous visits
+  - After: 1 query fetches all previous visit records at once
+  - For 50 unique clients: 50 queries → 1 query (50x improvement)
+- **Learnings for future iterations:**
+  - Supabase `.in()` supports arrays efficiently for batch lookups
+  - Build Set from results for O(1) membership testing
+  - Pre-existing lint/typecheck errors in test files are unrelated to migration work
+---

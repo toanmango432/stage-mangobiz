@@ -167,7 +167,7 @@
       ],
       "notes": "Current issue: lines 154-167 make N queries for N clients. Supabase .in() supports arrays up to 100 items efficiently.",
       "priority": 8,
-      "passes": false
+      "passes": true
     }
   ]
 }
