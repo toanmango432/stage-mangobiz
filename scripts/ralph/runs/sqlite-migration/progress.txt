@@ -20,6 +20,15 @@ When fixing N+1 patterns inside Promise.all loops:
 4. Convert async inner functions to sync when they no longer need DB access
 5. Filter pre-fetched data in memory instead of making DB calls
 
+### Result Caching Pattern
+For expensive calculations that may be called repeatedly:
+1. Create a cache class with `Map<string, { result: T; timestamp: number }>`
+2. Use `undefined` return from `get()` to distinguish "not cached" from "cached null"
+3. Generate deterministic cache keys (sort arrays before joining)
+4. Invalidate by prefix (e.g., `storeId:`) to clear related entries without tracking exact keys
+5. Export standalone `invalidateXxxCache(storeId)` function for external callers
+6. Example: `apps/store-app/src/services/turnQueueCache.ts`
+
 ---
 
 ## Progress Entries
@@ -127,4 +136,31 @@ Commit: 28e29a9
   - N+1 pattern often hidden inside Promise.all loops where each callback makes DB calls
   - Changing async methods to sync when they no longer need DB access improves performance
   - Pre-fetch pattern: fetch once before loop, pass data as parameter, filter in memory
+---
+
+## 2026-01-16 - US-007: Add turn queue result caching
+Commit: e7780d5
+- Created `apps/store-app/src/services/turnQueueCache.ts`:
+  - `TurnQueueCache` class with private `Map<string, CacheEntry>` storage
+  - `CacheEntry` interface: `{ result: Staff | null; timestamp: number }`
+  - `get(key)`: Returns `Staff | null | undefined` - undefined if not cached or expired
+  - `set(key, result)`: Stores result with current timestamp
+  - `invalidate(storeId)`: Clears all entries for a store (prefix match on keys)
+  - `clear()`: Clears entire cache (useful for testing)
+  - `CACHE_TTL_MS = 30000` (30 second TTL constant)
+  - Exported `invalidateTurnQueueCache(storeId)` function for external use
+- Modified `apps/store-app/src/services/turnQueueService.ts`:
+  - Added `generateCacheKey(storeId, criteria)` helper for deterministic cache keys
+  - Cache key format: `storeId:serviceIds:vipClient:preferredStaffId:requiredSkills`
+  - `findBestStaff()` checks cache before calculation, logs cache hits
+  - Stores results in cache after calculation (including null for no available staff)
+  - Re-exports `invalidateTurnQueueCache` for convenience
+- **Performance improvement:**
+  - Repeated turn queue requests with same criteria return instantly from cache
+  - 30-second TTL balances freshness vs performance
+  - Cache invalidation available for ticket/staff changes
+- **Learnings for future iterations:**
+  - Cache keys should be deterministic - sort arrays in criteria before joining
+  - Use `undefined` return to distinguish "not cached" from "cached null value"
+  - Invalidate by prefix (storeId:) allows clearing all entries for a store without tracking exact keys
 ---

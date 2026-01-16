@@ -147,7 +147,7 @@
       ],
       "notes": "Simple in-memory cache with Map. 30-second TTL balances freshness vs performance.",
       "priority": 7,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-008",
