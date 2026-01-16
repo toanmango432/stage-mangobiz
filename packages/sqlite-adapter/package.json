@@ -28,7 +28,7 @@
   "peerDependencies": {
     "better-sqlite3": "^9.0.0",
     "@capacitor-community/sqlite": "^5.0.0",
-    "wa-sqlite": "^0.9.0"
+    "wa-sqlite": "^1.0.0"
   },
   "peerDependenciesMeta": {
     "better-sqlite3": {
