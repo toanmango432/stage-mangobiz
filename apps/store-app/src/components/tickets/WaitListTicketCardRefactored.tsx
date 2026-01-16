@@ -1,9 +1,47 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import { MoreVertical, UserPlus, Edit2, Trash2, StickyNote, ExternalLink } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { TicketDetailsModal } from './TicketDetailsModal';
 import './paper';
+import {
+  getUrgencyLevel,
+  URGENCY_COLORS,
+  type UrgencyLevel,
+  type UrgencyThresholds
+} from '@/utils/urgencyUtils';
+
+// Urgency thresholds for waiting tickets (different from pending/checkout)
+// Per PRD: attention 10min, urgent 15min, critical 25min
+const WAITING_URGENCY_THRESHOLDS: UrgencyThresholds = {
+  attention: 10,  // 10+ minutes - yellow
+  urgent: 15,     // 15+ minutes - orange
+  critical: 25,   // 25+ minutes - red
+};
+
+// Map urgency level to inline style colors (for elements that can't use Tailwind classes)
+const URGENCY_INLINE_COLORS: Record<UrgencyLevel, { border: string; bg: string; text: string }> = {
+  normal: {
+    border: 'rgba(139, 92, 246, 0.28)', // purple (default wait ticket border)
+    bg: 'transparent',
+    text: '#6b5d52', // default brown
+  },
+  attention: {
+    border: 'rgba(234, 179, 8, 0.7)', // yellow-500
+    bg: 'rgba(254, 249, 195, 0.3)', // yellow-100 with opacity
+    text: '#CA8A04', // yellow-600
+  },
+  urgent: {
+    border: 'rgba(249, 115, 22, 0.7)', // orange-500
+    bg: 'rgba(255, 237, 213, 0.4)', // orange-100 with opacity
+    text: '#EA580C', // orange-600
+  },
+  critical: {
+    border: 'rgba(239, 68, 68, 0.8)', // red-500
+    bg: 'rgba(254, 226, 226, 0.5)', // red-100 with opacity
+    text: '#DC2626', // red-600
+  },
+};
 
 // Checkout service type for displaying actual services
 interface CheckoutService {
@@ -107,31 +145,34 @@ function WaitListTicketCardComponent({
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
-  // Long wait visual indicators
-  // 10-20 min = orange warning, >20 min = red alert
-  const isLongWait = waitTime >= 10;
-  const isVeryLongWait = waitTime >= 20;
+  // Calculate urgency level using the standard urgency utilities
+  // Uses createdAt (check-in time) with waiting-specific thresholds
+  const urgencyLevel = useMemo<UrgencyLevel>(() => {
+    return getUrgencyLevel(ticket.createdAt, WAITING_URGENCY_THRESHOLDS, true);
+  }, [ticket.createdAt]);
 
-  // Dynamic border color based on wait time
-  const getWaitBorderColor = () => {
-    if (isVeryLongWait) return 'rgba(239, 68, 68, 0.7)'; // red-500
-    if (isLongWait) return 'rgba(249, 115, 22, 0.6)'; // orange-500
-    return 'rgba(139, 92, 246, 0.28)'; // purple (default)
-  };
+  // Get urgency colors for inline styles
+  const urgencyColors = URGENCY_INLINE_COLORS[urgencyLevel];
+
+  // For backward compatibility with existing code
+  const isLongWait = urgencyLevel !== 'normal'; // attention+
+  const isVeryLongWait = urgencyLevel === 'critical';
+
+  // Dynamic border color based on urgency level
+  const getWaitBorderColor = () => urgencyColors.border;
 
   // Dynamic border width for emphasis
   const getWaitBorderWidth = () => {
-    if (isVeryLongWait) return '4px';
-    if (isLongWait) return '3px';
+    if (urgencyLevel === 'critical') return '4px';
+    if (urgencyLevel !== 'normal') return '3px';
     return '3px';
   };
 
   // Dynamic wait time text color
-  const getWaitTimeColor = () => {
-    if (isVeryLongWait) return '#DC2626'; // red-600
-    if (isLongWait) return '#EA580C'; // orange-600
-    return '#6b5d52'; // default brown
-  };
+  const getWaitTimeColor = () => urgencyColors.text;
+
+  // Get background tint for urgency
+  const getUrgencyBgTint = () => urgencyColors.bg;
 
   // Get last visit text similar to service tickets
   const getLastVisitText = () => {
@@ -385,7 +426,11 @@ function WaitListTicketCardComponent({
     // GRID COMPACT VIEW - Same design language, more compact
     if (viewMode === 'grid-compact') {
       return (
-        <div onClick={() => onClick?.(ticket.id)} className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[5px] hover:shadow-2xl flex flex-col min-w-[220px] max-w-full cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`} role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`, borderRadius: '10px', boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)' }}>
+        <div onClick={() => onClick?.(ticket.id)} className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[5px] hover:shadow-2xl flex flex-col min-w-[220px] max-w-full cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''} ${URGENCY_COLORS[urgencyLevel].glow}`} role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`, borderRadius: '10px', boxShadow: 'inset 0 12px 12px -10px rgba(0,0,0,0.09), inset -2px 0 4px rgba(255,255,255,0.95), inset 2px 0 4px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.10), 0 6px 16px rgba(0,0,0,0.07), 0 10px 24px rgba(0,0,0,0.05)' }}>
+          {/* Urgency background tint overlay */}
+          {urgencyLevel !== 'normal' && (
+            <div className="absolute inset-0 pointer-events-none rounded-[10px] z-0" style={{ background: getUrgencyBgTint() }} />
+          )}
           {/* Perforation dots - compact */}
           <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-2 z-10" style={{ opacity: 0.108 }}>{[...Array(10)].map((_, i) => (<div key={i} className="w-[1.5px] h-[1.5px] rounded-full bg-[#c4b5a0]" />))}</div>
 
@@ -448,7 +493,11 @@ function WaitListTicketCardComponent({
     // GRID NORMAL VIEW - Full Reference Design
     if (viewMode === 'grid-normal') {
       return (
-        <div onClick={() => onClick?.(ticket.id)} className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[6px] hover:shadow-2xl flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`} role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`, borderRadius: '10px', boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)' }}>
+        <div onClick={() => onClick?.(ticket.id)} className={`relative overflow-visible transition-all duration-300 ease-out hover:-translate-y-[6px] hover:shadow-2xl flex flex-col min-w-[240px] sm:min-w-[280px] max-w-full cursor-pointer ${isVeryLongWait ? 'animate-pulse-subtle' : ''} ${URGENCY_COLORS[urgencyLevel].glow}`} role="button" tabIndex={0} aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`} onKeyDown={handleKeyDown} style={{ background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)', border: '1px dashed #D8D8D8', borderLeft: `${getWaitBorderWidth()} solid ${getWaitBorderColor()}`, borderRadius: '10px', boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)' }}>
+          {/* Urgency background tint overlay */}
+          {urgencyLevel !== 'normal' && (
+            <div className="absolute inset-0 pointer-events-none rounded-[10px] z-0" style={{ background: getUrgencyBgTint() }} />
+          )}
           <div className="absolute top-0 left-0 w-full h-[6px] flex justify-between items-center px-2 sm:px-3 md:px-4 z-10" style={{ opacity: 0.108 }}>{[...Array(20)].map((_, i) => (<div key={i} className="w-[2px] h-[2px] sm:w-[3px] sm:h-[3px] rounded-full bg-[#c4b5a0]" />))}</div>
 
           {/* Dog-ear corner */}
@@ -520,7 +569,7 @@ function WaitListTicketCardComponent({
         role="button"
         tabIndex={0}
         aria-label={`Waiting ticket ${ticket.number} for ${ticket.clientName}`}
-        className={`relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg ${isVeryLongWait ? 'animate-pulse-subtle' : ''}`}
+        className={`relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg ${isVeryLongWait ? 'animate-pulse-subtle' : ''} ${URGENCY_COLORS[urgencyLevel].glow}`}
         style={{
           background: 'linear-gradient(145deg, #FFFEFC 0%, #FFFDFB 50%, #FFFCFA 100%)',
           border: '1px dashed #D8D8D8',
@@ -529,6 +578,10 @@ function WaitListTicketCardComponent({
           boxShadow: 'inset 0 15px 15px -12px rgba(0,0,0,0.10), inset -2px 0 5px rgba(255,255,255,0.95), inset 2px 0 5px rgba(0,0,0,0.06), 0 3px 8px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08), 0 12px 30px rgba(0,0,0,0.06)'
         }}
       >
+        {/* Urgency background tint overlay */}
+        {urgencyLevel !== 'normal' && (
+          <div className="absolute inset-0 pointer-events-none rounded-[10px] z-0" style={{ background: getUrgencyBgTint() }} />
+        )}
         {/* Perforation dots - barely visible */}
         <div className="absolute top-0 left-0 w-full h-[4px] flex justify-between items-center px-3 z-10" style={{ opacity: 0.108 }}>
           {[...Array(viewMode === 'compact' ? 15 : 20)].map((_, i) => (

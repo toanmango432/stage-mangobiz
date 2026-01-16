@@ -402,7 +402,7 @@
       ],
       "notes": "urgencyUtils.ts already has all the helpers (200 lines). Use different thresholds than pending section. Add custom thresholds parameter to getUrgencyLevel call.",
       "priority": 16,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-017",
