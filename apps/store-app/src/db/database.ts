@@ -345,6 +345,55 @@ export const ticketsDB = {
     }
     return expiredDrafts.length;
   },
+
+  /**
+   * Get ticket counts per staff member for turn queue calculation.
+   * Uses compound index to fetch tickets once, then counts per staff.
+   * Returns Map<staffId, count> for O(1) lookups.
+   */
+  async getStaffTicketCounts(
+    storeId: string,
+    staffIds: string[],
+    since: Date
+  ): Promise<Map<string, number>> {
+    return measureAsync('ticketsDB.getStaffTicketCounts', async () => {
+      // Guard: return empty map if inputs are invalid
+      if (!storeId || staffIds.length === 0) {
+        return new Map<string, number>();
+      }
+
+      const sinceIso = since.toISOString();
+      const staffIdSet = new Set(staffIds);
+
+      // Fetch all tickets for the store since the given date in a single query
+      // Uses compound index [storeId+status+createdAt] for efficient filtering
+      const tickets = await db.tickets
+        .where('storeId')
+        .equals(storeId)
+        .and(ticket => ticket.createdAt >= sinceIso)
+        .toArray();
+
+      // Count tickets per staff by iterating ticket.services array
+      const counts = new Map<string, number>();
+
+      // Initialize counts for all requested staffIds
+      for (const staffId of staffIds) {
+        counts.set(staffId, 0);
+      }
+
+      // Iterate through tickets and count services per staff
+      for (const ticket of tickets) {
+        for (const service of ticket.services) {
+          if (staffIdSet.has(service.staffId)) {
+            const currentCount = counts.get(service.staffId) ?? 0;
+            counts.set(service.staffId, currentCount + 1);
+          }
+        }
+      }
+
+      return counts;
+    });
+  },
 };
 
 // ==================== TRANSACTIONS ====================
