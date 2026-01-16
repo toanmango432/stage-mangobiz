@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, memo } from 'react';
+import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { Receipt, ChevronUp, ChevronDown, Maximize2, X, Grid, List, DollarSign, CreditCard } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectPendingTickets, removePendingTicket } from '../../store/slices/uiTicketsSlice';
@@ -170,6 +170,20 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [ticketToRemove, setTicketToRemove] = useState<{ id: string; number: number; clientName: string } | null>(null);
 
+  // US-025: Count badge animation state
+  const [isCountAnimating, setIsCountAnimating] = useState(false);
+  const prevCountRef = useRef(pendingTickets.length);
+
+  // US-025: Animate count badge when count changes
+  useEffect(() => {
+    if (prevCountRef.current !== pendingTickets.length && prevCountRef.current !== undefined) {
+      setIsCountAnimating(true);
+      const timer = setTimeout(() => setIsCountAnimating(false), 600);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = pendingTickets.length;
+  }, [pendingTickets.length]);
+
   // Handle remove from pending
   const handleRemoveTicket = (reason: RemoveReason, notes?: string) => {
     if (!ticketToRemove) return;
@@ -320,10 +334,10 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                {/* Pulsing notification badge */}
-                <div className="absolute -top-1 -right-1 flex h-5 w-5">
+                {/* Pulsing notification badge - US-025: Enhanced animation on count change */}
+                <div className={`absolute -top-1 -right-1 flex h-5 w-5 transition-transform duration-200 ${isCountAnimating ? 'scale-125' : ''}`}>
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 items-center justify-center">
+                  <span className={`relative inline-flex rounded-full h-5 w-5 bg-red-500 items-center justify-center transition-all duration-200 ${isCountAnimating ? 'ring-2 ring-offset-1 ring-red-300' : ''}`}>
                     <span className="text-white text-xs font-bold">{pendingTickets.length}</span>
                   </span>
                 </div>
@@ -449,7 +463,11 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
             <div className="text-left">
               <div className="flex items-center gap-2">
                 <span className="text-amber-900 font-bold text-base">
-                  Pending Payments ({pendingTickets.length})
+                  Pending Payments
+                </span>
+                {/* US-025: Animated count badge */}
+                <span className={`bg-amber-100 text-amber-800 text-sm font-semibold px-2 py-0.5 rounded-full transition-all duration-200 ${isCountAnimating ? 'animate-pulse ring-2 ring-offset-1 ring-amber-300 scale-110' : ''}`}>
+                  {pendingTickets.length}
                 </span>
                 <ChevronDown size={20} className="text-amber-600" aria-hidden="true" />
               </div>
@@ -622,9 +640,15 @@ export const PendingSectionFooter = memo(function PendingSectionFooter() {
               <Receipt size={24} className="text-white" aria-hidden="true" />
             </div>
             <div>
-              <h2 id="pending-full-view-title" className="text-amber-900 font-bold text-xl">Pending Payments</h2>
+              <div className="flex items-center gap-2">
+                <h2 id="pending-full-view-title" className="text-amber-900 font-bold text-xl">Pending Payments</h2>
+                {/* US-025: Animated count badge */}
+                <span className={`bg-amber-100 text-amber-800 text-sm font-semibold px-2.5 py-0.5 rounded-full transition-all duration-200 ${isCountAnimating ? 'animate-pulse ring-2 ring-offset-1 ring-amber-300 scale-110' : ''}`}>
+                  {pendingTickets.length}
+                </span>
+              </div>
               <p className="text-amber-700 text-sm">
-                {pendingTickets.length} ticket{pendingTickets.length !== 1 ? 's' : ''} • Total: ${totalAmount.toFixed(2)}
+                Total: ${totalAmount.toFixed(2)}
               </p>
             </div>
           </div>

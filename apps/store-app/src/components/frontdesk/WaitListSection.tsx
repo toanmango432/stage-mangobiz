@@ -622,6 +622,7 @@ export const WaitListSection = memo(function WaitListSection({
           icon={<Hourglass size={20} strokeWidth={2.5} />}
           customTheme={waitingHeaderTheme}
           subtitle={waitlist.length > 0 ? `Avg ${avgWaitTime}m` : undefined}
+          animateCountChanges={true}
           rightActions={
             <>
               {/* Sort mode toggle (US-017) */}
