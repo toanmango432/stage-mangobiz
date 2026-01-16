@@ -1025,3 +1025,25 @@ Commit: 2d8b53e
 **Next story suggestion:** US-023 (Display status history in TicketDetailsModal) - directly uses the statusHistory array added here
 
 ---
+
+## 2026-01-16 - US-023: Display status history in TicketDetailsModal
+Commit: 4bd90e0
+
+**Why this story?** US-023 was selected because US-022 (Add status history tracking) was just completed in a previous iteration, and US-023 directly uses the statusHistory array added there. This maintains code context continuity.
+
+**Changes:**
+- `apps/store-app/src/components/tickets/TicketDetailsModal.tsx:1-25`: Added imports for History, Wrench, CheckCircle, DollarSign icons and StatusChange type; created statusIcons mapping and formatStatus helper function
+- `apps/store-app/src/components/tickets/TicketDetailsModal.tsx:219-284`: Replaced static "Ticket History" section with dynamic statusHistory rendering using vertical timeline with icons, relative timestamps, and empty state
+
+**Learnings:**
+- **statusIcons pattern**: Using a Record<string, { icon, color, bgColor }> allows clean icon/color lookup by status
+- **Timeline UI pattern**: Absolute positioned vertical line with z-indexed dots creates clean timeline effect
+- **Empty state important**: Always include empty state for arrays that may not have data
+
+**Pre-existing Issues (Not From This Story):**
+- TypeScript errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - pre-existing type mismatches
+- TicketDetailsModal is triggered from dropdown menu, not single-click on ticket card
+
+**Next story suggestion:** US-024 (Keyboard shortcuts) or US-025 (Ticket count badges) - both are independent features
+
+---
