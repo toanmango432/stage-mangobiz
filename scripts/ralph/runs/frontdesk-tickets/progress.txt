@@ -1047,3 +1047,34 @@ Commit: 4bd90e0
 **Next story suggestion:** US-024 (Keyboard shortcuts) or US-025 (Ticket count badges) - both are independent features
 
 ---
+
+## 2026-01-16 - US-024: Add keyboard shortcuts for common ticket actions
+Commit: d1f69ce
+
+**Why this story?** US-024 had the lowest priority (24) among incomplete stories and was the next logical feature to complete.
+
+**Changes:**
+Already implemented - verified existing implementation:
+- `apps/store-app/src/hooks/useTicketKeyboardShortcuts.ts:1-143`: Complete hook implementation with TICKET_SHORTCUTS array, useTicketKeyboardShortcuts hook, and getShortcutHint helper
+- `apps/store-app/src/components/frontdesk/FrontDesk.tsx:14`: Import statement for hook and helper
+- `apps/store-app/src/components/frontdesk/FrontDesk.tsx:179-202`: Hook usage with all callbacks (onNewTicket, onSectionChange, onEscape)
+- `apps/store-app/src/components/frontdesk/FrontDesk.tsx:143,949-953`: State and modal for keyboard-triggered CreateTicketModal
+
+**Implementation Details:**
+- Shortcuts: N (new ticket), S (search focus), 1/2/3 (switch sections), Escape (close modals)
+- Input detection: Skips shortcuts when typing in INPUT, TEXTAREA, or contentEditable elements
+- Modifier key handling: Ignores shortcuts when Cmd/Ctrl/Alt are pressed
+- Search fallback: S key focuses any search input matching common patterns if no callback provided
+- Section switching: Maps 1→team, 2→service, 3→waitList
+
+**Learnings:**
+- **Check before implementing**: Story was already fully implemented in codebase
+- **Hook export pattern**: Export both hook and helper functions (getShortcutHint) for UI integration
+- **Input focus detection**: Check tagName for INPUT/TEXTAREA and isContentEditable property
+
+**Pre-existing Issues (Not From This Story):**
+- TypeScript errors in test files - pre-existing type mismatches
+
+**Next story suggestion:** US-025 (Add real-time ticket count badges to section headers) - last remaining story
+
+---

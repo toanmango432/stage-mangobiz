@@ -579,7 +579,7 @@
       ],
       "notes": "Use useEffect with keydown event listener. Check document.activeElement to avoid triggering in inputs. Clean up listener on unmount.",
       "priority": 24,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-025",
