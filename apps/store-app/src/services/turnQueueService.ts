@@ -6,6 +6,7 @@
 import { staffDB, ticketsDB } from '../db/database';
 import type { Staff, Ticket } from '../types';
 import { measureAsync } from '../utils';
+import { turnQueueCache } from './turnQueueCache';
 
 interface AssignmentCriteria {
   serviceIds: string[];
@@ -29,6 +30,21 @@ interface PreFetchedTickets {
   twoHoursAgo: Date;
 }
 
+/**
+ * Generate a cache key from store ID and assignment criteria.
+ * The key is deterministic for the same criteria.
+ */
+function generateCacheKey(storeId: string, criteria: AssignmentCriteria): string {
+  const parts = [
+    storeId,
+    criteria.serviceIds.sort().join(','),
+    criteria.vipClient ? 'vip' : '',
+    criteria.preferredStaffId || '',
+    (criteria.requiredSkills || []).sort().join(','),
+  ];
+  return parts.join(':');
+}
+
 export class TurnQueueService {
   /**
    * Find the best available staff member for a service
@@ -38,10 +54,19 @@ export class TurnQueueService {
     criteria: AssignmentCriteria
   ): Promise<Staff | null> {
     return measureAsync('turnQueueService.findBestStaff', async () => {
+      // Check cache first
+      const cacheKey = generateCacheKey(storeId, criteria);
+      const cachedResult = turnQueueCache.get(cacheKey);
+      if (cachedResult !== undefined) {
+        console.log('[PERF] turnQueueService.findBestStaff: cache hit');
+        return cachedResult;
+      }
+
       // Get all available staff
       const availableStaff = await staffDB.getAvailable(storeId);
 
       if (availableStaff.length === 0) {
+        turnQueueCache.set(cacheKey, null);
         return null;
       }
 
@@ -49,6 +74,7 @@ export class TurnQueueService {
       if (criteria.preferredStaffId) {
         const preferredStaff = availableStaff.find(s => s.id === criteria.preferredStaffId);
         if (preferredStaff) {
+          turnQueueCache.set(cacheKey, preferredStaff);
           return preferredStaff;
         }
       }
@@ -80,7 +106,9 @@ export class TurnQueueService {
         console.log(`  ${i + 1}. ${s.staff.name} (Score: ${s.score}) - ${s.reasons.join(', ')}`);
       });
 
-      return staffScores[0]?.staff || null;
+      const bestStaff = staffScores[0]?.staff || null;
+      turnQueueCache.set(cacheKey, bestStaff);
+      return bestStaff;
     });
   }
 
@@ -326,3 +354,6 @@ export class TurnQueueService {
 // Export singleton instance
 export const turnQueueService = new TurnQueueService();
 export default turnQueueService;
+
+// Re-export cache invalidation function for external use
+export { invalidateTurnQueueCache } from './turnQueueCache';
