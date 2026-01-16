@@ -794,3 +794,39 @@ Verified that US-016 was already fully implemented in WaitListTicketCardRefactor
 US-017 (Add urgency sorting to WaitListSection) - next lowest priority, builds on urgency feature
 
 ---
+
+## Iteration 18 - US-017: Add urgency sorting to WaitListSection
+**Date:** 2026-01-16
+**Status:** COMPLETE
+
+### Summary
+Implemented urgency-based sorting for the WaitListSection. Users can now toggle between Queue Order (default, with drag-and-drop) and Urgency mode (most urgent tickets first).
+
+**Why this story?** US-017 was the next lowest priority (17) among incomplete stories and builds on the urgency coloring feature (US-016).
+
+### Changes
+- `apps/store-app/src/utils/urgencyUtils.ts:200-225`: Added `sortWaitingByUrgency()` function that sorts tickets by urgency level using createdAt field with waiting-specific thresholds (attention 10min, urgent 15min, critical 25min)
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx:7`: Added imports for ArrowUpDown, Clock icons and sortWaitingByUrgency
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx:260-264`: Added sortMode state with localStorage persistence
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx:271-279`: Added toggleSortMode handler and disabled drag-and-drop when urgency sort active
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx:395-399`: Applied sortWaitingByUrgency to filteredWaitlist when sortMode is 'urgency'
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx:626-637`: Added sort toggle button to header with tooltip
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx:700-743`: Added Sort Mode section to dropdown menu
+
+### Browser Verification
+- Verified in desktop view (1440x900)
+- Sort toggle button visible in Waiting Queue header (↕ icon in queue mode)
+- Clicking toggle switches to urgency mode (🕐 icon with orange background)
+- Sort mode persists on page reload via localStorage
+
+### Learnings
+- **urgencyUtils uses completedAt by default**: Had to create `sortWaitingByUrgency` variant that uses `createdAt` field for waiting tickets
+- **Drag-and-drop should be disabled during urgency sort**: Since urgency sort overrides manual ordering, drag-and-drop would be confusing
+
+### Commit
+`05a2842` - feat: [US-017] - Add urgency sorting to WaitListSection
+
+### Next story suggestion
+US-018 (Add conflict detection to assignTicket thunk) - next lowest priority, backend logic for staff conflict detection
+
+---
