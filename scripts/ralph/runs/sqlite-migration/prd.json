@@ -83,7 +83,7 @@
       ],
       "notes": "Follow pattern from existing version upgrades (see lines 146-230 in schema.ts). CRITICAL: Copy ALL existing table definitions in new version, only modify tickets line.",
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-005",
@@ -103,7 +103,7 @@
       ],
       "notes": "This replaces multiple getAll() calls in turn queue calculation. Staff ID is in ticket.services[].staffId, not on ticket directly.",
       "priority": 5,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-006",
@@ -124,7 +124,7 @@
       ],
       "notes": "Current N+1: line 145 ticketsDB.getAll(storeId) called per staff. Also line 200 in getTurnQueueStats() has same issue. Pre-fetch once, filter in memory.",
       "priority": 6,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007",

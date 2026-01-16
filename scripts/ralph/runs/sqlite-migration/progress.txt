@@ -2,7 +2,23 @@
 
 ## Codebase Patterns
 
-<!-- Add reusable patterns discovered during implementation here -->
+### Dexie Schema Versioning
+- Current highest version: **16** (as of US-004)
+- When adding a new version, MUST copy ALL table definitions - Dexie requires complete schema per version
+- Compound indexes use `[field1+field2+field3]` syntax
+- Always include `.upgrade(() => console.log(...))` function for debugging
+
+### Performance Utilities
+- Import `measureAsync` from `apps/store-app/src/utils` for function timing
+- Pre-existing typecheck errors in test files are unrelated to this migration work
+
+### N+1 Query Fix Pattern
+When fixing N+1 patterns inside Promise.all loops:
+1. Create interface for pre-fetched data (e.g., `PreFetchedTickets`)
+2. Fetch all needed data ONCE before the loop with `Promise.all`
+3. Pass pre-fetched data as parameter to inner functions
+4. Convert async inner functions to sync when they no longer need DB access
+5. Filter pre-fetched data in memory instead of making DB calls
 
 ---
 
@@ -55,4 +71,60 @@ Commit: 9a962bf
   - Dexie's `.filter()` on Collection is different from JS Array `.filter()` - it's applied during cursor iteration
   - Still need `.toArray()` after filtering for sorting (Dexie doesn't support custom sort on filtered collections)
   - The `measureAsync` utility is now available via `import { measureAsync } from '../utils'`
+---
+
+## 2026-01-16 - US-004: Add missing compound indexes for tickets
+Commit: a900084
+- Added schema version 16 to `apps/store-app/src/db/schema.ts`:
+  - New compound index `[storeId+status+createdAt]` for tickets - optimizes turn queue queries filtering by status and sorting by time
+  - New compound index `[storeId+staffId+createdAt]` for tickets - optimizes staff performance queries for ticket counts per staff
+  - Includes upgrade function with descriptive console.log
+- All existing table definitions copied from version 15 (per critical note in PRD)
+- **Performance improvement:**
+  - These indexes enable efficient queries like "get all open tickets for store X sorted by creation time" without full table scan
+  - Turn queue and staff aggregation queries can now use compound index seeks instead of loading all tickets
+- **Learnings for future iterations:**
+  - Dexie compound indexes use `[field1+field2+field3]` syntax
+  - When adding new version, must copy ALL table definitions (not just changed ones) due to Dexie's versioning model
+  - Pre-existing `as any` in initializeDatabase error handling (line 852) - this is acceptable for error type checking
+---
+
+## 2026-01-16 - US-005: Add helper method for staff ticket counts
+Commit: d85db36
+- Added `ticketsDB.getStaffTicketCounts(storeId, staffIds, since)` to `apps/store-app/src/db/database.ts`:
+  - Returns `Map<string, number>` for O(1) staff count lookups
+  - Fetches all tickets for store since given date in single query (uses `storeId` index)
+  - Iterates `ticket.services` array to count services per staff
+  - Initializes counts for all requested staffIds (returns 0 for staff with no tickets)
+  - Wrapped with `measureAsync('ticketsDB.getStaffTicketCounts', ...)` for timing
+  - Guard clause returns empty Map for invalid inputs
+- **Performance improvement:**
+  - Before: Each turn queue calculation called `ticketsDB.getAll()` per staff member (N+1 pattern)
+  - After: Single batch query returns counts for all staff (O(1) lookup per staff)
+- **Learnings for future iterations:**
+  - Staff ID is in `ticket.services[].staffId`, not on the ticket directly
+  - Use `Set<string>` for O(1) membership testing when filtering by staff IDs
+  - Initialize Map with all requested keys to ensure consistent return structure
+---
+
+## 2026-01-16 - US-006: Fix turn queue N+1 - pre-fetch tickets
+Commit: 28e29a9
+- Eliminated N+1 query pattern in `apps/store-app/src/services/turnQueueService.ts`:
+  - Added `PreFetchedTickets` interface to hold pre-fetched data (allTickets, activeTickets, twoHoursAgo)
+  - `findBestStaff()` now fetches `ticketsDB.getAll()` and `ticketsDB.getActive()` once at the start
+  - `scoreStaff()` changed from async to sync, now accepts `PreFetchedTickets` parameter
+  - `calculateTurnScore()` uses pre-fetched tickets instead of calling `ticketsDB.getAll()`
+  - `calculateLoadScore()` uses pre-fetched activeTickets instead of calling `ticketsDB.getActive()`
+  - `getTurnQueueStats()` pre-fetches all data (staff, allTickets, activeTickets) before mapping
+  - `suggestStaff()` pre-fetches data before scoring (same pattern as findBestStaff)
+  - Wrapped `findBestStaff()` with `measureAsync('turnQueueService.findBestStaff', ...)`
+  - Fixed lint issue: removed inferrable type annotation on `vipClient` parameter
+- **Performance improvement:**
+  - Before: 2 DB calls per staff member in findBestStaff (N+1 pattern)
+  - After: 2 DB calls total regardless of staff count
+  - For 10 staff members: 20+ queries → 2 queries (10x improvement)
+- **Learnings for future iterations:**
+  - N+1 pattern often hidden inside Promise.all loops where each callback makes DB calls
+  - Changing async methods to sync when they no longer need DB access improves performance
+  - Pre-fetch pattern: fetch once before loop, pass data as parameter, filter in memory
 ---
