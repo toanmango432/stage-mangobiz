@@ -7,6 +7,23 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 
+/** Appointment object from useTickets hook's comingAppointments */
+interface ComingAppointment {
+  id: string;
+  clientName: string;
+  clientPhoto?: string;
+  appointmentTime: string;
+  service: string;
+  duration: string;
+  technician: string;
+  techColor: string;
+  status: string;
+  isVip: boolean;
+  isFirstVisit: boolean;
+  /** Computed minutes until appointment (negative = late) */
+  minutesUntil?: number;
+}
+
 interface ComingAppointmentsProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -49,7 +66,7 @@ export const ComingAppointments = memo(function ComingAppointments({
     within3Hours: false, // Collapsed by default - lower priority
     moreThan3Hours: false
   });
-  const [activeAppointment, setActiveAppointment] = useState<any>(null);
+  const [activeAppointment, setActiveAppointment] = useState<ComingAppointment | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNoShowConfirm, setShowNoShowConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -79,37 +96,6 @@ export const ComingAppointments = memo(function ComingAppointments({
   // BUG-003 FIX: Check if component should be hidden based on settings
   // This must come AFTER all hooks to comply with React rules
   const shouldHide = settings && settings.showComingAppointments === false;
-  // Updated color tokens for more premium Apple-like styling
-  const _colorTokens = {
-    primary: '#34C759',
-    bg: 'bg-[#F8FAFC]',
-    headerBg: 'bg-[#F0FDFA]',
-    text: 'text-[#0EA5A0]/80',
-    border: 'ring-[#10B981]/30',
-    iconBg: 'bg-emerald-500/20',
-    hoverBg: 'hover:bg-[#F9FAFB]',
-    hoverText: 'hover:text-[#0EA5A0]',
-    dropdownHover: 'hover:bg-[#F9FAFB]',
-    checkColor: 'text-emerald-500/80',
-    // Apple-like status colors
-    statusColors: {
-      booked: '#007AFF',
-      checkedIn: '#34C759',
-      inService: '#FF9500',
-      completed: '#8E8E93',
-      cancelled: '#FF3B30',
-      noShow: '#FF3B30',
-      late: '#FF3B30'
-    },
-    // Frosted glass effect colors
-    glass: {
-      bg: 'bg-white/80 backdrop-blur-sm',
-      border: 'border border-white/20',
-      shadow: 'shadow-sm'
-    }
-  };
-  // Suppress unused variable warning
-  void _colorTokens;
   // Toggle row expansion
   const toggleRowExpansion = (rowId: string) => {
     setExpandedRows(prev => ({
@@ -397,7 +383,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                           {/* Single action button - hover only */}
                           <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
                       e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
+                      // More menu placeholder - to be implemented
                     }}>
                             <MoreVertical size={12} className="text-gray-400" />
                           </button>
@@ -473,7 +459,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                             {/* Single action button - hover only */}
                             <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
                       e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
+                      // More menu placeholder - to be implemented
                     }}>
                               <MoreVertical size={12} className="text-gray-400" />
                             </button>
@@ -549,7 +535,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                             {/* Single action button - hover only */}
                             <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
                       e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
+                      // More menu placeholder - to be implemented
                     }}>
                               <MoreVertical size={12} className="text-gray-400" />
                             </button>
@@ -634,7 +620,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                               <Tippy content="Add/View Notes">
                                 <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
                       e.stopPropagation();
-                      console.log('Notes clicked for', appointment.clientName);
+                      // Notes feature placeholder - to be implemented
                     }}>
                                   <FileText size={14} strokeWidth={1.5} />
                                 </button>
@@ -642,7 +628,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                               <Tippy content="Deposit Info">
                                 <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
                       e.stopPropagation();
-                      console.log('Deposit clicked for', appointment.clientName);
+                      // Deposit feature placeholder - to be implemented
                     }}>
                                   <CreditCard size={14} strokeWidth={1.5} />
                                 </button>
@@ -650,7 +636,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                               <Tippy content="Edit Appointment">
                                 <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
                       e.stopPropagation();
-                      console.log('Edit clicked for', appointment.clientName);
+                      onEditAppointment?.(appointment.id);
                     }}>
                                   <Pencil size={14} strokeWidth={1.5} />
                                 </button>

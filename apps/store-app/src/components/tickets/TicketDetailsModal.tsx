@@ -52,10 +52,10 @@ export function TicketDetailsModal({
   if (waitlist.some(t => t.id === String(ticketId))) {
     status = 'Waiting';
     statusColor = 'bg-blue-100 text-blue-700 border-blue-200';
-  } else if (services.some((t: any) => t.id === String(ticketId))) {
+  } else if (services.some(t => t.id === String(ticketId))) {
     status = 'In Service';
     statusColor = 'bg-green-100 text-green-700 border-green-200';
-  } else if (pendingTickets.some((t: any) => t.id === String(ticketId))) {
+  } else if (pendingTickets.some(t => t.id === String(ticketId))) {
     status = 'Pending';
     statusColor = 'bg-amber-100 text-amber-700 border-amber-200';
   }
@@ -178,15 +178,15 @@ export function TicketDetailsModal({
                   </div>
                 </div>}
               {/* Notes (if any) */}
-              {(ticket.notes || (ticket as any).ticketNotes?.length > 0) && <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              {(ticket.notes || (ticket.ticketNotes && ticket.ticketNotes.length > 0)) && <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                   <div className="flex items-center mb-3">
                     <MessageSquare size={18} className="text-gray-500 mr-2" />
                     <h3 className="text-sm font-bold text-gray-700">Notes</h3>
                   </div>
                   <div className="ml-7 space-y-3">
                     {/* Display ticketNotes array if available */}
-                    {(ticket as any).ticketNotes && (ticket as any).ticketNotes.length > 0 ? (
-                      (ticket as any).ticketNotes.map((note: TicketNote) => (
+                    {ticket.ticketNotes && ticket.ticketNotes.length > 0 ? (
+                      ticket.ticketNotes.map((note: TicketNote) => (
                         <div key={note.id} className="border-l-2 border-gray-200 pl-3">
                           <div className="flex items-center gap-2 mb-1">
                             {/* Author avatar with initials */}
@@ -226,12 +226,12 @@ export function TicketDetailsModal({
                 </div>
                 <div className="ml-7">
                   {/* Render status history from statusHistory array */}
-                  {(ticket as any).statusHistory && (ticket as any).statusHistory.length > 0 ? (
+                  {ticket.statusHistory && ticket.statusHistory.length > 0 ? (
                     <div className="relative">
                       {/* Timeline line */}
                       <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200" />
                       <div className="space-y-4">
-                        {(ticket as any).statusHistory.map((entry: StatusChange, index: number) => {
+                        {ticket.statusHistory.map((entry: StatusChange, index: number) => {
                           const toStatus = entry.to || 'waiting';
                           const iconConfig = statusIcons[toStatus] || statusIcons.waiting;
                           const IconComponent = iconConfig.icon;

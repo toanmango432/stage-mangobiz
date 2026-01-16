@@ -105,7 +105,7 @@ export function PendingTicketCard({
   };
 
   // Use exact staff color for badge
-  const getStaffColor = (staff: any) => staff.color || '#6B7280';
+  const getStaffColor = (staff: { id: string; name: string; color: string }) => staff.color || '#6B7280';
 
   // Format last visit date
   const getLastVisitText = () => {

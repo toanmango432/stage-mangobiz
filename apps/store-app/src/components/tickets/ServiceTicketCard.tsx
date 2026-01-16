@@ -132,7 +132,7 @@ function ServiceTicketCardComponent({
   };
 
   // Use exact staff color for badge
-  const getStaffColor = (staff: any) => staff.color || '#6B7280';
+  const getStaffColor = (staff: { name: string; color: string; id?: string; photo?: string }) => staff.color || '#6B7280';
 
   // Render staff avatar with photo or initial
   const renderStaffAvatar = (staff: { name: string; color: string; photo?: string }, size: 'sm' | 'md' = 'sm') => {

@@ -1,5 +1,17 @@
 import { useEffect, useState, useRef, memo, useMemo, useCallback } from 'react';
-import { useTickets } from '@/hooks/useTicketsCompat';
+import { useTickets, type Ticket } from '@/hooks/useTicketsCompat';
+
+/** Extended ticket type with optional legacy fields for backward compatibility */
+interface ExtendedTicket extends Ticket {
+  /** Legacy services array (use checkoutServices instead) */
+  services?: Array<{ id: string; serviceName: string; price: number; duration: number; staffId?: string; staffName?: string }>;
+  /** Legacy serviceId (use checkoutServices[0].serviceId instead) */
+  serviceId?: string;
+  /** Legacy price field (use checkoutServices total instead) */
+  price?: number;
+  /** Legacy subtotal field */
+  subtotal?: number;
+}
 import { useTicketSection } from '@/hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
@@ -124,7 +136,7 @@ export const WaitListSection = memo(function WaitListSection({
   const effectiveExternalCardViewMode = externalCardViewMode ?? (isCombinedView ? undefined : settingsCardViewMode);
 
   // Handler to open a ticket in the Ticket Control Center
-  const handleOpenTicket = (ticket: any, e?: React.MouseEvent) => {
+  const handleOpenTicket = (ticket: ExtendedTicket, e?: React.MouseEvent) => {
     e?.stopPropagation();
     const ticketData: TicketData = {
       id: ticket.id,
@@ -138,7 +150,7 @@ export const WaitListSection = memo(function WaitListSection({
         serviceId: ticket.serviceId,
         serviceName: ticket.service,
         price: ticket.price || 0,
-        duration: parseInt(ticket.duration) || 30,
+        duration: ticket.duration ? parseInt(ticket.duration) : 30,
         status: 'not_started',
         staffId: ticket.techId,
         staffName: ticket.technician,
