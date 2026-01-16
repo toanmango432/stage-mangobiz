@@ -1078,3 +1078,23 @@ Already implemented - verified existing implementation:
 **Next story suggestion:** US-025 (Add real-time ticket count badges to section headers) - last remaining story
 
 ---
+
+## 2026-01-16 - US-025: Add real-time ticket count badges to section headers
+Commit: 4f68843
+
+**Why this story?** This was the only remaining story with `passes: false` - all other stories (US-001 through US-024, plus US-026) were already complete.
+
+**Changes:**
+- `apps/store-app/src/components/frontdesk/FrontDeskHeader.tsx`: Added `animateCountChanges` prop with useState/useEffect to track count changes and trigger pulse animation. Count badge now shows transition effect with ring highlight on update.
+- `apps/store-app/src/components/frontdesk/WaitListSection.tsx`: Enabled `animateCountChanges={true}` on FrontDeskHeader to activate pulse animation when waitlist count changes.
+- `apps/store-app/src/components/frontdesk/PendingSectionFooter.tsx`: Added `isCountAnimating` state with useRef/useEffect for count change detection. Updated collapsed mode notification badge with enhanced scale/ring animation. Added styled count badges to expanded mode and fullView mode headers with pulse animation on count changes.
+
+**Learnings:**
+- WaitListSection already uses FrontDeskHeader which has built-in count badge support - only needed to add animation prop
+- PendingSectionFooter has 3 separate view modes (collapsed, expanded, fullView) that each display count differently
+- The existing collapsed mode notification badge was always pulsing (animate-ping) - added extra scale/ring effect specifically when count changes
+- TypeScript errors in test files are pre-existing and unrelated to this story
+
+**Next story suggestion:** All stories are now complete! The PRD has no remaining stories with `passes: false`.
+
+---

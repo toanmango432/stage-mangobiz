@@ -602,7 +602,7 @@
       ],
       "notes": "ServiceSection already shows count - follow that pattern. Use Tailwind animate-pulse for brief highlight on change. Keep badge small and unobtrusive.",
       "priority": 25,
-      "passes": false
+      "passes": true
     }
   ]
 }
