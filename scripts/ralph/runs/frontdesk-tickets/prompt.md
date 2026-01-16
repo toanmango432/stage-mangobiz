@@ -19,11 +19,36 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 ## Phase 2: Story Selection
 
-Pick the **highest priority** user story where `passes: false`:
+**Intelligently select** the best next story from those where `passes: false`.
 
-- **Priority field exists:** Choose the story with the **lowest numeric** `priority` value
-- **Tie-breaker:** If multiple stories have the same priority, choose the one that appears **earliest** in `userStories[]`
-- **No priority field:** Choose the **first** story in `userStories[]` with `passes: false`
+### Selection Criteria (in order of importance)
+
+1. **Dependencies First**: If Story B depends on Story A (e.g., "show conflict warning UI" requires "implement conflict detection"), complete A first.
+
+2. **Logical Grouping**: Prefer stories that build on what you just completed:
+   - Same file(s) modified → related story next (code is fresh in context)
+   - Just created a Redux thunk → implement the UI that uses it
+   - Just built a modal → connect it to the component that opens it
+
+3. **Priority as Tiebreaker**: Among equally logical choices, prefer lower `priority` values.
+
+4. **Efficiency**: Consider which story would be fastest given your current context and understanding.
+
+### Selection Process
+
+1. List all stories where `passes: false`
+2. Identify any **blocked** stories (dependencies not met)
+3. From remaining stories, identify **optimal next** based on:
+   - What files/code you just worked on
+   - What makes logical sense to build next
+   - What would be most efficient
+4. Briefly explain your choice (1-2 sentences in progress.txt)
+
+### Example Reasoning
+
+> "Selecting US-026 (Direct checkout) next because I just modified TicketActions.tsx in US-005 and US-026 also requires changes to TicketActions.tsx - the code structure is fresh in context."
+
+> "Selecting US-019 (Show conflict warning UI) because US-018 (conflict detection thunk) was just completed and US-019 directly uses that thunk."
 
 ### Before Implementing, Verify:
 
@@ -172,6 +197,8 @@ Example: `feat: [US-003] - Display priority badge on TaskCard`
 ## [Date] - [Story ID]: [Story Title]
 Commit: [git commit hash]
 
+**Why this story?** [1-2 sentence explanation of selection reasoning]
+
 **Changes:**
 - [File 1]: [What changed]
 - [File 2]: [What changed]
@@ -179,6 +206,8 @@ Commit: [git commit hash]
 **Learnings:**
 - [Pattern discovered]
 - [Gotcha encountered]
+
+**Next story suggestion:** [Which story would be logical next and why]
 
 ---
 ```

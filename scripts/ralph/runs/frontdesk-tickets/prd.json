@@ -290,6 +290,30 @@
       "passes": true
     },
     {
+      "id": "US-026",
+      "title": "Direct checkout from any ticket status",
+      "description": "As a front desk staff, I want to checkout a ticket directly from any status (waiting, in-service) without going through the full workflow, for quick payments or walk-ins who pay immediately.",
+      "acceptanceCriteria": [
+        "Add 'Checkout Now' button to TicketActions for waiting tickets",
+        "Add 'Checkout Now' button to TicketActions for in-service tickets",
+        "Checkout button has distinct styling (green/payment color) with DollarSign or CreditCard icon",
+        "Clicking 'Checkout Now' navigates to checkout module with ticket data pre-filled",
+        "Use existing navigation pattern: window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: { module: 'checkout', ticketId } }))",
+        "Alternatively, open checkout modal/panel directly if available",
+        "Ticket status updates appropriately after payment completes",
+        "Works for both single-service and multi-service tickets",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: waiting ticket -> Checkout Now -> payment flow starts"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "This is a critical workflow shortcut. Use existing checkout navigation or useTicketPanel().openTicketWithData() pattern. The checkout module should handle receiving a ticket and processing payment regardless of original status.",
+      "priority": 8,
+      "passes": true
+    },
+    {
       "id": "US-013",
       "title": "Connect ComingAppointments Cancel action to appointment cancellation",
       "description": "As a front desk staff, I want the Cancel/Reschedule button to cancel or reschedule appointments.",
@@ -309,7 +333,7 @@
       ],
       "notes": "Currently button just logs to console. updateAppointmentInSupabase already imported. Use AlertDialog from @/components/ui/alert-dialog.",
       "priority": 13,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-014",

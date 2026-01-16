@@ -52,6 +52,7 @@ export const ComingAppointments = memo(function ComingAppointments({
   const [activeAppointment, setActiveAppointment] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNoShowConfirm, setShowNoShowConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // New appointment notification indicator
@@ -163,6 +164,43 @@ export const ComingAppointments = memo(function ComingAppointments({
     setShowActionMenu(false);
     setActiveAppointment(null);
   }, [activeAppointment, onEditAppointment]);
+
+  // Handle cancelling an appointment
+  const handleCancelAppointment = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Update local state immediately for optimistic UI
+    dispatch(updateLocalAppointment({
+      id: activeAppointment.id,
+      updates: { status: 'cancelled' }
+    }));
+
+    // Persist to Supabase
+    dispatch(updateAppointmentInSupabase({
+      id: activeAppointment.id,
+      updates: { status: 'cancelled' }
+    }));
+
+    // Close dialogs
+    setShowCancelConfirm(false);
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [dispatch, activeAppointment]);
+
+  // Handle rescheduling an appointment - same as edit, navigates to Book module
+  const handleRescheduleAppointment = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Navigate to Book module with the appointment for rescheduling
+    window.dispatchEvent(new CustomEvent('navigate-to-module', {
+      detail: { module: 'book', appointmentId: activeAppointment.id }
+    }));
+
+    // Close dialogs
+    setShowCancelConfirm(false);
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [activeAppointment]);
 
   // Check if appointment is 15+ minutes late (eligible for no-show)
   const isEligibleForNoShow = (appointment: any): boolean => {
@@ -744,7 +782,10 @@ export const ComingAppointments = memo(function ComingAppointments({
                 Edit Appointment
               </button>
               {/* Cancel/Reschedule (Red, Destructive) */}
-              <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF3B30] hover:bg-[#FFF5F5] transition-colors flex items-center border-t border-gray-100">
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF3B30] hover:bg-[#FFF5F5] transition-colors flex items-center border-t border-gray-100"
+                onClick={() => setShowCancelConfirm(true)}
+              >
                 <div className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mr-3">
                   <AlertCircle size={18} className="text-[#FF3B30]" />
                 </div>
@@ -816,6 +857,62 @@ export const ComingAppointments = memo(function ComingAppointments({
                 onClick={() => setShowNoShowConfirm(false)}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Appointment Confirmation Dialog */}
+      {showCancelConfirm && activeAppointment && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center transition-all duration-200"
+          onClick={() => setShowCancelConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 text-center">
+              <div className="w-14 h-14 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={28} className="text-[#FF3B30]" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-2">
+                Cancel this appointment?
+              </h3>
+              <p className="text-[15px] text-gray-600">
+                <span className="font-medium">{activeAppointment.clientName?.split(' ')[0] || 'Guest'}</span>
+                {' '}has a{' '}
+                <span className="font-medium">{activeAppointment.service}</span>
+                {' '}appointment at{' '}
+                <span className="font-medium">
+                  {new Date(activeAppointment.appointmentTime).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="px-6 pb-6 space-y-3">
+              <button
+                className="w-full py-3 rounded-xl bg-[#FF3B30] text-white text-[15px] font-semibold hover:bg-[#E63329] transition-colors"
+                onClick={handleCancelAppointment}
+              >
+                Yes, Cancel Appointment
+              </button>
+              <button
+                className="w-full py-3 rounded-xl bg-[#007AFF] text-white text-[15px] font-semibold hover:bg-[#0066DD] transition-colors"
+                onClick={handleRescheduleAppointment}
+              >
+                Reschedule Instead
+              </button>
+              <button
+                className="w-full py-3 rounded-xl bg-gray-100 text-[#1C1C1E] text-[15px] font-medium hover:bg-gray-200 transition-colors"
+                onClick={() => setShowCancelConfirm(false)}
+              >
+                Go Back
               </button>
             </div>
           </div>
