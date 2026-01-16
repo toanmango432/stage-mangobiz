@@ -938,3 +938,29 @@ Added visual conflict warnings and confirmation dialog to AssignTicketModal when
 US-020 (Add timestamp and author to ticket notes) or US-022 (Add status history tracking) - both are independent features
 
 ---
+
+## Iteration 20 - US-020: Add timestamp and author to ticket notes
+**Date:** 2026-01-16
+**Status:** COMPLETE
+Commit: c254b7a
+
+**Why this story?** US-020 had the lowest priority (20) among incomplete stories and is independent. It also unblocks US-021 (Connect AddStaffNoteModal to Redux) which depends on the addTicketNote thunk created here.
+
+**Changes:**
+- `apps/store-app/src/types/Ticket.ts:13-28`: Added TicketNote interface with id, text, authorId, authorName, createdAt, and optional updatedAt fields
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:6`: Added TicketNote to imports from types
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:99-100`: Added ticketNotes?: TicketNote[] to UITicket interface
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:136-137`: Added ticketNotes?: TicketNote[] to PendingTicket interface
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1097-1179`: Created addTicketNote async thunk that adds a note with author info from auth state, persists to Supabase with IndexedDB fallback
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:1944-1977`: Added reducer case for addTicketNote.fulfilled to update ticketNotes array in appropriate ticket array
+- `apps/store-app/src/components/tickets/TicketDetailsModal.tsx:1-5`: Added imports for MessageSquare icon, formatDistanceToNow from date-fns, and TicketNote type
+- `apps/store-app/src/components/tickets/TicketDetailsModal.tsx:160-190`: Updated Notes section to display ticketNotes array with author avatars (initials), names, and relative timestamps, with fallback to legacy string notes
+
+**Learnings:**
+- **Backward compatibility**: Added ticketNotes as new array field while keeping legacy notes string for gradual migration
+- **Relative time display**: Used date-fns formatDistanceToNow with addSuffix option ("2 minutes ago")
+- **Author initials**: Split authorName by spaces, take first letter of each word, join and uppercase
+
+**Next story suggestion:** US-021 (Connect AddStaffNoteModal to Redux) - direct continuation, uses addTicketNote thunk created here
+
+---

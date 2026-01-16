@@ -490,7 +490,7 @@
       ],
       "notes": "Migrate existing string notes to array format in reducer. Use date-fns formatDistanceToNow for relative time. Author comes from auth/session state.",
       "priority": 20,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-021",
