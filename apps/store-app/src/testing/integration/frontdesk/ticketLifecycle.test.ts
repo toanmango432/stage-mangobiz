@@ -293,5 +293,54 @@ describe('Ticket Lifecycle Integration', () => {
       expect(state.completedTickets[0].clientName).toBe('In-Service Checkout Client');
       expect(state.completedTickets[0].status).toBe('completed');
     });
+
+    it('should checkout from pending status (normal flow)', () => {
+      // Create ticket in pendingTickets using createMockPendingTicket
+      const ticketId = 'pending-checkout-1';
+      const pendingTicket = createMockPendingTicket({
+        id: ticketId,
+        number: 203,
+        clientName: 'Pending Checkout Client',
+        service: 'Standard Service',
+        subtotal: 60,
+        tax: 6,
+        tip: 0,
+      });
+
+      // Initialize store with ticket in pendingTickets
+      store = createTestStore({
+        pendingTickets: [pendingTicket],
+      });
+
+      // Verify ticket is in pendingTickets before checkout
+      let state = store.getState().uiTickets;
+      expect(state.pendingTickets).toHaveLength(1);
+      expect(state.pendingTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets).toHaveLength(0);
+
+      // Dispatch markTicketAsPaid.fulfilled with sourceArray: 'pending'
+      // This is the normal checkout flow from pending
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId,
+          ticket: pendingTicket,
+          sourceArray: 'pending',
+          paymentMethod: 'credit-card',
+          tip: 8,
+          transaction: { id: 'txn-pending-1' },
+        },
+      });
+
+      // Verify ticket is removed from pendingTickets
+      state = store.getState().uiTickets;
+      expect(state.pendingTickets).toHaveLength(0);
+
+      // Verify ticket is added to completedTickets
+      expect(state.completedTickets).toHaveLength(1);
+      expect(state.completedTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets[0].clientName).toBe('Pending Checkout Client');
+      expect(state.completedTickets[0].status).toBe('completed');
+    });
   });
 });

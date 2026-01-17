@@ -160,3 +160,23 @@ Commit: 3f150ba
 **Next story suggestion:** US-009 (direct checkout from in-service test) - adds to the 'direct checkout flows' describe block just created, tests the same pattern but for serviceTickets
 
 ---
+
+## 2026-01-17 - US-009: Add direct checkout from in-service test
+Commit: 8d5b98fb2c004abc1fd6a77d62cd9c3d8ff64f3b
+
+**Why this story?** US-009 was suggested by the previous iteration and directly builds on US-008's 'direct checkout flows' describe block. The code pattern is identical to US-008, just targeting serviceTickets instead of waitlist.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:250-295`: Added test 'should checkout directly from in-service status'
+  - Creates ticket in serviceTickets with status 'in-service'
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'in-service'
+  - Verifies ticket removed from serviceTickets and added to completedTickets
+
+**Learnings:**
+- The direct checkout pattern is consistent across all source arrays (waitlist, in-service, pending)
+- Pre-existing non-serializable Date warnings continue in tests but don't affect execution
+- The 'direct checkout flows' describe block now has complete coverage for waitlist and in-service
+
+**Next story suggestion:** US-010 (checkout from pending test) - completes the direct checkout flows coverage by adding the regression test for normal pending → paid flow
+
+---
