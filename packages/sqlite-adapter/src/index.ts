@@ -28,4 +28,12 @@ export {
   type Client as SQLiteClient,
   type ClientFilters as SQLiteClientFilters,
   type ClientSortOptions as SQLiteClientSortOptions,
+  TicketSQLiteService,
+  type Ticket as SQLiteTicket,
+  type TicketService as SQLiteTicketService,
+  type TicketProduct as SQLiteTicketProduct,
+  type Payment as SQLitePayment,
+  type TicketStatus as SQLiteTicketStatus,
+  type ServiceStatus as SQLiteServiceStatus,
+  type DailyStats as SQLiteDailyStats,
 } from './services';

@@ -14,3 +14,15 @@ export {
   type ClientFilters,
   type ClientSortOptions,
 } from './clientService';
+
+// Ticket service
+export {
+  TicketSQLiteService,
+  type Ticket,
+  type TicketService,
+  type TicketProduct,
+  type Payment,
+  type TicketStatus,
+  type ServiceStatus,
+  type DailyStats,
+} from './ticketService';
