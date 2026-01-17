@@ -13,7 +13,8 @@ export type { DatabaseAdapter, QueryOptions, QueryResult } from './interfaces';
 
 // Migration types and runner
 export type { Migration, MigrationRecord } from './migrations/types';
-export { runMigrations, getAppliedMigrations, rollbackLastMigration } from './migrations';
+export type { MigrationResult, TableMigrationResult } from './migrations/dataMigration';
+export { runMigrations, getAppliedMigrations, rollbackLastMigration, migrateFromDexie } from './migrations';
 
 // Factory - will be implemented
 export { createSQLiteAdapter } from './factory';
