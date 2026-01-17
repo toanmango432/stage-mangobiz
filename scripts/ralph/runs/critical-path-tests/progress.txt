@@ -1,11 +1,44 @@
 # Ralph Progress Log - frontdesk-critical-path-tests
-# Started: $(date +%Y-%m-%d)
-# Branch: ralph/frontdesk-critical-path-tests
+# Started: 2026-01-17
+# Branch: ralph/frontdesk-tickets
 
 ## Codebase Patterns
-(Patterns discovered during this run will be added here)
+
+### Pre-existing TypeScript Errors
+The codebase has pre-existing TypeScript errors in `smartAutoAssign.test.ts` (Date vs string type mismatches). These don't block test execution since Vitest runs without type checking.
+
+### markTicketAsPaid.fulfilled Test Pattern
+```typescript
+store.dispatch({
+  type: markTicketAsPaid.fulfilled.type,
+  payload: {
+    ticketId: 'ticket-id',
+    ticket: mockTicket,
+    sourceArray: 'waitlist' | 'in-service' | 'pending',
+    paymentMethod: 'credit-card' | 'cash',
+    tip: 0,
+    transaction: { id: 'txn-id' },
+  },
+});
+```
 
 ---
 
 ## Iteration Log
 
+## 2026-01-17 - US-002: Add markTicketAsPaid.fulfilled reducer tests for serviceTickets source
+Commit: ae4a18a4bfdedc42f9dc909a31d5d3db4e3a257e
+
+**Why this story?** US-001 was already implemented from a previous iteration. US-002 is the next highest priority and builds directly on the same describe block, making it the logical next step.
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:477-513`: Added test 'should remove ticket from serviceTickets when sourceArray is in-service'
+
+**Learnings:**
+- US-001 was already implemented but not marked as passes: true in the PRD - always verify PRD vs code reality
+- Pre-existing typecheck errors in smartAutoAssign.test.ts don't block test runs
+- The reducer correctly handles 'in-service' sourceArray by removing from serviceTickets and adding to completedTickets
+
+**Next story suggestion:** US-003 (pendingTickets source test) - continues the same pattern in the same file with minimal context switching
+
+---

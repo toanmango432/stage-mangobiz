@@ -511,5 +511,44 @@ describe('uiTicketsSlice', () => {
       expect(completedTickets[0].clientName).toBe('In-Service Client');
       expect(completedTickets[0].status).toBe('completed');
     });
+
+    it('should remove ticket from pendingTickets when sourceArray is pending', () => {
+      // Set up store with ticket in pendingTickets (use PendingTicket shape)
+      const pendingTicket = createMockPendingTicket({
+        id: 'pending-ticket-1',
+        number: 3,
+        clientName: 'Pending Client',
+        subtotal: 50,
+        tax: 5,
+      });
+      store = createTestStore({ pendingTickets: [pendingTicket] });
+
+      // Verify ticket is in pendingTickets before dispatch
+      expect(store.getState().uiTickets.pendingTickets).toHaveLength(1);
+      expect(store.getState().uiTickets.pendingTickets[0].id).toBe('pending-ticket-1');
+
+      // Dispatch markTicketAsPaid.fulfilled action with sourceArray: 'pending'
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId: 'pending-ticket-1',
+          ticket: pendingTicket,
+          sourceArray: 'pending',
+          paymentMethod: 'credit-card',
+          tip: 0,
+          transaction: { id: 'txn-3' },
+        },
+      });
+
+      // Verify ticket is removed from pendingTickets
+      expect(store.getState().uiTickets.pendingTickets).toHaveLength(0);
+
+      // Verify ticket is added to completedTickets
+      const completedTickets = store.getState().uiTickets.completedTickets;
+      expect(completedTickets).toHaveLength(1);
+      expect(completedTickets[0].id).toBe('pending-ticket-1');
+      expect(completedTickets[0].clientName).toBe('Pending Client');
+      expect(completedTickets[0].status).toBe('completed');
+    });
   });
 });
