@@ -200,3 +200,26 @@ Commit: 2a7352d
 **Next story suggestion:** US-011 (appointment check-in to checkout flow test) - adds new 'appointment check-in flows' describe block, tests the appointmentId linking between appointments and tickets
 
 ---
+
+## 2026-01-17 - US-011: Add appointment check-in to checkout flow test
+Commit: cc168f6
+
+**Why this story?** US-011 is the highest priority incomplete story and was explicitly suggested by the previous iteration (US-010). It creates a new describe block ('appointment check-in flows') and tests the critical appointmentId linking between appointments and tickets.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:347-408`: Added describe block 'appointment check-in flows' with test:
+  - 'should handle appointment check-in to waitlist to checkout'
+  - Creates ticket in waitlist with `appointmentId` field (simulating checkInAppointment thunk result)
+  - Verifies ticket has appointmentId linking back to source appointment
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'waitlist'
+  - Verifies ticket removed from waitlist and added to completedTickets
+
+**Learnings:**
+- The `appointmentId` field is used in tickets to track which appointment they originated from
+- While `appointmentId` isn't explicitly in the UITicket interface, it can be passed through overrides
+- Type assertion `as UITicket & { appointmentId?: string }` allows safe access to the optional field
+- Pre-existing non-serializable Date warnings continue (benign, documented in patterns)
+
+**Next story suggestion:** US-012 (re-checkout closed ticket error handling test) - final story, adds 'edge cases and error handling' describe block, tests idempotent behavior when checkout is called on already-paid ticket
+
+---

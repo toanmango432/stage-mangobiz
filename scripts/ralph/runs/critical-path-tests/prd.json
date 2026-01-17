@@ -188,7 +188,7 @@
         "Tests pass"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Tests the coming appointment → ticket → checkout flow. Ticket should have appointmentId field to track origin."
     },
     {

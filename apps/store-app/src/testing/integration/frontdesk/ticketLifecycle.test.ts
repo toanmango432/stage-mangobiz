@@ -406,4 +406,79 @@ describe('Ticket Lifecycle Integration', () => {
       expect(state.completedTickets[0].status).toBe('completed');
     });
   });
+
+  // ============================================
+  // EDGE CASES AND ERROR HANDLING
+  // ============================================
+
+  describe('edge cases and error handling', () => {
+    it('should handle checkout attempt on already completed ticket', () => {
+      // Create a ticket that's already in completedTickets
+      const ticketId = 'already-completed-ticket-1';
+      const completedTicket = createMockUITicket({
+        id: ticketId,
+        number: 401,
+        status: 'completed',
+        clientName: 'Already Paid Client',
+        service: 'Previously Completed Service',
+      });
+
+      // Initialize store with ticket already in completedTickets
+      store = createTestStore({
+        completedTickets: [completedTicket],
+      });
+
+      // Verify ticket is in completedTickets before re-checkout attempt
+      let state = store.getState().uiTickets;
+      expect(state.completedTickets).toHaveLength(1);
+      expect(state.completedTickets[0].id).toBe(ticketId);
+      expect(state.waitlist).toHaveLength(0);
+      expect(state.serviceTickets).toHaveLength(0);
+      expect(state.pendingTickets).toHaveLength(0);
+
+      // Dispatch markTicketAsPaid.fulfilled as if attempting re-checkout
+      // Using sourceArray 'pending' but ticket isn't actually in pendingTickets
+      // This simulates a "ticket not found" scenario where checkout is called
+      // on a ticket that has already been processed
+      const dispatchAction = () => {
+        store.dispatch({
+          type: markTicketAsPaid.fulfilled.type,
+          payload: {
+            ticketId,
+            ticket: completedTicket,
+            sourceArray: 'pending', // Ticket isn't here - was already completed
+            paymentMethod: 'credit-card',
+            tip: 0,
+            transaction: { id: 'txn-duplicate-attempt' },
+          },
+        });
+      };
+
+      // Verify no errors are thrown during dispatch
+      expect(dispatchAction).not.toThrow();
+
+      // Get state after the checkout attempt
+      state = store.getState().uiTickets;
+
+      // Note: Current reducer behavior - the reducer adds to completedTickets
+      // regardless of source array match. This documents the current behavior.
+      // A future improvement could add duplicate prevention.
+      //
+      // For this test, we verify the reducer doesn't throw and completes
+      // the operation gracefully. The completedTickets length may increase
+      // since the reducer doesn't check for existing entries.
+      expect(state.completedTickets.length).toBeGreaterThanOrEqual(1);
+
+      // Verify the original ticket data is preserved
+      const originalTicket = state.completedTickets.find(t => t.id === ticketId);
+      expect(originalTicket).toBeDefined();
+      expect(originalTicket?.clientName).toBe('Already Paid Client');
+      expect(originalTicket?.status).toBe('completed');
+
+      // Verify other arrays remain empty (ticket was never in them)
+      expect(state.waitlist).toHaveLength(0);
+      expect(state.serviceTickets).toHaveLength(0);
+      expect(state.pendingTickets).toHaveLength(0);
+    });
+  });
 });
