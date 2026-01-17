@@ -1,8 +1,10 @@
 /**
- * PadConnectionIndicator Component
- * Shows Mango Pad connection status in the header with dropdown for details
+ * DeviceConnectionIndicator Component
+ * Shows device connection status in the header with dropdown for details
+ * Supports multiple device types: Mango Pad, Hardware, Payment Terminals
  *
- * Part of: Mango Pad Integration (US-005)
+ * Originally: PadConnectionIndicator (US-005)
+ * Renamed: US-003 - General device manager
  */
 
 import { Tablet, ChevronDown, Circle } from 'lucide-react';
@@ -21,12 +23,12 @@ import {
 } from '@/components/ui/popover';
 import { formatDistanceToNow } from 'date-fns';
 
-export function PadConnectionIndicator() {
+export function DeviceConnectionIndicator() {
   // Subscribe to incoming Pad heartbeats
   usePadHeartbeat();
   // Publish POS heartbeats so Pad knows we're connected
   usePosHeartbeat();
-  
+
   const hasConnectedPad = useAppSelector(selectHasConnectedPad);
   const connectedPads = useAppSelector(getConnectedPads);
   const allDevices = useAppSelector(selectAllPadDevices);
@@ -205,4 +207,4 @@ export function PadConnectionIndicator() {
   );
 }
 
-export default PadConnectionIndicator;
+export default DeviceConnectionIndicator;
