@@ -315,8 +315,8 @@ export function DeviceConnectionIndicator() {
           </div>
         </div>
 
-        {/* Footer with Quick Setup button */}
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+        {/* Footer with Quick Setup and More Settings */}
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 space-y-2">
           <button
             onClick={() => {
               setIsOpen(false);
@@ -326,6 +326,20 @@ export function DeviceConnectionIndicator() {
           >
             <Settings className="w-4 h-4" />
             Quick Setup
+          </button>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              window.dispatchEvent(
+                new CustomEvent('navigate-to-module', {
+                  detail: { module: 'settings', category: 'devices' },
+                })
+              );
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            More Settings
           </button>
         </div>
       </PopoverContent>

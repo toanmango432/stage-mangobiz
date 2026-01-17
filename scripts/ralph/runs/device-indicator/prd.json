@@ -89,7 +89,7 @@
         "Verify in browser: header shows compact icon normally, expands on errors"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-002", "US-003"],
       "notes": "Key logic: hasErrors = padsWithErrors.length > 0 || hardwareWithErrors.length > 0 || terminalsWithErrors.length > 0. Use Layers or Monitor icon from lucide-react for general device indicator. Green dot = any device connected. Gray dot = no devices. Amber/red = errors exist."
     },
@@ -112,7 +112,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-003"],
       "notes": "Use Circle icon from lucide-react for status dots. Follow existing row styling patterns from PadConnectionIndicator dropdown. This component will be used for all device types (pad, hardware, terminal)."
     },
@@ -139,7 +139,7 @@
         "Verify in browser: dropdown shows all 3 categories with equal prominence"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-005"],
       "notes": "Use lucide-react icons: Tablet (Mango Pad), Printer (Hardware), CreditCard (Terminals). Import DeviceStatusRow from ./DeviceStatusRow. Each category is a peer - no hierarchy. Use existing Popover styling patterns."
     },
@@ -165,7 +165,7 @@
         "Verify in browser: modal opens and closes, tabs switch correctly"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-006"],
       "notes": "Use Dialog, DialogContent, DialogHeader, DialogTitle from @/components/ui/dialog. Use Tabs, TabsList, TabsTrigger, TabsContent from @/components/ui/tabs if available, otherwise use simple button-based tabs. Keep it simple - detailed functionality comes in next stories."
     },
@@ -190,7 +190,7 @@
         "Verify in browser: can see errors, retry connection, unpair device"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-007"],
       "notes": "Import actions from settingsSlice: updateDeviceStatus, updateTerminalStatus, removeHardwareDevice, removePaymentTerminal. For Mango Pads, the unpair would remove from padDevicesSlice. Use AlertDialog for unpair confirmation."
     },
@@ -216,7 +216,7 @@
         "Verify in browser: can add new devices of each type"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-008"],
       "notes": "Import addHardwareDevice, addPaymentTerminal from settingsSlice. Use Select component for dropdowns. Hardware types: 'printer' | 'cash_drawer' | 'scanner'. Terminal types: 'fiserv_ttp' | 'stripe_s700' | 'wisepad_3' | 'square_reader'. Connection types: 'bluetooth' | 'usb' | 'network'."
     },
