@@ -8,9 +8,9 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 ## Phase 1: Context Loading (ALWAYS DO FIRST)
 
-1. **Read the PRD** at `scripts/ralph/runs/frontdesk-tickets/prd.json`
+1. **Read the PRD** at `scripts/ralph/runs/device-indicator/prd.json`
 2. **Read patterns** at `scripts/ralph/patterns.md` (accumulated learnings)
-3. **Read progress** at `scripts/ralph/runs/frontdesk-tickets/progress.txt` (recent learnings)
+3. **Read progress** at `scripts/ralph/runs/device-indicator/progress.txt` (recent learnings)
 4. **Verify branch** matches PRD `branchName`. If not, checkout the correct branch.
 
 **Conflict resolution:** If `patterns.md` or `progress.txt` conflict with the PRD, the **PRD wins**. Note conflicts under Learnings in progress.txt.
@@ -190,7 +190,7 @@ After all checks pass:
 
 ```bash
 git add -A
-git commit -m "feat: [frontdesk-tickets/US-XXX] - [Story Title]"
+git commit -m "feat: [device-indicator/US-XXX] - [Story Title]"
 ```
 
 **Format:** `feat: [RUN_NAME/Story ID] - [Story Title]`
@@ -203,7 +203,7 @@ Example: `feat: [provider-v4/US-003] - Display priority badge on TaskCard`
 
 ## Phase 8: Update PRD
 
-1. Read `scripts/ralph/runs/frontdesk-tickets/prd.json`
+1. Read `scripts/ralph/runs/device-indicator/prd.json`
 2. Find the completed story by ID
 3. Set `"passes": true`
 4. Write the updated JSON back
@@ -212,7 +212,7 @@ Example: `feat: [provider-v4/US-003] - Display priority badge on TaskCard`
 
 ## Phase 9: Log Progress
 
-**APPEND** to `scripts/ralph/runs/frontdesk-tickets/progress.txt`:
+**APPEND** to `scripts/ralph/runs/device-indicator/progress.txt`:
 
 ```markdown
 ## [Date] - [Story ID]: [Story Title]
@@ -283,7 +283,7 @@ XX. **Pattern name** - Description of the pattern and when to use it.
 Check if all stories are complete:
 
 ```bash
-jq '[.userStories[] | select(.passes == false)] | length' scripts/ralph/runs/frontdesk-tickets/prd.json
+jq '[.userStories[] | select(.passes == false)] | length' scripts/ralph/runs/device-indicator/prd.json
 ```
 
 If `jq` is unavailable, skip this check and document in progress.txt.

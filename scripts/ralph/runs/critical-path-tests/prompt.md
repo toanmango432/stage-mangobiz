@@ -23,30 +23,33 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 ### Selection Criteria (in order of importance)
 
-1. **Dependencies First**: If Story B depends on Story A (e.g., "show conflict warning UI" requires "implement conflict detection"), complete A first.
+1. **Explicit Dependencies First**: Check the story's `dependencies` array. If any dependency story has `passes: false`, skip this story.
 
-2. **Logical Grouping**: Prefer stories that build on what you just completed:
+2. **Implicit Dependencies**: If Story B logically depends on Story A (e.g., "show conflict warning UI" requires "implement conflict detection"), complete A first.
+
+3. **Logical Grouping**: Prefer stories that build on what you just completed:
    - Same file(s) modified → related story next (code is fresh in context)
-   - Just created a Redux thunk → implement the UI that uses it
-   - Just built a modal → connect it to the component that opens it
+   - Same `category` (backend/frontend/test) → group related work
+   - Just created a hook → implement the component that uses it
 
-3. **Priority as Tiebreaker**: Among equally logical choices, prefer lower `priority` values.
+4. **Complexity Optimization**: Among similar stories, prefer lower `complexity` values for faster progress.
 
-4. **Efficiency**: Consider which story would be fastest given your current context and understanding.
+5. **Priority as Tiebreaker**: Among equally logical choices, prefer lower `priority` values.
 
 ### Selection Process
 
 1. List all stories where `passes: false`
-2. Identify any **blocked** stories (dependencies not met)
-3. From remaining stories, identify **optimal next** based on:
+2. Filter out stories with unmet `dependencies`
+3. Identify any **blocked** stories (implicit dependencies not met)
+4. From remaining stories, identify **optimal next** based on:
    - What files/code you just worked on
-   - What makes logical sense to build next
+   - What category aligns with current work
    - What would be most efficient
-4. Briefly explain your choice (1-2 sentences in progress.txt)
+5. Briefly explain your choice (1-2 sentences in progress.txt)
 
 ### Example Reasoning
 
-> "Selecting US-019 (Show conflict warning UI) because US-018 (conflict detection thunk) was just completed and US-019 directly uses that thunk."
+> "Selecting US-019 (Show conflict warning UI) because US-018 (conflict detection thunk) was just completed and US-019 lists US-018 in its dependencies."
 
 > "Selecting US-007 next because I just modified TicketActions.tsx and US-007 also requires changes to that file - the code structure is fresh in context."
 
@@ -56,6 +59,8 @@ You are an autonomous coding agent working on a software project. Each iteration
 |-------|-----------|------------|
 | `files` array | Preferred | Use finder/Grep to locate files. If cannot identify with confidence, treat as blocked. |
 | `acceptanceCriteria` | **Required** | Treat story as blocked. Document in progress.txt. |
+| `dependencies` | Optional | Check for implicit dependencies in description/notes. |
+| `testCommand` | Optional | Fall back to `pnpm test --run`. |
 | `notes` | Optional | Proceed without, but check codebase for patterns. |
 
 ---
@@ -101,9 +106,12 @@ pnpm run typecheck
 # Lint (if available)
 pnpm run lint
 
-# Tests (if relevant)
+# Tests - use story's testCommand if specified, otherwise run all
+# From PRD: story.testCommand || "pnpm test --run"
 pnpm test --run
 ```
+
+**If story has `testCommand` field:** Use that specific command instead of running all tests.
 
 ### Handling Check Results
 
@@ -121,6 +129,7 @@ pnpm test --run
 ### When is a Story "UI"?
 
 A story is UI if:
+- `category` is `"frontend"` or `"ui"`
 - Title, notes, or `acceptanceCriteria` mention components, screens, pages, or visual changes
 - `files` array includes React/Vue/Svelte components, HTML, or CSS
 - **When in doubt, treat as UI and verify**
@@ -147,6 +156,16 @@ A story is UI if:
 
 **A UI story is NOT complete until browser verification passes.**
 
+### Document Browser Verification
+
+In progress.txt, include:
+```markdown
+**Browser Verification:**
+- Component renders without errors: [PASS/FAIL]
+- Acceptance criteria verified visually: [PASS/FAIL]
+- Accessibility check (headings, labels): [PASS/FAIL]
+```
+
 ---
 
 ## Phase 6: Success Criteria Check
@@ -157,7 +176,7 @@ A story is UI if:
 - [ ] TypeScript passes (or failures are documented pre-existing)
 - [ ] Lint passes (or not available)
 - [ ] Relevant tests pass (or failures are documented pre-existing)
-- [ ] For UI: Browser verification completed successfully
+- [ ] For UI: Browser verification completed and documented
 - [ ] No new regressions introduced in modified files
 - [ ] No unresolved blockers for this story
 
@@ -171,12 +190,14 @@ After all checks pass:
 
 ```bash
 git add -A
-git commit -m "feat: [US-XXX] - [Story Title]"
+git commit -m "feat: [critical-path-tests/US-XXX] - [Story Title]"
 ```
 
-**Format:** `feat: [Story ID] - [Story Title]`
+**Format:** `feat: [RUN_NAME/Story ID] - [Story Title]`
 
-Example: `feat: [US-003] - Display priority badge on TaskCard`
+Example: `feat: [provider-v4/US-003] - Display priority badge on TaskCard`
+
+**Note:** Including run name prevents story ID collisions across different Ralph runs.
 
 ---
 
@@ -200,12 +221,21 @@ Commit: [git commit hash]
 **Why this story?** [1-2 sentence explanation of selection reasoning]
 
 **Changes:**
-- [File 1]: [What changed]
-- [File 2]: [What changed]
+- [File 1:lines]: [What changed]
+- [File 2:lines]: [What changed]
+
+**Browser Verification:** (UI stories only)
+- Component renders: [PASS/FAIL]
+- Visual criteria met: [PASS/FAIL]
+- Accessibility OK: [PASS/FAIL]
 
 **Learnings:**
 - [Pattern discovered]
+- [Risk avoided]
 - [Gotcha encountered]
+
+**Patterns to sync:** (if any reusable patterns discovered)
+- Pattern #XX: [Name] - [Brief description of when/why to use]
 
 **Next story suggestion:** [Which story would be logical next and why]
 
@@ -220,37 +250,31 @@ Commit: [git commit hash]
 
 ---
 
-## Phase 9.5: Sync Global Patterns (If Applicable)
+## Phase 9.5: Sync Patterns to Project patterns.md
 
-After logging progress, check if any learnings should be shared globally:
+If you identified patterns worth sharing in "Patterns to sync:", update the project's patterns file:
 
-**Sync TO global template** (`~/.claude/templates/ralph/patterns.md.template`) if you discovered:
-- Security patterns (encryption, validation, auth)
-- API integration patterns (webhooks, error handling)
-- TypeScript/React best practices
-- Database patterns (RLS, migrations, indexes)
-- Performance patterns
-- Anti-patterns that caused bugs
+1. **Read** `scripts/ralph/patterns.md`
+2. **Check** if pattern already exists (avoid duplicates)
+3. **Append** new patterns to the appropriate section:
+
+```markdown
+## [Category] Patterns
+
+### [Subcategory]
+XX. **Pattern name** - Description of the pattern and when to use it.
+```
+
+**Sync patterns that:**
+- Apply to 2+ files or components
+- Solve security issues
+- Prevent a class of bugs
+- Are TypeScript/React/database best practices
 
 **Keep project-specific** (don't sync):
 - Business logic specific to this app
 - Domain-specific terminology
 - Project-specific file paths
-- Patterns that only make sense in this codebase
-
-**How to sync:**
-1. Read `~/.claude/templates/ralph/patterns.md.template`
-2. Check if the pattern already exists (avoid duplicates)
-3. If new, append to the appropriate section
-4. Use the same numbered format as existing patterns
-
-**Example sync:**
-```markdown
-## Security Patterns
-
-### [New Category]
-XX. **Pattern name** - Description of the pattern and when to use it.
-```
 
 ---
 
@@ -272,9 +296,33 @@ If result is `0`, output:
 
 ---
 
+## Phase 10.5: Session Summary (If Stopping or Blocked)
+
+If you cannot continue (blocked, context limit, or all stories done), append a session summary:
+
+```markdown
+## Session Summary - [Date]
+
+**Completed this session:** [X] stories
+**Total progress:** [Y]/[Z] stories ([percent]%)
+
+**Blocked stories:** (if any)
+- [US-XXX]: [Reason - e.g., "Missing dependency", "Pre-existing test failure", "PRD unclear"]
+
+**Patterns synced:** [count] new patterns added to patterns.md
+
+**Next session should:**
+- Start with: [US-XXX] - [reason]
+- Resolve blocker: [description if applicable]
+
+---
+```
+
+---
+
 ## STOP
 
-**After completing Phases 1-10 (including 9.5) for ONE story, STOP.**
+**After completing Phases 1-10.5 for ONE story, STOP.**
 
 Do not select or start work on another story in this iteration. The next iteration will pick up the next story.
 
@@ -312,6 +360,7 @@ Do not select or start work on another story in this iteration. The next iterati
 | **Browser verification fails** | Debug and retry |
 | **Cannot complete story** | Document blocker in progress.txt, do NOT mark passes: true |
 | **PRD error (missing file, vague criteria)** | Document in progress.txt, story is blocked |
+| **Dependency not met** | Skip story, document in progress.txt |
 
 **Never mark a story as `passes: true` if it has unresolved errors or blockers.**
 
@@ -322,12 +371,16 @@ Do not select or start work on another story in this iteration. The next iterati
 | Rule | Why |
 |------|-----|
 | ONE story per iteration | Fresh context each time |
+| Check `dependencies` first | Respect explicit ordering |
 | Read files before editing | Understand existing patterns |
 | Use `files` array | Know exactly what to modify |
 | All checks must pass (or be pre-existing) | Never commit broken code |
 | Browser verify UI changes | Ensure it actually works |
-| Commit before updating PRD | Atomic changes |
+| Document browser verification | Prove it was tested |
+| Commit with run name prefix | Prevent story ID collisions |
 | Append progress, never replace | Preserve history |
+| Sync patterns discovered | Share learnings |
+| Write session summary when blocked | Enable next session |
 | STOP after one story | Let next iteration handle the rest |
 
 ---

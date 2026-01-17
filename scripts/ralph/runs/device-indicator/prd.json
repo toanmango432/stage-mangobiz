@@ -1,0 +1,249 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "main",
+  "description": "Redesign device connection indicator to be a general device manager showing all device types (Mango Pad, Hardware, Payment Terminals) with smart status display and quick setup modal",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix dev mode bug in selectHasConnectedPad selector",
+      "description": "As a developer, I need the Pad connection indicator to show actual status instead of always showing connected in dev mode.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/store/slices/padDevicesSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Remove the dev mode override that always returns true in selectHasConnectedPad",
+        "Selector returns actual connection status based on getConnectedPads().length > 0",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Remove the isDevMode check around lines 137-142 that forces return true. Keep the actual selector logic: `return getConnectedPads(state).length > 0`."
+    },
+    {
+      "id": "US-002",
+      "title": "Add device selectors for all device types to settingsSlice",
+      "description": "As a developer, I need selectors to get connected devices and devices with errors for all device types (hardware and payment terminals).",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/settingsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add selectConnectedHardwareDevices selector (filter connectionStatus === 'connected')",
+        "Add selectConnectedPaymentTerminals selector (filter connectionStatus === 'connected')",
+        "Add selectHardwareDevicesWithErrors selector (filter connectionStatus === 'error' or 'disconnected')",
+        "Add selectPaymentTerminalsWithErrors selector (filter connectionStatus === 'error' or 'disconnected')",
+        "Export all new selectors from the file",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Follow existing selector patterns in the file. Use `(state: RootState) =>` signature. Filter by connectionStatus field. 'disconnected' counts as error state for paired devices."
+    },
+    {
+      "id": "US-003",
+      "title": "Rename to DeviceConnectionIndicator (general device manager)",
+      "description": "As a developer, I need to rename the component from PadConnectionIndicator to DeviceConnectionIndicator to reflect its new purpose as a general device manager.",
+      "category": "frontend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/components/layout/PadConnectionIndicator.tsx",
+        "apps/store-app/src/components/layout/TopHeaderBar.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create new file DeviceConnectionIndicator.tsx with renamed component",
+        "Update component function name to DeviceConnectionIndicator",
+        "Update import statement in TopHeaderBar.tsx",
+        "Update component usage in TopHeaderBar.tsx JSX",
+        "Delete old PadConnectionIndicator.tsx file",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: component still renders in header without errors"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "This is a rename operation. Keep all existing functionality for now - just rename the file and component. Subsequent stories will modify the behavior."
+    },
+    {
+      "id": "US-004",
+      "title": "Unified device status indicator with smart compact/expanded display",
+      "description": "As a user, I want to see a compact icon when all devices are OK, but an expanded warning when any device has errors.",
+      "category": "frontend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/components/layout/DeviceConnectionIndicator.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Import selectors from settingsSlice (selectConnectedHardwareDevices, selectConnectedPaymentTerminals, selectHardwareDevicesWithErrors, selectPaymentTerminalsWithErrors)",
+        "Import getConnectedPads and selector for pads with errors from padDevicesSlice",
+        "Calculate hasErrors: any device across all 3 types has error/disconnected status",
+        "Normal state (no errors): Show compact icon only (Monitor or Layers icon), green dot if any connected, gray if none configured",
+        "Error state: Show expanded button with warning icon, amber/red color, text like '2 Issues'",
+        "No warning when salon has 0 devices configured (that's OK, not an error)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: header shows compact icon normally, expands on errors"
+      ],
+      "priority": 4,
+      "passes": false,
+      "dependencies": ["US-002", "US-003"],
+      "notes": "Key logic: hasErrors = padsWithErrors.length > 0 || hardwareWithErrors.length > 0 || terminalsWithErrors.length > 0. Use Layers or Monitor icon from lucide-react for general device indicator. Green dot = any device connected. Gray dot = no devices. Amber/red = errors exist."
+    },
+    {
+      "id": "US-005",
+      "title": "Create DeviceStatusRow component for individual device display",
+      "description": "As a developer, I need a reusable component to display individual device status in the dropdown.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/layout/DeviceStatusRow.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create DeviceStatusRow component with props: name, status ('connected' | 'disconnected' | 'error'), type (for icon selection), lastSeen (optional)",
+        "Display device name on left, status indicator on right",
+        "Status indicators: green dot + 'Connected', gray dot + 'Offline', red dot + 'Error'",
+        "Show 'Last seen X ago' for offline/error devices if lastSeen provided",
+        "Hover state with subtle background change",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "dependencies": ["US-003"],
+      "notes": "Use Circle icon from lucide-react for status dots. Follow existing row styling patterns from PadConnectionIndicator dropdown. This component will be used for all device types (pad, hardware, terminal)."
+    },
+    {
+      "id": "US-006",
+      "title": "Device dropdown with equal sections for Pad/Hardware/Terminals",
+      "description": "As a user, I want to see all my devices organized by category in the dropdown with equal prominence.",
+      "category": "frontend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/components/layout/DeviceConnectionIndicator.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Dropdown header shows 'Connected Devices' with summary (X online, Y errors)",
+        "Section 1: 'Mango Pad' with Tablet icon, shows all pad devices using DeviceStatusRow",
+        "Section 2: 'Hardware' with Printer icon, shows all hardware devices using DeviceStatusRow",
+        "Section 3: 'Payment Terminals' with CreditCard icon, shows all terminals using DeviceStatusRow",
+        "Each section shows device count in header (e.g., 'Mango Pad (2)')",
+        "Empty sections show 'No devices configured' message (not an error)",
+        "Devices with errors highlighted with amber/red background",
+        "Scrollable if many devices (max-height with overflow)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: dropdown shows all 3 categories with equal prominence"
+      ],
+      "priority": 6,
+      "passes": false,
+      "dependencies": ["US-005"],
+      "notes": "Use lucide-react icons: Tablet (Mango Pad), Printer (Hardware), CreditCard (Terminals). Import DeviceStatusRow from ./DeviceStatusRow. Each category is a peer - no hierarchy. Use existing Popover styling patterns."
+    },
+    {
+      "id": "US-007",
+      "title": "Create QuickDeviceSetupModal shell component",
+      "description": "As a developer, I need a modal component structure for quick device management.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/layout/QuickDeviceSetupModal.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create QuickDeviceSetupModal component with props: isOpen, onClose, initialTab (optional)",
+        "Modal has header 'Device Setup' with close button",
+        "Tab navigation: 'Status' | 'Add Device' tabs",
+        "Status tab shows list of all devices with their current status",
+        "Add Device tab shows placeholder content for now",
+        "Modal uses Dialog component from @/components/ui/dialog",
+        "Responsive: full-screen on mobile, centered modal on desktop",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: modal opens and closes, tabs switch correctly"
+      ],
+      "priority": 7,
+      "passes": false,
+      "dependencies": ["US-006"],
+      "notes": "Use Dialog, DialogContent, DialogHeader, DialogTitle from @/components/ui/dialog. Use Tabs, TabsList, TabsTrigger, TabsContent from @/components/ui/tabs if available, otherwise use simple button-based tabs. Keep it simple - detailed functionality comes in next stories."
+    },
+    {
+      "id": "US-008",
+      "title": "Error view and troubleshoot actions in modal",
+      "description": "As a user, I want to see error details and have options to fix device issues.",
+      "category": "frontend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/components/layout/QuickDeviceSetupModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Status tab shows devices grouped by status: Errors first, then Connected, then Offline",
+        "Error devices show expanded error details (reason if available)",
+        "Each error device has 'Retry Connection' button that dispatches updateDeviceStatus or updateTerminalStatus",
+        "Each device has 'Unpair' button with confirmation dialog",
+        "Unpair dispatches removeHardwareDevice or removePaymentTerminal thunk",
+        "Success/error toast notifications after actions",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: can see errors, retry connection, unpair device"
+      ],
+      "priority": 8,
+      "passes": false,
+      "dependencies": ["US-007"],
+      "notes": "Import actions from settingsSlice: updateDeviceStatus, updateTerminalStatus, removeHardwareDevice, removePaymentTerminal. For Mango Pads, the unpair would remove from padDevicesSlice. Use AlertDialog for unpair confirmation."
+    },
+    {
+      "id": "US-009",
+      "title": "Add new device flow in modal",
+      "description": "As a user, I want to quickly add and pair new devices from the modal.",
+      "category": "frontend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/components/layout/QuickDeviceSetupModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add Device tab has 3 sections: Add Mango Pad, Add Hardware, Add Payment Terminal",
+        "Each section has brief description and 'Add' button",
+        "Add Mango Pad: Shows pairing instructions (scan QR or enter code)",
+        "Add Hardware: Form with name, type dropdown (printer/scanner/drawer), connection type",
+        "Add Payment Terminal: Form with name, terminal type dropdown, terminal ID",
+        "Form submission dispatches addHardwareDevice or addPaymentTerminal thunk",
+        "Success shows device in Status tab, error shows toast",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: can add new devices of each type"
+      ],
+      "priority": 9,
+      "passes": false,
+      "dependencies": ["US-008"],
+      "notes": "Import addHardwareDevice, addPaymentTerminal from settingsSlice. Use Select component for dropdowns. Hardware types: 'printer' | 'cash_drawer' | 'scanner'. Terminal types: 'fiserv_ttp' | 'stripe_s700' | 'wisepad_3' | 'square_reader'. Connection types: 'bluetooth' | 'usb' | 'network'."
+    },
+    {
+      "id": "US-010",
+      "title": "Wire modal trigger and Settings navigation from dropdown",
+      "description": "As a user, I want to access the quick setup modal and full settings from the dropdown.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/layout/DeviceConnectionIndicator.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add divider line after device sections",
+        "Add 'Quick Setup' button that opens QuickDeviceSetupModal",
+        "Add 'More Settings' link with Settings icon",
+        "More Settings dispatches navigate-to-module event: { module: 'settings', category: 'devices' }",
+        "Clicking either option closes the dropdown popover",
+        "Modal state managed in DeviceConnectionIndicator component",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: Quick Setup opens modal, More Settings navigates to Settings page"
+      ],
+      "priority": 10,
+      "passes": false,
+      "dependencies": ["US-009"],
+      "notes": "Import QuickDeviceSetupModal. Add useState for modal open state. Navigation pattern: window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: { module: 'settings', category: 'devices' } })). Close popover with setIsOpen(false) before opening modal or navigating."
+    }
+  ]
+}
