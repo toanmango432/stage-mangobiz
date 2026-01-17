@@ -19,7 +19,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Remove the isDevMode check around lines 137-142 that forces return true. Keep the actual selector logic: `return getConnectedPads(state).length > 0`."
     },
     {

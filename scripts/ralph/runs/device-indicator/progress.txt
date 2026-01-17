@@ -9,3 +9,19 @@
 
 ## Iteration Log
 
+## 2026-01-17 - US-001: Fix dev mode bug in selectHasConnectedPad selector
+Commit: 20a2fe6
+
+**Why this story?** US-001 has the highest priority (1), lowest complexity (1), and no dependencies - making it the optimal first story.
+
+**Changes:**
+- `apps/store-app/src/store/slices/padDevicesSlice.ts:135-137`: Removed dev mode override in selectHasConnectedPad selector. Changed from checking `isDevMode` and returning `true` to simply returning `getConnectedPads(state).length > 0`.
+
+**Learnings:**
+- Pre-existing TypeScript errors exist throughout the codebase (test files, uiTicketsSlice.ts, types, etc.) - these are not blockers for individual stories
+- The dev mode override was on lines 136-140, causing the Pad indicator to always show "connected" in dev mode
+
+**Next story suggestion:** US-002 (Add device selectors) - builds foundation for US-004 which depends on these selectors. Backend work that subsequent frontend stories need.
+
+---
+

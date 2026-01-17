@@ -672,4 +672,21 @@ export const selectTaxSettings = (state: RootState) => state.settings.settings?.
 export const selectOperatingHours = (state: RootState) => state.settings.settings?.business.operatingHours;
 export const selectTheme = (state: RootState) => state.settings.settings?.system.theme;
 
+// Device connection selectors
+export const selectConnectedHardwareDevices = (state: RootState) =>
+  state.settings.hardwareDevices.filter(device => device.connectionStatus === 'connected');
+
+export const selectConnectedPaymentTerminals = (state: RootState) =>
+  state.settings.paymentTerminals.filter(terminal => terminal.connectionStatus === 'connected');
+
+export const selectHardwareDevicesWithErrors = (state: RootState) =>
+  state.settings.hardwareDevices.filter(
+    device => device.connectionStatus === 'error' || device.connectionStatus === 'disconnected'
+  );
+
+export const selectPaymentTerminalsWithErrors = (state: RootState) =>
+  state.settings.paymentTerminals.filter(
+    terminal => terminal.connectionStatus === 'error' || terminal.connectionStatus === 'disconnected'
+  );
+
 export default settingsSlice.reducer;
