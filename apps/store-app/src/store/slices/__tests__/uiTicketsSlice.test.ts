@@ -580,5 +580,63 @@ describe('uiTicketsSlice', () => {
       expect(completedTickets).toHaveLength(1);
       expect(completedTickets[0].total).toBe(65);
     });
+
+    it('should set payment method display value correctly for credit-card', () => {
+      // Set up store with ticket in waitlist
+      const waitlistTicket = createMockUITicket({
+        id: 'payment-card-ticket',
+        number: 5,
+        clientName: 'Card Payment Client',
+        status: 'waiting',
+      });
+      store = createTestStore({ waitlist: [waitlistTicket] });
+
+      // Dispatch markTicketAsPaid.fulfilled action with paymentMethod: 'credit-card'
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId: 'payment-card-ticket',
+          ticket: waitlistTicket,
+          sourceArray: 'waitlist',
+          paymentMethod: 'credit-card',
+          tip: 0,
+          transaction: { id: 'txn-card' },
+        },
+      });
+
+      // Verify paymentMethod 'credit-card' becomes 'Card' in completedTicket
+      const completedTickets = store.getState().uiTickets.completedTickets;
+      expect(completedTickets).toHaveLength(1);
+      expect(completedTickets[0].paymentMethod).toBe('Card');
+    });
+
+    it('should set payment method display value correctly for cash', () => {
+      // Set up store with ticket in waitlist
+      const waitlistTicket = createMockUITicket({
+        id: 'payment-cash-ticket',
+        number: 6,
+        clientName: 'Cash Payment Client',
+        status: 'waiting',
+      });
+      store = createTestStore({ waitlist: [waitlistTicket] });
+
+      // Dispatch markTicketAsPaid.fulfilled action with paymentMethod: 'cash'
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId: 'payment-cash-ticket',
+          ticket: waitlistTicket,
+          sourceArray: 'waitlist',
+          paymentMethod: 'cash',
+          tip: 0,
+          transaction: { id: 'txn-cash' },
+        },
+      });
+
+      // Verify paymentMethod 'cash' becomes 'Cash' in completedTicket
+      const completedTickets = store.getState().uiTickets.completedTickets;
+      expect(completedTickets).toHaveLength(1);
+      expect(completedTickets[0].paymentMethod).toBe('Cash');
+    });
   });
 });

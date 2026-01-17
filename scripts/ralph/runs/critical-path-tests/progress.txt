@@ -59,3 +59,20 @@ Commit: 6049589
 **Next story suggestion:** US-004 (total calculation test) - same file, verifies the total = subtotal + tax + tip calculation that was touched in this test
 
 ---
+
+## 2026-01-17 - US-004: Add markTicketAsPaid.fulfilled tests for total calculation
+Commit: 075a9f05a29419401a8d583cdb53682198d0e081
+
+**Why this story?** US-004 is the highest priority incomplete story and follows the suggestion from the previous iteration. It continues testing the same reducer in the same file, verifying the total calculation that uses values from PendingTicket (subtotal, tax) and the action payload (tip).
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:555-576`: Added test 'should calculate total correctly with subtotal, tax, and tip'
+
+**Learnings:**
+- The total calculation is: `(subtotal || 0) + (tax || 0) + (tip || 0)` - uses null coalescing for safety
+- The reducer reads subtotal/tax from the ticket object and tip from the action payload
+- Test verified: subtotal(50) + tax(5) + tip(10) = total(65)
+
+**Next story suggestion:** US-005 (payment method display test) - same file, same describe block, tests the paymentMethod mapping that's also part of the markTicketAsPaid.fulfilled reducer
+
+---
