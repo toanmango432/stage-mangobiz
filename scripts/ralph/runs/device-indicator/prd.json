@@ -41,7 +41,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Follow existing selector patterns in the file. Use `(state: RootState) =>` signature. Filter by connectionStatus field. 'disconnected' counts as error state for paired devices."
     },
     {
@@ -65,7 +65,7 @@
         "Verify in browser: component still renders in header without errors"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "This is a rename operation. Keep all existing functionality for now - just rename the file and component. Subsequent stories will modify the behavior."
     },
     {

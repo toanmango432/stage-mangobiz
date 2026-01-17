@@ -1,0 +1,16 @@
+# Price Change Handling - Progress Log
+
+## Run Information
+- **Run Name:** price-change-handling
+- **Branch:** main
+- **Started:** 2026-01-17
+- **PRD:** scripts/ralph/runs/price-change-handling/prd.json
+
+## Codebase Patterns
+(Add reusable patterns discovered during this run)
+
+---
+
+## Progress Entries
+(Ralph will append entries below as stories are completed)
+

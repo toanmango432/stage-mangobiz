@@ -1,0 +1,850 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "main",
+  "description": "Handle service price changes between booking and checkout with price snapshot, detection, staff override, deposit locking, manager approval, and reporting",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add PriceSource type for tracking price origin",
+      "description": "As a developer, I need a PriceSource type to track where a price came from (catalog, staff level, package, etc.).",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/types/appointment.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create PriceSource type: 'catalog' | 'staff_level' | 'package' | 'membership' | 'custom' | 'promotion'",
+        "Add JSDoc explaining each option",
+        "Export type from file",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "This type tracks the origin of a price - catalog is standard, staff_level for tiered pricing, package for bundled services, etc."
+    },
+    {
+      "id": "US-002",
+      "title": "Add price snapshot fields to AppointmentService interface",
+      "description": "As a developer, I need AppointmentService to capture the price at booking time with metadata.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/types/appointment.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add bookedPrice?: number field (price at time of booking)",
+        "Add bookedAt?: string field (ISO timestamp when price was locked)",
+        "Add priceSource?: PriceSource field (where price came from)",
+        "Add staffLevelAtBooking?: string field (Junior/Senior/Master if tiered pricing)",
+        "Add catalogPriceAtBooking?: number field (base catalog price before staff adjustment)",
+        "Add JSDoc comments explaining each field",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependencies": ["US-001"],
+      "notes": "All fields optional for backwards compatibility. bookedPrice is the key field - what client saw when booking."
+    },
+    {
+      "id": "US-003",
+      "title": "Add PriceDecision type for checkout price tracking",
+      "description": "As a developer, I need a PriceDecision type to track how the final checkout price was determined.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/types/Ticket.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create PriceDecision type: 'booked_honored' | 'catalog_applied' | 'lower_applied' | 'manual_override' | 'deposit_locked' | 'walk_in_current'",
+        "Add JSDoc explaining each decision type",
+        "Export type from file",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "booked_honored = used original price, catalog_applied = used current price, lower_applied = auto-applied lower, manual_override = custom price, deposit_locked = price locked by deposit, walk_in_current = walk-in used current."
+    },
+    {
+      "id": "US-004",
+      "title": "Add price tracking fields to TicketService interface",
+      "description": "As a developer, I need TicketService to track original, catalog, and final prices with decision metadata.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/types/Ticket.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add bookedPrice?: number field (original price at booking)",
+        "Add catalogPriceAtCheckout?: number field (current catalog price when entering checkout)",
+        "Add priceVariance?: number field (finalPrice - bookedPrice)",
+        "Add priceVariancePercent?: number field (variance as percentage)",
+        "Add priceDecision?: PriceDecision field (how final price was determined)",
+        "Add priceOverrideReason?: string field (reason if manual override)",
+        "Add priceOverrideBy?: string field (staffId who overrode)",
+        "Add priceApprovedBy?: string field (managerId if approval required)",
+        "Add depositLocked?: boolean field (true if price locked by deposit)",
+        "Add JSDoc comments for each field",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "dependencies": ["US-003"],
+      "notes": "finalPrice is the existing 'price' field. These new fields enable full audit trail. priceVariance calculated as finalPrice - bookedPrice."
+    },
+    {
+      "id": "US-005",
+      "title": "Add PricingPolicySettings interface to settings types",
+      "description": "As a developer, I need a complete PricingPolicySettings interface for admin configuration.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/types/settings.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create PricingPolicyMode type: 'honor_booked' | 'use_current' | 'ask_staff' | 'honor_lower'",
+        "Create PricingPolicySettings interface with all settings from PRD",
+        "Include: defaultMode, autoApplyLowerPrice, showPriceVarianceAlert",
+        "Include: requireApprovalForHigherPrice, approvalThresholdAmount, approvalThresholdPercent",
+        "Include: lockPriceOnDeposit, keepPriceOnReschedule, allowStaffOverride, requireOverrideReason",
+        "Add pricingPolicy?: PricingPolicySettings to CheckoutSettings interface",
+        "Create DEFAULT_PRICING_POLICY constant with defaultMode: 'ask_staff'",
+        "Export all new types and constants",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "System default is 'ask_staff' per user requirement. autoApplyLowerPrice: true, showPriceVarianceAlert: true, lockPriceOnDeposit: true, keepPriceOnReschedule: true are recommended defaults."
+    },
+    {
+      "id": "US-006",
+      "title": "Add PriceOverrideLog interface for activity logging",
+      "description": "As a developer, I need a PriceOverrideLog interface to track price override decisions in activity log.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/types/activityLog.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create PriceOverrideLog interface extending base ActivityLogEntry if exists",
+        "Include: type: 'price_override', ticketId, serviceLineItemId",
+        "Include: bookedPrice, catalogPrice, finalPrice, variance, variancePercent",
+        "Include: decision: PriceDecision, reason?: string",
+        "Include: performedBy: string (staffId), approvedBy?: string (managerId)",
+        "Include: timestamp: string (ISO)",
+        "Export interface",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "dependencies": ["US-003"],
+      "notes": "This enables complete audit trail for all price decisions. Check if ActivityLogEntry base interface exists, otherwise create standalone."
+    },
+    {
+      "id": "US-007",
+      "title": "Create priceComparisonUtils with core functions",
+      "description": "As a developer, I need utility functions to detect price changes and calculate variance.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/utils/priceComparisonUtils.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create detectPriceChange(bookedPrice, catalogPrice) returning { hasChange, variance, variancePercent, direction }",
+        "Create formatPriceVariance(variance, variancePercent) returning formatted string like '+$5.00 (+10%)'",
+        "Create isSignificantVariance(variance, variancePercent, thresholds) returning boolean",
+        "Significant = variance >= $5 OR variancePercent >= 10%",
+        "Add comprehensive JSDoc with @param, @returns, @example",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Pure functions, no dependencies on Redux or React. Follow JSDoc style from urgencyUtils.ts."
+    },
+    {
+      "id": "US-008",
+      "title": "Create getPriceDecisionRecommendation utility",
+      "description": "As a developer, I need a function to recommend which price to use based on policy settings.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/utils/priceComparisonUtils.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create getPriceDecisionRecommendation(mode, bookedPrice, catalogPrice, options) function",
+        "options: { depositPaid?: boolean, autoApplyLower?: boolean }",
+        "Return: { recommendedPrice, priceDecision, requiresStaffInput, requiresManagerApproval }",
+        "If depositPaid: always return bookedPrice with 'deposit_locked'",
+        "If mode is 'honor_booked': return bookedPrice with 'booked_honored'",
+        "If mode is 'use_current': return catalogPrice with 'catalog_applied'",
+        "If mode is 'ask_staff': requiresStaffInput = true when prices differ",
+        "If mode is 'honor_lower': return min(bookedPrice, catalogPrice) with appropriate decision",
+        "Add JSDoc with examples for each mode",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "dependencies": ["US-007"],
+      "notes": "This is the core decision engine. Deposit lock takes priority over all other modes."
+    },
+    {
+      "id": "US-009",
+      "title": "Add unit tests for price comparison utilities",
+      "description": "As a developer, I need comprehensive tests for price comparison utility functions.",
+      "category": "test",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/utils/__tests__/priceComparisonUtils.test.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Test detectPriceChange: no change, increase, decrease",
+        "Test formatPriceVariance: positive, negative, zero",
+        "Test isSignificantVariance: below threshold, at threshold, above threshold",
+        "Test getPriceDecisionRecommendation for each mode",
+        "Test deposit lock overrides all modes",
+        "Test autoApplyLower flag behavior",
+        "All tests pass",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "dependencies": ["US-008"],
+      "notes": "Follow existing test patterns in utils/__tests__/. Use describe blocks for each function."
+    },
+    {
+      "id": "US-010",
+      "title": "Capture bookedPrice when creating appointment",
+      "description": "As a developer, I need to snapshot the service price when an appointment is created.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/appointmentsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "In createAppointment thunk, for each service:",
+        "Look up current catalog price from services state",
+        "Set bookedPrice to catalog price (or service.price if provided)",
+        "Set bookedAt to current ISO timestamp",
+        "Set priceSource to 'catalog' (or appropriate source)",
+        "If staff-level pricing exists, capture staffLevelAtBooking",
+        "Existing appointments without bookedPrice continue to work",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "dependencies": ["US-002"],
+      "notes": "Use selectServiceById or services from state to get catalog price. Handle case where service lookup fails (use provided price)."
+    },
+    {
+      "id": "US-011",
+      "title": "Populate catalogPriceAtCheckout when ticket enters checkout",
+      "description": "As a developer, I need to capture current catalog prices when a ticket enters checkout mode.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Find the action/thunk that moves ticket to checkout (or similar entry point)",
+        "For each service in the ticket, look up current catalog price",
+        "Set catalogPriceAtCheckout on each TicketService",
+        "Preserve bookedPrice from original appointment if available",
+        "For walk-ins (no appointment): set bookedPrice = catalogPrice (no variance)",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "dependencies": ["US-004"],
+      "notes": "This is the trigger point for price comparison. Walk-ins have no prior booking so bookedPrice equals current price."
+    },
+    {
+      "id": "US-012",
+      "title": "Add selectors for tickets with price changes",
+      "description": "As a developer, I need selectors to identify tickets with price variances for UI display.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create selectTicketsWithPriceChanges selector - returns tickets where any service has variance",
+        "Create selectServicePriceChanges(ticketId) - returns array of {serviceId, serviceName, bookedPrice, catalogPrice, variance, variancePercent}",
+        "Create selectHasPriceChangeWarning(ticketId) - returns boolean",
+        "Create selectUnresolvedPriceChanges(ticketId) - returns services where priceDecision is undefined",
+        "Use createSelector for memoization",
+        "Export all selectors",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "dependencies": ["US-011"],
+      "notes": "selectUnresolvedPriceChanges is key - shows services that still need staff decision when in 'ask_staff' mode."
+    },
+    {
+      "id": "US-013",
+      "title": "Add applyPriceResolutions action to uiTicketsSlice",
+      "description": "As a developer, I need a Redux action to apply staff price decisions to ticket services.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create PriceResolutionPayload type: { serviceId, finalPrice, priceDecision, priceOverrideReason?, priceOverrideBy? }",
+        "Create applyPriceResolutions action: { ticketId, resolutions: PriceResolutionPayload[] }",
+        "Action updates each service's price, priceDecision, priceOverrideReason, priceOverrideBy",
+        "Calculate and set priceVariance and priceVariancePercent",
+        "Recalculate ticket subtotal after applying",
+        "Export action and types",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "dependencies": ["US-012"],
+      "notes": "This is called after staff makes decision in PriceResolutionModal. Ensure subtotal recalculation happens."
+    },
+    {
+      "id": "US-014",
+      "title": "Auto-resolve prices based on policy settings",
+      "description": "As a developer, I need logic to auto-resolve simple price decisions based on admin settings.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "When ticket enters checkout, read pricingPolicy from settings",
+        "For each service with price variance, call getPriceDecisionRecommendation",
+        "If recommendedPrice and !requiresStaffInput: auto-apply the decision",
+        "If depositLocked on service: auto-apply bookedPrice with 'deposit_locked'",
+        "If mode is 'honor_lower' and catalogPrice < bookedPrice: auto-apply lower",
+        "Only services with requiresStaffInput remain unresolved (shown in UI)",
+        "Set priceDecision on auto-resolved services",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "dependencies": ["US-008", "US-013"],
+      "notes": "This happens automatically when entering checkout. Only 'ask_staff' mode leaves services unresolved for manual decision."
+    },
+    {
+      "id": "US-015",
+      "title": "Create PriceChangeWarningBanner component",
+      "description": "As a user, I want to see a clear warning banner when service prices have changed since booking.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Component shows amber warning banner when unresolved price changes exist",
+        "Display count: 'X services have price changes'",
+        "Show total variance amount (sum of all variances)",
+        "Include 'Review & Resolve' button that triggers onReview callback",
+        "Compact mode prop for summary views (icon + count only)",
+        "Use existing warning styles from design system (amber/yellow)",
+        "Props: ticketId, onReview, compact?",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: warning displays when price variance exists"
+      ],
+      "priority": 15,
+      "passes": false,
+      "dependencies": ["US-012"],
+      "notes": "Uses selectUnresolvedPriceChanges selector. Only shows when there are unresolved changes (staff input needed)."
+    },
+    {
+      "id": "US-016",
+      "title": "Create PriceVarianceLineItem component for service display",
+      "description": "As a user, I want to see price variance information on individual service line items.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceVarianceLineItem.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Component shows service with price variance indicator (lightning bolt icon)",
+        "Display: serviceName, bookedPrice, catalogPriceAtCheckout, variance",
+        "Show strikethrough on old price if different: '$50' crossed out, '$55'",
+        "Color coding: green for decrease, amber for increase",
+        "Show 'Apply Current Price' button if unresolved",
+        "Show lock icon if depositLocked",
+        "Props: service: TicketService, onApplyCurrentPrice, onOpenResolution",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: line item shows variance info correctly"
+      ],
+      "priority": 16,
+      "passes": false,
+      "dependencies": ["US-004"],
+      "notes": "Reusable component for showing a single service with its price variance. Used in checkout summary and resolution modal."
+    },
+    {
+      "id": "US-017",
+      "title": "Create PriceResolutionModal component - basic structure",
+      "description": "As a staff member, I need a modal to review all price changes for a ticket.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Modal with header 'Review Price Changes'",
+        "List all services with price variance using PriceVarianceLineItem",
+        "Show summary: total services affected, total variance amount",
+        "Props: isOpen, onClose, ticketId, onResolved(resolutions)",
+        "Use Dialog from @/components/ui/dialog",
+        "Responsive: full-screen on mobile, centered modal on desktop",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: modal opens and shows services with variances"
+      ],
+      "priority": 17,
+      "passes": false,
+      "dependencies": ["US-016"],
+      "notes": "Basic modal shell. Individual service resolution handled in next story."
+    },
+    {
+      "id": "US-018",
+      "title": "Add per-service resolution options to PriceResolutionModal",
+      "description": "As a staff member, I need to choose which price to charge for each service.",
+      "category": "frontend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "For each service, show radio buttons: 'Honor booked ($X)', 'Use current ($Y)', 'Custom price'",
+        "If 'Custom price' selected, show input field with validation (positive number)",
+        "Track selected resolution for each service in local state",
+        "Require reason input when custom price or override selected (if requireOverrideReason)",
+        "Show which option is 'Recommended' based on policy",
+        "Apply button disabled until all services have a selection",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: can select options for each service"
+      ],
+      "priority": 18,
+      "passes": false,
+      "dependencies": ["US-017"],
+      "notes": "Use RadioGroup from @/components/ui/radio-group. Custom price input should have min=0 validation."
+    },
+    {
+      "id": "US-019",
+      "title": "Add bulk actions to PriceResolutionModal",
+      "description": "As a staff member, I want quick actions to apply same decision to all services.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Honor All Booked Prices' button - selects booked option for all",
+        "Add 'Apply All Current Prices' button - selects current option for all",
+        "Buttons appear at top of service list",
+        "Clicking bulk action updates all service selections",
+        "Still allows individual adjustments after bulk action",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: bulk actions update all service selections"
+      ],
+      "priority": 19,
+      "passes": false,
+      "dependencies": ["US-018"],
+      "notes": "Quality of life feature for staff when many services have changes. User can still adjust individual after bulk."
+    },
+    {
+      "id": "US-020",
+      "title": "Wire PriceResolutionModal to Redux",
+      "description": "As a developer, I need to connect the modal's Apply button to the Redux action.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "On Apply click, collect all resolutions into PriceResolutionPayload array",
+        "Dispatch applyPriceResolutions action with ticketId and resolutions",
+        "Include current staffId as priceOverrideBy for overrides",
+        "Call onResolved callback after dispatch",
+        "Close modal on success",
+        "Show error toast if dispatch fails",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: applying resolutions updates ticket prices"
+      ],
+      "priority": 20,
+      "passes": false,
+      "dependencies": ["US-013", "US-019"],
+      "notes": "Use useAppDispatch and useAppSelector hooks. Get current staff from auth/staff state."
+    },
+    {
+      "id": "US-021",
+      "title": "Integrate PriceChangeWarningBanner into TicketPanel",
+      "description": "As a user, I want to see the price change warning in the checkout screen.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Import PriceChangeWarningBanner and PriceResolutionModal",
+        "Use selectHasPriceChangeWarning to determine if warning should show",
+        "Show PriceChangeWarningBanner below ticket header when warning active",
+        "Add state for resolution modal open/closed",
+        "Handle onReview callback by opening modal",
+        "Warning disappears after all changes resolved",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: warning shows in checkout, clicking opens modal"
+      ],
+      "priority": 21,
+      "passes": false,
+      "dependencies": ["US-015", "US-020"],
+      "notes": "TicketPanel is the main checkout component. Add warning near top, after client/ticket info."
+    },
+    {
+      "id": "US-022",
+      "title": "Block payment when unresolved price changes exist",
+      "description": "As a business owner, I want to ensure price changes are resolved before payment.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Check selectUnresolvedPriceChanges(ticketId).length > 0 before enabling payment",
+        "If unresolved: disable payment buttons with tooltip 'Resolve price changes first'",
+        "Show link/button to open PriceResolutionModal from disabled state",
+        "Once all resolved, payment buttons enable normally",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: cannot pay until price changes resolved"
+      ],
+      "priority": 22,
+      "passes": false,
+      "dependencies": ["US-021"],
+      "notes": "Critical guard - ensures no silent price changes slip through. Applies to all payment methods."
+    },
+    {
+      "id": "US-023",
+      "title": "Add calendar price variance indicator",
+      "description": "As a user, I want to see a visual indicator on appointments where prices have changed.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/Book/AppointmentCard.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Compare appointment's bookedPrice to current catalog price for each service",
+        "If any service has variance, show lightning bolt icon (⚡ or Zap icon)",
+        "Icon should be subtle - amber color, small size",
+        "Tooltip on hover: 'Price has changed since booking'",
+        "Don't show indicator if no bookedPrice (old appointments, walk-ins)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: calendar shows indicator on appointments with price variance"
+      ],
+      "priority": 23,
+      "passes": false,
+      "dependencies": ["US-002"],
+      "notes": "Subtle visual cue for staff awareness. Uses current catalog prices from services state."
+    },
+    {
+      "id": "US-024",
+      "title": "Create PricingPolicySettings UI section",
+      "description": "As an admin, I want to configure the default pricing policy in Settings.",
+      "category": "frontend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Pricing Policy' section after existing checkout settings",
+        "Radio group for default mode with descriptions: Ask Staff (default), Honor Booked Price, Use Current Price, Honor Lower Price",
+        "Each option has explanation text",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: settings section shows with radio options"
+      ],
+      "priority": 24,
+      "passes": false,
+      "dependencies": ["US-005"],
+      "notes": "First of multiple settings UI stories. Just the main policy mode selector."
+    },
+    {
+      "id": "US-025",
+      "title": "Add additional pricing policy toggles to Settings UI",
+      "description": "As an admin, I want to configure additional pricing policy options.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add toggle: Auto-apply lower prices (when catalog drops, charge lower)",
+        "Add toggle: Show price difference alert (alert staff when prices differ)",
+        "Add toggle: Allow staff override (let staff change from default)",
+        "Add toggle: Require override reason (staff must enter reason)",
+        "Each toggle has description text",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: all toggles display and function"
+      ],
+      "priority": 25,
+      "passes": false,
+      "dependencies": ["US-024"],
+      "notes": "Continue building settings UI. Use Switch component for toggles."
+    },
+    {
+      "id": "US-026",
+      "title": "Add deposit and reschedule settings to Settings UI",
+      "description": "As an admin, I want to configure deposit locking and reschedule behavior.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add toggle: Lock price when deposit paid (price cannot change after deposit)",
+        "Add toggle: Keep original price on reschedule (preserve booked price when rescheduled)",
+        "Add description explaining deposit lock behavior",
+        "Settings save via existing settings update pattern",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: deposit and reschedule settings work"
+      ],
+      "priority": 26,
+      "passes": false,
+      "dependencies": ["US-025"],
+      "notes": "Final settings UI additions. These control critical behaviors for deposits and rescheduling."
+    },
+    {
+      "id": "US-027",
+      "title": "Add manager approval settings and threshold to Settings UI",
+      "description": "As an admin, I want to require manager approval for price overrides above a threshold.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add toggle: Require manager approval for higher prices",
+        "When enabled, show threshold inputs",
+        "Add input: Approval threshold amount (e.g., $5)",
+        "Add input: Approval threshold percent (e.g., 10%)",
+        "Help text: 'Approval required if variance exceeds either threshold'",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: manager approval settings with thresholds"
+      ],
+      "priority": 27,
+      "passes": false,
+      "dependencies": ["US-026"],
+      "notes": "Conditional display - threshold inputs only show when toggle is on. Both thresholds are OR condition (either triggers approval)."
+    },
+    {
+      "id": "US-028",
+      "title": "Wire pricing policy settings to Redux",
+      "description": "As a developer, I need to save and load pricing policy settings from Redux/settings.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Load current pricingPolicy from selectCheckoutSettings selector",
+        "Use DEFAULT_PRICING_POLICY for initial values if not set",
+        "On any setting change, dispatch updateCheckoutSettings with new pricingPolicy",
+        "Settings persist and reload correctly",
+        "Show save success/error feedback",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: settings save and persist across page reloads"
+      ],
+      "priority": 28,
+      "passes": false,
+      "dependencies": ["US-027"],
+      "notes": "Connect all the pricing settings UI to the Redux store. Use existing settings update patterns."
+    },
+    {
+      "id": "US-029",
+      "title": "Handle reschedule with price option",
+      "description": "As a staff member, I want to choose whether to keep or update price when rescheduling.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/Book/RescheduleModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Find RescheduleModal or similar component for rescheduling appointments",
+        "If keepPriceOnReschedule setting is true: default to keeping original price",
+        "If setting is false: default to updating to current price",
+        "Show option to staff: 'Keep original price ($X)' or 'Update to current price ($Y)'",
+        "Selected option updates bookedPrice accordingly",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: rescheduling shows price option"
+      ],
+      "priority": 29,
+      "passes": false,
+      "dependencies": ["US-026"],
+      "notes": "If RescheduleModal doesn't exist, find the component that handles appointment rescheduling. May need to use Grep to locate."
+    },
+    {
+      "id": "US-030",
+      "title": "Add migration for existing appointments without bookedPrice",
+      "description": "As a developer, I need to handle existing appointments that don't have bookedPrice.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/appointmentsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create migrateAppointmentPricing helper function",
+        "For each service without bookedPrice: set bookedPrice = current price or catalog price",
+        "Set bookedAt = appointment.createdAt",
+        "Set priceSource = 'catalog'",
+        "Call migration when loading appointments (lazy migration)",
+        "Only migrate once - check if bookedPrice exists first",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "dependencies": ["US-010"],
+      "notes": "Lazy migration - happens when appointment is accessed. Prevents issues with old data. Log migration in console for debugging."
+    },
+    {
+      "id": "US-031",
+      "title": "Handle deleted service edge case",
+      "description": "As a staff member, I need clear handling when a booked service no longer exists in catalog.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/PriceVarianceLineItem.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Check if service exists in current catalog",
+        "If service deleted: show warning badge 'Service no longer in catalog'",
+        "Use bookedPrice as the only option (no 'current price' available)",
+        "Disable 'Apply Current Price' button for deleted services",
+        "Show explanation text: 'This service has been removed from your catalog'",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: deleted service shows warning and limited options"
+      ],
+      "priority": 31,
+      "passes": false,
+      "dependencies": ["US-016"],
+      "notes": "Edge case but important - services can be deleted after bookings are made. Staff should still be able to checkout."
+    },
+    {
+      "id": "US-032",
+      "title": "Add price change logging to activity log",
+      "description": "As a developer, I need to log all price override decisions for audit trail.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "After applyPriceResolutions, create PriceOverrideLog entries",
+        "Log each service with variance that was resolved",
+        "Include all fields from PriceOverrideLog interface",
+        "Dispatch to activity log slice or queue for sync",
+        "Only log when priceDecision is override-type (not booked_honored)",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "dependencies": ["US-006", "US-013"],
+      "notes": "Audit trail is critical for business reporting. Check existing activity log patterns in codebase."
+    },
+    {
+      "id": "US-033",
+      "title": "Add price change info to receipt display",
+      "description": "As a client, I want to see if the price charged differs from the original booking.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/ReceiptPreview.tsx"
+      ],
+      "acceptanceCriteria": [
+        "For services where bookedPrice !== finalPrice (price field)",
+        "Show notation: strikethrough original + new price (e.g., '$50 → $45')",
+        "If price was lowered: show small positive message 'Price honored from booking'",
+        "If price was raised: just show the amounts, no negative messaging",
+        "Keep receipt clean - only show notation when there was actual change",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: receipt shows price change notation"
+      ],
+      "priority": 33,
+      "passes": false,
+      "dependencies": ["US-004"],
+      "notes": "Subtle display - don't clutter receipt. Arrow notation is cleaner than separate lines."
+    },
+    {
+      "id": "US-034",
+      "title": "Create selectPriceVarianceReport selector for basic reporting",
+      "description": "As a developer, I need a selector to get price variance data for reporting.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/store/slices/uiTicketsSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create selectCompletedTicketsWithPriceVariance selector",
+        "Returns completed tickets where any service had priceVariance !== 0",
+        "Include computed totals: totalVarianceAmount, totalOverridesCount",
+        "Filter by date range parameters if provided",
+        "Export selector",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "dependencies": ["US-004"],
+      "notes": "Foundation for price variance reporting. Future stories will build UI on this selector."
+    },
+    {
+      "id": "US-035",
+      "title": "Create Price Variance Summary component for reports",
+      "description": "As an admin, I want to see a summary of price variances in the reports module.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/reports/PriceVarianceSummary.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create component showing price variance summary statistics",
+        "Display: count of transactions with variance, total variance amount",
+        "Show breakdown by priceDecision type (booked honored, catalog applied, etc.)",
+        "Basic date range filter (today, this week, this month)",
+        "Uses selectCompletedTicketsWithPriceVariance selector",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: summary displays with correct data"
+      ],
+      "priority": 35,
+      "passes": false,
+      "dependencies": ["US-034"],
+      "notes": "Basic reporting view. Full detailed report with export can be future enhancement."
+    }
+  ]
+}

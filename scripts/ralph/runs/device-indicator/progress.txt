@@ -25,3 +25,49 @@ Commit: 20a2fe6
 
 ---
 
+## 2026-01-17 - US-002: Add device selectors for all device types to settingsSlice
+Commit: a8f42c6
+
+**Why this story?** US-002 has no dependencies, priority 2 (next lowest after completed US-001), and is a prerequisite for US-004. Previous iteration suggested this story.
+
+**Changes:**
+- `apps/store-app/src/store/slices/settingsSlice.ts:676-690`: Added 4 new device connection selectors:
+  - `selectConnectedHardwareDevices` - filters devices where connectionStatus === 'connected'
+  - `selectConnectedPaymentTerminals` - filters terminals where connectionStatus === 'connected'
+  - `selectHardwareDevicesWithErrors` - filters devices where connectionStatus === 'error' OR 'disconnected'
+  - `selectPaymentTerminalsWithErrors` - filters terminals where connectionStatus === 'error' OR 'disconnected'
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (test file type mismatches, missing afterEach, React Redux provider issues)
+- Pre-existing test failures: CreateTicketButton.test.tsx (4 tests - missing Redux provider), padCheckoutFlow.test.ts (1 test - help request acknowledgment)
+- ConnectionStatus type is defined in `src/types/settings.ts:45` as `'connected' | 'disconnected' | 'error'`
+- Followed existing selector patterns: `(state: RootState) => state.settings.X.filter(...)`
+
+**Next story suggestion:** US-003 (Rename to DeviceConnectionIndicator) - this is a frontend story with no dependencies and is required by both US-004 and US-005. Logical next step before implementing the unified device status indicator.
+
+---
+
+## 2026-01-17 - US-003: Rename to DeviceConnectionIndicator (general device manager)
+Commit: 18b41a3
+
+**Why this story?** US-003 is the only available story with no unmet dependencies. Both US-004 and US-005 depend on it, and the previous iteration suggested it as the next logical step.
+
+**Changes:**
+- `apps/store-app/src/components/layout/DeviceConnectionIndicator.tsx`: Created new file with renamed component (was PadConnectionIndicator)
+- `apps/store-app/src/components/layout/TopHeaderBar.tsx:10,594`: Updated import and usage from PadConnectionIndicator to DeviceConnectionIndicator
+- Deleted old `apps/store-app/src/components/layout/PadConnectionIndicator.tsx`
+
+**Browser Verification:**
+- Component renders without errors: PASS
+- Acceptance criteria verified visually: PASS (component shows in header, dropdown opens correctly)
+- Accessibility check (headings, labels): PASS (proper aria attributes, heading hierarchy)
+
+**Learnings:**
+- Git recognizes file renames when content is similar (95% match shown in commit)
+- Pre-existing test failures continue (Redux provider issues in test files) - not related to this story
+- Build passes successfully confirming no compilation issues
+
+**Next story suggestion:** US-004 (Unified device status indicator) or US-005 (DeviceStatusRow component). US-004 depends on both US-002 (complete) and US-003 (now complete). US-005 only depends on US-003. Could do either - US-005 creates a reusable component that US-006 needs, while US-004 modifies the main indicator logic.
+
+---
+
