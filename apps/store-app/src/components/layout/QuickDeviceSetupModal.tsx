@@ -4,10 +4,11 @@
  * Responsive: full-screen on mobile, centered modal on desktop
  *
  * Created: US-007 - Quick device setup modal shell
+ * Updated: US-009 - Add new device flow with forms
  */
 
 import { useState } from 'react';
-import { X, Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink } from 'lucide-react';
+import { X, Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink, QrCode, Keyboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
@@ -28,7 +29,10 @@ import {
   updateTerminalStatus,
   removeHardwareDevice,
   removePaymentTerminal,
+  addHardwareDevice,
+  addPaymentTerminal,
 } from '@/store/slices/settingsSlice';
+import type { HardwareDeviceType, ConnectionType, TerminalType } from '@/types/settings';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +50,14 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { Input } from '@/components/ui/Input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { DeviceStatusRow } from './DeviceStatusRow';
 import type { DeviceStatusRowStatus, DeviceStatusRowType } from './DeviceStatusRow';
 
@@ -71,6 +83,24 @@ export function QuickDeviceSetupModal({
   const [activeTab, setActiveTab] = useState<'status' | 'add'>(initialTab);
   const [deviceToUnpair, setDeviceToUnpair] = useState<DeviceToUnpair | null>(null);
   const [isRetrying, setIsRetrying] = useState<string | null>(null);
+
+  // Add device form state
+  const [padPairingMode, setPadPairingMode] = useState<'qr' | 'code' | null>(null);
+  const [padPairingCode, setPadPairingCode] = useState('');
+
+  const [hardwareForm, setHardwareForm] = useState({
+    name: '',
+    type: '' as HardwareDeviceType | '',
+    connectionType: '' as ConnectionType | '',
+  });
+  const [isAddingHardware, setIsAddingHardware] = useState(false);
+
+  const [terminalForm, setTerminalForm] = useState({
+    name: '',
+    type: '' as TerminalType | '',
+    terminalId: '',
+  });
+  const [isAddingTerminal, setIsAddingTerminal] = useState(false);
 
   // Pad devices
   const connectedPads = useAppSelector(getConnectedPads);
@@ -173,6 +203,90 @@ export function QuickDeviceSetupModal({
   const confirmUnpair = (id: string, name: string, category: 'pad' | 'hardware' | 'terminal') => {
     setDeviceToUnpair({ id, name, category });
   };
+
+  // Handle add hardware device
+  const handleAddHardware = async () => {
+    if (!hardwareForm.name || !hardwareForm.type || !hardwareForm.connectionType) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    setIsAddingHardware(true);
+    try {
+      const result = await dispatch(addHardwareDevice({
+        name: hardwareForm.name,
+        type: hardwareForm.type as HardwareDeviceType,
+        connectionType: hardwareForm.connectionType as ConnectionType,
+        connectionStatus: 'disconnected',
+      }));
+
+      if (addHardwareDevice.rejected.match(result)) {
+        throw new Error(result.payload as string);
+      }
+
+      toast.success(`${hardwareForm.name} added successfully`);
+      setHardwareForm({ name: '', type: '', connectionType: '' });
+      setActiveTab('status');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add device';
+      toast.error(message);
+    } finally {
+      setIsAddingHardware(false);
+    }
+  };
+
+  // Handle add payment terminal
+  const handleAddTerminal = async () => {
+    if (!terminalForm.name || !terminalForm.type) {
+      toast.error('Please fill in required fields');
+      return;
+    }
+
+    setIsAddingTerminal(true);
+    try {
+      const result = await dispatch(addPaymentTerminal({
+        name: terminalForm.name,
+        type: terminalForm.type as TerminalType,
+        terminalId: terminalForm.terminalId || undefined,
+        connectionStatus: 'disconnected',
+      }));
+
+      if (addPaymentTerminal.rejected.match(result)) {
+        throw new Error(result.payload as string);
+      }
+
+      toast.success(`${terminalForm.name} added successfully`);
+      setTerminalForm({ name: '', type: '', terminalId: '' });
+      setActiveTab('status');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add terminal';
+      toast.error(message);
+    } finally {
+      setIsAddingTerminal(false);
+    }
+  };
+
+  // Hardware type options
+  const hardwareTypeOptions: { value: HardwareDeviceType; label: string }[] = [
+    { value: 'printer', label: 'Receipt Printer' },
+    { value: 'cash_drawer', label: 'Cash Drawer' },
+    { value: 'scanner', label: 'Barcode Scanner' },
+  ];
+
+  // Connection type options
+  const connectionTypeOptions: { value: ConnectionType; label: string }[] = [
+    { value: 'bluetooth', label: 'Bluetooth' },
+    { value: 'usb', label: 'USB' },
+    { value: 'network', label: 'Network (Wi-Fi/Ethernet)' },
+  ];
+
+  // Terminal type options
+  const terminalTypeOptions: { value: TerminalType; label: string }[] = [
+    { value: 'fiserv_ttp', label: 'Fiserv Tap to Pay' },
+    { value: 'stripe_s700', label: 'Stripe S700' },
+    { value: 'wisepad_3', label: 'WisePad 3' },
+    { value: 'square_reader', label: 'Square Reader' },
+  ];
 
   return (
     <>
@@ -394,55 +508,254 @@ export function QuickDeviceSetupModal({
             </div>
           </TabsContent>
 
-          {/* Add Device Tab Content (Placeholder) */}
+          {/* Add Device Tab Content */}
           <TabsContent value="add" className="flex-1 overflow-y-auto px-6 m-0">
             <div className="py-6 space-y-4">
               {/* Mango Pad Section */}
               <div className="p-4 rounded-lg border border-gray-200 bg-gray-50/50">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                     <Tablet className="w-5 h-5 text-purple-600" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-900">Add Mango Pad</h4>
                     <p className="text-xs text-gray-500">Connect iPad for signatures and customer display</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Pairing functionality coming soon
-                </p>
+
+                {padPairingMode === null ? (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => setPadPairingMode('qr')}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <QrCode className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm font-medium text-gray-700">Scan QR Code</span>
+                    </button>
+                    <button
+                      onClick={() => setPadPairingMode('code')}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <Keyboard className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm font-medium text-gray-700">Enter Code</span>
+                    </button>
+                  </div>
+                ) : padPairingMode === 'qr' ? (
+                  <div className="mt-3 space-y-3">
+                    <div className="p-4 bg-white rounded-lg border border-gray-200 text-center">
+                      <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-3">
+                        <QrCode className="w-16 h-16 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Open the Mango Pad app and scan this QR code
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setPadPairingMode(null)}
+                      className="w-full text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      ← Back to pairing options
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-gray-700">
+                        Enter pairing code from Mango Pad
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Enter 6-digit code"
+                          value={padPairingCode}
+                          onChange={(e) => setPadPairingCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="flex-1 text-center text-lg tracking-widest font-mono"
+                          maxLength={6}
+                        />
+                        <button
+                          disabled={padPairingCode.length !== 6}
+                          className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Pair
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setPadPairingMode(null);
+                        setPadPairingCode('');
+                      }}
+                      className="w-full text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      ← Back to pairing options
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Hardware Section */}
               <div className="p-4 rounded-lg border border-gray-200 bg-gray-50/50">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                     <Printer className="w-5 h-5 text-blue-600" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-900">Add Hardware</h4>
                     <p className="text-xs text-gray-500">Connect printers, scanners, and cash drawers</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Hardware setup coming soon
-                </p>
+
+                <div className="space-y-3 mt-3">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-gray-700">Device Name</label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Front Desk Printer"
+                      value={hardwareForm.name}
+                      onChange={(e) => setHardwareForm({ ...hardwareForm, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-700">Device Type</label>
+                      <Select
+                        value={hardwareForm.type}
+                        onValueChange={(value: HardwareDeviceType) =>
+                          setHardwareForm({ ...hardwareForm, type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hardwareTypeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-700">Connection</label>
+                      <Select
+                        value={hardwareForm.connectionType}
+                        onValueChange={(value: ConnectionType) =>
+                          setHardwareForm({ ...hardwareForm, connectionType: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select connection" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {connectionTypeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleAddHardware}
+                    disabled={isAddingHardware || !hardwareForm.name || !hardwareForm.type || !hardwareForm.connectionType}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAddingHardware ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add Hardware Device
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Payment Terminal Section */}
               <div className="p-4 rounded-lg border border-gray-200 bg-gray-50/50">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                     <CreditCard className="w-5 h-5 text-green-600" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-900">Add Payment Terminal</h4>
                     <p className="text-xs text-gray-500">Connect card readers and payment devices</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Terminal setup coming soon
-                </p>
+
+                <div className="space-y-3 mt-3">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-gray-700">Terminal Name</label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Checkout Terminal 1"
+                      value={terminalForm.name}
+                      onChange={(e) => setTerminalForm({ ...terminalForm, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-700">Terminal Type</label>
+                      <Select
+                        value={terminalForm.type}
+                        onValueChange={(value: TerminalType) =>
+                          setTerminalForm({ ...terminalForm, type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {terminalTypeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-700">
+                        Terminal ID <span className="text-gray-400">(optional)</span>
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Serial number"
+                        value={terminalForm.terminalId}
+                        onChange={(e) => setTerminalForm({ ...terminalForm, terminalId: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleAddTerminal}
+                    disabled={isAddingTerminal || !terminalForm.name || !terminalForm.type}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAddingTerminal ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add Payment Terminal
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </TabsContent>
