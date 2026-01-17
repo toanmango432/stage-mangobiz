@@ -1,6 +1,54 @@
 import { TicketStatus, SyncStatus, ServiceStatus, ServiceStatusChange } from './common';
 
 // ============================================
+// SOFT DELETE TYPES
+// ============================================
+
+/**
+ * Reason for deleting a ticket.
+ * Used for soft delete with categorized reasons for accurate reporting.
+ */
+export type DeleteReason = 'testing' | 'client_left' | 'duplicate' | 'mistake' | 'other';
+
+// ============================================
+// TICKET NOTES TYPES
+// ============================================
+
+/**
+ * Individual note on a ticket with author and timestamp tracking.
+ * Used for displaying notes as a list with attribution.
+ */
+export interface TicketNote {
+  id: string;
+  text: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;  // ISO 8601 string
+  updatedAt?: string; // ISO 8601 string
+}
+
+// ============================================
+// STATUS HISTORY TYPES
+// ============================================
+
+/**
+ * Status values for ticket status history tracking.
+ */
+export type TicketStatusValue = 'waiting' | 'in-service' | 'completed' | 'paid';
+
+/**
+ * Record of a status change for audit/history purposes.
+ * Tracks who changed the status, when, and optionally why.
+ */
+export interface StatusChange {
+  from: TicketStatusValue | null;  // null for initial status
+  to: TicketStatusValue;
+  changedAt: string;    // ISO 8601 string
+  changedBy?: string;   // User ID who made the change (optional)
+  reason?: string;      // Optional reason for the change
+}
+
+// ============================================
 // SERVICE-LEVEL INTERFACES
 // ============================================
 

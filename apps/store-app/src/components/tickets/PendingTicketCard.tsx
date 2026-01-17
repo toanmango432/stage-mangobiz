@@ -49,6 +49,12 @@ export interface PendingTicket {
     name: string;
     color: string;
   }>;
+  // Single technician assignment (fallback)
+  assignedTo?: {
+    id: string;
+    name: string;
+    color: string;
+  };
   lastVisitDate?: Date | null;
   // When service was marked done (for urgency calculation)
   completedAt?: Date | string;
@@ -90,8 +96,8 @@ export function PendingTicketCard({
   const isFirstVisit = !ticket.lastVisitDate || ticket.clientType?.toLowerCase().includes('first');
   const hasStar = ticket.clientType?.toLowerCase().includes('vip');
 
-  // Get staff info - support multiple staff
-  const staffList = ticket.assignedStaff || [];
+  // Get staff info - support multiple staff (assignedStaff) or single (assignedTo)
+  const staffList = ticket.assignedStaff || (ticket.assignedTo ? [ticket.assignedTo] : []);
 
   // Helper to get first name only
   const getFirstName = (fullName: string) => {
@@ -99,7 +105,7 @@ export function PendingTicketCard({
   };
 
   // Use exact staff color for badge
-  const getStaffColor = (staff: any) => staff.color || '#6B7280';
+  const getStaffColor = (staff: { id: string; name: string; color: string }) => staff.color || '#6B7280';
 
   // Format last visit date
   const getLastVisitText = () => {

@@ -1,9 +1,22 @@
 import { useEffect, useState, useRef, memo, useMemo, useCallback } from 'react';
-import { useTickets } from '@/hooks/useTicketsCompat';
+import { useTickets, type Ticket } from '@/hooks/useTicketsCompat';
+
+/** Extended ticket type with optional legacy fields for backward compatibility */
+interface ExtendedTicket extends Ticket {
+  /** Legacy services array (use checkoutServices instead) */
+  services?: Array<{ id: string; serviceName: string; price: number; duration: number; staffId?: string; staffName?: string }>;
+  /** Legacy serviceId (use checkoutServices[0].serviceId instead) */
+  serviceId?: string;
+  /** Legacy price field (use checkoutServices total instead) */
+  price?: number;
+  /** Legacy subtotal field */
+  subtotal?: number;
+}
 import { useTicketSection } from '@/hooks/frontdesk';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Trash2, AlertCircle, ChevronRight, Hourglass, Maximize2 } from 'lucide-react';
+import { Users, MoreVertical, List, Grid, Check, ChevronDown, ChevronUp, Trash2, AlertCircle, ChevronRight, Hourglass, Maximize2, ArrowUpDown, Clock } from 'lucide-react';
+import { sortWaitingByUrgency } from '@/utils/urgencyUtils';
 import { useTicketPanel, TicketData } from '@/contexts/TicketPanelContext';
 import { AssignTicketModal } from '@/components/tickets/AssignTicketModal';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
@@ -15,6 +28,7 @@ import { FrontDeskEmptyState } from './FrontDeskEmptyState';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 import { SearchBar } from './SearchBar';
 import { FrontDeskSubTabs, SubTab } from './FrontDeskSubTabs';
+import { TicketFilterBar, TicketFilterType, calculateFilterCounts, calculateServiceCounts, applyTicketFilters } from './TicketFilterBar';
 // Module components - US-023
 import { SortableListItem, SortableGridItem } from './WaitListSection/components';
 // Drag and drop
@@ -122,7 +136,7 @@ export const WaitListSection = memo(function WaitListSection({
   const effectiveExternalCardViewMode = externalCardViewMode ?? (isCombinedView ? undefined : settingsCardViewMode);
 
   // Handler to open a ticket in the Ticket Control Center
-  const handleOpenTicket = (ticket: any, e?: React.MouseEvent) => {
+  const handleOpenTicket = (ticket: ExtendedTicket, e?: React.MouseEvent) => {
     e?.stopPropagation();
     const ticketData: TicketData = {
       id: ticket.id,
@@ -136,7 +150,7 @@ export const WaitListSection = memo(function WaitListSection({
         serviceId: ticket.serviceId,
         serviceName: ticket.service,
         price: ticket.price || 0,
-        duration: parseInt(ticket.duration) || 30,
+        duration: ticket.duration ? parseInt(ticket.duration) : 30,
         status: 'not_started',
         staffId: ticket.techId,
         staffName: ticket.technician,
@@ -251,13 +265,32 @@ export const WaitListSection = memo(function WaitListSection({
   const [searchQuery, setSearchQuery] = useState('');
   // Category filter state
   const [selectedCategory, setSelectedCategory] = useState('all');
+  // Ticket attribute filters (Priority, VIP, First Visit, Long Wait)
+  const [activeFilters, setActiveFilters] = useState<Set<TicketFilterType>>(new Set());
+  // Service type filter (US-015)
+  const [selectedService, setSelectedService] = useState('');
+  // Sort mode: 'queue' (drag order) or 'urgency' (most urgent first) - US-017
+  const [sortMode, setSortMode] = useState<'queue' | 'urgency'>(() => {
+    const saved = localStorage.getItem('waitListSortMode');
+    return saved === 'urgency' ? 'urgency' : 'queue';
+  });
 
   // Drag and drop state
   const dispatch = useAppDispatch();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Check if drag and drop is enabled from settings
-  const isDragEnabled = settings?.enableDragAndDrop ?? true;
+  // Disable when urgency sort is active (US-017)
+  const isDragEnabled = (settings?.enableDragAndDrop ?? true) && sortMode === 'queue';
+
+  // Toggle sort mode and persist to localStorage (US-017)
+  const toggleSortMode = useCallback(() => {
+    setSortMode(current => {
+      const newMode = current === 'queue' ? 'urgency' : 'queue';
+      localStorage.setItem('waitListSortMode', newMode);
+      return newMode;
+    });
+  }, []);
 
   // Sensors for drag and drop (with delay to prevent accidental drags)
   const sensors = useSensors(
@@ -286,7 +319,7 @@ export const WaitListSection = memo(function WaitListSection({
     }
 
     // When filtering is active, we need to map indices from filtered list to full waitlist
-    const isFiltered = searchQuery.trim() || selectedCategory !== 'all';
+    const isFiltered = searchQuery.trim() || selectedCategory !== 'all' || activeFilters.size > 0 || selectedService !== '';
 
     if (isFiltered) {
       // Get the actual indices in the full waitlist
@@ -307,7 +340,7 @@ export const WaitListSection = memo(function WaitListSection({
         dispatch(setWaitlistOrder(newOrder));
       }
     }
-  }, [dispatch, waitlist, searchQuery, selectedCategory]);
+  }, [dispatch, waitlist, searchQuery, selectedCategory, activeFilters, selectedService]);
 
   // Get the ticket being dragged for the overlay
   const activeTicket = useMemo(() => {
@@ -335,7 +368,13 @@ export const WaitListSection = memo(function WaitListSection({
     return tabs;
   }, [waitlist]);
 
-  // Filter waitlist based on search query and category
+  // Calculate filter counts for the filter bar badges
+  const filterCounts = useMemo(() => calculateFilterCounts(waitlist), [waitlist]);
+
+  // Calculate service counts for the service type dropdown (US-015)
+  const serviceCounts = useMemo(() => calculateServiceCounts(waitlist), [waitlist]);
+
+  // Filter and sort waitlist based on search query, category, service, filters, and sort mode
   const filteredWaitlist = useMemo(() => {
     let filtered = waitlist;
 
@@ -357,8 +396,23 @@ export const WaitListSection = memo(function WaitListSection({
       );
     }
 
+    // Apply ticket attribute filters (Priority, VIP, First Visit, Long Wait)
+    if (activeFilters.size > 0) {
+      filtered = applyTicketFilters(filtered, activeFilters);
+    }
+
+    // Filter by service type (US-015) - exact match
+    if (selectedService) {
+      filtered = filtered.filter(ticket => ticket.service === selectedService);
+    }
+
+    // Apply urgency sorting when enabled (US-017)
+    if (sortMode === 'urgency') {
+      filtered = sortWaitingByUrgency(filtered);
+    }
+
     return filtered;
-  }, [waitlist, searchQuery, selectedCategory]);
+  }, [waitlist, searchQuery, selectedCategory, activeFilters, selectedService, sortMode]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -423,7 +477,8 @@ export const WaitListSection = memo(function WaitListSection({
   // Handle ticket deletion
   const handleDeleteTicket = () => {
     if (ticketToDelete && deleteReason.trim() !== '') {
-      deleteTicket(ticketToDelete, deleteReason);
+      // Use 'other' as reason type with the text as the note for backward compatibility
+      deleteTicket(ticketToDelete, 'other', deleteReason);
       setShowDeleteModal(false);
       setTicketToDelete(null);
       setDeleteReason('');
@@ -579,8 +634,19 @@ export const WaitListSection = memo(function WaitListSection({
           icon={<Hourglass size={20} strokeWidth={2.5} />}
           customTheme={waitingHeaderTheme}
           subtitle={waitlist.length > 0 ? `Avg ${avgWaitTime}m` : undefined}
+          animateCountChanges={true}
           rightActions={
             <>
+              {/* Sort mode toggle (US-017) */}
+              <Tippy content={sortMode === 'queue' ? 'Sort by: Queue Order (click for Urgency)' : 'Sort by: Urgency (click for Queue Order)'}>
+                <HeaderActionButton
+                  onClick={toggleSortMode}
+                  className={sortMode === 'urgency' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : ''}
+                >
+                  {sortMode === 'urgency' ? <Clock size={16} /> : <ArrowUpDown size={16} />}
+                </HeaderActionButton>
+              </Tippy>
+
               {viewMode === 'grid' ? (
                 <Tippy content={cardViewMode === 'compact' ? 'Switch to Normal' : 'Switch to Compact'}>
                   <HeaderActionButton onClick={toggleCardViewMode}>
@@ -646,6 +712,56 @@ export const WaitListSection = memo(function WaitListSection({
                       </button>
                     </div>
 
+                    {/* Sort Mode Section (US-017) */}
+                    <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Sort Order
+                      </h3>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setSortMode('queue');
+                          localStorage.setItem('waitListSortMode', 'queue');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          sortMode === 'queue'
+                            ? 'bg-violet-50 text-violet-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <ArrowUpDown size={14} className="mr-2" />
+                          <span>Queue Order</span>
+                        </div>
+                        {sortMode === 'queue' && <Check size={14} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortMode('urgency');
+                          localStorage.setItem('waitListSortMode', 'urgency');
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${
+                          sortMode === 'urgency'
+                            ? 'bg-orange-50 text-orange-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <Clock size={14} className="mr-2" />
+                          <span>Urgency</span>
+                        </div>
+                        {sortMode === 'urgency' && <Check size={14} />}
+                      </button>
+                      {sortMode === 'urgency' && (
+                        <p className="px-4 py-1 text-xs text-orange-600">
+                          Drag-and-drop disabled
+                        </p>
+                      )}
+                    </div>
+
                     {/* Card Size Section */}
                     <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -683,7 +799,7 @@ export const WaitListSection = memo(function WaitListSection({
         />
       )}
       <div className={`flex-1 overflow-auto px-4 bg-white ${isMobile ? 'pb-3' : 'pb-16'} ${headerContentSpacer} scroll-smooth`}>
-        {/* Search bar for filtering tickets */}
+        {/* Search bar and filters */}
         {waitlist.length > 0 && (
           <div className="mb-3 pt-1 space-y-2">
             <SearchBar
@@ -691,6 +807,17 @@ export const WaitListSection = memo(function WaitListSection({
               onChange={setSearchQuery}
               placeholder="Search by client name, service, or notes..."
               size="sm"
+            />
+            {/* Ticket attribute filters (Priority, VIP, First Visit, Long Wait) + Service filter (US-015) */}
+            <TicketFilterBar
+              activeFilters={activeFilters}
+              onFiltersChange={setActiveFilters}
+              filterCounts={filterCounts}
+              totalCount={waitlist.length}
+              compact={isMobile}
+              selectedService={selectedService}
+              onServiceChange={setSelectedService}
+              serviceCounts={serviceCounts}
             />
             {/* Category filter tabs - only show if there are multiple categories */}
             {categoryTabs.length > 2 && (
@@ -702,15 +829,19 @@ export const WaitListSection = memo(function WaitListSection({
               />
             )}
             {/* Filter indicator */}
-            {(searchQuery || selectedCategory !== 'all') && filteredWaitlist.length !== waitlist.length && (
+            {(searchQuery || selectedCategory !== 'all' || activeFilters.size > 0 || selectedService) && filteredWaitlist.length !== waitlist.length && (
               <p className="text-xs text-gray-500">
                 Showing {filteredWaitlist.length} of {waitlist.length} tickets
-                {selectedCategory !== 'all' && !searchQuery && (
+                {(selectedCategory !== 'all' || activeFilters.size > 0 || selectedService) && !searchQuery && (
                   <button
-                    onClick={() => setSelectedCategory('all')}
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setActiveFilters(new Set());
+                      setSelectedService('');
+                    }}
                     className="ml-2 text-rose-600 hover:text-rose-700 font-medium"
                   >
-                    Clear filter
+                    Clear all filters
                   </button>
                 )}
               </p>
@@ -820,12 +951,17 @@ export const WaitListSection = memo(function WaitListSection({
                         service: activeTicket.service,
                         duration: activeTicket.duration || '30min',
                         time: activeTicket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                        status: 'waiting' as const,
                         notes: activeTicket.notes,
                         createdAt: activeTicket.createdAt,
                         lastVisitDate: activeTicket.lastVisitDate ?? undefined,
                         checkoutServices: activeTicket.checkoutServices,
                         isFirstVisit: activeTicket.isFirstVisit,
+                        // Technician assignment fields
+                        technician: activeTicket.technician,
+                        techColor: activeTicket.techColor,
+                        techId: activeTicket.techId,
+                        assignedTo: activeTicket.assignedTo,
+                        assignedStaff: activeTicket.assignedStaff,
                       }}
                       viewMode={cardViewMode === 'compact' ? 'grid-compact' : 'grid-normal'}
                       onAssign={noop}
@@ -843,10 +979,15 @@ export const WaitListSection = memo(function WaitListSection({
                         service: activeTicket.service,
                         duration: activeTicket.duration || '30min',
                         time: activeTicket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                        status: 'waiting',
                         notes: activeTicket.notes,
                         checkoutServices: activeTicket.checkoutServices,
                         isFirstVisit: activeTicket.isFirstVisit,
+                        // Technician assignment fields
+                        technician: activeTicket.technician,
+                        techColor: activeTicket.techColor,
+                        techId: activeTicket.techId,
+                        assignedTo: activeTicket.assignedTo,
+                        assignedStaff: activeTicket.assignedStaff,
                       }}
                       viewMode={minimizedLineView ? 'compact' : 'normal'}
                       onAssign={noop}

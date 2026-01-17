@@ -13,7 +13,7 @@ export function PaymentProcessModal({
 }: PaymentProcessModalProps) {
   const {
     pendingTickets,
-    deleteTicket
+    markTicketAsPaid
   } = useTickets();
   const [ticket, setTicket] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('card');
@@ -80,10 +80,23 @@ export function PaymentProcessModal({
         setIsProcessing(false);
         setIsComplete(true);
         // In a real app, you would record the payment in your database
-        // After a successful payment, remove the ticket from pending
+        // After a successful payment, mark the ticket as paid
         setTimeout(() => {
           if (ticketId) {
-            deleteTicket(String(ticketId), 'payment_completed');
+            // Map local payment method to PaymentMethod type
+            const mappedPaymentMethod = paymentMethod === 'card' ? 'credit-card' as const
+              : paymentMethod === 'mobile' ? 'digital-wallet' as const
+              : 'cash' as const;
+            // Build payment details based on payment method
+            const paymentDetails = mappedPaymentMethod === 'cash'
+              ? { amountTendered: total }
+              : {};
+            markTicketAsPaid(
+              String(ticketId),
+              mappedPaymentMethod,
+              paymentDetails,
+              tip
+            );
             onClose();
           }
         }, 2000);

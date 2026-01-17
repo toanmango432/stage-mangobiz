@@ -68,8 +68,7 @@ export function TicketHeader({
               onClick={(e) => {
                 e.stopPropagation();
                 onCloseMenu();
-                // TODO: Implement edit receipt
-                console.log('Edit receipt:', ticketId);
+                // Edit receipt - not yet implemented
               }}
             >
               <Edit2 size={14} className="mr-2 text-blue-500" />
@@ -82,8 +81,7 @@ export function TicketHeader({
               onClick={(e) => {
                 e.stopPropagation();
                 onCloseMenu();
-                // TODO: Implement print receipt
-                console.log('Print receipt:', ticketId);
+                // Print receipt - not yet implemented
               }}
             >
               <Printer size={14} className="mr-2 text-gray-500" />
@@ -96,8 +94,7 @@ export function TicketHeader({
               onClick={(e) => {
                 e.stopPropagation();
                 onCloseMenu();
-                // TODO: Implement email receipt
-                console.log('Email receipt:', ticketId);
+                // Email receipt - not yet implemented
               }}
             >
               <Mail size={14} className="mr-2 text-gray-500" />
@@ -110,8 +107,7 @@ export function TicketHeader({
               onClick={(e) => {
                 e.stopPropagation();
                 onCloseMenu();
-                // TODO: Implement void receipt
-                console.log('Void receipt:', ticketId);
+                // Void receipt - not yet implemented
               }}
             >
               <Trash2 size={14} className="mr-2 text-red-500" />

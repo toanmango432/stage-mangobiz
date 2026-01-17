@@ -8,9 +8,9 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 ## Phase 1: Context Loading (ALWAYS DO FIRST)
 
-1. **Read the PRD** at `scripts/ralph/runs/frontdesk-tickets/prd.json`
+1. **Read the PRD** at `scripts/ralph/runs/critical-path-tests/prd.json`
 2. **Read patterns** at `scripts/ralph/patterns.md` (accumulated learnings)
-3. **Read progress** at `scripts/ralph/runs/frontdesk-tickets/progress.txt` (recent learnings)
+3. **Read progress** at `scripts/ralph/runs/critical-path-tests/progress.txt` (recent learnings)
 4. **Verify branch** matches PRD `branchName`. If not, checkout the correct branch.
 
 **Conflict resolution:** If `patterns.md` or `progress.txt` conflict with the PRD, the **PRD wins**. Note conflicts under Learnings in progress.txt.
@@ -46,9 +46,9 @@ You are an autonomous coding agent working on a software project. Each iteration
 
 ### Example Reasoning
 
-> "Selecting US-026 (Direct checkout) next because I just modified TicketActions.tsx in US-005 and US-026 also requires changes to TicketActions.tsx - the code structure is fresh in context."
-
 > "Selecting US-019 (Show conflict warning UI) because US-018 (conflict detection thunk) was just completed and US-019 directly uses that thunk."
+
+> "Selecting US-007 next because I just modified TicketActions.tsx and US-007 also requires changes to that file - the code structure is fresh in context."
 
 ### Before Implementing, Verify:
 
@@ -182,7 +182,7 @@ Example: `feat: [US-003] - Display priority badge on TaskCard`
 
 ## Phase 8: Update PRD
 
-1. Read `scripts/ralph/runs/frontdesk-tickets/prd.json`
+1. Read `scripts/ralph/runs/critical-path-tests/prd.json`
 2. Find the completed story by ID
 3. Set `"passes": true`
 4. Write the updated JSON back
@@ -191,7 +191,7 @@ Example: `feat: [US-003] - Display priority badge on TaskCard`
 
 ## Phase 9: Log Progress
 
-**APPEND** to `scripts/ralph/runs/frontdesk-tickets/progress.txt`:
+**APPEND** to `scripts/ralph/runs/critical-path-tests/progress.txt`:
 
 ```markdown
 ## [Date] - [Story ID]: [Story Title]
@@ -220,12 +220,46 @@ Commit: [git commit hash]
 
 ---
 
+## Phase 9.5: Sync Global Patterns (If Applicable)
+
+After logging progress, check if any learnings should be shared globally:
+
+**Sync TO global template** (`~/.claude/templates/ralph/patterns.md.template`) if you discovered:
+- Security patterns (encryption, validation, auth)
+- API integration patterns (webhooks, error handling)
+- TypeScript/React best practices
+- Database patterns (RLS, migrations, indexes)
+- Performance patterns
+- Anti-patterns that caused bugs
+
+**Keep project-specific** (don't sync):
+- Business logic specific to this app
+- Domain-specific terminology
+- Project-specific file paths
+- Patterns that only make sense in this codebase
+
+**How to sync:**
+1. Read `~/.claude/templates/ralph/patterns.md.template`
+2. Check if the pattern already exists (avoid duplicates)
+3. If new, append to the appropriate section
+4. Use the same numbered format as existing patterns
+
+**Example sync:**
+```markdown
+## Security Patterns
+
+### [New Category]
+XX. **Pattern name** - Description of the pattern and when to use it.
+```
+
+---
+
 ## Phase 10: Completion Check
 
 Check if all stories are complete:
 
 ```bash
-jq '[.userStories[] | select(.passes == false)] | length' scripts/ralph/runs/frontdesk-tickets/prd.json
+jq '[.userStories[] | select(.passes == false)] | length' scripts/ralph/runs/critical-path-tests/prd.json
 ```
 
 If `jq` is unavailable, skip this check and document in progress.txt.
@@ -240,7 +274,7 @@ If result is `0`, output:
 
 ## STOP
 
-**After completing Phases 1-10 for ONE story, STOP.**
+**After completing Phases 1-10 (including 9.5) for ONE story, STOP.**
 
 Do not select or start work on another story in this iteration. The next iteration will pick up the next story.
 

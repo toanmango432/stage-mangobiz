@@ -197,3 +197,33 @@ export function getHighestUrgency<T extends { completedAt?: Date | string | null
 
   return highest;
 }
+
+/**
+ * Sort waiting tickets by urgency (most urgent first), then by wait time.
+ * Uses createdAt field for waiting tickets (check-in time).
+ *
+ * @param tickets - Array of tickets with createdAt field
+ * @param thresholds - Urgency thresholds (default: waiting-specific thresholds)
+ * @returns Sorted array with most urgent tickets first
+ */
+export function sortWaitingByUrgency<T extends { createdAt?: Date | string | null }>(
+  tickets: T[],
+  thresholds: UrgencyThresholds = {
+    attention: 10,  // 10+ minutes - yellow
+    urgent: 15,     // 15+ minutes - orange
+    critical: 25,   // 25+ minutes - red
+  }
+): T[] {
+  return [...tickets].sort((a, b) => {
+    const urgencyA = getUrgencyLevel(a.createdAt, thresholds, true);
+    const urgencyB = getUrgencyLevel(b.createdAt, thresholds, true);
+
+    const priorityDiff = getUrgencyPriority(urgencyB) - getUrgencyPriority(urgencyA);
+    if (priorityDiff !== 0) return priorityDiff;
+
+    // Same urgency level - sort by wait time (longest first)
+    const waitA = calculateWaitingMinutes(a.createdAt);
+    const waitB = calculateWaitingMinutes(b.createdAt);
+    return waitB - waitA;
+  });
+}

@@ -62,10 +62,15 @@ export const SortableListItem = memo(function SortableListItem({
           service: ticket.service,
           duration: ticket.duration || '30min',
           time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          status: 'waiting',
           notes: ticket.notes,
           checkoutServices: ticket.checkoutServices,
           isFirstVisit: ticket.isFirstVisit,
+          // Technician assignment fields
+          technician: ticket.technician,
+          techColor: ticket.techColor,
+          techId: ticket.techId,
+          assignedTo: ticket.assignedTo,
+          assignedStaff: ticket.assignedStaff,
         }}
         viewMode={viewMode}
         onAssign={onAssign}
@@ -127,12 +132,17 @@ export const SortableGridItem = memo(function SortableGridItem({
           service: ticket.service,
           duration: ticket.duration || '30min',
           time: ticket.time || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          status: 'waiting' as const,
           notes: ticket.notes,
           createdAt: ticket.createdAt,
           lastVisitDate: ticket.lastVisitDate ?? undefined,
           checkoutServices: ticket.checkoutServices,
           isFirstVisit: ticket.isFirstVisit,
+          // Technician assignment fields
+          technician: ticket.technician,
+          techColor: ticket.techColor,
+          techId: ticket.techId,
+          assignedTo: ticket.assignedTo,
+          assignedStaff: ticket.assignedStaff,
         }}
         viewMode={viewMode}
         onAssign={onAssign}

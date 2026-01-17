@@ -1,0 +1,249 @@
+# Ralph Progress Log - frontdesk-critical-path-tests
+# Started: 2026-01-17
+# Branch: ralph/frontdesk-tickets
+
+## Codebase Patterns
+
+### Pre-existing TypeScript Errors
+The codebase has pre-existing TypeScript errors in `smartAutoAssign.test.ts` (Date vs string type mismatches). These don't block test execution since Vitest runs without type checking.
+
+### markTicketAsPaid.fulfilled Test Pattern
+```typescript
+store.dispatch({
+  type: markTicketAsPaid.fulfilled.type,
+  payload: {
+    ticketId: 'ticket-id',
+    ticket: mockTicket,
+    sourceArray: 'waitlist' | 'in-service' | 'pending',
+    paymentMethod: 'credit-card' | 'cash',
+    tip: 0,
+    transaction: { id: 'txn-id' },
+  },
+});
+```
+
+---
+
+## Iteration Log
+
+## 2026-01-17 - US-002: Add markTicketAsPaid.fulfilled reducer tests for serviceTickets source
+Commit: ae4a18a4bfdedc42f9dc909a31d5d3db4e3a257e
+
+**Why this story?** US-001 was already implemented from a previous iteration. US-002 is the next highest priority and builds directly on the same describe block, making it the logical next step.
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:477-513`: Added test 'should remove ticket from serviceTickets when sourceArray is in-service'
+
+**Learnings:**
+- US-001 was already implemented but not marked as passes: true in the PRD - always verify PRD vs code reality
+- Pre-existing typecheck errors in smartAutoAssign.test.ts don't block test runs
+- The reducer correctly handles 'in-service' sourceArray by removing from serviceTickets and adding to completedTickets
+
+**Next story suggestion:** US-003 (pendingTickets source test) - continues the same pattern in the same file with minimal context switching
+
+---
+
+## 2026-01-17 - US-003: Add markTicketAsPaid.fulfilled reducer tests for pendingTickets source
+Commit: 6049589
+
+**Why this story?** US-003 is the next highest priority incomplete story and directly builds on the US-001/US-002 work. The previous iteration also suggested this as the logical next step. Working in the same file minimizes context switching.
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:516-548`: Added test 'should remove ticket from pendingTickets when sourceArray is pending'
+
+**Learnings:**
+- PendingTicket has a different shape than UITicket (includes subtotal, tax, tip, paymentType fields)
+- Must use `createMockPendingTicket` helper instead of `createMockUITicket` for pendingTickets array
+- Pre-existing typecheck errors are in many test files (AgendaView, AppointmentCard, MonthView, SmartBookingPanel, etc.) - not from this change
+
+**Next story suggestion:** US-004 (total calculation test) - same file, verifies the total = subtotal + tax + tip calculation that was touched in this test
+
+---
+
+## 2026-01-17 - US-004: Add markTicketAsPaid.fulfilled tests for total calculation
+Commit: 075a9f05a29419401a8d583cdb53682198d0e081
+
+**Why this story?** US-004 is the highest priority incomplete story and follows the suggestion from the previous iteration. It continues testing the same reducer in the same file, verifying the total calculation that uses values from PendingTicket (subtotal, tax) and the action payload (tip).
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:555-576`: Added test 'should calculate total correctly with subtotal, tax, and tip'
+
+**Learnings:**
+- The total calculation is: `(subtotal || 0) + (tax || 0) + (tip || 0)` - uses null coalescing for safety
+- The reducer reads subtotal/tax from the ticket object and tip from the action payload
+- Test verified: subtotal(50) + tax(5) + tip(10) = total(65)
+
+**Next story suggestion:** US-005 (payment method display test) - same file, same describe block, tests the paymentMethod mapping that's also part of the markTicketAsPaid.fulfilled reducer
+
+---
+
+## 2026-01-17 - US-005: Add markTicketAsPaid.fulfilled tests for payment method display
+Commit: c726b22
+
+**Why this story?** US-005 is the highest priority incomplete story and continues work in the same test file as US-001-004. Previous iteration suggested it as the logical next step. Same describe block minimizes context switching.
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:584-640`: Added two tests for payment method display value mapping
+  - 'should set payment method display value correctly for credit-card' - verifies 'credit-card' → 'Card'
+  - 'should set payment method display value correctly for cash' - verifies 'cash' → 'Cash'
+
+**Learnings:**
+- The payment method mapping is in uiTicketsSlice.ts at line 2012: `paymentMethod === 'credit-card' ? 'Card' : paymentMethod === 'cash' ? 'Cash' : paymentMethod`
+- Pre-existing typecheck errors in AgendaView.test.tsx, AppointmentCard.test.tsx, MonthView.test.tsx, SmartBookingPanel.test.tsx etc. (Date vs string type mismatches)
+- Tests continue to show warnings about non-serializable Date values in state - pre-existing issue with the reducer
+
+**Next story suggestion:** US-006 (Create ticket lifecycle integration test file) - this is a NEW file that will be the foundation for US-007-012. Creating the scaffold first allows subsequent stories to add tests to it.
+
+---
+
+## 2026-01-17 - US-006: Create ticket lifecycle integration test file
+Commit: 6f0c587
+
+**Why this story?** US-006 is the highest priority incomplete story and is a dependency for US-007 through US-012. All subsequent stories need this test file scaffold. The previous iteration also suggested this as the logical next step.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts (NEW)`: Created new integration test file with:
+  - Imports from vitest and @reduxjs/toolkit
+  - `createTestStore` helper using the actual `uiTicketsReducer`
+  - `createMockUITicket` helper with proper Date types for createdAt/updatedAt
+  - `createMockPendingTicket` helper
+  - Basic describe block 'Ticket Lifecycle Integration' with initial state test
+
+**Learnings:**
+- UITicket type requires `createdAt: Date` and `updatedAt: Date` (not strings) - use `new Date()` not `new Date().toISOString()`
+- The existing uiTicketsSlice.test.ts has a type mismatch with createdAt (uses toISOString()) but this is a pre-existing issue
+- "No reducer provided for key 'uiTickets'" warning is benign when store is created without preloaded state
+- Pre-existing typecheck errors remain in AgendaView.test.tsx, AppointmentCard.test.tsx, etc. (Date vs string mismatches)
+
+**Next story suggestion:** US-007 (normal ticket flow lifecycle test) - directly builds on the scaffold created in this story, testing the waiting → in-service → pending → paid flow
+
+---
+
+## 2026-01-17 - US-007: Add normal ticket flow lifecycle test
+Commit: c4a81ad
+
+**Why this story?** US-007 is the highest priority incomplete story and directly builds on US-006's scaffold. It tests the core lifecycle flow (waiting → in-service → pending) which must be verified before adding direct checkout tests.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:114-202`: Added describe block 'normal flow: waiting → in-service → pending → paid' with test:
+  - 'should move ticket through all states correctly'
+  - Test creates ticket in waitlist, uses ticketUpdated to move to in-service
+  - Uses completeTicket.fulfilled to move to pendingTickets
+  - Verifies ticket is in correct array at each step
+
+**Learnings:**
+- The ticketUpdated reducer only handles 'waiting', 'in-service', and 'completed' statuses
+- To move to pendingTickets (status 'completed'), must use completeTicket.fulfilled action
+- The status mapping: 'waiting' → waitlist, 'in-service' → serviceTickets, 'completed' → pendingTickets, 'paid' → completedTickets
+- The completeTicket.fulfilled action removes from serviceTickets and adds to pendingTickets
+
+**Next story suggestion:** US-008 (direct checkout from waiting test) - tests the direct checkout flow which skips the normal lifecycle, using the same file with the new 'direct checkout flows' describe block
+
+---
+
+## 2026-01-17 - US-008: Add direct checkout from waiting test
+Commit: 3f150ba
+
+**Why this story?** US-008 is the highest priority incomplete story and was suggested by the previous iteration. It tests direct checkout functionality (skipping the normal lifecycle), which is a key bug fix scenario. Creates the 'direct checkout flows' describe block that US-009 will also use.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:198-249`: Added describe block 'direct checkout flows' with test:
+  - 'should checkout directly from waiting status'
+  - Test creates ticket in waitlist, dispatches markTicketAsPaid.fulfilled with sourceArray: 'waitlist'
+  - Verifies ticket is removed from waitlist and added to completedTickets
+
+**Learnings:**
+- Direct checkout from waitlist uses the same markTicketAsPaid.fulfilled action as other checkouts, just with sourceArray: 'waitlist'
+- The reducer correctly handles all three source arrays (waitlist, in-service, pending)
+- Pre-existing non-serializable Date value warnings in reducer are benign
+
+**Next story suggestion:** US-009 (direct checkout from in-service test) - adds to the 'direct checkout flows' describe block just created, tests the same pattern but for serviceTickets
+
+---
+
+## 2026-01-17 - US-009: Add direct checkout from in-service test
+Commit: 8d5b98fb2c004abc1fd6a77d62cd9c3d8ff64f3b
+
+**Why this story?** US-009 was suggested by the previous iteration and directly builds on US-008's 'direct checkout flows' describe block. The code pattern is identical to US-008, just targeting serviceTickets instead of waitlist.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:250-295`: Added test 'should checkout directly from in-service status'
+  - Creates ticket in serviceTickets with status 'in-service'
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'in-service'
+  - Verifies ticket removed from serviceTickets and added to completedTickets
+
+**Learnings:**
+- The direct checkout pattern is consistent across all source arrays (waitlist, in-service, pending)
+- Pre-existing non-serializable Date warnings continue in tests but don't affect execution
+- The 'direct checkout flows' describe block now has complete coverage for waitlist and in-service
+
+**Next story suggestion:** US-010 (checkout from pending test) - completes the direct checkout flows coverage by adding the regression test for normal pending → paid flow
+
+---
+
+## 2026-01-17 - US-010: Add checkout from pending test (regression)
+Commit: 2a7352d
+
+**Why this story?** US-010 is the highest priority incomplete story and was explicitly suggested by the previous iteration (US-009). It completes the 'direct checkout flows' describe block by adding the regression test for the normal pending → paid flow.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:297-344`: Added test 'should checkout from pending status (normal flow)'
+  - Uses createMockPendingTicket to create ticket with subtotal/tax
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'pending'
+  - Verifies ticket removed from pendingTickets and added to completedTickets
+
+**Learnings:**
+- The 'direct checkout flows' describe block now has complete coverage for all three source arrays (waitlist, in-service, pending)
+- PendingTicket doesn't require createdAt/updatedAt Date fields like UITicket does
+- Pre-existing non-serializable Date warnings continue but don't affect test execution
+
+**Next story suggestion:** US-011 (appointment check-in to checkout flow test) - adds new 'appointment check-in flows' describe block, tests the appointmentId linking between appointments and tickets
+
+---
+
+## 2026-01-17 - US-011: Add appointment check-in to checkout flow test
+Commit: cc168f6
+
+**Why this story?** US-011 is the highest priority incomplete story and was explicitly suggested by the previous iteration (US-010). It creates a new describe block ('appointment check-in flows') and tests the critical appointmentId linking between appointments and tickets.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:347-408`: Added describe block 'appointment check-in flows' with test:
+  - 'should handle appointment check-in to waitlist to checkout'
+  - Creates ticket in waitlist with `appointmentId` field (simulating checkInAppointment thunk result)
+  - Verifies ticket has appointmentId linking back to source appointment
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'waitlist'
+  - Verifies ticket removed from waitlist and added to completedTickets
+
+**Learnings:**
+- The `appointmentId` field is used in tickets to track which appointment they originated from
+- While `appointmentId` isn't explicitly in the UITicket interface, it can be passed through overrides
+- Type assertion `as UITicket & { appointmentId?: string }` allows safe access to the optional field
+- Pre-existing non-serializable Date warnings continue (benign, documented in patterns)
+
+**Next story suggestion:** US-012 (re-checkout closed ticket error handling test) - final story, adds 'edge cases and error handling' describe block, tests idempotent behavior when checkout is called on already-paid ticket
+
+---
+
+## 2026-01-17 - US-012: Add re-checkout closed ticket error handling test
+Commit: 6f3fb42
+
+**Why this story?** US-012 is the only remaining story with `passes: false` and was explicitly suggested by the previous iteration (US-011). This is the final story in the PRD that completes the edge case testing for ticket lifecycle.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:410-483`: Added describe block 'edge cases and error handling' with test:
+  - 'should handle checkout attempt on already completed ticket'
+  - Creates ticket already in completedTickets with status 'completed'
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'pending' (simulating "not found" scenario)
+  - Verifies no errors thrown during dispatch
+  - Documents current reducer behavior (may add duplicates since no duplicate prevention)
+  - Verifies original ticket data is preserved
+
+**Learnings:**
+- The markTicketAsPaid.fulfilled reducer does NOT prevent duplicates - if a ticket is already in completedTickets and you dispatch with a non-matching sourceArray, it will add another entry
+- The switch statement only handles 'pending', 'waitlist', and 'in-service' - there's no 'completed' case
+- This test documents the current behavior (graceful handling without errors) while noting that duplicate prevention could be a future improvement
+- Pre-existing non-serializable Date warnings and typecheck errors continue (documented in patterns)
+
+**Next story suggestion:** ALL STORIES COMPLETE - This was the final story (US-012). The PRD is now fully implemented.
+
+---

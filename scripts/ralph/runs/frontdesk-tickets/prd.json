@@ -23,7 +23,7 @@
       ],
       "notes": "Reference ServiceTicketCard.tsx lines 32-46 for prop interface pattern. Use Tailwind: rounded-full, bg-{color}, text-white, text-xs. WaitListTicketCard is 873 lines - add to existing structure.",
       "priority": 1,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-002",
@@ -42,7 +42,7 @@
       ],
       "notes": "Interface already defined - this story only adds rendering JSX. Add to existing card layout in header section near client name.",
       "priority": 2,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-003",
@@ -67,7 +67,7 @@
       ],
       "notes": "Follow assignTicket thunk pattern at lines ~431-498 in uiTicketsSlice. Current handleSubmit only logs and closes - replace entirely. Export the new thunk from the slice.",
       "priority": 3,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-004",
@@ -89,7 +89,7 @@
       ],
       "notes": "assignTicket thunk already exists in uiTicketsSlice - just connect it. Convert ticketId to string if it's a number. TicketActions is only 60 lines.",
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-005",
@@ -116,7 +116,7 @@
       ],
       "notes": "Status values: 'waiting' | 'in-service' | 'completed' | 'paid'. 'completed' = pending checkout. Reference pauseTicket/resumeTicket for thunk pattern. Use AlertDialog from @/components/ui/alert-dialog.",
       "priority": 5,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-006",
@@ -143,7 +143,7 @@
       ],
       "notes": "Current bug: uses lastTicketNumber which doesn't reset daily. Check-in number for vocal call-outs: 'Number 5, you're up!' Ticket ID is permanent record number for receipts.",
       "priority": 6,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007",
@@ -171,7 +171,7 @@
       ],
       "notes": "Follow EditTicketModal.tsx pattern for modal structure. Use RadioGroup from @/components/ui/radio-group. Soft delete = mark as deleted, keep in DB for reporting.",
       "priority": 7,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-008",
@@ -198,7 +198,7 @@
       ],
       "notes": "Hardcode PIN validation for now (real auth is separate PRD). Use Dialog from @/components/ui/dialog for modal. Setting can be boolean constant for dev.",
       "priority": 8,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-009",
@@ -221,7 +221,7 @@
       ],
       "notes": "CreateTicketModal exists at 324 lines - uses useTickets().createTicket which may need to connect to Redux. Follow pattern from other ticket modals for Redux integration.",
       "priority": 9,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010",
@@ -244,7 +244,7 @@
       ],
       "notes": "Use existing selectClients selector from clientsSlice. Follow Command/Combobox pattern from @/components/ui/command. Debounce search input.",
       "priority": 10,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011",
@@ -267,7 +267,7 @@
       ],
       "notes": "Use existing services selector from servicesSlice. Follow Select/Combobox pattern from @/components/ui/select. Keep backward compatibility with free-text entry.",
       "priority": 11,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012",
@@ -287,7 +287,31 @@
       ],
       "notes": "Currently 'Edit Appointment' button just logs to console. Follow navigation pattern from codebase-patterns.md. ComingAppointments is 801 lines.",
       "priority": 12,
-      "passes": false
+      "passes": true
+    },
+    {
+      "id": "US-026",
+      "title": "Direct checkout from any ticket status",
+      "description": "As a front desk staff, I want to checkout a ticket directly from any status (waiting, in-service) without going through the full workflow, for quick payments or walk-ins who pay immediately.",
+      "acceptanceCriteria": [
+        "Add 'Checkout Now' button to TicketActions for waiting tickets",
+        "Add 'Checkout Now' button to TicketActions for in-service tickets",
+        "Checkout button has distinct styling (green/payment color) with DollarSign or CreditCard icon",
+        "Clicking 'Checkout Now' navigates to checkout module with ticket data pre-filled",
+        "Use existing navigation pattern: window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: { module: 'checkout', ticketId } }))",
+        "Alternatively, open checkout modal/panel directly if available",
+        "Ticket status updates appropriately after payment completes",
+        "Works for both single-service and multi-service tickets",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: waiting ticket -> Checkout Now -> payment flow starts"
+      ],
+      "files": [
+        "apps/store-app/src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "This is a critical workflow shortcut. Use existing checkout navigation or useTicketPanel().openTicketWithData() pattern. The checkout module should handle receiving a ticket and processing payment regardless of original status.",
+      "priority": 8,
+      "passes": true
     },
     {
       "id": "US-013",
@@ -309,7 +333,7 @@
       ],
       "notes": "Currently button just logs to console. updateAppointmentInSupabase already imported. Use AlertDialog from @/components/ui/alert-dialog.",
       "priority": 13,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-014",
@@ -334,7 +358,7 @@
       ],
       "notes": "Follow chip/toggle button pattern from existing UI. Use Tailwind: rounded-full, bg-slate-100, bg-slate-900. Filters are local component state, not Redux.",
       "priority": 14,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-015",
@@ -356,7 +380,7 @@
       ],
       "notes": "Derive service list from current tickets, not global services. Use Select from @/components/ui/select. Keep simple - just single service selection.",
       "priority": 15,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-016",
@@ -378,7 +402,7 @@
       ],
       "notes": "urgencyUtils.ts already has all the helpers (200 lines). Use different thresholds than pending section. Add custom thresholds parameter to getUrgencyLevel call.",
       "priority": 16,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-017",
@@ -400,7 +424,7 @@
       ],
       "notes": "Use sortByUrgency with custom thresholds for waiting (not pending). Toggle disables drag-and-drop when urgency sort is active. WaitListSection is 886 lines.",
       "priority": 17,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-018",
@@ -421,7 +445,7 @@
       ],
       "notes": "This story only adds backend detection logic. UI warning handled in US-019. Don't block assignment - just warn.",
       "priority": 18,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-019",
@@ -442,7 +466,7 @@
       ],
       "notes": "Use useAppSelector(selectServiceTickets) to get current in-service tickets. Add visual indicator without blocking the action. Follow existing modal patterns.",
       "priority": 19,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-020",
@@ -466,7 +490,7 @@
       ],
       "notes": "Migrate existing string notes to array format in reducer. Use date-fns formatDistanceToNow for relative time. Author comes from auth/session state.",
       "priority": 20,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-021",
@@ -489,7 +513,7 @@
       ],
       "notes": "AddStaffNoteModal and AddNoteModal may be similar - update both. Follow pattern from other modals with Redux dispatch. Modal props should include ticketId.",
       "priority": 21,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-022",
@@ -510,7 +534,7 @@
       ],
       "notes": "This story only adds data tracking. UI display handled in US-023. Keep statusHistory array lightweight (only essential fields).",
       "priority": 22,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-023",
@@ -532,7 +556,7 @@
       ],
       "notes": "Use simple vertical timeline layout with dots and lines. Status icons: Clock (waiting), Wrench (in-service), CheckCircle (completed), DollarSign (paid). Follow existing tab pattern if present.",
       "priority": 23,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-024",
@@ -555,7 +579,7 @@
       ],
       "notes": "Use useEffect with keydown event listener. Check document.activeElement to avoid triggering in inputs. Clean up listener on unmount.",
       "priority": 24,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-025",
@@ -578,7 +602,7 @@
       ],
       "notes": "ServiceSection already shows count - follow that pattern. Use Tailwind animate-pulse for brief highlight on change. Keep badge small and unobtrusive.",
       "priority": 25,
-      "passes": false
+      "passes": true
     }
   ]
 }

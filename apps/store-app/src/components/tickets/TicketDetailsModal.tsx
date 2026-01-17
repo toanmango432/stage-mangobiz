@@ -1,6 +1,28 @@
-import { X, User, Tag, Clock, Timer, Calendar, Info, Edit2, Trash2 } from 'lucide-react';
+import { X, User, Tag, Clock, Timer, Calendar, Edit2, Trash2, MessageSquare, Wrench, CheckCircle, DollarSign, History } from 'lucide-react';
 import { useTickets } from '@/hooks/useTicketsCompat';
 import { SignatureDisplay } from '@/components/common/SignatureDisplay';
+import { formatDistanceToNow } from 'date-fns';
+import type { TicketNote, StatusChange } from '@/types';
+
+// Status icon mapping for timeline display
+const statusIcons: Record<string, { icon: typeof Clock; color: string; bgColor: string }> = {
+  waiting: { icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-100' },
+  'in-service': { icon: Wrench, color: 'text-green-500', bgColor: 'bg-green-100' },
+  completed: { icon: CheckCircle, color: 'text-amber-500', bgColor: 'bg-amber-100' },
+  paid: { icon: DollarSign, color: 'text-emerald-500', bgColor: 'bg-emerald-100' },
+};
+
+// Format status for display
+function formatStatus(status: string | null): string {
+  if (!status) return 'Created';
+  const statusMap: Record<string, string> = {
+    waiting: 'Waiting',
+    'in-service': 'In Service',
+    completed: 'Completed',
+    paid: 'Paid',
+  };
+  return statusMap[status] || status;
+}
 interface TicketDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,10 +52,10 @@ export function TicketDetailsModal({
   if (waitlist.some(t => t.id === String(ticketId))) {
     status = 'Waiting';
     statusColor = 'bg-blue-100 text-blue-700 border-blue-200';
-  } else if (services.some((t: any) => t.id === String(ticketId))) {
+  } else if (services.some(t => t.id === String(ticketId))) {
     status = 'In Service';
     statusColor = 'bg-green-100 text-green-700 border-green-200';
-  } else if (pendingTickets.some((t: any) => t.id === String(ticketId))) {
+  } else if (pendingTickets.some(t => t.id === String(ticketId))) {
     status = 'Pending';
     statusColor = 'bg-amber-100 text-amber-700 border-amber-200';
   }
@@ -156,13 +178,34 @@ export function TicketDetailsModal({
                   </div>
                 </div>}
               {/* Notes (if any) */}
-              {ticket.notes && <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              {(ticket.notes || (ticket.ticketNotes && ticket.ticketNotes.length > 0)) && <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                   <div className="flex items-center mb-3">
-                    <Info size={18} className="text-gray-500 mr-2" />
+                    <MessageSquare size={18} className="text-gray-500 mr-2" />
                     <h3 className="text-sm font-bold text-gray-700">Notes</h3>
                   </div>
-                  <div className="ml-7">
-                    <p className="text-sm text-gray-700">{ticket.notes}</p>
+                  <div className="ml-7 space-y-3">
+                    {/* Display ticketNotes array if available */}
+                    {ticket.ticketNotes && ticket.ticketNotes.length > 0 ? (
+                      ticket.ticketNotes.map((note: TicketNote) => (
+                        <div key={note.id} className="border-l-2 border-gray-200 pl-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            {/* Author avatar with initials */}
+                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium">
+                              {note.authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-xs font-medium text-gray-700">{note.authorName}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">
+                              {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700">{note.text}</p>
+                        </div>
+                      ))
+                    ) : (
+                      /* Fallback to legacy notes string */
+                      <p className="text-sm text-gray-700">{ticket.notes}</p>
+                    )}
                   </div>
                 </div>}
               {/* Customer signature (if captured via Mango Pad) */}
@@ -173,56 +216,70 @@ export function TicketDetailsModal({
                   size="md"
                 />
               )}
-              {/* Ticket history */}
+              {/* Status History Timeline */}
               <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <div className="flex items-center mb-3">
-                  <Calendar size={18} className="text-gray-500 mr-2" />
+                  <History size={18} className="text-gray-500 mr-2" />
                   <h3 className="text-sm font-bold text-gray-700">
-                    Ticket History
+                    Status History
                   </h3>
                 </div>
                 <div className="ml-7">
-                  <div className="space-y-3">
-                    <div className="flex items-start">
-                      <div className="bg-blue-100 rounded-full p-1 mr-2 mt-0.5">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">
-                          Created
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {ticket.time || 'N/A'}
-                        </p>
+                  {/* Render status history from statusHistory array */}
+                  {ticket.statusHistory && ticket.statusHistory.length > 0 ? (
+                    <div className="relative">
+                      {/* Timeline line */}
+                      <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200" />
+                      <div className="space-y-4">
+                        {ticket.statusHistory.map((entry: StatusChange, index: number) => {
+                          const toStatus = entry.to || 'waiting';
+                          const iconConfig = statusIcons[toStatus] || statusIcons.waiting;
+                          const IconComponent = iconConfig.icon;
+
+                          return (
+                            <div key={index} className="flex items-start relative">
+                              {/* Timeline dot with icon */}
+                              <div className={`${iconConfig.bgColor} rounded-full p-1.5 mr-3 z-10`}>
+                                <IconComponent size={12} className={iconConfig.color} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                {/* Status change description */}
+                                <p className="text-xs font-medium text-gray-700">
+                                  {entry.from ? (
+                                    <>{formatStatus(entry.from)} → {formatStatus(entry.to)}</>
+                                  ) : (
+                                    <>Ticket created as {formatStatus(entry.to)}</>
+                                  )}
+                                </p>
+                                {/* Timestamp */}
+                                <p className="text-xs text-gray-500">
+                                  {formatDistanceToNow(new Date(entry.changedAt), { addSuffix: true })}
+                                </p>
+                                {/* Changed by (if available) */}
+                                {entry.changedBy && (
+                                  <p className="text-xs text-gray-400 mt-0.5">
+                                    by Staff #{entry.changedBy.slice(-4)}
+                                  </p>
+                                )}
+                                {/* Reason (if available) */}
+                                {entry.reason && (
+                                  <p className="text-xs text-gray-400 italic mt-0.5">
+                                    "{entry.reason}"
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                    {ticket.technician && <div className="flex items-start">
-                        <div className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-700">
-                            Assigned to {ticket.technician}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Time not recorded
-                          </p>
-                        </div>
-                      </div>}
-                    {status === 'Pending' && <div className="flex items-start">
-                        <div className="bg-amber-100 rounded-full p-1 mr-2 mt-0.5">
-                          <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-700">
-                            Service Completed
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Time not recorded
-                          </p>
-                        </div>
-                      </div>}
-                  </div>
+                  ) : (
+                    /* Empty state when no history available */
+                    <div className="text-center py-4">
+                      <Calendar size={24} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-xs text-gray-400">No history available</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -7,6 +7,23 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import { FrontDeskSettingsData } from '@/components/frontdesk-settings/types';
 
+/** Appointment object from useTickets hook's comingAppointments */
+interface ComingAppointment {
+  id: string;
+  clientName: string;
+  clientPhoto?: string;
+  appointmentTime: string;
+  service: string;
+  duration: string;
+  technician: string;
+  techColor: string;
+  status: string;
+  isVip: boolean;
+  isFirstVisit: boolean;
+  /** Computed minutes until appointment (negative = late) */
+  minutesUntil?: number;
+}
+
 interface ComingAppointmentsProps {
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
@@ -23,6 +40,8 @@ interface ComingAppointmentsProps {
     counterBg: string;
     counterText: string;
   };
+  /** Callback when Edit Appointment is clicked */
+  onEditAppointment?: (appointmentId: string) => void;
 }
 export const ComingAppointments = memo(function ComingAppointments({
   isMinimized = false,
@@ -30,7 +49,8 @@ export const ComingAppointments = memo(function ComingAppointments({
   isMobile: _isMobile = false,
   hideHeader = false,
   settings,
-  headerStyles: _headerStyles
+  headerStyles: _headerStyles,
+  onEditAppointment
 }: ComingAppointmentsProps) {
   // All hooks must be called unconditionally (React rules of hooks)
   const dispatch = useAppDispatch();
@@ -46,9 +66,10 @@ export const ComingAppointments = memo(function ComingAppointments({
     within3Hours: false, // Collapsed by default - lower priority
     moreThan3Hours: false
   });
-  const [activeAppointment, setActiveAppointment] = useState<any>(null);
+  const [activeAppointment, setActiveAppointment] = useState<ComingAppointment | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNoShowConfirm, setShowNoShowConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // New appointment notification indicator
@@ -75,37 +96,6 @@ export const ComingAppointments = memo(function ComingAppointments({
   // BUG-003 FIX: Check if component should be hidden based on settings
   // This must come AFTER all hooks to comply with React rules
   const shouldHide = settings && settings.showComingAppointments === false;
-  // Updated color tokens for more premium Apple-like styling
-  const _colorTokens = {
-    primary: '#34C759',
-    bg: 'bg-[#F8FAFC]',
-    headerBg: 'bg-[#F0FDFA]',
-    text: 'text-[#0EA5A0]/80',
-    border: 'ring-[#10B981]/30',
-    iconBg: 'bg-emerald-500/20',
-    hoverBg: 'hover:bg-[#F9FAFB]',
-    hoverText: 'hover:text-[#0EA5A0]',
-    dropdownHover: 'hover:bg-[#F9FAFB]',
-    checkColor: 'text-emerald-500/80',
-    // Apple-like status colors
-    statusColors: {
-      booked: '#007AFF',
-      checkedIn: '#34C759',
-      inService: '#FF9500',
-      completed: '#8E8E93',
-      cancelled: '#FF3B30',
-      noShow: '#FF3B30',
-      late: '#FF3B30'
-    },
-    // Frosted glass effect colors
-    glass: {
-      bg: 'bg-white/80 backdrop-blur-sm',
-      border: 'border border-white/20',
-      shadow: 'shadow-sm'
-    }
-  };
-  // Suppress unused variable warning
-  void _colorTokens;
   // Toggle row expansion
   const toggleRowExpansion = (rowId: string) => {
     setExpandedRows(prev => ({
@@ -141,6 +131,62 @@ export const ComingAppointments = memo(function ComingAppointments({
     setShowActionMenu(false);
     setActiveAppointment(null);
   }, [dispatch, activeAppointment]);
+
+  // Handle editing an appointment - navigate to Book module
+  const handleEditAppointment = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Call the callback prop if provided
+    if (onEditAppointment) {
+      onEditAppointment(activeAppointment.id);
+    }
+
+    // Dispatch navigation event for module navigation
+    window.dispatchEvent(new CustomEvent('navigate-to-module', {
+      detail: { module: 'book', appointmentId: activeAppointment.id }
+    }));
+
+    // Close the action menu
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [activeAppointment, onEditAppointment]);
+
+  // Handle cancelling an appointment
+  const handleCancelAppointment = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Update local state immediately for optimistic UI
+    dispatch(updateLocalAppointment({
+      id: activeAppointment.id,
+      updates: { status: 'cancelled' }
+    }));
+
+    // Persist to Supabase
+    dispatch(updateAppointmentInSupabase({
+      id: activeAppointment.id,
+      updates: { status: 'cancelled' }
+    }));
+
+    // Close dialogs
+    setShowCancelConfirm(false);
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [dispatch, activeAppointment]);
+
+  // Handle rescheduling an appointment - same as edit, navigates to Book module
+  const handleRescheduleAppointment = useCallback(() => {
+    if (!activeAppointment?.id) return;
+
+    // Navigate to Book module with the appointment for rescheduling
+    window.dispatchEvent(new CustomEvent('navigate-to-module', {
+      detail: { module: 'book', appointmentId: activeAppointment.id }
+    }));
+
+    // Close dialogs
+    setShowCancelConfirm(false);
+    setShowActionMenu(false);
+    setActiveAppointment(null);
+  }, [activeAppointment]);
 
   // Check if appointment is 15+ minutes late (eligible for no-show)
   const isEligibleForNoShow = (appointment: any): boolean => {
@@ -337,7 +383,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                           {/* Single action button - hover only */}
                           <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
                       e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
+                      // More menu placeholder - to be implemented
                     }}>
                             <MoreVertical size={12} className="text-gray-400" />
                           </button>
@@ -413,7 +459,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                             {/* Single action button - hover only */}
                             <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
                       e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
+                      // More menu placeholder - to be implemented
                     }}>
                               <MoreVertical size={12} className="text-gray-400" />
                             </button>
@@ -489,7 +535,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                             {/* Single action button - hover only */}
                             <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-100 rounded transition-opacity" onClick={e => {
                       e.stopPropagation();
-                      console.log('More clicked for', appointment.clientName);
+                      // More menu placeholder - to be implemented
                     }}>
                               <MoreVertical size={12} className="text-gray-400" />
                             </button>
@@ -574,7 +620,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                               <Tippy content="Add/View Notes">
                                 <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
                       e.stopPropagation();
-                      console.log('Notes clicked for', appointment.clientName);
+                      // Notes feature placeholder - to be implemented
                     }}>
                                   <FileText size={14} strokeWidth={1.5} />
                                 </button>
@@ -582,7 +628,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                               <Tippy content="Deposit Info">
                                 <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
                       e.stopPropagation();
-                      console.log('Deposit clicked for', appointment.clientName);
+                      // Deposit feature placeholder - to be implemented
                     }}>
                                   <CreditCard size={14} strokeWidth={1.5} />
                                 </button>
@@ -590,7 +636,7 @@ export const ComingAppointments = memo(function ComingAppointments({
                               <Tippy content="Edit Appointment">
                                 <button className="p-0.5 text-[#8E8E93]/70 hover:text-[#8E8E93] hover:bg-[#F2F2F7]/60 rounded-full transition-colors" onClick={e => {
                       e.stopPropagation();
-                      console.log('Edit clicked for', appointment.clientName);
+                      onEditAppointment?.(appointment.id);
                     }}>
                                   <Pencil size={14} strokeWidth={1.5} />
                                 </button>
@@ -712,14 +758,20 @@ export const ComingAppointments = memo(function ComingAppointments({
                 Check-In
               </button>
               {/* Edit Appointment (Blue, Neutral) */}
-              <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#007AFF] hover:bg-[#F0F7FF] transition-colors flex items-center border-t border-gray-100">
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#007AFF] hover:bg-[#F0F7FF] transition-colors flex items-center border-t border-gray-100"
+                onClick={handleEditAppointment}
+              >
                 <div className="w-10 h-10 rounded-full bg-[#007AFF]/10 flex items-center justify-center mr-3">
                   <Calendar size={18} className="text-[#007AFF]" />
                 </div>
                 Edit Appointment
               </button>
               {/* Cancel/Reschedule (Red, Destructive) */}
-              <button className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF3B30] hover:bg-[#FFF5F5] transition-colors flex items-center border-t border-gray-100">
+              <button
+                className="w-full text-left px-6 py-3.5 text-[15px] font-medium text-[#FF3B30] hover:bg-[#FFF5F5] transition-colors flex items-center border-t border-gray-100"
+                onClick={() => setShowCancelConfirm(true)}
+              >
                 <div className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mr-3">
                   <AlertCircle size={18} className="text-[#FF3B30]" />
                 </div>
@@ -791,6 +843,62 @@ export const ComingAppointments = memo(function ComingAppointments({
                 onClick={() => setShowNoShowConfirm(false)}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Appointment Confirmation Dialog */}
+      {showCancelConfirm && activeAppointment && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center transition-all duration-200"
+          onClick={() => setShowCancelConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 text-center">
+              <div className="w-14 h-14 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={28} className="text-[#FF3B30]" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-2">
+                Cancel this appointment?
+              </h3>
+              <p className="text-[15px] text-gray-600">
+                <span className="font-medium">{activeAppointment.clientName?.split(' ')[0] || 'Guest'}</span>
+                {' '}has a{' '}
+                <span className="font-medium">{activeAppointment.service}</span>
+                {' '}appointment at{' '}
+                <span className="font-medium">
+                  {new Date(activeAppointment.appointmentTime).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="px-6 pb-6 space-y-3">
+              <button
+                className="w-full py-3 rounded-xl bg-[#FF3B30] text-white text-[15px] font-semibold hover:bg-[#E63329] transition-colors"
+                onClick={handleCancelAppointment}
+              >
+                Yes, Cancel Appointment
+              </button>
+              <button
+                className="w-full py-3 rounded-xl bg-[#007AFF] text-white text-[15px] font-semibold hover:bg-[#0066DD] transition-colors"
+                onClick={handleRescheduleAppointment}
+              >
+                Reschedule Instead
+              </button>
+              <button
+                className="w-full py-3 rounded-xl bg-gray-100 text-[#1C1C1E] text-[15px] font-medium hover:bg-gray-200 transition-colors"
+                onClick={() => setShowCancelConfirm(false)}
+              >
+                Go Back
               </button>
             </div>
           </div>

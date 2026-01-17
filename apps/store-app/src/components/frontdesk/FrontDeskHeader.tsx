@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import {
   frontDeskHeaderActionButton,
@@ -33,6 +33,8 @@ interface FrontDeskHeaderProps {
   showMetricPills?: boolean;
   /** Hide metric pills on mobile for simpler display */
   hideMetricPillsOnMobile?: boolean;
+  /** Whether to animate count badge when count changes (default: false) */
+  animateCountChanges?: boolean;
 }
 
 const metricToneClass: Record<MetricPill['tone'], string> = {
@@ -58,9 +60,23 @@ export function FrontDeskHeader({
   subtitle,
   showMetricPills = true,
   hideMetricPillsOnMobile = false,
+  animateCountChanges = false,
 }: FrontDeskHeaderProps) {
   const theme = customTheme || getTheme(variant);
   const shouldShowMetrics = showMetricPills && metricPills && metricPills.length > 0;
+
+  // Track count changes for animation (US-025)
+  const [isAnimating, setIsAnimating] = useState(false);
+  const prevCountRef = useRef(count);
+
+  useEffect(() => {
+    if (animateCountChanges && prevCountRef.current !== count && prevCountRef.current !== undefined) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 600);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = count;
+  }, [count, animateCountChanges]);
 
   return (
     <div className={clsx(frontDeskHeaderBase, theme.wrapper, className)}>
@@ -72,7 +88,15 @@ export function FrontDeskHeader({
               <div className="flex items-center gap-2">
                 <h2 className={clsx(frontDeskHeaderTitle, theme.titleClass)}>{title}</h2>
                 {typeof count !== 'undefined' && (
-                  <span className={clsx(theme.countBadge)}>{count}</span>
+                  <span
+                    className={clsx(
+                      theme.countBadge,
+                      'transition-all duration-200',
+                      isAnimating && 'animate-pulse ring-2 ring-offset-1 ring-slate-300 scale-110'
+                    )}
+                  >
+                    {count}
+                  </span>
                 )}
               </div>
               {subtitle && (

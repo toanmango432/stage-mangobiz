@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { X, User, Tag, Clock, Timer, AlertTriangle } from 'lucide-react';
 import { useTickets } from '@/hooks/useTicketsCompat';
+import { useAppDispatch } from '@/store/hooks';
+import { updateTicket } from '@/store/slices/uiTicketsSlice';
 interface EditTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +13,7 @@ export function EditTicketModal({
   onClose,
   ticketId
 }: EditTicketModalProps) {
+  const dispatch = useAppDispatch();
   const {
     waitlist,
     inService,
@@ -74,18 +77,30 @@ export function EditTicketModal({
     return Object.keys(newErrors).length === 0;
   };
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      setIsSubmitting(true);
-      // For now, just close the modal since editTicket function doesn't exist
-      // In a real implementation, you would update the ticket data
-      console.log('Edit ticket data:', {
-        ticketId,
-        formData
-      });
-      // Close modal after successful edit
+    if (!validateForm() || !ticketId) return;
+
+    setIsSubmitting(true);
+    try {
+      await dispatch(updateTicket({
+        ticketId: String(ticketId),
+        updates: {
+          clientName: formData.clientName,
+          clientType: formData.clientType,
+          service: formData.service,
+          time: formData.time,
+          duration: formData.duration,
+          notes: formData.notes,
+        },
+      })).unwrap();
+
+      // Close modal after successful save
       onClose();
+    } catch (error) {
+      console.error('Failed to update ticket:', error);
+      setErrors({ submit: 'Failed to save changes. Please try again.' });
+    } finally {
       setIsSubmitting(false);
     }
   };

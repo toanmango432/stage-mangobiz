@@ -1,0 +1,250 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/frontdesk-tickets",
+  "description": "Front Desk Tickets Module - Phase 1: Core ticket operations. Display technicians, connect modals to Redux, implement status transitions, ticket creation, and client/service selection.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Display technician on WaitListTicketCard",
+      "description": "As a front desk staff, I want to see the assigned technician on waiting tickets so I know who will serve the client.",
+      "acceptanceCriteria": [
+        "Add technician props to interface: technician?, techColor?, techId?, assignedTo?, assignedStaff?",
+        "Display technician avatar (colored circle with initials) if assigned",
+        "Display technician name beside avatar",
+        "Handle both single technician (assignedTo) and multiple (assignedStaff)",
+        "Show empty state if no technician assigned",
+        "Styling matches ServiceTicketCard's technician display",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "files": [
+        "src/components/tickets/WaitListTicketCard.tsx"
+      ],
+      "notes": "Reference ServiceTicketCard.tsx lines 32-46 for prop interface pattern. Use Tailwind: rounded-full, bg-{color}, text-white, text-xs. WaitListTicketCard is 873 lines - add to existing structure.",
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Display technician on PendingTicketCard",
+      "description": "As a front desk staff, I want to see which technician completed the service on pending (checkout) tickets.",
+      "acceptanceCriteria": [
+        "Interface already has technician props at lines ~31-51 - add rendering JSX only",
+        "Display technician avatar and name in card header area",
+        "Follow same pattern as WaitListTicketCard from US-001",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "files": [
+        "src/components/tickets/PendingTicketCard.tsx"
+      ],
+      "notes": "Interface already defined - this story only adds rendering JSX. Add to existing card layout in header section near client name.",
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Create updateTicket thunk and make EditTicketModal functional",
+      "description": "As a front desk staff, I want my edits in the Edit Ticket modal to actually save and persist.",
+      "acceptanceCriteria": [
+        "Create updateTicket async thunk accepting { ticketId: string, updates: Partial<UITicket> }",
+        "Thunk updates ticket via dataService.tickets.update() with IndexedDB fallback",
+        "Add reducer case in extraReducers to update tickets, waitlist, inService, checkoutTickets",
+        "In EditTicketModal: import updateTicket and useAppDispatch",
+        "Replace console.log at lines ~82-91 with dispatch(updateTicket(...))",
+        "Use existing isSubmitting state for loading indicator",
+        "Close modal only after successful save",
+        "Handle errors with try/catch and unwrap()",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: edit ticket -> save -> card reflects changes"
+      ],
+      "files": [
+        "src/store/slices/uiTicketsSlice.ts",
+        "src/components/tickets/EditTicketModal.tsx"
+      ],
+      "notes": "Follow assignTicket thunk pattern at lines ~431-498 in uiTicketsSlice. Current handleSubmit only logs and closes - replace entirely. Export the new thunk from the slice.",
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Connect TicketActions.handleAssign to Redux",
+      "description": "As a front desk staff, I want assigning a technician from ticket actions to actually work.",
+      "acceptanceCriteria": [
+        "Import assignTicket from @/store/slices/uiTicketsSlice",
+        "Import useAppDispatch from @/store/hooks",
+        "In handleAssign (line ~35-38), replace console.log with dispatch call",
+        "Pass: { ticketId: String(ticketId), staffId: techId, staffName: techName, staffColor: techColor }",
+        "Add loading state during dispatch",
+        "Close modal after successful assignment",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: assign tech -> card updates immediately"
+      ],
+      "files": [
+        "src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "assignTicket thunk already exists in uiTicketsSlice - just connect it. Convert ticketId to string if it's a number. TicketActions is only 60 lines.",
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "US-005",
+      "title": "Implement bidirectional status transitions",
+      "description": "As a front desk staff, I want to move tickets between statuses (waiting <-> in-service <-> pending) when needed.",
+      "acceptanceCriteria": [
+        "Create moveToWaiting thunk: sets status to 'waiting', clears serviceStartTime",
+        "Create moveToInService thunk: sets status to 'in-service', sets serviceStartTime to now",
+        "Create moveToPending thunk: sets status to 'completed', sets completedAt to now",
+        "Each thunk updates via dataService with IndexedDB fallback and sync queue",
+        "Add reducer cases for all three thunks",
+        "Export all three thunks",
+        "In TicketActions: Waiting tickets get 'Start Service' -> moveToInService",
+        "In TicketActions: In-service tickets get 'Move to Waiting' and 'Complete Service'",
+        "In TicketActions: Support 'pending' section with 'Back to Service'",
+        "Show confirmation dialog (AlertDialog) before status change",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: move ticket waiting -> service -> pending -> back to service"
+      ],
+      "files": [
+        "src/store/slices/uiTicketsSlice.ts",
+        "src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "Status values: 'waiting' | 'in-service' | 'completed' | 'paid'. 'completed' = pending checkout. Reference pauseTicket/resumeTicket for thunk pattern. Use AlertDialog from @/components/ui/alert-dialog.",
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "Implement daily-resetting check-in numbers",
+      "description": "As a front desk staff, I want check-in numbers to reset to 1 each day for easy call-outs.",
+      "acceptanceCriteria": [
+        "Add to uiTicketsSlice state: lastCheckInDate: string | null, lastCheckInNumber: number",
+        "Add checkInNumber?: number to UITicket interface if not present",
+        "Modify checkInAppointment thunk: get today's date as ISO string (YYYY-MM-DD)",
+        "If lastCheckInDate !== today: reset to 1, update date",
+        "Else: increment lastCheckInNumber",
+        "Store checkInNumber on ticket (separate from ticket.number)",
+        "In WaitListTicketCard: display checkInNumber with '#' prefix prominently",
+        "In ServiceTicketCard: display checkInNumber similarly",
+        "ticket.number remains permanent ID (for receipts)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify: check-in first client -> #1, second -> #2, next day -> resets to #1"
+      ],
+      "files": [
+        "src/store/slices/uiTicketsSlice.ts",
+        "src/components/tickets/WaitListTicketCard.tsx",
+        "src/components/tickets/ServiceTicketCard.tsx"
+      ],
+      "notes": "Current bug: uses lastTicketNumber which doesn't reset daily. Check-in number for vocal call-outs: 'Number 5, you're up!' Ticket ID is permanent record number for receipts.",
+      "priority": 6,
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "title": "Implement soft delete with categorized reasons",
+      "description": "As a manager, I want deleted tickets to have categorized reasons for accurate reporting.",
+      "acceptanceCriteria": [
+        "Create DeleteReason type: 'testing' | 'client_left' | 'duplicate' | 'mistake' | 'other'",
+        "Add to UITicket: deletedAt?: string, deletedReason?: DeleteReason, deletedNote?: string",
+        "Modify deleteTicket thunk to soft delete (set fields, don't remove)",
+        "Create DeleteTicketModal.tsx with radio buttons for reasons",
+        "Include optional text field for notes",
+        "'Testing' shows helper: 'Will not be counted as client loss'",
+        "Delete dispatches deleteTicket({ ticketId, reason, note })",
+        "In TicketActions: add 'Delete Ticket' with red/destructive styling",
+        "After delete, ticket filtered from view (by deletedAt)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: delete with 'Testing' reason -> ticket disappears"
+      ],
+      "files": [
+        "src/types/ticket.ts",
+        "src/store/slices/uiTicketsSlice.ts",
+        "src/components/tickets/DeleteTicketModal.tsx (NEW)",
+        "src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "Follow EditTicketModal.tsx pattern for modal structure. Use RadioGroup from @/components/ui/radio-group. Soft delete = mark as deleted, keep in DB for reporting.",
+      "priority": 7,
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "title": "Add manager PIN verification for sensitive actions",
+      "description": "As an owner, I want certain actions (like status reversal) to optionally require manager PIN.",
+      "acceptanceCriteria": [
+        "Create ManagerPinModal.tsx with 4-digit PIN input (masked with dots)",
+        "For development: accept PIN '1234' as valid",
+        "Error state for invalid PIN with shake animation",
+        "Max 3 attempts, then show 'Contact manager' message",
+        "onSuccess callback with manager ID (hardcode 'manager-1' for dev)",
+        "onCancel callback",
+        "Add setting check: requirePinForStatusReversal (default: false)",
+        "If enabled: show ManagerPinModal before status reversal",
+        "Only proceed after PIN verified",
+        "If disabled: proceed without PIN (current behavior)",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: enable setting -> try status reversal -> PIN prompt"
+      ],
+      "files": [
+        "src/components/common/ManagerPinModal.tsx (NEW)",
+        "src/components/tickets/TicketActions.tsx"
+      ],
+      "notes": "Hardcode PIN validation for now (real auth is separate PRD). Use Dialog from @/components/ui/dialog for modal. Setting can be boolean constant for dev.",
+      "priority": 8,
+      "passes": false
+    },
+    {
+      "id": "US-009",
+      "title": "Connect CreateTicketModal to Front Desk with Redux",
+      "description": "As a front desk staff, I want to create tickets directly from Front Desk without navigating to checkout.",
+      "acceptanceCriteria": [
+        "In CreateTicketModal: import createCheckoutTicket from uiTicketsSlice",
+        "Replace createTicket(ticketData) with dispatch to Redux thunk",
+        "Set status to 'waiting' for new walk-in tickets",
+        "In CreateTicketButton: open CreateTicketModal instead of navigating to checkout",
+        "Add success toast after ticket creation",
+        "New ticket appears in WaitListSection immediately",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: click '+' -> fill form -> submit -> ticket in waitlist"
+      ],
+      "files": [
+        "src/components/tickets/CreateTicketModal.tsx",
+        "src/components/frontdesk/CreateTicketButton.tsx"
+      ],
+      "notes": "CreateTicketModal exists at 324 lines - uses useTickets().createTicket which may need to connect to Redux. Follow pattern from other ticket modals for Redux integration.",
+      "priority": 9,
+      "passes": false
+    },
+    {
+      "id": "US-010",
+      "title": "Add client search/selection to CreateTicketModal",
+      "description": "As a front desk staff, I want to search for existing clients when creating a ticket.",
+      "acceptanceCriteria": [
+        "Add client search input with autocomplete dropdown",
+        "Fetch clients from Redux: useAppSelector(selectClients)",
+        "Filter clients by name as user types (minimum 2 characters)",
+        "Show matching clients with name and phone number",
+        "Selecting a client populates: clientName, clientId, clientType (Regular/VIP)",
+        "Show 'First Visit' badge if client has no previous visits",
+        "Allow 'Create New Client' option if no match",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser: type client name -> see matches -> select -> form populated"
+      ],
+      "files": [
+        "src/components/tickets/CreateTicketModal.tsx"
+      ],
+      "notes": "Use existing selectClients selector from clientsSlice. Follow Command/Combobox pattern from @/components/ui/command. Debounce search input.",
+      "priority": 10,
+      "passes": false
+    }
+  ]
+}
