@@ -33,14 +33,15 @@ interface PreFetchedTickets {
 /**
  * Generate a cache key from store ID and assignment criteria.
  * The key is deterministic for the same criteria.
+ * Note: Uses spread operator to avoid mutating the caller's arrays when sorting.
  */
 function generateCacheKey(storeId: string, criteria: AssignmentCriteria): string {
   const parts = [
     storeId,
-    criteria.serviceIds.sort().join(','),
+    [...criteria.serviceIds].sort().join(','),
     criteria.vipClient ? 'vip' : '',
     criteria.preferredStaffId || '',
-    (criteria.requiredSkills || []).sort().join(','),
+    [...(criteria.requiredSkills || [])].sort().join(','),
   ];
   return parts.join(':');
 }

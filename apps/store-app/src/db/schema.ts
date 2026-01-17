@@ -778,7 +778,8 @@ export class MangoPOSDatabase extends Dexie {
     // See: scripts/ralph/runs/sqlite-migration/prd.json US-004
     // These indexes optimize:
     // - [storeId+status+createdAt]: Turn queue queries filtering by status and sorting by time
-    // - [storeId+staffId+createdAt]: Staff performance queries for ticket counts per staff
+    // - [storeId+staffId+createdAt]: Primary staff lookup (ticket.staffId is optional display field)
+    // Note: Staff ticket counts use ticket.services[].staffId (nested), not the primary staffId index
     this.version(16).stores({
       // All existing tables unchanged
       appointments: 'id, storeId, clientId, staffId, status, scheduledStartTime, syncStatus, [storeId+status], [storeId+scheduledStartTime], [staffId+scheduledStartTime], [clientId+scheduledStartTime]',
