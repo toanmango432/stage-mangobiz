@@ -18,6 +18,9 @@
 
 import { store } from '@/store';
 
+// Feature flags for backend selection
+import { shouldUseSQLite, getBackendType, logBackendSelection } from '@/config/featureFlags';
+
 // LOCAL-FIRST: Import IndexedDB operations
 import {
   clientsDB,
@@ -296,6 +299,8 @@ export function getModeInfo(): {
   dataSource: DataSourceType;
   apiEnabled: boolean;
   apiBaseUrl: string | undefined;
+  backend: 'dexie' | 'sqlite';
+  sqliteEnabled: boolean;
 } {
   return {
     mode: USE_API ? 'api' : 'local-first',
@@ -303,6 +308,8 @@ export function getModeInfo(): {
     dataSource: getDataSource(),
     apiEnabled: USE_API,
     apiBaseUrl: USE_API ? (import.meta.env.VITE_API_BASE_URL || '/api') : undefined,
+    backend: getBackendType(),
+    sqliteEnabled: shouldUseSQLite(),
   };
 }
 
@@ -313,8 +320,16 @@ export function isAPIMode(): boolean {
   return USE_API;
 }
 
+// ==================== BACKEND SELECTION LOGGING ====================
+// Log backend selection on module load (once)
+logBackendSelection();
+
 // ==================== LOCAL-FIRST ENTITY SERVICES ====================
 // All reads from IndexedDB (instant), writes queue to sync
+// Note: When VITE_USE_SQLITE=true and running in Electron, SQLite services
+// will be used instead of Dexie. This routing is implemented in US-015/US-016.
+// Current placeholder: always uses Dexie for backwards compatibility.
+const USE_SQLITE = shouldUseSQLite();
 
 /**
  * Clients data operations
@@ -1243,6 +1258,9 @@ export const segmentsService = {
 
 // ==================== EXPORTS ====================
 
+// Re-export feature flags for convenience
+export { shouldUseSQLite, getBackendType } from '@/config/featureFlags';
+
 export const dataService = {
   // Execution helpers
   execute: executeDataOperation,
@@ -1256,6 +1274,10 @@ export const dataService = {
   getDataSource,
   getStoreId,
   isAPIMode,
+
+  // SQLite mode helpers (for future use)
+  shouldUseSQLite: () => USE_SQLITE,
+  getBackendType,
 
   // API Mode: Get configured API client (for advanced usage)
   getAPIClient: USE_API ? getAPIClient : () => null,
