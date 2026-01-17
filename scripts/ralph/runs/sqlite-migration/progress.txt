@@ -323,3 +323,29 @@ Commit: fb5c839
   - Boolean → INTEGER conversion: `record.isActive ? 1 : 0`
   - Pre-existing typecheck errors in sqlite-adapter (capacitor.ts, web.ts, factory.ts, electron.ts) are unrelated
 ---
+
+## 2026-01-17 - US-014: Add feature flag for SQLite backend selection
+Commit: 44a4335
+- Created `apps/store-app/src/config/featureFlags.ts`:
+  - `isElectron()`: Detects Electron via window.electron, userAgent, or process.versions
+  - `isCapacitor()`: Detects Capacitor (iOS/Android) via window.Capacitor
+  - `isWeb()`: Returns true if not Electron or Capacitor
+  - `getPlatform()`: Returns 'electron' | 'capacitor' | 'web'
+  - `shouldUseSQLite()`: Returns true only if `isElectron() && VITE_USE_SQLITE === 'true'`
+  - `getBackendType()`: Returns 'dexie' | 'sqlite' based on shouldUseSQLite()
+  - `logBackendSelection()`: Logs `[DataService] Using backend: {type} (platform: {platform})`
+  - Additional flags: `isAPIMode()`, `isDevMode()`, `isOfflineModeEnabled()`, `isMQTTEnabled()`
+- Modified `apps/store-app/src/services/dataService.ts`:
+  - Imported feature flags from `@/config/featureFlags`
+  - Added `logBackendSelection()` call on module load (logs once at startup)
+  - Added `USE_SQLITE` constant for future service routing
+  - Extended `getModeInfo()` to include `backend` and `sqliteEnabled` fields
+  - Re-exported `shouldUseSQLite` and `getBackendType` for convenience
+  - Added `shouldUseSQLite()` and `getBackendType` to dataService object
+- **Learnings for future iterations:**
+  - Electron detection: check `window.electron`, userAgent for 'electron', or `process.versions.electron`
+  - Capacitor detection: check `window.Capacitor` or userAgent includes 'Capacitor'
+  - Feature flags default to safe values (Dexie) - SQLite is opt-in via env var
+  - Module-level side effects (logBackendSelection) execute once on import
+  - Pre-existing typecheck errors in test files (AgendaView.test.tsx, etc.) are unrelated
+---

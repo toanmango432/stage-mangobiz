@@ -305,7 +305,7 @@
       ],
       "notes": "Default to Dexie for safety (SQLite is opt-in). Web/Capacitor always use Dexie (no SQLite support yet). Electron can opt-in via env var. Actual routing logic implemented in later story.",
       "priority": 14,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-015",
