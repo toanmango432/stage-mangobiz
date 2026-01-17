@@ -11,6 +11,9 @@ import type { Migration, MigrationRecord } from './types';
 // Re-export types for convenience
 export type { Migration, MigrationRecord } from './types';
 
+// Export individual migrations
+export { migration_001 } from './v001_initial_schema';
+
 /**
  * Create the _migrations tracking table if it doesn't exist
  */
