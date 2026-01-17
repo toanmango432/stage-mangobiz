@@ -22,7 +22,10 @@ export { createSQLiteAdapter } from './factory';
 // Service manager - will be implemented
 export { SQLiteService, getSQLiteService, initializeSQLite } from './SQLiteService';
 
-// Services - will be implemented
-// export { ClientSQLiteService } from './services/clientService';
-// export { TicketSQLiteService } from './services/ticketService';
-// export { StaffSQLiteService } from './services/staffService';
+// Services
+export {
+  ClientSQLiteService,
+  type Client as SQLiteClient,
+  type ClientFilters as SQLiteClientFilters,
+  type ClientSortOptions as SQLiteClientSortOptions,
+} from './services';
