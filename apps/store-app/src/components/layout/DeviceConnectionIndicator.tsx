@@ -10,7 +10,7 @@
  * Last updated: 2026-01-17
  */
 
-import { Layers, ChevronDown, AlertTriangle, Tablet, Printer, CreditCard, Circle } from 'lucide-react';
+import { Layers, ChevronDown, AlertTriangle, Tablet, Printer, CreditCard, Circle, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import {
@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/popover';
 import { DeviceStatusRow } from './DeviceStatusRow';
 import type { DeviceStatusRowStatus } from './DeviceStatusRow';
+import { QuickDeviceSetupModal } from './QuickDeviceSetupModal';
 
 export function DeviceConnectionIndicator() {
   // Subscribe to incoming Pad heartbeats
@@ -66,6 +67,7 @@ export function DeviceConnectionIndicator() {
   const hasAnyConnected = totalConnected > 0;
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -312,7 +314,27 @@ export function DeviceConnectionIndicator() {
             )}
           </div>
         </div>
+
+        {/* Footer with Quick Setup button */}
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setIsModalOpen(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Quick Setup
+          </button>
+        </div>
       </PopoverContent>
+
+      {/* Quick Device Setup Modal */}
+      <QuickDeviceSetupModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </Popover>
   );
 }
