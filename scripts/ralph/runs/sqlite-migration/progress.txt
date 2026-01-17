@@ -201,8 +201,8 @@ Phase 1 Summary (US-001 to US-008):
 
 Phase 2 Focus (US-009 to US-016): SQLite for Electron
 - US-009: better-sqlite3 Electron adapter ✅
-- US-010: SQLite migration runner
-- US-011: Initial SQLite schema (core tables)
+- US-010: SQLite migration runner ✅
+- US-011: Initial SQLite schema (core tables) ✅
 - US-012: SQLite schema (staff and services)
 - US-013: Dexie to SQLite data migration
 - US-014: Feature flag for backend selection
@@ -252,4 +252,74 @@ Commit: 23032a0
   - Migration sorting by version ensures correct order even if array is unsorted
   - Wrap each migration in transaction for atomicity - either all SQL succeeds or none
   - `SELECT MAX(version)` returns `null` for empty table - handle with nullish coalescing (`?? 0`)
+---
+
+## 2026-01-17 - US-011: Create initial SQLite schema (core tables)
+Commit: b353d1c
+- Created `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts`:
+  - `migration_001` export implementing `Migration` interface
+  - Version 1, name: 'initial_schema'
+  - **appointments table**: id (PK), storeId, clientId, staffId, status, scheduledStartTime, scheduledEndTime, createdAt, updatedAt, syncStatus
+  - **tickets table**: id (PK), storeId, clientId, status, services (JSON TEXT), createdAt, updatedAt, syncStatus
+  - **clients table**: id (PK), storeId, firstName, lastName, phone, email, createdAt, updatedAt, syncStatus
+  - **Indexes created**:
+    - `idx_appointments_store_status ON appointments(storeId, status)`
+    - `idx_tickets_store_status_created ON tickets(storeId, status, createdAt)`
+    - `idx_clients_store ON clients(storeId)`
+  - `down()` drops tables in reverse order: clients → tickets → appointments
+- Updated `packages/sqlite-adapter/src/migrations/index.ts` to export `migration_001`
+- **Learnings for future iterations:**
+  - Pre-existing typecheck errors in sqlite-adapter (capacitor.ts, web.ts, factory.ts) are unrelated to migration work
+  - SQLite schema should use TEXT for strings/dates, INTEGER for numbers, REAL for decimals
+  - JSON fields (like services array) stored as TEXT, parsed in application code
+  - `syncStatus TEXT DEFAULT 'local'` provides consistent default for offline sync
+---
+
+## 2026-01-17 - US-012: Create SQLite schema (staff and services tables)
+Commit: 76c7255
+- Created `packages/sqlite-adapter/src/migrations/v002_staff_services.ts`:
+  - `migration_002` export implementing `Migration` interface
+  - Version 2, name: 'staff_services'
+  - **staff table**: id (PK), storeId, name, email, phone, avatar, specialties (JSON), specialty, skills (JSON), status, isActive, role, hireDate, commissionRate, clockedInAt, currentTicketId, schedule (JSON), turnQueuePosition, servicesCountToday, revenueToday, tipsToday, rating, vipPreferred, createdAt, updatedAt, syncStatus
+  - **services table**: id (PK), storeId, name, category, description, duration (INTEGER), price (REAL), commissionRate (REAL), isActive, createdAt, updatedAt, syncStatus
+  - **Indexes created**:
+    - `idx_staff_store ON staff(storeId)`
+    - `idx_staff_store_status ON staff(storeId, status)`
+    - `idx_services_store ON services(storeId)`
+    - `idx_services_store_category ON services(storeId, category)`
+    - `idx_services_store_active ON services(storeId, isActive)`
+  - `down()` drops tables in reverse order: services → staff
+- Updated `packages/sqlite-adapter/src/migrations/index.ts` to export `migration_002`
+- **Learnings for future iterations:**
+  - Staff table has many more fields than the minimal PRD spec - always check the full TypeScript interface
+  - Use INTEGER for boolean fields in SQLite (0/1) and for numbers like servicesCountToday
+  - Use REAL for decimal values like rating, commissionRate, revenueToday
+  - Arrays/objects (skills, schedule, specialties) stored as JSON TEXT
+---
+
+## 2026-01-17 - US-013: Create Dexie to SQLite data migration utility
+Commit: fb5c839
+- Created `packages/sqlite-adapter/src/migrations/dataMigration.ts`:
+  - `MigrationResult` interface: `{ success: boolean; tables: TableMigrationResult[]; errors: string[] }`
+  - `TableMigrationResult` interface: `{ name: string; count: number }`
+  - `migrateFromDexie(dexieDb, sqliteDb, onProgress?)` main migration function
+  - Dependency-ordered migration: staff → clients → services → appointments → tickets
+  - Batch inserts: 500 records per transaction for performance
+  - Converter functions for each table: `staffToSQLiteValues()`, `clientToSQLiteValues()`, etc.
+  - JSON serialization: `JSON.stringify()` for complex fields (skills, services array, schedule)
+  - Count validation: verifies Dexie count === SQLite inserted count
+  - Progress callback: `onProgress(tableName, recordCount)` for UI feedback
+- Updated `packages/sqlite-adapter/src/migrations/index.ts`:
+  - Export `MigrationResult`, `TableMigrationResult` types
+  - Export `migrateFromDexie` function
+- Updated `packages/sqlite-adapter/src/index.ts`:
+  - Export `MigrationResult`, `TableMigrationResult` types
+  - Export `migrateFromDexie` function
+- **Learnings for future iterations:**
+  - Loosely typed DexieDatabase interface allows migration from any Dexie structure
+  - Batch inserts (500 records) balance memory usage vs transaction overhead
+  - Use `Record<string, unknown>` instead of `Record<string, any>` to avoid forbidden strings
+  - Handle nullable fields with ternary: `record.field != null ? ... : null`
+  - Boolean → INTEGER conversion: `record.isActive ? 1 : 0`
+  - Pre-existing typecheck errors in sqlite-adapter (capacitor.ts, web.ts, factory.ts, electron.ts) are unrelated
 ---

@@ -239,7 +239,7 @@
       ],
       "notes": "Reference apps/store-app/src/db/schema.ts for Dexie field names. SQLite types: TEXT for strings/dates, INTEGER for numbers, REAL for decimals. JSON fields (like services array) stored as TEXT, parsed in application.",
       "priority": 11,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012",
@@ -260,7 +260,7 @@
       ],
       "notes": "Continue pattern from v001. Staff skills is JSON array stored as TEXT. Services duration in minutes as INTEGER.",
       "priority": 12,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-013",
@@ -283,7 +283,7 @@
       ],
       "notes": "Read from Dexie via .toArray() (one-time full read is OK for migration). Batch insert for performance: INSERT INTO table VALUES (...), (...), .... JSON fields: JSON.stringify() before insert. UUIDs preserved as-is (TEXT in SQLite).",
       "priority": 13,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-014",
