@@ -1,7 +1,7 @@
 {
   "project": "Mango POS Offline V2 - SQLite Migration",
   "branchName": "ralph/sqlite-migration",
-  "description": "Data layer performance optimization through architecture fixes and SQLite migration. Phase 1 fixes N+1 patterns and adds indexes. Phase 2 implements SQLite for Electron.",
+  "description": "Data layer performance optimization through architecture fixes and SQLite migration. Phase 1 fixes N+1 patterns and adds indexes. Phase 2 implements SQLite for Electron. Phase 3 evaluates mobile/web SQLite options.",
   "userStories": [
     {
       "id": "US-001",
@@ -354,6 +354,76 @@
       "notes": "Key benefit: getStaffTicketCounts uses SELECT staffId, COUNT(*) FROM ... GROUP BY staffId. getDailyStats uses SELECT COUNT(*), SUM(total) FROM .... These SQL aggregations replace expensive JS loops. services JSON field: use json_extract() for SQLite or parse in application.",
       "priority": 16,
       "passes": true
+    },
+    {
+      "id": "US-017",
+      "title": "Research wa-sqlite for web platform",
+      "description": "As a developer, I need to evaluate wa-sqlite viability for web browsers.",
+      "acceptanceCriteria": [
+        "Create WA_SQLITE_EVALUATION.md in packages/sqlite-adapter/docs/",
+        "Document wa-sqlite requirements: COOP/COEP headers, SharedArrayBuffer",
+        "Document OPFS (Origin Private File System) browser support matrix",
+        "List performance benchmarks from wa-sqlite docs/issues (WASM overhead vs native IndexedDB)",
+        "Compare: wa-sqlite ~10-50ms per query vs native IndexedDB ~1-5ms",
+        "Include recommendation: use wa-sqlite OR stick with Dexie for web",
+        "If recommending wa-sqlite: list implementation steps needed",
+        "If recommending Dexie: document reasoning why",
+        "No forbidden strings: '// TODO:'",
+        "File is well-structured markdown with clear sections"
+      ],
+      "files": [
+        "packages/sqlite-adapter/docs/WA_SQLITE_EVALUATION.md"
+      ],
+      "notes": "This is a research/documentation story, no code changes. wa-sqlite has WASM overhead. COOP/COEP headers required for SharedArrayBuffer (needed for OPFS). Research official docs: https://github.com/nickvdyck/nickvdyck.github.io/tree/master/nickvd and https://nickvdyck.github.io/nickvd/2024/10/12/sqlite-in-the-browser/",
+      "priority": 17,
+      "passes": true
+    },
+    {
+      "id": "US-018",
+      "title": "Research Capacitor SQLite for mobile",
+      "description": "As a developer, I need to evaluate @capacitor-community/sqlite for iOS/Android.",
+      "acceptanceCriteria": [
+        "Create CAPACITOR_SQLITE_EVALUATION.md in packages/sqlite-adapter/docs/",
+        "Document @capacitor-community/sqlite plugin capabilities and API",
+        "Document iOS vs Android platform differences",
+        "List performance benchmarks if available from plugin docs/issues",
+        "Document migration path from IndexedDB to native SQLite",
+        "Document offline sync considerations for mobile",
+        "Include recommendation: implement Capacitor adapter OR defer",
+        "If implementing: list user stories needed for full implementation",
+        "No forbidden strings: '// TODO:'",
+        "File is well-structured markdown with clear sections"
+      ],
+      "files": [
+        "packages/sqlite-adapter/docs/CAPACITOR_SQLITE_EVALUATION.md"
+      ],
+      "notes": "This is a research/documentation story, no code changes. @capacitor-community/sqlite is community-maintained (not official). Research official docs: https://github.com/capacitor-community/sqlite. Consider: plugin updates, native code maintenance, iOS vs Android quirks.",
+      "priority": 18,
+      "passes": false
+    },
+    {
+      "id": "US-019",
+      "title": "Phase 3 decision checkpoint",
+      "description": "As a developer, I need to make a go/no-go decision on mobile/web SQLite based on Phase 1-3 findings.",
+      "acceptanceCriteria": [
+        "Create PHASE_3_DECISION.md in packages/sqlite-adapter/docs/",
+        "Summarize Phase 1 performance results (Dexie optimizations)",
+        "Summarize Phase 2 Electron SQLite implementation status",
+        "Reference wa-sqlite evaluation from US-017",
+        "Reference Capacitor SQLite evaluation from US-018",
+        "Include decision matrix: effort vs benefit for each platform (Web, iOS, Android, Electron)",
+        "Final recommendation: 'Full SQLite' | 'Hybrid' | 'Dexie everywhere'",
+        "If Full SQLite: outline follow-up PRD for implementation",
+        "If Hybrid/Dexie: document maintenance plan",
+        "No forbidden strings: '// TODO:'",
+        "File is well-structured markdown with clear executive summary"
+      ],
+      "files": [
+        "packages/sqlite-adapter/docs/PHASE_3_DECISION.md"
+      ],
+      "notes": "This is the Phase 3 evaluation gate. Decision should be data-driven based on actual findings from Phase 1, 2, and earlier Phase 3 research stories. This completes the SQLite Migration PRD.",
+      "priority": 19,
+      "passes": false
     }
   ]
 }

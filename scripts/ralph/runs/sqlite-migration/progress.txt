@@ -428,3 +428,50 @@ Full PRD (US-001 to US-016) Summary:
 
 All 16 user stories COMPLETE!
 ---
+
+## ========================================
+## PHASE 3 STARTING - Mobile/Web SQLite Evaluation
+## ========================================
+
+Phase 3 Focus (US-017 to US-019): Evaluate Mobile/Web SQLite Options
+- US-017: Research wa-sqlite for web platform (documentation)
+- US-018: Research Capacitor SQLite for mobile (documentation)
+- US-019: Phase 3 decision checkpoint (final recommendation)
+
+Phase 3 Notes:
+- These are research/documentation stories, not code implementation
+- Goal: Make data-driven decision on whether to pursue SQLite for Web/Mobile
+- Key considerations: WASM overhead, browser support, plugin maintenance
+- Output: Decision document with recommendation (Full SQLite | Hybrid | Dexie everywhere)
+
+---
+
+## 2026-01-17 - US-017: Research wa-sqlite for web platform
+Commit: 44436ba
+- Created `packages/sqlite-adapter/docs/WA_SQLITE_EVALUATION.md` (371 lines):
+  - Executive summary with **recommendation: Stick with Dexie.js for Web**
+  - Technical requirements: COOP/COEP headers, SharedArrayBuffer, OPFS
+  - Browser support matrix for OPFS and various VFS implementations
+  - Performance analysis: wa-sqlite vs IndexedDB, Notion's benchmarks
+  - Implementation complexity: Worker setup, multi-tab coordination, fallback logic
+  - Comparison table: wa-sqlite vs Dexie.js with feature-by-feature analysis
+  - Real-world case study: Notion's implementation challenges and solutions
+  - "If We Were to Implement" section with steps and effort estimate (15-20 days)
+- **Key Findings:**
+  - wa-sqlite OPFSCoopSyncVFS does NOT require COOP/COEP headers (common misconception)
+  - Multi-tab coordination is the biggest challenge (SharedWorker + Web Locks needed)
+  - Safari has limited OPFS support (single-tab sync access only)
+  - Notion saw 20-33% speed improvements but with significant complexity
+  - WASM bundle adds 1-3MB to initial load
+- **Recommendation Rationale:**
+  - Phase 1 Dexie optimizations provide most benefit with far less complexity
+  - Multi-tab support is critical for Mango POS (staff often have multiple tabs)
+  - Safari/iPad limitations create risk for salon deployments
+  - Development velocity matters more than marginal performance gains
+  - Hybrid strategy (Electron: SQLite, Web: Dexie) is optimal
+- **Learnings for future iterations:**
+  - wa-sqlite has multiple VFS options with different trade-offs
+  - OPFSCoopSyncVFS is recommended for production (no COOP/COEP, good performance)
+  - IDBBatchAtomicVFS degrades for databases >100MB
+  - Research stories require web search to get current 2025/2026 information
+---
