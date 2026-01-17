@@ -1,0 +1,213 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/frontdesk-tickets",
+  "description": "Add critical path tests for Front Desk ticket flows - reducer tests for markTicketAsPaid and ticket lifecycle integration tests",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add markTicketAsPaid.fulfilled reducer tests for waitlist source",
+      "description": "As a developer, I need tests that verify the markTicketAsPaid.fulfilled reducer correctly removes tickets from waitlist and adds them to completedTickets.",
+      "acceptanceCriteria": [
+        "Add test: 'should remove ticket from waitlist when sourceArray is waitlist'",
+        "Test sets up store with ticket in waitlist array",
+        "Test dispatches markTicketAsPaid.fulfilled action with sourceArray: 'waitlist'",
+        "Test verifies ticket is removed from waitlist",
+        "Test verifies ticket is added to completedTickets with status 'completed'",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. Follow existing test patterns in file. Use createMockUITicket helper."
+    },
+    {
+      "id": "US-002",
+      "title": "Add markTicketAsPaid.fulfilled reducer tests for serviceTickets source",
+      "description": "As a developer, I need tests that verify the markTicketAsPaid.fulfilled reducer correctly removes tickets from serviceTickets (in-service) and adds them to completedTickets.",
+      "acceptanceCriteria": [
+        "Add test: 'should remove ticket from serviceTickets when sourceArray is in-service'",
+        "Test sets up store with ticket in serviceTickets array",
+        "Test dispatches markTicketAsPaid.fulfilled action with sourceArray: 'in-service'",
+        "Test verifies ticket is removed from serviceTickets",
+        "Test verifies ticket is added to completedTickets",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. Add to same describe block as US-001."
+    },
+    {
+      "id": "US-003",
+      "title": "Add markTicketAsPaid.fulfilled reducer tests for pendingTickets source",
+      "description": "As a developer, I need tests that verify the markTicketAsPaid.fulfilled reducer correctly removes tickets from pendingTickets and adds them to completedTickets.",
+      "acceptanceCriteria": [
+        "Add test: 'should remove ticket from pendingTickets when sourceArray is pending'",
+        "Test sets up store with ticket in pendingTickets array",
+        "Test dispatches markTicketAsPaid.fulfilled action with sourceArray: 'pending'",
+        "Test verifies ticket is removed from pendingTickets",
+        "Test verifies ticket is added to completedTickets",
+        "Use createMockPendingTicket helper for pendingTickets",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. PendingTicket has different shape than UITicket - use correct mock helper."
+    },
+    {
+      "id": "US-004",
+      "title": "Add markTicketAsPaid.fulfilled tests for total calculation",
+      "description": "As a developer, I need tests that verify the reducer correctly calculates total from subtotal, tax, and tip.",
+      "acceptanceCriteria": [
+        "Add test: 'should calculate total correctly with subtotal, tax, and tip'",
+        "Test uses PendingTicket with subtotal: 50, tax: 5",
+        "Test passes tip: 10 in action payload",
+        "Test verifies completedTicket.total equals 65 (50 + 5 + 10)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. Total calculation: subtotal + tax + tip."
+    },
+    {
+      "id": "US-005",
+      "title": "Add markTicketAsPaid.fulfilled tests for payment method display",
+      "description": "As a developer, I need tests that verify the reducer correctly maps payment method values for display.",
+      "acceptanceCriteria": [
+        "Add test: 'should set payment method display value correctly'",
+        "Test verifies paymentMethod 'credit-card' becomes 'Card' in completedTicket",
+        "Test verifies paymentMethod 'cash' becomes 'Cash' in completedTicket",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. Payment method mapping: 'credit-card' -> 'Card', 'cash' -> 'Cash'."
+    },
+    {
+      "id": "US-006",
+      "title": "Create ticket lifecycle integration test file",
+      "description": "As a developer, I need a new integration test file for ticket lifecycle flows.",
+      "acceptanceCriteria": [
+        "Create new file: src/testing/integration/frontdesk/ticketLifecycle.test.ts",
+        "File has proper imports from vitest and @reduxjs/toolkit",
+        "File has createTestStore helper function",
+        "File has createMockUITicket and createMockPendingTicket helpers",
+        "File has basic describe block for 'Ticket Lifecycle Integration'",
+        "Typecheck passes",
+        "Tests pass (empty test suite is OK)"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Follow pattern from src/testing/integration/frontdesk/ticketOperations.test.ts. Use uiTicketsReducer from store/slices/uiTicketsSlice."
+    },
+    {
+      "id": "US-007",
+      "title": "Add normal ticket flow lifecycle test",
+      "description": "As a developer, I need a test that verifies the complete normal ticket lifecycle: waiting → in-service → pending → paid.",
+      "acceptanceCriteria": [
+        "Add describe block: 'normal flow: waiting → in-service → pending → paid'",
+        "Add test: 'should move ticket through all states correctly'",
+        "Test creates ticket in waitlist with status 'waiting'",
+        "Test uses ticketUpdated action to move to 'in-service' (serviceTickets)",
+        "Test uses ticketUpdated action to move to 'completed' (pendingTickets)",
+        "Test verifies ticket is in correct array at each step",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Use ticketUpdated reducer action for state transitions."
+    },
+    {
+      "id": "US-008",
+      "title": "Add direct checkout from waiting test",
+      "description": "As a developer, I need a test that verifies direct checkout works from waiting status.",
+      "acceptanceCriteria": [
+        "Add describe block: 'direct checkout flows'",
+        "Add test: 'should checkout directly from waiting status'",
+        "Test creates ticket in waitlist",
+        "Test dispatches markTicketAsPaid.fulfilled with sourceArray: 'waitlist'",
+        "Test verifies ticket removed from waitlist",
+        "Test verifies ticket added to completedTickets",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. This tests the bug fix for direct checkout."
+    },
+    {
+      "id": "US-009",
+      "title": "Add direct checkout from in-service test",
+      "description": "As a developer, I need a test that verifies direct checkout works from in-service status.",
+      "acceptanceCriteria": [
+        "Add test: 'should checkout directly from in-service status'",
+        "Test creates ticket in serviceTickets",
+        "Test dispatches markTicketAsPaid.fulfilled with sourceArray: 'in-service'",
+        "Test verifies ticket removed from serviceTickets",
+        "Test verifies ticket added to completedTickets",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Add to 'direct checkout flows' describe block."
+    },
+    {
+      "id": "US-010",
+      "title": "Add checkout from pending test (regression)",
+      "description": "As a developer, I need a regression test that verifies normal checkout from pending still works.",
+      "acceptanceCriteria": [
+        "Add test: 'should checkout from pending status (normal flow)'",
+        "Test creates ticket in pendingTickets using createMockPendingTicket",
+        "Test dispatches markTicketAsPaid.fulfilled with sourceArray: 'pending'",
+        "Test verifies ticket removed from pendingTickets",
+        "Test verifies ticket added to completedTickets",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Regression test to ensure existing flow still works."
+    },
+    {
+      "id": "US-011",
+      "title": "Add appointment check-in to checkout flow test",
+      "description": "As a developer, I need a test that verifies the complete flow from appointment check-in to checkout.",
+      "acceptanceCriteria": [
+        "Add describe block: 'appointment check-in flows'",
+        "Add test: 'should handle appointment check-in to waitlist to checkout'",
+        "Test simulates appointment being checked in (creates ticket in waitlist with appointmentId)",
+        "Test verifies ticket has appointmentId linking back to source appointment",
+        "Test dispatches markTicketAsPaid.fulfilled with sourceArray: 'waitlist'",
+        "Test verifies ticket removed from waitlist and added to completedTickets",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Tests the coming appointment → ticket → checkout flow. Ticket should have appointmentId field to track origin."
+    },
+    {
+      "id": "US-012",
+      "title": "Add re-checkout closed ticket error handling test",
+      "description": "As a developer, I need a test that verifies attempting to checkout an already completed ticket is handled correctly.",
+      "acceptanceCriteria": [
+        "Add describe block: 'edge cases and error handling'",
+        "Add test: 'should handle checkout attempt on already completed ticket'",
+        "Test creates ticket already in completedTickets with status 'completed'",
+        "Test dispatches markTicketAsPaid.fulfilled with sourceArray: 'completed' or ticket not found scenario",
+        "Test verifies completedTickets array is unchanged (no duplicate entries)",
+        "Test verifies no errors thrown",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Edge case test - ensures idempotent behavior when checkout is called on already-paid ticket."
+    }
+  ]
+}

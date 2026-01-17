@@ -217,9 +217,8 @@ export function TicketActions({
   };
 
   // Handle PIN verification success
-  const handlePinSuccess = (managerId: string) => {
-    // Log the manager ID for audit purposes
-    console.log(`Status reversal authorized by manager: ${managerId}`);
+  const handlePinSuccess = (_managerId: string) => {
+    // Manager ID available for audit logging when audit system is implemented
 
     // Execute the pending reversal action
     if (pendingReversalAction === 'back-to-waiting') {

@@ -354,3 +354,20 @@ const handleClose = () => {
   />
 )}
 ```
+
+---
+
+## Ralph Workflow Preferences
+
+### Branch Management
+- **Do NOT automatically create new branches** - always ask the user first
+- If PRD has a different branchName than current branch, ask: "Create new branch or stay on current?"
+- Run directories can have any name, they don't need to match the branch name
+
+### Setting Up New Ralph Runs
+1. Create run directory: `scripts/ralph/runs/<run-name>/`
+2. Ask user about branch preference before creating/switching branches
+3. Update prd.json `branchName` to match chosen branch
+4. Copy prompt.md from existing run
+5. Create progress.txt
+6. Run: `./scripts/ralph/ralph.sh 50 <run-name>`

@@ -308,13 +308,11 @@ export function ClosedTickets({
   };
   // Handle export to CSV
   const handleExportCSV = () => {
-    // Implementation would go here
-    console.log('Export to CSV');
+    // Export functionality not yet implemented
   };
   // Handle export to PDF
   const handleExportPDF = () => {
-    // Implementation would go here
-    console.log('Export to PDF');
+    // Export functionality not yet implemented
   };
   // Get payment type icon
   const getPaymentTypeIcon = (type: string) => {

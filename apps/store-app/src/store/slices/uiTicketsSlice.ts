@@ -4,7 +4,8 @@ import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
 import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange } from '../../types';
-import type { RootState } from '../index';
+// NOTE: Do NOT import RootState from '../index' - causes circular dependency
+// Instead, define a local type for the state we need access to
 import { v4 as uuidv4 } from 'uuid';
 // NOTE: Do NOT import thunks from transactionsSlice directly - causes circular dependency
 // Use dynamic import instead: const { createTransactionInSupabase } = await import('./transactionsSlice');
@@ -846,7 +847,8 @@ export const resumeTicket = createAsyncThunk(
   }
 );
 
-// Mark pending ticket as paid (creates transaction and removes from pending) via Supabase
+// Mark ticket as paid (creates transaction and removes from any ticket array) via Supabase
+// Supports direct checkout from waiting, in-service, OR pending sections
 export const markTicketAsPaid = createAsyncThunk(
   'uiTickets/markPaid',
   async (
@@ -865,33 +867,44 @@ export const markTicketAsPaid = createAsyncThunk(
   ) => {
     const state = getState() as RootState;
 
-    // Find the pending ticket
+    // Search ALL ticket arrays for the ticket (supports direct checkout from any status)
     const pendingTicket = state.uiTickets.pendingTickets.find(t => t.id === ticketId);
+    const waitlistTicket = state.uiTickets.waitlist.find(t => t.id === ticketId);
+    const serviceTicket = state.uiTickets.serviceTickets.find(t => t.id === ticketId);
 
-    if (!pendingTicket) {
-      throw new Error('Pending ticket not found');
+    const ticket = pendingTicket || waitlistTicket || serviceTicket;
+    const sourceArray: 'pending' | 'waitlist' | 'in-service' | null = pendingTicket
+      ? 'pending'
+      : waitlistTicket
+        ? 'waitlist'
+        : serviceTicket
+          ? 'in-service'
+          : null;
+
+    if (!ticket || !sourceArray) {
+      throw new Error('Ticket not found in any section');
     }
 
-    // Build transaction input
+    // Build transaction input - handle both UITicket and PendingTicket shapes
     const transactionInput: CreateTransactionInput = {
-      ticketId: pendingTicket.id,
-      ticketNumber: pendingTicket.number,
-      clientName: pendingTicket.clientName,
-      clientId: undefined,
-      subtotal: pendingTicket.subtotal,
-      tax: pendingTicket.tax,
+      ticketId: ticket.id,
+      ticketNumber: ticket.number,
+      clientName: ticket.clientName,
+      clientId: 'clientId' in ticket ? ticket.clientId : undefined,
+      subtotal: 'subtotal' in ticket ? ticket.subtotal : 0,
+      tax: 'tax' in ticket ? ticket.tax : 0,
       tip: tip,
       discount: 0,
       paymentMethod,
       paymentDetails,
       services: [
         {
-          name: pendingTicket.service,
-          price: pendingTicket.subtotal,
-          staffName: pendingTicket.technician,
+          name: ticket.service,
+          price: 'subtotal' in ticket ? ticket.subtotal : 0,
+          staffName: ticket.technician,
         },
       ],
-      notes: `Payment processed for ticket #${pendingTicket.number}`,
+      notes: `Payment processed for ticket #${ticket.number}`,
     };
 
     let transaction;
@@ -903,7 +916,7 @@ export const markTicketAsPaid = createAsyncThunk(
 
       // Update ticket status to 'paid' in Supabase
       await dataService.tickets.updateStatus(ticketId, 'paid');
-      console.log('✅ Ticket marked as paid in Supabase:', ticketId);
+      console.log('✅ Ticket marked as paid in Supabase:', ticketId, 'from:', sourceArray);
     } catch (error) {
       console.warn('⚠️ Supabase failed, falling back to IndexedDB:', error);
       // Dynamic import to avoid circular dependency
@@ -915,7 +928,8 @@ export const markTicketAsPaid = createAsyncThunk(
     return {
       ticketId,
       transaction,
-      pendingTicket, // Include ticket data for reducer to add to completedTickets
+      ticket, // Ticket data from any array (UITicket or PendingTicket)
+      sourceArray, // Which array the ticket was found in
       paymentMethod, // Include payment method for display in closed tickets
       tip, // Include tip amount for total calculation
     };
@@ -1446,6 +1460,7 @@ export const createCheckoutTicket = createAsyncThunk(
   async (input: CheckoutTicketInput, { getState }) => {
     const state = getState() as RootState;
     const ticketNumber = state.uiTickets.lastTicketNumber + 1;
+    const storeId = state.auth.store?.storeId ?? 'default-salon';
     const now = new Date();
 
     // Use provided status or default to 'in-service'
@@ -1509,7 +1524,7 @@ export const createCheckoutTicket = createAsyncThunk(
     // Save to IndexedDB using addRaw to preserve all fields including id and status
     await ticketsDB.addRaw({
       id: newTicket.id,
-      storeId: 'default-salon', // TODO: Get from auth state
+      storeId,
       clientId: input.clientId || null,
       clientName: input.clientName || 'Walk-in',
       number: ticketNumber,
@@ -1952,37 +1967,46 @@ const uiTicketsSlice = createSlice({
       })
       .addCase(markTicketAsPaid.fulfilled, (state, action) => {
         state.loading = false;
-        const { ticketId, pendingTicket, paymentMethod, tip } = action.payload;
+        const { ticketId, ticket, sourceArray, paymentMethod, tip } = action.payload;
 
-        // Remove from pending tickets
-        const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
-        if (ticketIndex !== -1) {
-          state.pendingTickets.splice(ticketIndex, 1);
+        // Remove ticket from source array based on where it was found
+        switch (sourceArray) {
+          case 'pending':
+            state.pendingTickets = state.pendingTickets.filter(t => t.id !== ticketId);
+            break;
+          case 'waitlist':
+            state.waitlist = state.waitlist.filter(t => t.id !== ticketId);
+            break;
+          case 'in-service':
+            state.serviceTickets = state.serviceTickets.filter(t => t.id !== ticketId);
+            break;
         }
 
-        // Bug #12 fix: Add to completedTickets (closed tickets)
-        // Convert PendingTicket to UITicket format
-        if (pendingTicket) {
-          // Calculate total from pendingTicket data
-          const total = (pendingTicket.subtotal || 0) + (pendingTicket.tax || 0) + (tip || 0);
+        // Add to completedTickets (closed tickets)
+        // Handle both UITicket and PendingTicket shapes
+        if (ticket) {
+          // Calculate total - handle both UITicket and PendingTicket data shapes
+          const subtotal = 'subtotal' in ticket ? ticket.subtotal : 0;
+          const tax = 'tax' in ticket ? ticket.tax : 0;
+          const total = (subtotal || 0) + (tax || 0) + (tip || 0);
 
           const closedTicket: UITicket = {
-            id: pendingTicket.id,
-            number: pendingTicket.number,
-            clientName: pendingTicket.clientName,
-            clientType: pendingTicket.clientType || 'walk-in',
-            service: pendingTicket.service,
-            time: pendingTicket.time,
-            duration: pendingTicket.duration,
+            id: ticket.id,
+            number: ticket.number,
+            clientName: ticket.clientName,
+            clientType: ticket.clientType || 'walk-in',
+            service: ticket.service,
+            time: ticket.time,
+            duration: ticket.duration,
             status: 'completed', // Mark as completed (paid tickets show as completed in UI)
-            technician: pendingTicket.technician,
-            techColor: pendingTicket.techColor,
-            techId: pendingTicket.techId,
-            assignedStaff: pendingTicket.assignedStaff,
-            notes: pendingTicket.notes,
-            createdAt: new Date(),
+            technician: ticket.technician,
+            techColor: ticket.techColor,
+            techId: ticket.techId,
+            assignedStaff: ticket.assignedStaff,
+            notes: ticket.notes,
+            createdAt: 'createdAt' in ticket ? ticket.createdAt : new Date(),
             updatedAt: new Date(),
-            lastVisitDate: pendingTicket.lastVisitDate,
+            lastVisitDate: ticket.lastVisitDate,
             // Add financial data for display
             total,
             paymentMethod: paymentMethod === 'credit-card' ? 'Card' : paymentMethod === 'cash' ? 'Cash' : paymentMethod,
