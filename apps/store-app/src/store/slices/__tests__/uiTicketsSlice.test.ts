@@ -550,5 +550,35 @@ describe('uiTicketsSlice', () => {
       expect(completedTickets[0].clientName).toBe('Pending Client');
       expect(completedTickets[0].status).toBe('completed');
     });
+
+    it('should calculate total correctly with subtotal, tax, and tip', () => {
+      // Set up store with PendingTicket having subtotal: 50, tax: 5
+      const pendingTicket = createMockPendingTicket({
+        id: 'total-calc-ticket',
+        number: 4,
+        clientName: 'Total Calc Client',
+        subtotal: 50,
+        tax: 5,
+      });
+      store = createTestStore({ pendingTickets: [pendingTicket] });
+
+      // Dispatch markTicketAsPaid.fulfilled action with tip: 10
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId: 'total-calc-ticket',
+          ticket: pendingTicket,
+          sourceArray: 'pending',
+          paymentMethod: 'credit-card',
+          tip: 10,
+          transaction: { id: 'txn-total' },
+        },
+      });
+
+      // Verify total equals 65 (50 + 5 + 10)
+      const completedTickets = store.getState().uiTickets.completedTickets;
+      expect(completedTickets).toHaveLength(1);
+      expect(completedTickets[0].total).toBe(65);
+    });
   });
 });

@@ -52,7 +52,7 @@
         "Tests pass"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. PendingTicket has different shape than UITicket - use correct mock helper."
     },
     {

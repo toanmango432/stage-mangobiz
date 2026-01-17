@@ -42,3 +42,20 @@ Commit: ae4a18a4bfdedc42f9dc909a31d5d3db4e3a257e
 **Next story suggestion:** US-003 (pendingTickets source test) - continues the same pattern in the same file with minimal context switching
 
 ---
+
+## 2026-01-17 - US-003: Add markTicketAsPaid.fulfilled reducer tests for pendingTickets source
+Commit: 6049589
+
+**Why this story?** US-003 is the next highest priority incomplete story and directly builds on the US-001/US-002 work. The previous iteration also suggested this as the logical next step. Working in the same file minimizes context switching.
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:516-548`: Added test 'should remove ticket from pendingTickets when sourceArray is pending'
+
+**Learnings:**
+- PendingTicket has a different shape than UITicket (includes subtotal, tax, tip, paymentType fields)
+- Must use `createMockPendingTicket` helper instead of `createMockUITicket` for pendingTickets array
+- Pre-existing typecheck errors are in many test files (AgendaView, AppointmentCard, MonthView, SmartBookingPanel, etc.) - not from this change
+
+**Next story suggestion:** US-004 (total calculation test) - same file, verifies the total = subtotal + tax + tip calculation that was touched in this test
+
+---
