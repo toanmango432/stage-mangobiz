@@ -83,7 +83,7 @@
         "Tests pass"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "File: src/store/slices/__tests__/uiTicketsSlice.test.ts. Payment method mapping: 'credit-card' -> 'Card', 'cash' -> 'Cash'."
     },
     {
@@ -100,7 +100,7 @@
         "Tests pass (empty test suite is OK)"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from src/testing/integration/frontdesk/ticketOperations.test.ts. Use uiTicketsReducer from store/slices/uiTicketsSlice."
     },
     {

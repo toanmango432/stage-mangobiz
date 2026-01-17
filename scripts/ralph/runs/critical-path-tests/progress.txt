@@ -76,3 +76,45 @@ Commit: 075a9f05a29419401a8d583cdb53682198d0e081
 **Next story suggestion:** US-005 (payment method display test) - same file, same describe block, tests the paymentMethod mapping that's also part of the markTicketAsPaid.fulfilled reducer
 
 ---
+
+## 2026-01-17 - US-005: Add markTicketAsPaid.fulfilled tests for payment method display
+Commit: c726b22
+
+**Why this story?** US-005 is the highest priority incomplete story and continues work in the same test file as US-001-004. Previous iteration suggested it as the logical next step. Same describe block minimizes context switching.
+
+**Changes:**
+- `apps/store-app/src/store/slices/__tests__/uiTicketsSlice.test.ts:584-640`: Added two tests for payment method display value mapping
+  - 'should set payment method display value correctly for credit-card' - verifies 'credit-card' → 'Card'
+  - 'should set payment method display value correctly for cash' - verifies 'cash' → 'Cash'
+
+**Learnings:**
+- The payment method mapping is in uiTicketsSlice.ts at line 2012: `paymentMethod === 'credit-card' ? 'Card' : paymentMethod === 'cash' ? 'Cash' : paymentMethod`
+- Pre-existing typecheck errors in AgendaView.test.tsx, AppointmentCard.test.tsx, MonthView.test.tsx, SmartBookingPanel.test.tsx etc. (Date vs string type mismatches)
+- Tests continue to show warnings about non-serializable Date values in state - pre-existing issue with the reducer
+
+**Next story suggestion:** US-006 (Create ticket lifecycle integration test file) - this is a NEW file that will be the foundation for US-007-012. Creating the scaffold first allows subsequent stories to add tests to it.
+
+---
+
+## 2026-01-17 - US-006: Create ticket lifecycle integration test file
+Commit: 6f0c587
+
+**Why this story?** US-006 is the highest priority incomplete story and is a dependency for US-007 through US-012. All subsequent stories need this test file scaffold. The previous iteration also suggested this as the logical next step.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts (NEW)`: Created new integration test file with:
+  - Imports from vitest and @reduxjs/toolkit
+  - `createTestStore` helper using the actual `uiTicketsReducer`
+  - `createMockUITicket` helper with proper Date types for createdAt/updatedAt
+  - `createMockPendingTicket` helper
+  - Basic describe block 'Ticket Lifecycle Integration' with initial state test
+
+**Learnings:**
+- UITicket type requires `createdAt: Date` and `updatedAt: Date` (not strings) - use `new Date()` not `new Date().toISOString()`
+- The existing uiTicketsSlice.test.ts has a type mismatch with createdAt (uses toISOString()) but this is a pre-existing issue
+- "No reducer provided for key 'uiTickets'" warning is benign when store is created without preloaded state
+- Pre-existing typecheck errors remain in AgendaView.test.tsx, AppointmentCard.test.tsx, etc. (Date vs string mismatches)
+
+**Next story suggestion:** US-007 (normal ticket flow lifecycle test) - directly builds on the scaffold created in this story, testing the waiting → in-service → pending → paid flow
+
+---

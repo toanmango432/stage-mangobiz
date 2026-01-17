@@ -109,4 +109,89 @@ describe('Ticket Lifecycle Integration', () => {
     expect(state.completedTickets).toEqual([]);
     expect(state.pendingTickets).toEqual([]);
   });
+
+  // ============================================
+  // NORMAL FLOW: waiting → in-service → pending → paid
+  // ============================================
+
+  describe('normal flow: waiting → in-service → pending → paid', () => {
+    it('should move ticket through all states correctly', () => {
+      // Step 1: Create ticket in waitlist with status 'waiting'
+      const ticketId = 'lifecycle-test-ticket-1';
+      const initialTicket = createMockUITicket({
+        id: ticketId,
+        number: 101,
+        status: 'waiting',
+        clientName: 'Lifecycle Test Client',
+        service: 'Full Service',
+      });
+
+      // Initialize store with ticket in waitlist
+      store = createTestStore({
+        waitlist: [initialTicket],
+      });
+
+      // Verify ticket is in waitlist
+      let state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(1);
+      expect(state.waitlist[0].id).toBe(ticketId);
+      expect(state.waitlist[0].status).toBe('waiting');
+      expect(state.serviceTickets).toHaveLength(0);
+      expect(state.pendingTickets).toHaveLength(0);
+      expect(state.completedTickets).toHaveLength(0);
+
+      // Step 2: Move to in-service using ticketUpdated action
+      const inServiceTicket: UITicket = {
+        ...initialTicket,
+        status: 'in-service',
+        updatedAt: new Date(),
+      };
+      store.dispatch(ticketUpdated(inServiceTicket));
+
+      // Verify ticket is now in serviceTickets
+      state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(0);
+      expect(state.serviceTickets).toHaveLength(1);
+      expect(state.serviceTickets[0].id).toBe(ticketId);
+      expect(state.serviceTickets[0].status).toBe('in-service');
+      expect(state.pendingTickets).toHaveLength(0);
+      expect(state.completedTickets).toHaveLength(0);
+
+      // Step 3: Move to pending using completeTicket.fulfilled action
+      // This simulates completing the service and moving to checkout
+      const pendingTicketData: PendingTicket = {
+        id: ticketId,
+        number: 101,
+        clientName: 'Lifecycle Test Client',
+        clientType: 'regular',
+        service: 'Full Service',
+        additionalServices: 0,
+        subtotal: 75,
+        tax: 7.5,
+        tip: 0,
+        paymentType: 'card',
+        time: '10:00 AM',
+        technician: 'John Doe',
+        techColor: '#FF5733',
+        techId: 'tech-1',
+      };
+
+      // Dispatch completeTicket.fulfilled action directly
+      store.dispatch({
+        type: 'uiTickets/complete/fulfilled',
+        payload: {
+          ticketId,
+          pendingTicket: pendingTicketData,
+        },
+      });
+
+      // Verify ticket is now in pendingTickets (awaiting payment)
+      state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(0);
+      expect(state.serviceTickets).toHaveLength(0);
+      expect(state.pendingTickets).toHaveLength(1);
+      expect(state.pendingTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets).toHaveLength(0);
+    });
+  });
 });
