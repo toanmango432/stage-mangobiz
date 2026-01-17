@@ -13,6 +13,7 @@ export type { Migration, MigrationRecord } from './types';
 
 // Export individual migrations
 export { migration_001 } from './v001_initial_schema';
+export { migration_002 } from './v002_staff_services';
 
 /**
  * Create the _migrations tracking table if it doesn't exist
