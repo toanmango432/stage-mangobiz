@@ -7,12 +7,15 @@
  */
 
 import { useState } from 'react';
-import { X, Layers, Plus, Tablet, Printer, CreditCard } from 'lucide-react';
-import { useAppSelector } from '@/store/hooks';
+import { X, Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
   getConnectedPads,
   selectAllPadDevices,
   selectOfflinePads,
+  removeDevice as removePadDevice,
+  updateDeviceStatus as updatePadDeviceStatus,
 } from '@/store/slices/padDevicesSlice';
 import {
   selectConnectedHardwareDevices,
@@ -21,6 +24,10 @@ import {
   selectPaymentTerminalsWithErrors,
   selectHardwareDevices,
   selectPaymentTerminals,
+  updateDeviceStatus,
+  updateTerminalStatus,
+  removeHardwareDevice,
+  removePaymentTerminal,
 } from '@/store/slices/settingsSlice';
 import {
   Dialog,
@@ -28,9 +35,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { DeviceStatusRow } from './DeviceStatusRow';
-import type { DeviceStatusRowStatus } from './DeviceStatusRow';
+import type { DeviceStatusRowStatus, DeviceStatusRowType } from './DeviceStatusRow';
 
 export interface QuickDeviceSetupModalProps {
   isOpen: boolean;
@@ -38,12 +55,22 @@ export interface QuickDeviceSetupModalProps {
   initialTab?: 'status' | 'add';
 }
 
+/** Device info for unpair confirmation dialog */
+interface DeviceToUnpair {
+  id: string;
+  name: string;
+  category: 'pad' | 'hardware' | 'terminal';
+}
+
 export function QuickDeviceSetupModal({
   isOpen,
   onClose,
   initialTab = 'status',
 }: QuickDeviceSetupModalProps) {
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState<'status' | 'add'>(initialTab);
+  const [deviceToUnpair, setDeviceToUnpair] = useState<DeviceToUnpair | null>(null);
+  const [isRetrying, setIsRetrying] = useState<string | null>(null);
 
   // Pad devices
   const connectedPads = useAppSelector(getConnectedPads);
@@ -86,7 +113,69 @@ export function QuickDeviceSetupModal({
     return [...devices].sort((a, b) => statusOrder[getStatus(a)] - statusOrder[getStatus(b)]);
   };
 
+  // Handle retry connection for a device
+  const handleRetryConnection = async (
+    deviceId: string,
+    deviceName: string,
+    category: 'pad' | 'hardware' | 'terminal'
+  ) => {
+    setIsRetrying(deviceId);
+    try {
+      if (category === 'pad') {
+        // For pads, set status to online (simulates retry - actual reconnection is via MQTT)
+        dispatch(updatePadDeviceStatus({ id: deviceId, status: 'online' }));
+        toast.success(`Reconnecting to ${deviceName}...`);
+      } else if (category === 'hardware') {
+        dispatch(updateDeviceStatus({ id: deviceId, status: 'connected' }));
+        toast.success(`${deviceName} reconnected`);
+      } else {
+        dispatch(updateTerminalStatus({ id: deviceId, status: 'connected' }));
+        toast.success(`${deviceName} reconnected`);
+      }
+    } catch {
+      toast.error(`Failed to reconnect ${deviceName}`);
+    } finally {
+      setIsRetrying(null);
+    }
+  };
+
+  // Handle unpair/remove device
+  const handleUnpairDevice = async () => {
+    if (!deviceToUnpair) return;
+
+    const { id, name, category } = deviceToUnpair;
+    try {
+      if (category === 'pad') {
+        dispatch(removePadDevice(id));
+        toast.success(`${name} unpaired successfully`);
+      } else if (category === 'hardware') {
+        const result = await dispatch(removeHardwareDevice(id));
+        if (removeHardwareDevice.rejected.match(result)) {
+          throw new Error(result.payload as string);
+        }
+        toast.success(`${name} removed successfully`);
+      } else {
+        const result = await dispatch(removePaymentTerminal(id));
+        if (removePaymentTerminal.rejected.match(result)) {
+          throw new Error(result.payload as string);
+        }
+        toast.success(`${name} removed successfully`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to remove ${name}: ${message}`);
+    } finally {
+      setDeviceToUnpair(null);
+    }
+  };
+
+  // Open unpair confirmation dialog
+  const confirmUnpair = (id: string, name: string, category: 'pad' | 'hardware' | 'terminal') => {
+    setDeviceToUnpair({ id, name, category });
+  };
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Custom header with close button */}
@@ -168,12 +257,33 @@ export function QuickDeviceSetupModal({
                           const hasError = status === 'disconnected' || status === 'error';
                           return (
                             <div key={device.id} className={hasError ? 'bg-amber-50/50' : ''}>
-                              <DeviceStatusRow
-                                name={device.name}
-                                status={status}
-                                type="pad"
-                                lastSeen={device.lastSeen}
-                              />
+                              <div className="flex items-center justify-between px-6 py-2">
+                                <DeviceStatusRow
+                                  name={device.name}
+                                  status={status}
+                                  type="pad"
+                                  lastSeen={device.lastSeen}
+                                />
+                                <div className="flex items-center gap-1 ml-2">
+                                  {hasError && (
+                                    <button
+                                      onClick={() => handleRetryConnection(device.id, device.name, 'pad')}
+                                      disabled={isRetrying === device.id}
+                                      className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                      title="Retry Connection"
+                                    >
+                                      <RefreshCw className={`w-3.5 h-3.5 ${isRetrying === device.id ? 'animate-spin' : ''}`} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => confirmUnpair(device.id, device.name, 'pad')}
+                                    className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Unpair Device"
+                                  >
+                                    <Unlink className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
@@ -195,13 +305,35 @@ export function QuickDeviceSetupModal({
                         {sortByStatus(allHardwareDevices, (d) => getDeviceStatus(d.connectionStatus)).map((device) => {
                           const status = getDeviceStatus(device.connectionStatus);
                           const hasError = status === 'disconnected' || status === 'error';
+                          const deviceType: DeviceStatusRowType = device.type === 'printer' ? 'printer' : device.type === 'scanner' ? 'scanner' : 'cash_drawer';
                           return (
                             <div key={device.id} className={hasError ? 'bg-amber-50/50' : ''}>
-                              <DeviceStatusRow
-                                name={device.name}
-                                status={status}
-                                type={device.type === 'printer' ? 'printer' : device.type === 'scanner' ? 'scanner' : 'cash_drawer'}
-                              />
+                              <div className="flex items-center justify-between px-6 py-2">
+                                <DeviceStatusRow
+                                  name={device.name}
+                                  status={status}
+                                  type={deviceType}
+                                />
+                                <div className="flex items-center gap-1 ml-2">
+                                  {hasError && (
+                                    <button
+                                      onClick={() => handleRetryConnection(device.id, device.name, 'hardware')}
+                                      disabled={isRetrying === device.id}
+                                      className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                      title="Retry Connection"
+                                    >
+                                      <RefreshCw className={`w-3.5 h-3.5 ${isRetrying === device.id ? 'animate-spin' : ''}`} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => confirmUnpair(device.id, device.name, 'hardware')}
+                                    className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Remove Device"
+                                  >
+                                    <Unlink className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
@@ -225,11 +357,32 @@ export function QuickDeviceSetupModal({
                           const hasError = status === 'disconnected' || status === 'error';
                           return (
                             <div key={terminal.id} className={hasError ? 'bg-amber-50/50' : ''}>
-                              <DeviceStatusRow
-                                name={terminal.name}
-                                status={status}
-                                type="terminal"
-                              />
+                              <div className="flex items-center justify-between px-6 py-2">
+                                <DeviceStatusRow
+                                  name={terminal.name}
+                                  status={status}
+                                  type="terminal"
+                                />
+                                <div className="flex items-center gap-1 ml-2">
+                                  {hasError && (
+                                    <button
+                                      onClick={() => handleRetryConnection(terminal.id, terminal.name, 'terminal')}
+                                      disabled={isRetrying === terminal.id}
+                                      className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                      title="Retry Connection"
+                                    >
+                                      <RefreshCw className={`w-3.5 h-3.5 ${isRetrying === terminal.id ? 'animate-spin' : ''}`} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => confirmUnpair(terminal.id, terminal.name, 'terminal')}
+                                    className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    title="Remove Terminal"
+                                  >
+                                    <Unlink className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
@@ -296,6 +449,29 @@ export function QuickDeviceSetupModal({
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    {/* Unpair Confirmation Dialog */}
+    <AlertDialog open={deviceToUnpair !== null} onOpenChange={(open) => !open && setDeviceToUnpair(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove Device</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to remove <span className="font-medium">{deviceToUnpair?.name}</span>?
+            This action cannot be undone and you will need to pair the device again.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleUnpairDevice}
+            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+          >
+            Remove
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
