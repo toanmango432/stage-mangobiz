@@ -343,4 +343,67 @@ describe('Ticket Lifecycle Integration', () => {
       expect(state.completedTickets[0].status).toBe('completed');
     });
   });
+
+  // ============================================
+  // APPOINTMENT CHECK-IN FLOWS
+  // ============================================
+
+  describe('appointment check-in flows', () => {
+    it('should handle appointment check-in to waitlist to checkout', () => {
+      // Simulate an appointment being checked in:
+      // When an appointment is checked in, a ticket is created in waitlist
+      // with an appointmentId linking back to the source appointment
+      const ticketId = 'appointment-checkin-ticket-1';
+      const appointmentId = 'appointment-source-123';
+
+      // Create ticket with appointmentId (simulates checkInAppointment thunk result)
+      const checkedInTicket = createMockUITicket({
+        id: ticketId,
+        number: 301,
+        status: 'waiting',
+        clientName: 'Appointment Client',
+        service: 'Scheduled Service',
+        // appointmentId links this ticket back to the source appointment
+        appointmentId: appointmentId,
+      } as Partial<UITicket>);
+
+      // Initialize store with the checked-in ticket in waitlist
+      store = createTestStore({
+        waitlist: [checkedInTicket],
+      });
+
+      // Verify ticket is in waitlist
+      let state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(1);
+      expect(state.waitlist[0].id).toBe(ticketId);
+      expect(state.waitlist[0].status).toBe('waiting');
+
+      // Verify ticket has appointmentId linking back to source appointment
+      // This is the critical link that tracks where the ticket originated
+      expect((state.waitlist[0] as UITicket & { appointmentId?: string }).appointmentId).toBe(appointmentId);
+
+      // Now checkout directly from waitlist (common flow for appointment clients)
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId,
+          ticket: checkedInTicket,
+          sourceArray: 'waitlist',
+          paymentMethod: 'credit-card',
+          tip: 15,
+          transaction: { id: 'txn-appointment-1' },
+        },
+      });
+
+      // Verify ticket is removed from waitlist
+      state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(0);
+
+      // Verify ticket is added to completedTickets
+      expect(state.completedTickets).toHaveLength(1);
+      expect(state.completedTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets[0].clientName).toBe('Appointment Client');
+      expect(state.completedTickets[0].status).toBe('completed');
+    });
+  });
 });

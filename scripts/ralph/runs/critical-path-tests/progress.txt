@@ -180,3 +180,23 @@ Commit: 8d5b98fb2c004abc1fd6a77d62cd9c3d8ff64f3b
 **Next story suggestion:** US-010 (checkout from pending test) - completes the direct checkout flows coverage by adding the regression test for normal pending → paid flow
 
 ---
+
+## 2026-01-17 - US-010: Add checkout from pending test (regression)
+Commit: 2a7352d
+
+**Why this story?** US-010 is the highest priority incomplete story and was explicitly suggested by the previous iteration (US-009). It completes the 'direct checkout flows' describe block by adding the regression test for the normal pending → paid flow.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:297-344`: Added test 'should checkout from pending status (normal flow)'
+  - Uses createMockPendingTicket to create ticket with subtotal/tax
+  - Dispatches markTicketAsPaid.fulfilled with sourceArray: 'pending'
+  - Verifies ticket removed from pendingTickets and added to completedTickets
+
+**Learnings:**
+- The 'direct checkout flows' describe block now has complete coverage for all three source arrays (waitlist, in-service, pending)
+- PendingTicket doesn't require createdAt/updatedAt Date fields like UITicket does
+- Pre-existing non-serializable Date warnings continue but don't affect test execution
+
+**Next story suggestion:** US-011 (appointment check-in to checkout flow test) - adds new 'appointment check-in flows' describe block, tests the appointmentId linking between appointments and tickets
+
+---
