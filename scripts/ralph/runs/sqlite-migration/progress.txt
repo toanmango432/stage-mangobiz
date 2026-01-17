@@ -349,3 +349,82 @@ Commit: 44a4335
   - Module-level side effects (logBackendSelection) execute once on import
   - Pre-existing typecheck errors in test files (AgendaView.test.tsx, etc.) are unrelated
 ---
+
+## 2026-01-17 - US-015: Create SQLite client service
+Commit: 3123e83
+- Created `packages/sqlite-adapter/src/services/clientService.ts`:
+  - `ClientSQLiteService` class with constructor `(db: SQLiteAdapter)`
+  - All CRUD methods: `getAll`, `getById`, `create`, `update`, `delete`
+  - `getFiltered(storeId, filters, sort, limit, offset)` with SQL WHERE clauses
+  - Helper methods: `search`, `getBlocked`, `getVip`, `getCount`, `getByIds`
+  - Full `Client` interface matching Dexie schema with 50+ fields
+  - `ClientRow` type for SQLite row representation (snake_case columns)
+  - `rowToClient()` converter function
+  - `ClientFilters` and `ClientSortOptions` interfaces
+- Created `packages/sqlite-adapter/src/services/index.ts` barrel export
+- Updated `packages/sqlite-adapter/src/index.ts` to export ClientSQLiteService and types
+- **Key SQL Features:**
+  - SQL LIKE for search queries (name, phone, email)
+  - SQL WHERE for status filters (is_blocked, is_vip)
+  - SQL date comparison for lastVisitRange filter
+  - SQL JSON LIKE patterns for tags and preferredStaff filters
+  - SQL ORDER BY with NULLS LAST for proper sorting
+  - Parameterized queries throughout (no string concatenation)
+- **Learnings for future iterations:**
+  - SQLite uses snake_case columns, app uses camelCase - need converter functions
+  - Boolean fields stored as INTEGER (0/1) in SQLite
+  - JSON fields stored as TEXT - can use LIKE for basic contains checks
+  - SQL WHERE filtering is more efficient than loading all records and filtering in JS
+  - Pre-existing typecheck errors in sqlite-adapter (capacitor.ts, web.ts, factory.ts) are unrelated
+---
+
+## 2026-01-17 - US-016: Create SQLite ticket service with aggregations
+Commit: 70b0c49
+- Created `packages/sqlite-adapter/src/services/ticketService.ts`:
+  - `TicketSQLiteService` class with constructor `(db: SQLiteAdapter)`
+  - All CRUD methods: `getAll`, `getById`, `create`, `update`, `delete`
+  - `getByStatus(storeId, status)` with SQL WHERE
+  - `getActive(storeId)` using SQL `status IN ('waiting', 'in-service', 'pending')`
+  - `getStaffTicketCounts(storeId, staffIds, since)` returning `Map<string, number>`
+  - `getDailyStats(storeId, date)` using SQL COUNT/SUM aggregation
+  - Helper methods: `getByDate`, `getCount`, `getCompletedInRange`, `getDrafts`
+  - Full `Ticket` interface with 45+ fields
+  - Nested types: `TicketService`, `TicketProduct`, `Payment`, `TicketStatus`, `ServiceStatus`, `DailyStats`
+  - `TicketRow` type for SQLite row representation (snake_case columns)
+  - `rowToTicket()` converter with `safeParseJSON()` for nested objects
+- Updated `packages/sqlite-adapter/src/services/index.ts` to export TicketSQLiteService
+- Updated `packages/sqlite-adapter/src/index.ts` to export ticket types
+- **Key SQL Features:**
+  - SQL `status IN (...)` for active tickets filter
+  - SQL `COUNT(*), SUM(...)` for getDailyStats aggregation
+  - SQL `CASE WHEN` for conditional aggregation
+  - Parameterized queries throughout
+- **Design Decision:** getStaffTicketCounts parses JSON in application code instead of using SQLite json_extract() because staff IDs are nested in services array - cleaner than complex JSON path queries
+- **Learnings for future iterations:**
+  - JSON arrays in SQLite can be parsed in application code for complex queries
+  - SQL aggregation (COUNT, SUM) is far more efficient than loading all records
+  - `safeParseJSON()` helper prevents crashes on malformed JSON
+  - DailyStats uses CASE WHEN for conditional counting in a single query
+---
+
+## ========================================
+## PHASE 2 COMPLETE - ALL STORIES PASS
+## ========================================
+
+Phase 2 Summary (US-009 to US-016):
+- All 8 stories completed and verified
+- better-sqlite3 Electron adapter: exec, run, get, all, transaction, close ✅
+- SQLite migration runner: runMigrations, getAppliedMigrations, rollbackLastMigration ✅
+- Initial schema (v001): appointments, tickets, clients tables with indexes ✅
+- Staff/services schema (v002): staff, services tables with indexes ✅
+- Dexie to SQLite data migration: migrateFromDexie with batch inserts ✅
+- Feature flag: shouldUseSQLite(), getBackendType(), isElectron() ✅
+- SQLite client service: ClientSQLiteService with SQL WHERE filtering ✅
+- SQLite ticket service: TicketSQLiteService with SQL aggregations ✅
+
+Full PRD (US-001 to US-016) Summary:
+- Phase 1 (US-001-008): Dexie optimization - N+1 fixes, caching, compound indexes ✅
+- Phase 2 (US-009-016): SQLite backend for Electron ✅
+
+All 16 user stories COMPLETE!
+---

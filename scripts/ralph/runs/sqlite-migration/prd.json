@@ -330,7 +330,7 @@
       ],
       "notes": "This is the SQLite equivalent of clientsDB in database.ts. Key benefit: getFiltered can use SQL WHERE/LIKE instead of JS filter. Pattern for other services to follow.",
       "priority": 15,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-016",
@@ -353,7 +353,7 @@
       ],
       "notes": "Key benefit: getStaffTicketCounts uses SELECT staffId, COUNT(*) FROM ... GROUP BY staffId. getDailyStats uses SELECT COUNT(*), SUM(total) FROM .... These SQL aggregations replace expensive JS loops. services JSON field: use json_extract() for SQLite or parse in application.",
       "priority": 16,
-      "passes": false
+      "passes": true
     }
   ]
 }
