@@ -6,9 +6,11 @@
  * Originally: PadConnectionIndicator (US-005)
  * Renamed: US-003 - General device manager
  * US-004: Smart compact/expanded display based on device errors
+ * US-006: Device dropdown with equal sections for Pad/Hardware/Terminals
+ * Last updated: 2026-01-17
  */
 
-import { Layers, ChevronDown, Circle, AlertTriangle } from 'lucide-react';
+import { Layers, ChevronDown, AlertTriangle, Tablet, Printer, CreditCard, Circle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import {
@@ -21,6 +23,8 @@ import {
   selectConnectedPaymentTerminals,
   selectHardwareDevicesWithErrors,
   selectPaymentTerminalsWithErrors,
+  selectHardwareDevices,
+  selectPaymentTerminals,
 } from '@/store/slices/settingsSlice';
 import { usePadHeartbeat, usePosHeartbeat } from '@/services/mqtt/hooks';
 import {
@@ -28,8 +32,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { formatDistanceToNow } from 'date-fns';
-import { Tablet } from 'lucide-react';
+import { DeviceStatusRow } from './DeviceStatusRow';
+import type { DeviceStatusRowStatus } from './DeviceStatusRow';
 
 export function DeviceConnectionIndicator() {
   // Subscribe to incoming Pad heartbeats
@@ -50,6 +54,10 @@ export function DeviceConnectionIndicator() {
   const connectedTerminals = useAppSelector(selectConnectedPaymentTerminals);
   const terminalsWithErrors = useAppSelector(selectPaymentTerminalsWithErrors);
 
+  // All devices (for listing in dropdown)
+  const allHardwareDevices = useAppSelector(selectHardwareDevices);
+  const allPaymentTerminals = useAppSelector(selectPaymentTerminals);
+
   // Calculate aggregated status
   const totalConnected = connectedPads.length + connectedHardware.length + connectedTerminals.length;
   const totalErrors = offlinePads.length + hardwareWithErrors.length + terminalsWithErrors.length;
@@ -65,31 +73,16 @@ export function DeviceConnectionIndicator() {
     return () => clearInterval(timer);
   }, []);
 
-  const formatLastSeen = (lastSeen: string) => {
-    try {
-      return formatDistanceToNow(new Date(lastSeen), { addSuffix: true });
-    } catch {
-      return 'Unknown';
-    }
+  // Helper to map pad status to DeviceStatusRow status
+  const getPadStatus = (status: 'online' | 'offline'): DeviceStatusRowStatus => {
+    return status === 'online' ? 'connected' : 'disconnected';
   };
 
-  const getScreenLabel = (screen?: string) => {
-    switch (screen) {
-      case 'idle':
-        return 'Idle';
-      case 'checkout':
-        return 'Checkout';
-      case 'tip':
-        return 'Tip Selection';
-      case 'signature':
-        return 'Signature';
-      case 'receipt':
-        return 'Receipt';
-      case 'complete':
-        return 'Complete';
-      default:
-        return 'Unknown';
-    }
+  // Helper to map hardware/terminal connectionStatus to DeviceStatusRow status
+  const getDeviceStatus = (connectionStatus: string): DeviceStatusRowStatus => {
+    if (connectionStatus === 'connected') return 'connected';
+    if (connectionStatus === 'error') return 'error';
+    return 'disconnected';
   };
 
   // Determine button styling based on status
@@ -221,76 +214,103 @@ export function DeviceConnectionIndicator() {
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto">
-          {allPadDevices.length === 0 ? (
-            <div className="px-4 py-6 text-center">
-              <Tablet className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">No Mango Pad detected</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Pads will appear here when connected
-              </p>
+        <div className="max-h-80 overflow-y-auto">
+          {/* Section 1: Mango Pad */}
+          <div className="border-b border-gray-100">
+            <div className="px-4 py-2 bg-gray-50/50 flex items-center gap-2">
+              <Tablet className="w-4 h-4 text-gray-500" />
+              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Mango Pad
+              </span>
+              <span className="text-xs text-gray-400">({allPadDevices.length})</span>
             </div>
-          ) : (
-            <div className="py-2">
-              {allPadDevices.map((device) => (
-                <div
-                  key={device.id}
-                  className="px-4 py-2.5 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        device.status === 'online'
-                          ? 'bg-green-100'
-                          : 'bg-gray-100'
-                      }`}
-                    >
-                      <Tablet
-                        className={`w-4 h-4 ${
-                          device.status === 'online'
-                            ? 'text-green-600'
-                            : 'text-gray-400'
-                        }`}
+            {allPadDevices.length === 0 ? (
+              <div className="px-4 py-3 text-center">
+                <p className="text-xs text-gray-400">No devices configured</p>
+              </div>
+            ) : (
+              <div>
+                {allPadDevices.map((device) => {
+                  const status = getPadStatus(device.status);
+                  const hasError = status === 'disconnected' || status === 'error';
+                  return (
+                    <div key={device.id} className={hasError ? 'bg-amber-50/50' : ''}>
+                      <DeviceStatusRow
+                        name={device.name}
+                        status={status}
+                        type="pad"
+                        lastSeen={device.lastSeen}
                       />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {device.name}
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            device.status === 'online'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}
-                        >
-                          <Circle
-                            className={`w-1.5 h-1.5 ${
-                              device.status === 'online'
-                                ? 'fill-green-500 text-green-500'
-                                : 'fill-gray-400 text-gray-400'
-                            }`}
-                          />
-                          {device.status === 'online' ? 'Online' : 'Offline'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {device.screen && device.status === 'online' && (
-                          <span className="text-[10px] text-gray-500">
-                            Screen: {getScreenLabel(device.screen)}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-gray-400">
-                          {formatLastSeen(device.lastSeen)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Hardware */}
+          <div className="border-b border-gray-100">
+            <div className="px-4 py-2 bg-gray-50/50 flex items-center gap-2">
+              <Printer className="w-4 h-4 text-gray-500" />
+              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Hardware
+              </span>
+              <span className="text-xs text-gray-400">({allHardwareDevices.length})</span>
             </div>
-          )}
+            {allHardwareDevices.length === 0 ? (
+              <div className="px-4 py-3 text-center">
+                <p className="text-xs text-gray-400">No devices configured</p>
+              </div>
+            ) : (
+              <div>
+                {allHardwareDevices.map((device) => {
+                  const status = getDeviceStatus(device.connectionStatus);
+                  const hasError = status === 'disconnected' || status === 'error';
+                  return (
+                    <div key={device.id} className={hasError ? 'bg-amber-50/50' : ''}>
+                      <DeviceStatusRow
+                        name={device.name}
+                        status={status}
+                        type={device.type === 'printer' ? 'printer' : device.type === 'scanner' ? 'scanner' : 'cash_drawer'}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Payment Terminals */}
+          <div>
+            <div className="px-4 py-2 bg-gray-50/50 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-gray-500" />
+              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Payment Terminals
+              </span>
+              <span className="text-xs text-gray-400">({allPaymentTerminals.length})</span>
+            </div>
+            {allPaymentTerminals.length === 0 ? (
+              <div className="px-4 py-3 text-center">
+                <p className="text-xs text-gray-400">No devices configured</p>
+              </div>
+            ) : (
+              <div>
+                {allPaymentTerminals.map((terminal) => {
+                  const status = getDeviceStatus(terminal.connectionStatus);
+                  const hasError = status === 'disconnected' || status === 'error';
+                  return (
+                    <div key={terminal.id} className={hasError ? 'bg-amber-50/50' : ''}>
+                      <DeviceStatusRow
+                        name={terminal.name}
+                        status={status}
+                        type="terminal"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>
