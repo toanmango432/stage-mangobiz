@@ -118,3 +118,25 @@ Commit: 6f0c587
 **Next story suggestion:** US-007 (normal ticket flow lifecycle test) - directly builds on the scaffold created in this story, testing the waiting → in-service → pending → paid flow
 
 ---
+
+## 2026-01-17 - US-007: Add normal ticket flow lifecycle test
+Commit: c4a81ad
+
+**Why this story?** US-007 is the highest priority incomplete story and directly builds on US-006's scaffold. It tests the core lifecycle flow (waiting → in-service → pending) which must be verified before adding direct checkout tests.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:114-202`: Added describe block 'normal flow: waiting → in-service → pending → paid' with test:
+  - 'should move ticket through all states correctly'
+  - Test creates ticket in waitlist, uses ticketUpdated to move to in-service
+  - Uses completeTicket.fulfilled to move to pendingTickets
+  - Verifies ticket is in correct array at each step
+
+**Learnings:**
+- The ticketUpdated reducer only handles 'waiting', 'in-service', and 'completed' statuses
+- To move to pendingTickets (status 'completed'), must use completeTicket.fulfilled action
+- The status mapping: 'waiting' → waitlist, 'in-service' → serviceTickets, 'completed' → pendingTickets, 'paid' → completedTickets
+- The completeTicket.fulfilled action removes from serviceTickets and adds to pendingTickets
+
+**Next story suggestion:** US-008 (direct checkout from waiting test) - tests the direct checkout flow which skips the normal lifecycle, using the same file with the new 'direct checkout flows' describe block
+
+---

@@ -194,4 +194,57 @@ describe('Ticket Lifecycle Integration', () => {
       expect(state.completedTickets).toHaveLength(0);
     });
   });
+
+  // ============================================
+  // DIRECT CHECKOUT FLOWS
+  // ============================================
+
+  describe('direct checkout flows', () => {
+    it('should checkout directly from waiting status', () => {
+      // Create ticket in waitlist with status 'waiting'
+      const ticketId = 'direct-checkout-waitlist-1';
+      const waitlistTicket = createMockUITicket({
+        id: ticketId,
+        number: 201,
+        status: 'waiting',
+        clientName: 'Direct Checkout Client',
+        service: 'Quick Service',
+      });
+
+      // Initialize store with ticket in waitlist
+      store = createTestStore({
+        waitlist: [waitlistTicket],
+      });
+
+      // Verify ticket is in waitlist before checkout
+      let state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(1);
+      expect(state.waitlist[0].id).toBe(ticketId);
+      expect(state.completedTickets).toHaveLength(0);
+
+      // Dispatch markTicketAsPaid.fulfilled with sourceArray: 'waitlist'
+      // This simulates direct checkout without going through in-service or pending
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId,
+          ticket: waitlistTicket,
+          sourceArray: 'waitlist',
+          paymentMethod: 'credit-card',
+          tip: 5,
+          transaction: { id: 'txn-direct-1' },
+        },
+      });
+
+      // Verify ticket is removed from waitlist
+      state = store.getState().uiTickets;
+      expect(state.waitlist).toHaveLength(0);
+
+      // Verify ticket is added to completedTickets
+      expect(state.completedTickets).toHaveLength(1);
+      expect(state.completedTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets[0].clientName).toBe('Direct Checkout Client');
+      expect(state.completedTickets[0].status).toBe('completed');
+    });
+  });
 });
