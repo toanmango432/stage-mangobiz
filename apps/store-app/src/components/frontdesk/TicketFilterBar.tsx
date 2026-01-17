@@ -8,7 +8,7 @@
  */
 
 import { memo, useCallback, useMemo } from 'react';
-import { Star, Crown, Sparkles, Clock, X, ChevronDown } from 'lucide-react';
+import { Star, Crown, Sparkles, Clock, X } from 'lucide-react';
 import {
   Select,
   SelectContent,

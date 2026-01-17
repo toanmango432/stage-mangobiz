@@ -6,6 +6,7 @@ import { TicketDetailsModal } from './TicketDetailsModal';
 import './paper';
 import {
   getUrgencyLevel,
+  formatWaitingTime,
   URGENCY_COLORS,
   type UrgencyLevel,
   type UrgencyThresholds
@@ -137,13 +138,6 @@ function WaitListTicketCardComponent({
 
     return () => clearInterval(interval);
   }, [ticket.createdAt]);
-
-  const formatWaitTime = (minutes: number) => {
-    if (minutes < 1) return 'Just now';
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-  };
 
   // Calculate urgency level using the standard urgency utilities
   // Uses createdAt (check-in time) with waiting-specific thresholds
@@ -285,7 +279,7 @@ function WaitListTicketCardComponent({
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <div className="font-medium whitespace-nowrap flex items-center gap-1" style={{ fontSize: 'clamp(10px, 1.5vw, 12px)', color: getWaitTimeColor() }}>
                   {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-                  {formatWaitTime(waitTime)}
+                  {formatWaitingTime(waitTime)}
                 </div>
               </div>
             </div>
@@ -361,7 +355,7 @@ function WaitListTicketCardComponent({
               <div className="flex items-center gap-2 flex-shrink-0 self-start mt-1">
                 <span className="font-medium whitespace-nowrap text-xs flex items-center gap-1" style={{ color: getWaitTimeColor() }}>
                   {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-                  Waited {formatWaitTime(waitTime)}
+                  Waited {formatWaitingTime(waitTime)}
                 </span>
                 <span className="text-xs text-[#4a3d34] opacity-50">•</span>
                 <span className="text-[#4a3d34] font-medium whitespace-nowrap text-xs">{ticket.time}</span>
@@ -459,7 +453,7 @@ function WaitListTicketCardComponent({
           <div className="px-2 pb-1">
             <div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>
               {isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
-              Waited {formatWaitTime(waitTime)}
+              Waited {formatWaitingTime(waitTime)}
             </div>
           </div>
 
@@ -515,7 +509,7 @@ function WaitListTicketCardComponent({
             )}
           </div>
           <div className="mx-2 sm:mx-3 md:mx-4 mb-2 sm:mb-3 md:mb-4 border-t border-[#e8dcc8]/50" />
-          <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>{isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}Waited {formatWaitTime(waitTime)}</div><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>In at {ticket.time}</div></div>
+          <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center justify-between"><div className="font-medium flex items-center gap-1" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: getWaitTimeColor() }}>{isLongWait && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}Waited {formatWaitingTime(waitTime)}</div><div className="text-[#4a3d34] font-medium" style={{ fontSize: 'clamp(11px, 1.5vw, 13px)' }}>In at {ticket.time}</div></div>
 
           {/* Footer with Staff badge or Assign button */}
           <div className="mt-auto px-2 py-1.5 rounded-md" style={{ marginLeft: 'clamp(8px, 1.5vw, 16px)', marginRight: 'clamp(8px, 1.5vw, 16px)', marginBottom: 'clamp(8px, 1.5vw, 16px)', background: 'linear-gradient(135deg, rgba(255, 252, 247, 0.6) 0%, rgba(245, 240, 232, 0.5) 100%)', boxShadow: 'inset 0 1px 3px rgba(139, 92, 46, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(255, 255, 255, 0.8)', border: '1px solid rgba(212, 184, 150, 0.15)' }}>
