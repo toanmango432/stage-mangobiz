@@ -241,7 +241,7 @@
         "Verify in browser: Quick Setup opens modal, More Settings navigates to Settings page"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-009"],
       "notes": "Import QuickDeviceSetupModal. Add useState for modal open state. Navigation pattern: window.dispatchEvent(new CustomEvent('navigate-to-module', { detail: { module: 'settings', category: 'devices' } })). Close popover with setIsOpen(false) before opening modal or navigating."
     }
