@@ -231,3 +231,25 @@ Commit: 19e4206
   - Peer dependency pattern allows adapter package to work without installing unused drivers
   - Pre-existing typecheck errors in other adapters (capacitor.ts, web.ts, factory.ts) are unrelated to this work
 ---
+
+## 2026-01-17 - US-010: Create SQLite migration runner
+Commit: 23032a0
+- Created `packages/sqlite-adapter/src/migrations/types.ts`:
+  - `Migration` interface with function-based `up(db)` and `down(db)` methods
+  - `MigrationRecord` type for tracking applied migrations
+- Created `packages/sqlite-adapter/src/migrations/index.ts`:
+  - `runMigrations(db, migrations)` - runs pending migrations in transaction-safe order
+  - `ensureMigrationsTable(db)` - creates `_migrations` table if not exists
+  - `getCurrentVersion(db)` - gets MAX(version) from _migrations
+  - `recordMigration(db, migration)` - inserts migration record
+  - `getAppliedMigrations(db)` - lists all applied migrations
+  - `rollbackLastMigration(db, migrations)` - rolls back most recent migration
+- Updated `packages/sqlite-adapter/src/index.ts`:
+  - Export Migration/MigrationRecord types from new migrations/types.ts
+  - Export runMigrations, getAppliedMigrations, rollbackLastMigration functions
+- **Learnings for future iterations:**
+  - Function-based migrations (`up(db)`, `down(db)`) allow for complex data transformations
+  - Migration sorting by version ensures correct order even if array is unsorted
+  - Wrap each migration in transaction for atomicity - either all SQL succeeds or none
+  - `SELECT MAX(version)` returns `null` for empty table - handle with nullish coalescing (`?? 0`)
+---

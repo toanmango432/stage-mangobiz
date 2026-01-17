@@ -215,7 +215,7 @@
       ],
       "notes": "Migrations run in a transaction for safety. If migration fails, transaction rolls back. Similar pattern to Dexie's .version(N).stores({...}).upgrade(...).",
       "priority": 10,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011",
