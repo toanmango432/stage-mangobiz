@@ -475,3 +475,37 @@ Commit: 44436ba
   - IDBBatchAtomicVFS degrades for databases >100MB
   - Research stories require web search to get current 2025/2026 information
 ---
+
+## 2026-01-17 - US-018: Research Capacitor SQLite for mobile
+Commit: 7520ea8
+- Created `packages/sqlite-adapter/docs/CAPACITOR_SQLITE_EVALUATION.md` (516 lines):
+  - Executive summary with **recommendation: Implement for iOS/Android**
+  - Plugin overview: v7.0.2, Capacitor 7 support, 45+ contributors, active maintenance
+  - Platform support: iOS 13+, Android API 23+, Electron, Web (limited)
+  - API capabilities: 50+ methods covering CRUD, transactions, encryption, sync
+  - iOS vs Android differences: storage locations, encryption, WAL mode
+  - Performance analysis: 2-10x faster than IndexedDB on mobile
+  - Migration strategy using existing migrateFromDexie() utility
+  - Offline sync considerations with built-in sync table support
+  - Known issues: Web limitations, recent bug fixes documented
+  - Implementation user stories: 6 stories, 7-9 days estimated
+- **Key Findings:**
+  - Native SQLite is only 100% reliable persistent storage on iOS/Android
+  - IndexedDB may be cleared by iOS when device is low on storage (critical risk for POS)
+  - Plugin has strong maintenance: 806+ commits, 45+ contributors, regular releases
+  - Our existing SQLite services (ClientSQLiteService, TicketSQLiteService) work with minimal modification
+  - SQLCipher encryption available on iOS/Android (not Web)
+  - Biometric unlock supported on both platforms
+- **Recommendation Rationale:**
+  - Data persistence is critical for POS handling financial transactions
+  - Performance benefits (2-10x) improve staff experience on tablets
+  - Unified codebase: same SQLite layer for Electron and Capacitor
+  - Migration path exists: migrateFromDexie() already implemented
+  - Plugin is mature with good maintenance track record
+- **Learnings for future iterations:**
+  - @capacitor-community/sqlite is the recommended plugin for Capacitor SQLite
+  - iOS encryption requires CocoaPods, not Swift Package Manager
+  - Android uses WAL2 by default, iOS needs manual PRAGMA configuration
+  - Web platform uses jeep-sqlite (sql.js via IndexedDB) with limited features
+  - Research stories benefit from multiple web searches for comprehensive coverage
+---

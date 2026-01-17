@@ -399,7 +399,7 @@
       ],
       "notes": "This is a research/documentation story, no code changes. @capacitor-community/sqlite is community-maintained (not official). Research official docs: https://github.com/capacitor-community/sqlite. Consider: plugin updates, native code maintenance, iOS vs Android quirks.",
       "priority": 18,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-019",
