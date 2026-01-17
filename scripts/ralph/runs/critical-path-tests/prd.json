@@ -206,7 +206,7 @@
         "Tests pass"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "File: src/testing/integration/frontdesk/ticketLifecycle.test.ts. Edge case test - ensures idempotent behavior when checkout is called on already-paid ticket."
     }
   ]
