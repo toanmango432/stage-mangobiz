@@ -246,5 +246,52 @@ describe('Ticket Lifecycle Integration', () => {
       expect(state.completedTickets[0].clientName).toBe('Direct Checkout Client');
       expect(state.completedTickets[0].status).toBe('completed');
     });
+
+    it('should checkout directly from in-service status', () => {
+      // Create ticket in serviceTickets with status 'in-service'
+      const ticketId = 'direct-checkout-inservice-1';
+      const inServiceTicket = createMockUITicket({
+        id: ticketId,
+        number: 202,
+        status: 'in-service',
+        clientName: 'In-Service Checkout Client',
+        service: 'Premium Service',
+      });
+
+      // Initialize store with ticket in serviceTickets
+      store = createTestStore({
+        serviceTickets: [inServiceTicket],
+      });
+
+      // Verify ticket is in serviceTickets before checkout
+      let state = store.getState().uiTickets;
+      expect(state.serviceTickets).toHaveLength(1);
+      expect(state.serviceTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets).toHaveLength(0);
+
+      // Dispatch markTicketAsPaid.fulfilled with sourceArray: 'in-service'
+      // This simulates direct checkout from in-service without going through pending
+      store.dispatch({
+        type: markTicketAsPaid.fulfilled.type,
+        payload: {
+          ticketId,
+          ticket: inServiceTicket,
+          sourceArray: 'in-service',
+          paymentMethod: 'cash',
+          tip: 10,
+          transaction: { id: 'txn-direct-2' },
+        },
+      });
+
+      // Verify ticket is removed from serviceTickets
+      state = store.getState().uiTickets;
+      expect(state.serviceTickets).toHaveLength(0);
+
+      // Verify ticket is added to completedTickets
+      expect(state.completedTickets).toHaveLength(1);
+      expect(state.completedTickets[0].id).toBe(ticketId);
+      expect(state.completedTickets[0].clientName).toBe('In-Service Checkout Client');
+      expect(state.completedTickets[0].status).toBe('completed');
+    });
   });
 });

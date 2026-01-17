@@ -140,3 +140,23 @@ Commit: c4a81ad
 **Next story suggestion:** US-008 (direct checkout from waiting test) - tests the direct checkout flow which skips the normal lifecycle, using the same file with the new 'direct checkout flows' describe block
 
 ---
+
+## 2026-01-17 - US-008: Add direct checkout from waiting test
+Commit: 3f150ba
+
+**Why this story?** US-008 is the highest priority incomplete story and was suggested by the previous iteration. It tests direct checkout functionality (skipping the normal lifecycle), which is a key bug fix scenario. Creates the 'direct checkout flows' describe block that US-009 will also use.
+
+**Changes:**
+- `apps/store-app/src/testing/integration/frontdesk/ticketLifecycle.test.ts:198-249`: Added describe block 'direct checkout flows' with test:
+  - 'should checkout directly from waiting status'
+  - Test creates ticket in waitlist, dispatches markTicketAsPaid.fulfilled with sourceArray: 'waitlist'
+  - Verifies ticket is removed from waitlist and added to completedTickets
+
+**Learnings:**
+- Direct checkout from waitlist uses the same markTicketAsPaid.fulfilled action as other checkouts, just with sourceArray: 'waitlist'
+- The reducer correctly handles all three source arrays (waitlist, in-service, pending)
+- Pre-existing non-serializable Date value warnings in reducer are benign
+
+**Next story suggestion:** US-009 (direct checkout from in-service test) - adds to the 'direct checkout flows' describe block just created, tests the same pattern but for serviceTickets
+
+---
