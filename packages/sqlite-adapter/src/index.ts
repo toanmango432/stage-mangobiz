@@ -5,11 +5,15 @@
  * Supports Electron (better-sqlite3), Capacitor (iOS/Android), and Web (wa-sqlite/OPFS).
  */
 
-// Core types - will be implemented
-export type { SQLiteAdapter, SQLiteConfig, Migration, MigrationRecord } from './types';
+// Core types
+export type { SQLiteAdapter, SQLiteConfig, SQLiteValue, PaginatedResult } from './types';
 
 // Database abstraction interfaces (platform-agnostic)
 export type { DatabaseAdapter, QueryOptions, QueryResult } from './interfaces';
+
+// Migration types and runner
+export type { Migration, MigrationRecord } from './migrations/types';
+export { runMigrations, getAppliedMigrations, rollbackLastMigration } from './migrations';
 
 // Factory - will be implemented
 export { createSQLiteAdapter } from './factory';
