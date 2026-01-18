@@ -1384,3 +1384,69 @@ Commit: bbfedf8
 **Next story suggestion:** US-026 (Wire all remaining services to dataService) - depends on US-025 (just completed) and is the final wiring story to route all remaining tables (catalog, scheduling, gift cards) to SQLite.
 
 ---
+
+## 2026-01-17 - US-026: Wire all remaining services to dataService
+Commit: da1d306
+
+**Why this story?** US-026 depends on US-025 (just completed) and is the final wiring story to connect all remaining tables (catalog, scheduling, gift cards) to the dataService routing layer.
+
+**Changes:**
+- `apps/store-app/src/services/sqliteServices.ts` (+1358 lines): SQLite service wrappers with lazy initialization
+  - **Catalog Services (9):**
+    - `sqliteServiceCategoriesDB`: getAll, getById, create, update, delete
+    - `sqliteMenuServicesDB`: getAll, getById, getByCategory, search, create, update, delete, archive, reorder
+    - `sqliteServiceVariantsDB`: getByService, getById, create, update, delete, setDefault
+    - `sqliteServicePackagesDB`: getAll, getById, create, update, delete
+    - `sqliteAddOnGroupsDB`: getAll, getById, create, update, delete
+    - `sqliteAddOnOptionsDB`: getByGroup, getById, create, update, delete
+    - `sqliteStaffServiceAssignmentsDB`: getByStaff, getByService, getById, create, update, delete
+    - `sqliteCatalogSettingsDB`: get, set
+    - `sqliteProductsDB`: getAll, getById, getByCategory, create, update, delete, search, getBySku, getByBarcode, getCategories, getRetail
+  - **Scheduling Services (8):**
+    - `sqliteTimeOffTypesDB`: getAll, getAllIncludingInactive, getById, getByCode, create, update, delete
+    - `sqliteTimeOffRequestsDB`: getByStaff, getAll, getPendingCount, getById, create, approve, deny, cancel, delete
+    - `sqliteBlockedTimeTypesDB`: getAll, getById, create, update, delete, seedDefaults
+    - `sqliteBlockedTimeEntriesDB`: getAll, getByStaffAndDate, getById, create, delete, getBySeries, deleteSeries
+    - `sqliteBusinessClosedPeriodsDB`: getAll, getUpcoming, getForDate, getById, create, update, delete
+    - `sqliteResourcesDB`: getAll, getAllIncludingInactive, getById, getByCategory, create, update, delete
+    - `sqliteResourceBookingsDB`: getByResource, getByAppointment, getById, create, delete
+    - `sqliteStaffSchedulesDB`: getByStaff, getCurrentForStaff, getByStore, getById, create, update, delete
+  - **Gift Card Services (5):**
+    - `sqliteGiftCardDenominationsDB`: getAll, getById, create, update, delete
+    - `sqliteGiftCardSettingsDB`: get, set
+    - `sqliteGiftCardsDB`: getAll, getById, getByCode, getByStatus, search, issue, redeem, reload, update, void
+    - `sqliteGiftCardTransactionsDB`: getByCard, getByTicket, create
+    - `sqliteGiftCardDesignsDB`: getAll, getById, getActive, getDefault, create, update, delete
+  
+- `apps/store-app/src/services/dataService.ts` (+1228/-37 lines): USE_SQLITE routing for all 22 services
+  - Fixed Dexie API method signature mismatches:
+    - `serviceVariantsDB.create(input, storeId)` - 2 args, no userId
+    - `addOnGroupsDB.create(input, storeId)` - 2 args, no userId
+    - `addOnOptionsDB.create(input, storeId)` - 2 args, no userId
+    - `staffServiceAssignmentsDB.getByStaff(storeId, staffId)` - storeId first
+    - `productsDB.create(data, storeId, tenantId)` - no userId, needs tenantId
+    - Multiple `update` methods take 2 args (id, updates), not 3
+  - Implemented method adapters for SQLite services that lack certain methods:
+    - `approve/deny/cancel` for TimeOffRequest uses `update()` with status fields
+    - `softDelete` mapped to `delete()` for services without soft delete
+    - `getUpcoming` for BusinessClosedPeriods uses `getActive()` (same filter logic)
+  - Added missing product service methods (getCategories, getRetail)
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in dataService.ts or sqliteServices.ts; pre-existing test file errors unrelated)
+- Tests: PASS (existing tests still passing)
+- Forbidden strings: PASS (no 'as any')
+
+**Learnings:**
+- Dexie API signatures vary significantly - some methods have userId, others don't
+- SQLite services have different method patterns than Dexie (no softDelete, different approve/deny signatures)
+- Need to adapt method calls carefully to match both APIs
+- Lazy initialization pattern with null checks ensures SQLite adapter is only created when needed
+
+**Patterns to sync:**
+- Pattern: When wiring services, check Dexie method signatures first by reading catalogDatabase.ts/scheduleDatabase.ts/giftCardOperations.ts
+- Pattern: SQLite services use `delete()` where Dexie uses `softDelete(id)` - adapter wrapper can translate
+
+**Next story suggestion:** US-027 (Create Dexie to SQLite migration utility) - depends on US-026 (just completed) and starts the data migration phase.
+
+---
