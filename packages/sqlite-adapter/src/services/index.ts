@@ -255,3 +255,34 @@ export {
   type ScheduleSyncStatus,
   type ScheduleVectorClock,
 } from './schedulingServices';
+
+// Gift card services (gift cards, transactions, designs)
+export {
+  // Gift Card Denomination service
+  GiftCardDenominationSQLiteService,
+  type GiftCardDenomination,
+  type GiftCardDenominationRow,
+  // Gift Card Settings service
+  GiftCardSettingsSQLiteService,
+  type GiftCardSettingsEntity,
+  type GiftCardSettingsRow,
+  // Gift Card service
+  GiftCardSQLiteService,
+  type GiftCard as GiftCardEntity,
+  type GiftCardRow,
+  type GiftCardType,
+  type GiftCardStatus,
+  type GiftCardDeliveryMethod,
+  // Gift Card Transaction service
+  GiftCardTransactionSQLiteService,
+  type GiftCardTransaction,
+  type GiftCardTransactionRow,
+  type GiftCardTransactionType,
+  // Gift Card Design service
+  GiftCardDesignSQLiteService,
+  type GiftCardDesign,
+  type GiftCardDesignRow,
+  type GiftCardDesignCategory,
+  // Common gift card types
+  type GiftCardSyncStatus,
+} from './giftCardServices';

@@ -657,7 +657,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-022"],
       "notes": "Scheduling tables need good date indexes for calendar queries. seriesId links recurring blocked time entries."
     },
@@ -682,7 +682,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-023"],
       "notes": "Gift card balance = initialValue + SUM(transactions.amount). Transactions can be positive (reload) or negative (redemption)."
     },

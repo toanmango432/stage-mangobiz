@@ -231,6 +231,34 @@ export {
   // Common scheduling types
   type ScheduleSyncStatus as SQLiteScheduleSyncStatus,
   type ScheduleVectorClock as SQLiteScheduleVectorClock,
+  // Gift card services
+  // Gift Card Denomination service
+  GiftCardDenominationSQLiteService,
+  type GiftCardDenomination as SQLiteGiftCardDenomination,
+  type GiftCardDenominationRow as SQLiteGiftCardDenominationRow,
+  // Gift Card Settings service
+  GiftCardSettingsSQLiteService,
+  type GiftCardSettingsEntity as SQLiteGiftCardSettings,
+  type GiftCardSettingsRow as SQLiteGiftCardSettingsRow,
+  // Gift Card service
+  GiftCardSQLiteService,
+  type GiftCardEntity as SQLiteGiftCard,
+  type GiftCardRow as SQLiteGiftCardRow,
+  type GiftCardType as SQLiteGiftCardType,
+  type GiftCardStatus as SQLiteGiftCardStatus,
+  type GiftCardDeliveryMethod as SQLiteGiftCardDeliveryMethod,
+  // Gift Card Transaction service
+  GiftCardTransactionSQLiteService,
+  type GiftCardTransaction as SQLiteGiftCardTransaction,
+  type GiftCardTransactionRow as SQLiteGiftCardTransactionRow,
+  type GiftCardTransactionType as SQLiteGiftCardTransactionType,
+  // Gift Card Design service
+  GiftCardDesignSQLiteService,
+  type GiftCardDesign as SQLiteGiftCardDesign,
+  type GiftCardDesignRow as SQLiteGiftCardDesignRow,
+  type GiftCardDesignCategory as SQLiteGiftCardDesignCategory,
+  // Common gift card types
+  type GiftCardSyncStatus as SQLiteGiftCardSyncStatus,
 } from './services';
 
 // Type conversion utilities

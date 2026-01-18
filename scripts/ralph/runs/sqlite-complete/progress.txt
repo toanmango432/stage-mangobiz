@@ -1190,3 +1190,146 @@ Commit: 8a58dd8
 **Next story suggestion:** US-023 (Add migration v007 for scheduling tables) - depends on US-022 (just completed) and creates the SQLite schema for all scheduling services.
 
 ---
+
+## 2026-01-17 - US-023: Add migration v007 for scheduling tables
+Commit: 0826811
+
+**Why this story?** US-023 is the only story with all dependencies satisfied. It depends on US-022 (just completed in the previous iteration) and creates the SQLite schema for the 8 scheduling services created in US-022.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v007_scheduling.ts` (NEW, 600 lines): Scheduling tables migration
+  - `time_off_types`: Time-off type configurations (vacation, sick, etc.)
+    - Type definition: name, code, emoji, color
+    - Config: is_paid, requires_approval, annual_limit_days, accrual settings, carry_over settings
+    - Display: display_order, is_active, is_system_default
+    - Full sync metadata and soft delete support
+    - Indexes: store, store+active, store+code, store+order, store+deleted
+  - `time_off_requests`: Staff time-off requests with approval workflow
+    - Staff info: staff_id, staff_name
+    - Type info (denormalized): type_id, type_name, type_emoji, type_color, is_paid
+    - Request period: start_date, end_date, is_all_day, start_time, end_time, total_hours, total_days
+    - Status workflow: status, status_history (JSON array), notes
+    - Approval: approved_by, approved_by_name, approved_at, approval_notes
+    - Denial: denied_by, denied_by_name, denied_at, denial_reason
+    - Cancellation: cancelled_at, cancelled_by, cancellation_reason
+    - Conflict tracking: has_conflicts, conflicting_appointment_ids (JSON)
+    - Indexes: store, staff, store+status, store+start, store+end, staff+date, store+deleted
+  - `blocked_time_types`: Blocked time categories (break, meeting, training)
+    - Type definition: name, code, description, emoji, color, default_duration_minutes
+    - Config: is_paid, blocks_online_booking, blocks_in_store_booking, requires_approval
+    - Indexes: store, store+active, store+order, store+deleted
+  - `blocked_time_entries`: Individual blocked time slots with recurrence support
+    - Time range: start_date_time, end_date_time, duration_minutes
+    - Recurrence: frequency, repeat_end_date, repeat_count, series_id, is_recurrence_exception, original_date
+    - Indexes: store, staff, series (for recurring), store+start, store+end, staff+start, store+deleted
+  - `business_closed_periods`: Business closure periods (holidays, maintenance)
+    - Period: name, start_date, end_date, is_partial_day, start_time, end_time
+    - Location: applies_to_all_locations, location_ids (JSON)
+    - Behavior: blocks_online_booking, blocks_in_store_booking
+    - Display: color, notes, is_annual
+    - Indexes: store, store+start, store+end, store+annual, store+deleted
+  - `resources`: Bookable resources (rooms, equipment, stations)
+    - Definition: name, description, category, capacity, is_bookable
+    - Display: color, image_url, display_order, is_active
+    - Service links: linked_service_ids (JSON)
+    - Indexes: store, store+active, store+category, store+bookable, store+order, store+deleted
+  - `resource_bookings`: Resource-appointment links
+    - Resource: resource_id, resource_name
+    - Appointment: appointment_id
+    - Time: start_date_time, end_date_time
+    - Staff: staff_id, staff_name
+    - Assignment: assignment_type (auto/manual), assigned_by
+    - Indexes: store, resource, appointment, resource+start, store+start, store+end, store+deleted
+  - `staff_schedules`: Staff working patterns with effective dates
+    - Staff: staff_id, staff_name
+    - Pattern: pattern_type (fixed/rotating), pattern_weeks, weeks (JSON)
+    - Effective: effective_from, effective_until, pattern_anchor_date
+    - Flags: is_default, copied_from_schedule_id
+    - Indexes: store, staff, staff+effective, store+effective, store+default, store+deleted
+  - `down()` function drops all 8 tables and ~45 indexes in reverse order
+- `packages/sqlite-adapter/src/migrations/index.ts:25`: Export migration_007
+
+**Quality Checks:**
+- Typecheck: PASS (v007_scheduling.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any')
+
+**Learnings:**
+- All scheduling tables include comprehensive date/time indexes for efficient calendar queries
+- series_id index enables efficient querying of recurring blocked time entries
+- Denormalized type info (type_name, type_emoji, type_color) in requests/entries avoids JOINs for display
+- JSON columns used for: status_history, conflicting_appointment_ids, location_ids, linked_service_ids, weeks (schedule pattern)
+
+**Patterns to sync:** None new - follows established migration patterns from v005 and v006
+
+**Next story suggestion:** US-024 (Create Gift Card SQLite services) - depends on US-023 (just completed) and creates 5 gift card services.
+
+---
+
+## 2026-01-17 - US-024: Create Gift Card SQLite services
+Commit: 1894de6
+
+**Why this story?** US-024 is the only story with all dependencies satisfied. It depends on US-023 (just completed in the previous iteration) and follows the established pattern of creating SQLite services for a domain area (gift cards). This is the last domain-specific service batch before the final wiring stories.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/giftCardServices.ts` (NEW, 975 lines): 5 gift card SQLite services
+  - `GiftCardDenominationSQLiteService`: Preset gift card amounts for quick sale
+    - `getActive(storeId)`: Active denominations ordered by display_order
+    - `getByAmount(storeId, amount)`: Find by amount for duplicate checking
+    - `updateDisplayOrder(updates)`: Batch update for reordering
+    - `activate(id)`, `deactivate(id)`: Toggle denomination active status
+  - `GiftCardSettingsSQLiteService`: Per-store gift card configuration
+    - `get(storeId)`: Get settings for a store
+    - `set(storeId, settings)`: Upsert with explicit field extraction to avoid type issues
+    - `getOrCreate(storeId)`: Get or create with defaults
+  - `GiftCardSQLiteService`: Full gift card entities with balance tracking
+    - `getByCode(code)`: Unique code lookup for redemption
+    - `getByStoreAndCode(storeId, code)`: Store-scoped code lookup
+    - `getByStatus(storeId, status)`: Filter by status (active, depleted, expired, voided)
+    - `getByPurchaser(purchaserId)`: Cards purchased by a client
+    - `getActive(storeId)`: Cards that can be redeemed (active + balance > 0)
+    - `getExpiringSoon(storeId, withinDays)`: Cards expiring within N days
+    - `calculateBalance(giftCardId)`: SQL SUM on transactions for verification
+    - `updateBalance(id, newBalance)`: Update balance after transaction
+    - `void(id)`: Void a gift card
+    - `markExpiredCards(storeId)`: Batch mark expired cards
+    - `getTotalOutstandingBalance(storeId)`: SQL SUM of all active balances
+    - `countByStatus(storeId)`: Status breakdown via GROUP BY
+    - `search(storeId, query)`: Search by code, recipient, or purchaser name
+    - `markDelivered(id)`, `getPendingDelivery(storeId)`: Delivery tracking
+  - `GiftCardTransactionSQLiteService`: Transaction history for gift cards
+    - `getByCard(giftCardId)`: All transactions for a card
+    - `getByTicket(ticketId)`: Transactions tied to a ticket
+    - `getByType(storeId, type)`: Filter by type (purchase, redeem, reload, void, refund)
+    - `getByDateRange(storeId, start, end)`: Date range queries for reporting
+    - `getTotalsByType(storeId, start, end)`: SQL GROUP BY for type breakdown
+    - `getTotalRedemptions(storeId, start, end)`: SQL SUM for redemption total
+    - `getTotalSales(storeId, start, end)`: SQL SUM for sales total
+    - `getRecent(storeId, limit)`: Recent transactions
+  - `GiftCardDesignSQLiteService`: Design templates for gift cards
+    - `getActive(storeId)`: Active designs ordered by display_order
+    - `getDefault(storeId)`: Default design for store
+    - `getByCategory(storeId, category)`: Filter by category (seasonal, birthday, thank-you, general, custom)
+    - `setDefault(id, storeId)`: Set a design as default (unsets previous)
+    - `activate(id)`, `deactivate(id)`: Toggle design active status
+    - `updateDisplayOrder(updates)`: Batch update for reordering
+    - `getCategoryCounts(storeId)`: Category breakdown via GROUP BY
+- `packages/sqlite-adapter/src/services/index.ts:259-288`: Export all 5 gift card services and types
+- `packages/sqlite-adapter/src/index.ts:234-261`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (giftCardServices.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Gift card balance calculation uses SQL SUM on transactions: `COALESCE(SUM(gct.amount), 0)` joined with gift_cards table
+- GiftCardSettingsEntity.set() required explicit field extraction instead of spread operator to avoid TypeScript null vs undefined issues with Partial<T>
+- GiftCardSQLiteService includes comprehensive delivery tracking (digital gift cards with scheduled delivery)
+- Transaction amounts are signed: positive for purchase/reload, negative for redeem/void/refund
+
+**Patterns to sync:** None new - follows established BaseSQLiteService pattern
+
+**Next story suggestion:** US-025 (Add migration v008 for gift card tables) - depends on US-024 (just completed) and creates the SQLite schema for all gift card services.
+
+---
