@@ -849,7 +849,7 @@
         "Verify in browser: modal shows during migration with progress"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-038"],
       "notes": "Migration runs once per device. Non-blocking UI - show progress modal. Allow user to skip and use Dexie if they prefer."
     },
@@ -874,7 +874,7 @@
         "No forbidden strings"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-029"],
       "notes": "Use vitest for consistency with rest of project. Create mock adapter that uses in-memory storage."
     },
@@ -897,7 +897,7 @@
         "No forbidden strings"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-030"],
       "notes": "Critical tests - migration must be bulletproof. Use small test datasets for speed."
     },

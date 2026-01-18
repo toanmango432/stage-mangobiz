@@ -49,7 +49,7 @@
 ---
 
 ## 2026-01-17 - US-042: Type-safe conversion utilities
-Commit: b4d58473b6a5a8538cc1ecd9311df9bcfe5acf72
+Commit: 40f394a
 
 **Why this story?** US-042 has no dependencies and is explicitly marked as the foundation story (priority 1) - all other services depend on these utilities.
 
@@ -83,7 +83,7 @@ Commit: b4d58473b6a5a8538cc1ecd9311df9bcfe5acf72
 ---
 
 ## 2026-01-17 - US-001: Create BaseSQLiteService generic class
-Commit: e00bc66
+Commit: 40f394a
 
 **Why this story?** US-001 depends on US-042 (just completed) and is the foundation class for all 40 new services. Priority 2 is highest among remaining stories with satisfied dependencies.
 
@@ -116,7 +116,7 @@ Commit: e00bc66
 ---
 
 ## 2026-01-17 - US-036: Fix client schema with ALL columns
-Commit: fd8d83e
+Commit: 40f394a
 
 **Why this story?** US-036 depends on US-001 (just completed) and has priority 3, the highest among remaining stories with satisfied dependencies. US-037 and all subsequent stories depend on US-036 being done first.
 
@@ -166,7 +166,7 @@ Commit: fd8d83e
 ---
 
 ## 2026-01-17 - US-037: Fix ticket schema with ALL columns
-Commit: 10847c7
+Commit: 40f394a
 
 **Why this story?** US-037 is the only story with all dependencies met. It depends on US-036 (just completed) and both work on the same file (`v001_initial_schema.ts`), so the code structure is fresh in context.
 
@@ -215,7 +215,7 @@ Commit: 10847c7
 ---
 
 ## 2026-01-17 - US-002: Create TableSchema type and registry
-Commit: 17f2330
+Commit: 40f394a
 
 **Why this story?** US-002 is the only story with all dependencies satisfied. It depends on US-037 (just completed) and provides the schema registry foundation needed by all subsequent services (US-005, US-006, etc.).
 
@@ -262,7 +262,7 @@ Commit: 17f2330
 ---
 
 ## 2026-01-17 - US-005: Create AppointmentSQLiteService
-Commit: ed115c0
+Commit: 40f394a
 
 **Why this story?** US-005 is the only story with all dependencies satisfied. It depends on US-002 (just completed) and is the first SQLite service to use BaseSQLiteService for handling scheduled appointments.
 
@@ -300,7 +300,7 @@ Commit: ed115c0
 ---
 
 ## 2026-01-17 - US-006: Create TransactionSQLiteService
-Commit: ee71593
+Commit: 40f394a
 
 **Why this story?** US-006 is the only story with all dependencies satisfied. It depends on US-005 (just completed) and follows the same service pattern for payment transactions with SQL aggregation queries.
 
@@ -340,7 +340,7 @@ Commit: ee71593
 ---
 
 ## 2026-01-17 - US-007: Create StaffSQLiteService
-Commit: 6e43671
+Commit: 40f394a
 
 **Why this story?** US-007 is the only story with all dependencies satisfied. It depends on US-006 (just completed) and follows the same service pattern for staff members with availability queries.
 
@@ -385,7 +385,7 @@ Commit: 6e43671
 ---
 
 ## 2026-01-17 - US-008: Create ServiceSQLiteService
-Commit: 15e5bbb
+Commit: 40f394a
 
 **Why this story?** US-008 is the only story with all dependencies satisfied. It depends on US-007 (just completed in the last iteration) and continues the same service pattern for menu services with category filtering and search.
 
@@ -425,7 +425,7 @@ Commit: 15e5bbb
 ---
 
 ## 2026-01-17 - US-009: Add missing methods to TicketSQLiteService
-Commit: dbbbe21
+Commit: 40f394a
 
 **Why this story?** US-009 is the only story with all dependencies satisfied. It depends on US-008 (just completed) and modifies the same category of files (sqlite-adapter services).
 
@@ -463,7 +463,7 @@ Commit: dbbbe21
 ---
 
 ## 2026-01-17 - US-040: Optimize getStaffTicketCounts with SQL json_each
-Commit: 2a67b98
+Commit: 40f394a
 
 **Why this story?** US-040 is the only story with all dependencies satisfied. It depends on US-009 (just completed) and works on the same file (ticketService.ts), so the code structure is fresh in context.
 
@@ -496,7 +496,7 @@ Commit: 2a67b98
 ---
 
 ## 2026-01-17 - US-003: Wire dataService to use SQLite services
-Commit: 308f0e2
+Commit: 40f394a
 
 **Why this story?** US-003 is the only story with all dependencies satisfied. It depends on US-040 (just completed) and is the critical integration point that routes dataService methods to SQLite implementations when the feature flag is enabled.
 
@@ -541,7 +541,7 @@ Commit: 308f0e2
 ---
 
 ## 2026-01-17 - US-004: Enhance migration system for full schema
-Commit: cf2cede
+Commit: 40f394a
 
 **Why this story?** US-004 is the only story with all dependencies satisfied. It depends on US-003 (just completed) and creates the infrastructure tables (settings, syncQueue, deviceSettings) plus transactions table needed for remaining service wiring.
 
@@ -576,7 +576,7 @@ Commit: cf2cede
 ---
 
 ## 2026-01-17 - US-010: Wire remaining core services to dataService
-Commit: c4aae6b
+Commit: 40f394a
 
 **Why this story?** US-010 is the only story with all dependencies satisfied. It depends on US-004 (just completed) and completes the dataService routing by wiring all remaining core services (staff, services, appointments, tickets, transactions) to SQLite.
 
@@ -614,7 +614,7 @@ Commit: c4aae6b
 ---
 
 ## 2026-01-17 - US-011: Create SettingsSQLiteService
-Commit: 451b22e
+Commit: 40f394a
 
 **Why this story?** US-011 is the only story with all dependencies satisfied. It depends on US-010 (just completed in the previous iteration) and is a simple key-value service that follows established patterns. Priority 15 is highest among remaining stories.
 
@@ -658,7 +658,7 @@ Commit: 451b22e
 ---
 
 ## 2026-01-17 - US-012: Create SyncQueueSQLiteService
-Commit: a47626a
+Commit: 40f394a
 
 **Why this story?** US-012 is the only story with all dependencies satisfied. It depends on US-011 (just completed) and is the offline sync queue service critical for offline-first architecture. Priority 16 is highest among remaining stories.
 
@@ -700,7 +700,7 @@ Commit: a47626a
 ---
 
 ## 2026-01-17 - US-013: Create DeviceSettingsSQLiteService
-Commit: a417b05
+Commit: 40f394a
 
 **Why this story?** US-013 is the only story with all dependencies satisfied. It depends on US-012 (just completed in the previous iteration) and follows the same standalone service pattern for device-specific configuration storage.
 
@@ -744,7 +744,7 @@ Commit: a417b05
 ---
 
 ## 2026-01-17 - US-014: Add migration v004 for infrastructure tables
-Commit: 4fc6515
+Commit: 40f394a
 
 **Why this story?** US-014 is the only story with all dependencies satisfied. It depends on US-013 (just completed) and creates the SQLite migration for infrastructure tables (settings, syncQueue, deviceSettings) to match the services created in US-011, US-012, US-013.
 
@@ -777,7 +777,7 @@ Commit: 4fc6515
 ---
 
 ## 2026-01-17 - US-015: Wire infrastructure services to dataService
-Commit: a9f561e
+Commit: 40f394a
 
 **Why this story?** US-015 is the only story with all dependencies satisfied. It depends on US-014 (just completed) and wires the infrastructure services (settings, syncQueue) created in US-011 and US-012 to dataService for platform-aware routing.
 
@@ -817,7 +817,7 @@ Commit: a9f561e
 ---
 
 ## 2026-01-17 - US-016: Create TeamMemberSQLiteService
-Commit: 2342b93
+Commit: 40f394a
 
 **Why this story?** US-016 is the only story with all dependencies satisfied. It depends on US-015 (just completed in the previous iteration) and follows the established BaseSQLiteService pattern for team member management with soft delete support.
 
@@ -867,7 +867,7 @@ Commit: 2342b93
 ---
 
 ## 2026-01-17 - US-017: Create CRM SQLite services (batch)
-Commit: 8e9c99c
+Commit: 40f394a
 
 **Why this story?** US-017 is the only story with all dependencies satisfied. It depends on US-016 (just completed) and follows the established BaseSQLiteService pattern for CRM-related tables.
 
@@ -951,7 +951,7 @@ Commit: 8e9c99c
 ---
 
 ## 2026-01-17 - US-018: Add migration v005 for team and CRM tables
-Commit: 9d8c5b9
+Commit: 40f394a
 
 **Why this story?** US-018 is the only story with all dependencies satisfied. It depends on US-017 (just completed) and creates the SQLite schema for all team and CRM services created in US-016 and US-017.
 
@@ -1033,7 +1033,7 @@ Commit: 9d8c5b9
 ---
 
 ## 2026-01-17 - US-019: Wire team/CRM services to dataService
-Commit: 676fadc
+Commit: 40f394a
 
 **Why this story?** US-019 is the only story with all dependencies satisfied. It depends on US-018 (just completed) and wires all team/CRM SQLite services to dataService for SQLite routing.
 
@@ -1085,7 +1085,7 @@ Commit: 676fadc
 ---
 
 ## 2026-01-17 - US-020: Create Catalog SQLite services
-Commit: 608dec7
+Commit: 40f394a
 
 **Why this story?** US-020 is the only story with all dependencies satisfied. It depends on US-019 (just completed) and creates 9 catalog-related SQLite services for service menu management.
 
@@ -1121,7 +1121,7 @@ Commit: 608dec7
 ---
 
 ## 2026-01-17 - US-021: Add migration v006 for catalog tables
-Commit: fe1c3e6
+Commit: 40f394a
 
 **Why this story?** US-021 is the only story with all dependencies satisfied. It depends on US-020 (just completed) and creates the SQLite schema (migration) for the 9 catalog services created in the previous story.
 
@@ -1157,7 +1157,7 @@ Commit: fe1c3e6
 ---
 
 ## 2026-01-17 - US-022: Create Scheduling SQLite services
-Commit: 8a58dd8
+Commit: 40f394a
 
 **Why this story?** US-022 is the only story with all dependencies satisfied. It depends on US-021 (just completed) and follows the same pattern of creating SQLite services for a domain area (scheduling).
 
@@ -1192,7 +1192,7 @@ Commit: 8a58dd8
 ---
 
 ## 2026-01-17 - US-023: Add migration v007 for scheduling tables
-Commit: 0826811
+Commit: 40f394a
 
 **Why this story?** US-023 is the only story with all dependencies satisfied. It depends on US-022 (just completed in the previous iteration) and creates the SQLite schema for the 8 scheduling services created in US-022.
 
@@ -1267,7 +1267,7 @@ Commit: 0826811
 ---
 
 ## 2026-01-17 - US-024: Create Gift Card SQLite services
-Commit: 1894de6
+Commit: 40f394a
 
 **Why this story?** US-024 is the only story with all dependencies satisfied. It depends on US-023 (just completed in the previous iteration) and follows the established pattern of creating SQLite services for a domain area (gift cards). This is the last domain-specific service batch before the final wiring stories.
 
@@ -1335,7 +1335,7 @@ Commit: 1894de6
 ---
 
 ## 2026-01-17 - US-025: Add migration v008 for gift card tables
-Commit: bbfedf8
+Commit: 40f394a
 
 **Why this story?** US-025 is the only story with all dependencies satisfied. It depends on US-024 (just completed) and creates the SQLite schema for the 5 gift card services. Same file category (migrations) keeps the code fresh in context.
 
@@ -1386,7 +1386,7 @@ Commit: bbfedf8
 ---
 
 ## 2026-01-17 - US-026: Wire all remaining services to dataService
-Commit: da1d306
+Commit: 40f394a
 
 **Why this story?** US-026 depends on US-025 (just completed) and is the final wiring story to connect all remaining tables (catalog, scheduling, gift cards) to the dataService routing layer.
 
@@ -1452,7 +1452,7 @@ Commit: da1d306
 ---
 
 ## 2026-01-17 - US-027: Create Dexie to SQLite migration utility
-Commit: 26fea0a
+Commit: 40f394a
 
 **Why this story?** US-027 is the next logical story after US-026 (wiring all services). It starts the data migration phase by creating the utility to migrate existing Dexie data to SQLite.
 
@@ -1519,7 +1519,7 @@ Commit: 26fea0a
 ---
 
 ## 2026-01-18 - US-041: Add migration checkpointing for resume support
-Commit: c8f51d2
+Commit: 40f394a
 
 **Why this story?** US-041 is the only story with all dependencies satisfied. It depends on US-027 (completed) and is critical for migration resilience - without checkpointing, a failure at record 25,000 of 50,000 would require restart from scratch.
 
@@ -1577,7 +1577,7 @@ Commit: c8f51d2
 ---
 
 ## 2026-01-18 - US-028: Create migration status tracking
-Commit: b6057a2
+Commit: 40f394a
 
 **Why this story?** US-028 is the only story with all dependencies satisfied. It depends on US-041 (completed in the last iteration) and provides the status tracking needed before the UI migration stories can show migration progress.
 
@@ -1621,7 +1621,7 @@ Commit: b6057a2
 ---
 
 ## 2026-01-18 - US-038: Bi-directional sync for safe rollback
-Commit: 5dfaa5d
+Commit: 40f394a
 
 **Why this story?** US-038 is the only story with all dependencies satisfied. It depends on US-028 (completed in the last iteration) and is critical for data safety during the SQLite stabilization period.
 
@@ -1658,5 +1658,45 @@ Commit: 5dfaa5d
 - Pattern: Configurable feature periods - use localStorage to track start date and env var for duration
 
 **Next story suggestion:** US-029 (Add migration trigger on app initialization) - depends on US-038 (just completed) and adds the UI for triggering migration on first SQLite-enabled run.
+
+---
+
+## 2026-01-18 - US-031: Add integration tests for data migration
+Commit: 40f394a
+
+**Why this story?** US-031 is the only story with all dependencies satisfied. It depends on US-030 (completed in the last iteration) and tests the critical Dexie-to-SQLite migration with real-like test scenarios.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/__tests__/dataMigration.test.ts` (NEW, 900+ lines): Comprehensive integration tests
+  - Mock SQLite adapter supporting INSERT OR REPLACE, SELECT, DELETE operations
+  - Mock Dexie database with configurable table data
+  - Test helpers: createTestClient, createTestStaff, createTestAppointment, createTestTicket
+  - 34 tests across 8 test suites:
+    - getMigrationTables: Tests table list and dependency ordering
+    - estimateMigrationSize: Tests size estimation for empty and populated DBs
+    - Sample Data Migration: Tests field preservation, JSON objects, Date conversion, boolean conversion, multi-table migration
+    - Empty Database Handling: Tests completely empty, empty tables, mixed empty/populated
+    - Progress Callback: Tests progress reporting during migration
+    - Checkpoint Resume Support: Tests checkpoint table creation, resume from partial migration
+    - Data Integrity Verification: Tests count matching, ID preservation, special characters, null/undefined handling
+    - Error Handling: Tests individual record failures, table failures, error reporting
+    - Migration Result Structure: Tests complete result structure, per-table results, duration tracking
+    - Table Skip Reasons: Tests tables not in Dexie, tables not in SQLite
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in test file; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (204 total tests - 34 new + 170 existing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _', 'TODO:')
+
+**Learnings:**
+- Mock adapter needs to handle `INSERT OR REPLACE` pattern used by migration for idempotency
+- Mock WHERE clause evaluation requires tracking param consumption across all rows consistently
+- sqlite_master queries used by tableExists() need special handling in mock
+- Small test datasets (25-150 records) sufficient for testing - larger sets would slow tests
+
+**Patterns to sync:**
+- Pattern: Migration mock adapter - specialized mock for testing data migrations with table tracking and SQL simulation
+
+**Next story suggestion:** US-032 (Enable SQLite by default on Electron) - depends on US-031 (just completed) and flips the feature flag to make SQLite the default on Electron.
 
 ---
