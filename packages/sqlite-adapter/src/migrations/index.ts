@@ -29,6 +29,18 @@ export {
   getCheckpoint,
 } from './dataMigration';
 
+// Export migration status tracking
+export type { MigrationStatus } from './migrationStatus';
+export {
+  getMigrationStatus,
+  setMigrationComplete,
+  isMigrationComplete,
+  resetMigrationStatus,
+  shouldRunMigration,
+  getMigrationStatusString,
+  CURRENT_MIGRATION_VERSION,
+} from './migrationStatus';
+
 // Export individual migrations
 export { migration_001 } from './v001_initial_schema';
 export { migration_002 } from './v002_staff_services';

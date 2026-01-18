@@ -20,7 +20,9 @@ export type {
   DexieDatabaseForMigration,
   MigrationCheckpoint,
   MigrationCheckpointStatus,
-} from './migrations/dataMigration';
+  // Migration status types
+  MigrationStatus,
+} from './migrations';
 export {
   runMigrations,
   getAppliedMigrations,
@@ -33,6 +35,14 @@ export {
   getCheckpoint,
   migration_001,
   migration_002,
+  // Migration status tracking
+  getMigrationStatus,
+  setMigrationComplete,
+  isMigrationComplete,
+  resetMigrationStatus,
+  shouldRunMigration,
+  getMigrationStatusString,
+  CURRENT_MIGRATION_VERSION,
 } from './migrations';
 
 // Factory - will be implemented
