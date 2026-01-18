@@ -91,7 +91,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-003"],
       "notes": "finalPrice is the existing 'price' field. These new fields enable full audit trail. priceVariance calculated as finalPrice - bookedPrice."
     },

@@ -73,3 +73,30 @@ Commit: 7549428
 
 ---
 
+## 2026-01-17 - US-004: Add price tracking fields to TicketService interface
+Commit: 93f86dc
+
+**Why this story?** US-004 has the lowest priority (4) among eligible stories, is in the same file (Ticket.ts) as US-003 just completed, and directly builds on the PriceDecision type.
+
+**Changes:**
+- `apps/store-app/src/types/Ticket.ts:104-176`: Added 9 new price tracking fields to TicketService interface:
+  - `bookedPrice?: number` - original price at booking
+  - `catalogPriceAtCheckout?: number` - current catalog price when entering checkout
+  - `priceVariance?: number` - difference between final and booked price
+  - `priceVariancePercent?: number` - variance as percentage
+  - `priceDecision?: PriceDecision` - how final price was determined
+  - `priceOverrideReason?: string` - reason for manual override
+  - `priceOverrideBy?: string` - staffId who performed override
+  - `priceApprovedBy?: string` - managerId who approved price decision
+  - `depositLocked?: boolean` - true if price locked due to deposit
+
+**Learnings:**
+- All fields made optional for backwards compatibility with existing tickets
+- Added comprehensive JSDoc with @example tags for each field
+- Pre-existing typecheck errors in test files (AgendaView.test.tsx, etc.) and uiTicketsSlice.ts are unrelated to this story
+- TicketService uses the existing `price` field as the final price; new fields enable audit trail
+
+**Next story suggestion:** US-005 (Add PricingPolicySettings interface) - no dependencies, needed by US-024 for settings UI, foundational for policy engine
+
+---
+
