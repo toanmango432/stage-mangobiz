@@ -577,7 +577,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-019"],
       "notes": "9 services in one file. Group by category hierarchy. Products are retail items separate from services."
     },
@@ -603,7 +603,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-020"],
       "notes": "Category hierarchy: parentId can be NULL for root categories. staffServiceAssignments links staff to services they can perform."
     },

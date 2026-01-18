@@ -187,6 +187,50 @@ export {
   type CatalogProduct as SQLiteCatalogProduct,
   type CatalogProductRow as SQLiteCatalogProductRow,
   type CatalogSyncStatus as SQLiteCatalogSyncStatus,
+  // Scheduling services (time-off, blocked time, resources, staff schedules)
+  // Time Off Type service
+  TimeOffTypeSQLiteService,
+  type TimeOffType as SQLiteTimeOffType,
+  type TimeOffTypeRow as SQLiteTimeOffTypeRow,
+  // Time Off Request service
+  TimeOffRequestSQLiteService,
+  type TimeOffRequest as SQLiteTimeOffRequest,
+  type TimeOffRequestRow as SQLiteTimeOffRequestRow,
+  type TimeOffRequestStatus as SQLiteTimeOffRequestStatus,
+  type TimeOffStatusChange as SQLiteTimeOffStatusChange,
+  // Blocked Time Type service
+  BlockedTimeTypeSQLiteService,
+  type BlockedTimeType as SQLiteBlockedTimeType,
+  type BlockedTimeTypeRow as SQLiteBlockedTimeTypeRow,
+  // Blocked Time Entry service
+  BlockedTimeEntrySQLiteService,
+  type BlockedTimeEntry as SQLiteBlockedTimeEntry,
+  type BlockedTimeEntryRow as SQLiteBlockedTimeEntryRow,
+  type BlockedTimeFrequency as SQLiteBlockedTimeFrequency,
+  // Business Closed Period service
+  BusinessClosedPeriodSQLiteService,
+  type BusinessClosedPeriod as SQLiteBusinessClosedPeriod,
+  type BusinessClosedPeriodRow as SQLiteBusinessClosedPeriodRow,
+  // Resource service
+  ResourceSQLiteService,
+  type SchedulingResource as SQLiteSchedulingResource,
+  type SchedulingResourceRow as SQLiteSchedulingResourceRow,
+  // Resource Booking service
+  ResourceBookingSQLiteService,
+  type ResourceBooking as SQLiteResourceBooking,
+  type ResourceBookingRow as SQLiteResourceBookingRow,
+  type ResourceAssignmentType as SQLiteResourceAssignmentType,
+  // Staff Schedule service
+  StaffScheduleSQLiteService,
+  type SchedulingStaffSchedule as SQLiteSchedulingStaffSchedule,
+  type SchedulingStaffScheduleRow as SQLiteSchedulingStaffScheduleRow,
+  type SchedulePatternType as SQLiteSchedulePatternType,
+  type WeekSchedule as SQLiteWeekSchedule,
+  type DayScheduleConfig as SQLiteDayScheduleConfig,
+  type ShiftConfig as SQLiteShiftConfig,
+  // Common scheduling types
+  type ScheduleSyncStatus as SQLiteScheduleSyncStatus,
+  type ScheduleVectorClock as SQLiteScheduleVectorClock,
 } from './services';
 
 // Type conversion utilities

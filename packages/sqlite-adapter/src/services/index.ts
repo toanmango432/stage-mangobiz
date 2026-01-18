@@ -208,3 +208,50 @@ export {
   type ProductRow as CatalogProductRow,
   type CatalogSyncStatus,
 } from './catalogServices';
+
+// Scheduling services (time-off, blocked time, resources, staff schedules)
+export {
+  // Time Off Type service
+  TimeOffTypeSQLiteService,
+  type TimeOffType,
+  type TimeOffTypeRow,
+  // Time Off Request service
+  TimeOffRequestSQLiteService,
+  type TimeOffRequest,
+  type TimeOffRequestRow,
+  type TimeOffRequestStatus,
+  type TimeOffStatusChange,
+  // Blocked Time Type service
+  BlockedTimeTypeSQLiteService,
+  type BlockedTimeType,
+  type BlockedTimeTypeRow,
+  // Blocked Time Entry service
+  BlockedTimeEntrySQLiteService,
+  type BlockedTimeEntry,
+  type BlockedTimeEntryRow,
+  type BlockedTimeFrequency,
+  // Business Closed Period service
+  BusinessClosedPeriodSQLiteService,
+  type BusinessClosedPeriod,
+  type BusinessClosedPeriodRow,
+  // Resource service
+  ResourceSQLiteService,
+  type Resource as SchedulingResource,
+  type ResourceRow as SchedulingResourceRow,
+  // Resource Booking service
+  ResourceBookingSQLiteService,
+  type ResourceBooking,
+  type ResourceBookingRow,
+  type ResourceAssignmentType,
+  // Staff Schedule service
+  StaffScheduleSQLiteService,
+  type SchedulingStaffSchedule,
+  type SchedulingStaffScheduleRow,
+  type SchedulePatternType,
+  type WeekSchedule,
+  type DayScheduleConfig,
+  type ShiftConfig,
+  // Common scheduling types
+  type ScheduleSyncStatus,
+  type ScheduleVectorClock,
+} from './schedulingServices';

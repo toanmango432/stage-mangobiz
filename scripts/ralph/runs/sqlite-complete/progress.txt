@@ -1083,3 +1083,75 @@ Commit: 676fadc
 **Next story suggestion:** US-020 (Create Catalog SQLite services) - depends on US-019 and creates SQLite services for service catalog tables (categories, add-ons, variants).
 
 ---
+
+## 2026-01-17 - US-020: Create Catalog SQLite services
+Commit: 608dec7
+
+**Why this story?** US-020 is the only story with all dependencies satisfied. It depends on US-019 (just completed) and creates 9 catalog-related SQLite services for service menu management.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/catalogServices.ts` (NEW, 1380 lines): 9 catalog SQLite services
+  - `ServiceCategorySQLiteService`: Categories with getActive(), getByParent(), getRootCategories(), getChildCategories(), updateDisplayOrder()
+  - `MenuServiceSQLiteService`: Services with getByCategory(), getActive(), search(), getOnlineBookingEnabled(), countByCategory(), getRequiringPatchTest(), updateDisplayOrder()
+  - `ServiceVariantSQLiteService` (renamed to CatalogServiceVariant to avoid conflicts): Variants with getByService(), getActiveByService(), getDefaultByService(), setDefault()
+  - `ServicePackageSQLiteService`: Packages with getActive(), getOnlineBookingEnabled(), search()
+  - `AddOnGroupSQLiteService`: Add-on groups with getApplicableToService(), getApplicableToCategory() using json_each()
+  - `AddOnOptionSQLiteService`: Add-on options with getByGroup(), getActiveByGroup(), deleteByGroup()
+  - `StaffServiceAssignmentSQLiteService`: Assignments with getByStaff(), getByService(), getByStaffAndService(), bulkAssignToStaff(), removeAllForStaff()
+  - `CatalogSettingsSQLiteService`: Settings with get(), set(), getOrCreate() for store config
+  - `ProductSQLiteService`: Products with getByCategory(), search(), getBySku(), getByBarcode(), getRetail(), getBackbar(), getBySupplier(), getCategories(), countByCategory()
+- `packages/sqlite-adapter/src/services/index.ts:150-189`: Export all 9 catalog services and types
+- `packages/sqlite-adapter/src/index.ts:141-179`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (catalogServices.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (pre-existing failures in supabase and other packages with no test files - not related to changes)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Renamed ServiceVariant to CatalogServiceVariant to avoid conflict with existing ServiceVariant export from serviceService.ts
+- All services use async/await with this.db.all(), this.db.run(), this.db.get() methods (not synchronous prepare())
+- AddOnGroup services use json_each() for querying within JSON array columns (applicable_service_ids, applicable_category_ids)
+- Product service includes barcode lookup for POS scanning integration
+
+**Patterns to sync:** None new - follows established BaseSQLiteService pattern
+
+**Next story suggestion:** US-021 (Add migration v006 for catalog tables) - depends on US-020 (just completed) and creates the SQLite schema for all catalog services.
+
+---
+
+## 2026-01-17 - US-021: Add migration v006 for catalog tables
+Commit: fe1c3e6
+
+**Why this story?** US-021 is the only story with all dependencies satisfied. It depends on US-020 (just completed) and creates the SQLite schema (migration) for the 9 catalog services created in the previous story.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v006_catalog.ts` (NEW, 510 lines): Catalog tables migration
+  - `service_categories`: Hierarchical categories with parent_category_id, display_order, show_online_booking
+  - `menu_services`: Full service menu with 30+ columns (pricing, duration, online booking, deposits, turn tracking)
+  - `service_variants`: Service variations with duration, price, is_default flag
+  - `service_packages`: Bundle offerings with services JSON, discount, booking_mode, validity
+  - `add_on_groups`: Optional add-ons with selection rules (min/max selections, applicable_to_all)
+  - `add_on_options`: Individual add-on items with price, duration
+  - `staff_service_assignments`: Staff-service mapping with custom_price, custom_duration, custom_commission
+  - `catalog_settings`: Per-store config for defaults, currency, feature toggles
+  - `products`: Retail/backbar inventory with SKU, barcode, pricing, supplier info
+  - Comprehensive indexes for filtering queries (store_id, is_active, display_order, etc.)
+  - `down()` function for clean rollback (drops indexes then tables)
+- `packages/sqlite-adapter/src/migrations/index.ts:23`: Export migration_006
+
+**Quality Checks:**
+- Typecheck: PASS (migration files compile without errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests in sqlite-adapter package all passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Catalog tables have many JSON columns for nested data (services array in packages, applicable_*_ids in add-on groups)
+- Products table needs unique index on (store_id, sku) for SKU lookup
+- Barcode index should be on barcode column alone (not compound) for quick scanner lookup across stores
+
+**Patterns to sync:** None new - follows established migration patterns from v005
+
+**Next story suggestion:** US-022 (Create Scheduling SQLite services) - depends on US-021 (just completed) and creates 8 scheduling-related services.
+
+---
