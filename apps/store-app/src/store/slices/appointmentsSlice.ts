@@ -656,20 +656,90 @@ const appointmentSlice = createSlice({
 // Removed indexAppointments function - no longer needed as we don't duplicate data
 
 /**
- * Convert Appointment (from Supabase) to LocalAppointment
- * Now simplified since both types use ISO strings for dates
+ * Migrates an appointment's services to include price snapshot fields.
+ *
+ * This lazy migration handles existing appointments that were created before
+ * price tracking was implemented. It ensures backwards compatibility by
+ * populating bookedPrice, bookedAt, and priceSource for services that don't
+ * have them.
+ *
+ * Migration is idempotent - services that already have bookedPrice are skipped.
+ *
+ * @param apt - The appointment to migrate
+ * @returns The appointment with migrated services (or unchanged if already migrated)
+ *
+ * @example
+ * ```typescript
+ * // Appointment with unmigrated service
+ * const apt = { services: [{ price: 50 }], createdAt: '2024-01-01T10:00:00Z' };
+ * const migrated = migrateAppointmentPricing(apt);
+ * // migrated.services[0].bookedPrice === 50
+ * // migrated.services[0].bookedAt === '2024-01-01T10:00:00Z'
+ * // migrated.services[0].priceSource === 'catalog'
+ * ```
  */
-function appointmentToLocalAppointment(apt: Appointment): LocalAppointment {
+function migrateAppointmentPricing(apt: Appointment | LocalAppointment): Appointment | LocalAppointment {
+  // Check if any services need migration
+  const needsMigration = apt.services.some(service => service.bookedPrice === undefined);
+
+  if (!needsMigration) {
+    // Already migrated - return unchanged
+    return apt;
+  }
+
+  // Log migration for debugging
+  console.log(`[migrateAppointmentPricing] Migrating appointment ${apt.id} (${apt.services.length} services)`);
+
+  // Migrate services that don't have bookedPrice
+  const migratedServices = apt.services.map(service => {
+    // Skip if already has bookedPrice
+    if (service.bookedPrice !== undefined) {
+      return service;
+    }
+
+    // Determine bookedPrice from service.price (the most reliable source for existing data)
+    // Fall back to 0 if no price available (shouldn't happen in practice)
+    const bookedPrice = service.price ?? 0;
+
+    return {
+      ...service,
+      bookedPrice,
+      // Use appointment createdAt as the booking timestamp
+      bookedAt: apt.createdAt,
+      // Default to catalog source for historical data
+      priceSource: 'catalog' as const,
+    };
+  });
+
   return {
     ...apt,
-    syncStatus: apt.syncStatus || 'synced',
+    services: migratedServices,
+  };
+}
+
+/**
+ * Convert Appointment (from Supabase) to LocalAppointment
+ * Now simplified since both types use ISO strings for dates
+ * Includes lazy migration for price tracking fields
+ */
+function appointmentToLocalAppointment(apt: Appointment): LocalAppointment {
+  // Apply lazy migration for price tracking
+  const migrated = migrateAppointmentPricing(apt) as Appointment;
+
+  return {
+    ...migrated,
+    syncStatus: migrated.syncStatus || 'synced',
   };
 }
 
 /**
  * Convert TicketDTO to LocalAppointment
+ * Includes price snapshot fields (bookedPrice, bookedAt, priceSource) for consistency
  */
 function ticketDTOToLocalAppointment(ticket: TicketDTO): LocalAppointment {
+  const createdAtIso = new Date(ticket.createdAt).toISOString();
+  const price = ticket.totalAmount || 0;
+
   return {
     id: `apt_${ticket.appointmentID}`,
     serverId: ticket.appointmentID,
@@ -685,15 +755,19 @@ function ticketDTOToLocalAppointment(ticket: TicketDTO): LocalAppointment {
       staffId: ticket.staffID.toString(),
       staffName: ticket.staffName,
       duration: ticket.duration,
-      price: ticket.totalAmount || 0,
+      price,
+      // Add price snapshot fields for consistency with new appointments
+      bookedPrice: price,
+      bookedAt: createdAtIso,
+      priceSource: 'catalog' as const,
     }],
     status: ticket.status as any,
     scheduledStartTime: new Date(ticket.startTime).toISOString(),
     scheduledEndTime: new Date(ticket.endTime).toISOString(),
     notes: ticket.note,
     source: ticket.isOnlineBooking ? 'online' : 'walk-in',
-    createdAt: new Date(ticket.createdAt).toISOString(),
-    updatedAt: new Date(ticket.createdAt).toISOString(),
+    createdAt: createdAtIso,
+    updatedAt: createdAtIso,
     createdBy: 'system',
     lastModifiedBy: 'system',
     syncStatus: 'synced',
