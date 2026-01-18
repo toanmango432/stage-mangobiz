@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Zap, AlertCircle, Check, Star, DollarSign } from 'lucide-react';
+import { Zap, AlertCircle, Check, Star, DollarSign, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
@@ -20,6 +20,8 @@ import {
   type PriceResolutionPayload,
   type CheckoutTicketService,
 } from '@/store/slices/uiTicketsSlice';
+import { selectStoreId } from '@/store/slices/authSlice';
+import { useCatalog } from '@/hooks/useCatalog';
 import { useToast } from '@/hooks/use-toast';
 import { getPriceDecisionRecommendation } from '@/utils/priceComparisonUtils';
 import type { PriceDecision } from '@/types';
@@ -102,9 +104,21 @@ export default function PriceResolutionModal({
     state.auth.member?.memberId || state.auth.user?.id || 'unknown'
   );
 
+  // Get catalog services to check for deleted services
+  const storeId = useAppSelector(selectStoreId) || '';
+  const { services: catalogServices } = useCatalog({ storeId });
+
   // Get services with price changes
   const priceChanges = useAppSelector(selectServicePriceChanges(ticketId));
   const unresolvedServices = useAppSelector(selectUnresolvedPriceChanges(ticketId));
+
+  // Check if a service has been deleted from the catalog
+  const isServiceDeleted = useCallback((service: CheckoutTicketService): boolean => {
+    // If there's no serviceId, we can't check - assume not deleted
+    if (!service.serviceId) return false;
+    // Check if the service exists in the current catalog
+    return !catalogServices.some(s => s.id === service.serviceId);
+  }, [catalogServices]);
 
   // Local state for resolution selections
   const [resolutionStates, setResolutionStates] = useState<ResolutionStates>({});
@@ -197,7 +211,8 @@ export default function PriceResolutionModal({
       const updated = { ...prev };
       unresolvedServices.forEach(service => {
         // Skip deposit-locked services (they're already locked to booked price)
-        if (service.depositLocked) return;
+        // Skip deleted services (they're already forced to booked price)
+        if (service.depositLocked || isServiceDeleted(service)) return;
         updated[service.id] = {
           ...prev[service.id],
           option: 'booked',
@@ -207,7 +222,7 @@ export default function PriceResolutionModal({
       });
       return updated;
     });
-  }, [unresolvedServices]);
+  }, [unresolvedServices, isServiceDeleted]);
 
   // Bulk action: Apply all current prices
   const handleApplyAllCurrent = useCallback(() => {
@@ -215,7 +230,8 @@ export default function PriceResolutionModal({
       const updated = { ...prev };
       unresolvedServices.forEach(service => {
         // Skip deposit-locked services (they're already locked to booked price)
-        if (service.depositLocked) return;
+        // Skip deleted services (they can only use booked price - no current price available)
+        if (service.depositLocked || isServiceDeleted(service)) return;
         updated[service.id] = {
           ...prev[service.id],
           option: 'current',
@@ -225,7 +241,7 @@ export default function PriceResolutionModal({
       });
       return updated;
     });
-  }, [unresolvedServices]);
+  }, [unresolvedServices, isServiceDeleted]);
 
   // Handle custom price change
   const handleCustomPriceChange = useCallback((serviceId: string, value: string) => {
@@ -269,6 +285,11 @@ export default function PriceResolutionModal({
     if (unresolvedServices.length === 0) return false;
 
     return unresolvedServices.every(service => {
+      // Deleted services are always valid - they're forced to booked price
+      if (isServiceDeleted(service)) return true;
+      // Deposit-locked services are always valid - they're forced to booked price
+      if (service.depositLocked) return true;
+
       const state = resolutionStates[service.id];
       if (!state) return false;
 
@@ -280,7 +301,7 @@ export default function PriceResolutionModal({
 
       return true;
     });
-  }, [unresolvedServices, resolutionStates, isValidCustomPrice, needsReason]);
+  }, [unresolvedServices, resolutionStates, isValidCustomPrice, needsReason, isServiceDeleted]);
 
   // Don't render if not open
   if (!isOpen) {
@@ -379,6 +400,7 @@ export default function PriceResolutionModal({
                 const catalogPrice = service.catalogPriceAtCheckout ?? service.price;
                 const recommendedOption = getRecommendation(service);
                 const isDeposit = service.depositLocked;
+                const isDeleted = isServiceDeleted(service);
                 const variance = (catalogPrice - bookedPrice);
                 const isIncrease = variance > 0;
 
@@ -400,22 +422,47 @@ export default function PriceResolutionModal({
                               Deposit Locked
                             </span>
                           )}
+                          {isDeleted && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                              Service Removed
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                          <span>Booked: {formatCurrency(bookedPrice)}</span>
-                          <span className="text-gray-300">→</span>
-                          <span className={isIncrease ? 'text-amber-600' : 'text-green-600'}>
-                            Current: {formatCurrency(catalogPrice)}
-                          </span>
-                          <span className={`text-xs ${isIncrease ? 'text-amber-500' : 'text-green-500'}`}>
-                            ({formatCurrency(variance, true)})
-                          </span>
-                        </div>
+                        {/* Show price info - hide variance for deleted services (no current price) */}
+                        {isDeleted ? (
+                          <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
+                            <span>Booked: {formatCurrency(bookedPrice)}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
+                            <span>Booked: {formatCurrency(bookedPrice)}</span>
+                            <span className="text-gray-300">→</span>
+                            <span className={isIncrease ? 'text-amber-600' : 'text-green-600'}>
+                              Current: {formatCurrency(catalogPrice)}
+                            </span>
+                            <span className={`text-xs ${isIncrease ? 'text-amber-500' : 'text-green-500'}`}>
+                              ({formatCurrency(variance, true)})
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Resolution Options */}
-                    {isDeposit ? (
+                    {/* Deleted services - can only use booked price */}
+                    {isDeleted ? (
+                      <div className="flex items-start gap-2 p-3 rounded-md bg-red-50 border border-red-200">
+                        <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="text-sm text-red-700 font-medium">
+                            This service has been removed from your catalog
+                          </span>
+                          <p className="text-xs text-red-600 mt-1">
+                            The booked price of {formatCurrency(bookedPrice)} will be used.
+                          </p>
+                        </div>
+                      </div>
+                    ) : isDeposit ? (
                       <div className="flex items-center gap-2 p-3 rounded-md bg-blue-50 border border-blue-200">
                         <Check className="h-4 w-4 text-blue-600" />
                         <span className="text-sm text-blue-700">
@@ -639,11 +686,16 @@ export default function PriceResolutionModal({
                     const state = resolutionStates[service.id];
                     const bookedPrice = service.bookedPrice ?? service.price;
                     const catalogPrice = service.catalogPriceAtCheckout ?? service.price;
+                    const isDeleted = isServiceDeleted(service);
 
                     let finalPrice: number;
                     let priceDecision: PriceDecision;
 
-                    if (state?.option === 'current') {
+                    // Deleted services - always use booked price
+                    if (isDeleted) {
+                      finalPrice = bookedPrice;
+                      priceDecision = 'booked_honored';
+                    } else if (state?.option === 'current') {
                       finalPrice = catalogPrice;
                       priceDecision = 'catalog_applied';
                     } else if (state?.option === 'custom') {
@@ -659,8 +711,8 @@ export default function PriceResolutionModal({
                       finalPrice,
                       priceDecision,
                       priceOverrideReason: state?.option === 'custom' ? state.reason : undefined,
-                      // Include current staff ID for overrides
-                      priceOverrideBy: state?.option !== 'booked' ? currentStaffId : undefined,
+                      // Include current staff ID for overrides (not for deleted services forced to booked)
+                      priceOverrideBy: (!isDeleted && state?.option !== 'booked') ? currentStaffId : undefined,
                     };
                   });
 

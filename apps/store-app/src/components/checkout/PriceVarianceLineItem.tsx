@@ -1,4 +1,4 @@
-import { Zap, Lock } from 'lucide-react';
+import { Zap, Lock, Archive, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import type { CheckoutTicketService } from '@/store/slices/uiTicketsSlice';
 
@@ -12,6 +12,8 @@ interface PriceVarianceLineItemProps {
   onApplyCurrentPrice?: () => void;
   /** Callback when user wants to open the resolution modal for this service */
   onOpenResolution?: () => void;
+  /** Whether the service has been deleted/removed from the catalog */
+  isServiceDeleted?: boolean;
 }
 
 /**
@@ -24,7 +26,8 @@ interface PriceVarianceLineItemProps {
  * - Green color for price decrease (customer saves money)
  * - Amber color for price increase
  * - Lock icon when price is deposit-locked
- * - "Apply Current Price" button for unresolved services
+ * - "Apply Current Price" button for unresolved services (disabled for deleted services)
+ * - Warning badge for services no longer in catalog
  *
  * @example
  * ```tsx
@@ -32,6 +35,7 @@ interface PriceVarianceLineItemProps {
  *   service={checkoutService}
  *   onApplyCurrentPrice={() => handleApply(service.id)}
  *   onOpenResolution={() => setSelectedService(service)}
+ *   isServiceDeleted={!catalogServices.find(s => s.id === service.serviceId)}
  * />
  * ```
  */
@@ -39,6 +43,7 @@ export default function PriceVarianceLineItem({
   service,
   onApplyCurrentPrice,
   onOpenResolution,
+  isServiceDeleted = false,
 }: PriceVarianceLineItemProps) {
   const {
     serviceName,
@@ -86,7 +91,11 @@ export default function PriceVarianceLineItem({
     >
       {/* Variance indicator icon */}
       <div className="flex-shrink-0 pt-0.5">
-        {depositLocked ? (
+        {isServiceDeleted ? (
+          <div className="p-1.5 rounded-full bg-red-100">
+            <AlertTriangle className="h-4 w-4 text-red-600" aria-label="Service no longer in catalog" />
+          </div>
+        ) : depositLocked ? (
           <div className="p-1.5 rounded-full bg-gray-100">
             <Lock className="h-4 w-4 text-gray-500" aria-label="Price locked by deposit" />
           </div>
@@ -129,8 +138,8 @@ export default function PriceVarianceLineItem({
             {formatPrice(catalogPriceAtCheckout ?? price)}
           </span>
 
-          {/* Variance badge */}
-          {hasVariance && (
+          {/* Variance badge - only show if not deleted (no current price to compare) */}
+          {hasVariance && !isServiceDeleted && (
             <span className={`text-xs px-1.5 py-0.5 rounded ${
               isPriceDecrease
                 ? 'bg-green-100 text-green-700'
@@ -146,6 +155,13 @@ export default function PriceVarianceLineItem({
               Deposit locked
             </span>
           )}
+
+          {/* Service deleted badge */}
+          {isServiceDeleted && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+              Service no longer in catalog
+            </span>
+          )}
         </div>
 
         {/* Status message based on decision */}
@@ -159,12 +175,19 @@ export default function PriceVarianceLineItem({
             {priceDecision === 'walk_in_current' && 'Current price (walk-in)'}
           </p>
         )}
+
+        {/* Explanation text for deleted services */}
+        {isServiceDeleted && !priceDecision && (
+          <p className="mt-1 text-xs text-red-600">
+            This service has been removed from your catalog. The booked price will be used.
+          </p>
+        )}
       </div>
 
       {/* Actions */}
       <div className="flex-shrink-0 flex items-center gap-2">
-        {/* Apply Current Price button - only show for unresolved services */}
-        {isUnresolved && onApplyCurrentPrice && !depositLocked && (
+        {/* Apply Current Price button - only show for unresolved services, disabled for deleted services */}
+        {isUnresolved && onApplyCurrentPrice && !depositLocked && !isServiceDeleted && (
           <Button
             variant="outline"
             size="sm"
@@ -176,8 +199,8 @@ export default function PriceVarianceLineItem({
           </Button>
         )}
 
-        {/* Open resolution - for more options */}
-        {isUnresolved && onOpenResolution && (
+        {/* Open resolution - for more options (hide for deleted services since only booked price is available) */}
+        {isUnresolved && onOpenResolution && !isServiceDeleted && (
           <Button
             variant="ghost"
             size="sm"
@@ -186,6 +209,19 @@ export default function PriceVarianceLineItem({
             data-testid={`button-open-resolution-${service.id}`}
           >
             Options
+          </Button>
+        )}
+
+        {/* Use Booked Price button - only show for deleted services */}
+        {isUnresolved && isServiceDeleted && onOpenResolution && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={onOpenResolution}
+            data-testid={`button-use-booked-${service.id}`}
+          >
+            Use Booked Price
           </Button>
         )}
       </div>
