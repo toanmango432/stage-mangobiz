@@ -100,3 +100,26 @@ Commit: 93f86dc
 
 ---
 
+## 2026-01-17 - US-005: Add PricingPolicySettings interface to settings types
+Commit: 6e5255f
+
+**Why this story?** US-005 has the lowest priority (5) among eligible stories and is foundational - defines settings types needed by auto-resolution logic (US-008, US-014) and settings UI (US-024-US-028). Continuing type definition work maintains momentum.
+
+**Changes:**
+- `apps/store-app/src/types/settings.ts:182-293`: Added new "PRICING POLICY TYPES" subsection with:
+  - `PricingPolicyMode` type with 4 options: 'honor_booked' | 'use_current' | 'ask_staff' | 'honor_lower'
+  - `PricingPolicySettings` interface with 10 configuration fields (all documented with JSDoc)
+- `apps/store-app/src/types/settings.ts:384-388`: Added `pricingPolicy?: PricingPolicySettings` to CheckoutSettings interface
+- `apps/store-app/src/types/settings.ts:597-614`: Added `DEFAULT_PRICING_POLICY` constant with 'ask_staff' as default mode
+
+**Learnings:**
+- settings.ts has well-organized section structure with comment block headers
+- Followed existing pattern: types first, then interfaces, then defaults at bottom
+- All PricingPolicySettings fields include @default JSDoc tags for documentation
+- Pre-existing typecheck errors in test files and supabase package are unrelated to this story
+- Pre-existing lint errors (`eslint: command not found`) indicate missing global eslint install
+
+**Next story suggestion:** US-006 (Add PriceOverrideLog interface) - priority 6, complexity 1, depends on US-003 (already complete), creates new file for activity logging types
+
+---
+

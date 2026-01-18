@@ -117,7 +117,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "System default is 'ask_staff' per user requirement. autoApplyLowerPrice: true, showPriceVarianceAlert: true, lockPriceOnDeposit: true, keepPriceOnReschedule: true are recommended defaults."
     },
     {
