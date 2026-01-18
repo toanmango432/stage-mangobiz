@@ -7,6 +7,14 @@
  * @module sqlite-adapter/services
  */
 
+// Base service class
+export {
+  BaseSQLiteService,
+  type TableSchema,
+  type ColumnDefinition,
+  type ColumnType,
+} from './BaseSQLiteService';
+
 // Client service
 export {
   ClientSQLiteService,

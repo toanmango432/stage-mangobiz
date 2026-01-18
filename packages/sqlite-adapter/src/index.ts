@@ -24,10 +24,17 @@ export { SQLiteService, getSQLiteService, initializeSQLite } from './SQLiteServi
 
 // Services
 export {
+  // Base service class for building new services
+  BaseSQLiteService,
+  type TableSchema,
+  type ColumnDefinition,
+  type ColumnType,
+  // Client service
   ClientSQLiteService,
   type Client as SQLiteClient,
   type ClientFilters as SQLiteClientFilters,
   type ClientSortOptions as SQLiteClientSortOptions,
+  // Ticket service
   TicketSQLiteService,
   type Ticket as SQLiteTicket,
   type TicketService as SQLiteTicketService,
