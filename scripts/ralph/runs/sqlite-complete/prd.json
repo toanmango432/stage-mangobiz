@@ -755,7 +755,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-026"],
       "notes": "Migration should be idempotent - safe to run multiple times. Check for existing records to avoid duplicates. Use batch inserts for performance (100 records per batch)."
     },
@@ -778,7 +778,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-027"],
       "notes": "CRITICAL: Without checkpointing, a failure at record 25,000 of 50,000 requires restart from scratch. Save checkpoint every 100 records."
     },

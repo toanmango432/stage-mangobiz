@@ -17,8 +17,17 @@ export type {
   TableMigrationResult,
   MigrationProgressCallback,
   DexieDatabaseForMigration,
+  MigrationCheckpoint,
+  MigrationCheckpointStatus,
 } from './dataMigration';
-export { migrateFromDexie, getMigrationTables, estimateMigrationSize } from './dataMigration';
+export {
+  migrateFromDexie,
+  getMigrationTables,
+  estimateMigrationSize,
+  hasPendingMigration,
+  getMigrationResumeInfo,
+  getCheckpoint,
+} from './dataMigration';
 
 // Export individual migrations
 export { migration_001 } from './v001_initial_schema';

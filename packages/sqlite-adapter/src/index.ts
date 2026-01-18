@@ -18,6 +18,8 @@ export type {
   TableMigrationResult,
   MigrationProgressCallback,
   DexieDatabaseForMigration,
+  MigrationCheckpoint,
+  MigrationCheckpointStatus,
 } from './migrations/dataMigration';
 export {
   runMigrations,
@@ -26,6 +28,9 @@ export {
   migrateFromDexie,
   getMigrationTables,
   estimateMigrationSize,
+  hasPendingMigration,
+  getMigrationResumeInfo,
+  getCheckpoint,
   migration_001,
   migration_002,
 } from './migrations';

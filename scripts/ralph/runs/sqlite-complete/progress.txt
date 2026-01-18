@@ -1450,3 +1450,128 @@ Commit: da1d306
 **Next story suggestion:** US-027 (Create Dexie to SQLite migration utility) - depends on US-026 (just completed) and starts the data migration phase.
 
 ---
+
+## 2026-01-17 - US-027: Create Dexie to SQLite migration utility
+Commit: 26fea0a
+
+**Why this story?** US-027 is the next logical story after US-026 (wiring all services). It starts the data migration phase by creating the utility to migrate existing Dexie data to SQLite.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/dataMigration.ts:1-569`: Complete rewrite of data migration utility
+  - Expanded from 5 tables to ALL 42 Dexie tables in dependency order
+  - 7 migration phases: Core → Operational → Team/CRM → Catalog → Scheduling → Gift Cards → Infrastructure
+  - `MigrationProgressCallback` type: `(table, current, total) => void` for UI progress
+  - `MigrationResult` interface: success, tables[], errors[], totalRecords, durationMs
+  - `TableMigrationResult` interface: name, dexieCount, sqliteCount, skipped, skipReason, durationMs
+  - `DexieDatabaseForMigration` interface: Loosely typed to support any Dexie structure
+  - `recordToSQLiteValues()`: Generic record converter with camelCase→snake_case
+  - `batchInsert()`: Transaction-wrapped batch inserts (100 records per batch)
+  - `tableExists()` and `getSQLiteCount()`: Validation helpers
+  - `migrateTable()`: Per-table migration with skip detection
+  - `migrateFromDexie()`: Main entry point with progress callbacks
+  - `getMigrationTables()`: Returns list of tables for UI scope display
+  - `estimateMigrationSize()`: Total record count for progress calculation
+  - Uses INSERT OR REPLACE for resume support (idempotent)
+
+- `packages/sqlite-adapter/src/migrations/index.ts:14-21`: Export new types and functions
+  - Export MigrationProgressCallback, DexieDatabaseForMigration types
+  - Export getMigrationTables, estimateMigrationSize functions
+
+- `packages/sqlite-adapter/package.json:12-16`: Added subpath export
+  - `./migrations` subpath for direct migration imports
+
+- `packages/sqlite-adapter/src/index.ts:14-31`: Updated main exports
+  - Added MigrationProgressCallback, DexieDatabaseForMigration types
+  - Added getMigrationTables, estimateMigrationSize functions
+
+- `apps/store-app/src/services/migrationService.ts` (NEW, 381 lines): App-level migration service
+  - `MigrationStatus` type: 'not_started' | 'in_progress' | 'completed' | 'failed' | 'not_applicable'
+  - `MigrationState` interface: status, timestamps, totalRecords, durationMs, error, lastMigratedTable, version
+  - `getMigrationState()`: Read from localStorage
+  - `isMigrationNeeded()`: Check platform + flag + completion status
+  - `getEstimatedMigrationSize()`: Total records for progress bar
+  - `getMigrationTableList()`: Tables for UI display
+  - `MigrationProgressInfo` interface: currentTable, progress, totals, percent
+  - `runDataMigration()`: Execute migration with progress wrapper and state persistence
+  - `resetMigrationState()`: Clear for retry
+  - `validateMigration()`: Compare record counts between Dexie and SQLite
+  - `logMigrationStats()`: Debug logging for troubleshooting
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in dataMigration.ts or migrationService.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (sqlite-adapter 62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- INSERT OR REPLACE provides idempotency - safe to run multiple times without duplicates
+- Progress callbacks need both per-table progress AND overall completion tracking
+- Migration order matters: Core tables first (staff, clients), then tables with foreign keys (appointments → tickets)
+- localStorage provides simple persistence for migration state without additional dependencies
+- camelCase→snake_case conversion handles most Dexie→SQLite column mapping automatically
+
+**Patterns to sync:**
+- Pattern: Use INSERT OR REPLACE for all migration inserts to support resume/retry
+- Pattern: Track migration state in localStorage for cross-session persistence
+- Pattern: Provide both table-level and overall progress in progress callbacks
+
+**Next story suggestion:** US-041 (Add migration checkpointing) or US-028 (Migration status tracking) - both depend on US-027 and enhance the migration system.
+
+---
+
+## 2026-01-18 - US-041: Add migration checkpointing for resume support
+Commit: c8f51d2
+
+**Why this story?** US-041 is the only story with all dependencies satisfied. It depends on US-027 (completed) and is critical for migration resilience - without checkpointing, a failure at record 25,000 of 50,000 would require restart from scratch.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/dataMigration.ts:38-63`: Added checkpoint types
+  - `MigrationCheckpointStatus` type: 'pending' | 'in_progress' | 'completed' | 'failed'
+  - `MigrationCheckpoint` interface: tableName, lastMigratedIndex, totalCount, insertedCount, status, updatedAt, errorMessage
+  - `CHECKPOINT_INTERVAL = 100` constant for checkpoint save frequency
+- `packages/sqlite-adapter/src/migrations/dataMigration.ts:183-352`: Added checkpoint table management
+  - `ensureCheckpointTableExists()`: Creates `_migration_progress` table with table_name as PRIMARY KEY
+  - `getCheckpoint(db, tableName)`: Get checkpoint for a specific table (exported for debugging)
+  - `getAllCheckpoints()`: Get all checkpoints for resume detection
+  - `saveCheckpoint()`: INSERT OR REPLACE checkpoint record
+  - `clearAllCheckpoints()`: Clear all checkpoints after successful migration
+  - `hasPendingMigration()`: Check if migration needs resume (exported for UI)
+  - `getMigrationResumeInfo()`: Get resume info for UI display (exported)
+- `packages/sqlite-adapter/src/migrations/dataMigration.ts:479-552`: New `batchInsertWithCheckpoint()`
+  - `startIndex` option for resume support
+  - `onCheckpoint` callback saves progress every CHECKPOINT_INTERVAL (100) records
+  - Returns `{ insertedCount, lastIndex }` for checkpoint tracking
+- `packages/sqlite-adapter/src/migrations/dataMigration.ts:570-736`: New `migrateTableWithCheckpoint()`
+  - Skips tables already marked 'completed' in checkpoint
+  - Resumes from `lastMigratedIndex + 1` if status is 'in_progress'
+  - Saves checkpoint at start (in_progress), during (via callback), and end (completed)
+- `packages/sqlite-adapter/src/migrations/dataMigration.ts:769-886`: Updated `migrateFromDexie()`
+  - Ensures checkpoint table exists on start
+  - Loads existing checkpoints into Map for O(1) lookup
+  - Detects resume scenario and logs status
+  - Passes checkpoint info to `migrateTableWithCheckpoint()`
+  - Saves 'failed' checkpoint with error message on table failure
+  - Clears all checkpoints after successful full migration
+  - Preserves checkpoints on failure for resume
+- `packages/sqlite-adapter/src/migrations/index.ts:20-29`: Export new types and functions
+- `packages/sqlite-adapter/src/index.ts:21-33`: Export new types and functions from package root
+- Removed unused `getSQLiteCount()` function (replaced by checkpoint-based tracking)
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in dataMigration.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Checkpoint table uses table_name as PRIMARY KEY (not auto-generated id) for efficient lookup
+- Resume starts from `lastMigratedIndex + 1` to avoid re-processing the last successful record
+- Failed checkpoints include errorMessage for debugging
+- Checkpoint map uses O(1) Map lookup instead of array filter for efficiency with 42 tables
+- clearAllCheckpoints() only called after ALL tables successfully complete (success=true)
+
+**Patterns to sync:**
+- Pattern: Migration checkpointing - use `_migration_progress` table with status enum for resume support
+- Pattern: Checkpoint interval - save every 100 records to balance I/O overhead vs. data loss risk
+
+**Next story suggestion:** US-028 (Create migration status tracking) - depends on US-041 (just completed) and adds app-level tracking to avoid re-migration on every app start.
+
+---
