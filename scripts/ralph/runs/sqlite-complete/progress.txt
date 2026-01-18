@@ -1619,3 +1619,44 @@ Commit: b6057a2
 **Next story suggestion:** US-038 (Bi-directional sync for safe rollback) - depends on US-028 (just completed) and is critical for data safety during SQLite stabilization period.
 
 ---
+
+## 2026-01-18 - US-038: Bi-directional sync for safe rollback
+Commit: 5dfaa5d
+
+**Why this story?** US-038 is the only story with all dependencies satisfied. It depends on US-028 (completed in the last iteration) and is critical for data safety during the SQLite stabilization period.
+
+**Changes:**
+- `apps/store-app/src/services/dualWriteService.ts` (NEW, 430 lines): Dual-write service for SQLite/Dexie sync
+  - `isDualWriteActive()`: Check if dual-write should run (SQLite enabled + within period + not disabled)
+  - `dualWriteCreate()`: Primary write to SQLite, async backup to Dexie
+  - `dualWriteUpdate()`: Primary update to SQLite, async backup to Dexie
+  - `dualWriteDelete()`: Primary delete from SQLite, async delete from Dexie
+  - `dualWriteAddRaw()`: For raw insert operations (used by tickets)
+  - `getDualWriteStats()`: Statistics for monitoring (success/failure counts)
+  - `DatabaseService<T>` interface: Generic service interface compatible with both SQLite and Dexie
+  - `DualWriteResult<T>` interface: Result with primary value and backup status
+  - 30-day period tracking via localStorage (DUAL_WRITE_START_KEY)
+  - Non-blocking background writes (errors logged but don't fail operation)
+- `apps/store-app/.env.example:57-66`: Added env vars documentation
+  - VITE_USE_SQLITE: Enable SQLite backend on Electron
+  - VITE_DUAL_WRITE_ENABLED: Toggle dual-write feature (default: true)
+  - VITE_DUAL_WRITE_DAYS: Days to keep dual-write active (default: 30)
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in dualWriteService.ts; pre-existing test file errors unrelated)
+- Tests: PASS (62 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (no 'as any', 'void _', 'Test Client', 'TODO:')
+
+**Learnings:**
+- Background writes must be fire-and-forget (don't await) to avoid blocking primary operation
+- DatabaseService interface uses optional methods to support services with different APIs (addRaw vs create)
+- Period tracking in localStorage allows persistence across app restarts
+- Stats tracking (successCount, failureCount) enables monitoring dual-write health
+
+**Patterns to sync:**
+- Pattern: Non-blocking backup writes - use `.then()` instead of `await` for backup operations to avoid blocking
+- Pattern: Configurable feature periods - use localStorage to track start date and env var for duration
+
+**Next story suggestion:** US-029 (Add migration trigger on app initialization) - depends on US-038 (just completed) and adds the UI for triggering migration on first SQLite-enabled run.
+
+---

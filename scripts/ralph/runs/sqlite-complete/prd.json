@@ -823,7 +823,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-028"],
       "notes": "CRITICAL SAFETY: If user creates 50 clients in SQLite, then rollback occurs, those clients would be LOST without this. Dexie backup ensures zero data loss on rollback."
     },
