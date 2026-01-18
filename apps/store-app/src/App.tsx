@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Provider } from 'react-redux';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { store } from './store';
 import { AppShell } from './components/layout/AppShell';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -14,6 +14,10 @@ import { authService } from './services/supabase';
 import { TooltipProvider } from './components/ui/tooltip';
 import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
 import { ConflictNotificationProvider } from './providers/ConflictNotificationContext';
+import { MigrationProgress, type MigrationProgressInfo } from './components/MigrationProgress';
+import { isMigrationNeeded, runDataMigration } from './services/migrationService';
+import { getSQLiteAdapter } from './services/sqliteServices';
+import { cacheMigrationStatus } from './config/featureFlags';
 
 // NOTE: Removed auto-deletion of IndexedDB - it was destroying session data after login
 // If you need to clear the database, do it manually via browser DevTools
@@ -27,6 +31,9 @@ export function App() {
   const [authState, setAuthState] = useState<StoreAuthState | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isDbInitialized, setIsDbInitialized] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
+  const [isMigrationComplete, setIsMigrationComplete] = useState(false);
+  const migrationProgressRef = useRef<MigrationProgressInfo | null>(null);
 
   // Initialize database FIRST (before any other operations)
   useEffect(() => {
@@ -36,13 +43,24 @@ export function App() {
         const dbReady = await initializeDatabase();
         if (dbReady) {
           console.log('✅ Database initialized successfully');
+
+          // Check if SQLite migration is needed
+          if (isMigrationNeeded()) {
+            console.log('🔄 SQLite migration needed, showing migration modal...');
+            setShowMigration(true);
+          } else {
+            setIsMigrationComplete(true);
+          }
+
           setIsDbInitialized(true);
         } else {
           console.error('❌ Database initialization failed');
+          setIsMigrationComplete(true); // Skip migration on DB init failure
           setIsDbInitialized(true); // Still set to true to prevent infinite loading
         }
       } catch (error) {
         console.error('❌ Database initialization error:', error);
+        setIsMigrationComplete(true); // Skip migration on error
         setIsDbInitialized(true); // Still set to true to prevent infinite loading
       }
     }
@@ -50,10 +68,56 @@ export function App() {
     initDB();
   }, []);
 
-  // Initialize store auth manager (AFTER database is ready)
+  // Migration handlers
+  const handleMigrationStart = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const sqliteDb = await getSQLiteAdapter();
+
+      const result = await runDataMigration(sqliteDb, (info) => {
+        migrationProgressRef.current = info;
+        // Force re-render for progress updates (via MigrationProgress component)
+      });
+
+      if (result.success) {
+        // Cache successful migration status for quick synchronous checks
+        cacheMigrationStatus({
+          completed: true,
+          version: 1,
+          migratedAt: new Date().toISOString(),
+        });
+        console.log('✅ Migration completed successfully');
+        return { success: true };
+      } else {
+        console.error('❌ Migration failed:', result.errors);
+        return { success: false, error: result.errors.join('; ') };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown migration error';
+      console.error('❌ Migration error:', error);
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  const handleMigrationSkip = useCallback(() => {
+    console.log('⏭️ Migration skipped, continuing with IndexedDB');
+    toast('Continuing with IndexedDB. You can migrate later from Settings.', {
+      icon: '📢',
+      duration: 5000,
+    });
+  }, []);
+
+  const handleMigrationComplete = useCallback((success: boolean) => {
+    setShowMigration(false);
+    setIsMigrationComplete(true);
+    if (success) {
+      toast.success('Database migrated successfully!', { duration: 3000 });
+    }
+  }, []);
+
+  // Initialize store auth manager (AFTER database and migration are ready)
   useEffect(() => {
-    // Wait for database to be initialized first
-    if (!isDbInitialized) {
+    // Wait for database to be initialized and migration to complete first
+    if (!isDbInitialized || !isMigrationComplete) {
       return;
     }
 
@@ -140,7 +204,7 @@ export function App() {
     return () => {
       cleanup?.then((unsubscribe) => unsubscribe?.());
     };
-  }, [isDbInitialized]);
+  }, [isDbInitialized, isMigrationComplete]);
 
   // Set Sentry user context when auth state changes
   useEffect(() => {
@@ -206,8 +270,19 @@ export function App() {
     },
   };
 
-  // Show loading while checking auth OR database
-  if (!isDbInitialized || !isAuthChecked) {
+  // Show migration modal if migration is needed
+  if (showMigration) {
+    return (
+      <MigrationProgress
+        onStart={handleMigrationStart}
+        onSkip={handleMigrationSkip}
+        onComplete={handleMigrationComplete}
+      />
+    );
+  }
+
+  // Show loading while checking auth OR database OR migration
+  if (!isDbInitialized || !isMigrationComplete || !isAuthChecked) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
         <div className="text-center space-y-4">
@@ -215,7 +290,13 @@ export function App() {
             <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Mango POS</h2>
-          <p className="text-gray-600">{!isDbInitialized ? 'Initializing database...' : 'Checking authentication...'}</p>
+          <p className="text-gray-600">
+            {!isDbInitialized
+              ? 'Initializing database...'
+              : !isMigrationComplete
+                ? 'Preparing migration...'
+                : 'Checking authentication...'}
+          </p>
         </div>
       </div>
     );

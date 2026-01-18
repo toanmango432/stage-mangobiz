@@ -174,13 +174,17 @@ async function initializeSQLite(): Promise<void> {
 
 /**
  * Get the SQLite adapter (initializes if needed)
+ * Exported for use by migration service
  */
-async function getAdapter(): Promise<SQLiteAdapter> {
+export async function getSQLiteAdapter(): Promise<SQLiteAdapter> {
   if (!_adapter) {
     await initializeSQLite();
   }
   return _adapter!;
 }
+
+// Internal alias for backwards compatibility
+const getAdapter = getSQLiteAdapter;
 
 // ==================== CLIENTS SERVICE ====================
 
