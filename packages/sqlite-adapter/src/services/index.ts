@@ -66,3 +66,12 @@ export {
   type StaffSchedule,
   type ScheduleEntry,
 } from './staffService';
+
+// Service (menu item) service
+export {
+  ServiceSQLiteService,
+  type Service,
+  type ServiceRow,
+  type ServiceAddOn,
+  type ServiceVariant,
+} from './serviceService';

@@ -66,6 +66,12 @@ export {
   type StaffRole as SQLiteStaffRole,
   type StaffSchedule as SQLiteStaffSchedule,
   type ScheduleEntry as SQLiteScheduleEntry,
+  // Service (menu item) service
+  ServiceSQLiteService,
+  type Service as SQLiteService,
+  type ServiceRow as SQLiteServiceRow,
+  type ServiceAddOn as SQLiteServiceAddOn,
+  type ServiceVariant as SQLiteServiceVariant,
 } from './services';
 
 // Type conversion utilities
