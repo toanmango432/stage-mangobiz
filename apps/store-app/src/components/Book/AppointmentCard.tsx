@@ -4,11 +4,20 @@
  */
 
 import { memo, useState, useMemo } from 'react';
-import { BadgeCheck, UserCheck } from 'lucide-react';
+import { BadgeCheck, UserCheck, Zap } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { formatTimeDisplay, formatDurationDisplay } from '../../utils/timeUtils';
 import { StatusBadge } from './StatusBadge';
+import { useCatalog } from '../../hooks/useCatalog';
+import { useAppSelector } from '../../store/hooks';
+import { selectStoreId } from '../../store/slices/authSlice';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
 
 interface AppointmentCardProps {
   appointment: LocalAppointment;
@@ -45,6 +54,10 @@ export const AppointmentCard = memo(function AppointmentCard({
   const [isDragging, setIsDragging] = useState(false);
   const sourceColor = SOURCE_COLORS[appointment.source] || SOURCE_COLORS.default;
 
+  // Get catalog services for price comparison
+  const storeId = useAppSelector(selectStoreId) || 'default-store';
+  const { services: catalogServices } = useCatalog({ storeId });
+
   const durationMinutes = useMemo(
     () =>
       Math.max(
@@ -61,6 +74,35 @@ export const AppointmentCard = memo(function AppointmentCard({
     () => appointment.services.some((service: any) => service.staffRequested === true),
     [appointment.services]
   );
+
+  /**
+   * Check if any service has a price variance between booked price and current catalog price.
+   * Only shows indicator if:
+   * - Service has a bookedPrice (old appointments without bookedPrice are ignored)
+   * - Current catalog price differs from bookedPrice
+   */
+  const hasPriceVariance = useMemo(() => {
+    // Don't check if catalog services aren't loaded yet
+    if (!catalogServices || catalogServices.length === 0) return false;
+
+    return appointment.services.some((service: any) => {
+      // Skip if no bookedPrice (old appointments, walk-ins)
+      if (service.bookedPrice === undefined || service.bookedPrice === null) {
+        return false;
+      }
+
+      // Find the current catalog service
+      const catalogService = catalogServices.find(cs => cs.id === service.serviceId);
+      if (!catalogService) {
+        // Service might have been deleted - don't show variance indicator
+        return false;
+      }
+
+      // Compare prices with tolerance for floating-point comparison
+      const priceDifference = Math.abs(service.bookedPrice - catalogService.price);
+      return priceDifference >= 0.01; // $0.01 tolerance
+    });
+  }, [appointment.services, catalogServices]);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.stopPropagation();
@@ -138,6 +180,24 @@ export const AppointmentCard = memo(function AppointmentCard({
                     <UserCheck className="w-3 h-3" />
                     <span>REQ</span>
                   </span>
+                )}
+                {/* Price Variance Indicator */}
+                {hasPriceVariance && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-100 text-amber-600 border border-amber-200"
+                          aria-label="Price has changed since booking"
+                        >
+                          <Zap className="w-2.5 h-2.5" aria-hidden />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        Price has changed since booking
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
               <StatusBadge
