@@ -1575,3 +1575,47 @@ Commit: c8f51d2
 **Next story suggestion:** US-028 (Create migration status tracking) - depends on US-041 (just completed) and adds app-level tracking to avoid re-migration on every app start.
 
 ---
+
+## 2026-01-18 - US-028: Create migration status tracking
+Commit: b6057a2
+
+**Why this story?** US-028 is the only story with all dependencies satisfied. It depends on US-041 (completed in the last iteration) and provides the status tracking needed before the UI migration stories can show migration progress.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/migrationStatus.ts` (NEW, 219 lines): Migration status tracking module
+  - `MigrationStatus` interface: completed, version, migratedAt, totalRecords, durationMs
+  - `CURRENT_MIGRATION_VERSION = 1`: Version constant for future compatibility
+  - `getMigrationStatus(db)`: Read status from `_data_migration_status` table
+  - `setMigrationComplete(db, version, totalRecords, durationMs)`: Mark migration done
+  - `isMigrationComplete(db)`: Quick boolean check
+  - `resetMigrationStatus(db)`: Clear status for debugging/testing
+  - `shouldRunMigration(db)`: Combines status check with version comparison
+  - `getMigrationStatusString(db)`: Log-friendly status string
+  - Uses dedicated `_data_migration_status` table (not _migrations schema table)
+- `apps/store-app/src/config/featureFlags.ts:139-265`: Added migration status exports
+  - `needsMigration()`: Synchronous check using localStorage cache
+  - `cacheMigrationStatus(status)`: Cache migration status to localStorage
+  - `clearCachedMigrationStatus()`: Clear cache for debugging
+  - `isMigrationDefinitelyComplete()`: Quick synchronous check
+  - Uses localStorage key `mango:sqlite:migration_status` for fast access
+- `packages/sqlite-adapter/src/migrations/index.ts:32-42`: Export new types and functions
+- `packages/sqlite-adapter/src/index.ts:24,38-45`: Re-export from package root
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in modified files; pre-existing errors in test files unrelated)
+- Tests: PASS (62 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (console.log used for logging consistent with migrations pattern)
+
+**Learnings:**
+- Used separate `_data_migration_status` table rather than `_migrations` schema table - keeps data migration status distinct from schema migration tracking
+- Added localStorage cache for synchronous `needsMigration()` check in featureFlags - avoids async SQLite call on app mount
+- MigrationStatus includes totalRecords and durationMs for debugging/analytics
+- `shouldRunMigration()` checks both completion AND version for future upgrade support
+
+**Patterns to sync:**
+- Pattern: Dual-layer migration tracking - use SQLite table as source of truth, localStorage as synchronous cache
+- Pattern: Version field in migration status - enables future "upgrade migration" when format changes
+
+**Next story suggestion:** US-038 (Bi-directional sync for safe rollback) - depends on US-028 (just completed) and is critical for data safety during SQLite stabilization period.
+
+---

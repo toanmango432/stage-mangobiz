@@ -801,7 +801,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-041"],
       "notes": "Status table created in v001 migration. Check this before attempting Dexie-to-SQLite migration."
     },
