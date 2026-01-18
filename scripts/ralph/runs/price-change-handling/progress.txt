@@ -206,3 +206,26 @@ Commit: 3891706
 
 ---
 
+## 2026-01-17 - US-009: Add unit tests for price comparison utilities
+Commit: dd409ae
+
+**Why this story?** US-009 is the next eligible story by priority (9), its dependency US-008 was just completed, and it validates the utility functions with comprehensive tests.
+
+**Changes:**
+- `apps/store-app/src/utils/__tests__/priceComparisonUtils.test.ts (NEW)`: Created comprehensive test suite with 57 tests:
+  - `detectPriceChange` (12 tests): no change, increase, decrease, null/undefined handling, zero/negative prices, floating-point precision
+  - `formatPriceVariance` (9 tests): positive/negative/zero variance, decimal formatting, percentage rounding
+  - `isSignificantVariance` (10 tests): threshold comparisons (amount & percent), custom thresholds, absolute values
+  - `getPriceDecisionRecommendation` (25 tests): all 4 modes, deposit lock override, autoApplyLower flag, edge cases
+  - `constants` (1 test): DEFAULT_VARIANCE_THRESHOLDS verification
+
+**Learnings:**
+- Followed existing test patterns from currency.test.ts and urgencyUtils.test.ts
+- Used describe blocks to organize tests by function
+- Pre-existing test failures in other files (AddNoteModal, CreateTicketButton, mangoPadService, etc.) are unrelated
+- All 57 new tests pass
+
+**Next story suggestion:** US-010 (Capture bookedPrice when creating appointment) - next by priority, dependency US-002 complete, starts the appointment booking integration
+
+---
+

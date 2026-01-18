@@ -10,6 +10,8 @@ import {
   TicketDTO,
   AppointmentFilters,
   CalendarViewState,
+  AppointmentService,
+  PriceSource,
 } from '../../types/appointment';
 import { startOfDay } from '../../utils/timeUtils';
 
@@ -218,6 +220,11 @@ export const fetchUpcomingAppointments = createAsyncThunk(
 
 /**
  * Create appointment in Supabase
+ *
+ * Captures price snapshot for each service at booking time:
+ * - bookedPrice: Current catalog price (or provided price)
+ * - bookedAt: ISO timestamp when price was locked
+ * - priceSource: Origin of the price (catalog, staff_level, etc.)
  */
 export const createAppointmentInSupabase = createAsyncThunk(
   'appointments/createInSupabase',
@@ -235,8 +242,55 @@ export const createAppointmentInSupabase = createAsyncThunk(
         return rejectWithValue(validation.error || 'Validation failed');
       }
 
+      // Capture price snapshot for each service
+      const servicesWithPriceSnapshot = await Promise.all(
+        appointment.services.map(async (service): Promise<AppointmentService> => {
+          // Look up current catalog price
+          let catalogPrice: number | undefined;
+          let priceSource: PriceSource = 'catalog';
+
+          try {
+            const catalogService = await dataService.services.getById(service.serviceId);
+            if (catalogService) {
+              catalogPrice = catalogService.price;
+            }
+          } catch (err) {
+            // If service lookup fails, use provided price
+            console.warn(`[createAppointmentInSupabase] Could not lookup service ${service.serviceId}:`, err);
+          }
+
+          // Determine booked price:
+          // 1. If service.price provided (e.g., from staff-level pricing), use it
+          // 2. Otherwise use catalog price
+          // 3. Fallback to 0 if neither available
+          const bookedPrice = service.price ?? catalogPrice ?? 0;
+
+          // Determine price source based on available data
+          if (service.staffLevelAtBooking) {
+            priceSource = 'staff_level';
+          } else if (service.priceSource) {
+            priceSource = service.priceSource;
+          }
+
+          return {
+            ...service,
+            bookedPrice,
+            bookedAt: new Date().toISOString(),
+            priceSource,
+            // Store catalog price if different from booked (useful for tiered pricing)
+            catalogPriceAtBooking: catalogPrice,
+          };
+        })
+      );
+
+      // Create appointment with price snapshot data
+      const appointmentWithPriceSnapshot = {
+        ...appointment,
+        services: servicesWithPriceSnapshot,
+      };
+
       // dataService handles the conversion internally
-      const created = await dataService.appointments.create(appointment as any);
+      const created = await dataService.appointments.create(appointmentWithPriceSnapshot as any);
 
       // Audit log appointment creation
       auditLogger.log({
