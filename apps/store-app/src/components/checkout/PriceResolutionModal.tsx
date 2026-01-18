@@ -180,6 +180,42 @@ export default function PriceResolutionModal({
     }));
   }, []);
 
+  // Bulk action: Honor all booked prices
+  const handleHonorAllBooked = useCallback(() => {
+    setResolutionStates(prev => {
+      const updated = { ...prev };
+      unresolvedServices.forEach(service => {
+        // Skip deposit-locked services (they're already locked to booked price)
+        if (service.depositLocked) return;
+        updated[service.id] = {
+          ...prev[service.id],
+          option: 'booked',
+          customPrice: '',
+          reason: prev[service.id]?.reason || '',
+        };
+      });
+      return updated;
+    });
+  }, [unresolvedServices]);
+
+  // Bulk action: Apply all current prices
+  const handleApplyAllCurrent = useCallback(() => {
+    setResolutionStates(prev => {
+      const updated = { ...prev };
+      unresolvedServices.forEach(service => {
+        // Skip deposit-locked services (they're already locked to booked price)
+        if (service.depositLocked) return;
+        updated[service.id] = {
+          ...prev[service.id],
+          option: 'current',
+          customPrice: '',
+          reason: prev[service.id]?.reason || '',
+        };
+      });
+      return updated;
+    });
+  }, [unresolvedServices]);
+
   // Handle custom price change
   const handleCustomPriceChange = useCallback((serviceId: string, value: string) => {
     setResolutionStates(prev => ({
@@ -297,6 +333,32 @@ export default function PriceResolutionModal({
                 </div>
               )}
             </div>
+
+            {/* Bulk Actions */}
+            {unresolvedServices.length > 1 && (
+              <div className="flex flex-wrap gap-2 pb-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleHonorAllBooked}
+                  className="text-sm"
+                  data-testid="button-honor-all-booked"
+                >
+                  Honor All Booked Prices
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleApplyAllCurrent}
+                  className="text-sm"
+                  data-testid="button-apply-all-current"
+                >
+                  Apply All Current Prices
+                </Button>
+              </div>
+            )}
 
             {/* Service List with Resolution Options */}
             <div className="flex-1 overflow-y-auto space-y-4 py-2 min-h-0">
