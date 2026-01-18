@@ -20,6 +20,7 @@ export { migration_001 } from './v001_initial_schema';
 export { migration_002 } from './v002_staff_services';
 export { migration_003 } from './v003_full_schema';
 export { migration_004 } from './v004_infrastructure';
+export { migration_005 } from './v005_team_crm';
 
 /**
  * Create the _migrations tracking table if it doesn't exist
