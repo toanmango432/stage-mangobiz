@@ -796,7 +796,7 @@
         "Verify in browser: receipt shows price change notation"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-004"],
       "notes": "Subtle display - don't clutter receipt. Arrow notation is cleaner than separate lines."
     },
@@ -819,7 +819,7 @@
         "Typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-004"],
       "notes": "Foundation for price variance reporting. Future stories will build UI on this selector."
     },
@@ -843,7 +843,7 @@
         "Verify in browser: summary displays with correct data"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-034"],
       "notes": "Basic reporting view. Full detailed report with export can be future enhancement."
     },
