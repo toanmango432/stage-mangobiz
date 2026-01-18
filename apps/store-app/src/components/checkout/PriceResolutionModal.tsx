@@ -16,7 +16,7 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
   selectServicePriceChanges,
   selectUnresolvedPriceChanges,
-  applyPriceResolutions,
+  applyPriceResolutionsWithLogging,
   type PriceResolutionPayload,
   type CheckoutTicketService,
 } from '@/store/slices/uiTicketsSlice';
@@ -679,7 +679,7 @@ export default function PriceResolutionModal({
           </Button>
           {unresolvedServices.length > 0 && (
             <Button
-              onClick={() => {
+              onClick={async () => {
                 try {
                   // Build resolutions from state
                   const resolutions: PriceResolutionPayload[] = unresolvedServices.map(service => {
@@ -716,8 +716,8 @@ export default function PriceResolutionModal({
                     };
                   });
 
-                  // Dispatch Redux action to update ticket prices
-                  dispatch(applyPriceResolutions({
+                  // Dispatch Redux thunk to update ticket prices and log overrides
+                  await dispatch(applyPriceResolutionsWithLogging({
                     ticketId,
                     resolutions,
                   }));

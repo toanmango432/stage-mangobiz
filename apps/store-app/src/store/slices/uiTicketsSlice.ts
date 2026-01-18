@@ -3,7 +3,7 @@ import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
-import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange, PriceDecision } from '../../types';
+import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange, PriceDecision, PriceOverrideLog } from '../../types';
 // Price comparison utilities for auto-resolution
 import { getPriceDecisionRecommendation, detectPriceChange } from '../../utils/priceComparisonUtils';
 import { DEFAULT_PRICING_POLICY } from '../../types/settings';
@@ -2084,6 +2084,101 @@ export const updateCheckoutTicket = createAsyncThunk(
     });
 
     return { ticketId, updates: ticketUpdates };
+  }
+);
+
+/**
+ * Apply price resolutions to a ticket and log override decisions.
+ *
+ * This thunk:
+ * 1. Applies price resolutions via the applyPriceResolutions reducer
+ * 2. Logs price override decisions to the audit trail (for non-booked_honored decisions)
+ *
+ * Only logs when priceDecision is NOT 'booked_honored' (i.e., when the price was changed).
+ *
+ * @param ticketId - ID of the ticket
+ * @param resolutions - Array of price resolution payloads
+ */
+export const applyPriceResolutionsWithLogging = createAsyncThunk(
+  'uiTickets/applyPriceResolutionsWithLogging',
+  async (
+    { ticketId, resolutions }: ApplyPriceResolutionsPayload,
+    { dispatch, getState }
+  ) => {
+    // Get the pending ticket to access service details before resolution
+    const state = getState() as { uiTickets: UITicketsState };
+    const ticket = state.uiTickets.pendingTickets.find(t => t.id === ticketId);
+
+    if (!ticket) {
+      console.warn('⚠️ Ticket not found for price resolution logging:', ticketId);
+      return { ticketId, resolutions, logged: 0 };
+    }
+
+    // Apply the price resolutions
+    dispatch(applyPriceResolutions({ ticketId, resolutions }));
+
+    // Log override decisions (only non-booked_honored decisions)
+    let loggedCount = 0;
+
+    for (const resolution of resolutions) {
+      // Skip logging if price was honored (no change scenario)
+      if (resolution.priceDecision === 'booked_honored') {
+        continue;
+      }
+
+      // Find the service to get original prices
+      const service = ticket.checkoutServices?.find(s => s.id === resolution.serviceId);
+      if (!service) {
+        console.warn('⚠️ Service not found for logging:', resolution.serviceId);
+        continue;
+      }
+
+      // Get prices for the log
+      const bookedPrice = service.bookedPrice ?? service.price;
+      const catalogPrice = service.catalogPriceAtCheckout ?? service.price;
+      const finalPrice = resolution.finalPrice;
+      const variance = finalPrice - bookedPrice;
+      const variancePercent = bookedPrice > 0 ? (variance / bookedPrice) * 100 : 0;
+
+      // Create and log the price override entry
+      const logEntry: Omit<PriceOverrideLog, 'id'> = {
+        type: 'price_override',
+        ticketId,
+        serviceLineItemId: resolution.serviceId,
+        bookedPrice,
+        catalogPrice,
+        finalPrice,
+        variance,
+        variancePercent: Math.round(variancePercent * 100) / 100,
+        decision: resolution.priceDecision,
+        ...(resolution.priceOverrideReason && { reason: resolution.priceOverrideReason }),
+        performedBy: resolution.priceOverrideBy || 'unknown',
+        ...(resolution.priceOverrideBy && { approvedBy: undefined }), // Manager approval tracked separately
+        timestamp: new Date().toISOString(),
+      };
+
+      // Log to audit trail
+      await auditLogger.log({
+        action: 'price_override',
+        entityType: 'ticket',
+        entityId: ticketId,
+        description: `Price override: ${service.serviceName} - ${resolution.priceDecision} ($${bookedPrice.toFixed(2)} → $${finalPrice.toFixed(2)})`,
+        success: true,
+        metadata: {
+          ...logEntry,
+          serviceName: service.serviceName,
+        },
+      });
+
+      loggedCount++;
+      console.log('📝 Price override logged:', {
+        service: service.serviceName,
+        decision: resolution.priceDecision,
+        variance: variance.toFixed(2),
+      });
+    }
+
+    return { ticketId, resolutions, logged: loggedCount };
   }
 );
 
