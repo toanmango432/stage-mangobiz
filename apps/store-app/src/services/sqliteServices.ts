@@ -30,6 +30,8 @@ import {
   TransactionSQLiteService,
   StaffSQLiteService,
   ServiceSQLiteService,
+  SettingsSQLiteService,
+  SyncQueueSQLiteService,
 } from '@mango/sqlite-adapter';
 
 // All migrations to run
@@ -50,6 +52,8 @@ let _appointmentsService: AppointmentSQLiteService | null = null;
 let _transactionsService: TransactionSQLiteService | null = null;
 let _staffService: StaffSQLiteService | null = null;
 let _servicesService: ServiceSQLiteService | null = null;
+let _settingsService: SettingsSQLiteService | null = null;
+let _syncQueueService: SyncQueueSQLiteService | null = null;
 
 /**
  * Initialize SQLite adapter and services
@@ -540,6 +544,178 @@ export const sqliteServicesDB = {
   },
 };
 
+// ==================== SETTINGS SERVICE ====================
+
+/**
+ * SQLite Settings Service with Dexie-compatible interface
+ * Simple key-value store for application settings
+ */
+export const sqliteSettingsDB = {
+  async get<T>(key: string): Promise<T | undefined> {
+    const adapter = await getAdapter();
+    if (!_settingsService) {
+      _settingsService = new SettingsSQLiteService(adapter);
+    }
+    // Cast to unknown first for flexible generic return type
+    const value = await _settingsService.get(key);
+    return value as T | undefined;
+  },
+
+  async set(key: string, value: unknown): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_settingsService) {
+      _settingsService = new SettingsSQLiteService(adapter);
+    }
+    // Cast to SettingValue for SQLite service compatibility
+    await _settingsService.set(key, value as string | number | boolean | object | null);
+  },
+
+  async remove(key: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_settingsService) {
+      _settingsService = new SettingsSQLiteService(adapter);
+    }
+    await _settingsService.delete(key);
+  },
+};
+
+// ==================== SYNC QUEUE SERVICE ====================
+
+/**
+ * SQLite Sync Queue Service with Dexie-compatible interface
+ * Manages offline sync operation queue
+ */
+
+/**
+ * SyncOperation type for dataService compatibility
+ * Note: Uses Date object for createdAt to match Dexie's behavior
+ */
+export interface SyncOperation {
+  id: string;
+  type: string;
+  entity: string;
+  entityId: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  payload: unknown;
+  priority: number;
+  maxAttempts: number;
+  createdAt: Date;
+  attempts: number;
+  status: 'pending' | 'syncing' | 'complete' | 'failed';
+  lastError?: string;
+}
+
+export const sqliteSyncQueueDB = {
+  async getAll(limit: number = 100, _offset: number = 0): Promise<SyncOperation[]> {
+    const adapter = await getAdapter();
+    if (!_syncQueueService) {
+      _syncQueueService = new SyncQueueSQLiteService(adapter);
+    }
+    // getPending() takes no limit argument, use getNext(limit) instead for consistency
+    const ops = await _syncQueueService.getNext(limit);
+    // Convert SQLite operations to SyncOperation format
+    return ops.map(op => ({
+      id: op.id,
+      type: op.operation, // 'create' | 'update' | 'delete'
+      entity: op.entity,
+      entityId: op.entityId,
+      action: op.operation.toUpperCase() as 'CREATE' | 'UPDATE' | 'DELETE',
+      payload: op.data,
+      priority: op.priority,
+      maxAttempts: op.maxRetries,
+      createdAt: new Date(op.createdAt),
+      attempts: op.retryCount,
+      status: op.status as 'pending' | 'syncing' | 'complete' | 'failed',
+      lastError: op.errorMessage ?? undefined,
+    }));
+  },
+
+  async getPending(limit: number = 50): Promise<SyncOperation[]> {
+    const adapter = await getAdapter();
+    if (!_syncQueueService) {
+      _syncQueueService = new SyncQueueSQLiteService(adapter);
+    }
+    const ops = await _syncQueueService.getNext(limit);
+    // Convert SQLite operations to SyncOperation format
+    return ops.map(op => ({
+      id: op.id,
+      type: op.operation,
+      entity: op.entity,
+      entityId: op.entityId,
+      action: op.operation.toUpperCase() as 'CREATE' | 'UPDATE' | 'DELETE',
+      payload: op.data,
+      priority: op.priority,
+      maxAttempts: op.maxRetries,
+      createdAt: new Date(op.createdAt),
+      attempts: op.retryCount,
+      status: op.status as 'pending' | 'syncing' | 'complete' | 'failed',
+      lastError: op.errorMessage ?? undefined,
+    }));
+  },
+
+  async add(operation: Omit<SyncOperation, 'id' | 'createdAt' | 'attempts' | 'status'>): Promise<SyncOperation> {
+    const adapter = await getAdapter();
+    if (!_syncQueueService) {
+      _syncQueueService = new SyncQueueSQLiteService(adapter);
+    }
+    const op = await _syncQueueService.add({
+      entity: operation.entity as 'clients' | 'tickets' | 'appointments' | 'transactions' | 'staff' | 'services',
+      entityId: operation.entityId,
+      operation: operation.action.toLowerCase() as 'create' | 'update' | 'delete',
+      data: operation.payload as Record<string, unknown>,
+      priority: operation.priority as 1 | 2 | 3,
+    });
+    return {
+      id: op.id,
+      type: op.operation,
+      entity: op.entity,
+      entityId: op.entityId,
+      action: op.operation.toUpperCase() as 'CREATE' | 'UPDATE' | 'DELETE',
+      payload: op.data,
+      priority: op.priority,
+      maxAttempts: op.maxRetries,
+      createdAt: new Date(op.createdAt),
+      attempts: op.retryCount,
+      status: op.status as 'pending' | 'syncing' | 'complete' | 'failed',
+      lastError: op.errorMessage ?? undefined,
+    };
+  },
+
+  async update(id: string, updates: { status?: 'pending' | 'syncing' | 'complete' | 'failed'; lastError?: string }): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_syncQueueService) {
+      _syncQueueService = new SyncQueueSQLiteService(adapter);
+    }
+    // Map SyncOperation updates to SQLite service
+    if (updates.status === 'complete') {
+      await _syncQueueService.markComplete(id);
+    } else if (updates.status === 'failed' && updates.lastError) {
+      await _syncQueueService.markFailed(id, updates.lastError);
+    } else if (updates.status === 'syncing') {
+      await _syncQueueService.markSyncing(id);
+    } else if (updates.status === 'pending') {
+      await _syncQueueService.resetForRetry(id);
+    }
+  },
+
+  async remove(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_syncQueueService) {
+      _syncQueueService = new SyncQueueSQLiteService(adapter);
+    }
+    // Mark as complete to effectively remove from queue
+    await _syncQueueService.markComplete(id);
+  },
+
+  async clear(): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_syncQueueService) {
+      _syncQueueService = new SyncQueueSQLiteService(adapter);
+    }
+    await _syncQueueService.clearCompleted();
+  },
+};
+
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
@@ -562,6 +738,8 @@ export async function closeSQLite(): Promise<void> {
     _transactionsService = null;
     _staffService = null;
     _servicesService = null;
+    _settingsService = null;
+    _syncQueueService = null;
     _initPromise = null;
   }
 }

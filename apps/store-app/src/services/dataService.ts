@@ -30,6 +30,7 @@ import {
   ticketsDB,
   transactionsDB,
   syncQueueDB,
+  settingsDB,
   // PR #2: Import missing modules for unified data access
   patchTestsDB,
   formResponsesDB,
@@ -48,6 +49,8 @@ import {
   sqliteTransactionsDB,
   sqliteStaffDB,
   sqliteServicesDB,
+  sqliteSettingsDB,
+  sqliteSyncQueueDB,
 } from '@/services/sqliteServices';
 
 // API-FIRST: Import API client and endpoints
@@ -1489,6 +1492,102 @@ export const segmentsService = {
   },
 };
 
+// ==================== SETTINGS SERVICE ====================
+
+/**
+ * Settings data operations - LOCAL-FIRST
+ * Simple key-value store for application settings
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteSettingsDB
+ */
+export const settingsService = {
+  async get<T>(key: string): Promise<T | undefined> {
+    if (USE_SQLITE) {
+      return sqliteSettingsDB.get<T>(key);
+    }
+    return settingsDB.get(key);
+  },
+
+  async set(key: string, value: unknown): Promise<void> {
+    if (USE_SQLITE) {
+      await sqliteSettingsDB.set(key, value);
+      return;
+    }
+    await settingsDB.set(key, value);
+  },
+
+  async remove(key: string): Promise<void> {
+    if (USE_SQLITE) {
+      await sqliteSettingsDB.remove(key);
+      return;
+    }
+    await settingsDB.remove(key);
+  },
+};
+
+// ==================== SYNC QUEUE SERVICE ====================
+
+/**
+ * Sync Queue data operations - LOCAL-FIRST
+ * Manages offline sync operation queue
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteSyncQueueDB
+ */
+export const syncQueueService = {
+  async getAll(limit: number = 100, offset: number = 0) {
+    if (USE_SQLITE) {
+      return sqliteSyncQueueDB.getAll(limit, offset);
+    }
+    return syncQueueDB.getAll(limit, offset);
+  },
+
+  async getPending(limit: number = 50) {
+    if (USE_SQLITE) {
+      return sqliteSyncQueueDB.getPending(limit);
+    }
+    return syncQueueDB.getPending(limit);
+  },
+
+  async add(operation: Parameters<typeof syncQueueDB.add>[0]) {
+    if (USE_SQLITE) {
+      return sqliteSyncQueueDB.add(operation);
+    }
+    return syncQueueDB.add(operation);
+  },
+
+  async update(id: string, updates: Parameters<typeof syncQueueDB.update>[1]) {
+    if (USE_SQLITE) {
+      // Map 'success' status to 'complete' for SQLite service compatibility
+      const sqliteUpdates: { status?: 'pending' | 'syncing' | 'complete' | 'failed'; lastError?: string } = {};
+      if (updates.status) {
+        sqliteUpdates.status = updates.status === 'success' ? 'complete' : updates.status as 'pending' | 'syncing' | 'failed';
+      }
+      if (updates.error) {
+        sqliteUpdates.lastError = updates.error;
+      }
+      await sqliteSyncQueueDB.update(id, sqliteUpdates);
+      return;
+    }
+    await syncQueueDB.update(id, updates);
+  },
+
+  async remove(id: string): Promise<void> {
+    if (USE_SQLITE) {
+      await sqliteSyncQueueDB.remove(id);
+      return;
+    }
+    await syncQueueDB.remove(id);
+  },
+
+  async clear(): Promise<void> {
+    if (USE_SQLITE) {
+      await sqliteSyncQueueDB.clear();
+      return;
+    }
+    await syncQueueDB.clear();
+  },
+};
+
 // ==================== EXPORTS ====================
 
 // Re-export feature flags for convenience
@@ -1531,6 +1630,10 @@ export const dataService = {
   loyalty: loyaltyService,
   reviewRequests: reviewRequestsService,
   segments: segmentsService,
+
+  // Infrastructure services (settings, sync queue)
+  settings: settingsService,
+  syncQueue: syncQueueService,
 };
 
 export default dataService;
