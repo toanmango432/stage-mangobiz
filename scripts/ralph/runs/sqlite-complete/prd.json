@@ -235,7 +235,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-008"],
       "notes": "IMPORTANT: ticketService.ts already has ~650 lines of working code. Do NOT refactor or rewrite. Only add missing methods. Read the file first, document what exists, then add only what's needed."
     },

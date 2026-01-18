@@ -423,3 +423,41 @@ Commit: 15e5bbb
 **Next story suggestion:** US-009 (Add missing methods to TicketSQLiteService) - depends on US-008 (just completed) and requires reviewing existing ticketService.ts to identify any missing methods.
 
 ---
+
+## 2026-01-17 - US-009: Add missing methods to TicketSQLiteService
+Commit: dbbbe21
+
+**Why this story?** US-009 is the only story with all dependencies satisfied. It depends on US-008 (just completed) and modifies the same category of files (sqlite-adapter services).
+
+**Existing Methods Identified (before changes):**
+- getAll, getById, getByStatus, getActive, getByDate
+- getStaffTicketCounts, getDailyStats
+- create, update, delete
+- getCount, getCompletedInRange, getDrafts
+
+**Missing Methods Added (to match Dexie ticketsDB interface):**
+- `packages/sqlite-adapter/src/services/ticketService.ts:726-997`: Added 7 new methods (272 lines)
+  - `addRaw(ticket)`: Insert raw ticket objects directly using INSERT OR REPLACE
+  - `complete(id, userId)`: Mark ticket as paid/completed with timestamp
+  - `createDraft(services, userId, storeId, clientInfo?)`: Create draft tickets with 24h expiration
+  - `cleanupExpiredDrafts(storeId)`: Delete expired drafts and return count
+  - `getByClient(clientId, limit)`: Client ticket history queries
+  - `getByDateRange(storeId, start, end, limit)`: Date range queries for reporting
+  - `getPending(storeId, limit)`: Convenience method wrapping getByStatus('pending')
+
+**Quality Checks:**
+- Typecheck: PASS (ticketService.ts specific check passes; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Dexie ticketsDB has methods SQLite didn't: addRaw, complete, createDraft, cleanupExpiredDrafts
+- addRaw uses INSERT OR REPLACE for upsert semantics matching Dexie's .put() behavior
+- createDraft includes default taxRate (0.0875) matching TAX_RATE constant in store-app
+- cleanupExpiredDrafts finds and deletes in two queries (SELECT then DELETE) for clarity
+
+**Patterns to sync:** None new - follows established service patterns
+
+**Next story suggestion:** US-040 (Optimize getStaffTicketCounts with SQL json_each) - depends on US-009 (just completed) and optimizes the same file's aggregation method.
+
+---
