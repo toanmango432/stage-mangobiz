@@ -130,3 +130,52 @@ Search for `void _` and `void [` patterns to find cleanup opportunities.
 - PRD notes can become outdated when work is done across multiple iterations
 - **Always verify current implementation before assuming work is needed**
 - Check git history when PRD line numbers don't match current file
+
+## From ralph/sqlite-complete (2026-01-17)
+
+### BaseSQLiteService Type Constraint
+Entity interfaces used with BaseSQLiteService must extend `Record<string, unknown>`:
+```typescript
+// GOOD - satisfies BaseSQLiteService<T> constraint
+export interface Appointment extends Record<string, unknown> {
+  id: string;
+  storeId: string;
+  // ... other fields
+}
+
+// BAD - will cause TS2344 error
+export interface Appointment {
+  id: string;
+  storeId: string;
+}
+```
+
+### SQLite Type Conversion Pattern
+Use conversion utilities from `@mango/sqlite-adapter` consistently:
+```typescript
+import { toISOString, boolToSQLite, sqliteToBool, safeParseJSON, toJSONString } from '@mango/sqlite-adapter';
+
+// Date → SQLite TEXT
+const isoDate = toISOString(new Date()); // "2026-01-17T00:00:00.000Z"
+
+// Boolean → SQLite INTEGER (0/1)
+const sqliteInt = boolToSQLite(true); // 1
+
+// JSON object → SQLite TEXT
+const jsonText = toJSONString({ services: [] }); // '{"services":[]}'
+```
+
+### Schema Registry Pattern
+Define table schemas in registry for type-safe lookup:
+```typescript
+// Use columnMapping shorthand or full definition
+const schema: TableSchema = {
+  tableName: 'appointments',
+  primaryKey: 'id',
+  columns: {
+    id: 'id',  // shorthand
+    isActive: { column: 'is_active', type: 'boolean' },  // full definition
+    services: { column: 'services', type: 'json', defaultValue: [] },
+  }
+};
+```

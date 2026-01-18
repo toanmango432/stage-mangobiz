@@ -260,3 +260,41 @@ Commit: 17f2330
 **Next story suggestion:** US-005 (Create AppointmentSQLiteService) - depends on US-002 (just completed) and is the first service to use the new schema registry pattern.
 
 ---
+
+## 2026-01-17 - US-005: Create AppointmentSQLiteService
+Commit: ed115c0
+
+**Why this story?** US-005 is the only story with all dependencies satisfied. It depends on US-002 (just completed) and is the first SQLite service to use BaseSQLiteService for handling scheduled appointments.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/appointmentService.ts` (NEW, 290 lines): Appointment SQLite service
+  - `AppointmentSQLiteService`: Extends BaseSQLiteService<Appointment, AppointmentRow>
+  - `getByDateRange(storeId, start, end)`: Calendar view queries using SQL BETWEEN
+  - `getByStaff(staffId, date?)`: Staff schedule queries with optional date filter
+  - `getByClient(clientId)`: Client appointment history
+  - `getByStatus(storeId, status)`: Dashboard filtering by appointment status
+  - `getUpcoming(storeId, hours)`: Appointments starting within N hours (excludes cancelled/no-show)
+  - `getToday(storeId)`: Convenience method for today's appointments
+  - `getByStore(storeId)`: All appointments for a store with pagination
+  - `countByStatus(storeId, status)`: Dashboard metrics
+  - Helper methods: `updateStatus()`, `checkIn()`, `startService()`, `complete()`, `cancel()`, `markNoShow()`
+- `packages/sqlite-adapter/src/services/index.ts:38-46`: Export AppointmentSQLiteService and types
+- `packages/sqlite-adapter/src/index.ts:46-52`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (appointmentService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Appointment table uses camelCase column names (unlike clients/tickets which use snake_case) - schema must match
+- Interface must extend `Record<string, unknown>` to satisfy BaseSQLiteService constraint
+- Date range queries use ISO string comparison which works correctly with SQLite's string ordering
+- Services array stored as JSON TEXT column with `type: 'json'` for automatic serialization
+
+**Patterns to sync:**
+- Pattern: Interface extends Record<string, unknown> - entity types used with BaseSQLiteService must satisfy this constraint
+
+**Next story suggestion:** US-006 (Create TransactionSQLiteService) - depends on US-005 and follows the same service pattern for payment transactions.
+
+---

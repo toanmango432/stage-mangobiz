@@ -141,7 +141,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-002"],
       "notes": "Date comparisons use ISO string format. Services array stored as JSON TEXT column. Reference existing Dexie appointmentsDB for method signatures."
     },
