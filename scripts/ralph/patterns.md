@@ -192,3 +192,16 @@ FROM transactions
 WHERE store_id = ?
 ```
 This pattern ensures numeric results even with empty result sets.
+
+### JSON Array Search with json_each()
+Use `json_each()` to search within JSON array columns in SQLite:
+```sql
+-- Find staff members with a specific skill
+SELECT s.*
+FROM staff s, json_each(s.skills) AS skill
+WHERE s.store_id = ?
+  AND s.is_active = 1
+  AND skill.value = ?
+ORDER BY s.display_name ASC
+```
+This pattern enables efficient searching within JSON arrays without loading full records into JS.

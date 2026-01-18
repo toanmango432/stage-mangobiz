@@ -338,3 +338,48 @@ Commit: ee71593
 **Next story suggestion:** US-007 (Create StaffSQLiteService) - depends on US-006 and continues the service pattern for staff with availability queries.
 
 ---
+
+## 2026-01-17 - US-007: Create StaffSQLiteService
+Commit: 6e43671
+
+**Why this story?** US-007 is the only story with all dependencies satisfied. It depends on US-006 (just completed) and follows the same service pattern for staff members with availability queries.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/staffService.ts` (NEW, 340 lines): Staff SQLite service
+  - `StaffSQLiteService`: Extends BaseSQLiteService<Staff, StaffRow>
+  - `getAvailable(storeId)`: Staff with status != 'off' (for scheduling)
+  - `getByStatus(storeId, status)`: Filter by status (available, busy, break, off)
+  - `updateStatus(id, status)`: Quick status update for real-time changes
+  - `getActive(storeId)`: Only active (non-deleted) staff members
+  - `getByRole(storeId, role)`: Filter by role for permissions
+  - `getByStore(storeId)`: All staff for a store with pagination
+  - `countByStatus(storeId, status)`: Dashboard metrics
+  - `countActive(storeId)`: Count of active staff
+  - `softDelete(id)`: Sets isActive=false and status='off'
+  - `restore(id)`: Sets isActive=true and status='available'
+  - `updateSchedule(id, schedule)`: Update schedule JSON
+  - `getBySkill(storeId, skill)`: Find staff with specific skill using json_each()
+  - `search(storeId, query)`: Search by name using LIKE
+  - `getStatusCounts(storeId)`: SQL GROUP BY for status breakdown
+  - `getByEmail(email)`, `getByPhone(phone)`: Lookup by contact
+  - Types: `Staff`, `StaffRow`, `StaffStatus`, `StaffRole`, `StaffSchedule`, `ScheduleEntry`
+- `packages/sqlite-adapter/src/services/index.ts:59-67`: Export StaffSQLiteService and types
+- `packages/sqlite-adapter/src/index.ts:61-68`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (staffService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- json_each() is useful for searching within JSON array columns: `SELECT s.* FROM staff s, json_each(s.skills) AS skill WHERE skill.value = ?`
+- Staff status is a 4-state enum ('available', 'busy', 'break', 'off') used for real-time availability
+- Soft delete pattern: set isActive=false instead of actual deletion, also set status='off'
+- SQL GROUP BY with initialization pattern: start with all keys at 0, then fill from query results
+
+**Patterns to sync:**
+- Pattern: JSON array search with json_each() - use `json_each(column) AS alias WHERE alias.value = ?` to search within JSON arrays
+
+**Next story suggestion:** US-008 (Create ServiceSQLiteService) - depends on US-007 and continues the service pattern for menu services with category filtering.
+
+---

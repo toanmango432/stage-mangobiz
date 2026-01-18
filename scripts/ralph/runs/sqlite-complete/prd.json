@@ -189,7 +189,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-006"],
       "notes": "Staff status: 'available', 'busy', 'break', 'off'. Schedule stored as JSON with weekly hours."
     },
