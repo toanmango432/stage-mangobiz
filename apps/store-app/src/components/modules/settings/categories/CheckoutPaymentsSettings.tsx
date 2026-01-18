@@ -707,6 +707,53 @@ export function CheckoutPaymentsSettings() {
               onChange={(checked) => handlePricingPolicyChange('keepPriceOnReschedule', checked)}
             />
           </div>
+
+          {/* Manager Approval Settings */}
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
+            <div>
+              <p className="font-medium text-gray-900">Require manager approval for higher prices</p>
+              <p className="text-sm text-gray-500">
+                When charging more than the booked price, require manager approval above the threshold
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.requireApprovalForHigherPrice}
+              onChange={(checked) => handlePricingPolicyChange('requireApprovalForHigherPrice', checked)}
+            />
+          </div>
+
+          {/* Threshold inputs - only show when manager approval is enabled */}
+          {pricingPolicy.requireApprovalForHigherPrice && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                Approval Thresholds
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Approval is required if the price increase exceeds either threshold (whichever comes first)
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Amount Threshold ($)" hint="Approval if increase exceeds this amount">
+                  <Input
+                    type="number"
+                    value={pricingPolicy.approvalThresholdAmount}
+                    onChange={(v) => handlePricingPolicyChange('approvalThresholdAmount', parseFloat(v) || 0)}
+                    min={0}
+                    step={0.5}
+                  />
+                </FormField>
+                <FormField label="Percent Threshold (%)" hint="Approval if increase exceeds this percent">
+                  <Input
+                    type="number"
+                    value={pricingPolicy.approvalThresholdPercent}
+                    onChange={(v) => handlePricingPolicyChange('approvalThresholdPercent', parseFloat(v) || 0)}
+                    min={0}
+                    max={100}
+                    step={1}
+                  />
+                </FormField>
+              </div>
+            </div>
+          )}
         </div>
       </SettingsSection>
 
