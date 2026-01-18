@@ -322,6 +322,31 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
 
   // ==================== FILTERED DATA ====================
 
+  /**
+   * Returns only active services (status === 'active').
+   * This is the default for customer-facing views like booking and checkout.
+   * Archived and inactive services are excluded.
+   *
+   * @example
+   * const { getActiveServices } = useCatalog({ storeId });
+   * const activeOnly = getActiveServices(); // Use in service selectors
+   */
+  const getActiveServices = useCallback(() => {
+    return servicesWithVariants.filter(s => s.status === 'active');
+  }, [servicesWithVariants]);
+
+  /**
+   * Returns only archived services (status === 'archived').
+   * Use in admin views to show archived services separately.
+   *
+   * @example
+   * const { getArchivedServices } = useCatalog({ storeId });
+   * const archived = getArchivedServices(); // Show in admin "Archived" tab
+   */
+  const getArchivedServices = useCallback(() => {
+    return servicesWithVariants.filter(s => s.status === 'archived');
+  }, [servicesWithVariants]);
+
   const filteredServices = useMemo(() => {
     let result = servicesWithVariants;
 
@@ -1096,6 +1121,8 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     archiveService,
     restoreService,
     checkServiceDependencies,
+    getActiveServices,
+    getArchivedServices,
 
     // Package Actions
     createPackage,

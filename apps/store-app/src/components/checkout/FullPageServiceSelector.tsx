@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/Button";
-import { Scissors, Palette, Sparkles, Users as UsersIcon, Star, Search, ArrowLeft, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Scissors, Palette, Sparkles, Users as UsersIcon, Star, Search, ArrowLeft, ChevronLeft, ChevronRight, Plus, Archive } from "lucide-react";
 
 export interface Service {
   id: string;
@@ -11,6 +11,8 @@ export interface Service {
   category: string;
   price: number;
   duration: number;
+  /** Service status: active, inactive, or archived */
+  status?: 'active' | 'inactive' | 'archived';
 }
 
 export interface StaffMember {
@@ -29,6 +31,17 @@ interface FullPageServiceSelectorProps {
   externalSearchQuery?: string; // External search query from parent (modern layout)
   searchQuery?: string; // Search query from parent (modern layout)
   compactMode?: boolean; // For dock mode - smaller categories and service cards
+  /**
+   * When true, includes archived services in the list with a visual indicator.
+   * Useful for admin views that need to see/restore archived services.
+   * Default: false (hides archived services)
+   */
+  showArchived?: boolean;
+  /**
+   * External services data from catalog. If provided, uses this instead of mock data.
+   * Services with status='archived' are filtered unless showArchived=true.
+   */
+  services?: Service[];
 }
 
 const SERVICES: Service[] = [
@@ -176,6 +189,8 @@ export default function FullPageServiceSelector({
   externalSearchQuery,
   searchQuery: externalSearchQueryProp,
   compactMode = false,
+  showArchived = false,
+  services: externalServices,
 }: FullPageServiceSelectorProps) {
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
 
@@ -184,6 +199,17 @@ export default function FullPageServiceSelector({
     ? (externalSearchQueryProp ?? externalSearchQuery ?? "")
     : internalSearchQuery;
   const setSearchQuery = setInternalSearchQuery;
+
+  // Use external services if provided, otherwise use mock data
+  // Filter out archived services unless showArchived is true
+  const availableServices = useMemo(() => {
+    const baseServices = externalServices ?? SERVICES;
+    if (showArchived) {
+      return baseServices;
+    }
+    // Filter out archived services (status !== 'archived' or status is undefined for mock data)
+    return baseServices.filter(s => s.status !== 'archived');
+  }, [externalServices, showArchived]);
   
   const activeStaff = activeStaffId 
     ? staffMembers.find(s => s.id === activeStaffId)
@@ -198,7 +224,7 @@ export default function FullPageServiceSelector({
       .slice(0, 2);
   };
 
-  const filteredServices = SERVICES.filter((service) => {
+  const filteredServices = availableServices.filter((service) => {
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.category.toLowerCase().includes(searchQuery.toLowerCase());
@@ -333,21 +359,31 @@ export default function FullPageServiceSelector({
             <div className="grid gap-3 pb-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }}>
               {filteredServices.map((service) => {
                 const categoryColor = CATEGORY_COLORS[service.category] || CATEGORY_COLORS.default;
+                const isArchived = service.status === 'archived';
                 return (
                   <button
                     key={service.id}
-                    className={`relative ${categoryColor.modernBg} rounded-2xl ${cardPadding} hover:shadow-lg active:scale-[0.98] transition-all duration-150 text-left group ${cardMinHeight}`}
+                    className={`relative ${categoryColor.modernBg} rounded-2xl ${cardPadding} hover:shadow-lg active:scale-[0.98] transition-all duration-150 text-left group ${cardMinHeight} ${isArchived ? 'opacity-60 ring-2 ring-amber-400/50' : ''}`}
                     onClick={() => handleServiceClick(service)}
                     data-testid={`card-service-full-${service.id}`}
+                    data-archived={isArchived}
                   >
                     {/* Plus button - always visible, top right */}
                     <div className={`absolute ${compactMode ? 'right-2 top-2' : 'right-3 top-3'} ${plusButtonSize} rounded-full bg-white/60 flex items-center justify-center group-hover:bg-white transition-colors`}>
                       <Plus className={`${plusIconSize} text-gray-500 group-hover:text-gray-700`} />
                     </div>
 
+                    {/* Archived indicator badge */}
+                    {isArchived && (
+                      <div className={`absolute ${compactMode ? 'left-2 top-2' : 'left-3 top-3'} flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium`}>
+                        <Archive className="h-3 w-3" />
+                        <span>Archived</span>
+                      </div>
+                    )}
+
                     <div className="flex flex-col h-full">
                       {/* Service Name - top */}
-                      <h4 className={`font-semibold text-gray-800 ${compactMode ? 'text-sm' : 'text-base'} leading-tight ${compactMode ? 'pr-8' : 'pr-10'}`}>
+                      <h4 className={`font-semibold ${isArchived ? 'text-gray-500' : 'text-gray-800'} ${compactMode ? 'text-sm' : 'text-base'} leading-tight ${compactMode ? 'pr-8' : 'pr-10'} ${isArchived ? (compactMode ? 'mt-5' : 'mt-6') : ''}`}>
                         {service.name}
                       </h4>
 
@@ -356,7 +392,7 @@ export default function FullPageServiceSelector({
                         <span className={`${compactMode ? 'text-xs' : 'text-sm'} text-gray-500`}>
                           {service.duration} min
                         </span>
-                        <span className={`font-bold text-gray-800 ${compactMode ? 'text-lg' : 'text-xl'}`}>
+                        <span className={`font-bold ${isArchived ? 'text-gray-500' : 'text-gray-800'} ${compactMode ? 'text-lg' : 'text-xl'}`}>
                           ${service.price}
                         </span>
                       </div>
@@ -439,16 +475,25 @@ export default function FullPageServiceSelector({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-4">
             {filteredServices.map((service) => {
               const categoryColor = CATEGORY_COLORS[service.category] || CATEGORY_COLORS.default;
+              const isArchived = service.status === 'archived';
               return (
                 <button
                   key={service.id}
-                  className={`bg-white rounded-xl p-4 border border-gray-200 border-l-4 ${categoryColor.border} hover:shadow-lg hover:border-gray-300 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 text-left group`}
+                  className={`relative bg-white rounded-xl p-4 border border-gray-200 border-l-4 ${categoryColor.border} hover:shadow-lg hover:border-gray-300 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 text-left group ${isArchived ? 'opacity-60 ring-2 ring-amber-400/50' : ''}`}
                   onClick={() => handleServiceClick(service)}
                   data-testid={`card-service-full-${service.id}`}
+                  data-archived={isArchived}
                 >
+                  {/* Archived indicator badge */}
+                  {isArchived && (
+                    <div className="absolute right-2 top-2 flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium">
+                      <Archive className="h-3 w-3" />
+                      <span>Archived</span>
+                    </div>
+                  )}
                   <div className="flex flex-col min-h-[90px]">
                     {/* Service Name */}
-                    <h4 className="font-semibold text-gray-900 text-base leading-tight mb-2 group-hover:text-primary transition-colors">
+                    <h4 className={`font-semibold ${isArchived ? 'text-gray-500' : 'text-gray-900'} text-base leading-tight mb-2 group-hover:text-primary transition-colors ${isArchived ? 'pr-20' : ''}`}>
                       {service.name}
                     </h4>
                     {/* Bottom row: Duration + Price */}
@@ -456,7 +501,7 @@ export default function FullPageServiceSelector({
                       <span className="text-sm text-gray-500">
                         {service.duration} min
                       </span>
-                      <span className="font-bold text-gray-900 text-lg">
+                      <span className={`font-bold ${isArchived ? 'text-gray-500' : 'text-gray-900'} text-lg`}>
                         ${service.price}
                       </span>
                     </div>

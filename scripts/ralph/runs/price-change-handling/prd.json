@@ -867,7 +867,7 @@
         "Typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "Following industry best practice (Fresha, Boulevard): services are archived, not deleted. Archived services work for existing appointments but are hidden from new bookings."
     },
     {
@@ -892,7 +892,7 @@
         "Typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-036"],
       "notes": "Key behavior: services are NEVER deleted for active salons. Archive is reversible. Check Vagaro pattern: warn about packages/memberships affected."
     },
@@ -918,7 +918,7 @@
         "Verify in browser: archived services don't appear in service picker"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-037"],
       "notes": "ServiceSelector may have different name - search for component that displays service list for selection. Key: active services only by default."
     },

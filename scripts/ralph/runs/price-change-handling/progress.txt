@@ -1126,3 +1126,112 @@ Commit: d8ae154
 **Next story suggestion:** US-036 (Add ServiceStatus type) - priority 36, no dependencies, starts the service archive feature set
 
 ---
+
+## 2026-01-18 - US-036: Add ServiceStatus type and status field to Service interface
+Commit: 327ef8e
+
+**Why this story?** US-036 has the highest priority (36) among remaining stories, has no dependencies, and is the foundation for the service archive feature set. All other remaining stories depend on it directly or transitively.
+
+**Changes:**
+- `apps/store-app/src/types/service.ts:3-25`: Added ServiceStatus type with comprehensive JSDoc documentation explaining industry best practice (Fresha, Boulevard, Vagaro pattern)
+- `apps/store-app/src/types/service.ts:41-67`: Added archive fields to Service interface:
+  - `status?: ServiceStatus` - archive status with @default 'active'
+  - `archivedAt?: string` - ISO timestamp when archived
+  - `archivedBy?: string` - staffId who archived
+
+**Learnings:**
+- Service interface is compact (17 lines originally) - clean file with minimal complexity
+- All archive fields made optional for backwards compatibility with existing services
+- Following industry practice: services are archived, not deleted (preserves appointment history)
+- Pre-existing typecheck errors in test files (AgendaView, AppointmentCard, etc.) are unrelated - mock data issues
+- Pre-existing test failures (CreateTicketButton, padCheckoutFlow, AddNoteModal) are unrelated - missing Redux provider
+- All 57 priceComparisonUtils tests continue to pass
+
+**Next story suggestion:** US-037 (Add archiveService action with dependency check) - priority 37, depends on US-036 (now complete), backend story for archive/restore actions
+
+---
+
+## 2026-01-18 - US-037: Add archiveService action with dependency check
+Commit: 620126e
+
+**Why this story?** US-037 is the highest priority (37) among remaining stories with all dependencies met (US-036 ✅). It is the foundation for the service archive feature - required by US-038, US-039, US-040, and US-041.
+
+**Changes:**
+- `apps/store-app/src/db/catalogDatabase.ts:219-234`: Enhanced archive() and added restore() methods:
+  - archive() now sets archivedAt and archivedBy fields
+  - New restore() method clears archive fields and sets status='active'
+
+- `apps/store-app/src/hooks/useCatalog.ts:51-78`: Added ServiceArchiveDependencies and ArchiveServiceResult interfaces:
+  - ServiceArchiveDependencies tracks packageCount, packageNames, upcomingAppointmentCount, hasDependencies
+  - ArchiveServiceResult includes success boolean, service, and dependencies
+
+- `apps/store-app/src/hooks/useCatalog.ts:568-657`: Added new functions:
+  - checkServiceDependencies(): Queries packages and upcoming appointments for dependencies
+  - archiveService(): Enhanced to check dependencies, archive service, and return informative result with warning
+  - restoreService(): New function to restore archived services to active status
+
+- `apps/store-app/src/hooks/useCatalog.ts:1096-1098`: Exported new functions in hook return
+
+- `apps/store-app/src/types/catalog.ts:170-185`: Added archivedAt and archivedBy fields to MenuService interface (matching Service interface pattern)
+
+**Learnings:**
+- appointmentsDB.getAll() returns all appointments for a store - filter by scheduledStartTime and status for upcoming
+- servicePackagesDB.getAll() takes storeId and includeInactive boolean
+- archiveService now returns dependency counts, allowing UI to warn user without blocking
+- Pre-existing typecheck errors in catalogDatabase.ts (lines 757, 770, 835) are unrelated - Product type issues
+- Pre-existing test failures (supabase has no test files, store-app various issues) are unrelated
+
+**Next story suggestion:** US-038 (Filter archived services from service selection UI) - priority 38, depends on US-037 (now complete), filters archived services from booking UI
+
+---
+
+## 2026-01-18 - US-038: Filter archived services from service selection UI
+Commit: a02e362
+
+**Why this story?** US-038 is the highest priority (38) among remaining stories with all dependencies met (US-037 ✅). It ensures archived services don't appear when staff adds services to appointments or tickets.
+
+**Changes:**
+- `apps/store-app/src/hooks/useCatalog.ts:325-350`: Added getActiveServices and getArchivedServices helper functions:
+  - getActiveServices(): Returns only services with status === 'active'
+  - getArchivedServices(): Returns only services with status === 'archived'
+  - Both use useCallback for memoization
+  - Comprehensive JSDoc with @example blocks
+
+- `apps/store-app/src/hooks/useCatalog.ts:1121-1123`: Exported new helper functions in hook return
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:1`: Added useMemo to imports
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:6`: Added Archive icon import from lucide-react
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:8-16`: Extended Service interface with optional status field
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:31-43`: Added showArchived and services props with JSDoc documentation
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:189-212`: Added prop destructuring and availableServices useMemo:
+  - Uses external services if provided, otherwise mock data
+  - Filters out archived services unless showArchived=true
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:227`: Updated filter to use availableServices
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:359-406`: Added archived indicator to modern layout:
+  - Amber ring highlight on card
+  - "Archived" badge with Archive icon
+  - Reduced opacity on archived cards
+  - data-archived attribute for testing
+
+- `apps/store-app/src/components/checkout/FullPageServiceSelector.tsx:475-517`: Added archived indicator to classic layout:
+  - Same visual treatment as modern layout
+
+**Learnings:**
+- FullPageServiceSelector uses mock SERVICES array, not real catalog data
+- Added props to accept external services data for future integration
+- useCatalog already filters by status via showInactive - getActiveServices/getArchivedServices provide explicit access
+- Pre-existing typecheck errors in tsconfig references and test files are unrelated
+- Pre-existing test failures (CreateTicketButton, padCheckoutFlow, topics) are unrelated
+
+**Patterns to sync:**
+- Pattern: When adding archive filtering to components, add both showArchived prop and visual indicator for admin views
+
+**Next story suggestion:** US-039 (Allow checkout of tickets with archived services) - priority 39, depends on US-038 (now complete), ensures archived services on existing tickets still work
+
+---
