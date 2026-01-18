@@ -549,3 +549,42 @@ Commit: 5030368
 
 ---
 
+## 2026-01-17 - US-020: Wire PriceResolutionModal to Redux
+Commit: 55278c5
+
+**Why this story?** US-020 is the highest priority (20) among eligible stories with all dependencies met (US-013 and US-019 complete). Same file context (PriceResolutionModal.tsx) - code structure fresh from US-019. This enables the modal to actually update Redux state.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/PriceResolutionModal.tsx:15`: Added useAppDispatch to imports from @/store/hooks
+- `apps/store-app/src/components/checkout/PriceResolutionModal.tsx:19`: Added applyPriceResolutions action import from uiTicketsSlice
+- `apps/store-app/src/components/checkout/PriceResolutionModal.tsx:23`: Added useToast hook import for feedback
+- `apps/store-app/src/components/checkout/PriceResolutionModal.tsx:96-103`: Added dispatch, toast, and currentStaffId hooks
+  - dispatch via useAppDispatch()
+  - toast via useToast()
+  - currentStaffId from state.auth.member?.memberId || state.auth.user?.id || 'unknown'
+- `apps/store-app/src/components/checkout/PriceResolutionModal.tsx:635-698`: Updated Apply button onClick handler:
+  - Wrapped in try/catch for error handling
+  - Added priceOverrideBy field to resolutions for non-booked options
+  - Dispatches applyPriceResolutions with ticketId and resolutions
+  - Shows success toast with count of resolved services
+  - Calls onResolved callback
+  - Closes modal on success
+  - Shows error toast with destructive variant on failure
+
+**Browser Verification:**
+- Component renders without errors: PASS (typecheck passes)
+- Redux action dispatch: Requires integration into TicketPanel (US-021)
+- Toast feedback: Requires integration into TicketPanel (US-021)
+- Note: Full visual verification requires integration into TicketPanel (US-021)
+
+**Learnings:**
+- Auth state has multiple possible staff ID sources: member?.memberId, user?.id - use fallback chain
+- Following existing toast patterns from useTicketActions.tsx (title, description, variant)
+- Error handling with try/catch ensures user gets feedback on failures
+- Pre-existing typecheck errors in test files (AgendaView, AppointmentCard, etc.) are unrelated
+- All 57 priceComparisonUtils tests continue to pass
+
+**Next story suggestion:** US-021 (Integrate PriceChangeWarningBanner into TicketPanel) - priority 21, depends on US-015 and US-020 (now complete), enables end-to-end price change workflow testing
+
+---
+

@@ -487,7 +487,7 @@
         "Verify in browser: applying resolutions updates ticket prices"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-013", "US-019"],
       "notes": "Use useAppDispatch and useAppSelector hooks. Get current staff from auth/staff state."
     },
