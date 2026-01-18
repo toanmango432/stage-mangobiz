@@ -84,6 +84,12 @@ export {
   type SyncStatus as SQLiteSyncStatus,
   type SyncEntity as SQLiteSyncEntity,
   type SyncOperation as SQLiteSyncOperation,
+  // Device settings service (device-specific configuration)
+  DeviceSettingsSQLiteService,
+  type DeviceSettings as SQLiteDeviceSettings,
+  type DeviceSettingsInput as SQLiteDeviceSettingsInput,
+  type DeviceConfig as SQLiteDeviceConfig,
+  type DeviceMode as SQLiteDeviceMode,
 } from './services';
 
 // Type conversion utilities

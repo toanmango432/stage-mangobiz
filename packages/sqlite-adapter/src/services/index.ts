@@ -93,3 +93,12 @@ export {
   type SyncEntity,
   type SyncOperation,
 } from './syncQueueService';
+
+// Device settings service (device-specific configuration)
+export {
+  DeviceSettingsSQLiteService,
+  type DeviceSettings,
+  type DeviceSettingsInput,
+  type DeviceConfig,
+  type DeviceMode,
+} from './deviceSettingsService';
