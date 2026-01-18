@@ -7,8 +7,9 @@
 
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, CheckCircle2 } from 'lucide-react';
 import type { AppDispatch } from '@/store';
+import { useToast } from '@/hooks/use-toast';
 import {
   loadSettings,
   saveSettings,
@@ -38,6 +39,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onBack, storeId }: SettingsPageProps) {
   const dispatch = useDispatch<AppDispatch>();
+  const { toast } = useToast();
   const settings = useSelector(selectSettings);
   const activeCategory = useSelector(selectActiveCategory);
   const isLoading = useSelector(selectIsLoading);
@@ -56,7 +58,27 @@ export function SettingsPage({ onBack, storeId }: SettingsPageProps) {
   };
 
   const handleSave = async () => {
-    await dispatch(saveSettings());
+    try {
+      const result = await dispatch(saveSettings());
+      if (result.meta.requestStatus === 'fulfilled') {
+        toast({
+          title: 'Settings saved',
+          description: 'Your settings have been saved successfully.',
+        });
+      } else {
+        toast({
+          title: 'Save failed',
+          description: 'Failed to save settings. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Save failed',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const renderCategoryContent = () => {
