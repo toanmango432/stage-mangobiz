@@ -212,7 +212,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-007"],
       "notes": "Services have category, price, duration fields. Used by booking flow for service selection."
     },

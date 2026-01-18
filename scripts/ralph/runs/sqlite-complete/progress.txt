@@ -383,3 +383,43 @@ Commit: 6e43671
 **Next story suggestion:** US-008 (Create ServiceSQLiteService) - depends on US-007 and continues the service pattern for menu services with category filtering.
 
 ---
+
+## 2026-01-17 - US-008: Create ServiceSQLiteService
+Commit: 15e5bbb
+
+**Why this story?** US-008 is the only story with all dependencies satisfied. It depends on US-007 (just completed in the last iteration) and continues the same service pattern for menu services with category filtering and search.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/serviceService.ts` (NEW, 330 lines): Service SQLite service
+  - `ServiceSQLiteService`: Extends BaseSQLiteService<Service, ServiceRow>
+  - `getByCategory(storeId, category)`: Filter services by category (for menu views)
+  - `getActive(storeId)`: Only active services (for booking flow)
+  - `search(storeId, query)`: Name/description search using SQL LIKE
+  - `getByStore(storeId)`: All services with pagination (for admin views)
+  - `getCategories(storeId)`: Get distinct category names for navigation
+  - `countByCategory(storeId)`: SQL GROUP BY for category breakdown
+  - `countActive(storeId)`: Count of active services
+  - `softDelete(id)`, `restore(id)`: Soft delete pattern
+  - `updateDisplayOrder(updates)`: Batch update for menu reordering
+  - `getByPriceRange(storeId, min, max)`: Price range filtering
+  - `getByDurationRange(storeId, min, max)`: Duration range filtering
+  - `getPopular(storeId, limit)`: Popular services (by display order)
+  - Types: `Service`, `ServiceRow`, `ServiceAddOn`, `ServiceVariant`
+- `packages/sqlite-adapter/src/services/index.ts:70-77`: Export ServiceSQLiteService and types
+- `packages/sqlite-adapter/src/index.ts:69-74`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (serviceService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Services table uses snake_case columns (store_id, is_active, display_order) matching schema convention
+- Added extra query methods beyond acceptance criteria (price range, duration range, categories) for completeness
+- displayOrder field is critical for menu presentation - batch update method supports drag-and-drop reordering
+
+**Patterns to sync:** None new - follows established BaseSQLiteService patterns
+
+**Next story suggestion:** US-009 (Add missing methods to TicketSQLiteService) - depends on US-008 (just completed) and requires reviewing existing ticketService.ts to identify any missing methods.
+
+---
