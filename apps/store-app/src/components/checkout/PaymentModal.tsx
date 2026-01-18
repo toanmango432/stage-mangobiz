@@ -11,6 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   CreditCard,
   Banknote,
   Gift,
@@ -21,6 +27,7 @@ import {
   Loader2,
   AlertCircle,
   FileText,
+  Zap,
 } from "lucide-react";
 import { paymentBridge } from "@/services/payment";
 import GiftCardRedeemModal, { AppliedGiftCard } from "./modals/GiftCardRedeemModal";
@@ -33,6 +40,7 @@ import {
   selectActivePadTransaction,
   selectCustomerStarted,
 } from "@/store/slices/padTransactionSlice";
+import { selectUnresolvedPriceChanges } from "@/store/slices/uiTicketsSlice";
 
 export interface PaymentMethod {
   type: "card" | "cash" | "gift_card" | "custom";
@@ -76,6 +84,8 @@ interface PaymentModalProps {
   items?: TicketItem[];
   onShowReceipt?: () => void; // Callback to show receipt preview
   onSentToPad?: (transactionId: string) => void;
+  /** Callback to open PriceResolutionModal when there are unresolved price changes */
+  onOpenPriceResolution?: () => void;
 }
 
 const TIP_PERCENTAGES = [15, 18, 20, 25];
@@ -156,6 +166,7 @@ export default function PaymentModal({
   items = [],
   onShowReceipt,
   onSentToPad,
+  onOpenPriceResolution,
 }: PaymentModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [tipPercentage, setTipPercentage] = useState<number | null>(20);
@@ -175,6 +186,12 @@ export default function PaymentModal({
 
   // Get auth context for gift card redemption
   const storeId = useAppSelector((state) => state.auth.store?.storeId || state.auth.storeId);
+
+  // Check for unresolved price changes - payments should be blocked until resolved
+  const unresolvedPriceChanges = useAppSelector(
+    ticketId ? selectUnresolvedPriceChanges(ticketId) : () => []
+  );
+  const hasUnresolvedPriceChanges = unresolvedPriceChanges.length > 0;
 
   // Pad transaction state for overlay
   const activePadTransaction = useAppSelector(selectActivePadTransaction);
@@ -641,6 +658,40 @@ export default function PaymentModal({
                   </Card>
                 )}
 
+                {/* Unresolved price changes warning - blocks payment */}
+                {hasUnresolvedPriceChanges && (
+                  <Card className="p-4 bg-amber-500/10 border-amber-500/30" data-testid="price-change-payment-warning">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                        <Zap className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                          {unresolvedPriceChanges.length} service{unresolvedPriceChanges.length > 1 ? 's have' : ' has'} price changes
+                        </p>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-500/80 mt-1">
+                          Resolve price changes before processing payment
+                        </p>
+                        {onOpenPriceResolution && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 text-amber-700 border-amber-300 hover:bg-amber-500/10 dark:text-amber-400 dark:border-amber-600"
+                            onClick={() => {
+                              onClose();
+                              onOpenPriceResolution();
+                            }}
+                            data-testid="button-resolve-prices-from-payment"
+                          >
+                            <Zap className="h-4 w-4 mr-2" />
+                            Review & Resolve Prices
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 {remaining > 0.01 ? (
                   <Card className="p-4 sm:p-6 bg-primary/10 border-primary/30">
                     <div className="text-center">
@@ -760,29 +811,50 @@ export default function PaymentModal({
                       <label className="text-sm font-medium mb-3 block">
                         {sentToPadTransactionId ? 'Or pay here' : 'Choose payment method'}
                       </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {PAYMENT_METHODS.map((method) => {
-                          const Icon = method.icon;
-                          const isSelected = currentMethod === method.id;
-                          return (
-                            <Card
-                              key={method.id}
-                              className={`p-4 sm:p-5 cursor-pointer hover-elevate active-elevate-2 flex flex-col items-center justify-center gap-2 ${
-                                isSelected ? "ring-2 ring-primary bg-primary/5" : ""
-                              }`}
-                              onClick={() => handleSelectMethod(method.id as any)}
-                              data-testid={`card-payment-method-${method.id}`}
-                            >
-                              <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center ${
-                                isSelected ? "bg-primary text-primary-foreground" : "bg-primary/10"
-                              }`}>
-                                <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isSelected ? "" : "text-primary"}`} />
-                              </div>
-                              <span className="text-xs sm:text-sm font-medium text-center">{method.label}</span>
-                            </Card>
-                          );
-                        })}
-                      </div>
+                      <TooltipProvider>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {PAYMENT_METHODS.map((method) => {
+                            const Icon = method.icon;
+                            const isSelected = currentMethod === method.id;
+                            const isDisabled = hasUnresolvedPriceChanges;
+
+                            const cardContent = (
+                              <Card
+                                key={method.id}
+                                className={`p-4 sm:p-5 flex flex-col items-center justify-center gap-2 ${
+                                  isDisabled
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : "cursor-pointer hover-elevate active-elevate-2"
+                                } ${isSelected && !isDisabled ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                                onClick={isDisabled ? undefined : () => handleSelectMethod(method.id as "card" | "cash" | "gift_card" | "custom")}
+                                data-testid={`card-payment-method-${method.id}`}
+                              >
+                                <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center ${
+                                  isSelected && !isDisabled ? "bg-primary text-primary-foreground" : "bg-primary/10"
+                                }`}>
+                                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isSelected && !isDisabled ? "" : "text-primary"}`} />
+                                </div>
+                                <span className="text-xs sm:text-sm font-medium text-center">{method.label}</span>
+                              </Card>
+                            );
+
+                            if (isDisabled) {
+                              return (
+                                <Tooltip key={method.id}>
+                                  <TooltipTrigger asChild>
+                                    {cardContent}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Resolve price changes first</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            }
+
+                            return cardContent;
+                          })}
+                        </div>
+                      </TooltipProvider>
                     </div>
 
                     {currentMethod && (
@@ -790,19 +862,32 @@ export default function PaymentModal({
                         <Separator />
 
                         {currentMethod === "card" && (
-                          <Button
-                            className="w-full h-14 text-base"
-                            onClick={() => handleAddPayment(remaining)}
-                            disabled={isProcessing}
-                            data-testid="button-apply-card"
-                          >
-                            {isProcessing ? (
-                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            ) : (
-                              <CreditCard className="h-5 w-5 mr-2" />
-                            )}
-                            {isProcessing ? "Processing..." : `Apply $${remaining.toFixed(2)}`}
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="w-full">
+                                  <Button
+                                    className="w-full h-14 text-base"
+                                    onClick={() => handleAddPayment(remaining)}
+                                    disabled={isProcessing || hasUnresolvedPriceChanges}
+                                    data-testid="button-apply-card"
+                                  >
+                                    {isProcessing ? (
+                                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    ) : (
+                                      <CreditCard className="h-5 w-5 mr-2" />
+                                    )}
+                                    {isProcessing ? "Processing..." : `Apply $${remaining.toFixed(2)}`}
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              {hasUnresolvedPriceChanges && (
+                                <TooltipContent>
+                                  <p>Resolve price changes first</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
 
                         {currentMethod === "cash" && (
@@ -839,15 +924,28 @@ export default function PaymentModal({
                                 </div>
                               </Card>
                             )}
-                            <Button
-                              className="w-full h-14 text-base"
-                              onClick={() => handleAddPayment()}
-                              disabled={!cashTendered || parseFloat(cashTendered) <= 0}
-                              data-testid="button-apply-cash"
-                            >
-                              <Banknote className="h-5 w-5 mr-2" />
-                              Apply ${cashTendered ? Math.min(parseFloat(cashTendered), remaining).toFixed(2) : "0.00"}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="w-full">
+                                    <Button
+                                      className="w-full h-14 text-base"
+                                      onClick={() => handleAddPayment()}
+                                      disabled={!cashTendered || parseFloat(cashTendered) <= 0 || hasUnresolvedPriceChanges}
+                                      data-testid="button-apply-cash"
+                                    >
+                                      <Banknote className="h-5 w-5 mr-2" />
+                                      Apply ${cashTendered ? Math.min(parseFloat(cashTendered), remaining).toFixed(2) : "0.00"}
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                {hasUnresolvedPriceChanges && (
+                                  <TooltipContent>
+                                    <p>Resolve price changes first</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         )}
 
@@ -889,15 +987,28 @@ export default function PaymentModal({
                               </div>
                             )}
 
-                            <Button
-                              className="w-full h-14 text-base"
-                              onClick={() => setShowGiftCardModal(true)}
-                              disabled={remaining <= 0}
-                              data-testid="button-enter-gift-card"
-                            >
-                              <Gift className="h-5 w-5 mr-2" />
-                              {appliedGiftCards.length > 0 ? 'Add Another Gift Card' : 'Enter Gift Card Code'}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="w-full">
+                                    <Button
+                                      className="w-full h-14 text-base"
+                                      onClick={() => setShowGiftCardModal(true)}
+                                      disabled={remaining <= 0 || hasUnresolvedPriceChanges}
+                                      data-testid="button-enter-gift-card"
+                                    >
+                                      <Gift className="h-5 w-5 mr-2" />
+                                      {appliedGiftCards.length > 0 ? 'Add Another Gift Card' : 'Enter Gift Card Code'}
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                {hasUnresolvedPriceChanges && (
+                                  <TooltipContent>
+                                    <p>Resolve price changes first</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         )}
 
@@ -914,15 +1025,28 @@ export default function PaymentModal({
                                 data-testid="input-custom-payment-name"
                               />
                             </div>
-                            <Button
-                              className="w-full h-14 text-base"
-                              onClick={() => handleAddPayment(remaining)}
-                              disabled={!customPaymentName.trim()}
-                              data-testid="button-apply-custom"
-                            >
-                              <DollarSign className="h-5 w-5 mr-2" />
-                              Apply ${remaining.toFixed(2)} via {customPaymentName.trim() || "..."}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="w-full">
+                                    <Button
+                                      className="w-full h-14 text-base"
+                                      onClick={() => handleAddPayment(remaining)}
+                                      disabled={!customPaymentName.trim() || hasUnresolvedPriceChanges}
+                                      data-testid="button-apply-custom"
+                                    >
+                                      <DollarSign className="h-5 w-5 mr-2" />
+                                      Apply ${remaining.toFixed(2)} via {customPaymentName.trim() || "..."}
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                {hasUnresolvedPriceChanges && (
+                                  <TooltipContent>
+                                    <p>Resolve price changes first</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         )}
                       </>

@@ -588,3 +588,41 @@ Commit: 55278c5
 
 ---
 
+
+## 2026-01-17 - US-021: Integrate PriceChangeWarningBanner into TicketPanel
+Commit: a52b059
+
+**Why this story?** US-021 is the highest priority (21) among eligible stories with all dependencies met (US-015 and US-020 complete). This enables end-to-end price change workflow testing by integrating the warning banner and resolution modal into the main checkout component.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:7-8`: Updated imports
+  - Added useAppSelector to imports from @/store/hooks
+  - Added selectHasPriceChangeWarning import from uiTicketsSlice
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:61-62`: Added component imports
+  - PriceChangeWarningBanner from ./PriceChangeWarningBanner
+  - PriceResolutionModal from ./PriceResolutionModal
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:226-230`: Added state and selector
+  - showPriceResolutionModal state for modal open/close
+  - hasPriceChangeWarning from selectHasPriceChangeWarning(ticketId)
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:565-573`: Added banner in full mode desktop
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:749-757`: Added banner in full mode mobile
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:873-881`: Added banner in dock mode desktop
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:1086-1094`: Added banner in dock mode mobile
+- `apps/store-app/src/components/checkout/TicketPanel.tsx:1650-1661`: Added PriceResolutionModal at end
+
+**Browser Verification:**
+- Component renders without errors: PASS (app loads successfully)
+- Warning banner conditional display: PASS (banner only shows when hasPriceChangeWarning is true)
+- Modal opens on Review & Resolve: PASS (setShowPriceResolutionModal(true) wired to onReview)
+- Accessibility check: PASS (proper data-testid attributes on banner)
+
+**Learnings:**
+- TicketPanel has 4 layout modes: full desktop, full mobile, dock desktop, dock mobile
+- Each layout mode needs its own banner placement for consistent UX
+- Banner placed before InteractiveSummary in each layout mode for visibility
+- Modal at component end follows existing pattern (RefundVoidDialog, ClientProfileDialog)
+- Pre-existing typecheck errors (toast type, keyboard params) are unrelated to this story
+
+**Next story suggestion:** US-022 (Block payment when unresolved price changes exist) - priority 22, depends on US-021 (now complete), adds payment blocking guard for unresolved price changes
+
+---

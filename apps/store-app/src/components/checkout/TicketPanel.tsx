@@ -1171,6 +1171,10 @@ export default function TicketPanel({
               setShowPaymentModal(false);
               setShowReceiptPreview(true);
             }}
+            onOpenPriceResolution={() => {
+              setShowPaymentModal(false);
+              setShowPriceResolutionModal(true);
+            }}
           />
         </Suspense>
       )}

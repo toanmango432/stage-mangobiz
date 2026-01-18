@@ -512,7 +512,7 @@
         "Verify in browser: warning shows in checkout, clicking opens modal"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-015", "US-020"],
       "notes": "TicketPanel is the main checkout component. Add warning near top, after client/ticket info."
     },
