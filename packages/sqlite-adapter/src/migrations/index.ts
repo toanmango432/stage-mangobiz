@@ -12,8 +12,13 @@ import type { Migration, MigrationRecord } from './types';
 export type { Migration, MigrationRecord } from './types';
 
 // Export data migration types and function
-export type { MigrationResult, TableMigrationResult } from './dataMigration';
-export { migrateFromDexie } from './dataMigration';
+export type {
+  MigrationResult,
+  TableMigrationResult,
+  MigrationProgressCallback,
+  DexieDatabaseForMigration,
+} from './dataMigration';
+export { migrateFromDexie, getMigrationTables, estimateMigrationSize } from './dataMigration';
 
 // Export individual migrations
 export { migration_001 } from './v001_initial_schema';

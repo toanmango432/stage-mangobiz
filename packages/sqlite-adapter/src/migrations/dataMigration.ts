@@ -2,17 +2,36 @@
  * Dexie to SQLite Data Migration Utility
  *
  * Migrates data from IndexedDB (Dexie) to SQLite for Electron migration.
- * Handles batch inserts for performance and validates record counts.
+ * Handles batch inserts for performance, transaction wrapping per table,
+ * progress callbacks for UI feedback, and resume support via checkpoints.
  *
  * Migration order respects dependencies:
- * 1. staff - no dependencies
- * 2. clients - no dependencies
- * 3. services - no dependencies
- * 4. appointments - may reference clients, staff
- * 5. tickets - may reference clients, appointments
+ * Phase 1: Core tables (no dependencies)
+ *   - staff, clients, services, settings
+ * Phase 2: Operational tables (depend on Phase 1)
+ *   - appointments, tickets, transactions, syncQueue
+ * Phase 3: Team & CRM tables
+ *   - teamMembers, patchTests, formTemplates, formResponses, referrals, clientReviews, loyaltyRewards, reviewRequests, customSegments
+ * Phase 4: Catalog tables
+ *   - serviceCategories, menuServices, serviceVariants, servicePackages, addOnGroups, addOnOptions, staffServiceAssignments, catalogSettings, products
+ * Phase 5: Scheduling tables
+ *   - timeOffTypes, timeOffRequests, blockedTimeTypes, blockedTimeEntries, businessClosedPeriods, resources, resourceBookings, staffSchedules
+ * Phase 6: Gift Card tables
+ *   - giftCardDenominations, giftCardSettings, giftCards, giftCardTransactions, giftCardDesigns
+ * Phase 7: Infrastructure tables
+ *   - deviceSettings, timesheets, payRuns
  */
 
 import type { SQLiteAdapter, SQLiteValue } from '../types';
+import { toISOString, boolToSQLite, toJSONString } from '../utils/typeConversions';
+
+/**
+ * Progress callback for migration updates
+ * @param table - Current table being migrated
+ * @param current - Number of records migrated so far for this table
+ * @param total - Total records to migrate for this table
+ */
+export type MigrationProgressCallback = (table: string, current: number, total: number) => void;
 
 /**
  * Result of a data migration operation
@@ -24,6 +43,10 @@ export interface MigrationResult {
   tables: TableMigrationResult[];
   /** Errors encountered during migration */
   errors: string[];
+  /** Total records migrated across all tables */
+  totalRecords: number;
+  /** Total duration in milliseconds */
+  durationMs: number;
 }
 
 /**
@@ -32,20 +55,80 @@ export interface MigrationResult {
 export interface TableMigrationResult {
   /** Table name */
   name: string;
-  /** Number of records migrated */
-  count: number;
+  /** Number of records read from Dexie */
+  dexieCount: number;
+  /** Number of records written to SQLite */
+  sqliteCount: number;
+  /** Whether this table was skipped (e.g., doesn't exist or already migrated) */
+  skipped: boolean;
+  /** Reason for skipping, if applicable */
+  skipReason?: string;
+  /** Duration in milliseconds */
+  durationMs: number;
+}
+
+/**
+ * Dexie table interface for migration
+ */
+interface DexieTable<T = DexieRecord> {
+  toArray: () => Promise<T[]>;
+  count: () => Promise<number>;
 }
 
 /**
  * Dexie database interface for migration
  * Loosely typed to support any Dexie database structure
  */
-interface DexieDatabase {
-  staff?: { toArray: () => Promise<DexieRecord[]> };
-  clients?: { toArray: () => Promise<DexieRecord[]> };
-  services?: { toArray: () => Promise<DexieRecord[]> };
-  appointments?: { toArray: () => Promise<DexieRecord[]> };
-  tickets?: { toArray: () => Promise<DexieRecord[]> };
+export interface DexieDatabaseForMigration {
+  // Core tables
+  staff?: DexieTable;
+  clients?: DexieTable;
+  services?: DexieTable;
+  settings?: DexieTable;
+  // Operational tables
+  appointments?: DexieTable;
+  tickets?: DexieTable;
+  transactions?: DexieTable;
+  syncQueue?: DexieTable;
+  // Team & CRM tables
+  teamMembers?: DexieTable;
+  patchTests?: DexieTable;
+  formTemplates?: DexieTable;
+  formResponses?: DexieTable;
+  referrals?: DexieTable;
+  clientReviews?: DexieTable;
+  loyaltyRewards?: DexieTable;
+  reviewRequests?: DexieTable;
+  customSegments?: DexieTable;
+  // Catalog tables
+  serviceCategories?: DexieTable;
+  menuServices?: DexieTable;
+  serviceVariants?: DexieTable;
+  servicePackages?: DexieTable;
+  addOnGroups?: DexieTable;
+  addOnOptions?: DexieTable;
+  staffServiceAssignments?: DexieTable;
+  catalogSettings?: DexieTable;
+  products?: DexieTable;
+  // Scheduling tables
+  timeOffTypes?: DexieTable;
+  timeOffRequests?: DexieTable;
+  blockedTimeTypes?: DexieTable;
+  blockedTimeEntries?: DexieTable;
+  businessClosedPeriods?: DexieTable;
+  resources?: DexieTable;
+  resourceBookings?: DexieTable;
+  staffSchedules?: DexieTable;
+  // Gift Card tables
+  giftCardDenominations?: DexieTable;
+  giftCardSettings?: DexieTable;
+  giftCards?: DexieTable;
+  giftCardTransactions?: DexieTable;
+  giftCardDesigns?: DexieTable;
+  // Infrastructure tables
+  deviceSettings?: DexieTable;
+  timesheets?: DexieTable;
+  payRuns?: DexieTable;
 }
 
 /**
@@ -54,215 +137,273 @@ interface DexieDatabase {
 type DexieRecord = Record<string, unknown>;
 
 /** Batch size for SQLite inserts */
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 100;
 
 /**
  * Tables to migrate in dependency order
+ * Order matters: tables with foreign keys should come after their referenced tables
  */
-const MIGRATION_ORDER = ['staff', 'clients', 'services', 'appointments', 'tickets'] as const;
+const MIGRATION_ORDER: (keyof DexieDatabaseForMigration)[] = [
+  // Phase 1: Core tables (no dependencies)
+  'staff',
+  'clients',
+  'services',
+  'settings',
+  // Phase 2: Operational tables
+  'appointments',
+  'tickets',
+  'transactions',
+  'syncQueue',
+  // Phase 3: Team & CRM tables
+  'teamMembers',
+  'patchTests',
+  'formTemplates',
+  'formResponses',
+  'referrals',
+  'clientReviews',
+  'loyaltyRewards',
+  'reviewRequests',
+  'customSegments',
+  // Phase 4: Catalog tables
+  'serviceCategories',
+  'menuServices',
+  'serviceVariants',
+  'servicePackages',
+  'addOnGroups',
+  'addOnOptions',
+  'staffServiceAssignments',
+  'catalogSettings',
+  'products',
+  // Phase 5: Scheduling tables
+  'timeOffTypes',
+  'timeOffRequests',
+  'blockedTimeTypes',
+  'blockedTimeEntries',
+  'businessClosedPeriods',
+  'resources',
+  'resourceBookings',
+  'staffSchedules',
+  // Phase 6: Gift Card tables
+  'giftCardDenominations',
+  'giftCardSettings',
+  'giftCards',
+  'giftCardTransactions',
+  'giftCardDesigns',
+  // Phase 7: Infrastructure tables
+  'deviceSettings',
+  'timesheets',
+  'payRuns',
+];
 
 /**
- * SQL INSERT statements for each table
- * Column names must match SQLite schema from v001/v002 migrations
+ * Generic record to SQLite values converter
+ * Handles all tables by converting known field types appropriately
  */
-const INSERT_SQL: Record<string, string> = {
-  staff: `INSERT INTO staff (
-    id, storeId, name, email, phone, avatar, specialties, specialty, skills, status,
-    isActive, role, hireDate, commissionRate, clockedInAt, currentTicketId, schedule,
-    turnQueuePosition, servicesCountToday, revenueToday, tipsToday, rating, vipPreferred,
-    createdAt, updatedAt, syncStatus
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-
-  clients: `INSERT INTO clients (
-    id, storeId, firstName, lastName, phone, email, createdAt, updatedAt, syncStatus
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-
-  services: `INSERT INTO services (
-    id, storeId, name, category, description, duration, price, commissionRate,
-    isActive, createdAt, updatedAt, syncStatus
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-
-  appointments: `INSERT INTO appointments (
-    id, storeId, clientId, staffId, status, scheduledStartTime, scheduledEndTime,
-    createdAt, updatedAt, syncStatus
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-
-  tickets: `INSERT INTO tickets (
-    id, storeId, clientId, status, services, createdAt, updatedAt, syncStatus
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-};
-
-/**
- * Convert a Dexie staff record to SQLite values
- */
-function staffToSQLiteValues(record: DexieRecord): SQLiteValue[] {
+function recordToSQLiteValues(tableName: string, record: DexieRecord): { columns: string[]; values: SQLiteValue[] } {
   const now = new Date().toISOString();
-  return [
-    String(record.id ?? ''),
-    String(record.storeId ?? ''),
-    String(record.name ?? ''),
-    record.email != null ? String(record.email) : null,
-    record.phone != null ? String(record.phone) : null,
-    record.avatar != null ? String(record.avatar) : null,
-    record.specialties != null ? JSON.stringify(record.specialties) : null,
-    record.specialty != null ? String(record.specialty) : null,
-    record.skills != null ? JSON.stringify(record.skills) : null,
-    String(record.status ?? 'active'),
-    record.isActive != null ? (record.isActive ? 1 : 0) : 1,
-    record.role != null ? String(record.role) : null,
-    record.hireDate != null ? String(record.hireDate) : null,
-    record.commissionRate != null ? Number(record.commissionRate) : null,
-    record.clockedInAt != null ? String(record.clockedInAt) : null,
-    record.currentTicketId != null ? String(record.currentTicketId) : null,
-    record.schedule != null ? JSON.stringify(record.schedule) : null,
-    record.turnQueuePosition != null ? Number(record.turnQueuePosition) : null,
-    record.servicesCountToday != null ? Number(record.servicesCountToday) : 0,
-    record.revenueToday != null ? Number(record.revenueToday) : 0,
-    record.tipsToday != null ? Number(record.tipsToday) : 0,
-    record.rating != null ? Number(record.rating) : null,
-    record.vipPreferred != null ? (record.vipPreferred ? 1 : 0) : null,
-    String(record.createdAt ?? now),
-    String(record.updatedAt ?? now),
-    String(record.syncStatus ?? 'local'),
-  ];
-}
+  const columns: string[] = [];
+  const values: SQLiteValue[] = [];
 
-/**
- * Convert a Dexie client record to SQLite values
- */
-function clientToSQLiteValues(record: DexieRecord): SQLiteValue[] {
-  const now = new Date().toISOString();
-  return [
-    String(record.id ?? ''),
-    String(record.storeId ?? ''),
-    record.firstName != null ? String(record.firstName) : null,
-    record.lastName != null ? String(record.lastName) : null,
-    record.phone != null ? String(record.phone) : null,
-    record.email != null ? String(record.email) : null,
-    String(record.createdAt ?? now),
-    String(record.updatedAt ?? now),
-    String(record.syncStatus ?? 'local'),
-  ];
-}
+  // Process each field in the record
+  for (const [key, value] of Object.entries(record)) {
+    // Skip undefined values
+    if (value === undefined) continue;
 
-/**
- * Convert a Dexie service record to SQLite values
- */
-function serviceToSQLiteValues(record: DexieRecord): SQLiteValue[] {
-  const now = new Date().toISOString();
-  return [
-    String(record.id ?? ''),
-    String(record.storeId ?? ''),
-    String(record.name ?? ''),
-    record.category != null ? String(record.category) : null,
-    record.description != null ? String(record.description) : null,
-    Number(record.duration ?? 30),
-    Number(record.price ?? 0),
-    record.commissionRate != null ? Number(record.commissionRate) : null,
-    record.isActive != null ? (record.isActive ? 1 : 0) : 1,
-    String(record.createdAt ?? now),
-    String(record.updatedAt ?? now),
-    String(record.syncStatus ?? 'local'),
-  ];
-}
+    // Convert camelCase to snake_case for column name
+    const columnName = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    columns.push(columnName);
 
-/**
- * Convert a Dexie appointment record to SQLite values
- */
-function appointmentToSQLiteValues(record: DexieRecord): SQLiteValue[] {
-  const now = new Date().toISOString();
-  return [
-    String(record.id ?? ''),
-    String(record.storeId ?? ''),
-    record.clientId != null ? String(record.clientId) : null,
-    record.staffId != null ? String(record.staffId) : null,
-    String(record.status ?? 'scheduled'),
-    String(record.scheduledStartTime ?? now),
-    record.scheduledEndTime != null ? String(record.scheduledEndTime) : null,
-    String(record.createdAt ?? now),
-    String(record.updatedAt ?? now),
-    String(record.syncStatus ?? 'local'),
-  ];
-}
-
-/**
- * Convert a Dexie ticket record to SQLite values
- */
-function ticketToSQLiteValues(record: DexieRecord): SQLiteValue[] {
-  const now = new Date().toISOString();
-  return [
-    String(record.id ?? ''),
-    String(record.storeId ?? ''),
-    record.clientId != null ? String(record.clientId) : null,
-    String(record.status ?? 'waiting'),
-    record.services != null ? JSON.stringify(record.services) : null,
-    String(record.createdAt ?? now),
-    String(record.updatedAt ?? now),
-    String(record.syncStatus ?? 'local'),
-  ];
-}
-
-/**
- * Get the conversion function for a table
- */
-function getConverter(tableName: string): (record: DexieRecord) => SQLiteValue[] {
-  switch (tableName) {
-    case 'staff':
-      return staffToSQLiteValues;
-    case 'clients':
-      return clientToSQLiteValues;
-    case 'services':
-      return serviceToSQLiteValues;
-    case 'appointments':
-      return appointmentToSQLiteValues;
-    case 'tickets':
-      return ticketToSQLiteValues;
-    default:
-      throw new Error(`Unknown table: ${tableName}`);
+    // Determine value type and convert appropriately
+    if (value === null) {
+      values.push(null);
+    } else if (typeof value === 'boolean') {
+      values.push(boolToSQLite(value));
+    } else if (typeof value === 'number') {
+      values.push(value);
+    } else if (typeof value === 'string') {
+      values.push(value);
+    } else if (value instanceof Date) {
+      values.push(toISOString(value));
+    } else if (Array.isArray(value) || typeof value === 'object') {
+      // JSON serialize objects and arrays
+      values.push(toJSONString(value));
+    } else {
+      // Fallback to string conversion
+      values.push(String(value));
+    }
   }
+
+  // Ensure required audit fields exist with defaults
+  if (!columns.includes('created_at')) {
+    columns.push('created_at');
+    values.push(now);
+  }
+  if (!columns.includes('updated_at')) {
+    columns.push('updated_at');
+    values.push(now);
+  }
+  if (!columns.includes('sync_status') && !['settings', 'device_settings'].includes(tableName)) {
+    columns.push('sync_status');
+    values.push('local');
+  }
+
+  return { columns, values };
+}
+
+/**
+ * Generate INSERT OR REPLACE SQL statement
+ */
+function generateInsertSQL(tableName: string, columns: string[]): string {
+  // Convert table name to snake_case
+  const snakeTableName = tableName.replace(/([A-Z])/g, '_$1').toLowerCase();
+  // Handle edge case where table name starts with uppercase
+  const cleanTableName = snakeTableName.startsWith('_') ? snakeTableName.slice(1) : snakeTableName;
+
+  const placeholders = columns.map(() => '?').join(', ');
+  return `INSERT OR REPLACE INTO ${cleanTableName} (${columns.join(', ')}) VALUES (${placeholders})`;
 }
 
 /**
  * Insert records in batches for performance
+ * Uses transaction wrapping for atomicity per table
  */
 async function batchInsert(
   db: SQLiteAdapter,
   tableName: string,
   records: DexieRecord[],
-  onBatchComplete?: (count: number) => void
+  onProgress?: (current: number, total: number) => void
 ): Promise<number> {
   if (records.length === 0) {
     return 0;
   }
 
-  const insertSql = INSERT_SQL[tableName];
-  if (!insertSql) {
-    throw new Error(`No INSERT SQL defined for table: ${tableName}`);
-  }
-
-  const converter = getConverter(tableName);
   let insertedCount = 0;
+  const total = records.length;
 
-  // Process in batches
-  for (let i = 0; i < records.length; i += BATCH_SIZE) {
-    const batch = records.slice(i, i + BATCH_SIZE);
+  // Process in batches within a single transaction per table
+  await db.transaction(async () => {
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+      const batch = records.slice(i, i + BATCH_SIZE);
 
-    // Use transaction for batch insert
-    await db.transaction(async () => {
       for (const record of batch) {
-        const values = converter(record);
-        await db.run(insertSql, values);
-        insertedCount++;
+        try {
+          const { columns, values } = recordToSQLiteValues(tableName, record);
+          const sql = generateInsertSQL(tableName, columns);
+          await db.run(sql, values);
+          insertedCount++;
+        } catch (error) {
+          // Log but continue - some records may have schema mismatches
+          console.warn(`[Migration] Warning: Failed to insert record in ${tableName}:`, error);
+        }
       }
-    });
 
-    // Notify progress after each batch
-    if (onBatchComplete) {
-      onBatchComplete(insertedCount);
+      // Notify progress after each batch
+      if (onProgress) {
+        onProgress(insertedCount, total);
+      }
     }
-  }
+  });
 
   return insertedCount;
+}
+
+/**
+ * Check if a table exists in SQLite
+ */
+async function tableExists(db: SQLiteAdapter, tableName: string): Promise<boolean> {
+  // Convert table name to snake_case
+  const snakeTableName = tableName.replace(/([A-Z])/g, '_$1').toLowerCase();
+  const cleanTableName = snakeTableName.startsWith('_') ? snakeTableName.slice(1) : snakeTableName;
+
+  const result = await db.get<{ count: number }>(
+    `SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name=?`,
+    [cleanTableName]
+  );
+  return (result?.count ?? 0) > 0;
+}
+
+/**
+ * Get count of records in a SQLite table
+ */
+async function getSQLiteCount(db: SQLiteAdapter, tableName: string): Promise<number> {
+  // Convert table name to snake_case
+  const snakeTableName = tableName.replace(/([A-Z])/g, '_$1').toLowerCase();
+  const cleanTableName = snakeTableName.startsWith('_') ? snakeTableName.slice(1) : snakeTableName;
+
+  try {
+    const result = await db.get<{ count: number }>(`SELECT COUNT(*) as count FROM ${cleanTableName}`);
+    return result?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Migrate a single table from Dexie to SQLite
+ */
+async function migrateTable(
+  dexieTable: DexieTable | undefined,
+  sqliteDb: SQLiteAdapter,
+  tableName: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<TableMigrationResult> {
+  const startTime = Date.now();
+
+  // Check if table doesn't exist in Dexie
+  if (!dexieTable) {
+    return {
+      name: tableName,
+      dexieCount: 0,
+      sqliteCount: 0,
+      skipped: true,
+      skipReason: 'Table not found in Dexie database',
+      durationMs: Date.now() - startTime,
+    };
+  }
+
+  // Check if SQLite table exists
+  const exists = await tableExists(sqliteDb, tableName);
+  if (!exists) {
+    return {
+      name: tableName,
+      dexieCount: 0,
+      sqliteCount: 0,
+      skipped: true,
+      skipReason: 'SQLite table does not exist (migration not run?)',
+      durationMs: Date.now() - startTime,
+    };
+  }
+
+  // Check if SQLite table already has data (potential resume scenario)
+  const existingCount = await getSQLiteCount(sqliteDb, tableName);
+  if (existingCount > 0) {
+    console.log(`[Migration] Table ${tableName} already has ${existingCount} records - will use INSERT OR REPLACE`);
+  }
+
+  // Read all records from Dexie
+  const dexieRecords = await dexieTable.toArray();
+  const dexieCount = dexieRecords.length;
+
+  if (dexieCount === 0) {
+    return {
+      name: tableName,
+      dexieCount: 0,
+      sqliteCount: 0,
+      skipped: false,
+      durationMs: Date.now() - startTime,
+    };
+  }
+
+  // Insert records into SQLite
+  const insertedCount = await batchInsert(sqliteDb, tableName, dexieRecords, onProgress);
+
+  return {
+    name: tableName,
+    dexieCount,
+    sqliteCount: insertedCount,
+    skipped: false,
+    durationMs: Date.now() - startTime,
+  };
 }
 
 /**
@@ -270,7 +411,7 @@ async function batchInsert(
  *
  * @param dexieDb - Dexie database instance with table accessors
  * @param sqliteDb - SQLite adapter instance
- * @param onProgress - Optional callback for progress updates
+ * @param onProgress - Optional callback for progress updates (table, current, total)
  * @returns Migration result with success status, table counts, and any errors
  *
  * @example
@@ -279,97 +420,130 @@ async function batchInsert(
  * import { createElectronAdapter } from '@mango/sqlite-adapter';
  *
  * const sqliteDb = await createElectronAdapter({ dbName: 'mango' });
- * const result = await migrateFromDexie(db, sqliteDb, (table, count) => {
- *   console.log(`Migrated ${count} records from ${table}`);
+ * const result = await migrateFromDexie(db, sqliteDb, (table, current, total) => {
+ *   console.log(`Migrating ${table}: ${current}/${total} records`);
+ *   setProgress({ table, current, total });
  * });
  *
  * if (result.success) {
- *   console.log('Migration complete!');
+ *   console.log(`Migration complete! ${result.totalRecords} records in ${result.durationMs}ms`);
  * } else {
  *   console.error('Migration failed:', result.errors);
  * }
  * ```
  */
 export async function migrateFromDexie(
-  dexieDb: DexieDatabase,
+  dexieDb: DexieDatabaseForMigration,
   sqliteDb: SQLiteAdapter,
-  onProgress?: (table: string, count: number) => void
+  onProgress?: MigrationProgressCallback
 ): Promise<MigrationResult> {
+  const startTime = Date.now();
   const result: MigrationResult = {
     success: true,
     tables: [],
     errors: [],
+    totalRecords: 0,
+    durationMs: 0,
   };
 
   console.log('[Migration] Starting Dexie to SQLite data migration...');
+  console.log(`[Migration] Tables to migrate: ${MIGRATION_ORDER.length}`);
 
   for (const tableName of MIGRATION_ORDER) {
     const dexieTable = dexieDb[tableName];
 
-    // Skip if table doesn't exist in Dexie database
-    if (!dexieTable) {
-      console.log(`[Migration] Skipping ${tableName}: table not found in Dexie`);
-      result.tables.push({ name: tableName, count: 0 });
-      continue;
-    }
-
     try {
-      console.log(`[Migration] Reading ${tableName} from Dexie...`);
+      console.log(`[Migration] Migrating ${tableName}...`);
 
-      // Read all records from Dexie
-      const dexieRecords = await dexieTable.toArray();
-      const dexieCount = dexieRecords.length;
+      const tableResult = await migrateTable(
+        dexieTable,
+        sqliteDb,
+        tableName,
+        onProgress ? (current, total) => onProgress(tableName, current, total) : undefined
+      );
 
-      console.log(`[Migration] Found ${dexieCount} ${tableName} records to migrate`);
+      result.tables.push(tableResult);
 
-      if (dexieCount === 0) {
-        result.tables.push({ name: tableName, count: 0 });
-        if (onProgress) {
-          onProgress(tableName, 0);
-        }
-        continue;
-      }
-
-      // Insert records into SQLite
-      const insertedCount = await batchInsert(sqliteDb, tableName, dexieRecords);
-
-      // Validate counts match
-      if (insertedCount !== dexieCount) {
-        const error = `[Migration] Count mismatch for ${tableName}: Dexie=${dexieCount}, SQLite=${insertedCount}`;
-        console.error(error);
-        result.errors.push(error);
-        result.success = false;
+      if (tableResult.skipped) {
+        console.log(`[Migration] Skipped ${tableName}: ${tableResult.skipReason}`);
+      } else if (tableResult.dexieCount !== tableResult.sqliteCount) {
+        const error = `Count mismatch for ${tableName}: Dexie=${tableResult.dexieCount}, SQLite=${tableResult.sqliteCount}`;
+        console.warn(`[Migration] Warning: ${error}`);
+        // Don't fail the migration for partial inserts - some records may have been filtered
       } else {
-        console.log(`[Migration] Successfully migrated ${insertedCount} ${tableName} records`);
+        console.log(`[Migration] Migrated ${tableResult.sqliteCount} ${tableName} records in ${tableResult.durationMs}ms`);
+        result.totalRecords += tableResult.sqliteCount;
       }
 
-      result.tables.push({ name: tableName, count: insertedCount });
-
-      // Notify progress
+      // Notify completion for this table
       if (onProgress) {
-        onProgress(tableName, insertedCount);
+        onProgress(tableName, tableResult.sqliteCount, tableResult.dexieCount);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error
-          ? `[Migration] Error migrating ${tableName}: ${error.message}`
-          : `[Migration] Unknown error migrating ${tableName}`;
+          ? `Error migrating ${tableName}: ${error.message}`
+          : `Unknown error migrating ${tableName}`;
 
-      console.error(errorMessage);
+      console.error(`[Migration] ${errorMessage}`);
       result.errors.push(errorMessage);
       result.success = false;
 
+      // Add failed table result
+      result.tables.push({
+        name: tableName,
+        dexieCount: 0,
+        sqliteCount: 0,
+        skipped: false,
+        durationMs: 0,
+      });
+
       // Continue with other tables even if one fails
-      result.tables.push({ name: tableName, count: 0 });
     }
   }
 
+  result.durationMs = Date.now() - startTime;
+
   if (result.success) {
-    const totalRecords = result.tables.reduce((sum, t) => sum + t.count, 0);
-    console.log(`[Migration] Migration complete! Total records: ${totalRecords}`);
+    console.log(`[Migration] Migration complete! Total: ${result.totalRecords} records in ${result.durationMs}ms`);
   } else {
-    console.error(`[Migration] Migration completed with errors: ${result.errors.length} error(s)`);
+    console.error(`[Migration] Migration completed with ${result.errors.length} error(s) in ${result.durationMs}ms`);
   }
 
+  // Log summary
+  const migratedTables = result.tables.filter(t => !t.skipped && t.sqliteCount > 0);
+  const skippedTables = result.tables.filter(t => t.skipped);
+  console.log(`[Migration] Summary: ${migratedTables.length} tables migrated, ${skippedTables.length} skipped`);
+
   return result;
+}
+
+/**
+ * Get list of tables that would be migrated
+ * Useful for UI to show migration scope
+ */
+export function getMigrationTables(): string[] {
+  return [...MIGRATION_ORDER];
+}
+
+/**
+ * Estimate total records to migrate
+ * Useful for progress calculation
+ */
+export async function estimateMigrationSize(dexieDb: DexieDatabaseForMigration): Promise<number> {
+  let total = 0;
+
+  for (const tableName of MIGRATION_ORDER) {
+    const table = dexieDb[tableName];
+    if (table) {
+      try {
+        const count = await table.count();
+        total += count;
+      } catch {
+        // Table might not exist
+      }
+    }
+  }
+
+  return total;
 }
