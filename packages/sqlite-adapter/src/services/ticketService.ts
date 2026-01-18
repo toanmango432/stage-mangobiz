@@ -722,4 +722,276 @@ export class TicketSQLiteService {
     const rows = await this.db.all<TicketRow>(sql, [storeId]);
     return rows.map(rowToTicket);
   }
+
+  /**
+   * Add a raw ticket object directly to SQLite.
+   * Use this when you have a pre-built ticket object with all fields.
+   * Matches Dexie ticketsDB.addRaw() interface.
+   */
+  async addRaw(ticket: Partial<Ticket>): Promise<Ticket> {
+    const now = new Date().toISOString();
+    const id = ticket.id || generateUUID();
+
+    // Ensure required fields have defaults
+    const fullTicket: Ticket = {
+      id,
+      number: ticket.number,
+      storeId: ticket.storeId || '',
+      appointmentId: ticket.appointmentId,
+      clientId: ticket.clientId || '',
+      clientName: ticket.clientName || '',
+      clientPhone: ticket.clientPhone || '',
+      isGroupTicket: ticket.isGroupTicket,
+      clients: ticket.clients,
+      isMergedTicket: ticket.isMergedTicket,
+      mergedFromTickets: ticket.mergedFromTickets,
+      originalTicketId: ticket.originalTicketId,
+      mergedAt: ticket.mergedAt,
+      mergedBy: ticket.mergedBy,
+      services: ticket.services || [],
+      products: ticket.products || [],
+      status: ticket.status || 'pending',
+      subtotal: ticket.subtotal || 0,
+      discount: ticket.discount || 0,
+      discountReason: ticket.discountReason,
+      discountPercent: ticket.discountPercent,
+      tax: ticket.tax || 0,
+      taxRate: ticket.taxRate,
+      tip: ticket.tip || 0,
+      total: ticket.total || 0,
+      payments: ticket.payments || [],
+      createdAt: ticket.createdAt || now,
+      updatedAt: ticket.updatedAt || now,
+      completedAt: ticket.completedAt,
+      createdBy: ticket.createdBy || '',
+      lastModifiedBy: ticket.lastModifiedBy || '',
+      syncStatus: ticket.syncStatus || 'synced', // Mark as synced when adding from server
+      isDraft: ticket.isDraft,
+      draftExpiresAt: ticket.draftExpiresAt,
+      lastAutoSaveAt: ticket.lastAutoSaveAt,
+      source: ticket.source,
+      serviceCharges: ticket.serviceCharges,
+      serviceChargeTotal: ticket.serviceChargeTotal,
+      paymentMethod: ticket.paymentMethod,
+      staffId: ticket.staffId,
+      staffName: ticket.staffName,
+      closedAt: ticket.closedAt,
+      closedBy: ticket.closedBy,
+      signatureBase64: ticket.signatureBase64,
+      signatureTimestamp: ticket.signatureTimestamp,
+    };
+
+    const sql = `
+      INSERT OR REPLACE INTO tickets (
+        id, number, store_id, appointment_id,
+        client_id, client_name, client_phone,
+        is_group_ticket, clients,
+        is_merged_ticket, merged_from_tickets, original_ticket_id, merged_at, merged_by,
+        services, products, status,
+        subtotal, discount, discount_reason, discount_percent,
+        tax, tax_rate, tip, total,
+        payments, created_at, updated_at, completed_at,
+        created_by, last_modified_by, sync_status,
+        is_draft, draft_expires_at, last_auto_save_at,
+        source, service_charges, service_charge_total,
+        payment_method, staff_id, staff_name,
+        closed_at, closed_by, signature_base64, signature_timestamp
+      ) VALUES (
+        ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?
+      )
+    `;
+
+    const params: SQLiteValue[] = [
+      fullTicket.id,
+      fullTicket.number ?? null,
+      fullTicket.storeId,
+      fullTicket.appointmentId ?? null,
+      fullTicket.clientId,
+      fullTicket.clientName,
+      fullTicket.clientPhone,
+      fullTicket.isGroupTicket ? 1 : 0,
+      fullTicket.clients ?? null,
+      fullTicket.isMergedTicket ? 1 : 0,
+      fullTicket.mergedFromTickets ?? null,
+      fullTicket.originalTicketId ?? null,
+      fullTicket.mergedAt ?? null,
+      fullTicket.mergedBy ?? null,
+      JSON.stringify(fullTicket.services),
+      JSON.stringify(fullTicket.products),
+      fullTicket.status,
+      fullTicket.subtotal,
+      fullTicket.discount,
+      fullTicket.discountReason ?? null,
+      fullTicket.discountPercent ?? null,
+      fullTicket.tax,
+      fullTicket.taxRate ?? null,
+      fullTicket.tip,
+      fullTicket.total,
+      JSON.stringify(fullTicket.payments),
+      fullTicket.createdAt,
+      fullTicket.updatedAt ?? null,
+      fullTicket.completedAt ?? null,
+      fullTicket.createdBy,
+      fullTicket.lastModifiedBy,
+      fullTicket.syncStatus,
+      fullTicket.isDraft ? 1 : 0,
+      fullTicket.draftExpiresAt ?? null,
+      fullTicket.lastAutoSaveAt ?? null,
+      fullTicket.source ?? null,
+      fullTicket.serviceCharges ?? null,
+      fullTicket.serviceChargeTotal ?? null,
+      fullTicket.paymentMethod ?? null,
+      fullTicket.staffId ?? null,
+      fullTicket.staffName ?? null,
+      fullTicket.closedAt ?? null,
+      fullTicket.closedBy ?? null,
+      fullTicket.signatureBase64 ?? null,
+      fullTicket.signatureTimestamp ?? null,
+    ];
+
+    await this.db.run(sql, params);
+    return fullTicket;
+  }
+
+  /**
+   * Mark ticket as completed/paid.
+   * Matches Dexie ticketsDB.complete() interface.
+   */
+  async complete(id: string, userId: string): Promise<Ticket | undefined> {
+    return await this.update(id, {
+      status: 'paid',
+      completedAt: new Date().toISOString(),
+      isDraft: false,
+    }, userId);
+  }
+
+  /**
+   * Create a draft ticket for auto-save and status persistence.
+   * Supports walk-in (no client) scenarios.
+   * Matches Dexie ticketsDB.createDraft() interface.
+   */
+  async createDraft(
+    services: TicketService[],
+    userId: string,
+    storeId: string,
+    clientInfo?: { clientId: string; clientName: string; clientPhone: string }
+  ): Promise<Ticket> {
+    const now = new Date().toISOString();
+    const subtotal = services.reduce((sum, s) => sum + s.price, 0);
+    const expirationHours = 24; // Default from DRAFT_CONFIG
+    const taxRate = 0.0875; // Standard tax rate
+
+    const draftTicket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'> = {
+      storeId,
+      clientId: clientInfo?.clientId || 'walk-in',
+      clientName: clientInfo?.clientName || 'Walk-in',
+      clientPhone: clientInfo?.clientPhone || '',
+      services,
+      products: [],
+      status: 'pending',
+      subtotal,
+      discount: 0,
+      tax: Math.round(subtotal * taxRate * 100) / 100,
+      tip: 0,
+      total: Math.round(subtotal * (1 + taxRate) * 100) / 100,
+      payments: [],
+      createdBy: userId,
+      lastModifiedBy: userId,
+      syncStatus: 'local',
+      isDraft: true,
+      draftExpiresAt: new Date(Date.now() + expirationHours * 60 * 60 * 1000).toISOString(),
+      lastAutoSaveAt: now,
+      source: 'pos',
+    };
+
+    return await this.create(draftTicket, userId);
+  }
+
+  /**
+   * Delete expired drafts (older than their expiration time).
+   * Returns the count of deleted drafts.
+   * Matches Dexie ticketsDB.cleanupExpiredDrafts() interface.
+   */
+  async cleanupExpiredDrafts(storeId: string): Promise<number> {
+    const now = new Date().toISOString();
+
+    // First, find expired drafts
+    const sql = `
+      SELECT id FROM tickets
+      WHERE store_id = ? AND is_draft = 1 AND draft_expires_at IS NOT NULL AND draft_expires_at < ?
+    `;
+    const expiredDrafts = await this.db.all<{ id: string }>(sql, [storeId, now]);
+
+    if (expiredDrafts.length === 0) {
+      return 0;
+    }
+
+    // Delete each expired draft
+    const deleteSql = 'DELETE FROM tickets WHERE id = ?';
+    for (const draft of expiredDrafts) {
+      await this.db.run(deleteSql, [draft.id]);
+    }
+
+    return expiredDrafts.length;
+  }
+
+  /**
+   * Get tickets by client ID.
+   * Useful for client history views.
+   */
+  async getByClient(clientId: string, limit: number = 100): Promise<Ticket[]> {
+    const sql = `
+      SELECT * FROM tickets
+      WHERE client_id = ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `;
+    const rows = await this.db.all<TicketRow>(sql, [clientId, limit]);
+    return rows.map(rowToTicket);
+  }
+
+  /**
+   * Get tickets by date range.
+   * Useful for reporting and analytics.
+   */
+  async getByDateRange(
+    storeId: string,
+    startDate: Date,
+    endDate: Date,
+    limit: number = 1000
+  ): Promise<Ticket[]> {
+    const sql = `
+      SELECT * FROM tickets
+      WHERE store_id = ? AND created_at >= ? AND created_at <= ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `;
+    const rows = await this.db.all<TicketRow>(sql, [
+      storeId,
+      startDate.toISOString(),
+      endDate.toISOString(),
+      limit,
+    ]);
+    return rows.map(rowToTicket);
+  }
+
+  /**
+   * Get pending tickets (status = 'pending').
+   * Useful for turn queue views.
+   */
+  async getPending(storeId: string, limit: number = 100): Promise<Ticket[]> {
+    return this.getByStatus(storeId, 'pending', limit);
+  }
 }
