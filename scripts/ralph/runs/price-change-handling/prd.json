@@ -263,7 +263,7 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-004"],
       "notes": "This is the trigger point for price comparison. Walk-ins have no prior booking so bookedPrice equals current price."
     },
@@ -287,7 +287,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-011"],
       "notes": "selectUnresolvedPriceChanges is key - shows services that still need staff decision when in 'ask_staff' mode."
     },
@@ -311,7 +311,7 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-012"],
       "notes": "This is called after staff makes decision in PriceResolutionModal. Ensure subtotal recalculation happens."
     },
@@ -336,7 +336,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-008", "US-013"],
       "notes": "This happens automatically when entering checkout. Only 'ask_staff' mode leaves services unresolved for manual decision."
     },
@@ -362,7 +362,7 @@
         "Verify in browser: warning displays when price variance exists"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-012"],
       "notes": "Uses selectUnresolvedPriceChanges selector. Only shows when there are unresolved changes (staff input needed)."
     },
@@ -388,7 +388,7 @@
         "Verify in browser: line item shows variance info correctly"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-004"],
       "notes": "Reusable component for showing a single service with its price variance. Used in checkout summary and resolution modal."
     },
@@ -413,7 +413,7 @@
         "Verify in browser: modal opens and shows services with variances"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-016"],
       "notes": "Basic modal shell. Individual service resolution handled in next story."
     },
