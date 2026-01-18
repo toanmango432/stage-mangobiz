@@ -179,6 +179,119 @@ export interface BusinessSettings {
 // 2. CHECKOUT & PAYMENTS SETTINGS
 // =============================================================================
 
+// -----------------------------------------------------------------------------
+// PRICING POLICY TYPES
+// Used to configure how price changes between booking and checkout are handled
+// -----------------------------------------------------------------------------
+
+/**
+ * Pricing policy mode - determines default behavior when prices change
+ *
+ * @example
+ * // System uses this to auto-resolve price decisions
+ * if (mode === 'honor_booked') {
+ *   // Always use the price client saw when booking
+ *   return bookedPrice;
+ * }
+ */
+export type PricingPolicyMode =
+  /** Honor the price client saw when booking (most client-friendly) */
+  | 'honor_booked'
+  /** Use current catalog price at checkout (most revenue-friendly) */
+  | 'use_current'
+  /** Prompt staff to choose for each service (default - recommended) */
+  | 'ask_staff'
+  /** Automatically apply whichever price is lower (auto lower protection) */
+  | 'honor_lower';
+
+/**
+ * Pricing policy settings for configuring price change behavior
+ *
+ * These settings control how the system handles price differences between
+ * the time of booking and the time of checkout.
+ *
+ * @example
+ * // Default configuration (staff decides)
+ * const policy: PricingPolicySettings = {
+ *   defaultMode: 'ask_staff',
+ *   autoApplyLowerPrice: true,
+ *   showPriceVarianceAlert: true,
+ *   lockPriceOnDeposit: true,
+ * };
+ */
+export interface PricingPolicySettings {
+  /**
+   * Default pricing mode when prices differ between booking and checkout.
+   * 'ask_staff' is recommended as the default to allow case-by-case decisions.
+   */
+  defaultMode: PricingPolicyMode;
+
+  /**
+   * When true, automatically apply the lower price without prompting.
+   * Works with 'ask_staff' mode - if catalog price dropped, auto-apply it.
+   * @default true
+   */
+  autoApplyLowerPrice: boolean;
+
+  /**
+   * Show alert/warning to staff when prices differ.
+   * Even when auto-resolved, staff sees the difference for awareness.
+   * @default true
+   */
+  showPriceVarianceAlert: boolean;
+
+  /**
+   * Require manager approval when charging higher than booked price.
+   * Triggered when override exceeds either threshold below.
+   * @default false
+   */
+  requireApprovalForHigherPrice: boolean;
+
+  /**
+   * Dollar amount threshold for requiring manager approval.
+   * Approval required if price increase exceeds this amount.
+   * Used with OR logic alongside approvalThresholdPercent.
+   * @default 10 (require approval if increase > $10)
+   */
+  approvalThresholdAmount: number;
+
+  /**
+   * Percentage threshold for requiring manager approval.
+   * Approval required if price increase exceeds this percentage.
+   * Used with OR logic alongside approvalThresholdAmount.
+   * @default 15 (require approval if increase > 15%)
+   */
+  approvalThresholdPercent: number;
+
+  /**
+   * When client pays a deposit, lock the booked price permanently.
+   * Deposit = commitment, price cannot change after.
+   * @default true
+   */
+  lockPriceOnDeposit: boolean;
+
+  /**
+   * When appointment is rescheduled, keep the original booked price.
+   * If false, price updates to catalog price at new date.
+   * @default true
+   */
+  keepPriceOnReschedule: boolean;
+
+  /**
+   * Allow staff to manually override the recommended price.
+   * When false, system decision is final.
+   * @default true
+   */
+  allowStaffOverride: boolean;
+
+  /**
+   * When staff overrides price, require them to enter a reason.
+   * Creates audit trail for unusual pricing decisions.
+   * @default true
+   */
+  requireOverrideReason: boolean;
+}
+
 export interface TipSettings {
   enabled: boolean;
   calculation: TipCalculation;
@@ -268,6 +381,11 @@ export interface CheckoutSettings {
   rounding: RoundingSettings;
   paymentMethods: PaymentMethodsSettings;
   gateway?: PaymentGateway;
+  /**
+   * Pricing policy settings for handling price changes between booking and checkout.
+   * Optional for backwards compatibility - falls back to DEFAULT_PRICING_POLICY when undefined.
+   */
+  pricingPolicy?: PricingPolicySettings;
 }
 
 // =============================================================================
@@ -474,6 +592,25 @@ export const DEFAULT_DISCOUNT_SETTINGS: DiscountSettings = {
   requireReason: true,
   requireApproval: false,
   approvalThreshold: 20,
+};
+
+/**
+ * Default pricing policy settings.
+ * System default is 'ask_staff' per business requirement - staff makes case-by-case decisions.
+ * autoApplyLowerPrice, showPriceVarianceAlert, lockPriceOnDeposit, keepPriceOnReschedule
+ * are all true by default for client-friendly, transparent pricing.
+ */
+export const DEFAULT_PRICING_POLICY: PricingPolicySettings = {
+  defaultMode: 'ask_staff',
+  autoApplyLowerPrice: true,
+  showPriceVarianceAlert: true,
+  requireApprovalForHigherPrice: false,
+  approvalThresholdAmount: 10,
+  approvalThresholdPercent: 15,
+  lockPriceOnDeposit: true,
+  keepPriceOnReschedule: true,
+  allowStaffOverride: true,
+  requireOverrideReason: true,
 };
 
 export const DEFAULT_PAYMENT_METHODS: PaymentMethodsSettings = {
