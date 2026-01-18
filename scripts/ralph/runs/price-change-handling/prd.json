@@ -43,7 +43,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-001"],
       "notes": "All fields optional for backwards compatibility. bookedPrice is the key field - what client saw when booking."
     },

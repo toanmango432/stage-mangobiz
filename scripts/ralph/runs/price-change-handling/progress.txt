@@ -31,3 +31,25 @@ Commit: (Pre-existing implementation found)
 
 ---
 
+## 2026-01-17 - US-002: Add price snapshot fields to AppointmentService interface
+Commit: 373a2c9
+
+**Why this story?** US-002 is the logical next step after US-001 - same file, direct dependency, and enables price tracking in appointments.
+
+**Changes:**
+- `apps/store-app/src/types/appointment.ts:47-100`: Added 5 new optional fields to AppointmentService interface:
+  - `bookedPrice?: number` - price at booking time
+  - `bookedAt?: string` - ISO timestamp when price locked
+  - `priceSource?: PriceSource` - source of the price
+  - `staffLevelAtBooking?: string` - staff tier for tiered pricing
+  - `catalogPriceAtBooking?: number` - base catalog price
+
+**Learnings:**
+- All fields made optional for backwards compatibility with existing appointments
+- Comprehensive JSDoc comments with @example tags for clarity
+- Pre-existing typecheck errors remain (suggestedTime type mismatches in test files)
+
+**Next story suggestion:** US-003 (Add PriceDecision type for checkout) - no dependencies, needed by US-004 and US-006
+
+---
+

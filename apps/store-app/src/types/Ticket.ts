@@ -212,6 +212,34 @@ export interface ServiceCharge {
 }
 
 // ============================================
+// PRICE TRACKING TYPES
+// ============================================
+
+/**
+ * Determines how the final checkout price was decided when there's a
+ * difference between the booked price and current catalog price.
+ *
+ * @example
+ * // Customer booked at $50, catalog now shows $55
+ * // If we honor original: priceDecision = 'booked_honored'
+ * // If we use current: priceDecision = 'catalog_applied'
+ *
+ * - 'booked_honored' - Used the original booked price (customer protection)
+ * - 'catalog_applied' - Used the current catalog price
+ * - 'lower_applied' - Automatically applied the lower of booked/catalog
+ * - 'manual_override' - Staff manually set a custom price
+ * - 'deposit_locked' - Price locked because deposit was paid
+ * - 'walk_in_current' - Walk-in customer, used current catalog price (no prior booking)
+ */
+export type PriceDecision =
+  | 'booked_honored'
+  | 'catalog_applied'
+  | 'lower_applied'
+  | 'manual_override'
+  | 'deposit_locked'
+  | 'walk_in_current';
+
+// ============================================
 // TICKET INTERFACE
 // ============================================
 
