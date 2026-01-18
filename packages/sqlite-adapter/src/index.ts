@@ -58,6 +58,14 @@ export {
   type TotalsByPaymentMethod as SQLiteTotalsByPaymentMethod,
   type PaymentMethod as SQLitePaymentMethod,
   type TransactionStatus as SQLiteTransactionStatus,
+  // Staff service
+  StaffSQLiteService,
+  type Staff as SQLiteStaff,
+  type StaffRow as SQLiteStaffRow,
+  type StaffStatus as SQLiteStaffStatus,
+  type StaffRole as SQLiteStaffRole,
+  type StaffSchedule as SQLiteStaffSchedule,
+  type ScheduleEntry as SQLiteScheduleEntry,
 } from './services';
 
 // Type conversion utilities

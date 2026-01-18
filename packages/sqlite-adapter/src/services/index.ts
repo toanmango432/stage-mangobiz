@@ -55,3 +55,14 @@ export {
   type PaymentMethod,
   type TransactionStatus,
 } from './transactionService';
+
+// Staff service
+export {
+  StaffSQLiteService,
+  type Staff,
+  type StaffRow,
+  type StaffStatus,
+  type StaffRole,
+  type StaffSchedule,
+  type ScheduleEntry,
+} from './staffService';
