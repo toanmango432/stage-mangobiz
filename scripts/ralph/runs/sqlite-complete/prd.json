@@ -381,7 +381,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-011"],
       "notes": "Sync queue critical for offline-first architecture. Priority: 1=high, 2=medium, 3=low. Status: 'pending', 'syncing', 'complete', 'failed'."
     },

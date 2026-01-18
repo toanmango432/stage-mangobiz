@@ -656,3 +656,45 @@ Commit: 451b22e
 **Next story suggestion:** US-012 (Create SyncQueueSQLiteService) - depends on US-011 (just completed) and adds the offline sync queue service.
 
 ---
+
+## 2026-01-17 - US-012: Create SyncQueueSQLiteService
+Commit: a47626a
+
+**Why this story?** US-012 is the only story with all dependencies satisfied. It depends on US-011 (just completed) and is the offline sync queue service critical for offline-first architecture. Priority 16 is highest among remaining stories.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/syncQueueService.ts` (NEW, 450 lines): Offline sync queue service
+  - `SyncQueueSQLiteService`: Standalone service for managing sync operations queue
+  - `add(input)`: Add operation to queue with entity, entityId, operation, data, priority
+  - `getNext(limit)`: Get pending operations ordered by priority (1=high) then createdAt (FIFO)
+  - `markComplete(id)`: Mark operation as successfully synced
+  - `markFailed(id, error)`: Increment retry count, mark failed if max retries reached
+  - `getPending()`: Get all pending operations
+  - `clearCompleted()`: Remove completed operations from queue
+  - Additional methods: `getById()`, `getByEntity()`, `getByEntityId()`, `getByStatus()`
+  - `markSyncing(id)`: Mark operation as currently in progress
+  - `resetForRetry(id)`: Reset failed operation to pending for manual retry
+  - `countByStatus()`: Get counts for each status (pending, syncing, complete, failed)
+  - `getStats()`: Get queue statistics including oldest pending timestamp
+  - `getHighPriority(limit)`: Get high priority (1) pending operations
+  - Types: `SyncQueueOperation`, `AddSyncOperationInput`, `SyncPriority`, `SyncStatus`, `SyncEntity`, `SyncOperation`
+- `packages/sqlite-adapter/src/services/index.ts:87-94`: Export SyncQueueSQLiteService and all types
+- `packages/sqlite-adapter/src/index.ts:80-87`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (syncQueueService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Sync queue uses priority ordering: ORDER BY priority ASC (1=high), then created_at ASC (FIFO within priority)
+- markFailed increments retry_count and checks against max_retries before marking as 'failed'
+- Queue service follows standalone pattern (like SettingsSQLiteService) since it has different semantics than entity CRUD
+- Added helper method `hasPending()` for quick check before triggering sync cycle
+
+**Patterns to sync:**
+- Pattern: Priority queue with FIFO ordering - use `ORDER BY priority ASC, created_at ASC` for priority-first then oldest-first
+
+**Next story suggestion:** US-013 (Create DeviceSettingsSQLiteService) - depends on US-012 (just completed) and adds device-specific settings service.
+
+---
