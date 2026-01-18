@@ -7,6 +7,11 @@
  * - VITE_USE_SQLITE=true enables SQLite backend on Electron
  * - Web and Capacitor platforms always use Dexie (IndexedDB)
  * - Electron can opt-in to SQLite via environment variable
+ *
+ * Rollback Safety:
+ * - If SQLite encounters 3+ consecutive errors, auto-rollback to Dexie occurs
+ * - VITE_FORCE_SQLITE=true overrides rollback state (for debugging)
+ * - Use clearRollbackState() from databaseRecovery to manually re-enable
  */
 
 // ==================== PLATFORM DETECTION ====================
@@ -68,6 +73,28 @@ export function getPlatform(): 'electron' | 'capacitor' | 'web' {
 let hasLoggedSQLiteStatus = false;
 
 /**
+ * Storage key for rollback state (duplicated here to avoid circular imports)
+ * Must match ROLLBACK_STATE_KEY in databaseRecovery.ts
+ */
+const ROLLBACK_STATE_KEY = 'mango:sqlite:rollback_state';
+
+/**
+ * Check if SQLite is in rollback state (sync check, no imports needed)
+ * This is a minimal inline check to avoid circular dependencies.
+ */
+function isInRollbackState(): boolean {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    const stored = localStorage.getItem(ROLLBACK_STATE_KEY);
+    if (!stored) return false;
+    const state = JSON.parse(stored);
+    return state.isRolledBack === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Check if SQLite backend should be used.
  *
  * Behavior:
@@ -75,8 +102,13 @@ let hasLoggedSQLiteStatus = false;
  * - Web: Always uses Dexie (IndexedDB)
  * - Capacitor (iOS/Android): Always uses Dexie (IndexedDB)
  *
+ * Safety:
+ * - If rollback is active (3+ consecutive SQLite errors), returns false
+ * - VITE_FORCE_SQLITE=true overrides rollback state (for debugging)
+ *
  * Environment Variables:
  * - VITE_DISABLE_SQLITE=true: Opt-out of SQLite on Electron (fallback to Dexie)
+ * - VITE_FORCE_SQLITE=true: Force SQLite even if rollback is active (debugging)
  * - VITE_USE_SQLITE=true: Legacy opt-in flag (still works but deprecated)
  *
  * @returns true if SQLite should be used for data operations
@@ -90,6 +122,18 @@ export function shouldUseSQLite(): boolean {
   // Check for explicit opt-out (VITE_DISABLE_SQLITE=true disables SQLite)
   const disableSqliteEnv = import.meta.env.VITE_DISABLE_SQLITE;
   if (disableSqliteEnv === 'true') {
+    return false;
+  }
+
+  // Check for force-enable override (VITE_FORCE_SQLITE=true)
+  const forceSqliteEnv = import.meta.env.VITE_FORCE_SQLITE;
+  if (forceSqliteEnv === 'true') {
+    // Force SQLite even if rollback is active
+    return true;
+  }
+
+  // Check rollback state - if rolled back due to errors, use Dexie
+  if (isInRollbackState()) {
     return false;
   }
 
@@ -124,11 +168,16 @@ export function logBackendSelection(): void {
 
   const backend = getBackendType();
   const platform = getPlatform();
+  const rollbackActive = isInRollbackState();
 
   if (backend === 'sqlite') {
     console.log(`[DataService] ✓ SQLite backend ACTIVE (platform: ${platform})`);
     console.log('[DataService] Using native SQLite for data operations');
     console.log('[DataService] To opt-out, set VITE_DISABLE_SQLITE=true');
+  } else if (platform === 'electron' && rollbackActive) {
+    console.log(`[DataService] ⚠️ Using Dexie/IndexedDB - ROLLBACK MODE (platform: ${platform})`);
+    console.log('[DataService] SQLite disabled due to errors. See databaseRecovery for details.');
+    console.log('[DataService] To force SQLite, set VITE_FORCE_SQLITE=true');
   } else if (platform === 'electron') {
     console.log(`[DataService] Using Dexie/IndexedDB (platform: ${platform})`);
     console.log('[DataService] SQLite disabled via VITE_DISABLE_SQLITE=true');
