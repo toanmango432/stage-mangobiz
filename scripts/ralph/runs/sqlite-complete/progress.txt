@@ -1,0 +1,49 @@
+# SQLite Complete Migration - Progress Log
+
+## Codebase Patterns
+
+> Add reusable patterns discovered during implementation here.
+
+### Type Conversion
+- Always use `toISOString()` for Date → SQLite TEXT conversion, never `String(date)` or `toString()`
+- Use `boolToSQLite(value): 0 | 1` for boolean → INTEGER conversion
+- Use `safeParseJSON<T>(text, fallback)` for TEXT → object conversion
+
+### SQL Best Practices
+- Use `json_each()` for aggregating over JSON array columns
+- Always use parameterized queries: `db.prepare('SELECT * FROM x WHERE id = ?').get(id)`
+- Use `INSERT OR REPLACE INTO` for upsert operations
+
+### Service Pattern
+- Extend `BaseSQLiteService<T, TRow>` for all table services
+- Define schema config with column mappings and type hints
+- Keep query methods (getByX) in service class, not base class
+
+---
+
+## Architectural Decisions
+
+### Hybrid Approach for Existing Services (Pre-Ralph Decision)
+
+**Decision:** Use BaseSQLiteService for ALL NEW services, but do NOT refactor existing services.
+
+**Context:**
+- `clientService.ts` (702 lines) and `ticketService.ts` (~650 lines) already exist and work
+- Refactoring 1,350+ lines of working code risks introducing bugs
+- New services (40 of them) will benefit from BaseSQLiteService consistency
+
+**Approach:**
+1. Keep existing clientService and ticketService as-is
+2. Use BaseSQLiteService pattern for all 40 new services
+3. Only add MISSING methods to existing services (US-009)
+4. Fix incomplete migration schemas (US-036, US-037)
+
+**Future option:** Can optionally migrate existing services to BaseSQLiteService later if needed.
+
+---
+
+## Progress Log
+
+> Each iteration appends below this line.
+
+---
