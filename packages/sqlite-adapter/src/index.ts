@@ -53,3 +53,31 @@ export {
   safeParseJSON,
   toJSONString,
 } from './utils';
+
+// Schema types and registry
+export type {
+  ColumnType as SchemaColumnType,
+  ColumnSchema,
+  ColumnMapping,
+  ExtendedTableSchema,
+  ForeignKeySchema,
+  SchemaRegistry,
+  CoreTableName,
+  InfrastructureTableName,
+  AllTableName,
+} from './schema';
+
+export {
+  // Individual table schemas
+  appointmentsSchema,
+  ticketsSchema,
+  clientsSchema,
+  staffSchema,
+  servicesSchema,
+  transactionsSchema,
+  // Registry and helpers
+  schemaRegistry,
+  getSchema,
+  hasSchema,
+  getTableNames,
+} from './schema';
