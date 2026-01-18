@@ -23,6 +23,7 @@ import {
 } from '../components/Book';
 import { CalendarLoadingOverlay } from '../components/Book/skeletons';
 import { DaySchedule } from '../components/Book/DaySchedule';
+import { RescheduleConfirmDialog } from '../components/Book/RescheduleConfirmDialog';
 import { WeekView } from '../components/Book/WeekView';
 import { MonthView } from '../components/Book/MonthView';
 import { AgendaView } from '../components/Book/AgendaView';
@@ -89,6 +90,15 @@ export function BookPage() {
 
   // Clipboard state for copy/paste functionality
   const [_copiedAppointment, setCopiedAppointment] = useState<LocalAppointment | null>(null);
+
+  // Reschedule dialog state (for drag-and-drop with price option)
+  const [pendingReschedule, setPendingReschedule] = useState<{
+    appointmentId: string;
+    newStaffId: string;
+    newTime: Date;
+  } | null>(null);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   const {
     selectedDate,
@@ -222,30 +232,72 @@ export function BookPage() {
     }
   };
 
-  const handleAppointmentDrop = async (appointmentId: string, newStaffId: string, newTime: Date) => {
-    try {
-      const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
-      if (!appointment) {
-        setToast({ message: 'Appointment not found', type: 'error' });
-        return;
-      }
+  /**
+   * Handle appointment drop from drag-and-drop.
+   * Opens the RescheduleConfirmDialog to allow staff to choose price handling.
+   */
+  const handleAppointmentDrop = (appointmentId: string, newStaffId: string, newTime: Date) => {
+    const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
+    if (!appointment) {
+      setToast({ message: 'Appointment not found', type: 'error' });
+      return;
+    }
 
-      // Snap to 15-minute grid
-      const snappedTime = snapToGrid(newTime);
-      
+    // Snap to 15-minute grid
+    const snappedTime = snapToGrid(newTime);
+
+    // Store pending reschedule data and open dialog
+    setPendingReschedule({
+      appointmentId,
+      newStaffId,
+      newTime: snappedTime,
+    });
+    setIsRescheduleDialogOpen(true);
+  };
+
+  /**
+   * Handle reschedule confirmation from RescheduleConfirmDialog.
+   * @param keepOriginalPrice - true to keep booked price, false to update to current
+   */
+  const handleRescheduleConfirm = async (keepOriginalPrice: boolean) => {
+    if (!pendingReschedule) return;
+
+    const { appointmentId, newStaffId, newTime } = pendingReschedule;
+    const appointment = filteredAppointments?.find(apt => apt.id === appointmentId);
+    if (!appointment) {
+      setToast({ message: 'Appointment not found', type: 'error' });
+      setIsRescheduleDialogOpen(false);
+      setPendingReschedule(null);
+      return;
+    }
+
+    setIsRescheduling(true);
+
+    try {
       // Calculate new end time based on duration
       const duration = Math.round(
-        (new Date(appointment.scheduledEndTime).getTime() - 
+        (new Date(appointment.scheduledEndTime).getTime() -
          new Date(appointment.scheduledStartTime).getTime()) / 60000
       );
-      const newEndTime = new Date(snappedTime.getTime() + duration * 60000);
+      const newEndTime = new Date(newTime.getTime() + duration * 60000);
 
       // Create updated appointment with snapped time (dates as ISO strings)
       const updatedAppointment: LocalAppointment = {
         ...appointment,
         staffId: newStaffId,
-        scheduledStartTime: snappedTime.toISOString(),
+        scheduledStartTime: newTime.toISOString(),
         scheduledEndTime: newEndTime.toISOString(),
+        // If not keeping original price, we need to update the service prices
+        // For now, we just track whether to keep original - actual price update happens at checkout
+        services: keepOriginalPrice
+          ? appointment.services
+          : appointment.services.map(service => ({
+              ...service,
+              // Mark that price should be recalculated at checkout
+              // Clear bookedPrice to indicate current catalog price should be used
+              bookedPrice: undefined,
+              bookedAt: undefined,
+            })),
       };
 
       // Check for conflicts
@@ -256,7 +308,10 @@ export function BookPage() {
         const confirmed = window.confirm(
           `Warning: This appointment has conflicts:\n\n${conflicts.join('\n')}\n\nDo you want to save anyway?`
         );
-        if (!confirmed) return;
+        if (!confirmed) {
+          setIsRescheduling(false);
+          return;
+        }
       }
 
       // Update in Redux with snapped time (dates as ISO strings)
@@ -264,8 +319,9 @@ export function BookPage() {
         id: appointmentId,
         updates: {
           staffId: newStaffId,
-          scheduledStartTime: snappedTime.toISOString(),
+          scheduledStartTime: newTime.toISOString(),
           scheduledEndTime: newEndTime.toISOString(),
+          services: updatedAppointment.services,
         },
       }));
 
@@ -275,8 +331,9 @@ export function BookPage() {
         const updated: LocalAppointment = {
           ...appointmentToUpdate,
           staffId: newStaffId,
-          scheduledStartTime: snappedTime.toISOString(),
+          scheduledStartTime: newTime.toISOString(),
           scheduledEndTime: newEndTime.toISOString(),
+          services: updatedAppointment.services,
           updatedAt: new Date().toISOString(),
           syncStatus: 'pending', // Mark as pending sync
         };
@@ -287,9 +344,15 @@ export function BookPage() {
       await syncService.queueUpdate('appointment', updatedAppointment, 3);
 
       setToast({ message: 'Appointment rescheduled successfully!', type: 'success' });
+
+      // Close dialog and clear pending data
+      setIsRescheduleDialogOpen(false);
+      setPendingReschedule(null);
     } catch (error) {
       console.error('Error rescheduling appointment:', error);
       setToast({ message: 'Failed to reschedule appointment. Please try again.', type: 'error' });
+    } finally {
+      setIsRescheduling(false);
     }
   };
 
@@ -1009,6 +1072,23 @@ export function BookPage() {
           existingAppointments={filteredAppointments || []}
         />
       </ErrorBoundary>
+
+      {/* Reschedule Confirm Dialog - Price option for drag-and-drop reschedule */}
+      <RescheduleConfirmDialog
+        isOpen={isRescheduleDialogOpen}
+        onClose={() => {
+          setIsRescheduleDialogOpen(false);
+          setPendingReschedule(null);
+        }}
+        onConfirm={handleRescheduleConfirm}
+        appointment={pendingReschedule
+          ? filteredAppointments?.find(apt => apt.id === pendingReschedule.appointmentId) || null
+          : null
+        }
+        newStaffId={pendingReschedule?.newStaffId || ''}
+        newTime={pendingReschedule?.newTime || new Date()}
+        isLoading={isRescheduling}
+      />
 
       {/* Command Palette - Cmd+K Quick Actions */}
       <CommandPalette
