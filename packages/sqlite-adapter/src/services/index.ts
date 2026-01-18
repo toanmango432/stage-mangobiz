@@ -161,3 +161,50 @@ export {
   type SegmentFilterCondition,
   type SegmentFilterGroup,
 } from './crmServices';
+
+// Catalog services (service categories, menu services, packages, add-ons, products)
+export {
+  // Service Category service (PRD Catalog Module)
+  ServiceCategorySQLiteService,
+  type ServiceCategory,
+  type ServiceCategoryRow,
+  // Menu Service service (PRD Catalog Module)
+  MenuServiceSQLiteService,
+  type MenuService,
+  type MenuServiceRow,
+  type PricingType,
+  type MenuServiceStatus,
+  type BookingAvailability,
+  type ExtraTimeType,
+  // Service Variant service (PRD Catalog Module)
+  ServiceVariantSQLiteService,
+  type CatalogServiceVariant,
+  type CatalogServiceVariantRow,
+  // Service Package service (PRD Catalog Module)
+  ServicePackageSQLiteService,
+  type ServicePackage,
+  type ServicePackageRow,
+  type PackageServiceItem,
+  type BundleBookingMode,
+  // Add-On Group service (PRD Catalog Module)
+  AddOnGroupSQLiteService,
+  type AddOnGroup,
+  type AddOnGroupRow,
+  // Add-On Option service (PRD Catalog Module)
+  AddOnOptionSQLiteService,
+  type AddOnOption,
+  type AddOnOptionRow,
+  // Staff Service Assignment service (PRD Catalog Module)
+  StaffServiceAssignmentSQLiteService,
+  type StaffServiceAssignment,
+  type StaffServiceAssignmentRow,
+  // Catalog Settings service (PRD Catalog Module)
+  CatalogSettingsSQLiteService,
+  type CatalogSettings,
+  type CatalogSettingsRow,
+  // Product service (Inventory/Catalog Module)
+  ProductSQLiteService,
+  type Product as CatalogProduct,
+  type ProductRow as CatalogProductRow,
+  type CatalogSyncStatus,
+} from './catalogServices';

@@ -143,6 +143,50 @@ export {
   type SegmentComparisonOperator as SQLiteSegmentComparisonOperator,
   type SegmentFilterCondition as SQLiteSegmentFilterCondition,
   type SegmentFilterGroup as SQLiteSegmentFilterGroup,
+  // Catalog services (PRD Catalog Module)
+  // Service Category service
+  ServiceCategorySQLiteService,
+  type ServiceCategory as SQLiteServiceCategory,
+  type ServiceCategoryRow as SQLiteServiceCategoryRow,
+  // Menu Service service
+  MenuServiceSQLiteService,
+  type MenuService as SQLiteMenuService,
+  type MenuServiceRow as SQLiteMenuServiceRow,
+  type PricingType as SQLitePricingType,
+  type MenuServiceStatus as SQLiteMenuServiceStatus,
+  type BookingAvailability as SQLiteBookingAvailability,
+  type ExtraTimeType as SQLiteExtraTimeType,
+  // Service Variant service
+  ServiceVariantSQLiteService,
+  type CatalogServiceVariant as SQLiteCatalogServiceVariant,
+  type CatalogServiceVariantRow as SQLiteServiceVariantRow,
+  // Service Package service
+  ServicePackageSQLiteService,
+  type ServicePackage as SQLiteServicePackage,
+  type ServicePackageRow as SQLiteServicePackageRow,
+  type PackageServiceItem as SQLitePackageServiceItem,
+  type BundleBookingMode as SQLiteBundleBookingMode,
+  // Add-On Group service
+  AddOnGroupSQLiteService,
+  type AddOnGroup as SQLiteAddOnGroup,
+  type AddOnGroupRow as SQLiteAddOnGroupRow,
+  // Add-On Option service
+  AddOnOptionSQLiteService,
+  type AddOnOption as SQLiteAddOnOption,
+  type AddOnOptionRow as SQLiteAddOnOptionRow,
+  // Staff Service Assignment service
+  StaffServiceAssignmentSQLiteService,
+  type StaffServiceAssignment as SQLiteStaffServiceAssignment,
+  type StaffServiceAssignmentRow as SQLiteStaffServiceAssignmentRow,
+  // Catalog Settings service
+  CatalogSettingsSQLiteService,
+  type CatalogSettings as SQLiteCatalogSettings,
+  type CatalogSettingsRow as SQLiteCatalogSettingsRow,
+  // Product service
+  ProductSQLiteService,
+  type CatalogProduct as SQLiteCatalogProduct,
+  type CatalogProductRow as SQLiteCatalogProductRow,
+  type CatalogSyncStatus as SQLiteCatalogSyncStatus,
 } from './services';
 
 // Type conversion utilities
