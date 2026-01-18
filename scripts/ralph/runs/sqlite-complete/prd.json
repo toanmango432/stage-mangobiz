@@ -165,7 +165,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-005"],
       "notes": "Use SQL SUM() for aggregations instead of JS reduce. Transaction type includes payment method, amounts, status."
     },

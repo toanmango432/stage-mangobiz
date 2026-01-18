@@ -298,3 +298,43 @@ Commit: ed115c0
 **Next story suggestion:** US-006 (Create TransactionSQLiteService) - depends on US-005 and follows the same service pattern for payment transactions.
 
 ---
+
+## 2026-01-17 - US-006: Create TransactionSQLiteService
+Commit: ee71593
+
+**Why this story?** US-006 is the only story with all dependencies satisfied. It depends on US-005 (just completed) and follows the same service pattern for payment transactions with SQL aggregation queries.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/transactionService.ts` (NEW, 310 lines): Transaction SQLite service
+  - `TransactionSQLiteService`: Extends BaseSQLiteService<Transaction, TransactionRow>
+  - `getByTicket(ticketId)`: All transactions for a ticket (checkout flow)
+  - `getByDateRange(storeId, start, end)`: Date range queries for reporting
+  - `getTotalByDateRange(storeId, start, end)`: SQL SUM aggregation (no JS reduce) - returns TransactionTotals
+  - `getByPaymentMethod(storeId, method)`: Filter by payment type for analytics
+  - `getByClient(clientId)`: Client transaction history
+  - `getByStatus(storeId, status)`: Filter by transaction status
+  - `getTotalsByPaymentMethod(storeId, start, end)`: SQL GROUP BY for payment method breakdown
+  - `getByStore(storeId)`: All transactions for a store with pagination
+  - `countByStatus(storeId, status)`: Dashboard metrics
+  - Helper methods: `updateStatus()`, `recordRefund()`, `void()`, `getTodayTotal()`
+  - Types: `Transaction`, `TransactionRow`, `TransactionTotals`, `TotalsByPaymentMethod`, `PaymentMethod`, `TransactionStatus`
+- `packages/sqlite-adapter/src/services/index.ts:48-57`: Export TransactionSQLiteService and types
+- `packages/sqlite-adapter/src/index.ts:53-60`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (transactionService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- SQL aggregation with COALESCE handles null values: `COALESCE(SUM(amount), 0) as total_amount`
+- TransactionTotals includes computed field `netAmount = totalAmount - refundedAmount`
+- GROUP BY queries return array of objects - map to TypeScript interface for type safety
+- recordRefund method determines partial vs full refund status based on cumulative amount
+
+**Patterns to sync:**
+- Pattern: SQL aggregation with COALESCE - use `COALESCE(SUM(column), 0)` to handle null values in aggregations
+
+**Next story suggestion:** US-007 (Create StaffSQLiteService) - depends on US-006 and continues the service pattern for staff with availability queries.
+
+---

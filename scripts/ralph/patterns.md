@@ -179,3 +179,16 @@ const schema: TableSchema = {
   }
 };
 ```
+
+### SQL Aggregation with COALESCE
+Use COALESCE to handle null values in SUM/COUNT aggregations:
+```sql
+-- Returns 0 instead of null when no rows match
+SELECT
+  COALESCE(SUM(amount), 0) as total_amount,
+  COUNT(*) as transaction_count,
+  COALESCE(SUM(refunded_amount), 0) as refunded_amount
+FROM transactions
+WHERE store_id = ?
+```
+This pattern ensures numeric results even with empty result sets.
