@@ -282,7 +282,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-040"],
       "notes": "MOVED from priority 3 - depends on services existing first. Pattern: clients: shouldUseSQLite() ? sqliteClients : dexieClients. Use lazy initialization to avoid loading SQLite on web."
     },
@@ -306,7 +306,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-003"],
       "notes": "Reference Dexie schema.ts v16 for exact table/column definitions. Use CREATE TABLE IF NOT EXISTS for idempotency. Group related tables in comments for readability."
     },

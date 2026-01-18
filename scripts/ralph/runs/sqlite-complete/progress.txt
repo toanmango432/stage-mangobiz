@@ -494,3 +494,83 @@ Commit: 2a67b98
 **Next story suggestion:** US-003 (Wire dataService to use SQLite services) - depends on US-040 (just completed) and is the critical integration point that routes dataService to SQLite implementations.
 
 ---
+
+## 2026-01-17 - US-003: Wire dataService to use SQLite services
+Commit: 308f0e2
+
+**Why this story?** US-003 is the only story with all dependencies satisfied. It depends on US-040 (just completed) and is the critical integration point that routes dataService methods to SQLite implementations when the feature flag is enabled.
+
+**Changes:**
+- `apps/store-app/src/services/sqliteServices.ts` (NEW, 560 lines): SQLite service wrappers with lazy initialization
+  - Imports all services from @mango/sqlite-adapter package
+  - Lazy initialization pattern via `initializeSQLite()` to avoid loading SQLite on web platform
+  - Creates adapter with Electron config (better-sqlite3 expected)
+  - Runs migrations (v001, v002) on first initialization
+  - `sqliteClientsDB`: Full Dexie-compatible API with all 9 methods (getAll, getById, create, update, delete, getFiltered, count, getAllByIds, bulkCreate)
+  - `sqliteTicketsDB`: All ticket methods including getStaffTicketCounts, getDailyStats, createDraft, cleanupExpiredDrafts
+  - `sqliteAppointmentsDB`: All appointment methods with date range queries
+  - `sqliteTransactionsDB`: All transaction methods with aggregation support
+  - `sqliteStaffDB`: All staff methods with status management
+  - `sqliteServicesDB`: All service/menu item methods with category filtering
+  - Uses `unknown` intermediate casts to bridge type differences between store-app and sqlite-adapter
+- `apps/store-app/src/services/dataService.ts:7-14`: Added import for SQLite service wrappers
+- `apps/store-app/src/services/dataService.ts:68-220`: Routed clients service to SQLite when USE_SQLITE flag is true
+  - All 9 clientsService methods now check USE_SQLITE and route accordingly
+  - Added backend selection log message on first use: `[DataService] Using SQLite backend for clients`
+- `apps/store-app/package.json:31`: Added `"@mango/sqlite-adapter": "workspace:*"` dependency
+- `packages/sqlite-adapter/src/index.ts:17`: Added migration exports (migration_001, migration_002)
+- `packages/sqlite-adapter/src/index.ts:71`: Fixed duplicate identifier by renaming `Service as SQLiteServiceType`
+
+**Quality Checks:**
+- Typecheck: PASS (0 errors in modified files; 367 pre-existing errors in test files unrelated)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Type bridging between packages requires `unknown` intermediate casts: `result as unknown as Client`
+- Lazy initialization is critical - web platform shouldn't load SQLite adapter at all
+- Workspace dependencies need explicit addition to package.json even for internal packages
+- Migration exports must be re-exported from package index for external consumption
+- TicketSQLiteService methods have different signatures than Dexie - must adapt create() and update() calls
+
+**Patterns to sync:**
+- Pattern: Lazy SQLite initialization - use `let _initPromise: Promise<void> | null = null` pattern to ensure single initialization
+- Pattern: Type bridging between packages - use `result as unknown as TargetType` when packages have similar but not identical type definitions
+
+**Next story suggestion:** US-004 (Enhance migration system for full schema) - depends on US-003 (just completed) and creates migration v003 for all infrastructure tables.
+
+---
+
+## 2026-01-17 - US-004: Enhance migration system for full schema
+Commit: cf2cede
+
+**Why this story?** US-004 is the only story with all dependencies satisfied. It depends on US-003 (just completed) and creates the infrastructure tables (settings, syncQueue, deviceSettings) plus transactions table needed for remaining service wiring.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v003_full_schema.ts` (NEW, 168 lines): Infrastructure and transactions migration
+  - `settings` table: Simple key-value store with `key` as PRIMARY KEY
+  - `sync_queue` table: Offline sync operation queue with priority, status, retry_count, error_message
+  - `device_settings` table: Device-specific configuration (device_id as PRIMARY KEY)
+  - `transactions` table: Full payment transaction records matching Dexie v16 schema
+    - Card details: card_last_four, card_brand, card_holder_name
+    - Authorization: authorization_code, reference_number, processor_response
+    - Refund tracking: refunded_amount, refund_reason, refunded_at, original_transaction_id
+    - Void tracking: voided_at, voided_by, void_reason
+  - Indexes: sync_queue(status, created_at, priority, entity), transactions(store_id+created_at, client_id+created_at, ticket_id, status, payment_method)
+  - `down()` function that drops tables in reverse order
+- `packages/sqlite-adapter/src/migrations/index.ts:21`: Export migration_003
+
+**Quality Checks:**
+- Typecheck: PASS (new migration file has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any')
+
+**Learnings:**
+- Sync queue needs both priority index and status+created_at compound index for efficient queue processing
+- Transaction table uses snake_case column names (store_id, ticket_id) consistent with existing migrations
+- Device settings table uses device_id (not auto-generated id) as PRIMARY KEY matching Dexie schema
+
+**Patterns to sync:** None new - follows established migration patterns
+
+**Next story suggestion:** US-010 (Wire remaining core services to dataService) - depends on US-004 (just completed) and wires appointments, transactions, staff, services, tickets to SQLite.
+
+---

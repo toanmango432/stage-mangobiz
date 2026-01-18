@@ -394,12 +394,17 @@ export const sqliteTransactionsDB = {
     return transactions as unknown as Transaction[];
   },
 
-  async create(transaction: Omit<Transaction, 'id' | 'createdAt'>): Promise<Transaction> {
+  async create(transaction: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'>): Promise<Transaction> {
     const adapter = await getAdapter();
     if (!_transactionsService) {
       _transactionsService = new TransactionSQLiteService(adapter);
     }
-    const created = await _transactionsService.create(transaction as unknown as Parameters<TransactionSQLiteService['create']>[0]);
+    // Add default syncStatus since SQLite service expects it
+    const transactionWithSync = {
+      ...transaction,
+      syncStatus: 'local',
+    } as unknown as Parameters<TransactionSQLiteService['create']>[0];
+    const created = await _transactionsService.create(transactionWithSync);
     return created as unknown as Transaction;
   },
 

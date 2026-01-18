@@ -510,16 +510,26 @@ export const clientsService = {
 
 /**
  * Staff data operations - LOCAL-FIRST
- * Reads from IndexedDB, writes queue for background sync
+ * Reads from IndexedDB or SQLite, writes queue for background sync
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteStaffDB
  */
 export const staffService = {
   async getAll(): Promise<Staff[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteStaffDB.getAll(storeId);
+    }
     return staffDB.getAll(storeId);
   },
 
   async getById(id: string): Promise<Staff | null> {
+    if (USE_SQLITE) {
+      const staff = await sqliteStaffDB.getById(id);
+      return staff || null;
+    }
     const staff = await staffDB.getById(id);
     return staff || null;
   },
@@ -527,14 +537,23 @@ export const staffService = {
   async getActive(): Promise<Staff[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteStaffDB.getAvailable(storeId);
+    }
     return staffDB.getAvailable(storeId);
   },
 
   async create(staffData: Omit<Staff, 'id' | 'createdAt' | 'updatedAt'>): Promise<Staff> {
-    // Create in IndexedDB first (instant)
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID');
-    const created = await staffDB.create({ ...staffData, storeId: storeId });
+
+    let created: Staff;
+    if (USE_SQLITE) {
+      created = await sqliteStaffDB.create({ ...staffData, storeId });
+    } else {
+      created = await staffDB.create({ ...staffData, storeId });
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('staff', 'create', created.id, created);
@@ -543,8 +562,13 @@ export const staffService = {
   },
 
   async update(id: string, updates: Partial<Staff>): Promise<Staff | null> {
-    // Update IndexedDB first (instant)
-    const updated = await staffDB.update(id, updates);
+    let updated: Staff | null;
+    if (USE_SQLITE) {
+      updated = await sqliteStaffDB.update(id, updates);
+    } else {
+      const result = await staffDB.update(id, updates);
+      updated = result ?? null;
+    }
     if (!updated) return null;
 
     // Queue for background sync (non-blocking)
@@ -554,15 +578,23 @@ export const staffService = {
   },
 
   async delete(id: string): Promise<void> {
-    // Delete from IndexedDB first (instant)
-    await staffDB.delete(id);
+    if (USE_SQLITE) {
+      await sqliteStaffDB.delete(id);
+    } else {
+      await staffDB.delete(id);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('staff', 'delete', id, null);
   },
 
   async clockIn(id: string): Promise<Staff | null> {
-    const updated = await staffDB.clockIn(id);
+    let updated: Staff | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteStaffDB.clockIn(id);
+    } else {
+      updated = await staffDB.clockIn(id);
+    }
     if (updated) {
       queueSyncOperation('staff', 'update', id, updated);
     }
@@ -570,7 +602,12 @@ export const staffService = {
   },
 
   async clockOut(id: string): Promise<Staff | null> {
-    const updated = await staffDB.clockOut(id);
+    let updated: Staff | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteStaffDB.clockOut(id);
+    } else {
+      updated = await staffDB.clockOut(id);
+    }
     if (updated) {
       queueSyncOperation('staff', 'update', id, updated);
     }
@@ -580,16 +617,26 @@ export const staffService = {
 
 /**
  * Services data operations - LOCAL-FIRST
- * Reads from IndexedDB (services are read-only in POS, managed via Admin)
+ * Reads from IndexedDB or SQLite (services are read-only in POS, managed via Admin)
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteServicesDB
  */
 export const servicesService = {
   async getAll(): Promise<Service[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteServicesDB.getAll(storeId);
+    }
     return servicesDB.getAll(storeId);
   },
 
   async getById(id: string): Promise<Service | null> {
+    if (USE_SQLITE) {
+      const service = await sqliteServicesDB.getById(id);
+      return service || null;
+    }
     const service = await servicesDB.getById(id);
     return service || null;
   },
@@ -597,6 +644,11 @@ export const servicesService = {
   async getActive(): Promise<Service[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      const services = await sqliteServicesDB.getAll(storeId);
+      return services.filter(s => s.isActive);
+    }
     const services = await servicesDB.getAll(storeId);
     return services.filter(s => s.isActive);
   },
@@ -604,22 +656,36 @@ export const servicesService = {
   async getByCategory(category: string): Promise<Service[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteServicesDB.getByCategory(storeId, category);
+    }
     return servicesDB.getByCategory(storeId, category);
   },
 };
 
 /**
  * Appointments data operations - LOCAL-FIRST
- * Reads from IndexedDB, writes queue for background sync
+ * Reads from IndexedDB or SQLite, writes queue for background sync
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteAppointmentsDB
  */
 export const appointmentsService = {
   async getByDate(date: Date): Promise<Appointment[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteAppointmentsDB.getByDate(storeId, date);
+    }
     return appointmentsDB.getByDate(storeId, date);
   },
 
   async getById(id: string): Promise<Appointment | null> {
+    if (USE_SQLITE) {
+      const appointment = await sqliteAppointmentsDB.getById(id);
+      return appointment || null;
+    }
     const appointment = await appointmentsDB.getById(id);
     return appointment || null;
   },
@@ -628,12 +694,20 @@ export const appointmentsService = {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
 
-    // Write to IndexedDB first (instant)
-    const created = await appointmentsDB.create(
-      appointment as Parameters<typeof appointmentsDB.create>[0],
-      'system', // userId - will be replaced by actual user context
-      storeId
-    );
+    let created: Appointment;
+    if (USE_SQLITE) {
+      created = await sqliteAppointmentsDB.create(
+        appointment as Parameters<typeof appointmentsDB.create>[0],
+        'system',
+        storeId
+      );
+    } else {
+      created = await appointmentsDB.create(
+        appointment as Parameters<typeof appointmentsDB.create>[0],
+        'system',
+        storeId
+      );
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('appointment', 'create', created.id, created);
@@ -642,8 +716,12 @@ export const appointmentsService = {
   },
 
   async update(id: string, updates: Partial<Appointment>): Promise<Appointment | null> {
-    // Update IndexedDB first (instant)
-    const updated = await appointmentsDB.update(id, updates, 'system');
+    let updated: Appointment | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteAppointmentsDB.update(id, updates, 'system');
+    } else {
+      updated = await appointmentsDB.update(id, updates, 'system');
+    }
     if (!updated) return null;
 
     // Queue for background sync (non-blocking)
@@ -658,6 +736,10 @@ export const appointmentsService = {
     // Get appointments from today onwards
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    if (USE_SQLITE) {
+      return sqliteAppointmentsDB.getByDate(storeId, today, limit);
+    }
     return appointmentsDB.getByDate(storeId, today, limit);
   },
 
@@ -666,15 +748,23 @@ export const appointmentsService = {
   },
 
   async delete(id: string): Promise<void> {
-    // Delete from IndexedDB first (instant)
-    await appointmentsDB.delete(id);
+    if (USE_SQLITE) {
+      await sqliteAppointmentsDB.delete(id);
+    } else {
+      await appointmentsDB.delete(id);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('appointment', 'delete', id, { id });
   },
 
   async checkIn(id: string): Promise<Appointment | null> {
-    const updated = await appointmentsDB.checkIn(id, 'system');
+    let updated: Appointment | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteAppointmentsDB.checkIn(id, 'system');
+    } else {
+      updated = await appointmentsDB.checkIn(id, 'system');
+    }
     if (updated) {
       queueSyncOperation('appointment', 'update', id, updated);
     }
@@ -684,17 +774,26 @@ export const appointmentsService = {
 
 /**
  * Tickets data operations - LOCAL-FIRST
- * Reads from IndexedDB, writes queue for background sync
+ * Reads from IndexedDB or SQLite, writes queue for background sync
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteTicketsDB
  */
 export const ticketsService = {
   async getByDate(date: Date): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
-    // Use optimized IndexedDB query
+
+    if (USE_SQLITE) {
+      return sqliteTicketsDB.getByDate(storeId, date);
+    }
     return ticketsDB.getByDate(storeId, date);
   },
 
   async getById(id: string): Promise<Ticket | null> {
+    if (USE_SQLITE) {
+      const ticket = await sqliteTicketsDB.getById(id);
+      return ticket || null;
+    }
     const ticket = await ticketsDB.getById(id);
     return ticket || null;
   },
@@ -702,18 +801,31 @@ export const ticketsService = {
   async getOpenTickets(): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteTicketsDB.getActive(storeId);
+    }
     return ticketsDB.getActive(storeId);
   },
 
   async getByStatus(status: string): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteTicketsDB.getByStatus(storeId, status);
+    }
     return ticketsDB.getByStatus(storeId, status);
   },
 
   async getByClientId(clientId: string): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      const allTickets = await sqliteTicketsDB.getAll(storeId, 500);
+      return allTickets.filter(t => t.clientId === clientId);
+    }
     const allTickets = await ticketsDB.getAll(storeId, 500);
     return allTickets.filter(t => t.clientId === clientId);
   },
@@ -721,6 +833,11 @@ export const ticketsService = {
   async getByAppointmentId(appointmentId: string): Promise<Ticket | null> {
     const storeId = getStoreId();
     if (!storeId) return null;
+
+    if (USE_SQLITE) {
+      const allTickets = await sqliteTicketsDB.getAll(storeId, 500);
+      return allTickets.find(t => t.appointmentId === appointmentId) || null;
+    }
     const allTickets = await ticketsDB.getAll(storeId, 500);
     return allTickets.find(t => t.appointmentId === appointmentId) || null;
   },
@@ -729,8 +846,12 @@ export const ticketsService = {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
 
-    // Write to IndexedDB first (instant)
-    const created = await ticketsDB.create(input, 'system', storeId);
+    let created: Ticket;
+    if (USE_SQLITE) {
+      created = await sqliteTicketsDB.create(input, 'system', storeId);
+    } else {
+      created = await ticketsDB.create(input, 'system', storeId);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('ticket', 'create', created.id, created);
@@ -739,8 +860,12 @@ export const ticketsService = {
   },
 
   async update(id: string, updates: Partial<Ticket>): Promise<Ticket | null> {
-    // Update IndexedDB first (instant)
-    const updated = await ticketsDB.update(id, updates, 'system');
+    let updated: Ticket | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteTicketsDB.update(id, updates, 'system');
+    } else {
+      updated = await ticketsDB.update(id, updates, 'system');
+    }
     if (!updated) return null;
 
     // Queue for background sync (non-blocking)
@@ -754,8 +879,12 @@ export const ticketsService = {
   },
 
   async complete(id: string, _payments: unknown[]): Promise<Ticket | null> {
-    // Complete ticket in IndexedDB
-    const completed = await ticketsDB.complete(id, 'system');
+    let completed: Ticket | null | undefined;
+    if (USE_SQLITE) {
+      completed = await sqliteTicketsDB.complete(id, 'system');
+    } else {
+      completed = await ticketsDB.complete(id, 'system');
+    }
     if (completed) {
       queueSyncOperation('ticket', 'update', id, completed);
     }
@@ -763,8 +892,11 @@ export const ticketsService = {
   },
 
   async delete(id: string): Promise<void> {
-    // Delete from IndexedDB first (instant)
-    await ticketsDB.delete(id);
+    if (USE_SQLITE) {
+      await sqliteTicketsDB.delete(id);
+    } else {
+      await ticketsDB.delete(id);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('ticket', 'delete', id, { id });
@@ -784,10 +916,16 @@ export const ticketsService = {
   async getUpdatedSince(since: Date): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      const allTickets = await sqliteTicketsDB.getAll(storeId, 1000);
+      return allTickets.filter(t => {
+        const createdAt = new Date(t.createdAt);
+        return createdAt >= since;
+      });
+    }
     const allTickets = await ticketsDB.getAll(storeId, 1000);
     return allTickets.filter(t => {
-      // Check if ticket was updated since the given date
-      // This is a simplified version - in production you'd have an updatedAt field
       const createdAt = new Date(t.createdAt);
       return createdAt >= since;
     });
@@ -796,19 +934,29 @@ export const ticketsService = {
   async getDrafts(): Promise<Ticket[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      return sqliteTicketsDB.getDrafts(storeId);
+    }
     return ticketsDB.getDrafts(storeId);
   },
 
   async createDraft(services: Ticket['services'], clientInfo?: { clientId: string; clientName: string; clientPhone: string }): Promise<Ticket> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
+
+    if (USE_SQLITE) {
+      return sqliteTicketsDB.createDraft(services, 'system', storeId, clientInfo);
+    }
     return ticketsDB.createDraft(services, 'system', storeId, clientInfo);
   },
 };
 
 /**
  * Transactions data operations - LOCAL-FIRST
- * Reads from IndexedDB, writes queue for background sync
+ * Reads from IndexedDB or SQLite, writes queue for background sync
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteTransactionsDB
  */
 export const transactionsService = {
   async getByDate(date: Date): Promise<Transaction[]> {
@@ -818,10 +966,18 @@ export const transactionsService = {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
+
+    if (USE_SQLITE) {
+      return sqliteTransactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
+    }
     return transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
   },
 
   async getById(id: string): Promise<Transaction | null> {
+    if (USE_SQLITE) {
+      const transaction = await sqliteTransactionsDB.getById(id);
+      return transaction || null;
+    }
     const transaction = await transactionsDB.getById(id);
     return transaction || null;
   },
@@ -829,6 +985,11 @@ export const transactionsService = {
   async getByTicketId(ticketId: string): Promise<Transaction[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      const allTransactions = await sqliteTransactionsDB.getAll(storeId, 1000);
+      return allTransactions.filter(t => t.ticketId === ticketId);
+    }
     const allTransactions = await transactionsDB.getAll(storeId, 1000);
     return allTransactions.filter(t => t.ticketId === ticketId);
   },
@@ -836,6 +997,11 @@ export const transactionsService = {
   async getByClientId(clientId: string): Promise<Transaction[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+
+    if (USE_SQLITE) {
+      const allTransactions = await sqliteTransactionsDB.getAll(storeId, 1000);
+      return allTransactions.filter(t => t.clientId === clientId);
+    }
     const allTransactions = await transactionsDB.getAll(storeId, 1000);
     return allTransactions.filter(t => t.clientId === clientId);
   },
@@ -849,9 +1015,17 @@ export const transactionsService = {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-      transactions = await transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
+      if (USE_SQLITE) {
+        transactions = await sqliteTransactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
+      } else {
+        transactions = await transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
+      }
     } else {
-      transactions = await transactionsDB.getAll(storeId, 1000);
+      if (USE_SQLITE) {
+        transactions = await sqliteTransactionsDB.getAll(storeId, 1000);
+      } else {
+        transactions = await transactionsDB.getAll(storeId, 1000);
+      }
     }
     return transactions.filter(t => t.paymentMethod === paymentMethod);
   },
@@ -860,8 +1034,12 @@ export const transactionsService = {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
 
-    // Write to IndexedDB first (instant)
-    const created = await transactionsDB.create({ ...transaction, storeId: storeId });
+    let created: Transaction;
+    if (USE_SQLITE) {
+      created = await sqliteTransactionsDB.create({ ...transaction, storeId });
+    } else {
+      created = await transactionsDB.create({ ...transaction, storeId });
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('transaction', 'create', created.id, created);
@@ -870,8 +1048,13 @@ export const transactionsService = {
   },
 
   async update(id: string, updates: Partial<Transaction>): Promise<Transaction | null> {
-    // Update IndexedDB first (instant)
-    const updated = await transactionsDB.update(id, updates);
+    let updated: Transaction | null;
+    if (USE_SQLITE) {
+      updated = await sqliteTransactionsDB.update(id, updates);
+    } else {
+      const result = await transactionsDB.update(id, updates);
+      updated = result ?? null;
+    }
     if (!updated) return null;
 
     // Queue for background sync (non-blocking)
@@ -881,8 +1064,11 @@ export const transactionsService = {
   },
 
   async delete(id: string): Promise<void> {
-    // Delete from IndexedDB first (instant)
-    await transactionsDB.delete(id);
+    if (USE_SQLITE) {
+      await sqliteTransactionsDB.delete(id);
+    } else {
+      await transactionsDB.delete(id);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('transaction', 'delete', id, { id });
@@ -917,6 +1103,11 @@ export const transactionsService = {
     const storeId = getStoreId();
     if (!storeId) return [];
     const sinceIso = since.toISOString();
+
+    if (USE_SQLITE) {
+      const allTransactions = await sqliteTransactionsDB.getAll(storeId, 1000);
+      return allTransactions.filter(t => t.createdAt >= sinceIso);
+    }
     const allTransactions = await transactionsDB.getAll(storeId, 1000);
     return allTransactions.filter(t => t.createdAt >= sinceIso);
   },
