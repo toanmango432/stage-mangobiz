@@ -2932,6 +2932,141 @@ export const selectUnresolvedPriceChanges = (ticketId: string) =>
   );
 
 // ============================================================================
+// PRICE VARIANCE REPORTING SELECTORS
+// ============================================================================
+// Selectors for reporting on price variance across completed tickets.
+// Used by PriceVarianceSummary component and admin reports.
+
+/**
+ * Price variance report result for completed tickets.
+ */
+export interface PriceVarianceReportResult {
+  /** Tickets that had price variance */
+  tickets: PendingTicket[];
+  /** Total variance amount across all services (can be negative if prices dropped) */
+  totalVarianceAmount: number;
+  /** Count of price overrides (non-booked_honored decisions) */
+  totalOverridesCount: number;
+  /** Count of tickets with at least one service with variance */
+  ticketCount: number;
+  /** Breakdown by decision type */
+  decisionBreakdown: Record<PriceDecision, number>;
+}
+
+/**
+ * Date range filter options for price variance reports.
+ */
+export interface PriceVarianceDateFilter {
+  /** Start date (inclusive) - ISO string or Date */
+  startDate?: string | Date;
+  /** End date (inclusive) - ISO string or Date */
+  endDate?: string | Date;
+}
+
+/**
+ * Select completed (pending payment) tickets that had any price variance.
+ * Returns tickets where at least one service has priceVariance !== 0.
+ * Includes computed totals for reporting.
+ *
+ * Note: This operates on pendingTickets which have status='completed' (awaiting payment).
+ * These tickets have full checkoutServices with price tracking data.
+ *
+ * @param dateFilter - Optional date range to filter results
+ * @returns PriceVarianceReportResult with tickets and aggregated data
+ *
+ * @example
+ * // Get all tickets with price variance
+ * const report = useAppSelector(selectCompletedTicketsWithPriceVariance());
+ *
+ * @example
+ * // Get tickets with variance for a date range
+ * const report = useAppSelector(selectCompletedTicketsWithPriceVariance({
+ *   startDate: '2026-01-01',
+ *   endDate: '2026-01-31'
+ * }));
+ */
+export const selectCompletedTicketsWithPriceVariance = (dateFilter?: PriceVarianceDateFilter) =>
+  createSelector(
+    [selectPendingTickets],
+    (pendingTickets: PendingTicket[]): PriceVarianceReportResult => {
+      // Filter by date range if provided
+      let filteredTickets = pendingTickets;
+
+      if (dateFilter?.startDate || dateFilter?.endDate) {
+        const startDate = dateFilter.startDate
+          ? new Date(dateFilter.startDate)
+          : new Date(0); // Beginning of time
+        const endDate = dateFilter.endDate
+          ? new Date(dateFilter.endDate)
+          : new Date(); // Now
+
+        // Set end date to end of day for inclusive comparison
+        endDate.setHours(23, 59, 59, 999);
+
+        filteredTickets = pendingTickets.filter((ticket: PendingTicket) => {
+          const ticketDate = ticket.completedAt
+            ? new Date(ticket.completedAt)
+            : new Date(ticket.time || 0);
+          return ticketDate >= startDate && ticketDate <= endDate;
+        });
+      }
+
+      // Find tickets with any service having price variance
+      const ticketsWithVariance = filteredTickets.filter((ticket: PendingTicket) => {
+        if (!ticket.checkoutServices || ticket.checkoutServices.length === 0) {
+          return false;
+        }
+        return ticket.checkoutServices.some((service: CheckoutTicketService) => {
+          // Check for non-zero variance (with tolerance for floating-point)
+          return service.priceVariance !== undefined && Math.abs(service.priceVariance) >= 0.01;
+        });
+      });
+
+      // Calculate totals
+      let totalVarianceAmount = 0;
+      let totalOverridesCount = 0;
+      const decisionBreakdown: Record<string, number> = {
+        booked_honored: 0,
+        catalog_applied: 0,
+        lower_applied: 0,
+        manual_override: 0,
+        deposit_locked: 0,
+        walk_in_current: 0,
+      };
+
+      ticketsWithVariance.forEach((ticket: PendingTicket) => {
+        if (!ticket.checkoutServices) return;
+
+        ticket.checkoutServices.forEach((service: CheckoutTicketService) => {
+          // Accumulate variance
+          if (service.priceVariance !== undefined && Math.abs(service.priceVariance) >= 0.01) {
+            totalVarianceAmount += service.priceVariance;
+          }
+
+          // Count price decisions
+          if (service.priceDecision) {
+            decisionBreakdown[service.priceDecision] =
+              (decisionBreakdown[service.priceDecision] || 0) + 1;
+
+            // Count overrides (any decision other than booked_honored)
+            if (service.priceDecision !== 'booked_honored') {
+              totalOverridesCount++;
+            }
+          }
+        });
+      });
+
+      return {
+        tickets: ticketsWithVariance,
+        totalVarianceAmount: Math.round(totalVarianceAmount * 100) / 100, // Round to cents
+        totalOverridesCount,
+        ticketCount: ticketsWithVariance.length,
+        decisionBreakdown: decisionBreakdown as Record<PriceDecision, number>,
+      };
+    }
+  );
+
+// ============================================================================
 // CONFLICT DETECTION HELPERS
 // ============================================================================
 
