@@ -37,3 +37,12 @@ export {
   type ServiceStatus as SQLiteServiceStatus,
   type DailyStats as SQLiteDailyStats,
 } from './services';
+
+// Type conversion utilities
+export {
+  toISOString,
+  boolToSQLite,
+  sqliteToBool,
+  safeParseJSON,
+  toJSONString,
+} from './utils';
