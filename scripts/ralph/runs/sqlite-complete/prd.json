@@ -331,7 +331,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-004"],
       "notes": "Maintain backward compatibility - Dexie still works when SQLite disabled. Use consistent return types between both implementations."
     },

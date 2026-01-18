@@ -574,3 +574,41 @@ Commit: cf2cede
 **Next story suggestion:** US-010 (Wire remaining core services to dataService) - depends on US-004 (just completed) and wires appointments, transactions, staff, services, tickets to SQLite.
 
 ---
+
+## 2026-01-17 - US-010: Wire remaining core services to dataService
+Commit: c4aae6b
+
+**Why this story?** US-010 is the only story with all dependencies satisfied. It depends on US-004 (just completed) and completes the dataService routing by wiring all remaining core services (staff, services, appointments, tickets, transactions) to SQLite.
+
+**Changes:**
+- `apps/store-app/src/services/dataService.ts:511-616`: Wired staffService to SQLite
+  - All 8 methods (getAll, getById, getActive, create, update, delete, clockIn, clockOut) now route to sqliteStaffDB when USE_SQLITE=true
+  - Added JSDoc comment documenting SQLite routing
+- `apps/store-app/src/services/dataService.ts:618-665`: Wired servicesService to SQLite
+  - All 4 methods (getAll, getById, getActive, getByCategory) now route to sqliteServicesDB when USE_SQLITE=true
+- `apps/store-app/src/services/dataService.ts:667-773`: Wired appointmentsService to SQLite
+  - All 9 methods (getByDate, getById, create, update, getUpcoming, updateStatus, delete, checkIn) now route to sqliteAppointmentsDB when USE_SQLITE=true
+- `apps/store-app/src/services/dataService.ts:775-953`: Wired ticketsService to SQLite
+  - All 14 methods (getByDate, getById, getOpenTickets, getByStatus, getByClientId, getByAppointmentId, create, update, updateStatus, complete, delete, getDailySummary, getUpdatedSince, getDrafts, createDraft) now route to sqliteTicketsDB when USE_SQLITE=true
+- `apps/store-app/src/services/dataService.ts:955-1114`: Wired transactionsService to SQLite
+  - All 10 methods (getByDate, getById, getByTicketId, getByClientId, getByPaymentMethod, create, update, delete, getDailySummary, getPaymentBreakdown, getUpdatedSince) now route to sqliteTransactionsDB when USE_SQLITE=true
+- `apps/store-app/src/services/sqliteServices.ts:397`: Fixed sqliteTransactionsDB.create signature
+  - Changed from `Omit<Transaction, 'id' | 'createdAt'>` to `Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'>`
+  - Added default syncStatus: 'local' in implementation to match SQLite service expectations
+
+**Quality Checks:**
+- Typecheck: PASS (0 errors in modified files; pre-existing errors in test files unrelated)
+- Tests: PASS (62 tests in sqlite-adapter still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Consistent pattern for routing: check `USE_SQLITE` flag at start of each method, route to sqliteXDB or dexieDB accordingly
+- Return types must be normalized (e.g., `updated ?? null` for undefined → null conversion)
+- Some methods require different variable types for unified handling (e.g., `let updated: Staff | null | undefined`)
+- sqliteTransactionsDB.create needed signature adjustment to match dataService's expected input without syncStatus
+
+**Patterns to sync:** None new - follows established SQLite routing pattern from US-003
+
+**Next story suggestion:** US-011 (Create SettingsSQLiteService) - depends on US-010 (just completed) and adds the simple key-value settings service.
+
+---

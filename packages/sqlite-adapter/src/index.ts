@@ -72,6 +72,10 @@ export {
   type ServiceRow as SQLiteServiceRow,
   type ServiceAddOn as SQLiteServiceAddOn,
   type ServiceVariant as SQLiteServiceVariant,
+  // Settings service (key-value store)
+  SettingsSQLiteService,
+  type Setting as SQLiteSetting,
+  type SettingValue as SQLiteSettingValue,
 } from './services';
 
 // Type conversion utilities

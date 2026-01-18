@@ -75,3 +75,10 @@ export {
   type ServiceAddOn,
   type ServiceVariant,
 } from './serviceService';
+
+// Settings service (key-value store)
+export {
+  SettingsSQLiteService,
+  type Setting,
+  type SettingValue,
+} from './settingsService';
