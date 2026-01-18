@@ -28,6 +28,7 @@
     "@mango/api-client": "workspace:*",
     "@mango/api-contracts": "workspace:*",
     "@mango/database": "workspace:*",
+    "@mango/sqlite-adapter": "workspace:*",
     "@mango/design-system": "workspace:*",
     "@mango/mqtt": "workspace:*",
     "@mango/supabase": "workspace:*",

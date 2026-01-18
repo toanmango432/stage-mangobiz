@@ -684,6 +684,9 @@ importers:
       '@mango/mqtt':
         specifier: workspace:*
         version: link:../../packages/mqtt
+      '@mango/sqlite-adapter':
+        specifier: workspace:*
+        version: link:../../packages/sqlite-adapter
       '@mango/supabase':
         specifier: workspace:*
         version: link:../../packages/supabase

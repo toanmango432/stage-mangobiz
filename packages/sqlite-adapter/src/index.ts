@@ -14,7 +14,7 @@ export type { DatabaseAdapter, QueryOptions, QueryResult } from './interfaces';
 // Migration types and runner
 export type { Migration, MigrationRecord } from './migrations/types';
 export type { MigrationResult, TableMigrationResult } from './migrations/dataMigration';
-export { runMigrations, getAppliedMigrations, rollbackLastMigration, migrateFromDexie } from './migrations';
+export { runMigrations, getAppliedMigrations, rollbackLastMigration, migrateFromDexie, migration_001, migration_002 } from './migrations';
 
 // Factory - will be implemented
 export { createSQLiteAdapter } from './factory';
@@ -68,7 +68,7 @@ export {
   type ScheduleEntry as SQLiteScheduleEntry,
   // Service (menu item) service
   ServiceSQLiteService,
-  type Service as SQLiteService,
+  type Service as SQLiteServiceType,
   type ServiceRow as SQLiteServiceRow,
   type ServiceAddOn as SQLiteServiceAddOn,
   type ServiceVariant as SQLiteServiceVariant,

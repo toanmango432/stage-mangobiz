@@ -40,6 +40,16 @@ import {
   customSegmentsDB,
 } from '@/db/database';
 
+// SQLite: Import SQLite service wrappers (lazy initialized)
+import {
+  sqliteClientsDB,
+  sqliteTicketsDB,
+  sqliteAppointmentsDB,
+  sqliteTransactionsDB,
+  sqliteStaffDB,
+  sqliteServicesDB,
+} from '@/services/sqliteServices';
+
 // API-FIRST: Import API client and endpoints
 import { createAPIClient, endpoints } from '@mango/api-client';
 import type { APIResponse } from '@mango/api-client';
@@ -335,7 +345,9 @@ const USE_SQLITE = shouldUseSQLite();
  * Clients data operations
  *
  * API MODE: REST API calls to Edge Functions
- * LOCAL-FIRST MODE: IndexedDB reads, writes queue for background sync
+ * LOCAL-FIRST MODE: IndexedDB or SQLite reads, writes queue for background sync
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteClientsDB
  */
 export const clientsService = {
   async getAll(): Promise<Client[]> {
@@ -351,7 +363,10 @@ export const clientsService = {
       return extractData(response, { data: [], pagination: {} as never, timestamp: '' }).data;
     }
 
-    // LOCAL-FIRST MODE: Read from IndexedDB
+    // LOCAL-FIRST MODE: Read from SQLite or IndexedDB
+    if (USE_SQLITE) {
+      return sqliteClientsDB.getAll(storeId);
+    }
     return clientsDB.getAll(storeId);
   },
 
@@ -365,7 +380,11 @@ export const clientsService = {
       return extractData(response, { data: null as unknown as Client, timestamp: '' }).data || null;
     }
 
-    // LOCAL-FIRST MODE: Read from IndexedDB
+    // LOCAL-FIRST MODE: Read from SQLite or IndexedDB
+    if (USE_SQLITE) {
+      const client = await sqliteClientsDB.getById(id);
+      return client || null;
+    }
     const client = await clientsDB.getById(id);
     return client || null;
   },
@@ -383,7 +402,10 @@ export const clientsService = {
       return extractData(response, { data: [], query: '', timestamp: '' }).data;
     }
 
-    // LOCAL-FIRST MODE: Search IndexedDB
+    // LOCAL-FIRST MODE: Search SQLite or IndexedDB
+    if (USE_SQLITE) {
+      return sqliteClientsDB.search(storeId, query);
+    }
     return clientsDB.search(storeId, query);
   },
 
@@ -403,8 +425,15 @@ export const clientsService = {
       return result.data;
     }
 
-    // LOCAL-FIRST MODE: Write to IndexedDB first (instant)
-    const created = await clientsDB.create({ ...client, storeId: storeId });
+    // LOCAL-FIRST MODE: Write to SQLite or IndexedDB first (instant)
+    let created: Client;
+    const clientWithStore = { ...client, storeId };
+    if (USE_SQLITE) {
+      // Type assertion needed because input excludes syncStatus but sqliteClientsDB adds it
+      created = await sqliteClientsDB.create(clientWithStore as Omit<Client, 'id' | 'createdAt' | 'updatedAt'>);
+    } else {
+      created = await clientsDB.create(clientWithStore);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('client', 'create', created.id, created);
@@ -423,8 +452,14 @@ export const clientsService = {
       return extractData(response, { data: null as unknown as Client, timestamp: '' }).data || null;
     }
 
-    // LOCAL-FIRST MODE: Update IndexedDB first (instant)
-    const updated = await clientsDB.update(id, updates);
+    // LOCAL-FIRST MODE: Update SQLite or IndexedDB first (instant)
+    let updated: Client | null;
+    if (USE_SQLITE) {
+      updated = await sqliteClientsDB.update(id, updates);
+    } else {
+      const result = await clientsDB.update(id, updates);
+      updated = result ?? null;
+    }
     if (!updated) return null;
 
     // Queue for background sync (non-blocking)
@@ -441,8 +476,12 @@ export const clientsService = {
       return;
     }
 
-    // LOCAL-FIRST MODE: Delete from IndexedDB first (instant)
-    await clientsDB.delete(id);
+    // LOCAL-FIRST MODE: Delete from SQLite or IndexedDB first (instant)
+    if (USE_SQLITE) {
+      await sqliteClientsDB.delete(id);
+    } else {
+      await clientsDB.delete(id);
+    }
 
     // Queue for background sync (non-blocking)
     queueSyncOperation('client', 'delete', id, { id });
@@ -461,7 +500,10 @@ export const clientsService = {
       return extractData(response, { data: [], timestamp: '' }).data;
     }
 
-    // LOCAL-FIRST MODE: Query IndexedDB
+    // LOCAL-FIRST MODE: Query SQLite or IndexedDB
+    if (USE_SQLITE) {
+      return sqliteClientsDB.getVips(storeId);
+    }
     return clientsDB.getVips(storeId);
   },
 };
