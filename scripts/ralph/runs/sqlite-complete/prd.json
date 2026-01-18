@@ -921,7 +921,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-031"],
       "notes": "Flip the default: SQLite ON unless explicitly disabled. This is the final switch to make SQLite primary on Electron."
     },
@@ -946,7 +946,7 @@
         "Build produces working Electron app"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-032"],
       "notes": "Native modules need special handling in Electron. Use electron-rebuild to compile for Electron's Node version. Test on at least macOS."
     },

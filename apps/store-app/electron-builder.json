@@ -1,0 +1,103 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.mangobiz.pos",
+  "productName": "Mango POS",
+  "copyright": "Copyright (c) 2024 MangoBiz",
+  "asar": true,
+  "asarUnpack": [
+    "**/node_modules/better-sqlite3/**/*",
+    "**/node_modules/bindings/**/*",
+    "**/node_modules/file-uri-to-path/**/*"
+  ],
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "build"
+  },
+  "files": [
+    "out/**/*",
+    "!out/**/*.map",
+    "electron/mosquitto/bin/**/*",
+    "electron/mosquitto/config/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "electron/mosquitto",
+      "to": "mosquitto",
+      "filter": ["**/*"]
+    }
+  ],
+  "mac": {
+    "category": "public.app-category.business",
+    "icon": "build/icon.icns",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
+      }
+    ]
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "window": {
+      "width": 540,
+      "height": 380
+    }
+  },
+  "win": {
+    "icon": "build/icon.ico",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerHeaderIcon": "build/icon.ico"
+  },
+  "linux": {
+    "icon": "build/icon.png",
+    "category": "Office",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64", "arm64"]
+      }
+    ]
+  },
+  "publish": null,
+  "npmRebuild": true,
+  "buildDependenciesFromSource": false
+}

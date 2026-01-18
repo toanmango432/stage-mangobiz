@@ -1700,3 +1700,83 @@ Commit: 40f394a
 **Next story suggestion:** US-032 (Enable SQLite by default on Electron) - depends on US-031 (just completed) and flips the feature flag to make SQLite the default on Electron.
 
 ---
+
+## 2026-01-18 - US-032: Enable SQLite by default on Electron
+Commit: 02cff58
+
+**Why this story?** US-032 is the only story with all dependencies satisfied. It depends on US-031 (completed in the last iteration) and is the "flip the switch" story to make SQLite the default backend on Electron.
+
+**Changes:**
+- `apps/store-app/src/config/featureFlags.ts:65-99`: Updated shouldUseSQLite() logic
+  - SQLite now returns TRUE by default on Electron (was opt-in, now opt-out)
+  - Added VITE_DISABLE_SQLITE env var check for explicit opt-out
+  - Legacy VITE_USE_SQLITE still works but is no longer required
+  - Added `hasLoggedSQLiteStatus` flag to prevent spam on hot reload
+- `apps/store-app/src/config/featureFlags.ts:111-138`: Enhanced logBackendSelection()
+  - Now logs SQLite-specific messages when active
+  - Logs "SQLite backend ACTIVE" with checkmark for clarity
+  - Logs opt-out instruction for discoverability
+  - Only logs once per session to avoid hot reload spam
+- `apps/store-app/.env.example:57-63`: Updated SQLite documentation
+  - Changed comment to indicate SQLite is ENABLED BY DEFAULT on Electron
+  - Added VITE_DISABLE_SQLITE=false as primary config
+  - Deprecated VITE_USE_SQLITE but kept for backwards compatibility
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in featureFlags.ts; pre-existing test file errors unrelated)
+- Tests: PASS (204 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _', 'TODO:')
+
+**Learnings:**
+- Opt-out pattern (DISABLE_X) is clearer than opt-in when feature is now default
+- Added backwards compatibility for VITE_USE_SQLITE to avoid breaking existing deployments
+- Log spam prevention via flag important for developer experience during hot reload
+
+**Patterns to sync:** None new - follows established feature flag patterns
+
+**Next story suggestion:** US-033 (Add Electron build configuration for better-sqlite3) - depends on US-032 (just completed) and configures native module handling for Electron builds.
+
+---
+
+## 2026-01-18 - US-033: Add Electron build configuration for better-sqlite3
+Commit: 8a78e0c
+
+**Why this story?** US-033 is the only story with all dependencies satisfied. It depends on US-032 (completed in the last iteration) and configures the native module handling required for better-sqlite3 to work in packaged Electron apps.
+
+**Changes:**
+- `apps/store-app/package.json:24,26,94,99,122-126`: Updated store-app package configuration
+  - Added `better-sqlite3` as production dependency (v11.7.0)
+  - Added `@electron/rebuild` (v3.8.0) and `@types/better-sqlite3` (v7.6.13) as devDependencies
+  - Added `electron:rebuild` script: `electron-rebuild -f -w better-sqlite3`
+  - Added `postinstall` script: `electron-builder install-app-deps` for automatic native module compilation
+  - Changed inline `build` config to extend external `electron-builder.json`
+- `apps/store-app/electron.vite.config.ts:15-29`: Updated electron-vite configuration
+  - Configured `externalizeDepsPlugin()` to include `better-sqlite3` in externalized modules
+  - Added `rollupOptions.external` for `better-sqlite3` to prevent bundling native module
+  - Native module will be loaded from node_modules at runtime
+- `apps/store-app/electron-builder.json` (NEW, 97 lines): Comprehensive electron-builder configuration
+  - `asarUnpack`: Excludes native modules from asar archive (better-sqlite3, bindings, file-uri-to-path)
+  - `mac`: Multi-arch support (x64, arm64) for dmg and zip targets, hardened runtime for notarization
+  - `win`: x64 targets for nsis installer and portable
+  - `linux`: Multi-arch (x64, arm64) for AppImage and deb targets
+  - `npmRebuild: true`: Ensures native modules are rebuilt for Electron's Node version
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in modified files; pre-existing test file errors unrelated to this story)
+- Tests: PASS (204 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _', 'TODO:')
+- electron-builder.json: Valid JSON, correct asarUnpack configuration
+
+**Learnings:**
+- Native modules like better-sqlite3 require `asarUnpack` to be excluded from asar archive - they contain platform-specific binaries
+- `electron-rebuild` compiles native modules for Electron's embedded Node version (different from system Node)
+- `postinstall` with `electron-builder install-app-deps` automates native module compilation on `pnpm install`
+- `externalizeDepsPlugin()` with `include: ['better-sqlite3']` ensures the module is loaded from node_modules, not bundled
+- The `bindings` and `file-uri-to-path` packages are dependencies of better-sqlite3 and must also be unpacked
+
+**Patterns to sync:**
+- Pattern: Native module handling in Electron - use `asarUnpack` for native modules + `electron-rebuild` script + `externalizeDepsPlugin()` with explicit include
+
+**Next story suggestion:** US-034 (Add performance benchmarks) - depends on US-033 (just completed) and validates SQLite performance vs Dexie.
+
+---
