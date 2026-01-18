@@ -43,6 +43,13 @@ export {
   type TicketStatus as SQLiteTicketStatus,
   type ServiceStatus as SQLiteServiceStatus,
   type DailyStats as SQLiteDailyStats,
+  // Appointment service
+  AppointmentSQLiteService,
+  type Appointment as SQLiteAppointment,
+  type AppointmentService as SQLiteAppointmentService,
+  type AppointmentStatus as SQLiteAppointmentStatus,
+  type BookingSource as SQLiteBookingSource,
+  type AppointmentRow as SQLiteAppointmentRow,
 } from './services';
 
 // Type conversion utilities

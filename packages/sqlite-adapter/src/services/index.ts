@@ -34,3 +34,13 @@ export {
   type ServiceStatus,
   type DailyStats,
 } from './ticketService';
+
+// Appointment service
+export {
+  AppointmentSQLiteService,
+  type Appointment,
+  type AppointmentService,
+  type AppointmentStatus,
+  type BookingSource,
+  type AppointmentRow,
+} from './appointmentService';
