@@ -53,3 +53,23 @@ Commit: 373a2c9
 
 ---
 
+## 2026-01-17 - US-003: Add PriceDecision type for checkout price tracking
+Commit: 7549428
+
+**Why this story?** US-003 has lowest priority (3) among eligible stories, no dependencies, and is required by US-004 and US-006.
+
+**Changes:**
+- `apps/store-app/src/types/Ticket.ts:214-240`: Added new "PRICE TRACKING TYPES" section with:
+  - `PriceDecision` type with 6 options: 'booked_honored' | 'catalog_applied' | 'lower_applied' | 'manual_override' | 'deposit_locked' | 'walk_in_current'
+  - Comprehensive JSDoc with @example showing real-world usage scenario
+  - Each option documented with inline comments
+
+**Learnings:**
+- Ticket.ts has well-organized section headers (comment blocks) - followed pattern for new section
+- Pre-existing typecheck errors in test files (AgendaView.test.tsx, etc.) are unrelated to this story
+- Type exported automatically via TypeScript's export semantics
+
+**Next story suggestion:** US-004 (Add price tracking fields to TicketService) - same file, direct dependency on US-003, maintains momentum
+
+---
+

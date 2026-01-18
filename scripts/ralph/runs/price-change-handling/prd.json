@@ -64,7 +64,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "booked_honored = used original price, catalog_applied = used current price, lower_applied = auto-applied lower, manual_override = custom price, deposit_locked = price locked by deposit, walk_in_current = walk-in used current."
     },
     {
