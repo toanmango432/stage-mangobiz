@@ -39,7 +39,9 @@ import type {
   ThemeSettings,
   LayoutSettings,
   ModuleVisibility,
+  PricingPolicySettings,
 } from '../../types/settings';
+import { DEFAULT_PRICING_POLICY } from '../../types/settings';
 
 // =============================================================================
 // STATE INTERFACE
@@ -400,7 +402,16 @@ const settingsSlice = createSlice({
         state.hasUnsavedChanges = true;
       }
     },
-    
+
+    updatePricingPolicy: (state, action: PayloadAction<Partial<PricingPolicySettings>>) => {
+      if (state.settings) {
+        // Initialize with defaults if pricingPolicy doesn't exist
+        const currentPolicy = state.settings.checkout.pricingPolicy || DEFAULT_PRICING_POLICY;
+        state.settings.checkout.pricingPolicy = { ...currentPolicy, ...action.payload };
+        state.hasUnsavedChanges = true;
+      }
+    },
+
     // ==================== RECEIPT SETTINGS ====================
     
     updateReceiptHeader: (state, action: PayloadAction<Partial<ReceiptHeader>>) => {
@@ -627,6 +638,7 @@ export const {
   updateRoundingSettings,
   updatePaymentMethods,
   updatePaymentGateway,
+  updatePricingPolicy,
   // Receipts
   updateReceiptHeader,
   updateReceiptFooter,

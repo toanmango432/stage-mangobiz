@@ -4,18 +4,19 @@
  */
 
 import { useSelector, useDispatch } from 'react-redux';
-import { 
-  CreditCard, 
-  Percent, 
-  DollarSign, 
-  Smartphone, 
+import {
+  CreditCard,
+  Percent,
+  DollarSign,
+  Smartphone,
   Wallet,
   Calculator,
   Wifi,
   WifiOff,
   Plus,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import type { AppDispatch } from '@/store';
 import {
@@ -29,20 +30,24 @@ import {
   updateRoundingSettings,
   updatePaymentMethods,
   updatePaymentGateway,
+  updatePricingPolicy,
   addPaymentTerminal,
   removePaymentTerminal,
   updateTerminalStatus,
 } from '@/store/slices/settingsSlice';
-import type { 
-  TipCalculation, 
-  TipDistributionMethod, 
+import type {
+  TipCalculation,
+  TipDistributionMethod,
   TipDefaultSelection,
   ServiceChargeApplyTo,
   RoundingMethod,
   TerminalType,
   GatewayProvider,
   GatewayApiMode,
+  PricingPolicyMode,
+  PricingPolicySettings,
 } from '@/types/settings';
+import { DEFAULT_PRICING_POLICY } from '@/types/settings';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -238,6 +243,33 @@ const GATEWAY_MODE_OPTIONS: { value: GatewayApiMode; label: string }[] = [
   { value: 'sandbox', label: 'Sandbox/Test' },
 ];
 
+/**
+ * Pricing policy mode options with descriptions for admin settings
+ * Each option explains how the system handles price changes between booking and checkout
+ */
+const PRICING_POLICY_MODE_OPTIONS: { value: PricingPolicyMode; label: string; description: string }[] = [
+  {
+    value: 'ask_staff',
+    label: 'Ask Staff (Recommended)',
+    description: 'Staff decides for each service when prices differ. Best for most salons.'
+  },
+  {
+    value: 'honor_booked',
+    label: 'Honor Booked Price',
+    description: 'Always use the price the client saw when booking. Most client-friendly.'
+  },
+  {
+    value: 'use_current',
+    label: 'Use Current Price',
+    description: 'Always charge the current catalog price at checkout. Most revenue-friendly.'
+  },
+  {
+    value: 'honor_lower',
+    label: 'Honor Lower Price',
+    description: 'Automatically apply whichever price is lower. Protects clients from increases while capturing decreases.'
+  },
+];
+
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
@@ -254,6 +286,8 @@ export function CheckoutPaymentsSettings() {
   }
 
   const { tips, tipDistribution, discounts, serviceCharge, rounding, paymentMethods, gateway } = checkout;
+  // Use DEFAULT_PRICING_POLICY as fallback for backwards compatibility
+  const pricingPolicy: PricingPolicySettings = checkout.pricingPolicy || DEFAULT_PRICING_POLICY;
 
   // ==========================================================================
   // HANDLERS
@@ -261,6 +295,10 @@ export function CheckoutPaymentsSettings() {
 
   const handleTipChange = (field: string, value: boolean | string | number) => {
     dispatch(updateTipSettings({ [field]: value }));
+  };
+
+  const handlePricingPolicyChange = (field: keyof PricingPolicySettings, value: PricingPolicyMode | boolean | number) => {
+    dispatch(updatePricingPolicy({ [field]: value }));
   };
 
   const handleTipSuggestionChange = (index: number, value: string) => {
@@ -554,6 +592,41 @@ export function CheckoutPaymentsSettings() {
             />
           </FormField>
         )}
+      </SettingsSection>
+
+      {/* Pricing Policy */}
+      <SettingsSection title="Pricing Policy" icon={<Zap className="w-5 h-5" />}>
+        <p className="text-sm text-gray-500 mb-4">
+          Configure how price changes between booking and checkout are handled.
+          When a service price changes after a client books, this policy determines what to charge.
+        </p>
+
+        <div className="space-y-3">
+          {PRICING_POLICY_MODE_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              className={cn(
+                'flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors',
+                pricingPolicy.defaultMode === option.value
+                  ? 'border-amber-500 bg-amber-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              )}
+            >
+              <input
+                type="radio"
+                name="pricing-policy-mode"
+                value={option.value}
+                checked={pricingPolicy.defaultMode === option.value}
+                onChange={() => handlePricingPolicyChange('defaultMode', option.value)}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300"
+              />
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">{option.label}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{option.description}</p>
+              </div>
+            </label>
+          ))}
+        </div>
       </SettingsSection>
 
       {/* Payment Methods */}
