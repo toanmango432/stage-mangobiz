@@ -730,7 +730,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-025"],
       "notes": "Final wiring story. After this, ALL tables route to SQLite when flag enabled. Phase 7 complete."
     },
