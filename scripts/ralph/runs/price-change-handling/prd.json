@@ -240,7 +240,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-002"],
       "notes": "Use selectServiceById or services from state to get catalog price. Handle case where service lookup fails (use provided price)."
     },

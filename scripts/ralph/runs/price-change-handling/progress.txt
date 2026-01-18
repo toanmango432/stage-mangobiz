@@ -229,3 +229,32 @@ Commit: dd409ae
 
 ---
 
+## 2026-01-17 - US-010: Capture bookedPrice when creating appointment
+Commit: c79f467
+
+**Why this story?** US-010 is the highest priority (10) among eligible stories, its dependency US-002 is complete, and it begins the critical appointment booking integration - capturing bookedPrice at appointment creation time.
+
+**Changes:**
+- `apps/store-app/src/store/slices/appointmentsSlice.ts:6-14`: Added imports for AppointmentService and PriceSource types
+- `apps/store-app/src/store/slices/appointmentsSlice.ts:222-299`: Enhanced createAppointmentInSupabase thunk to capture price snapshot:
+  - For each service, look up current catalog price via dataService.services.getById
+  - Set bookedPrice to catalog price (or service.price if provided)
+  - Set bookedAt to current ISO timestamp
+  - Set priceSource to 'catalog' (or 'staff_level' if staffLevelAtBooking present)
+  - Store catalogPriceAtBooking for reference (useful for tiered pricing variance)
+  - Graceful fallback if service lookup fails (uses provided price)
+
+**Learnings:**
+- dataService.services.getById is the correct method to look up catalog prices
+- All price snapshot fields are optional so existing appointments without bookedPrice continue to work
+- Used Promise.all for parallel service lookups - efficient for appointments with multiple services
+- Pre-existing typecheck errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) are unrelated
+- Pre-existing test failures (CreateTicketButton, AddNoteModal, mangoPadService, padCheckoutFlow) are unrelated
+
+**Patterns to sync:**
+- Pattern: Use dataService.services.getById for catalog price lookup in thunks
+
+**Next story suggestion:** US-011 (Populate catalogPriceAtCheckout when ticket enters checkout) - priority 11, dependency US-004 complete, next step in price tracking pipeline (booking → checkout)
+
+---
+

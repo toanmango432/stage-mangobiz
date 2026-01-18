@@ -3,7 +3,7 @@ import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
-import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange } from '../../types';
+import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange, PriceDecision } from '../../types';
 // NOTE: Do NOT import RootState from '../index' - causes circular dependency
 // Instead, define a local type for the state we need access to
 import { v4 as uuidv4 } from 'uuid';
@@ -205,6 +205,60 @@ export interface CheckoutTicketService {
   staffPhoto?: string;
   startTime?: Date;
   endTime?: Date;
+  // ============================================
+  // PRICE TRACKING FIELDS
+  // ============================================
+  // These fields enable tracking price changes between booking and checkout.
+
+  /**
+   * Original price at the time of booking.
+   * Captured from the appointment's service when ticket is created.
+   * Undefined for walk-ins (no prior booking).
+   */
+  bookedPrice?: number;
+
+  /**
+   * Current catalog price when ticket enters checkout mode.
+   * Looked up from services catalog at checkout time.
+   */
+  catalogPriceAtCheckout?: number;
+
+  /**
+   * Difference between final price and booked price.
+   * Calculated as: (final price) - bookedPrice
+   */
+  priceVariance?: number;
+
+  /**
+   * Price variance as a percentage of the booked price.
+   */
+  priceVariancePercent?: number;
+
+  /**
+   * How the final checkout price was determined.
+   * @see PriceDecision
+   */
+  priceDecision?: PriceDecision;
+
+  /**
+   * Reason provided by staff when manually overriding the price.
+   */
+  priceOverrideReason?: string;
+
+  /**
+   * Staff ID who performed the price override.
+   */
+  priceOverrideBy?: string;
+
+  /**
+   * Manager ID who approved the price decision.
+   */
+  priceApprovedBy?: string;
+
+  /**
+   * Indicates if price is locked due to deposit payment.
+   */
+  depositLocked?: boolean;
 }
 
 // Input for creating/updating checkout tickets
@@ -649,6 +703,7 @@ export const updateTicket = createAsyncThunk(
 );
 
 // Complete ticket (moves to pending for checkout) via Supabase
+// This is an alternate entry point - also populates price tracking for checkout
 export const completeTicket = createAsyncThunk(
   'uiTickets/complete',
   async ({ ticketId, completionDetails }: {
@@ -665,6 +720,61 @@ export const completeTicket = createAsyncThunk(
       updatedAt: new Date(),
       completedAt: new Date(),
     };
+
+    // =====================================================
+    // PRICE TRACKING: Populate catalogPriceAtCheckout
+    // When ticket enters checkout, look up current catalog prices
+    // =====================================================
+    let checkoutServicesWithPricing: CheckoutTicketService[] | undefined;
+
+    try {
+      // Fetch full ticket data to get services with bookedPrice
+      const fullTicketData = await dataService.tickets.getById(ticketId);
+
+      if (fullTicketData && fullTicketData.services && fullTicketData.services.length > 0) {
+        // For each service, look up current catalog price
+        checkoutServicesWithPricing = await Promise.all(
+          fullTicketData.services.map(async (service) => {
+            // Look up current catalog price
+            let catalogPriceAtCheckout: number | undefined;
+            try {
+              const catalogService = await dataService.services.getById(service.serviceId);
+              if (catalogService) {
+                catalogPriceAtCheckout = catalogService.price;
+              }
+            } catch (err) {
+              console.warn(`⚠️ Could not look up catalog price for service ${service.serviceId}:`, err);
+            }
+
+            // Use bookedPrice from appointment if it exists, otherwise use current catalog price
+            // For walk-ins (no prior booking), bookedPrice equals catalogPrice (no variance)
+            const bookedPrice = service.bookedPrice ?? catalogPriceAtCheckout ?? service.price;
+
+            // Build checkout service with price tracking
+            const checkoutService: CheckoutTicketService = {
+              id: service.id || uuidv4(),
+              serviceId: service.serviceId,
+              serviceName: service.serviceName || service.name || 'Service',
+              price: service.price,
+              duration: service.duration,
+              status: service.status,
+              staffId: service.staffId,
+              staffName: service.staffName,
+              // Price tracking fields
+              bookedPrice,
+              catalogPriceAtCheckout,
+              depositLocked: service.depositLocked,
+            };
+
+            return checkoutService;
+          })
+        );
+
+        console.log('✅ Price tracking populated for checkout (completeTicket):', checkoutServicesWithPricing.length);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not populate price tracking for checkout:', error);
+    }
 
     try {
       // Update in Supabase - change status to 'completed'
@@ -704,15 +814,22 @@ export const completeTicket = createAsyncThunk(
       });
     }
 
-    // Create pending ticket data
+    // Calculate subtotal from services if available, else use completionDetails
+    const subtotal = checkoutServicesWithPricing
+      ? checkoutServicesWithPricing.reduce((sum, s) => sum + (s.price || 0), 0)
+      : (completionDetails.amount || 0);
+
+    // Create pending ticket data with price tracking enabled services
     const pendingTicket: PendingTicket = {
       id: ticket?.id || ticketId,
       number: ticket?.number || 0,
       clientName: ticket?.clientName || '',
       clientType: ticket?.clientType || 'Regular',
       service: ticket?.service || '',
-      additionalServices: 0,
-      subtotal: completionDetails.amount || 0,
+      additionalServices: checkoutServicesWithPricing
+        ? Math.max(0, checkoutServicesWithPricing.length - 1)
+        : 0,
+      subtotal,
       tax: 0,
       tip: completionDetails.tip || 0,
       paymentType: 'card',
@@ -724,6 +841,8 @@ export const completeTicket = createAsyncThunk(
       lastVisitDate: ticket?.lastVisitDate,
       status: 'completed', // Bug #5 fix: Ensure status is set
       completedAt: new Date().toISOString(),
+      checkoutServices: checkoutServicesWithPricing,
+      clientId: ticket?.clientId,
     };
 
     return {
@@ -1367,6 +1486,7 @@ export const moveToInService = createAsyncThunk(
 );
 
 // Move ticket to pending/completed (from in-service)
+// This is the entry point for checkout - populate catalogPriceAtCheckout for price variance detection
 export const moveToPending = createAsyncThunk(
   'uiTickets/moveToPending',
   async (ticketId: string, { getState }) => {
@@ -1386,6 +1506,90 @@ export const moveToPending = createAsyncThunk(
       completedAt: now.toISOString(),
       updatedAt: now,
     };
+
+    // =====================================================
+    // PRICE TRACKING: Populate catalogPriceAtCheckout
+    // When ticket enters checkout, look up current catalog prices
+    // and compare with bookedPrice (if exists from appointment)
+    // =====================================================
+    let checkoutServicesWithPricing: CheckoutTicketService[] | undefined;
+
+    try {
+      // Fetch full ticket data to get services with bookedPrice
+      const fullTicketData = await dataService.tickets.getById(ticketId);
+
+      if (fullTicketData && fullTicketData.services && fullTicketData.services.length > 0) {
+        // For each service, look up current catalog price
+        checkoutServicesWithPricing = await Promise.all(
+          fullTicketData.services.map(async (service) => {
+            // Look up current catalog price
+            let catalogPriceAtCheckout: number | undefined;
+            try {
+              const catalogService = await dataService.services.getById(service.serviceId);
+              if (catalogService) {
+                catalogPriceAtCheckout = catalogService.price;
+              }
+            } catch (err) {
+              // Service lookup failed - service may have been deleted
+              console.warn(`⚠️ Could not look up catalog price for service ${service.serviceId}:`, err);
+            }
+
+            // Use bookedPrice from appointment if it exists, otherwise use current catalog price
+            // For walk-ins (no prior booking), bookedPrice equals catalogPrice (no variance)
+            const bookedPrice = service.bookedPrice ?? catalogPriceAtCheckout ?? service.price;
+
+            // Build checkout service with price tracking
+            const checkoutService: CheckoutTicketService = {
+              id: service.id || uuidv4(),
+              serviceId: service.serviceId,
+              serviceName: service.serviceName || service.name || 'Service',
+              price: service.price,
+              duration: service.duration,
+              status: service.status,
+              staffId: service.staffId,
+              staffName: service.staffName,
+              // Price tracking fields
+              bookedPrice,
+              catalogPriceAtCheckout,
+              // depositLocked flag is preserved if it was set
+              depositLocked: service.depositLocked,
+            };
+
+            return checkoutService;
+          })
+        );
+
+        console.log('✅ Price tracking populated for checkout services:', checkoutServicesWithPricing.length);
+      } else if (ticket.checkoutServices && ticket.checkoutServices.length > 0) {
+        // Fall back to existing checkoutServices and populate catalog prices
+        checkoutServicesWithPricing = await Promise.all(
+          ticket.checkoutServices.map(async (service) => {
+            let catalogPriceAtCheckout: number | undefined;
+            try {
+              const catalogService = await dataService.services.getById(service.serviceId);
+              if (catalogService) {
+                catalogPriceAtCheckout = catalogService.price;
+              }
+            } catch (err) {
+              console.warn(`⚠️ Could not look up catalog price for service ${service.serviceId}:`, err);
+            }
+
+            // For walk-ins without bookedPrice, set it to catalog price (no variance)
+            const bookedPrice = service.bookedPrice ?? catalogPriceAtCheckout ?? service.price;
+
+            return {
+              ...service,
+              bookedPrice,
+              catalogPriceAtCheckout,
+            };
+          })
+        );
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not populate price tracking for checkout:', error);
+      // Fall back to existing checkoutServices without price tracking
+      checkoutServicesWithPricing = ticket.checkoutServices;
+    }
 
     try {
       // Update in Supabase
@@ -1414,15 +1618,22 @@ export const moveToPending = createAsyncThunk(
     const statusEntry = createStatusHistoryEntry('in-service', 'completed');
     const newStatusHistory = [...existingHistory, statusEntry];
 
-    // Create pending ticket data
+    // Calculate subtotal from services if available
+    const subtotal = checkoutServicesWithPricing
+      ? checkoutServicesWithPricing.reduce((sum, s) => sum + (s.price || 0), 0)
+      : 0;
+
+    // Create pending ticket data with price tracking enabled services
     const pendingTicket: PendingTicket = {
       id: ticket.id,
       number: ticket.number,
       clientName: ticket.clientName,
       clientType: ticket.clientType,
       service: ticket.service,
-      additionalServices: 0,
-      subtotal: 0,
+      additionalServices: checkoutServicesWithPricing
+        ? Math.max(0, checkoutServicesWithPricing.length - 1)
+        : 0,
+      subtotal,
       tax: 0,
       tip: 0,
       paymentType: 'card',
@@ -1436,7 +1647,7 @@ export const moveToPending = createAsyncThunk(
       lastVisitDate: ticket.lastVisitDate,
       status: 'completed',
       completedAt: now.toISOString(),
-      checkoutServices: ticket.checkoutServices,
+      checkoutServices: checkoutServicesWithPricing,
       clientId: ticket.clientId,
       statusHistory: newStatusHistory,
     };
