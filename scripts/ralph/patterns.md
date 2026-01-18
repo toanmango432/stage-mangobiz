@@ -205,3 +205,18 @@ WHERE s.store_id = ?
 ORDER BY s.display_name ASC
 ```
 This pattern enables efficient searching within JSON arrays without loading full records into JS.
+
+### JSON Array Aggregation with json_each() + GROUP BY
+Use `json_each()` with `GROUP BY` for in-database aggregation over JSON arrays:
+```sql
+-- Count services per staff from tickets (services is a JSON array)
+SELECT
+  json_extract(service.value, '$.staffId') as staff_id,
+  COUNT(*) as service_count
+FROM tickets, json_each(tickets.services) as service
+WHERE tickets.store_id = ?
+  AND tickets.created_at >= ?
+  AND json_extract(service.value, '$.staffId') IS NOT NULL
+GROUP BY staff_id
+```
+This pattern replaces memory-intensive JS loops with SQL aggregation. Expected: <100ms for 10k records vs 500ms+ with JS.

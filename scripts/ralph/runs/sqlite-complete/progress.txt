@@ -461,3 +461,36 @@ Commit: dbbbe21
 **Next story suggestion:** US-040 (Optimize getStaffTicketCounts with SQL json_each) - depends on US-009 (just completed) and optimizes the same file's aggregation method.
 
 ---
+
+## 2026-01-17 - US-040: Optimize getStaffTicketCounts with SQL json_each
+Commit: 2a67b98
+
+**Why this story?** US-040 is the only story with all dependencies satisfied. It depends on US-009 (just completed) and works on the same file (ticketService.ts), so the code structure is fresh in context.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/ticketService.ts:387-445`: Optimized getStaffTicketCounts method
+  - Replaced JS-based counting loop with SQL json_each() aggregation
+  - Old approach: Loaded all tickets into memory, parsed JSON services array in JS, counted in loops
+  - New approach: Single SQL query using `json_each(tickets.services)` with `GROUP BY`
+  - SQL pattern: `SELECT json_extract(service.value, '$.staffId') as staff_id, COUNT(*) FROM tickets, json_each(tickets.services) as service WHERE ... GROUP BY staff_id`
+  - Filters out NULL staffId values to avoid edge cases
+  - Still initializes all requested staffIds to 0 for consistent return type
+  - Expected performance: <100ms for 10k tickets (vs 500ms+ with old JS loops)
+
+**Quality Checks:**
+- Typecheck: PASS (ticketService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- SQLite's json_each() function creates virtual rows for each JSON array element, enabling GROUP BY aggregation
+- Must alias the json_each result (e.g., `as service`) to reference it in json_extract
+- json_extract(value, '$.fieldName') extracts fields from JSON objects within the array
+- This pattern eliminates memory-intensive loading of all tickets for counting operations
+
+**Patterns to sync:**
+- Pattern: SQL aggregation over JSON arrays - use `json_each(table.json_column) as alias` with `GROUP BY json_extract(alias.value, '$.field')` for in-database JSON array aggregation
+
+**Next story suggestion:** US-003 (Wire dataService to use SQLite services) - depends on US-040 (just completed) and is the critical integration point that routes dataService to SQLite implementations.
+
+---

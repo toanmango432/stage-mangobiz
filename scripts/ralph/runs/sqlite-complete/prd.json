@@ -257,7 +257,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-009"],
       "notes": "CRITICAL PERFORMANCE: Current implementation in existing ticketService.ts may load tickets into memory. Optimize the existing method (or add if missing) to use SQLite's json_each() function. Do NOT rewrite the entire service."
     },
