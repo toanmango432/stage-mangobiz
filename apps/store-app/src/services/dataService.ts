@@ -51,6 +51,15 @@ import {
   sqliteServicesDB,
   sqliteSettingsDB,
   sqliteSyncQueueDB,
+  // Team and CRM services
+  sqliteTeamMemberDB,
+  sqlitePatchTestsDB,
+  sqliteFormResponsesDB,
+  sqliteReferralsDB,
+  sqliteClientReviewsDB,
+  sqliteLoyaltyRewardsDB,
+  sqliteReviewRequestsDB,
+  sqliteCustomSegmentsDB,
 } from '@/services/sqliteServices';
 
 // API-FIRST: Import API client and endpoints
@@ -1122,35 +1131,61 @@ export const transactionsService = {
 /**
  * Patch Tests data operations - LOCAL-FIRST
  * Tracks patch test results for services (e.g., hair color allergy tests)
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqlitePatchTestsDB
  */
 export const patchTestsService = {
   async getByClientId(clientId: string): Promise<PatchTest[]> {
+    if (USE_SQLITE) {
+      return sqlitePatchTestsDB.getByClientId(clientId);
+    }
     return patchTestsDB.getByClientId(clientId);
   },
 
   async getById(id: string): Promise<PatchTest | null> {
+    if (USE_SQLITE) {
+      const patchTest = await sqlitePatchTestsDB.getById(id);
+      return patchTest || null;
+    }
     const patchTest = await patchTestsDB.getById(id);
     return patchTest || null;
   },
 
   async getValidForService(clientId: string, serviceId: string): Promise<PatchTest | null> {
+    if (USE_SQLITE) {
+      const patchTest = await sqlitePatchTestsDB.getValidForService(clientId, serviceId);
+      return patchTest || null;
+    }
     const patchTest = await patchTestsDB.getValidForService(clientId, serviceId);
     return patchTest || null;
   },
 
   async getExpiring(clientId: string, daysAhead: number = 7): Promise<PatchTest[]> {
+    if (USE_SQLITE) {
+      return sqlitePatchTestsDB.getExpiring(clientId, daysAhead);
+    }
     return patchTestsDB.getExpiring(clientId, daysAhead);
   },
 
   async create(patchTest: Omit<PatchTest, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<PatchTest> {
-    const created = await patchTestsDB.create(patchTest);
+    let created: PatchTest;
+    if (USE_SQLITE) {
+      created = await sqlitePatchTestsDB.create(patchTest);
+    } else {
+      created = await patchTestsDB.create(patchTest);
+    }
     // Queue for background sync
     queueSyncOperation('client', 'create', created.id, { entityType: 'patchTest', ...created });
     return created;
   },
 
   async update(id: string, updates: Partial<PatchTest>): Promise<PatchTest | null> {
-    const updated = await patchTestsDB.update(id, updates);
+    let updated: PatchTest | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqlitePatchTestsDB.update(id, updates);
+    } else {
+      updated = await patchTestsDB.update(id, updates);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'patchTest', ...updated });
     }
@@ -1158,7 +1193,11 @@ export const patchTestsService = {
   },
 
   async delete(id: string): Promise<void> {
-    await patchTestsDB.delete(id);
+    if (USE_SQLITE) {
+      await sqlitePatchTestsDB.delete(id);
+    } else {
+      await patchTestsDB.delete(id);
+    }
     queueSyncOperation('client', 'delete', id, { entityType: 'patchTest', id });
   },
 };
@@ -1166,33 +1205,58 @@ export const patchTestsService = {
 /**
  * Form Responses data operations - LOCAL-FIRST
  * Client-filled forms (intake forms, consent forms, etc.)
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteFormResponsesDB
  */
 export const formResponsesService = {
   async getByClientId(clientId: string, limit: number = 50): Promise<ClientFormResponse[]> {
+    if (USE_SQLITE) {
+      return sqliteFormResponsesDB.getByClientId(clientId, limit);
+    }
     return formResponsesDB.getByClientId(clientId, limit);
   },
 
   async getById(id: string): Promise<ClientFormResponse | null> {
+    if (USE_SQLITE) {
+      const response = await sqliteFormResponsesDB.getById(id);
+      return response || null;
+    }
     const response = await formResponsesDB.getById(id);
     return response || null;
   },
 
   async getPending(clientId: string): Promise<ClientFormResponse[]> {
+    if (USE_SQLITE) {
+      return sqliteFormResponsesDB.getPending(clientId);
+    }
     return formResponsesDB.getPending(clientId);
   },
 
   async getByAppointmentId(appointmentId: string): Promise<ClientFormResponse[]> {
+    if (USE_SQLITE) {
+      return sqliteFormResponsesDB.getByAppointmentId(appointmentId);
+    }
     return formResponsesDB.getByAppointmentId(appointmentId);
   },
 
   async create(response: Omit<ClientFormResponse, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<ClientFormResponse> {
-    const created = await formResponsesDB.create(response);
+    let created: ClientFormResponse;
+    if (USE_SQLITE) {
+      created = await sqliteFormResponsesDB.create(response);
+    } else {
+      created = await formResponsesDB.create(response);
+    }
     queueSyncOperation('client', 'create', created.id, { entityType: 'formResponse', ...created });
     return created;
   },
 
   async update(id: string, updates: Partial<ClientFormResponse>): Promise<ClientFormResponse | null> {
-    const updated = await formResponsesDB.update(id, updates);
+    let updated: ClientFormResponse | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteFormResponsesDB.update(id, updates);
+    } else {
+      updated = await formResponsesDB.update(id, updates);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'formResponse', ...updated });
     }
@@ -1200,7 +1264,12 @@ export const formResponsesService = {
   },
 
   async complete(id: string, responses: Record<string, unknown>, completedBy: string, signatureImage?: string): Promise<ClientFormResponse | null> {
-    const completed = await formResponsesDB.complete(id, responses, completedBy, signatureImage);
+    let completed: ClientFormResponse | null | undefined;
+    if (USE_SQLITE) {
+      completed = await sqliteFormResponsesDB.complete(id, responses, completedBy, signatureImage);
+    } else {
+      completed = await formResponsesDB.complete(id, responses, completedBy, signatureImage);
+    }
     if (completed) {
       queueSyncOperation('client', 'update', id, { entityType: 'formResponse', ...completed });
     }
@@ -1211,35 +1280,62 @@ export const formResponsesService = {
 /**
  * Referrals data operations - LOCAL-FIRST
  * Tracks client referrals and rewards
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteReferralsDB
  */
 export const referralsService = {
   async getByReferrerId(clientId: string): Promise<Referral[]> {
+    if (USE_SQLITE) {
+      return sqliteReferralsDB.getByReferrerId(clientId);
+    }
     return referralsDB.getByReferrerId(clientId);
   },
 
   async getByReferredId(clientId: string): Promise<Referral | null> {
+    if (USE_SQLITE) {
+      const referral = await sqliteReferralsDB.getByReferredId(clientId);
+      return referral || null;
+    }
     const referral = await referralsDB.getByReferredId(clientId);
     return referral || null;
   },
 
   async getById(id: string): Promise<Referral | null> {
+    if (USE_SQLITE) {
+      const referral = await sqliteReferralsDB.getById(id);
+      return referral || null;
+    }
     const referral = await referralsDB.getById(id);
     return referral || null;
   },
 
   async getByCode(code: string): Promise<Referral | null> {
+    if (USE_SQLITE) {
+      const referral = await sqliteReferralsDB.getByCode(code);
+      return referral || null;
+    }
     const referral = await referralsDB.getByCode(code);
     return referral || null;
   },
 
   async create(referral: Omit<Referral, 'id' | 'createdAt' | 'syncStatus'>): Promise<Referral> {
-    const created = await referralsDB.create(referral);
+    let created: Referral;
+    if (USE_SQLITE) {
+      created = await sqliteReferralsDB.create(referral);
+    } else {
+      created = await referralsDB.create(referral);
+    }
     queueSyncOperation('client', 'create', created.id, { entityType: 'referral', ...created });
     return created;
   },
 
   async update(id: string, updates: Partial<Referral>): Promise<Referral | null> {
-    const updated = await referralsDB.update(id, updates);
+    let updated: Referral | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteReferralsDB.update(id, updates);
+    } else {
+      updated = await referralsDB.update(id, updates);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'referral', ...updated });
     }
@@ -1247,7 +1343,12 @@ export const referralsService = {
   },
 
   async completeReferral(id: string, appointmentId: string): Promise<Referral | null> {
-    const completed = await referralsDB.completeReferral(id, appointmentId);
+    let completed: Referral | null | undefined;
+    if (USE_SQLITE) {
+      completed = await sqliteReferralsDB.completeReferral(id, appointmentId);
+    } else {
+      completed = await referralsDB.completeReferral(id, appointmentId);
+    }
     if (completed) {
       queueSyncOperation('client', 'update', id, { entityType: 'referral', ...completed });
     }
@@ -1258,29 +1359,51 @@ export const referralsService = {
 /**
  * Client Reviews data operations - LOCAL-FIRST
  * Reviews left by clients for staff/services
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteClientReviewsDB
  */
 export const reviewsService = {
   async getByClientId(clientId: string, limit: number = 50): Promise<ClientReview[]> {
+    if (USE_SQLITE) {
+      return sqliteClientReviewsDB.getByClientId(clientId, limit);
+    }
     return clientReviewsDB.getByClientId(clientId, limit);
   },
 
   async getById(id: string): Promise<ClientReview | null> {
+    if (USE_SQLITE) {
+      const review = await sqliteClientReviewsDB.getById(id);
+      return review || null;
+    }
     const review = await clientReviewsDB.getById(id);
     return review || null;
   },
 
   async getByStaffId(staffId: string, limit: number = 100): Promise<ClientReview[]> {
+    if (USE_SQLITE) {
+      return sqliteClientReviewsDB.getByStaffId(staffId, limit);
+    }
     return clientReviewsDB.getByStaffId(staffId, limit);
   },
 
   async create(review: Omit<ClientReview, 'id' | 'createdAt' | 'syncStatus'>): Promise<ClientReview> {
-    const created = await clientReviewsDB.create(review);
+    let created: ClientReview;
+    if (USE_SQLITE) {
+      created = await sqliteClientReviewsDB.create(review);
+    } else {
+      created = await clientReviewsDB.create(review);
+    }
     queueSyncOperation('client', 'create', created.id, { entityType: 'review', ...created });
     return created;
   },
 
   async addResponse(id: string, response: string): Promise<ClientReview | null> {
-    const updated = await clientReviewsDB.addResponse(id, response);
+    let updated: ClientReview | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteClientReviewsDB.addResponse(id, response);
+    } else {
+      updated = await clientReviewsDB.addResponse(id, response);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'review', ...updated });
     }
@@ -1288,7 +1411,12 @@ export const reviewsService = {
   },
 
   async update(id: string, updates: Partial<ClientReview>): Promise<ClientReview | null> {
-    const updated = await clientReviewsDB.update(id, updates);
+    let updated: ClientReview | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteClientReviewsDB.update(id, updates);
+    } else {
+      updated = await clientReviewsDB.update(id, updates);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'review', ...updated });
     }
@@ -1299,29 +1427,51 @@ export const reviewsService = {
 /**
  * Loyalty Rewards data operations - LOCAL-FIRST
  * Tracks earned and redeemed loyalty rewards
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteLoyaltyRewardsDB
  */
 export const loyaltyService = {
   async getByClientId(clientId: string, includeRedeemed: boolean = false): Promise<LoyaltyReward[]> {
+    if (USE_SQLITE) {
+      return sqliteLoyaltyRewardsDB.getByClientId(clientId, includeRedeemed);
+    }
     return loyaltyRewardsDB.getByClientId(clientId, includeRedeemed);
   },
 
   async getById(id: string): Promise<LoyaltyReward | null> {
+    if (USE_SQLITE) {
+      const reward = await sqliteLoyaltyRewardsDB.getById(id);
+      return reward || null;
+    }
     const reward = await loyaltyRewardsDB.getById(id);
     return reward || null;
   },
 
   async getAvailable(clientId: string): Promise<LoyaltyReward[]> {
+    if (USE_SQLITE) {
+      return sqliteLoyaltyRewardsDB.getAvailable(clientId);
+    }
     return loyaltyRewardsDB.getAvailable(clientId);
   },
 
   async create(reward: Omit<LoyaltyReward, 'id' | 'createdAt' | 'syncStatus'>): Promise<LoyaltyReward> {
-    const created = await loyaltyRewardsDB.create(reward);
+    let created: LoyaltyReward;
+    if (USE_SQLITE) {
+      created = await sqliteLoyaltyRewardsDB.create(reward);
+    } else {
+      created = await loyaltyRewardsDB.create(reward);
+    }
     queueSyncOperation('client', 'create', created.id, { entityType: 'loyaltyReward', ...created });
     return created;
   },
 
   async redeem(id: string): Promise<LoyaltyReward | null> {
-    const redeemed = await loyaltyRewardsDB.redeem(id);
+    let redeemed: LoyaltyReward | null | undefined;
+    if (USE_SQLITE) {
+      redeemed = await sqliteLoyaltyRewardsDB.redeem(id);
+    } else {
+      redeemed = await loyaltyRewardsDB.redeem(id);
+    }
     if (redeemed) {
       queueSyncOperation('client', 'update', id, { entityType: 'loyaltyReward', ...redeemed });
     }
@@ -1332,41 +1482,69 @@ export const loyaltyService = {
 /**
  * Review Requests data operations - LOCAL-FIRST
  * Tracks requests sent to clients asking for reviews
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteReviewRequestsDB
  */
 export const reviewRequestsService = {
   async getById(id: string): Promise<ReviewRequest | null> {
+    if (USE_SQLITE) {
+      const request = await sqliteReviewRequestsDB.getById(id);
+      return request || null;
+    }
     const request = await reviewRequestsDB.getById(id);
     return request || null;
   },
 
   async getByClientId(clientId: string, limit: number = 50): Promise<ReviewRequest[]> {
+    if (USE_SQLITE) {
+      return sqliteReviewRequestsDB.getByClientId(clientId, limit);
+    }
     return reviewRequestsDB.getByClientId(clientId, limit);
   },
 
   async getBySalonId(limit: number = 100): Promise<ReviewRequest[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+    if (USE_SQLITE) {
+      return sqliteReviewRequestsDB.getBySalonId(storeId, limit);
+    }
     return reviewRequestsDB.getBySalonId(storeId, limit);
   },
 
   async getByStatus(status: ReviewRequestStatus, limit: number = 100): Promise<ReviewRequest[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+    if (USE_SQLITE) {
+      return sqliteReviewRequestsDB.getByStatus(storeId, status, limit);
+    }
     return reviewRequestsDB.getByStatus(storeId, status, limit);
   },
 
   async getPendingByClient(clientId: string): Promise<ReviewRequest[]> {
+    if (USE_SQLITE) {
+      return sqliteReviewRequestsDB.getPendingByClient(clientId);
+    }
     return reviewRequestsDB.getPendingByClient(clientId);
   },
 
   async create(request: Omit<ReviewRequest, 'id' | 'createdAt' | 'syncStatus'>): Promise<ReviewRequest> {
-    const created = await reviewRequestsDB.create(request);
+    let created: ReviewRequest;
+    if (USE_SQLITE) {
+      created = await sqliteReviewRequestsDB.create(request);
+    } else {
+      created = await reviewRequestsDB.create(request);
+    }
     queueSyncOperation('client', 'create', created.id, { entityType: 'reviewRequest', ...created });
     return created;
   },
 
   async update(id: string, updates: Partial<ReviewRequest>): Promise<ReviewRequest | null> {
-    const updated = await reviewRequestsDB.update(id, updates);
+    let updated: ReviewRequest | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteReviewRequestsDB.update(id, updates);
+    } else {
+      updated = await reviewRequestsDB.update(id, updates);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
     }
@@ -1374,7 +1552,12 @@ export const reviewRequestsService = {
   },
 
   async markSent(id: string, sentVia: 'email' | 'sms' | 'both'): Promise<ReviewRequest | null> {
-    const updated = await reviewRequestsDB.markSent(id, sentVia);
+    let updated: ReviewRequest | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteReviewRequestsDB.markSent(id, sentVia);
+    } else {
+      updated = await reviewRequestsDB.markSent(id, sentVia);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
     }
@@ -1382,7 +1565,12 @@ export const reviewRequestsService = {
   },
 
   async markOpened(id: string): Promise<ReviewRequest | null> {
-    const updated = await reviewRequestsDB.markOpened(id);
+    let updated: ReviewRequest | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteReviewRequestsDB.markOpened(id);
+    } else {
+      updated = await reviewRequestsDB.markOpened(id);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
     }
@@ -1390,7 +1578,12 @@ export const reviewRequestsService = {
   },
 
   async markCompleted(id: string, reviewId: string): Promise<ReviewRequest | null> {
-    const updated = await reviewRequestsDB.markCompleted(id, reviewId);
+    let updated: ReviewRequest | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteReviewRequestsDB.markCompleted(id, reviewId);
+    } else {
+      updated = await reviewRequestsDB.markCompleted(id, reviewId);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
     }
@@ -1398,7 +1591,12 @@ export const reviewRequestsService = {
   },
 
   async markExpired(id: string): Promise<ReviewRequest | null> {
-    const updated = await reviewRequestsDB.markExpired(id);
+    let updated: ReviewRequest | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteReviewRequestsDB.markExpired(id);
+    } else {
+      updated = await reviewRequestsDB.markExpired(id);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'reviewRequest', ...updated });
     }
@@ -1406,7 +1604,11 @@ export const reviewRequestsService = {
   },
 
   async delete(id: string): Promise<void> {
-    await reviewRequestsDB.delete(id);
+    if (USE_SQLITE) {
+      await sqliteReviewRequestsDB.delete(id);
+    } else {
+      await reviewRequestsDB.delete(id);
+    }
     queueSyncOperation('client', 'delete', id, { entityType: 'reviewRequest', id });
   },
 };
@@ -1414,9 +1616,15 @@ export const reviewRequestsService = {
 /**
  * Custom Segments data operations - LOCAL-FIRST
  * User-defined client groupings based on filters
+ *
+ * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteCustomSegmentsDB
  */
 export const segmentsService = {
   async getById(id: string): Promise<CustomSegment | null> {
+    if (USE_SQLITE) {
+      const segment = await sqliteCustomSegmentsDB.getById(id);
+      return segment || null;
+    }
     const segment = await customSegmentsDB.getById(id);
     return segment || null;
   },
@@ -1424,30 +1632,50 @@ export const segmentsService = {
   async getAll(activeOnly: boolean = true): Promise<CustomSegment[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+    if (USE_SQLITE) {
+      return sqliteCustomSegmentsDB.getBySalonId(storeId, activeOnly);
+    }
     return customSegmentsDB.getBySalonId(storeId, activeOnly);
   },
 
   async getActive(): Promise<CustomSegment[]> {
     const storeId = getStoreId();
     if (!storeId) return [];
+    if (USE_SQLITE) {
+      return sqliteCustomSegmentsDB.getActive(storeId);
+    }
     return customSegmentsDB.getActive(storeId);
   },
 
   async getByName(name: string): Promise<CustomSegment | null> {
     const storeId = getStoreId();
     if (!storeId) return null;
+    if (USE_SQLITE) {
+      const segment = await sqliteCustomSegmentsDB.getByName(storeId, name);
+      return segment || null;
+    }
     const segment = await customSegmentsDB.getByName(storeId, name);
     return segment || null;
   },
 
   async create(segment: Omit<CustomSegment, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<CustomSegment> {
-    const created = await customSegmentsDB.create(segment);
+    let created: CustomSegment;
+    if (USE_SQLITE) {
+      created = await sqliteCustomSegmentsDB.create(segment);
+    } else {
+      created = await customSegmentsDB.create(segment);
+    }
     queueSyncOperation('client', 'create', created.id, { entityType: 'segment', ...created });
     return created;
   },
 
   async update(id: string, updates: Partial<CustomSegment>): Promise<CustomSegment | null> {
-    const updated = await customSegmentsDB.update(id, updates);
+    let updated: CustomSegment | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteCustomSegmentsDB.update(id, updates);
+    } else {
+      updated = await customSegmentsDB.update(id, updates);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
     }
@@ -1455,7 +1683,12 @@ export const segmentsService = {
   },
 
   async updateFilters(id: string, filters: SegmentFilterGroup): Promise<CustomSegment | null> {
-    const updated = await customSegmentsDB.updateFilters(id, filters);
+    let updated: CustomSegment | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteCustomSegmentsDB.updateFilters(id, filters);
+    } else {
+      updated = await customSegmentsDB.updateFilters(id, filters);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
     }
@@ -1463,7 +1696,12 @@ export const segmentsService = {
   },
 
   async activate(id: string): Promise<CustomSegment | null> {
-    const updated = await customSegmentsDB.activate(id);
+    let updated: CustomSegment | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteCustomSegmentsDB.activate(id);
+    } else {
+      updated = await customSegmentsDB.activate(id);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
     }
@@ -1471,7 +1709,12 @@ export const segmentsService = {
   },
 
   async deactivate(id: string): Promise<CustomSegment | null> {
-    const updated = await customSegmentsDB.deactivate(id);
+    let updated: CustomSegment | null | undefined;
+    if (USE_SQLITE) {
+      updated = await sqliteCustomSegmentsDB.deactivate(id);
+    } else {
+      updated = await customSegmentsDB.deactivate(id);
+    }
     if (updated) {
       queueSyncOperation('client', 'update', id, { entityType: 'segment', ...updated });
     }
@@ -1479,16 +1722,67 @@ export const segmentsService = {
   },
 
   async delete(id: string): Promise<void> {
-    await customSegmentsDB.delete(id);
+    if (USE_SQLITE) {
+      await sqliteCustomSegmentsDB.delete(id);
+    } else {
+      await customSegmentsDB.delete(id);
+    }
     queueSyncOperation('client', 'delete', id, { entityType: 'segment', id });
   },
 
   async duplicate(id: string, newName: string, createdBy: string): Promise<CustomSegment | null> {
-    const duplicated = await customSegmentsDB.duplicate(id, newName, createdBy);
+    let duplicated: CustomSegment | null | undefined;
+    if (USE_SQLITE) {
+      duplicated = await sqliteCustomSegmentsDB.duplicate(id, newName, createdBy);
+    } else {
+      duplicated = await customSegmentsDB.duplicate(id, newName, createdBy);
+    }
     if (duplicated) {
       queueSyncOperation('client', 'create', duplicated.id, { entityType: 'segment', ...duplicated });
     }
     return duplicated || null;
+  },
+};
+
+// ==================== TEAM MEMBER SERVICE (SQLITE ONLY) ====================
+
+/**
+ * Team Member data operations - SQLite ONLY
+ * Team management with soft delete and role-based filtering
+ *
+ * Note: This service is only available when USE_SQLITE=true.
+ * For non-SQLite mode, use staffService instead (legacy team data).
+ *
+ * SQLite routing: Uses SQLite via sqliteTeamMemberDB
+ */
+export const teamMembersService = {
+  async getAll(): Promise<Staff[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    if (USE_SQLITE) {
+      return sqliteTeamMemberDB.getAll(storeId);
+    }
+    // Fallback to staffService for non-SQLite mode
+    return staffService.getAll();
+  },
+
+  async getById(id: string): Promise<Staff | null> {
+    if (USE_SQLITE) {
+      const member = await sqliteTeamMemberDB.getById(id);
+      return member || null;
+    }
+    // Fallback to staffService for non-SQLite mode
+    return staffService.getById(id);
+  },
+
+  async getByRole(role: string): Promise<Staff[]> {
+    const storeId = getStoreId();
+    if (!storeId) return [];
+    if (USE_SQLITE) {
+      return sqliteTeamMemberDB.getByRole(storeId, role);
+    }
+    // No role filtering in staffService, return all
+    return staffService.getAll();
   },
 };
 
@@ -1630,6 +1924,9 @@ export const dataService = {
   loyalty: loyaltyService,
   reviewRequests: reviewRequestsService,
   segments: segmentsService,
+
+  // Team member service (SQLite-only, with fallback to staff)
+  teamMembers: teamMembersService,
 
   // Infrastructure services (settings, sync queue)
   settings: settingsService,
