@@ -193,3 +193,6 @@ export type {
   StoreSettings,
   SettingsCategory,
 } from './settings';
+
+// Activity Logs (audit trail)
+export * from './activityLog';
