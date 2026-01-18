@@ -326,3 +326,20 @@ export {
   hasSchema,
   getTableNames,
 } from './schema';
+
+// Health monitoring
+export {
+  // Main service class
+  DatabaseHealthService,
+  // Factory functions
+  createHealthService,
+  quickHealthCheck,
+  fullHealthCheck,
+  // Types
+  type HealthCheckResult,
+  type DatabaseHealthStatus,
+  type BackupInfo,
+  type BackupResult,
+  type HealthScheduleStatus,
+  type CorruptionCallback,
+} from './health';

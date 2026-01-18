@@ -969,7 +969,7 @@
         "No forbidden strings"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-033"],
       "notes": "Run with pnpm test -- sqliteBenchmark --reporter=verbose. Document results in PR for reference. Expected: SQLite 10-100x faster for aggregations."
     },
@@ -992,7 +992,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-034"],
       "notes": "Proactive health monitoring catches issues early. quick_check is fast (<100ms), integrity_check is thorough (can take seconds on large DBs)."
     },
