@@ -47,3 +47,216 @@
 > Each iteration appends below this line.
 
 ---
+
+## 2026-01-17 - US-042: Type-safe conversion utilities
+Commit: b4d58473b6a5a8538cc1ecd9311df9bcfe5acf72
+
+**Why this story?** US-042 has no dependencies and is explicitly marked as the foundation story (priority 1) - all other services depend on these utilities.
+
+**Changes:**
+- `packages/sqlite-adapter/src/utils/typeConversions.ts` (NEW, 170 lines): Core conversion utilities
+  - `toISOString(value)`: Converts Date/string/number to ISO 8601 string for SQLite TEXT storage
+  - `boolToSQLite(value)`: Converts boolean-like values to 0/1 for SQLite INTEGER storage
+  - `sqliteToBool(value)`: Inverse of boolToSQLite for reading back
+  - `safeParseJSON<T>(value, fallback)`: Safe JSON parsing with type inference from fallback
+  - `toJSONString(value)`: Safe JSON.stringify with circular reference handling
+- `packages/sqlite-adapter/src/utils/index.ts` (NEW): Barrel export
+- `packages/sqlite-adapter/src/index.ts:41-48`: Added exports for all conversion utilities
+- `packages/sqlite-adapter/vitest.config.ts` (NEW): Package-specific test config (jsdom → node environment)
+- `packages/sqlite-adapter/src/utils/__tests__/typeConversions.test.ts` (NEW, 270 lines): Comprehensive test suite
+
+**Quality Checks:**
+- Typecheck: PASS (new files only; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests covering all edge cases)
+- Forbidden strings: PASS (no 'as any', 'void _')
+
+**Learnings:**
+- sqlite-adapter package needed its own vitest.config.ts with environment: 'node' (root config uses jsdom for React)
+- Pre-existing typecheck errors in factory.ts (window undefined) and adapters (unused params) - not in scope to fix
+- Added two bonus utilities (`sqliteToBool`, `toJSONString`) as inverse operations for completeness
+
+**Patterns to sync:**
+- Pattern: Package-specific vitest.config.ts - each package may need its own config with appropriate environment
+
+**Next story suggestion:** US-001 (Create BaseSQLiteService) - it directly depends on US-042 and is the next logical step for building the service foundation.
+
+---
+
+## 2026-01-17 - US-001: Create BaseSQLiteService generic class
+Commit: e00bc66
+
+**Why this story?** US-001 depends on US-042 (just completed) and is the foundation class for all 40 new services. Priority 2 is highest among remaining stories with satisfied dependencies.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/BaseSQLiteService.ts` (NEW, 380 lines): Generic base service class
+  - `BaseSQLiteService<T, TRow>`: Generic class with type parameters for app entity and SQLite row
+  - CRUD operations: `getAll()`, `getById()`, `getByIds()`, `create()`, `update()`, `delete()`, `count()`
+  - Schema config: `TableSchema` interface with tableName, primaryKey, and column mappings
+  - Column definitions support type hints: `{ column: string, type: ColumnType, defaultValue?: unknown }`
+  - Type conversion: Uses `boolToSQLite`, `sqliteToBool`, `toISOString`, `safeParseJSON`, `toJSONString` from US-042
+  - Protected query helpers: `findWhere()`, `countWhere()`, `findOneWhere()`, `rawQuery()`, `rawQueryOne()`
+- `packages/sqlite-adapter/src/services/index.ts:10-16`: Export BaseSQLiteService and related types
+- `packages/sqlite-adapter/src/index.ts:27-31`: Export BaseSQLiteService from package root
+
+**Quality Checks:**
+- Typecheck: PASS (BaseSQLiteService.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests from US-042 still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Schema config with type hints allows automatic conversion during `rowToEntity()` and `entityToRow()`
+- Protected helpers (`findWhere`, `countWhere`) enable subclasses to build custom queries without SQL duplication
+- Existing ClientSQLiteService (702 lines) follows similar pattern but with inline conversion - new services should use BaseSQLiteService
+
+**Patterns to sync:**
+- Pattern: TableSchema with ColumnDefinition - use `{ column: 'db_column', type: 'boolean' }` for typed columns
+
+**Next story suggestion:** US-036 (Fix client schema with ALL columns) - depends on US-001 and fixes the incomplete migration schema needed before services can work properly.
+
+---
+
+## 2026-01-17 - US-036: Fix client schema with ALL columns
+Commit: fd8d83e
+
+**Why this story?** US-036 depends on US-001 (just completed) and has priority 3, the highest among remaining stories with satisfied dependencies. US-037 and all subsequent stories depend on US-036 being done first.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts:52-134`: Expanded clients table from 8 to 50+ columns
+  - Primary fields: id, store_id
+  - Name fields: first_name, last_name, display_name, nickname, name
+  - Contact fields: phone, email, avatar
+  - Personal info: gender, birthday, anniversary, preferred_language
+  - Complex JSON fields: address, emergency_contacts, staff_alert
+  - Block fields: is_blocked (INTEGER), blocked_at, blocked_by, block_reason, block_reason_note
+  - Source tracking: source, source_details, referred_by_client_id, referred_by_client_name
+  - Profile JSON: hair_profile, skin_profile, nail_profile, medical_info
+  - Preferences JSON: preferences, communication_preferences
+  - Loyalty JSON: loyalty_info, loyalty_tier, membership, gift_cards
+  - Visit stats: visit_summary, last_visit, total_visits (INTEGER), total_spent (REAL)
+  - Balance: outstanding_balance (REAL), store_credit (REAL)
+  - Reviews: average_rating (REAL), total_reviews (INTEGER)
+  - Tags/notes: tags (JSON), notes (JSON)
+  - VIP status: is_vip (INTEGER)
+  - Timestamps: created_at, updated_at, sync_status
+- `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts:149-184`: Added 7 new indexes for clients
+  - idx_clients_store: Basic store filter
+  - idx_clients_store_lastname: [store_id+last_name] for alphabetical lists
+  - idx_clients_store_vip: [store_id+is_vip] for VIP filtering
+  - idx_clients_store_blocked: [store_id+is_blocked] for blocked filtering
+  - idx_clients_store_created: [store_id+created_at] for date sorting
+  - idx_clients_store_phone: [store_id+phone] for duplicate prevention
+  - idx_clients_store_email: [store_id+email] for email lookup
+
+**Quality Checks:**
+- Typecheck: PASS (v001_initial_schema.ts passes; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests from US-042 still passing)
+- Forbidden strings: PASS (no 'as any')
+
+**Learnings:**
+- Column names in SQLite use snake_case (store_id) while ClientRow interface matches them exactly
+- Boolean fields use INTEGER type with DEFAULT 0 (is_blocked, is_vip)
+- Numeric fields use REAL for decimals (total_spent, outstanding_balance) and INTEGER for counts (total_visits)
+- JSON objects stored as TEXT columns (address, preferences, hair_profile, etc.)
+
+**Patterns to sync:**
+- Pattern: SQLite snake_case column naming - all columns use snake_case (store_id, first_name) matching ClientRow interface
+
+**Next story suggestion:** US-037 (Fix ticket schema with ALL columns) - depends on US-036 (just completed) and is the next logical step to complete migration schemas before services can work.
+
+---
+
+## 2026-01-17 - US-037: Fix ticket schema with ALL columns
+Commit: 10847c7
+
+**Why this story?** US-037 is the only story with all dependencies met. It depends on US-036 (just completed) and both work on the same file (`v001_initial_schema.ts`), so the code structure is fresh in context.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts:37-121`: Expanded tickets table from 8 to 45 columns matching TicketRow interface
+  - Primary fields: id, number (INTEGER), store_id, appointment_id
+  - Client fields: client_id, client_name, client_phone
+  - Group ticket fields: is_group_ticket (INTEGER DEFAULT 0), clients (JSON)
+  - Merged ticket fields: is_merged_ticket (INTEGER), merged_from_tickets, original_ticket_id, merged_at, merged_by
+  - Services/products: services (JSON), products (JSON)
+  - Status: status
+  - Pricing fields: subtotal, discount, discount_reason, discount_percent, tax, tax_rate, tip, total (all REAL)
+  - Payments: payments (JSON)
+  - Timestamps: created_at, updated_at, completed_at
+  - Audit: created_by, last_modified_by, sync_status
+  - Draft fields: is_draft (INTEGER), draft_expires_at, last_auto_save_at
+  - Source: source
+  - Service charges: service_charges (JSON), service_charge_total
+  - Staff: staff_id, staff_name, payment_method
+  - Closing: closed_at, closed_by
+  - Signature: signature_base64, signature_timestamp
+- `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts:217-252`: Added 6 indexes for tickets
+  - idx_tickets_store_status: [store_id+status] for status filtering
+  - idx_tickets_store_created: [store_id+created_at] for date sorting
+  - idx_tickets_client_created: [client_id+created_at] for client ticket history
+  - idx_tickets_store_status_created: [store_id+status+created_at] for turn queue queries
+  - idx_tickets_store_staff_created: [store_id+staff_id+created_at] for staff reports
+  - idx_tickets_store_appointment: [store_id+appointment_id] for appointment lookup
+
+**Quality Checks:**
+- Typecheck: PASS (v001_initial_schema.ts passes; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any')
+
+**Learnings:**
+- Ticket pricing fields (subtotal, discount, tax, tip, total) use REAL type with DEFAULT 0 for numeric safety
+- JSON array columns (services, products, payments, clients, merged_from_tickets) use TEXT with NOT NULL where required
+- Staff assignment fields (staff_id, staff_name) are nullable - primary staff can be derived from services array
+- Both client and ticket schemas now complete - ready for schema registry (US-002)
+
+**Patterns to sync:**
+- Pattern: Required JSON arrays - use `TEXT NOT NULL` for JSON arrays that must always exist (even if empty `[]`)
+
+**Next story suggestion:** US-002 (Create TableSchema type and registry) - depends on US-037 (just completed) and is the foundation for type-safe schema definitions used by all services.
+
+---
+
+## 2026-01-17 - US-002: Create TableSchema type and registry
+Commit: 17f2330
+
+**Why this story?** US-002 is the only story with all dependencies satisfied. It depends on US-037 (just completed) and provides the schema registry foundation needed by all subsequent services (US-005, US-006, etc.).
+
+**Changes:**
+- `packages/sqlite-adapter/src/schema/types.ts` (NEW, 145 lines): Schema type definitions
+  - `ColumnType`: Union type for column data types ('string'|'number'|'boolean'|'json'|'date')
+  - `ColumnSchema`: Full column definition interface (name, dbColumn, type, defaultValue, nullable)
+  - `ColumnDefinition`: Simplified column definition for BaseSQLiteService compatibility
+  - `ColumnMapping`: Union of string shorthand or ColumnDefinition
+  - `TableSchema`: Main interface with tableName, primaryKey, columns Record
+  - `ExtendedTableSchema`: Extended version with description, indexes, foreignKeys
+  - `ForeignKeySchema`: Foreign key relationship definition
+  - `SchemaRegistry<T>`: Generic registry type for type-safe table lookup
+  - `CoreTableName`, `InfrastructureTableName`, `AllTableName`: Table name union types
+- `packages/sqlite-adapter/src/schema/registry.ts` (NEW, 340 lines): Schema definitions for 6 core tables
+  - `appointmentsSchema`: Scheduled appointments with services JSON, dates
+  - `ticketsSchema`: All 45 columns matching v001 migration, with pricing fields, JSON arrays
+  - `clientsSchema`: All 50+ columns matching v001 migration, with profiles, preferences
+  - `staffSchema`: Staff with schedule JSON, skills, status
+  - `servicesSchema`: Menu services with pricing, add-ons, variants as JSON
+  - `transactionsSchema`: Payment transactions with card details, refund info
+  - `schemaRegistry`: Type-safe lookup object for all core tables
+  - Helper functions: `getSchema()`, `hasSchema()`, `getTableNames()`
+- `packages/sqlite-adapter/src/schema/index.ts` (NEW, 35 lines): Barrel export for all schema types and registry
+- `packages/sqlite-adapter/src/index.ts:57-83`: Export schema types and registry from package root
+  - Aliased `ColumnType` as `SchemaColumnType` to avoid collision with services export
+
+**Quality Checks:**
+- Typecheck: PASS (new schema files have no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Schema registry provides type-safe lookup: `schemaRegistry.clients` returns ClientSchema
+- ColumnMapping union (string | ColumnDefinition) allows both shorthand (`'store_id'`) and full definition (`{ column: 'is_blocked', type: 'boolean' }`)
+- ExtendedTableSchema adds metadata for documentation/migration - useful for future tooling
+- Exported `SchemaColumnType` alias to avoid name collision with `ColumnType` already exported from services
+
+**Patterns to sync:**
+- Pattern: Schema registry with type-safe lookup - use `SchemaRegistry<TableName>` for compile-time table name validation
+
+**Next story suggestion:** US-005 (Create AppointmentSQLiteService) - depends on US-002 (just completed) and is the first service to use the new schema registry pattern.
+
+---

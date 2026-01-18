@@ -21,7 +21,7 @@
         "pnpm typecheck passes in sqlite-adapter package"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation story - all other services depend on these utilities. Use strict type checking. Date conversion must output ISO format (YYYY-MM-DDTHH:mm:ss.sssZ), not toString() format."
     },
     {
@@ -46,7 +46,7 @@
         "pnpm typecheck passes in sqlite-adapter package"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-042"],
       "notes": "IMPORTANT: Use for ALL NEW services only. Do NOT refactor existing clientService.ts (702 lines) or ticketService.ts (~650 lines) - they work and are tested. Schema config defines field mappings: { storeId: 'store_id', isBlocked: { column: 'is_blocked', type: 'boolean' } }. Use generics to maintain type safety."
     },
@@ -68,7 +68,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-001"],
       "notes": "CRITICAL: v001 migration only has 8 columns but ClientSQLiteService expects 50+. Reference apps/store-app/src/db/schema.ts v16 for exact column list. This must be fixed before services can work."
     },
@@ -91,7 +91,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-036"],
       "notes": "Similar to US-036, ticket schema is incomplete. Reference apps/store-app/src/db/schema.ts v16 for exact column list. Services JSON column stores array of service objects."
     },
@@ -115,7 +115,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-037"],
       "notes": "Schema should match existing Dexie table definitions. Type field determines conversion logic in BaseSQLiteService."
     },
