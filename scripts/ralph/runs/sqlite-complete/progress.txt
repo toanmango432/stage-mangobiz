@@ -1333,3 +1333,54 @@ Commit: 1894de6
 **Next story suggestion:** US-025 (Add migration v008 for gift card tables) - depends on US-024 (just completed) and creates the SQLite schema for all gift card services.
 
 ---
+
+## 2026-01-17 - US-025: Add migration v008 for gift card tables
+Commit: bbfedf8
+
+**Why this story?** US-025 is the only story with all dependencies satisfied. It depends on US-024 (just completed) and creates the SQLite schema for the 5 gift card services. Same file category (migrations) keeps the code fresh in context.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v008_giftcards.ts` (NEW, 297 lines): Gift card tables migration
+  - `gift_card_denominations`: Preset gift card amounts for quick sale
+    - id, store_id, amount, label, is_active, display_order
+    - Indexes: store, store+active, store+order
+  - `gift_card_settings`: Per-store gift card configuration
+    - store_id UNIQUE constraint for single settings per store
+    - Amount settings: allow_custom_amount, min_amount, max_amount
+    - Features: default_expiration_days, online_enabled, email_delivery_enabled
+    - Index: store
+  - `gift_cards`: Gift card entities with balance tracking
+    - code TEXT NOT NULL with UNIQUE index across entire table
+    - Balance: original_amount, current_balance
+    - Purchaser: purchaser_id, purchaser_name
+    - Recipient: recipient_name, recipient_email, recipient_phone, message
+    - Delivery: delivery_method, scheduled_delivery_at, delivered_at
+    - Status: status, issued_at, expires_at, last_used_at
+    - Indexes: code (UNIQUE), store, store+status, store+created, purchaser, store+expires, store+delivered
+  - `gift_card_transactions`: Transaction history for balance changes
+    - gift_card_id foreign key reference
+    - Transaction: type, amount (signed), balance_after
+    - Link: ticket_id, staff_id, staff_name
+    - Indexes: store, card, ticket, store+created, store+type, card+created
+  - `gift_card_designs`: Design templates for gift cards
+    - Design: name, description, image_url, thumbnail_url
+    - Category: category, is_default, background_color, text_color
+    - Indexes: store, store+active, store+category, store+default, store+order
+  - `down()` function drops all 5 tables and ~25 indexes in reverse order
+- `packages/sqlite-adapter/src/migrations/index.ts:26`: Export migration_008
+
+**Quality Checks:**
+- Typecheck: PASS (v008_giftcards.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any')
+
+**Learnings:**
+- Gift card code uses UNIQUE index (not compound with store_id) to ensure codes are globally unique for redemption lookup
+- Gift card settings uses store_id UNIQUE constraint since there's only one settings record per store
+- Transaction amounts are signed (positive for purchase/reload, negative for redeem/void/refund) so SUM gives correct balance
+
+**Patterns to sync:** None new - follows established migration patterns from v007
+
+**Next story suggestion:** US-026 (Wire all remaining services to dataService) - depends on US-025 (just completed) and is the final wiring story to route all remaining tables (catalog, scheduling, gift cards) to SQLite.
+
+---

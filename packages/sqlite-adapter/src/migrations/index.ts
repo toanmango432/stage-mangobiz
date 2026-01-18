@@ -23,6 +23,7 @@ export { migration_004 } from './v004_infrastructure';
 export { migration_005 } from './v005_team_crm';
 export { migration_006 } from './v006_catalog';
 export { migration_007 } from './v007_scheduling';
+export { migration_008 } from './v008_giftcards';
 
 /**
  * Create the _migrations tracking table if it doesn't exist

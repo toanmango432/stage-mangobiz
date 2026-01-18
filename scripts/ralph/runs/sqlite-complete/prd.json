@@ -707,7 +707,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-024"],
       "notes": "Gift card code must be unique across store. Transactions link to both card and ticket (when used in checkout)."
     },
