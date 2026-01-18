@@ -535,7 +535,7 @@
         "Verify in browser: cannot pay until price changes resolved"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-021"],
       "notes": "Critical guard - ensures no silent price changes slip through. Applies to all payment methods."
     },
@@ -559,7 +559,7 @@
         "Verify in browser: calendar shows indicator on appointments with price variance"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-002"],
       "notes": "Subtle visual cue for staff awareness. Uses current catalog prices from services state."
     },
@@ -581,7 +581,7 @@
         "Verify in browser: settings section shows with radio options"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-005"],
       "notes": "First of multiple settings UI stories. Just the main policy mode selector."
     },

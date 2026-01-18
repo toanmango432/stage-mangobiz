@@ -627,6 +627,61 @@ export function CheckoutPaymentsSettings() {
             </label>
           ))}
         </div>
+
+        {/* Additional pricing policy options */}
+        <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="font-medium text-gray-900">Auto-apply lower prices</p>
+              <p className="text-sm text-gray-500">
+                When catalog price drops below booked price, automatically charge the lower price
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.autoApplyLowerPrice}
+              onChange={(checked) => handlePricingPolicyChange('autoApplyLowerPrice', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
+            <div>
+              <p className="font-medium text-gray-900">Show price difference alert</p>
+              <p className="text-sm text-gray-500">
+                Alert staff when service prices differ between booking and checkout
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.showPriceVarianceAlert}
+              onChange={(checked) => handlePricingPolicyChange('showPriceVarianceAlert', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
+            <div>
+              <p className="font-medium text-gray-900">Allow staff override</p>
+              <p className="text-sm text-gray-500">
+                Let staff change the price from the default policy at checkout
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.allowStaffOverride}
+              onChange={(checked) => handlePricingPolicyChange('allowStaffOverride', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
+            <div>
+              <p className="font-medium text-gray-900">Require override reason</p>
+              <p className="text-sm text-gray-500">
+                Staff must enter a reason when overriding the price policy
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.requireOverrideReason}
+              onChange={(checked) => handlePricingPolicyChange('requireOverrideReason', checked)}
+            />
+          </div>
+        </div>
       </SettingsSection>
 
       {/* Payment Methods */}

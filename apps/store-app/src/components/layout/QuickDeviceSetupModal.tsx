@@ -7,8 +7,8 @@
  * Updated: US-009 - Add new device flow with forms
  */
 
-import { useState } from 'react';
-import { X, Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink, QrCode, Keyboard } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
@@ -60,6 +60,13 @@ import {
 } from '@/components/ui/Select';
 import { DeviceStatusRow } from './DeviceStatusRow';
 import type { DeviceStatusRowStatus, DeviceStatusRowType } from './DeviceStatusRow';
+import { selectStoreId } from '@/store/slices/authSlice';
+import {
+  registerDevice,
+  regeneratePairingCode,
+  formatPairingCode,
+  getStoredPairingCode,
+} from '@/services/deviceRegistration';
 
 export interface QuickDeviceSetupModalProps {
   isOpen: boolean;
@@ -80,13 +87,14 @@ export function QuickDeviceSetupModal({
   initialTab = 'status',
 }: QuickDeviceSetupModalProps) {
   const dispatch = useAppDispatch();
+  const storeId = useAppSelector(selectStoreId);
   const [activeTab, setActiveTab] = useState<'status' | 'add'>(initialTab);
   const [deviceToUnpair, setDeviceToUnpair] = useState<DeviceToUnpair | null>(null);
   const [isRetrying, setIsRetrying] = useState<string | null>(null);
 
-  // Add device form state
-  const [padPairingMode, setPadPairingMode] = useState<'qr' | 'code' | null>(null);
-  const [padPairingCode, setPadPairingCode] = useState('');
+  // Mango Pad pairing state
+  const [storePairingCode, setStorePairingCode] = useState<string | null>(null);
+  const [isPairingCodeLoading, setIsPairingCodeLoading] = useState(false);
 
   const [hardwareForm, setHardwareForm] = useState({
     name: '',
@@ -101,6 +109,61 @@ export function QuickDeviceSetupModal({
     terminalId: '',
   });
   const [isAddingTerminal, setIsAddingTerminal] = useState(false);
+
+  // Fetch pairing code when Add tab is shown
+  useEffect(() => {
+    const fetchPairingCode = async () => {
+      // Check for stored code first
+      const storedCode = getStoredPairingCode();
+      if (storedCode) {
+        setStorePairingCode(storedCode);
+        return;
+      }
+
+      // If no stored code and we have storeId, register device to get code
+      if (storeId && activeTab === 'add') {
+        setIsPairingCodeLoading(true);
+        try {
+          const result = await registerDevice(storeId);
+          if (result.success) {
+            setStorePairingCode(result.pairingCode);
+          } else {
+            console.error('[QuickDeviceSetupModal] Failed to get pairing code:', result.error);
+          }
+        } catch (error) {
+          console.error('[QuickDeviceSetupModal] Error fetching pairing code:', error);
+        }
+        setIsPairingCodeLoading(false);
+      }
+    };
+
+    if (isOpen && activeTab === 'add') {
+      fetchPairingCode();
+    }
+  }, [isOpen, activeTab, storeId]);
+
+  // Handle refresh pairing code
+  const handleRefreshPairingCode = async () => {
+    if (!storeId) {
+      toast.error('Store ID not available');
+      return;
+    }
+
+    setIsPairingCodeLoading(true);
+    try {
+      const result = await regeneratePairingCode(storeId);
+      if (result.success) {
+        setStorePairingCode(result.pairingCode);
+        toast.success('New pairing code generated');
+      } else {
+        toast.error(result.error || 'Failed to generate new code');
+      }
+    } catch (error) {
+      console.error('[QuickDeviceSetupModal] Error refreshing pairing code:', error);
+      toast.error('Failed to refresh pairing code');
+    }
+    setIsPairingCodeLoading(false);
+  };
 
   // Pad devices
   const connectedPads = useAppSelector(getConnectedPads);
@@ -523,74 +586,38 @@ export function QuickDeviceSetupModal({
                   </div>
                 </div>
 
-                {padPairingMode === null ? (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => setPadPairingMode('qr')}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
-                    >
-                      <QrCode className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm font-medium text-gray-700">Scan QR Code</span>
-                    </button>
-                    <button
-                      onClick={() => setPadPairingMode('code')}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
-                    >
-                      <Keyboard className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm font-medium text-gray-700">Enter Code</span>
-                    </button>
-                  </div>
-                ) : padPairingMode === 'qr' ? (
-                  <div className="mt-3 space-y-3">
-                    <div className="p-4 bg-white rounded-lg border border-gray-200 text-center">
-                      <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-                        <QrCode className="w-16 h-16 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Open the Mango Pad app and scan this QR code
-                      </p>
+                {/* Display pairing code for Mango Pad */}
+                <div className="mt-3 space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Enter this code on your Mango Pad to pair:
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="text-3xl font-mono font-bold tracking-widest bg-white px-6 py-3 rounded-lg border border-gray-200">
+                      {isPairingCodeLoading ? (
+                        <span className="text-gray-400">---</span>
+                      ) : storePairingCode ? (
+                        formatPairingCode(storePairingCode)
+                      ) : (
+                        <span className="text-gray-400">------</span>
+                      )}
                     </div>
                     <button
-                      onClick={() => setPadPairingMode(null)}
-                      className="w-full text-sm text-gray-500 hover:text-gray-700"
+                      onClick={handleRefreshPairingCode}
+                      disabled={isPairingCodeLoading}
+                      className="p-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      title="Generate new code"
                     >
-                      ← Back to pairing options
+                      {isPairingCodeLoading ? (
+                        <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-5 h-5 text-purple-600" />
+                      )}
                     </button>
                   </div>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    <div className="space-y-2">
-                      <label className="block text-xs font-medium text-gray-700">
-                        Enter pairing code from Mango Pad
-                      </label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="Enter 6-digit code"
-                          value={padPairingCode}
-                          onChange={(e) => setPadPairingCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          className="flex-1 text-center text-lg tracking-widest font-mono"
-                          maxLength={6}
-                        />
-                        <button
-                          disabled={padPairingCode.length !== 6}
-                          className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Pair
-                        </button>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setPadPairingMode(null);
-                        setPadPairingCode('');
-                      }}
-                      className="w-full text-sm text-gray-500 hover:text-gray-700"
-                    >
-                      ← Back to pairing options
-                    </button>
-                  </div>
-                )}
+                  <p className="text-xs text-gray-500 text-center">
+                    The device will appear automatically once paired via MQTT
+                  </p>
+                </div>
               </div>
 
               {/* Hardware Section */}
