@@ -352,6 +352,13 @@ export interface CheckoutTicketService {
    * Indicates if price is locked due to deposit payment.
    */
   depositLocked?: boolean;
+
+  /**
+   * Indicates if this service comes from an archived catalog item.
+   * Archived services can still be checked out but are marked as "DISCONTINUED"
+   * to indicate they are no longer available for new bookings.
+   */
+  isArchived?: boolean;
 }
 
 /**

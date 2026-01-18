@@ -44,6 +44,8 @@ export interface TicketService {
   status: ServiceStatus;
   startTime?: Date;
   notes?: string;
+  /** Indicates if this service is from an archived catalog item */
+  isArchived?: boolean;
   /** Metadata for special item types (gift cards, etc.) */
   metadata?: {
     type?: 'gift_card' | 'package' | 'product';

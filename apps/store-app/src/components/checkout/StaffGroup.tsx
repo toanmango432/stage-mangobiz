@@ -29,6 +29,7 @@ import {
   ArrowLeft,
   Copy,
   Clock,
+  Archive,
   // Plus removed - Add Service button no longer used
 } from "lucide-react";
 import { TicketService, ServiceStatus } from "./ServiceList";
@@ -211,6 +212,17 @@ function ServiceItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="font-medium text-sm truncate">{service.serviceName}</h4>
+            {/* DISCONTINUED badge for archived services */}
+            {service.isArchived && (
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 flex-shrink-0"
+                data-testid={`badge-discontinued-${service.id}`}
+                title="This service is no longer available for new bookings"
+              >
+                <Archive className="h-2.5 w-2.5" />
+                Discontinued
+              </span>
+            )}
             <span className="text-xs text-muted-foreground flex-shrink-0">
               <Clock className="h-3 w-3 inline mr-0.5" />
               {service.duration}m

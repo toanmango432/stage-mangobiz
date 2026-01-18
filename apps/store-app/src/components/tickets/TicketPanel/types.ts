@@ -40,6 +40,8 @@ export interface TicketService {
   pausedAt?: string;
   totalPausedDuration?: number;
   notes?: string;
+  /** Indicates if this service is from an archived catalog item */
+  isArchived?: boolean;
 }
 
 // Product on a ticket
