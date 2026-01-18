@@ -261,6 +261,41 @@ export interface CheckoutTicketService {
   depositLocked?: boolean;
 }
 
+/**
+ * Payload for resolving a price change on a single service.
+ * Used by applyPriceResolutions action to update service prices.
+ *
+ * @example
+ * const resolution: PriceResolutionPayload = {
+ *   serviceId: 'service-123',
+ *   finalPrice: 55.00,
+ *   priceDecision: 'catalog_applied',
+ * };
+ */
+export interface PriceResolutionPayload {
+  /** ID of the service to update */
+  serviceId: string;
+  /** The final price to charge for this service */
+  finalPrice: number;
+  /** How this price was determined */
+  priceDecision: PriceDecision;
+  /** Optional reason for price override (required if priceDecision is 'manual_override') */
+  priceOverrideReason?: string;
+  /** Staff ID who performed the override */
+  priceOverrideBy?: string;
+}
+
+/**
+ * Payload for applyPriceResolutions action.
+ * Contains the ticket ID and array of service resolutions.
+ */
+export interface ApplyPriceResolutionsPayload {
+  /** ID of the ticket to update */
+  ticketId: string;
+  /** Array of price resolutions, one per service that needs updating */
+  resolutions: PriceResolutionPayload[];
+}
+
 // Input for creating/updating checkout tickets
 export interface CheckoutTicketInput {
   clientId?: string;
@@ -2035,12 +2070,12 @@ const uiTicketsSlice = createSlice({
     // Real-time update from Socket.io
     ticketUpdated: (state, action: PayloadAction<UITicket>) => {
       const ticket = action.payload;
-      
+
       // Remove from all lists
       state.waitlist = state.waitlist.filter(t => t.id !== ticket.id);
       state.serviceTickets = state.serviceTickets.filter(t => t.id !== ticket.id);
       state.completedTickets = state.completedTickets.filter(t => t.id !== ticket.id);
-      
+
       // Add to appropriate list
       if (ticket.status === 'waiting') {
         state.waitlist.push(ticket);
@@ -2049,6 +2084,77 @@ const uiTicketsSlice = createSlice({
       } else if (ticket.status === 'completed') {
         state.completedTickets.push(ticket);
       }
+    },
+    /**
+     * Apply price resolutions to services in a pending ticket.
+     * Updates each service's price, priceDecision, and variance fields.
+     * Also recalculates ticket subtotal after applying all resolutions.
+     *
+     * @param state - Current UITickets state
+     * @param action - Payload containing ticketId and array of resolutions
+     */
+    applyPriceResolutions: (
+      state,
+      action: PayloadAction<ApplyPriceResolutionsPayload>
+    ) => {
+      const { ticketId, resolutions } = action.payload;
+
+      // Find the pending ticket
+      const ticketIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
+      if (ticketIndex === -1) {
+        console.warn('⚠️ Ticket not found for price resolution:', ticketId);
+        return;
+      }
+
+      const ticket = state.pendingTickets[ticketIndex];
+      if (!ticket.checkoutServices || ticket.checkoutServices.length === 0) {
+        console.warn('⚠️ Ticket has no checkout services:', ticketId);
+        return;
+      }
+
+      // Apply each resolution to the corresponding service
+      for (const resolution of resolutions) {
+        const serviceIndex = ticket.checkoutServices.findIndex(
+          s => s.id === resolution.serviceId
+        );
+        if (serviceIndex === -1) {
+          console.warn('⚠️ Service not found in ticket:', resolution.serviceId);
+          continue;
+        }
+
+        const service = ticket.checkoutServices[serviceIndex];
+        const bookedPrice = service.bookedPrice ?? service.price;
+
+        // Calculate variance
+        const priceVariance = resolution.finalPrice - bookedPrice;
+        const priceVariancePercent =
+          bookedPrice > 0 ? (priceVariance / bookedPrice) * 100 : 0;
+
+        // Update service with resolution
+        ticket.checkoutServices[serviceIndex] = {
+          ...service,
+          price: resolution.finalPrice,
+          priceDecision: resolution.priceDecision,
+          priceVariance,
+          priceVariancePercent: Math.round(priceVariancePercent * 100) / 100,
+          ...(resolution.priceOverrideReason && {
+            priceOverrideReason: resolution.priceOverrideReason,
+          }),
+          ...(resolution.priceOverrideBy && {
+            priceOverrideBy: resolution.priceOverrideBy,
+          }),
+        };
+      }
+
+      // Recalculate subtotal from all service prices
+      const newSubtotal = ticket.checkoutServices.reduce(
+        (sum, service) => sum + service.price,
+        0
+      );
+      ticket.subtotal = newSubtotal;
+
+      // Update the ticket in state
+      state.pendingTickets[ticketIndex] = ticket;
     },
   },
   extraReducers: (builder) => {
@@ -2415,7 +2521,15 @@ const uiTicketsSlice = createSlice({
   },
 });
 
-export const { clearError, ticketUpdated, setPendingTickets, reorderWaitlist, setWaitlistOrder, removePendingTicket } = uiTicketsSlice.actions;
+export const {
+  clearError,
+  ticketUpdated,
+  setPendingTickets,
+  reorderWaitlist,
+  setWaitlistOrder,
+  removePendingTicket,
+  applyPriceResolutions,
+} = uiTicketsSlice.actions;
 
 // Selectors
 export const selectWaitlist = (state: RootState) => state.uiTickets.waitlist;
