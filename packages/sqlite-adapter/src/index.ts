@@ -50,6 +50,14 @@ export {
   type AppointmentStatus as SQLiteAppointmentStatus,
   type BookingSource as SQLiteBookingSource,
   type AppointmentRow as SQLiteAppointmentRow,
+  // Transaction service
+  TransactionSQLiteService,
+  type Transaction as SQLiteTransaction,
+  type TransactionRow as SQLiteTransactionRow,
+  type TransactionTotals as SQLiteTransactionTotals,
+  type TotalsByPaymentMethod as SQLiteTotalsByPaymentMethod,
+  type PaymentMethod as SQLitePaymentMethod,
+  type TransactionStatus as SQLiteTransactionStatus,
 } from './services';
 
 // Type conversion utilities

@@ -44,3 +44,14 @@ export {
   type BookingSource,
   type AppointmentRow,
 } from './appointmentService';
+
+// Transaction service
+export {
+  TransactionSQLiteService,
+  type Transaction,
+  type TransactionRow,
+  type TransactionTotals,
+  type TotalsByPaymentMethod,
+  type PaymentMethod,
+  type TransactionStatus,
+} from './transactionService';
