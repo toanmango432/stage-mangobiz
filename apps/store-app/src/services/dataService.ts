@@ -39,7 +39,33 @@ import {
   loyaltyRewardsDB,
   reviewRequestsDB,
   customSegmentsDB,
+  giftCardsDB,
 } from '@/db/database';
+
+// Catalog operations
+import {
+  serviceCategoriesDB,
+  menuServicesDB,
+  serviceVariantsDB,
+  servicePackagesDB,
+  addOnGroupsDB,
+  addOnOptionsDB,
+  staffServiceAssignmentsDB,
+  catalogSettingsDB,
+  productsDB,
+} from '@/db/catalogDatabase';
+
+// Scheduling operations
+import {
+  timeOffTypesDB,
+  timeOffRequestsDB,
+  blockedTimeTypesDB,
+  blockedTimeEntriesDB,
+  businessClosedPeriodsDB,
+  resourcesDB,
+  resourceBookingsDB,
+  staffSchedulesDB,
+} from '@/db/scheduleDatabase';
 
 // SQLite: Import SQLite service wrappers (lazy initialized)
 import {
@@ -60,6 +86,31 @@ import {
   sqliteLoyaltyRewardsDB,
   sqliteReviewRequestsDB,
   sqliteCustomSegmentsDB,
+  // Catalog services
+  sqliteServiceCategoriesDB,
+  sqliteMenuServicesDB,
+  sqliteServiceVariantsDB,
+  sqliteServicePackagesDB,
+  sqliteAddOnGroupsDB,
+  sqliteAddOnOptionsDB,
+  sqliteStaffServiceAssignmentsDB,
+  sqliteCatalogSettingsDB,
+  sqliteProductsDB,
+  // Scheduling services
+  sqliteTimeOffTypesDB,
+  sqliteTimeOffRequestsDB,
+  sqliteBlockedTimeTypesDB,
+  sqliteBlockedTimeEntriesDB,
+  sqliteBusinessClosedPeriodsDB,
+  sqliteResourcesDB,
+  sqliteResourceBookingsDB,
+  sqliteStaffSchedulesDB,
+  // Gift card services
+  sqliteGiftCardDenominationsDB,
+  sqliteGiftCardSettingsDB,
+  sqliteGiftCardsDB,
+  sqliteGiftCardTransactionsDB,
+  sqliteGiftCardDesignsDB,
 } from '@/services/sqliteServices';
 
 // API-FIRST: Import API client and endpoints
@@ -1882,6 +1933,1081 @@ export const syncQueueService = {
   },
 };
 
+// ==================== CATALOG SERVICES ====================
+
+const serviceCategoriesService = {
+  async getAll(storeId: string, includeInactive = false) {
+    if (USE_SQLITE) {
+      return sqliteServiceCategoriesDB.getAll(storeId, includeInactive);
+    }
+    return serviceCategoriesDB.getAll(storeId, includeInactive);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceCategoriesDB.getById(id);
+    }
+    return serviceCategoriesDB.getById(id);
+  },
+
+  async create(input: unknown, userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceCategoriesDB.create(input);
+    }
+    return serviceCategoriesDB.create(input as Parameters<typeof serviceCategoriesDB.create>[0], userId, storeId);
+  },
+
+  async update(id: string, updates: unknown, userId: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceCategoriesDB.update(id, updates);
+    }
+    return serviceCategoriesDB.update(id, updates as Partial<unknown>, userId);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceCategoriesDB.delete(id);
+    }
+    return serviceCategoriesDB.delete(id);
+  },
+};
+
+const menuServicesService = {
+  async getAll(storeId: string, includeInactive = false) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.getAll(storeId, includeInactive);
+    }
+    return menuServicesDB.getAll(storeId, includeInactive);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.getById(id);
+    }
+    return menuServicesDB.getById(id);
+  },
+
+  async getByCategory(storeId: string, categoryId: string) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.getByCategory(storeId, categoryId);
+    }
+    return menuServicesDB.getByCategory(storeId, categoryId);
+  },
+
+  async create(input: unknown, userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.create(input);
+    }
+    return menuServicesDB.create(input as Parameters<typeof menuServicesDB.create>[0], userId, storeId);
+  },
+
+  async update(id: string, updates: unknown, userId: string) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.update(id, updates);
+    }
+    return menuServicesDB.update(id, updates as Partial<unknown>, userId);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.delete(id);
+    }
+    return menuServicesDB.delete(id);
+  },
+
+  async search(storeId: string, query: string) {
+    if (USE_SQLITE) {
+      return sqliteMenuServicesDB.search(storeId, query);
+    }
+    return menuServicesDB.search(storeId, query);
+  },
+};
+
+const serviceVariantsService = {
+  async getByService(serviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceVariantsDB.getByService(serviceId);
+    }
+    return serviceVariantsDB.getByService(serviceId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceVariantsDB.getById(id);
+    }
+    return serviceVariantsDB.getById(id);
+  },
+
+  async create(input: unknown, _userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceVariantsDB.create(input);
+    }
+    // Dexie API: create(input, storeId) - no userId
+    return serviceVariantsDB.create(input as Parameters<typeof serviceVariantsDB.create>[0], storeId);
+  },
+
+  async update(id: string, updates: unknown, _userId: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceVariantsDB.update(id, updates);
+    }
+    // Dexie API: update(id, updates) - no userId
+    return serviceVariantsDB.update(id, updates as Partial<unknown>);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteServiceVariantsDB.delete(id);
+    }
+    return serviceVariantsDB.delete(id);
+  },
+};
+
+const servicePackagesService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteServicePackagesDB.getAll(storeId);
+    }
+    return servicePackagesDB.getAll(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteServicePackagesDB.getById(id);
+    }
+    return servicePackagesDB.getById(id);
+  },
+
+  async create(input: unknown, userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteServicePackagesDB.create(input);
+    }
+    return servicePackagesDB.create(input as Parameters<typeof servicePackagesDB.create>[0], userId, storeId);
+  },
+
+  async update(id: string, updates: unknown, userId: string) {
+    if (USE_SQLITE) {
+      return sqliteServicePackagesDB.update(id, updates);
+    }
+    return servicePackagesDB.update(id, updates as Partial<unknown>, userId);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteServicePackagesDB.delete(id);
+    }
+    return servicePackagesDB.delete(id);
+  },
+
+  // Note: search not available in Dexie servicePackagesDB - can be added later if needed
+};
+
+const addOnGroupsService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnGroupsDB.getAll(storeId);
+    }
+    return addOnGroupsDB.getAll(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnGroupsDB.getById(id);
+    }
+    return addOnGroupsDB.getById(id);
+  },
+
+  async create(input: unknown, _userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnGroupsDB.create(input);
+    }
+    // Dexie API: create(input, storeId) - no userId
+    return addOnGroupsDB.create(input as Parameters<typeof addOnGroupsDB.create>[0], storeId);
+  },
+
+  async update(id: string, updates: unknown, _userId: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnGroupsDB.update(id, updates);
+    }
+    // Dexie API: update(id, updates) - no userId
+    return addOnGroupsDB.update(id, updates as Partial<unknown>);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnGroupsDB.delete(id);
+    }
+    return addOnGroupsDB.delete(id);
+  },
+};
+
+const addOnOptionsService = {
+  async getByGroup(groupId: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnOptionsDB.getByGroup(groupId);
+    }
+    return addOnOptionsDB.getByGroup(groupId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnOptionsDB.getById(id);
+    }
+    return addOnOptionsDB.getById(id);
+  },
+
+  async create(input: unknown, _userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnOptionsDB.create(input);
+    }
+    // Dexie API: create(input, storeId) - no userId
+    return addOnOptionsDB.create(input as Parameters<typeof addOnOptionsDB.create>[0], storeId);
+  },
+
+  async update(id: string, updates: unknown, _userId: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnOptionsDB.update(id, updates);
+    }
+    // Dexie API: update(id, updates) - no userId
+    return addOnOptionsDB.update(id, updates as Partial<unknown>);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteAddOnOptionsDB.delete(id);
+    }
+    return addOnOptionsDB.delete(id);
+  },
+};
+
+const staffServiceAssignmentsService = {
+  async getByStaff(storeId: string, staffId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffServiceAssignmentsDB.getByStaff(staffId);
+    }
+    // Dexie API: getByStaff(storeId, staffId)
+    return staffServiceAssignmentsDB.getByStaff(storeId, staffId);
+  },
+
+  async getByService(storeId: string, serviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffServiceAssignmentsDB.getByService(serviceId);
+    }
+    // Dexie API: getByService(storeId, serviceId)
+    return staffServiceAssignmentsDB.getByService(storeId, serviceId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffServiceAssignmentsDB.getById(id);
+    }
+    return staffServiceAssignmentsDB.getById(id);
+  },
+
+  async create(input: unknown, _userId: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffServiceAssignmentsDB.create(input);
+    }
+    // Dexie API: create(input, storeId) - no userId
+    return staffServiceAssignmentsDB.create(input as Parameters<typeof staffServiceAssignmentsDB.create>[0], storeId);
+  },
+
+  async update(id: string, updates: unknown, _userId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffServiceAssignmentsDB.update(id, updates);
+    }
+    // Dexie API: update(id, updates) - no userId
+    return staffServiceAssignmentsDB.update(id, updates as Partial<unknown>);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffServiceAssignmentsDB.delete(id);
+    }
+    return staffServiceAssignmentsDB.delete(id);
+  },
+};
+
+const catalogSettingsService = {
+  async get(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteCatalogSettingsDB.get(storeId);
+    }
+    return catalogSettingsDB.get(storeId);
+  },
+
+  async set(storeId: string, settings: unknown, _userId: string) {
+    if (USE_SQLITE) {
+      return sqliteCatalogSettingsDB.set(storeId, settings);
+    }
+    // Dexie API: update(storeId, updates) - no userId
+    return catalogSettingsDB.update(storeId, settings as Partial<unknown>);
+  },
+};
+
+const productsService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getAll(storeId);
+    }
+    return productsDB.getAll(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getById(id);
+    }
+    return productsDB.getById(id);
+  },
+
+  async getByCategory(storeId: string, categoryId: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getByCategory(storeId, categoryId);
+    }
+    return productsDB.getByCategory(storeId, categoryId);
+  },
+
+  async create(input: unknown, _userId: string, storeId: string, tenantId?: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.create(input);
+    }
+    // Dexie API: create(data, storeId, tenantId) - no userId
+    return productsDB.create(input as Parameters<typeof productsDB.create>[0], storeId, tenantId || storeId);
+  },
+
+  async update(id: string, updates: unknown, _userId: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.update(id, updates);
+    }
+    // Dexie API: update(id, changes) - no userId
+    return productsDB.update(id, updates as Partial<unknown>);
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.delete(id);
+    }
+    return productsDB.delete(id);
+  },
+
+  // Note: search not available in Dexie productsDB
+
+  async getBySku(storeId: string, sku: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getBySku(storeId, sku);
+    }
+    return productsDB.getBySku(storeId, sku);
+  },
+
+  async getByBarcode(storeId: string, barcode: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getByBarcode(barcode);
+    }
+    // Dexie API: getByBarcode(storeId, barcode)
+    return productsDB.getByBarcode(storeId, barcode);
+  },
+
+  async getCategories(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getCategories(storeId);
+    }
+    return productsDB.getCategories(storeId);
+  },
+
+  async getRetail(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteProductsDB.getRetail(storeId);
+    }
+    return productsDB.getRetail(storeId);
+  },
+};
+
+// ==================== SCHEDULING SERVICES ====================
+
+const timeOffTypesService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.getAll(storeId);
+    }
+    return timeOffTypesDB.getAll(storeId);
+  },
+
+  async getAllIncludingInactive(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.getAllIncludingInactive(storeId);
+    }
+    return timeOffTypesDB.getAllIncludingInactive(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.getById(id);
+    }
+    return timeOffTypesDB.getById(id);
+  },
+
+  async getByCode(storeId: string, code: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.getByCode(storeId, code);
+    }
+    return timeOffTypesDB.getByCode(storeId, code);
+  },
+
+  async create(input: unknown, userId: string, storeId: string, tenantId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.create(input);
+    }
+    return timeOffTypesDB.create(input as Parameters<typeof timeOffTypesDB.create>[0], userId, storeId, tenantId, deviceId);
+  },
+
+  async update(id: string, updates: unknown, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.update(id, updates);
+    }
+    return timeOffTypesDB.update(id, updates as Parameters<typeof timeOffTypesDB.update>[1], userId, deviceId);
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffTypesDB.delete(id);
+    }
+    return timeOffTypesDB.delete(id, userId, deviceId);
+  },
+};
+
+const timeOffRequestsService = {
+  async getByStaff(staffId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.getByStaff(staffId);
+    }
+    return timeOffRequestsDB.getByStaff(staffId);
+  },
+
+  async getAll(storeId: string, filters?: { status?: string; staffId?: string; dateRange?: string }) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.getAll(storeId);
+    }
+    return timeOffRequestsDB.getAll(storeId, filters as Parameters<typeof timeOffRequestsDB.getAll>[1]);
+  },
+
+  async getPendingCount(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.getPendingCount(storeId);
+    }
+    return timeOffRequestsDB.getPendingCount(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.getById(id);
+    }
+    return timeOffRequestsDB.getById(id);
+  },
+
+  async create(
+    input: unknown,
+    typeDetails: { name: string; emoji: string; color: string; isPaid: boolean; requiresApproval: boolean },
+    totalHours: number,
+    totalDays: number,
+    conflictingAppointmentIds: string[],
+    userId: string,
+    storeId: string,
+    tenantId: string,
+    deviceId: string
+  ) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.create(input);
+    }
+    return timeOffRequestsDB.create(
+      input as Parameters<typeof timeOffRequestsDB.create>[0],
+      typeDetails,
+      totalHours,
+      totalDays,
+      conflictingAppointmentIds,
+      userId,
+      storeId,
+      tenantId,
+      deviceId
+    );
+  },
+
+  async approve(id: string, approverName: string, notes: string | null, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.approve(id, approverName, notes, userId, deviceId);
+    }
+    return timeOffRequestsDB.approve(id, approverName, notes, userId, deviceId);
+  },
+
+  async deny(id: string, denierName: string, reason: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.deny(id, denierName, reason, userId, deviceId);
+    }
+    return timeOffRequestsDB.deny(id, denierName, reason, userId, deviceId);
+  },
+
+  async cancel(id: string, reason: string | null, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteTimeOffRequestsDB.cancel(id, reason, userId, deviceId);
+    }
+    return timeOffRequestsDB.cancel(id, reason, userId, deviceId);
+  },
+};
+
+const blockedTimeTypesService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeTypesDB.getAll(storeId);
+    }
+    return blockedTimeTypesDB.getAll(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeTypesDB.getById(id);
+    }
+    return blockedTimeTypesDB.getById(id);
+  },
+
+  async create(input: unknown, userId: string, storeId: string, tenantId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeTypesDB.create(input);
+    }
+    return blockedTimeTypesDB.create(input as Parameters<typeof blockedTimeTypesDB.create>[0], userId, storeId, tenantId, deviceId);
+  },
+
+  async update(id: string, updates: unknown, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeTypesDB.update(id, updates);
+    }
+    return blockedTimeTypesDB.update(id, updates as Parameters<typeof blockedTimeTypesDB.update>[1], userId, deviceId);
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeTypesDB.delete(id);
+    }
+    return blockedTimeTypesDB.delete(id, userId, deviceId);
+  },
+
+  async seedDefaults(storeId: string, tenantId: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeTypesDB.seedDefaults(storeId);
+    }
+    return blockedTimeTypesDB.seedDefaults(storeId, tenantId, userId, deviceId);
+  },
+};
+
+const blockedTimeEntriesService = {
+  async getAll(storeId: string, filters?: { staffId?: string; startDate?: string; endDate?: string }) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.getAll(storeId);
+    }
+    return blockedTimeEntriesDB.getAll(storeId, filters);
+  },
+
+  async getByStaffAndDate(staffId: string, date: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.getByStaffAndDate(staffId, date);
+    }
+    return blockedTimeEntriesDB.getByStaffAndDate(staffId, date);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.getById(id);
+    }
+    return blockedTimeEntriesDB.getById(id);
+  },
+
+  async create(
+    input: unknown,
+    typeDetails: { name: string; emoji: string; color: string; isPaid: boolean },
+    userId: string,
+    storeId: string,
+    tenantId: string,
+    deviceId: string,
+    isManager: boolean
+  ) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.create(input);
+    }
+    return blockedTimeEntriesDB.create(
+      input as Parameters<typeof blockedTimeEntriesDB.create>[0],
+      typeDetails,
+      userId,
+      storeId,
+      tenantId,
+      deviceId,
+      isManager
+    );
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.delete(id);
+    }
+    return blockedTimeEntriesDB.delete(id, userId, deviceId);
+  },
+
+  async getBySeries(seriesId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.getBySeries(seriesId);
+    }
+    return blockedTimeEntriesDB.getBySeries(seriesId);
+  },
+
+  async deleteSeries(seriesId: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBlockedTimeEntriesDB.deleteSeries(seriesId, userId, deviceId);
+    }
+    return blockedTimeEntriesDB.deleteSeries(seriesId, userId, deviceId);
+  },
+};
+
+const businessClosedPeriodsService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.getAll(storeId);
+    }
+    return businessClosedPeriodsDB.getAll(storeId);
+  },
+
+  async getUpcoming(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.getUpcoming(storeId);
+    }
+    return businessClosedPeriodsDB.getUpcoming(storeId);
+  },
+
+  async getForDate(storeId: string, date: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.getForDate(storeId, date);
+    }
+    return businessClosedPeriodsDB.getForDate(storeId, date);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.getById(id);
+    }
+    return businessClosedPeriodsDB.getById(id);
+  },
+
+  async create(input: unknown, userId: string, storeId: string, tenantId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.create(input);
+    }
+    return businessClosedPeriodsDB.create(input as Parameters<typeof businessClosedPeriodsDB.create>[0], userId, storeId, tenantId, deviceId);
+  },
+
+  async update(id: string, updates: unknown, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.update(id, updates);
+    }
+    return businessClosedPeriodsDB.update(id, updates as Partial<Parameters<typeof businessClosedPeriodsDB.create>[0]>, userId, deviceId);
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteBusinessClosedPeriodsDB.delete(id);
+    }
+    return businessClosedPeriodsDB.delete(id, userId, deviceId);
+  },
+};
+
+const resourcesService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.getAll(storeId);
+    }
+    return resourcesDB.getAll(storeId);
+  },
+
+  async getAllIncludingInactive(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.getAllIncludingInactive(storeId);
+    }
+    return resourcesDB.getAllIncludingInactive(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.getById(id);
+    }
+    return resourcesDB.getById(id);
+  },
+
+  async getByCategory(storeId: string, category: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.getByCategory(storeId, category);
+    }
+    return resourcesDB.getByCategory(storeId, category);
+  },
+
+  async create(input: unknown, userId: string, storeId: string, tenantId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.create(input);
+    }
+    return resourcesDB.create(input as Parameters<typeof resourcesDB.create>[0], userId, storeId, tenantId, deviceId);
+  },
+
+  async update(id: string, updates: unknown, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.update(id, updates);
+    }
+    return resourcesDB.update(id, updates as Parameters<typeof resourcesDB.update>[1], userId, deviceId);
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourcesDB.delete(id);
+    }
+    return resourcesDB.delete(id, userId, deviceId);
+  },
+};
+
+const resourceBookingsService = {
+  async getByResource(resourceId: string, startDate: string, endDate: string) {
+    if (USE_SQLITE) {
+      return sqliteResourceBookingsDB.getByResource(resourceId, startDate, endDate);
+    }
+    return resourceBookingsDB.getByResource(resourceId, startDate, endDate);
+  },
+
+  async getByAppointment(appointmentId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourceBookingsDB.getByAppointment(appointmentId);
+    }
+    return resourceBookingsDB.getByAppointment(appointmentId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteResourceBookingsDB.getById(id);
+    }
+    return resourceBookingsDB.getById(id);
+  },
+
+  async create(input: unknown, userId: string, storeId: string, tenantId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourceBookingsDB.create(input);
+    }
+    return resourceBookingsDB.create(input as Parameters<typeof resourceBookingsDB.create>[0], userId, storeId, tenantId, deviceId);
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteResourceBookingsDB.delete(id);
+    }
+    return resourceBookingsDB.delete(id, userId, deviceId);
+  },
+};
+
+const staffSchedulesService = {
+  async getByStaff(staffId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.getByStaff(staffId);
+    }
+    return staffSchedulesDB.getByStaff(staffId);
+  },
+
+  async getCurrentForStaff(staffId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.getCurrentForStaff(staffId);
+    }
+    return staffSchedulesDB.getCurrentForStaff(staffId);
+  },
+
+  async getByStore(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.getByStore(storeId);
+    }
+    return staffSchedulesDB.getByStore(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.getById(id);
+    }
+    return staffSchedulesDB.getById(id);
+  },
+
+  async create(input: unknown, userId: string, storeId: string, tenantId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.create(input);
+    }
+    return staffSchedulesDB.create(input as Parameters<typeof staffSchedulesDB.create>[0], userId, storeId, tenantId, deviceId);
+  },
+
+  async update(id: string, updates: unknown, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.update(id, updates);
+    }
+    return staffSchedulesDB.update(id, updates as Partial<Parameters<typeof staffSchedulesDB.create>[0]>, userId, deviceId);
+  },
+
+  async delete(id: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteStaffSchedulesDB.delete(id);
+    }
+    return staffSchedulesDB.delete(id, userId, deviceId);
+  },
+};
+
+// ==================== GIFT CARD SERVICES ====================
+
+const giftCardDenominationsService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDenominationsDB.getAll(storeId);
+    }
+    // Dexie doesn't have denominations - fallback to empty array
+    return [];
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDenominationsDB.getById(id);
+    }
+    return undefined;
+  },
+
+  async create(input: unknown) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDenominationsDB.create(input);
+    }
+    throw new Error('Gift card denominations not supported in Dexie mode');
+  },
+
+  async update(id: string, updates: unknown) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDenominationsDB.update(id, updates);
+    }
+    throw new Error('Gift card denominations not supported in Dexie mode');
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDenominationsDB.delete(id);
+    }
+    throw new Error('Gift card denominations not supported in Dexie mode');
+  },
+};
+
+const giftCardSettingsService = {
+  async get(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardSettingsDB.get(storeId);
+    }
+    // Dexie doesn't have gift card settings - fallback to undefined
+    return undefined;
+  },
+
+  async set(storeId: string, settings: unknown) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardSettingsDB.set(storeId, settings);
+    }
+    throw new Error('Gift card settings not supported in Dexie mode');
+  },
+};
+
+const giftCardsService = {
+  async getAll(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getAll(storeId);
+    }
+    return giftCardsDB.getAllGiftCards(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getById(id);
+    }
+    return giftCardsDB.getGiftCardById(id);
+  },
+
+  async getByCode(storeId: string, code: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getByCode(storeId, code);
+    }
+    return giftCardsDB.getGiftCardByCode(storeId, code);
+  },
+
+  async getByStatus(storeId: string, status: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getByStatus(storeId, status);
+    }
+    return giftCardsDB.getGiftCardsByStatus(storeId, status as 'active' | 'depleted' | 'expired' | 'voided');
+  },
+
+  async getByPurchaser(storeId: string, purchaserId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.getByPurchaser(storeId, purchaserId);
+    }
+    return giftCardsDB.getGiftCardsByPurchaser(storeId, purchaserId);
+  },
+
+  async issue(
+    input: unknown,
+    storeId: string,
+    userId: string,
+    deviceId: string,
+    tenantId?: string,
+    ticketId?: string
+  ) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.issue(input);
+    }
+    return giftCardsDB.issueGiftCard(
+      input as Parameters<typeof giftCardsDB.issueGiftCard>[0],
+      storeId,
+      userId,
+      deviceId,
+      tenantId,
+      ticketId
+    );
+  },
+
+  async redeem(input: { code: string; amount: number; ticketId: string; staffId: string }, storeId: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.redeem(input);
+    }
+    return giftCardsDB.redeemGiftCard(input, storeId, userId, deviceId);
+  },
+
+  async reload(input: { giftCardId: string; amount: number; ticketId?: string; staffId: string }, storeId: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.reload(input);
+    }
+    return giftCardsDB.reloadGiftCard(input, storeId, userId, deviceId);
+  },
+
+  async update(id: string, updates: unknown, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.update(id, updates);
+    }
+    return giftCardsDB.updateGiftCard(id, updates as Parameters<typeof giftCardsDB.updateGiftCard>[1], userId, deviceId);
+  },
+
+  async void(id: string, reason: string, storeId: string, userId: string, deviceId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.void(id);
+    }
+    return giftCardsDB.voidGiftCard(id, reason, storeId, userId, deviceId);
+  },
+
+  async search(storeId: string, query: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardsDB.search(storeId, query);
+    }
+    // Dexie search fallback - by code or recipient email
+    const byCode = await giftCardsDB.getGiftCardByCode(storeId, query);
+    if (byCode) return [byCode];
+    return giftCardsDB.getGiftCardsByRecipientEmail(storeId, query);
+  },
+};
+
+const giftCardTransactionsService = {
+  async getByCard(giftCardId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardTransactionsDB.getByCard(giftCardId);
+    }
+    return giftCardsDB.getTransactionsByGiftCard(giftCardId);
+  },
+
+  async getByTicket(ticketId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardTransactionsDB.getByTicket(ticketId);
+    }
+    return giftCardsDB.getTransactionsByTicket(ticketId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardTransactionsDB.getById(id);
+    }
+    // Dexie doesn't have direct transaction get by ID
+    return undefined;
+  },
+
+  async create(input: unknown) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardTransactionsDB.create(input);
+    }
+    // Dexie transactions are created via redeem/reload operations
+    throw new Error('Direct transaction creation not supported in Dexie mode');
+  },
+
+  async getByDateRange(storeId: string, start: string, end: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardTransactionsDB.getByDateRange(storeId, start, end);
+    }
+    return giftCardsDB.getTransactionsByDateRange(storeId, start, end);
+  },
+};
+
+const giftCardDesignsService = {
+  async getActive(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.getActive(storeId);
+    }
+    return giftCardsDB.getActiveDesigns(storeId);
+  },
+
+  async getById(id: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.getById(id);
+    }
+    // Dexie doesn't have direct design get by ID, use get from table
+    return undefined;
+  },
+
+  async getDefault(storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.getDefault(storeId);
+    }
+    return giftCardsDB.getDefaultDesign(storeId);
+  },
+
+  async getByCategory(storeId: string, category: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.getByCategory(storeId, category);
+    }
+    return giftCardsDB.getDesignsByCategory(storeId, category as Parameters<typeof giftCardsDB.getDesignsByCategory>[1]);
+  },
+
+  async create(input: unknown) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.create(input);
+    }
+    // Dexie doesn't have design creation in giftCardDB
+    throw new Error('Gift card design creation not supported in Dexie mode');
+  },
+
+  async update(id: string, updates: unknown) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.update(id, updates);
+    }
+    // Dexie doesn't have design update in giftCardDB
+    throw new Error('Gift card design update not supported in Dexie mode');
+  },
+
+  async delete(id: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.delete(id);
+    }
+    // Dexie doesn't have design deletion in giftCardDB
+    throw new Error('Gift card design deletion not supported in Dexie mode');
+  },
+
+  async setDefault(id: string, storeId: string) {
+    if (USE_SQLITE) {
+      return sqliteGiftCardDesignsDB.setDefault(id, storeId);
+    }
+    // Dexie doesn't have setDefaultDesign in giftCardDB
+    throw new Error('Gift card design default setting not supported in Dexie mode');
+  },
+};
+
 // ==================== EXPORTS ====================
 
 // Re-export feature flags for convenience
@@ -1927,6 +3053,34 @@ export const dataService = {
 
   // Team member service (SQLite-only, with fallback to staff)
   teamMembers: teamMembersService,
+
+  // Catalog services
+  serviceCategories: serviceCategoriesService,
+  menuServices: menuServicesService,
+  serviceVariants: serviceVariantsService,
+  servicePackages: servicePackagesService,
+  addOnGroups: addOnGroupsService,
+  addOnOptions: addOnOptionsService,
+  staffServiceAssignments: staffServiceAssignmentsService,
+  catalogSettings: catalogSettingsService,
+  products: productsService,
+
+  // Scheduling services
+  timeOffTypes: timeOffTypesService,
+  timeOffRequests: timeOffRequestsService,
+  blockedTimeTypes: blockedTimeTypesService,
+  blockedTimeEntries: blockedTimeEntriesService,
+  businessClosedPeriods: businessClosedPeriodsService,
+  resources: resourcesService,
+  resourceBookings: resourceBookingsService,
+  staffSchedules: staffSchedulesService,
+
+  // Gift card services
+  giftCardDenominations: giftCardDenominationsService,
+  giftCardSettings: giftCardSettingsService,
+  giftCards: giftCardsService,
+  giftCardTransactions: giftCardTransactionsService,
+  giftCardDesigns: giftCardDesignsService,
 
   // Infrastructure services (settings, sync queue)
   settings: settingsService,

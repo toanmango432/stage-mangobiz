@@ -53,6 +53,31 @@ import {
   LoyaltyRewardSQLiteService,
   ReviewRequestSQLiteService,
   CustomSegmentSQLiteService,
+  // Catalog services
+  ServiceCategorySQLiteService,
+  MenuServiceSQLiteService,
+  ServiceVariantSQLiteService,
+  ServicePackageSQLiteService,
+  AddOnGroupSQLiteService,
+  AddOnOptionSQLiteService,
+  StaffServiceAssignmentSQLiteService,
+  CatalogSettingsSQLiteService,
+  ProductSQLiteService,
+  // Scheduling services
+  TimeOffTypeSQLiteService,
+  TimeOffRequestSQLiteService,
+  BlockedTimeTypeSQLiteService,
+  BlockedTimeEntrySQLiteService,
+  BusinessClosedPeriodSQLiteService,
+  ResourceSQLiteService,
+  ResourceBookingSQLiteService,
+  StaffScheduleSQLiteService,
+  // Gift card services
+  GiftCardDenominationSQLiteService,
+  GiftCardSettingsSQLiteService,
+  GiftCardSQLiteService,
+  GiftCardTransactionSQLiteService,
+  GiftCardDesignSQLiteService,
 } from '@mango/sqlite-adapter';
 
 // All migrations to run
@@ -85,6 +110,34 @@ let _clientReviewService: ClientReviewSQLiteService | null = null;
 let _loyaltyRewardService: LoyaltyRewardSQLiteService | null = null;
 let _reviewRequestService: ReviewRequestSQLiteService | null = null;
 let _customSegmentService: CustomSegmentSQLiteService | null = null;
+
+// Catalog service instances
+let _serviceCategoryService: ServiceCategorySQLiteService | null = null;
+let _menuServiceService: MenuServiceSQLiteService | null = null;
+let _serviceVariantService: ServiceVariantSQLiteService | null = null;
+let _servicePackageService: ServicePackageSQLiteService | null = null;
+let _addOnGroupService: AddOnGroupSQLiteService | null = null;
+let _addOnOptionService: AddOnOptionSQLiteService | null = null;
+let _staffServiceAssignmentService: StaffServiceAssignmentSQLiteService | null = null;
+let _catalogSettingsService: CatalogSettingsSQLiteService | null = null;
+let _productService: ProductSQLiteService | null = null;
+
+// Scheduling service instances
+let _timeOffTypeService: TimeOffTypeSQLiteService | null = null;
+let _timeOffRequestService: TimeOffRequestSQLiteService | null = null;
+let _blockedTimeTypeService: BlockedTimeTypeSQLiteService | null = null;
+let _blockedTimeEntryService: BlockedTimeEntrySQLiteService | null = null;
+let _businessClosedPeriodService: BusinessClosedPeriodSQLiteService | null = null;
+let _resourceService: ResourceSQLiteService | null = null;
+let _resourceBookingService: ResourceBookingSQLiteService | null = null;
+let _staffScheduleService: StaffScheduleSQLiteService | null = null;
+
+// Gift card service instances
+let _giftCardDenominationService: GiftCardDenominationSQLiteService | null = null;
+let _giftCardSettingsService: GiftCardSettingsSQLiteService | null = null;
+let _giftCardService: GiftCardSQLiteService | null = null;
+let _giftCardTransactionService: GiftCardTransactionSQLiteService | null = null;
+let _giftCardDesignService: GiftCardDesignSQLiteService | null = null;
 
 /**
  * Initialize SQLite adapter and services
@@ -1374,6 +1427,1286 @@ export const sqliteCustomSegmentsDB = {
   },
 };
 
+// ==================== CATALOG SERVICES ====================
+
+/**
+ * SQLite Service Categories Service
+ */
+export const sqliteServiceCategoriesDB = {
+  async getAll(storeId: string, includeInactive = false): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_serviceCategoryService) {
+      _serviceCategoryService = new ServiceCategorySQLiteService(adapter);
+    }
+    if (includeInactive) {
+      return await _serviceCategoryService.getByStore(storeId);
+    }
+    return await _serviceCategoryService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_serviceCategoryService) {
+      _serviceCategoryService = new ServiceCategorySQLiteService(adapter);
+    }
+    return await _serviceCategoryService.getById(id);
+  },
+
+  async create(category: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_serviceCategoryService) {
+      _serviceCategoryService = new ServiceCategorySQLiteService(adapter);
+    }
+    return await _serviceCategoryService.create(category as Parameters<ServiceCategorySQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_serviceCategoryService) {
+      _serviceCategoryService = new ServiceCategorySQLiteService(adapter);
+    }
+    return await _serviceCategoryService.update(id, updates as Parameters<ServiceCategorySQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_serviceCategoryService) {
+      _serviceCategoryService = new ServiceCategorySQLiteService(adapter);
+    }
+    await _serviceCategoryService.delete(id);
+  },
+};
+
+/**
+ * SQLite Menu Services Service
+ */
+export const sqliteMenuServicesDB = {
+  async getAll(storeId: string, includeInactive = false): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    if (includeInactive) {
+      // Use getByStore to get all including inactive
+      return await _menuServiceService.getByStore(storeId);
+    }
+    return await _menuServiceService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    return await _menuServiceService.getById(id);
+  },
+
+  async getByCategory(storeId: string, categoryId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    return await _menuServiceService.getByCategory(storeId, categoryId);
+  },
+
+  async create(service: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    return await _menuServiceService.create(service as Parameters<MenuServiceSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    return await _menuServiceService.update(id, updates as Parameters<MenuServiceSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    await _menuServiceService.delete(id);
+  },
+
+  async search(storeId: string, query: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_menuServiceService) {
+      _menuServiceService = new MenuServiceSQLiteService(adapter);
+    }
+    return await _menuServiceService.search(storeId, query);
+  },
+};
+
+/**
+ * SQLite Service Variants Service
+ */
+export const sqliteServiceVariantsDB = {
+  async getByService(serviceId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_serviceVariantService) {
+      _serviceVariantService = new ServiceVariantSQLiteService(adapter);
+    }
+    return await _serviceVariantService.getByService(serviceId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_serviceVariantService) {
+      _serviceVariantService = new ServiceVariantSQLiteService(adapter);
+    }
+    return await _serviceVariantService.getById(id);
+  },
+
+  async create(variant: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_serviceVariantService) {
+      _serviceVariantService = new ServiceVariantSQLiteService(adapter);
+    }
+    return await _serviceVariantService.create(variant as Parameters<ServiceVariantSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_serviceVariantService) {
+      _serviceVariantService = new ServiceVariantSQLiteService(adapter);
+    }
+    return await _serviceVariantService.update(id, updates as Parameters<ServiceVariantSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_serviceVariantService) {
+      _serviceVariantService = new ServiceVariantSQLiteService(adapter);
+    }
+    await _serviceVariantService.delete(id);
+  },
+};
+
+/**
+ * SQLite Service Packages Service
+ */
+export const sqliteServicePackagesDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_servicePackageService) {
+      _servicePackageService = new ServicePackageSQLiteService(adapter);
+    }
+    return await _servicePackageService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_servicePackageService) {
+      _servicePackageService = new ServicePackageSQLiteService(adapter);
+    }
+    return await _servicePackageService.getById(id);
+  },
+
+  async create(pkg: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_servicePackageService) {
+      _servicePackageService = new ServicePackageSQLiteService(adapter);
+    }
+    return await _servicePackageService.create(pkg as Parameters<ServicePackageSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_servicePackageService) {
+      _servicePackageService = new ServicePackageSQLiteService(adapter);
+    }
+    return await _servicePackageService.update(id, updates as Parameters<ServicePackageSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_servicePackageService) {
+      _servicePackageService = new ServicePackageSQLiteService(adapter);
+    }
+    await _servicePackageService.delete(id);
+  },
+
+  async search(storeId: string, query: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_servicePackageService) {
+      _servicePackageService = new ServicePackageSQLiteService(adapter);
+    }
+    return await _servicePackageService.search(storeId, query);
+  },
+};
+
+/**
+ * SQLite Add-On Groups Service
+ */
+export const sqliteAddOnGroupsDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_addOnGroupService) {
+      _addOnGroupService = new AddOnGroupSQLiteService(adapter);
+    }
+    return await _addOnGroupService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_addOnGroupService) {
+      _addOnGroupService = new AddOnGroupSQLiteService(adapter);
+    }
+    return await _addOnGroupService.getById(id);
+  },
+
+  async create(group: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_addOnGroupService) {
+      _addOnGroupService = new AddOnGroupSQLiteService(adapter);
+    }
+    return await _addOnGroupService.create(group as Parameters<AddOnGroupSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_addOnGroupService) {
+      _addOnGroupService = new AddOnGroupSQLiteService(adapter);
+    }
+    return await _addOnGroupService.update(id, updates as Parameters<AddOnGroupSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_addOnGroupService) {
+      _addOnGroupService = new AddOnGroupSQLiteService(adapter);
+    }
+    await _addOnGroupService.delete(id);
+  },
+};
+
+/**
+ * SQLite Add-On Options Service
+ */
+export const sqliteAddOnOptionsDB = {
+  async getByGroup(groupId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_addOnOptionService) {
+      _addOnOptionService = new AddOnOptionSQLiteService(adapter);
+    }
+    return await _addOnOptionService.getByGroup(groupId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_addOnOptionService) {
+      _addOnOptionService = new AddOnOptionSQLiteService(adapter);
+    }
+    return await _addOnOptionService.getById(id);
+  },
+
+  async create(option: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_addOnOptionService) {
+      _addOnOptionService = new AddOnOptionSQLiteService(adapter);
+    }
+    return await _addOnOptionService.create(option as Parameters<AddOnOptionSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_addOnOptionService) {
+      _addOnOptionService = new AddOnOptionSQLiteService(adapter);
+    }
+    return await _addOnOptionService.update(id, updates as Parameters<AddOnOptionSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_addOnOptionService) {
+      _addOnOptionService = new AddOnOptionSQLiteService(adapter);
+    }
+    await _addOnOptionService.delete(id);
+  },
+};
+
+/**
+ * SQLite Staff Service Assignments Service
+ */
+export const sqliteStaffServiceAssignmentsDB = {
+  async getByStaff(staffId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_staffServiceAssignmentService) {
+      _staffServiceAssignmentService = new StaffServiceAssignmentSQLiteService(adapter);
+    }
+    return await _staffServiceAssignmentService.getByStaff(staffId);
+  },
+
+  async getByService(serviceId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_staffServiceAssignmentService) {
+      _staffServiceAssignmentService = new StaffServiceAssignmentSQLiteService(adapter);
+    }
+    return await _staffServiceAssignmentService.getByService(serviceId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_staffServiceAssignmentService) {
+      _staffServiceAssignmentService = new StaffServiceAssignmentSQLiteService(adapter);
+    }
+    return await _staffServiceAssignmentService.getById(id);
+  },
+
+  async create(assignment: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_staffServiceAssignmentService) {
+      _staffServiceAssignmentService = new StaffServiceAssignmentSQLiteService(adapter);
+    }
+    return await _staffServiceAssignmentService.create(assignment as Parameters<StaffServiceAssignmentSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_staffServiceAssignmentService) {
+      _staffServiceAssignmentService = new StaffServiceAssignmentSQLiteService(adapter);
+    }
+    return await _staffServiceAssignmentService.update(id, updates as Parameters<StaffServiceAssignmentSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_staffServiceAssignmentService) {
+      _staffServiceAssignmentService = new StaffServiceAssignmentSQLiteService(adapter);
+    }
+    await _staffServiceAssignmentService.delete(id);
+  },
+};
+
+/**
+ * SQLite Catalog Settings Service
+ */
+export const sqliteCatalogSettingsDB = {
+  async get(storeId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_catalogSettingsService) {
+      _catalogSettingsService = new CatalogSettingsSQLiteService(adapter);
+    }
+    return await _catalogSettingsService.get(storeId);
+  },
+
+  async set(storeId: string, settings: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_catalogSettingsService) {
+      _catalogSettingsService = new CatalogSettingsSQLiteService(adapter);
+    }
+    return await _catalogSettingsService.set(storeId, settings as Parameters<CatalogSettingsSQLiteService['set']>[1]);
+  },
+};
+
+/**
+ * SQLite Products Service
+ */
+export const sqliteProductsDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getById(id);
+  },
+
+  async getByCategory(storeId: string, categoryId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getByCategory(storeId, categoryId);
+  },
+
+  async create(product: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.create(product as Parameters<ProductSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.update(id, updates as Parameters<ProductSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    await _productService.delete(id);
+  },
+
+  async search(storeId: string, query: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.search(storeId, query);
+  },
+
+  async getBySku(storeId: string, sku: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getBySku(storeId, sku);
+  },
+
+  async getByBarcode(barcode: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getByBarcode(barcode);
+  },
+
+  async getCategories(storeId: string): Promise<string[]> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getCategories(storeId);
+  },
+
+  async getRetail(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_productService) {
+      _productService = new ProductSQLiteService(adapter);
+    }
+    return await _productService.getRetail(storeId);
+  },
+};
+
+// ==================== SCHEDULING SERVICES ====================
+
+/**
+ * SQLite Time-Off Types Service
+ */
+export const sqliteTimeOffTypesDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    return await _timeOffTypeService.getActive(storeId);
+  },
+
+  async getAllIncludingInactive(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    return await _timeOffTypeService.getByStore(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    return await _timeOffTypeService.getById(id);
+  },
+
+  async getByCode(storeId: string, code: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    return await _timeOffTypeService.getByCode(storeId, code);
+  },
+
+  async create(type: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    return await _timeOffTypeService.create(type as Parameters<TimeOffTypeSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    return await _timeOffTypeService.update(id, updates as Parameters<TimeOffTypeSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_timeOffTypeService) {
+      _timeOffTypeService = new TimeOffTypeSQLiteService(adapter);
+    }
+    // SQLite service softDelete requires userId and deviceId - use delete instead
+    await _timeOffTypeService.delete(id);
+  },
+};
+
+/**
+ * SQLite Time-Off Requests Service
+ */
+export const sqliteTimeOffRequestsDB = {
+  async getByStaff(staffId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    return await _timeOffRequestService.getByStaff(staffId);
+  },
+
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    return await _timeOffRequestService.getByStore(storeId);
+  },
+
+  async getPendingCount(storeId: string): Promise<number> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    const pending = await _timeOffRequestService.getPending(storeId);
+    return pending.length;
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    return await _timeOffRequestService.getById(id);
+  },
+
+  async create(request: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    return await _timeOffRequestService.create(request as Parameters<TimeOffRequestSQLiteService['create']>[0]);
+  },
+
+  async approve(id: string, approverName: string, notes: string | null, userId: string, deviceId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    // SQLite service doesn't have approve method, use update
+    return await _timeOffRequestService.update(id, {
+      status: 'approved',
+      approvedBy: userId,
+      approvedByName: approverName,
+      approvedAt: new Date().toISOString(),
+      approvalNotes: notes,
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+    } as Parameters<TimeOffRequestSQLiteService['update']>[1]);
+  },
+
+  async deny(id: string, denierName: string, reason: string, userId: string, deviceId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    // SQLite service doesn't have deny method, use update
+    return await _timeOffRequestService.update(id, {
+      status: 'denied',
+      deniedBy: userId,
+      deniedByName: denierName,
+      deniedAt: new Date().toISOString(),
+      denialReason: reason,
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+    } as Parameters<TimeOffRequestSQLiteService['update']>[1]);
+  },
+
+  async cancel(id: string, reason: string | null, userId: string, deviceId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    // SQLite service doesn't have cancel method, use update
+    return await _timeOffRequestService.update(id, {
+      status: 'cancelled',
+      cancelledAt: new Date().toISOString(),
+      cancelledBy: userId,
+      cancellationReason: reason,
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
+    } as Parameters<TimeOffRequestSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_timeOffRequestService) {
+      _timeOffRequestService = new TimeOffRequestSQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _timeOffRequestService.delete(id);
+  },
+};
+
+/**
+ * SQLite Blocked Time Types Service
+ */
+export const sqliteBlockedTimeTypesDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeTypeService) {
+      _blockedTimeTypeService = new BlockedTimeTypeSQLiteService(adapter);
+    }
+    return await _blockedTimeTypeService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeTypeService) {
+      _blockedTimeTypeService = new BlockedTimeTypeSQLiteService(adapter);
+    }
+    return await _blockedTimeTypeService.getById(id);
+  },
+
+  async create(type: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeTypeService) {
+      _blockedTimeTypeService = new BlockedTimeTypeSQLiteService(adapter);
+    }
+    return await _blockedTimeTypeService.create(type as Parameters<BlockedTimeTypeSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeTypeService) {
+      _blockedTimeTypeService = new BlockedTimeTypeSQLiteService(adapter);
+    }
+    return await _blockedTimeTypeService.update(id, updates as Parameters<BlockedTimeTypeSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeTypeService) {
+      _blockedTimeTypeService = new BlockedTimeTypeSQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _blockedTimeTypeService.delete(id);
+  },
+
+  async seedDefaults(_storeId: string): Promise<void> {
+    // SQLite service doesn't have seedDefaults - defaults handled by migration
+    // No-op for SQLite
+  },
+};
+
+/**
+ * SQLite Blocked Time Entries Service
+ */
+export const sqliteBlockedTimeEntriesDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    return await _blockedTimeEntryService.getByStore(storeId);
+  },
+
+  async getByStaffAndDate(staffId: string, date: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    return await _blockedTimeEntryService.getByStaffAndDate(staffId, date);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    return await _blockedTimeEntryService.getById(id);
+  },
+
+  async create(entry: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    return await _blockedTimeEntryService.create(entry as Parameters<BlockedTimeEntrySQLiteService['create']>[0]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _blockedTimeEntryService.delete(id);
+  },
+
+  async getBySeries(seriesId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    return await _blockedTimeEntryService.getBySeries(seriesId);
+  },
+
+  async deleteSeries(seriesId: string, userId: string, deviceId: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_blockedTimeEntryService) {
+      _blockedTimeEntryService = new BlockedTimeEntrySQLiteService(adapter);
+    }
+    await _blockedTimeEntryService.deleteSeries(seriesId, userId, deviceId);
+  },
+};
+
+/**
+ * SQLite Business Closed Periods Service
+ */
+export const sqliteBusinessClosedPeriodsDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    return await _businessClosedPeriodService.getActive(storeId);
+  },
+
+  async getUpcoming(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    // SQLite service uses getActive for upcoming (filters by end_date >= today)
+    return await _businessClosedPeriodService.getActive(storeId);
+  },
+
+  async getForDate(storeId: string, date: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    return await _businessClosedPeriodService.getForDate(storeId, date);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    return await _businessClosedPeriodService.getById(id);
+  },
+
+  async create(period: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    return await _businessClosedPeriodService.create(period as Parameters<BusinessClosedPeriodSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    return await _businessClosedPeriodService.update(id, updates as Parameters<BusinessClosedPeriodSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_businessClosedPeriodService) {
+      _businessClosedPeriodService = new BusinessClosedPeriodSQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _businessClosedPeriodService.delete(id);
+  },
+};
+
+/**
+ * SQLite Resources Service
+ */
+export const sqliteResourcesDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    return await _resourceService.getActive(storeId);
+  },
+
+  async getAllIncludingInactive(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    return await _resourceService.getByStore(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    return await _resourceService.getById(id);
+  },
+
+  async getByCategory(storeId: string, category: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    return await _resourceService.getByCategory(storeId, category);
+  },
+
+  async create(resource: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    return await _resourceService.create(resource as Parameters<ResourceSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    return await _resourceService.update(id, updates as Parameters<ResourceSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_resourceService) {
+      _resourceService = new ResourceSQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _resourceService.delete(id);
+  },
+};
+
+/**
+ * SQLite Resource Bookings Service
+ */
+export const sqliteResourceBookingsDB = {
+  async getByResource(resourceId: string, startDate: string, endDate: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_resourceBookingService) {
+      _resourceBookingService = new ResourceBookingSQLiteService(adapter);
+    }
+    // SQLite service uses getByResource (not getByResourceAndDateRange)
+    return await _resourceBookingService.getByResource(resourceId, startDate, endDate);
+  },
+
+  async getByAppointment(appointmentId: string): Promise<unknown | null> {
+    const adapter = await getAdapter();
+    if (!_resourceBookingService) {
+      _resourceBookingService = new ResourceBookingSQLiteService(adapter);
+    }
+    // Returns single booking or null (not an array)
+    return await _resourceBookingService.getByAppointment(appointmentId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_resourceBookingService) {
+      _resourceBookingService = new ResourceBookingSQLiteService(adapter);
+    }
+    return await _resourceBookingService.getById(id);
+  },
+
+  async create(booking: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_resourceBookingService) {
+      _resourceBookingService = new ResourceBookingSQLiteService(adapter);
+    }
+    return await _resourceBookingService.create(booking as Parameters<ResourceBookingSQLiteService['create']>[0]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_resourceBookingService) {
+      _resourceBookingService = new ResourceBookingSQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _resourceBookingService.delete(id);
+  },
+};
+
+/**
+ * SQLite Staff Schedules Service
+ */
+export const sqliteStaffSchedulesDB = {
+  async getByStaff(staffId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    return await _staffScheduleService.getByStaff(staffId);
+  },
+
+  async getCurrentForStaff(staffId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    return await _staffScheduleService.getEffective(staffId);
+  },
+
+  async getByStore(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    return await _staffScheduleService.getByStore(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    return await _staffScheduleService.getById(id);
+  },
+
+  async create(schedule: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    return await _staffScheduleService.create(schedule as Parameters<StaffScheduleSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    return await _staffScheduleService.update(id, updates as Parameters<StaffScheduleSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_staffScheduleService) {
+      _staffScheduleService = new StaffScheduleSQLiteService(adapter);
+    }
+    // SQLite service doesn't have softDelete, use delete
+    await _staffScheduleService.delete(id);
+  },
+};
+
+// ==================== GIFT CARD SERVICES ====================
+
+/**
+ * SQLite Gift Card Denominations Service
+ */
+export const sqliteGiftCardDenominationsDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardDenominationService) {
+      _giftCardDenominationService = new GiftCardDenominationSQLiteService(adapter);
+    }
+    return await _giftCardDenominationService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardDenominationService) {
+      _giftCardDenominationService = new GiftCardDenominationSQLiteService(adapter);
+    }
+    return await _giftCardDenominationService.getById(id);
+  },
+
+  async create(denomination: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardDenominationService) {
+      _giftCardDenominationService = new GiftCardDenominationSQLiteService(adapter);
+    }
+    return await _giftCardDenominationService.create(denomination as Parameters<GiftCardDenominationSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardDenominationService) {
+      _giftCardDenominationService = new GiftCardDenominationSQLiteService(adapter);
+    }
+    return await _giftCardDenominationService.update(id, updates as Parameters<GiftCardDenominationSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_giftCardDenominationService) {
+      _giftCardDenominationService = new GiftCardDenominationSQLiteService(adapter);
+    }
+    await _giftCardDenominationService.delete(id);
+  },
+};
+
+/**
+ * SQLite Gift Card Settings Service
+ */
+export const sqliteGiftCardSettingsDB = {
+  async get(storeId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardSettingsService) {
+      _giftCardSettingsService = new GiftCardSettingsSQLiteService(adapter);
+    }
+    return await _giftCardSettingsService.get(storeId);
+  },
+
+  async set(storeId: string, settings: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardSettingsService) {
+      _giftCardSettingsService = new GiftCardSettingsSQLiteService(adapter);
+    }
+    return await _giftCardSettingsService.set(storeId, settings as Parameters<GiftCardSettingsSQLiteService['set']>[1]);
+  },
+};
+
+/**
+ * SQLite Gift Cards Service
+ */
+export const sqliteGiftCardsDB = {
+  async getAll(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.getById(id);
+  },
+
+  async getByCode(storeId: string, code: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.getByStoreAndCode(storeId, code);
+  },
+
+  async getByStatus(storeId: string, status: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.getByStatus(storeId, status as 'active' | 'depleted' | 'expired' | 'voided');
+  },
+
+  async getByPurchaser(storeId: string, purchaserId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.getByPurchaser(purchaserId);
+  },
+
+  async issue(giftCard: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.create(giftCard as Parameters<GiftCardSQLiteService['create']>[0]);
+  },
+
+  async redeem(_input: { code: string; amount: number; ticketId: string; staffId: string }): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    // For SQLite, we just update the balance - full redemption logic in calling code
+    throw new Error('Gift card redeem via SQLite - use void method or update balance directly');
+  },
+
+  async reload(_input: { giftCardId: string; amount: number; ticketId?: string; staffId?: string }): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    // For SQLite, we just update the balance - full reload logic in calling code
+    throw new Error('Gift card reload via SQLite - use updateBalance directly');
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.update(id, updates as Parameters<GiftCardSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    await _giftCardService.delete(id);
+  },
+
+  async void(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.void(id);
+  },
+
+  async updateBalance(id: string, balance: number): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.updateBalance(id, balance);
+  },
+
+  async search(storeId: string, query: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardService) {
+      _giftCardService = new GiftCardSQLiteService(adapter);
+    }
+    return await _giftCardService.search(storeId, query);
+  },
+};
+
+/**
+ * SQLite Gift Card Transactions Service
+ */
+export const sqliteGiftCardTransactionsDB = {
+  async getByCard(giftCardId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardTransactionService) {
+      _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
+    }
+    return await _giftCardTransactionService.getByCard(giftCardId);
+  },
+
+  async getByTicket(ticketId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardTransactionService) {
+      _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
+    }
+    return await _giftCardTransactionService.getByTicket(ticketId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardTransactionService) {
+      _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
+    }
+    return await _giftCardTransactionService.getById(id);
+  },
+
+  async create(transaction: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardTransactionService) {
+      _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
+    }
+    return await _giftCardTransactionService.create(transaction as Parameters<GiftCardTransactionSQLiteService['create']>[0]);
+  },
+
+  async getByDateRange(storeId: string, start: string, end: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardTransactionService) {
+      _giftCardTransactionService = new GiftCardTransactionSQLiteService(adapter);
+    }
+    return await _giftCardTransactionService.getByDateRange(storeId, start, end);
+  },
+};
+
+/**
+ * SQLite Gift Card Designs Service
+ */
+export const sqliteGiftCardDesignsDB = {
+  async getActive(storeId: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.getActive(storeId);
+  },
+
+  async getById(id: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.getById(id);
+  },
+
+  async getDefault(storeId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.getDefault(storeId);
+  },
+
+  async getByCategory(storeId: string, category: string): Promise<unknown[]> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.getByCategory(storeId, category as 'seasonal' | 'birthday' | 'thank-you' | 'general' | 'custom');
+  },
+
+  async create(design: unknown): Promise<unknown> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.create(design as Parameters<GiftCardDesignSQLiteService['create']>[0]);
+  },
+
+  async update(id: string, updates: unknown): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.update(id, updates as Parameters<GiftCardDesignSQLiteService['update']>[1]);
+  },
+
+  async delete(id: string): Promise<void> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    await _giftCardDesignService.delete(id);
+  },
+
+  async setDefault(id: string, storeId: string): Promise<unknown | undefined> {
+    const adapter = await getAdapter();
+    if (!_giftCardDesignService) {
+      _giftCardDesignService = new GiftCardDesignSQLiteService(adapter);
+    }
+    return await _giftCardDesignService.setDefault(id, storeId);
+  },
+};
+
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
@@ -1407,6 +2740,31 @@ export async function closeSQLite(): Promise<void> {
     _loyaltyRewardService = null;
     _reviewRequestService = null;
     _customSegmentService = null;
+    // Catalog services
+    _serviceCategoryService = null;
+    _menuServiceService = null;
+    _serviceVariantService = null;
+    _servicePackageService = null;
+    _addOnGroupService = null;
+    _addOnOptionService = null;
+    _staffServiceAssignmentService = null;
+    _catalogSettingsService = null;
+    _productService = null;
+    // Scheduling services
+    _timeOffTypeService = null;
+    _timeOffRequestService = null;
+    _blockedTimeTypeService = null;
+    _blockedTimeEntryService = null;
+    _businessClosedPeriodService = null;
+    _resourceService = null;
+    _resourceBookingService = null;
+    _staffScheduleService = null;
+    // Gift card services
+    _giftCardDenominationService = null;
+    _giftCardSettingsService = null;
+    _giftCardService = null;
+    _giftCardTransactionService = null;
+    _giftCardDesignService = null;
     _initPromise = null;
   }
 }
