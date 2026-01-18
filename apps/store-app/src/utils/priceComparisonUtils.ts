@@ -9,6 +9,8 @@
  */
 
 import { roundToCents, subtractAmount } from './currency';
+import type { PriceDecision } from '../types/Ticket';
+import type { PricingPolicyMode } from '../types/settings';
 
 // ============================================
 // TYPES
@@ -242,4 +244,220 @@ export function isSignificantVariance(
   // Significant if variance >= amount threshold OR >= percent threshold
   return absVariance >= thresholds.amountThreshold ||
          absPercent >= thresholds.percentThreshold;
+}
+
+// ============================================
+// TYPES FOR PRICE DECISION RECOMMENDATION
+// ============================================
+
+/**
+ * Options for price decision recommendation.
+ */
+export interface PriceDecisionOptions {
+  /** Whether a deposit has been paid (locks price) */
+  depositPaid?: boolean;
+  /** Whether to auto-apply lower prices (from policy settings) */
+  autoApplyLower?: boolean;
+}
+
+/**
+ * Result of price decision recommendation.
+ */
+export interface PriceDecisionRecommendation {
+  /** The recommended price to charge */
+  recommendedPrice: number;
+  /** The decision type (how the price was determined) */
+  priceDecision: PriceDecision;
+  /** Whether staff input is required to finalize the price */
+  requiresStaffInput: boolean;
+  /** Whether manager approval is required for this decision */
+  requiresManagerApproval: boolean;
+}
+
+// ============================================
+// PRICE DECISION RECOMMENDATION
+// ============================================
+
+/**
+ * Get price decision recommendation based on policy mode and options.
+ *
+ * This is the core decision engine that determines which price to use
+ * when there's a difference between the booked price and the current
+ * catalog price. The recommendation accounts for:
+ *
+ * 1. **Deposit Lock** - If deposit is paid, price is always locked
+ * 2. **Policy Mode** - Honor booked, use current, ask staff, or honor lower
+ * 3. **Auto-Apply Lower** - When enabled with 'ask_staff', lower prices apply automatically
+ *
+ * Priority order:
+ * 1. Deposit lock (always takes priority)
+ * 2. Policy mode rules
+ * 3. Auto-apply lower (only with 'ask_staff' mode)
+ *
+ * @param mode - The pricing policy mode from settings.
+ * @param bookedPrice - The original price captured at booking time.
+ * @param catalogPrice - The current catalog price at checkout time.
+ * @param options - Additional options (depositPaid, autoApplyLower).
+ * @returns Recommendation with price, decision type, and input requirements.
+ *
+ * @example
+ * // Deposit paid - price locked regardless of mode
+ * getPriceDecisionRecommendation('use_current', 50, 60, { depositPaid: true });
+ * // Returns: {
+ * //   recommendedPrice: 50,
+ * //   priceDecision: 'deposit_locked',
+ * //   requiresStaffInput: false,
+ * //   requiresManagerApproval: false
+ * // }
+ *
+ * @example
+ * // Honor booked mode - always use booked price
+ * getPriceDecisionRecommendation('honor_booked', 50, 60);
+ * // Returns: {
+ * //   recommendedPrice: 50,
+ * //   priceDecision: 'booked_honored',
+ * //   requiresStaffInput: false,
+ * //   requiresManagerApproval: false
+ * // }
+ *
+ * @example
+ * // Use current mode - always use catalog price
+ * getPriceDecisionRecommendation('use_current', 50, 60);
+ * // Returns: {
+ * //   recommendedPrice: 60,
+ * //   priceDecision: 'catalog_applied',
+ * //   requiresStaffInput: false,
+ * //   requiresManagerApproval: false
+ * // }
+ *
+ * @example
+ * // Ask staff mode with price difference - requires staff decision
+ * getPriceDecisionRecommendation('ask_staff', 50, 60);
+ * // Returns: {
+ * //   recommendedPrice: 50,
+ * //   priceDecision: 'booked_honored',
+ * //   requiresStaffInput: true,
+ * //   requiresManagerApproval: false
+ * // }
+ *
+ * @example
+ * // Ask staff mode with auto-apply lower - catalog is lower, auto-apply
+ * getPriceDecisionRecommendation('ask_staff', 60, 50, { autoApplyLower: true });
+ * // Returns: {
+ * //   recommendedPrice: 50,
+ * //   priceDecision: 'lower_applied',
+ * //   requiresStaffInput: false,
+ * //   requiresManagerApproval: false
+ * // }
+ *
+ * @example
+ * // Honor lower mode - automatically picks the lower price
+ * getPriceDecisionRecommendation('honor_lower', 50, 45);
+ * // Returns: {
+ * //   recommendedPrice: 45,
+ * //   priceDecision: 'lower_applied',
+ * //   requiresStaffInput: false,
+ * //   requiresManagerApproval: false
+ * // }
+ *
+ * @example
+ * // No price change - no decision needed
+ * getPriceDecisionRecommendation('ask_staff', 50, 50);
+ * // Returns: {
+ * //   recommendedPrice: 50,
+ * //   priceDecision: 'booked_honored',
+ * //   requiresStaffInput: false,
+ * //   requiresManagerApproval: false
+ * // }
+ */
+export function getPriceDecisionRecommendation(
+  mode: PricingPolicyMode,
+  bookedPrice: number,
+  catalogPrice: number,
+  options: PriceDecisionOptions = {}
+): PriceDecisionRecommendation {
+  const { depositPaid = false, autoApplyLower = false } = options;
+
+  // Check if there's actually a price difference
+  const priceChange = detectPriceChange(bookedPrice, catalogPrice);
+
+  // PRIORITY 1: Deposit lock - always takes precedence
+  if (depositPaid) {
+    return {
+      recommendedPrice: bookedPrice,
+      priceDecision: 'deposit_locked',
+      requiresStaffInput: false,
+      requiresManagerApproval: false,
+    };
+  }
+
+  // If no price change, no decision needed - honor booked (same as catalog)
+  if (!priceChange.hasChange) {
+    return {
+      recommendedPrice: bookedPrice,
+      priceDecision: 'booked_honored',
+      requiresStaffInput: false,
+      requiresManagerApproval: false,
+    };
+  }
+
+  // PRIORITY 2: Apply policy mode rules
+  switch (mode) {
+    case 'honor_booked':
+      // Always use booked price
+      return {
+        recommendedPrice: bookedPrice,
+        priceDecision: 'booked_honored',
+        requiresStaffInput: false,
+        requiresManagerApproval: false,
+      };
+
+    case 'use_current':
+      // Always use current catalog price
+      return {
+        recommendedPrice: catalogPrice,
+        priceDecision: 'catalog_applied',
+        requiresStaffInput: false,
+        requiresManagerApproval: false,
+      };
+
+    case 'honor_lower':
+      // Automatically use the lower of the two prices
+      if (catalogPrice < bookedPrice) {
+        return {
+          recommendedPrice: catalogPrice,
+          priceDecision: 'lower_applied',
+          requiresStaffInput: false,
+          requiresManagerApproval: false,
+        };
+      } else {
+        return {
+          recommendedPrice: bookedPrice,
+          priceDecision: 'booked_honored',
+          requiresStaffInput: false,
+          requiresManagerApproval: false,
+        };
+      }
+
+    case 'ask_staff':
+    default:
+      // Check if auto-apply lower is enabled and catalog price dropped
+      if (autoApplyLower && priceChange.direction === 'decrease') {
+        return {
+          recommendedPrice: catalogPrice,
+          priceDecision: 'lower_applied',
+          requiresStaffInput: false,
+          requiresManagerApproval: false,
+        };
+      }
+
+      // Prices differ, staff needs to decide
+      // Default recommendation is booked price (client-friendly default)
+      return {
+        recommendedPrice: bookedPrice,
+        priceDecision: 'booked_honored',
+        requiresStaffInput: true,
+        requiresManagerApproval: false,
+      };
+  }
 }

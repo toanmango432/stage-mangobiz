@@ -123,3 +123,60 @@ Commit: 6e5255f
 
 ---
 
+## 2026-01-17 - US-006: Add PriceOverrideLog interface for activity logging
+Commit: 2a5c261
+
+**Why this story?** US-006 is the next eligible story by priority (6), has low complexity (1), and its dependency US-003 is complete. It creates the audit trail foundation for price override tracking.
+
+**Changes:**
+- `apps/store-app/src/types/activityLog.ts (NEW)`: Created new file with:
+  - `BaseActivityLogEntry` interface with common fields (id, type, timestamp, performedBy)
+  - `PriceOverrideLog` interface extending base with all required fields:
+    - `type: 'price_override'` literal type
+    - `ticketId`, `serviceLineItemId` for linking to ticket data
+    - `bookedPrice`, `catalogPrice`, `finalPrice` for price tracking
+    - `variance`, `variancePercent` for variance calculation
+    - `decision: PriceDecision` for tracking how price was determined
+    - `reason?: string` for optional override reason
+    - `approvedBy?: string` for manager approval tracking
+  - `ActivityLogEntry` union type for future extensibility
+  - Comprehensive JSDoc with @example blocks showing real-world usage
+- `apps/store-app/src/types/index.ts:197-198`: Added export for activityLog module
+
+**Learnings:**
+- schedule/ActivityLogs.tsx has its own ActivityLogEntry interface, but it's component-specific (includes user object with avatar)
+- device.ts has DeviceActivityLog for device-specific logging
+- Created standalone activityLog.ts for business activity audit trail - cleaner separation of concerns
+- Pre-existing typecheck errors in test files are unrelated to this story
+- PriceDecision import from './Ticket' works correctly
+
+**Next story suggestion:** US-007 (Create priceComparisonUtils) - priority 7, complexity 2, no dependencies, provides core utility functions needed by US-008 and beyond
+
+---
+
+## 2026-01-17 - US-007: Create priceComparisonUtils with core functions
+Commit: 80befc6
+
+**Why this story?** US-007 is the next eligible story by priority (7), no dependencies, and provides the core utility functions needed by US-008 (getPriceDecisionRecommendation) and subsequent UI stories.
+
+**Changes:**
+- `apps/store-app/src/utils/priceComparisonUtils.ts (NEW)`: Created new utility file with:
+  - `PriceChangeDirection` type: 'increase' | 'decrease' | 'none'
+  - `PriceChangeResult` interface with hasChange, variance, variancePercent, direction
+  - `VarianceThresholds` interface with amountThreshold, percentThreshold
+  - `DEFAULT_VARIANCE_THRESHOLDS` constant: $5.00 / 10%
+  - `detectPriceChange(bookedPrice, catalogPrice)`: Returns structured price change result
+  - `formatPriceVariance(variance, variancePercent)`: Formats as '+$5.00 (+10%)'
+  - `isSignificantVariance(variance, variancePercent, thresholds)`: Checks if exceeds thresholds
+  - Comprehensive JSDoc with @param, @returns, @example following urgencyUtils.ts pattern
+
+**Learnings:**
+- Used existing currency.ts utilities (roundToCents, subtractAmount) for safe monetary calculations
+- Followed urgencyUtils.ts pattern for JSDoc style with comprehensive @example blocks
+- Used tolerance (0.001) for floating-point comparison in hasChange detection
+- Pre-existing typecheck errors in test files (AgendaView.test.tsx, etc.) are unrelated
+
+**Next story suggestion:** US-008 (Create getPriceDecisionRecommendation utility) - priority 8, depends on US-007, builds on this file to add the core decision engine
+
+---
+

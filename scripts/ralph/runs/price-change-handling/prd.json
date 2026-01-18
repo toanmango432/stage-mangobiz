@@ -141,7 +141,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-003"],
       "notes": "This enables complete audit trail for all price decisions. Check if ActivityLogEntry base interface exists, otherwise create standalone."
     },
@@ -164,7 +164,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Pure functions, no dependencies on Redux or React. Follow JSDoc style from urgencyUtils.ts."
     },
     {
