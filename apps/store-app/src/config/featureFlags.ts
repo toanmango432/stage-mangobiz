@@ -64,14 +64,22 @@ export function getPlatform(): 'electron' | 'capacitor' | 'web' {
 
 // ==================== SQLITE FEATURE FLAG ====================
 
+// Track if we've logged the backend selection (to avoid spam on hot reload)
+let hasLoggedSQLiteStatus = false;
+
 /**
  * Check if SQLite backend should be used.
  *
- * Returns true only if:
- * 1. Running in Electron (SQLite requires native bindings)
- * 2. VITE_USE_SQLITE environment variable is set to 'true'
+ * Behavior:
+ * - Electron: SQLite is ENABLED BY DEFAULT (opt-out with VITE_DISABLE_SQLITE=true)
+ * - Web: Always uses Dexie (IndexedDB)
+ * - Capacitor (iOS/Android): Always uses Dexie (IndexedDB)
  *
- * Web and Capacitor platforms always return false (use Dexie/IndexedDB).
+ * Environment Variables:
+ * - VITE_DISABLE_SQLITE=true: Opt-out of SQLite on Electron (fallback to Dexie)
+ * - VITE_USE_SQLITE=true: Legacy opt-in flag (still works but deprecated)
+ *
+ * @returns true if SQLite should be used for data operations
  */
 export function shouldUseSQLite(): boolean {
   // SQLite only available in Electron (requires better-sqlite3 native bindings)
@@ -79,9 +87,15 @@ export function shouldUseSQLite(): boolean {
     return false;
   }
 
-  // Check environment variable
-  const useSqliteEnv = import.meta.env.VITE_USE_SQLITE;
-  return useSqliteEnv === 'true';
+  // Check for explicit opt-out (VITE_DISABLE_SQLITE=true disables SQLite)
+  const disableSqliteEnv = import.meta.env.VITE_DISABLE_SQLITE;
+  if (disableSqliteEnv === 'true') {
+    return false;
+  }
+
+  // Default: SQLite is ENABLED on Electron
+  // Legacy: VITE_USE_SQLITE=true still works but is no longer required
+  return true;
 }
 
 /**
@@ -99,11 +113,28 @@ export function getBackendType(): 'dexie' | 'sqlite' {
 /**
  * Log the current backend selection.
  * Call this once on app initialization.
+ * Logs only once per session to avoid spam on hot reload.
  */
 export function logBackendSelection(): void {
+  // Only log once per session
+  if (hasLoggedSQLiteStatus) {
+    return;
+  }
+  hasLoggedSQLiteStatus = true;
+
   const backend = getBackendType();
   const platform = getPlatform();
-  console.log(`[DataService] Using backend: ${backend} (platform: ${platform})`);
+
+  if (backend === 'sqlite') {
+    console.log(`[DataService] ✓ SQLite backend ACTIVE (platform: ${platform})`);
+    console.log('[DataService] Using native SQLite for data operations');
+    console.log('[DataService] To opt-out, set VITE_DISABLE_SQLITE=true');
+  } else if (platform === 'electron') {
+    console.log(`[DataService] Using Dexie/IndexedDB (platform: ${platform})`);
+    console.log('[DataService] SQLite disabled via VITE_DISABLE_SQLITE=true');
+  } else {
+    console.log(`[DataService] Using Dexie/IndexedDB (platform: ${platform})`);
+  }
 }
 
 // ==================== OTHER FEATURE FLAGS ====================
