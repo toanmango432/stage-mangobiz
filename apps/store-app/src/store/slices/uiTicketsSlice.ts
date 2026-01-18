@@ -4,6 +4,10 @@ import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
 // Adapters not needed - dataService returns converted types
 import type { CreateTicketInput, DeleteReason, TicketNote, StatusChange, PriceDecision } from '../../types';
+// Price comparison utilities for auto-resolution
+import { getPriceDecisionRecommendation, detectPriceChange } from '../../utils/priceComparisonUtils';
+import { DEFAULT_PRICING_POLICY } from '../../types/settings';
+import type { PricingPolicySettings } from '../../types/settings';
 // NOTE: Do NOT import RootState from '../index' - causes circular dependency
 // Instead, define a local type for the state we need access to
 import { v4 as uuidv4 } from 'uuid';
@@ -82,6 +86,95 @@ function createStatusHistoryEntry(
     ...(changedBy && { changedBy }),
     ...(reason && { reason }),
   };
+}
+
+/**
+ * Auto-resolve prices for checkout services based on pricing policy settings.
+ *
+ * This function applies the business's pricing policy to services that have
+ * price variances between booked price and current catalog price. It handles:
+ *
+ * 1. Deposit-locked services (always use booked price)
+ * 2. Policy mode rules (honor_booked, use_current, honor_lower, ask_staff)
+ * 3. Auto-apply lower prices when enabled
+ *
+ * Services that require staff input (only in 'ask_staff' mode with price increase)
+ * remain unresolved and will show in the PriceResolutionModal.
+ *
+ * @param services - Array of CheckoutTicketService with price tracking fields
+ * @param pricingPolicy - The pricing policy settings (falls back to DEFAULT_PRICING_POLICY)
+ * @returns Updated services with priceDecision set for auto-resolved items
+ */
+function autoResolvePrices(
+  services: CheckoutTicketService[],
+  pricingPolicy?: PricingPolicySettings
+): CheckoutTicketService[] {
+  // Use default policy if not provided
+  const policy = pricingPolicy ?? DEFAULT_PRICING_POLICY;
+
+  return services.map((service) => {
+    // Skip if service already has a price decision
+    if (service.priceDecision) {
+      return service;
+    }
+
+    const bookedPrice = service.bookedPrice;
+    const catalogPrice = service.catalogPriceAtCheckout;
+
+    // If we don't have both prices, we can't auto-resolve
+    if (bookedPrice === undefined || catalogPrice === undefined) {
+      return service;
+    }
+
+    // Check if there's a price difference
+    const priceChange = detectPriceChange(bookedPrice, catalogPrice);
+
+    // No price change - mark as booked_honored (same as catalog)
+    if (!priceChange.hasChange) {
+      return {
+        ...service,
+        priceDecision: 'booked_honored' as PriceDecision,
+        priceVariance: 0,
+        priceVariancePercent: 0,
+      };
+    }
+
+    // Get recommendation based on policy
+    const recommendation = getPriceDecisionRecommendation(
+      policy.defaultMode,
+      bookedPrice,
+      catalogPrice,
+      {
+        depositPaid: service.depositLocked ?? false,
+        autoApplyLower: policy.autoApplyLowerPrice,
+      }
+    );
+
+    // If staff input is required, leave service unresolved
+    if (recommendation.requiresStaffInput) {
+      // Calculate variance for UI display but don't set priceDecision
+      return {
+        ...service,
+        priceVariance: priceChange.variance,
+        priceVariancePercent: priceChange.variancePercent,
+      };
+    }
+
+    // Auto-resolve: update price and set decision
+    const finalPrice = recommendation.recommendedPrice;
+    const variance = finalPrice - bookedPrice;
+    const variancePercent = bookedPrice > 0
+      ? Math.round((variance / bookedPrice) * 100 * 100) / 100
+      : 0;
+
+    return {
+      ...service,
+      price: finalPrice,
+      priceDecision: recommendation.priceDecision,
+      priceVariance: variance,
+      priceVariancePercent: variancePercent,
+    };
+  });
 }
 
 // UI-specific ticket interfaces (matching existing TicketContext)
@@ -809,6 +902,28 @@ export const completeTicket = createAsyncThunk(
       }
     } catch (error) {
       console.warn('⚠️ Could not populate price tracking for checkout:', error);
+    }
+
+    // =====================================================
+    // PRICE AUTO-RESOLUTION: Apply pricing policy
+    // When ticket is completed, auto-resolve prices based on policy settings
+    // Services with 'ask_staff' mode and price increase remain unresolved
+    // =====================================================
+    if (checkoutServicesWithPricing && checkoutServicesWithPricing.length > 0) {
+      // Get pricing policy from settings (state.settings.settings?.checkout?.pricingPolicy)
+      const settingsState = state as { settings?: { settings?: { checkout?: { pricingPolicy?: PricingPolicySettings } } } };
+      const pricingPolicy = settingsState.settings?.settings?.checkout?.pricingPolicy;
+
+      // Apply auto-resolution based on policy
+      checkoutServicesWithPricing = autoResolvePrices(checkoutServicesWithPricing, pricingPolicy);
+
+      // Log auto-resolution results for debugging
+      const resolved = checkoutServicesWithPricing.filter(s => s.priceDecision);
+      const unresolved = checkoutServicesWithPricing.filter(s => !s.priceDecision && s.bookedPrice !== undefined && s.catalogPriceAtCheckout !== undefined && s.bookedPrice !== s.catalogPriceAtCheckout);
+
+      if (resolved.length > 0 || unresolved.length > 0) {
+        console.log(`📊 Price auto-resolution (completeTicket): ${resolved.length} resolved, ${unresolved.length} require staff input`);
+      }
     }
 
     try {
@@ -1624,6 +1739,28 @@ export const moveToPending = createAsyncThunk(
       console.warn('⚠️ Could not populate price tracking for checkout:', error);
       // Fall back to existing checkoutServices without price tracking
       checkoutServicesWithPricing = ticket.checkoutServices;
+    }
+
+    // =====================================================
+    // PRICE AUTO-RESOLUTION: Apply pricing policy
+    // When ticket enters checkout, auto-resolve prices based on policy settings
+    // Services with 'ask_staff' mode and price increase remain unresolved
+    // =====================================================
+    if (checkoutServicesWithPricing && checkoutServicesWithPricing.length > 0) {
+      // Get pricing policy from settings (state.settings.settings?.checkout?.pricingPolicy)
+      const settingsState = state as { settings?: { settings?: { checkout?: { pricingPolicy?: PricingPolicySettings } } } };
+      const pricingPolicy = settingsState.settings?.settings?.checkout?.pricingPolicy;
+
+      // Apply auto-resolution based on policy
+      checkoutServicesWithPricing = autoResolvePrices(checkoutServicesWithPricing, pricingPolicy);
+
+      // Log auto-resolution results for debugging
+      const resolved = checkoutServicesWithPricing.filter(s => s.priceDecision);
+      const unresolved = checkoutServicesWithPricing.filter(s => !s.priceDecision && s.bookedPrice !== undefined && s.catalogPriceAtCheckout !== undefined && s.bookedPrice !== s.catalogPriceAtCheckout);
+
+      if (resolved.length > 0 || unresolved.length > 0) {
+        console.log(`📊 Price auto-resolution: ${resolved.length} resolved, ${unresolved.length} require staff input`);
+      }
     }
 
     try {
