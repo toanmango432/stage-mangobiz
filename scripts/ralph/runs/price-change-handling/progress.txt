@@ -180,3 +180,29 @@ Commit: 80befc6
 
 ---
 
+## 2026-01-17 - US-008: Create getPriceDecisionRecommendation utility
+Commit: 3891706
+
+**Why this story?** US-008 has the lowest priority (8) among eligible stories, depends on US-007 which was just completed, and modifies the same file (priceComparisonUtils.ts) - code is fresh in context. This is the core decision engine needed by US-014 and UI stories.
+
+**Changes:**
+- `apps/store-app/src/utils/priceComparisonUtils.ts:11-13`: Added type imports for PriceDecision and PricingPolicyMode
+- `apps/store-app/src/utils/priceComparisonUtils.ts:249-276`: Added new types section:
+  - `PriceDecisionOptions` interface with depositPaid and autoApplyLower options
+  - `PriceDecisionRecommendation` interface with recommendedPrice, priceDecision, requiresStaffInput, requiresManagerApproval
+- `apps/store-app/src/utils/priceComparisonUtils.ts:278-463`: Added `getPriceDecisionRecommendation` function:
+  - Priority 1: Deposit lock always takes precedence (returns 'deposit_locked')
+  - Priority 2: Policy mode rules (honor_booked, use_current, honor_lower, ask_staff)
+  - Auto-apply lower prices when enabled with 'ask_staff' mode
+  - Comprehensive JSDoc with 7 examples covering all scenarios
+
+**Learnings:**
+- detectPriceChange helper is reused to check if prices differ (DRY principle)
+- Default recommendation for 'ask_staff' mode is booked price (client-friendly)
+- requiresManagerApproval always false in this function - approval logic handled by caller based on thresholds
+- Pre-existing typecheck errors in test files are unrelated (AgendaView, AppointmentCard, etc.)
+
+**Next story suggestion:** US-009 (Add unit tests for price comparison utilities) - direct dependency on US-008, same file context, would validate all the new functions
+
+---
+

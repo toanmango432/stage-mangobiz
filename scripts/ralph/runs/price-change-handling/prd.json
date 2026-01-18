@@ -190,7 +190,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-007"],
       "notes": "This is the core decision engine. Deposit lock takes priority over all other modes."
     },
