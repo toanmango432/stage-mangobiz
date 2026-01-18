@@ -12,13 +12,15 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
   selectServicePriceChanges,
   selectUnresolvedPriceChanges,
+  applyPriceResolutions,
   type PriceResolutionPayload,
   type CheckoutTicketService,
 } from '@/store/slices/uiTicketsSlice';
+import { useToast } from '@/hooks/use-toast';
 import { getPriceDecisionRecommendation } from '@/utils/priceComparisonUtils';
 import type { PriceDecision } from '@/types';
 import type { PricingPolicySettings } from '@/types/settings';
@@ -91,6 +93,15 @@ export default function PriceResolutionModal({
   pricingPolicy,
   requireOverrideReason = false,
 }: PriceResolutionModalProps) {
+  // Redux dispatch and toast
+  const dispatch = useAppDispatch();
+  const { toast } = useToast();
+
+  // Get current staff ID for tracking who performed the override
+  const currentStaffId = useAppSelector((state) =>
+    state.auth.member?.memberId || state.auth.user?.id || 'unknown'
+  );
+
   // Get services with price changes
   const priceChanges = useAppSelector(selectServicePriceChanges(ticketId));
   const unresolvedServices = useAppSelector(selectUnresolvedPriceChanges(ticketId));
@@ -622,35 +633,62 @@ export default function PriceResolutionModal({
           {unresolvedServices.length > 0 && (
             <Button
               onClick={() => {
-                // Build resolutions from state (will be wired in US-020)
-                const resolutions: PriceResolutionPayload[] = unresolvedServices.map(service => {
-                  const state = resolutionStates[service.id];
-                  const bookedPrice = service.bookedPrice ?? service.price;
-                  const catalogPrice = service.catalogPriceAtCheckout ?? service.price;
+                try {
+                  // Build resolutions from state
+                  const resolutions: PriceResolutionPayload[] = unresolvedServices.map(service => {
+                    const state = resolutionStates[service.id];
+                    const bookedPrice = service.bookedPrice ?? service.price;
+                    const catalogPrice = service.catalogPriceAtCheckout ?? service.price;
 
-                  let finalPrice: number;
-                  let priceDecision: PriceDecision;
+                    let finalPrice: number;
+                    let priceDecision: PriceDecision;
 
-                  if (state?.option === 'current') {
-                    finalPrice = catalogPrice;
-                    priceDecision = 'catalog_applied';
-                  } else if (state?.option === 'custom') {
-                    finalPrice = parseFloat(state.customPrice) || bookedPrice;
-                    priceDecision = 'manual_override';
-                  } else {
-                    finalPrice = bookedPrice;
-                    priceDecision = 'booked_honored';
-                  }
+                    if (state?.option === 'current') {
+                      finalPrice = catalogPrice;
+                      priceDecision = 'catalog_applied';
+                    } else if (state?.option === 'custom') {
+                      finalPrice = parseFloat(state.customPrice) || bookedPrice;
+                      priceDecision = 'manual_override';
+                    } else {
+                      finalPrice = bookedPrice;
+                      priceDecision = 'booked_honored';
+                    }
 
-                  return {
-                    serviceId: service.id,
-                    finalPrice,
-                    priceDecision,
-                    priceOverrideReason: state?.option === 'custom' ? state.reason : undefined,
-                  };
-                });
+                    return {
+                      serviceId: service.id,
+                      finalPrice,
+                      priceDecision,
+                      priceOverrideReason: state?.option === 'custom' ? state.reason : undefined,
+                      // Include current staff ID for overrides
+                      priceOverrideBy: state?.option !== 'booked' ? currentStaffId : undefined,
+                    };
+                  });
 
-                onResolved(resolutions);
+                  // Dispatch Redux action to update ticket prices
+                  dispatch(applyPriceResolutions({
+                    ticketId,
+                    resolutions,
+                  }));
+
+                  // Show success toast
+                  toast({
+                    title: 'Price changes resolved',
+                    description: `${resolutions.length} service${resolutions.length !== 1 ? 's' : ''} updated successfully.`,
+                  });
+
+                  // Call onResolved callback
+                  onResolved(resolutions);
+
+                  // Close modal on success
+                  onClose();
+                } catch (error) {
+                  // Show error toast
+                  toast({
+                    title: 'Error applying resolutions',
+                    description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+                    variant: 'destructive',
+                  });
+                }
               }}
               disabled={!canApply}
               data-testid="button-apply-resolutions"

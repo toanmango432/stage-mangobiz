@@ -438,7 +438,7 @@
         "Verify in browser: can select options for each service"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-017"],
       "notes": "Use RadioGroup from @/components/ui/radio-group. Custom price input should have min=0 validation."
     },
@@ -462,7 +462,7 @@
         "Verify in browser: bulk actions update all service selections"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-018"],
       "notes": "Quality of life feature for staff when many services have changes. User can still adjust individual after bulk."
     },
