@@ -1235,3 +1235,25 @@ Commit: a02e362
 **Next story suggestion:** US-039 (Allow checkout of tickets with archived services) - priority 39, depends on US-038 (now complete), ensures archived services on existing tickets still work
 
 ---
+
+## 2026-01-18 - US-039: Allow checkout of tickets with archived services
+Commit: fc67f3d
+
+**Why this story?** US-039 has the highest priority (39) among remaining stories with `passes: false`, and its dependency US-038 is complete. It's the logical next step in the service archive feature - ensuring existing appointments with archived services can still be checked out.
+
+**Changes:**
+- `apps/store-app/src/store/slices/uiTicketsSlice.ts:355`: Added `isArchived?: boolean` field to CheckoutTicketService interface with JSDoc explaining archived services display "DISCONTINUED" badge
+- `apps/store-app/src/components/checkout/ServiceList.tsx:47`: Added `isArchived?: boolean` field to TicketService interface
+- `apps/store-app/src/components/tickets/TicketPanel/types.ts:44`: Added `isArchived?: boolean` field to TicketService interface
+- `apps/store-app/src/components/checkout/StaffGroup.tsx:6`: Added Archive icon import from lucide-react
+- `apps/store-app/src/components/checkout/StaffGroup.tsx:221-230`: Added "DISCONTINUED" badge display with amber styling (bg-amber-100/text-amber-800) when `service.isArchived` is true
+
+**Learnings:**
+- ServiceLineItem.tsx in PRD doesn't exist - services are rendered via StaffGroup.tsx's ServiceItem component
+- Multiple TicketService interfaces exist in the codebase (ServiceList.tsx for checkout, TicketPanel/types.ts for tickets) - both needed updating
+- Pre-existing TypeScript errors (PanInfo import, RootState errors) are unrelated to changes
+- Pre-existing test failures (Redux Provider missing, integration tests) are unrelated to changes
+
+**Next story suggestion:** US-040 (Show archived service indicator on calendar appointments) - builds on the archive status field added here
+
+---

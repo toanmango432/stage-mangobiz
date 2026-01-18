@@ -943,7 +943,7 @@
         "Verify in browser: can checkout ticket with archived service"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-038"],
       "notes": "Critical: existing appointments MUST work. Following Fresha pattern: 'Existing appointments will not be affected by archiving services.'"
     },

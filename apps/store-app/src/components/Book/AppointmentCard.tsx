@@ -4,7 +4,7 @@
  */
 
 import { memo, useState, useMemo } from 'react';
-import { BadgeCheck, UserCheck, Zap } from 'lucide-react';
+import { Archive, BadgeCheck, UserCheck, Zap } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { LocalAppointment } from '../../types/appointment';
 import { formatTimeDisplay, formatDurationDisplay } from '../../utils/timeUtils';
@@ -104,6 +104,29 @@ export const AppointmentCard = memo(function AppointmentCard({
     });
   }, [appointment.services, catalogServices]);
 
+  /**
+   * Check if any service in the appointment has been archived.
+   * Checks both the appointment service's own status field (if populated)
+   * and the current catalog service's status.
+   */
+  const hasArchivedService = useMemo(() => {
+    // Check appointment services for archived status
+    const hasArchivedInAppointment = appointment.services.some((service: any) => {
+      return service.status === 'archived';
+    });
+
+    if (hasArchivedInAppointment) return true;
+
+    // Also check catalog services - if the service is now archived in catalog
+    if (!catalogServices || catalogServices.length === 0) return false;
+
+    return appointment.services.some((service: any) => {
+      const catalogService = catalogServices.find(cs => cs.id === service.serviceId);
+      // If service found in catalog and is archived
+      return catalogService?.status === 'archived';
+    });
+  }, [appointment.services, catalogServices]);
+
   const handleDragStart = (e: React.DragEvent) => {
     e.stopPropagation();
     setIsDragging(true);
@@ -195,6 +218,24 @@ export const AppointmentCard = memo(function AppointmentCard({
                       </TooltipTrigger>
                       <TooltipContent side="top" className="text-xs">
                         Price has changed since booking
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {/* Archived Service Indicator */}
+                {hasArchivedService && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="flex items-center justify-center w-4 h-4 rounded-full bg-gray-100 text-gray-500 border border-gray-200"
+                          aria-label="Contains archived service"
+                        >
+                          <Archive className="w-2.5 h-2.5" aria-hidden />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        Contains archived service
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
