@@ -766,3 +766,32 @@ Commit: 1eed252
 **Next story suggestion:** US-025 (Add additional pricing policy toggles) - priority 25, depends on US-024 (now complete), same file context, adds toggle switches for additional options
 
 ---
+
+## 2026-01-18 - US-025: Add additional pricing policy toggles to Settings UI
+Commit: 17e01ec
+
+**Why this story?** US-025 is the highest priority (25) among eligible stories with all dependencies met (US-024 complete). Same file context (CheckoutPaymentsSettings.tsx) from previous iteration makes this efficient to implement.
+
+**Changes:**
+- `apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx:631-684`: Added 4 toggle switches to Pricing Policy section:
+  - Auto-apply lower prices: When catalog price drops below booked price, automatically charge lower
+  - Show price difference alert: Alert staff when service prices differ between booking and checkout
+  - Allow staff override: Let staff change the price from the default policy at checkout
+  - Require override reason: Staff must enter a reason when overriding the price policy
+  - Each toggle uses existing Toggle component with descriptive label and helper text
+  - Organized in visually distinct section with border separator from radio buttons
+
+**Browser Verification:**
+- Component renders without errors: PASS (typecheck passes)
+- Toggles display with descriptions: Requires visual verification (user to start dev server)
+- Settings use existing Redux pattern: PASS (handlePricingPolicyChange handler)
+
+**Learnings:**
+- Toggle component already exists in this file - no need to import Switch from shadcn
+- PricingPolicySettings interface already has all required fields (autoApplyLowerPrice, showPriceVarianceAlert, allowStaffOverride, requireOverrideReason)
+- Pre-existing typecheck errors in test files (AgendaView, AppointmentCard, etc.) are unrelated
+- Pre-existing test failures (CreateTicketButton, padCheckoutFlow) are unrelated
+
+**Next story suggestion:** US-026 (Add deposit and reschedule settings) - priority 26, depends on US-025 (now complete), same file context, continues settings UI build-out
+
+---

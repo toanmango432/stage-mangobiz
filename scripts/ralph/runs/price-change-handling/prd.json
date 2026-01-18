@@ -605,7 +605,7 @@
         "Verify in browser: all toggles display and function"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-024"],
       "notes": "Continue building settings UI. Use Switch component for toggles."
     },

@@ -681,6 +681,32 @@ export function CheckoutPaymentsSettings() {
               onChange={(checked) => handlePricingPolicyChange('requireOverrideReason', checked)}
             />
           </div>
+
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
+            <div>
+              <p className="font-medium text-gray-900">Lock price when deposit paid</p>
+              <p className="text-sm text-gray-500">
+                Price cannot be changed after a deposit is collected. Protects client expectations.
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.lockPriceOnDeposit}
+              onChange={(checked) => handlePricingPolicyChange('lockPriceOnDeposit', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
+            <div>
+              <p className="font-medium text-gray-900">Keep original price on reschedule</p>
+              <p className="text-sm text-gray-500">
+                When an appointment is rescheduled, preserve the original booked price instead of updating to current price
+              </p>
+            </div>
+            <Toggle
+              checked={pricingPolicy.keepPriceOnReschedule}
+              onChange={(checked) => handlePricingPolicyChange('keepPriceOnReschedule', checked)}
+            />
+          </div>
         </div>
       </SettingsSection>
 
