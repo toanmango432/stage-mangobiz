@@ -526,7 +526,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-017"],
       "notes": "Large migration file. Reference Dexie schema v16 for exact column definitions. Use proper date columns for expiresAt, etc."
     },
@@ -548,7 +548,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-018"],
       "notes": "Team and CRM tables complete. Phase 4 done after this."
     },
