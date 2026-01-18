@@ -102,3 +102,15 @@ export {
   type DeviceConfig,
   type DeviceMode,
 } from './deviceSettingsService';
+
+// Team member service (team management with soft delete)
+export {
+  TeamMemberSQLiteService,
+  type TeamMember,
+  type TeamMemberRow,
+  type TeamMemberProfile,
+  type TeamMemberPermissions,
+  type TeamMemberRole,
+  type TeamMemberSyncStatus,
+  type VectorClock,
+} from './teamMemberService';

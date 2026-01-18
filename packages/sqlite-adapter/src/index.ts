@@ -90,6 +90,15 @@ export {
   type DeviceSettingsInput as SQLiteDeviceSettingsInput,
   type DeviceConfig as SQLiteDeviceConfig,
   type DeviceMode as SQLiteDeviceMode,
+  // Team member service (team management with soft delete)
+  TeamMemberSQLiteService,
+  type TeamMember as SQLiteTeamMember,
+  type TeamMemberRow as SQLiteTeamMemberRow,
+  type TeamMemberProfile as SQLiteTeamMemberProfile,
+  type TeamMemberPermissions as SQLiteTeamMemberPermissions,
+  type TeamMemberRole as SQLiteTeamMemberRole,
+  type TeamMemberSyncStatus as SQLiteTeamMemberSyncStatus,
+  type VectorClock as SQLiteVectorClock,
 } from './services';
 
 // Type conversion utilities

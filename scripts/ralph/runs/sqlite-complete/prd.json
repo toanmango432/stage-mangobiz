@@ -404,7 +404,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-012"],
       "notes": "Primary key is deviceId (not auto-generated id). Device settings include POS configuration, printer settings."
     },
@@ -428,7 +428,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-013"],
       "notes": "Infrastructure tables are simpler than core tables. Use TEXT for JSON columns."
     },
@@ -450,7 +450,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-014"],
       "notes": "Complete infrastructure wiring. After this, core + infrastructure tables are SQLite-ready."
     },

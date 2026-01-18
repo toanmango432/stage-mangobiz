@@ -698,3 +698,120 @@ Commit: a47626a
 **Next story suggestion:** US-013 (Create DeviceSettingsSQLiteService) - depends on US-012 (just completed) and adds device-specific settings service.
 
 ---
+
+## 2026-01-17 - US-013: Create DeviceSettingsSQLiteService
+Commit: a417b05
+
+**Why this story?** US-013 is the only story with all dependencies satisfied. It depends on US-012 (just completed in the previous iteration) and follows the same standalone service pattern for device-specific configuration storage.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/deviceSettingsService.ts` (NEW, 580 lines): Device settings service
+  - `DeviceSettingsSQLiteService`: Standalone service for device-specific configuration
+  - `get(deviceId)`: Retrieve settings for a specific device
+  - `set(deviceId, settings)`: Upsert device settings using INSERT OR REPLACE
+  - `delete(deviceId)`: Remove device settings
+  - `getAll()`: Get all registered devices
+  - `exists(deviceId)`: Check if device is registered
+  - `register(deviceId, mode)`: Register a new device with defaults
+  - `updateMode(deviceId, mode)`: Update device operating mode
+  - `setOfflineModeEnabled(deviceId, enabled)`: Toggle offline mode
+  - `recordSync(deviceId, timestamp?)`: Record last sync timestamp
+  - `updateConfig(deviceId, config)`: Merge configuration updates
+  - `getConfig(deviceId)`, `clearConfig(deviceId)`: Config accessors
+  - `getByMode(mode)`: Query devices by mode
+  - `getOfflineEnabled()`: Get devices with offline mode enabled
+  - `getNotSyncedSince(since)`: Find devices that need sync
+  - `count()`, `countByMode()`, `clear()`: Statistics and utilities
+  - Types: `DeviceSettings`, `DeviceSettingsInput`, `DeviceConfig`, `DeviceMode`
+- `packages/sqlite-adapter/src/services/index.ts:97-104`: Export DeviceSettingsSQLiteService and types
+- `packages/sqlite-adapter/src/index.ts:87-92`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in deviceSettingsService.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _' in production code)
+
+**Learnings:**
+- DeviceSettings uses deviceId as PRIMARY KEY (not auto-generated id), matching Dexie schema
+- DeviceConfig interface supports common POS peripherals: printer, cashDrawer, display, paymentTerminal, barcodeScanner
+- `getNotSyncedSince()` uses `ORDER BY last_sync_at ASC NULLS FIRST` to prioritize devices that never synced
+- Used `sqliteToBool() ?? false` pattern to handle undefined from integer columns with DEFAULT 0
+
+**Patterns to sync:** None new - follows established standalone service pattern from SettingsSQLiteService
+
+**Next story suggestion:** US-014 (Add migration v004 for infrastructure tables) - depends on US-013 (just completed) and creates the SQLite schema for settings, sync queue, and device settings tables.
+
+---
+
+## 2026-01-17 - US-014: Add migration v004 for infrastructure tables
+Commit: 4fc6515
+
+**Why this story?** US-014 is the only story with all dependencies satisfied. It depends on US-013 (just completed) and creates the SQLite migration for infrastructure tables (settings, syncQueue, deviceSettings) to match the services created in US-011, US-012, US-013.
+
+**Changes:**
+- `packages/sqlite-adapter/src/migrations/v004_infrastructure.ts` (NEW, 137 lines): Infrastructure tables migration
+  - `settings` table: Key-value store with `key TEXT PRIMARY KEY`, value as JSON TEXT
+  - `sync_queue` table: Offline operation queue with priority (1-3), status tracking, retry support
+    - Indexes: status, priority, status+created_at (compound), entity, priority+created_at (compound for efficient queue processing)
+  - `device_settings` table: Device-specific config with `device_id TEXT PRIMARY KEY`
+    - Includes mode, offline_mode_enabled, last_sync_at, registered_at, settings (JSON)
+    - Indexes: mode, offline_mode_enabled
+  - `down()` function removes indexes (preserves tables for safety)
+- `packages/sqlite-adapter/src/migrations/index.ts:22`: Export migration_004
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in v004_infrastructure.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (console.log used for migration logging consistent with v001-v003)
+
+**Learnings:**
+- v003 migration already created these tables, but v004 adds additional indexes (priority+created_at compound index) and ensures complete schema
+- Migration uses CREATE TABLE IF NOT EXISTS for idempotency - safe to run even if v003 already created tables
+- down() only removes indexes, not tables, to preserve data during rollback
+- Infrastructure tables use simpler schemas than entity tables (no storeId, no syncStatus)
+
+**Patterns to sync:** None new - follows established migration patterns
+
+**Next story suggestion:** US-015 (Wire infrastructure services to dataService) - depends on US-014 (just completed) and wires settings and syncQueue operations to SQLite.
+
+---
+
+## 2026-01-17 - US-015: Wire infrastructure services to dataService
+Commit: a9f561e
+
+**Why this story?** US-015 is the only story with all dependencies satisfied. It depends on US-014 (just completed) and wires the infrastructure services (settings, syncQueue) created in US-011 and US-012 to dataService for platform-aware routing.
+
+**Changes:**
+- `apps/store-app/src/services/sqliteServices.ts:33-34,55-56,547-714`:
+  - Import SettingsSQLiteService and SyncQueueSQLiteService from @mango/sqlite-adapter
+  - Add _settingsService and _syncQueueService lazy-initialized instances
+  - `sqliteSettingsDB`: Wrapper with get<T>, set, remove methods matching Dexie settingsDB interface
+  - `sqliteSyncQueueDB`: Wrapper with getAll, getPending, add, update, remove, clear methods
+  - `SyncOperation` interface for dataService compatibility (uses Date for createdAt to match Dexie)
+  - Status mapping: SQLite uses 'complete' while Dexie uses 'success' - handled in conversion
+  - closeSQLite() updated to reset settings and syncQueue service instances
+- `apps/store-app/src/services/dataService.ts:33,51-52,1494-1581,1625-1627`:
+  - Import settingsDB from @/db/database
+  - Import sqliteSettingsDB and sqliteSyncQueueDB from @/services/sqliteServices
+  - `settingsService`: Routes get/set/remove to SQLite or Dexie based on USE_SQLITE flag
+  - `syncQueueService`: Routes getAll/getPending/add/update/remove/clear with status mapping
+  - update() maps 'success' status to 'complete' and 'error' to 'lastError' for SQLite compatibility
+  - Export settings and syncQueue on dataService object
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in dataService.ts or sqliteServices.ts; pre-existing errors in test files and api-client unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _' in production code)
+
+**Learnings:**
+- SyncOperation types differ between Dexie and SQLite: Dexie uses 'success' status, SQLite uses 'complete'
+- Status mapping in update() prevents type errors when routing between backends
+- SettingValue constraint (string|number|boolean|object|null) requires explicit casting in generic methods
+- getPending() in SyncQueueSQLiteService takes no arguments; use getNext(limit) for limiting results
+
+**Patterns to sync:** 
+- Pattern #23: Status value mapping - when bridging between storage backends with different enum values (e.g., 'success' vs 'complete'), add explicit mapping in the routing layer rather than changing either backend.
+
+**Next story suggestion:** US-016 (Create TeamMemberSQLiteService) - depends on US-015 (just completed) and is the first CRM/team service to implement.
+
+---
