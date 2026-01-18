@@ -166,6 +166,23 @@ export interface MenuService {
   // Audit
   createdBy?: string;
   lastModifiedBy?: string;
+
+  // === ARCHIVE FIELDS ===
+  /**
+   * ISO timestamp when the service was archived.
+   * Only set when status is 'archived'.
+   *
+   * @example '2024-01-15T10:30:00.000Z'
+   */
+  archivedAt?: string;
+
+  /**
+   * Staff ID of the person who archived this service.
+   * Only set when status is 'archived'.
+   *
+   * @example 'staff-abc123'
+   */
+  archivedBy?: string;
 }
 
 export type CreateMenuServiceInput = Omit<MenuService,

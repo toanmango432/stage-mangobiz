@@ -217,7 +217,20 @@ export const menuServicesDB = {
   },
 
   async archive(id: string, userId: string): Promise<MenuService | undefined> {
-    return await this.update(id, { status: 'archived' }, userId);
+    const now = new Date().toISOString();
+    return await this.update(id, {
+      status: 'archived',
+      archivedAt: now,
+      archivedBy: userId,
+    } as Partial<MenuService>, userId);
+  },
+
+  async restore(id: string, userId: string): Promise<MenuService | undefined> {
+    return await this.update(id, {
+      status: 'active',
+      archivedAt: undefined,
+      archivedBy: undefined,
+    } as Partial<MenuService>, userId);
   },
 
   async reorder(_categoryId: string, orderedIds: string[], userId: string): Promise<void> {

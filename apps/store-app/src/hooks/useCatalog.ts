@@ -17,6 +17,7 @@ import {
   addOnGroupsDB,
   addOnOptionsDB,
   catalogSettingsDB,
+  appointmentsDB,
 } from '../db/database';
 import { productsDB } from '../db/catalogDatabase';
 import type {
@@ -49,6 +50,33 @@ type ToastFn = (message: string, type: 'success' | 'error') => void;
 
 // Default no-op toast
 const defaultToast: ToastFn = () => {};
+
+/**
+ * Service archive dependency check result.
+ * Contains counts of items that depend on this service.
+ */
+export interface ServiceArchiveDependencies {
+  /** Number of active packages containing this service */
+  packageCount: number;
+  /** Names of packages containing this service */
+  packageNames: string[];
+  /** Number of upcoming appointments with this service */
+  upcomingAppointmentCount: number;
+  /** Whether the service has any dependencies */
+  hasDependencies: boolean;
+}
+
+/**
+ * Result of archiving a service.
+ */
+export interface ArchiveServiceResult {
+  /** Whether the archive operation succeeded */
+  success: boolean;
+  /** The archived service (if successful) */
+  service?: MenuService;
+  /** Warning about dependencies (always provided for awareness) */
+  dependencies?: ServiceArchiveDependencies;
+}
 
 interface UseCatalogOptions {
   storeId: string;
@@ -537,11 +565,94 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     );
   }, [withErrorHandling]);
 
-  const archiveService = useCallback(async (id: string) => {
+  /**
+   * Check for dependencies that reference a service.
+   * Used before archiving to warn about packages and upcoming appointments.
+   */
+  const checkServiceDependencies = useCallback(async (serviceId: string): Promise<ServiceArchiveDependencies> => {
+    // Check for packages containing this service
+    const allPackages = await servicePackagesDB.getAll(storeId, false);
+    const dependentPackages = allPackages.filter(pkg =>
+      pkg.isActive && pkg.services.some(svc => svc.serviceId === serviceId)
+    );
+
+    // Check for upcoming appointments with this service
+    const now = new Date();
+    const appointments = await appointmentsDB.getAll(storeId);
+    const upcomingAppointments = appointments.filter(apt => {
+      // Only count scheduled/confirmed appointments in the future
+      const startTime = new Date(apt.scheduledStartTime);
+      const isFuture = startTime > now;
+      const isScheduled = ['scheduled', 'confirmed'].includes(apt.status);
+      const hasService = apt.services.some(svc => svc.serviceId === serviceId);
+      return isFuture && isScheduled && hasService;
+    });
+
+    return {
+      packageCount: dependentPackages.length,
+      packageNames: dependentPackages.map(pkg => pkg.name),
+      upcomingAppointmentCount: upcomingAppointments.length,
+      hasDependencies: dependentPackages.length > 0 || upcomingAppointments.length > 0,
+    };
+  }, [storeId]);
+
+  /**
+   * Archive a service with dependency checking.
+   * Returns dependency information so the UI can warn the user.
+   * Does NOT block archiving - archived services still work for existing appointments.
+   */
+  const archiveService = useCallback(async (id: string): Promise<ArchiveServiceResult | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Check dependencies first
+      const dependencies = await checkServiceDependencies(id);
+
+      // Archive the service (we don't block, just warn)
+      const service = await menuServicesDB.archive(id, userId);
+
+      if (!service) {
+        throw new Error('Service not found');
+      }
+
+      // Show appropriate toast message
+      if (dependencies.hasDependencies) {
+        const warningParts: string[] = [];
+        if (dependencies.packageCount > 0) {
+          warningParts.push(`${dependencies.packageCount} package${dependencies.packageCount > 1 ? 's' : ''}`);
+        }
+        if (dependencies.upcomingAppointmentCount > 0) {
+          warningParts.push(`${dependencies.upcomingAppointmentCount} upcoming appointment${dependencies.upcomingAppointmentCount > 1 ? 's' : ''}`);
+        }
+        toast(`Service archived. Note: ${warningParts.join(' and ')} still reference this service.`, 'success');
+      } else {
+        toast('Service archived', 'success');
+      }
+
+      return {
+        success: true,
+        service,
+        dependencies,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to archive service';
+      setError(message);
+      toast(message, 'error');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, storeId, checkServiceDependencies, toast]);
+
+  /**
+   * Restore an archived service back to active status.
+   */
+  const restoreService = useCallback(async (id: string) => {
     return withErrorHandling(
-      () => menuServicesDB.archive(id, userId),
-      'Service archived',
-      'Failed to archive service'
+      () => menuServicesDB.restore(id, userId),
+      'Service restored',
+      'Failed to restore service'
     );
   }, [userId, withErrorHandling]);
 
@@ -983,6 +1094,8 @@ export function useCatalog({ storeId, userId = 'system', toast = defaultToast }:
     updateService,
     deleteService,
     archiveService,
+    restoreService,
+    checkServiceDependencies,
 
     // Package Actions
     createPackage,
