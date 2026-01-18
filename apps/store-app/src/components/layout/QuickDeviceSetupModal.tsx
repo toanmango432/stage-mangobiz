@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink, Loader2 } from 'lucide-react';
+import { Layers, Plus, Tablet, Printer, CreditCard, RefreshCw, Unlink, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
@@ -355,20 +355,11 @@ export function QuickDeviceSetupModal({
     <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
-        {/* Custom header with close button */}
+        {/* Header - close button provided by DialogContent */}
         <DialogHeader className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-gray-600" />
-              <DialogTitle className="text-lg font-semibold">Device Setup</DialogTitle>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-gray-600" />
+            <DialogTitle className="text-lg font-semibold">Device Setup</DialogTitle>
           </div>
 
           {/* Summary */}

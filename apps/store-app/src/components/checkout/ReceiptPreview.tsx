@@ -9,11 +9,18 @@ import {
 } from "@/components/ui/dialog";
 import { Printer, Mail, Download, Share2, Check } from "lucide-react";
 
+/**
+ * Service item for receipt display
+ * @property bookedPrice - Original price when service was booked (if different from final price)
+ */
 interface ReceiptService {
   id: string;
   name: string;
+  /** Final price charged to client */
   price: number;
   staffName?: string;
+  /** Original price at booking time (for price variance display) */
+  bookedPrice?: number;
 }
 
 interface Client {
@@ -134,19 +141,45 @@ export default function ReceiptPreview({
               <Separator className="my-3" />
 
               <div className="space-y-1.5 mb-3">
-                {services.map((service) => (
-                  <div key={service.id} className="flex justify-between text-xs">
-                    <div className="flex-1 pr-2">
-                      <span className="truncate block">{service.name}</span>
-                      {service.staffName && (
-                        <span className="text-muted-foreground text-[10px]">
-                          ({service.staffName})
+                {services.map((service) => {
+                  // Check for price variance (with 0.01 tolerance for floating point)
+                  const hasPriceChange =
+                    service.bookedPrice !== undefined &&
+                    Math.abs(service.bookedPrice - service.price) >= 0.01;
+                  const priceLowered = hasPriceChange && service.price < (service.bookedPrice || 0);
+
+                  return (
+                    <div key={service.id} className="text-xs">
+                      <div className="flex justify-between">
+                        <div className="flex-1 pr-2">
+                          <span className="truncate block">{service.name}</span>
+                          {service.staffName && (
+                            <span className="text-muted-foreground text-[10px]">
+                              ({service.staffName})
+                            </span>
+                          )}
+                        </div>
+                        <span className="flex items-center gap-1">
+                          {hasPriceChange && (
+                            <>
+                              <span className="line-through text-muted-foreground">
+                                ${service.bookedPrice!.toFixed(2)}
+                              </span>
+                              <span className="text-muted-foreground">→</span>
+                            </>
+                          )}
+                          <span>{service.price >= 0 ? `$${service.price.toFixed(2)}` : `-$${Math.abs(service.price).toFixed(2)}`}</span>
                         </span>
+                      </div>
+                      {/* Show positive message when price was lowered (client-friendly) */}
+                      {priceLowered && (
+                        <div className="text-[10px] text-emerald-600 text-right">
+                          Price honored from booking
+                        </div>
                       )}
                     </div>
-                    <span>${service.price.toFixed(2)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <Separator className="my-3" />

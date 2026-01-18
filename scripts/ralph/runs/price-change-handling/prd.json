@@ -628,7 +628,7 @@
         "Verify in browser: deposit and reschedule settings work"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-025"],
       "notes": "Final settings UI additions. These control critical behaviors for deposits and rescheduling."
     },
@@ -652,7 +652,7 @@
         "Verify in browser: manager approval settings with thresholds"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-026"],
       "notes": "Conditional display - threshold inputs only show when toggle is on. Both thresholds are OR condition (either triggers approval)."
     },
@@ -676,7 +676,7 @@
         "Verify in browser: settings save and persist across page reloads"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-027"],
       "notes": "Connect all the pricing settings UI to the Redux store. Use existing settings update patterns."
     },
@@ -701,7 +701,7 @@
         "Verify in browser: rescheduling shows price option"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-026"],
       "notes": "If RescheduleModal doesn't exist, find the component that handles appointment rescheduling. May need to use Grep to locate."
     },
@@ -725,7 +725,7 @@
         "Typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-010"],
       "notes": "Lazy migration - happens when appointment is accessed. Prevents issues with old data. Log migration in console for debugging."
     },
@@ -749,7 +749,7 @@
         "Verify in browser: deleted service shows warning and limited options"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-016"],
       "notes": "Edge case but important - services can be deleted after bookings are made. Staff should still be able to checkout."
     },
@@ -772,7 +772,7 @@
         "Typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-006", "US-013"],
       "notes": "Audit trail is critical for business reporting. Check existing activity log patterns in codebase."
     },

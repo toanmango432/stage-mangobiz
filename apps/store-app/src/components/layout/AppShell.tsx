@@ -47,6 +47,7 @@ import {
   setSettings,
   subscribeToSettingsChanges,
 } from '../../store/slices/frontDeskSettingsSlice';
+import { setActiveCategory } from '../../store/slices/settingsSlice';
 import { storeAuthManager } from '../../services/storeAuthManager';
 import { initializeDatabase, db } from '../../db/schema';
 import { seedDatabase, getTestSalonId } from '../../db/seed';
@@ -116,16 +117,25 @@ function AppShellContent() {
   // Listen for navigation events from child components (e.g., FrontDesk -> Checkout)
   useEffect(() => {
     const handleNavigate = (event: CustomEvent) => {
-      const targetModule = event.detail;
-      if (targetModule) {
-        setActiveModule(targetModule);
+      const detail = event.detail;
+      if (detail) {
+        // Handle both string format ("settings") and object format ({ module: "settings", category: "devices" })
+        if (typeof detail === 'string') {
+          setActiveModule(detail);
+        } else if (typeof detail === 'object' && detail.module) {
+          setActiveModule(detail.module);
+          // If navigating to settings with a category, set the active category
+          if (detail.module === 'settings' && detail.category) {
+            dispatch(setActiveCategory(detail.category));
+          }
+        }
       }
     };
     window.addEventListener('navigate-to-module', handleNavigate as EventListener);
     return () => {
       window.removeEventListener('navigate-to-module', handleNavigate as EventListener);
     };
-  }, []);
+  }, [dispatch]);
 
 
   // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
