@@ -100,6 +100,79 @@ export interface TicketService {
   assistantStaffId?: string;
   assistantStaffName?: string;
   assistantTipPercent?: number; // e.g., 20 means assistant gets 20% of service tip
+
+  // ============================================
+  // PRICE TRACKING FIELDS
+  // ============================================
+  // These fields enable tracking price changes between booking and checkout.
+  // See PriceDecision type for decision options.
+
+  /**
+   * Original price at the time of booking.
+   * Captured from the appointment's service when ticket is created.
+   * Undefined for walk-ins (no prior booking).
+   * @example 50.00 // Customer booked when service was $50
+   */
+  bookedPrice?: number;
+
+  /**
+   * Current catalog price when ticket enters checkout mode.
+   * Looked up from services catalog at checkout time.
+   * Used to detect price changes since booking.
+   * @example 55.00 // Service is now $55 in catalog
+   */
+  catalogPriceAtCheckout?: number;
+
+  /**
+   * Difference between final price and booked price.
+   * Calculated as: (final price) - bookedPrice
+   * Positive = customer paying more, Negative = customer paying less.
+   * @example 5.00 // Customer paying $5 more than booked
+   * @example -10.00 // Customer saving $10 from booked price
+   */
+  priceVariance?: number;
+
+  /**
+   * Price variance as a percentage of the booked price.
+   * Calculated as: ((finalPrice - bookedPrice) / bookedPrice) * 100
+   * @example 10 // 10% increase from booked price
+   * @example -20 // 20% decrease from booked price
+   */
+  priceVariancePercent?: number;
+
+  /**
+   * How the final checkout price was determined.
+   * Set when staff resolves price difference or auto-applied by policy.
+   * @see PriceDecision
+   */
+  priceDecision?: PriceDecision;
+
+  /**
+   * Reason provided by staff when manually overriding the price.
+   * Required when priceDecision is 'manual_override' and settings require reason.
+   * @example "Promotional discount agreed during booking call"
+   */
+  priceOverrideReason?: string;
+
+  /**
+   * Staff ID who performed the price override.
+   * Set when priceDecision is 'manual_override' or 'catalog_applied' with staff action.
+   */
+  priceOverrideBy?: string;
+
+  /**
+   * Manager ID who approved the price decision.
+   * Required when variance exceeds approval threshold in settings.
+   * @example "mgr_12345" // Manager who approved the higher price
+   */
+  priceApprovedBy?: string;
+
+  /**
+   * Indicates if price is locked due to deposit payment.
+   * When true, priceDecision should be 'deposit_locked' and price cannot change.
+   * @example true // Deposit was paid, price is locked at booked amount
+   */
+  depositLocked?: boolean;
 }
 
 export interface TicketProduct {
