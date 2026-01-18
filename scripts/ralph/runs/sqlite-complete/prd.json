@@ -631,7 +631,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-021"],
       "notes": "8 services. Date range queries critical for calendar views. getEffective returns schedule valid for current date."
     },

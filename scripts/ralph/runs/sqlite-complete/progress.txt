@@ -1155,3 +1155,38 @@ Commit: fe1c3e6
 **Next story suggestion:** US-022 (Create Scheduling SQLite services) - depends on US-021 (just completed) and creates 8 scheduling-related services.
 
 ---
+
+## 2026-01-17 - US-022: Create Scheduling SQLite services
+Commit: 8a58dd8
+
+**Why this story?** US-022 is the only story with all dependencies satisfied. It depends on US-021 (just completed) and follows the same pattern of creating SQLite services for a domain area (scheduling).
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/schedulingServices.ts` (NEW, 1361 lines): 8 scheduling SQLite services
+  - `TimeOffTypeSQLiteService`: Time-off type configurations with getActive(), getByStore(), getByCode(), softDelete()
+  - `TimeOffRequestSQLiteService`: Time-off requests with getByStaff(), getByDateRange(), getByStatus(), getPending(), getUpcoming()
+  - `BlockedTimeTypeSQLiteService`: Blocked time categories with getActive(), countActive()
+  - `BlockedTimeEntrySQLiteService`: Staff blocked time entries with getByStaff(), getByDateRange(), getBySeries(), deleteSeries()
+  - `BusinessClosedPeriodSQLiteService`: Business closure periods with getActive(), getByDateRange(), getForDate(), getAnnual()
+  - `ResourceSQLiteService`: Bookable resources with getActive(), getByCategory(), getBookable(), getCategories()
+  - `ResourceBookingSQLiteService`: Resource-appointment links with getByResource(), getByAppointment(), isResourceAvailable()
+  - `StaffScheduleSQLiteService`: Staff working patterns with getByStaff(), getEffective(), getByDateRange(), getForDate(), getDefaults()
+- `packages/sqlite-adapter/src/services/index.ts:151-194`: Export all 8 scheduling services and 23 types
+- `packages/sqlite-adapter/src/index.ts:141-179`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (schedulingServices.ts has no errors; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests in sqlite-adapter package still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Renamed `StaffSchedule` to `SchedulingStaffSchedule` and `StaffScheduleRow` to `SchedulingStaffScheduleRow` to avoid conflict with existing StaffSchedule export from staffService.ts
+- Resource service includes `getCategories()` method that uses `SELECT DISTINCT` to get unique category values
+- `isResourceAvailable()` uses SQL overlap detection for checking time slot availability
+- All scheduling services include comprehensive date range queries for calendar views
+
+**Patterns to sync:** None new - follows established BaseSQLiteService pattern
+
+**Next story suggestion:** US-023 (Add migration v007 for scheduling tables) - depends on US-022 (just completed) and creates the SQLite schema for all scheduling services.
+
+---
