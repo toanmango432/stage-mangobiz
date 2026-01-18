@@ -99,6 +99,50 @@ export {
   type TeamMemberRole as SQLiteTeamMemberRole,
   type TeamMemberSyncStatus as SQLiteTeamMemberSyncStatus,
   type VectorClock as SQLiteVectorClock,
+  // CRM services (client management, forms, reviews, loyalty)
+  // Patch Test service (PRD 2.3.3)
+  PatchTestSQLiteService,
+  type PatchTest as SQLitePatchTest,
+  type PatchTestRow as SQLitePatchTestRow,
+  type PatchTestResult as SQLitePatchTestResult,
+  // Form Template service (PRD 2.3.4)
+  FormTemplateSQLiteService,
+  type FormTemplate as SQLiteFormTemplate,
+  type FormTemplateRow as SQLiteFormTemplateRow,
+  type FormSection as SQLiteFormSection,
+  type FormSectionType as SQLiteFormSectionType,
+  // Form Response service (PRD 2.3.4)
+  FormResponseSQLiteService,
+  type FormResponse as SQLiteFormResponse,
+  type FormResponseRow as SQLiteFormResponseRow,
+  type FormResponseStatus as SQLiteFormResponseStatus,
+  // Referral service (PRD 2.3.8)
+  ReferralSQLiteService,
+  type Referral as SQLiteReferral,
+  type ReferralRow as SQLiteReferralRow,
+  // Client Review service (PRD 2.3.9)
+  ClientReviewSQLiteService,
+  type ClientReview as SQLiteClientReview,
+  type ClientReviewRow as SQLiteClientReviewRow,
+  type ReviewPlatform as SQLiteReviewPlatform,
+  // Loyalty Reward service (PRD 2.3.7)
+  LoyaltyRewardSQLiteService,
+  type LoyaltyReward as SQLiteLoyaltyReward,
+  type LoyaltyRewardRow as SQLiteLoyaltyRewardRow,
+  type LoyaltyRewardType as SQLiteLoyaltyRewardType,
+  type LoyaltyRewardSource as SQLiteLoyaltyRewardSource,
+  // Review Request service (PRD 2.3.9)
+  ReviewRequestSQLiteService,
+  type ReviewRequest as SQLiteReviewRequest,
+  type ReviewRequestRow as SQLiteReviewRequestRow,
+  type ReviewRequestStatus as SQLiteReviewRequestStatus,
+  // Custom Segment service (PRD 2.3.10)
+  CustomSegmentSQLiteService,
+  type CustomSegment as SQLiteCustomSegment,
+  type CustomSegmentRow as SQLiteCustomSegmentRow,
+  type SegmentComparisonOperator as SQLiteSegmentComparisonOperator,
+  type SegmentFilterCondition as SQLiteSegmentFilterCondition,
+  type SegmentFilterGroup as SQLiteSegmentFilterGroup,
 } from './services';
 
 // Type conversion utilities

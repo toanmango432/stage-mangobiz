@@ -114,3 +114,50 @@ export {
   type TeamMemberSyncStatus,
   type VectorClock,
 } from './teamMemberService';
+
+// CRM services (client management, forms, reviews, loyalty)
+export {
+  // Patch Test service (PRD 2.3.3)
+  PatchTestSQLiteService,
+  type PatchTest,
+  type PatchTestRow,
+  type PatchTestResult,
+  // Form Template service (PRD 2.3.4)
+  FormTemplateSQLiteService,
+  type FormTemplate,
+  type FormTemplateRow,
+  type FormSection,
+  type FormSectionType,
+  // Form Response service (PRD 2.3.4)
+  FormResponseSQLiteService,
+  type FormResponse,
+  type FormResponseRow,
+  type FormResponseStatus,
+  // Referral service (PRD 2.3.8)
+  ReferralSQLiteService,
+  type Referral,
+  type ReferralRow,
+  // Client Review service (PRD 2.3.9)
+  ClientReviewSQLiteService,
+  type ClientReview,
+  type ClientReviewRow,
+  type ReviewPlatform,
+  // Loyalty Reward service (PRD 2.3.7)
+  LoyaltyRewardSQLiteService,
+  type LoyaltyReward,
+  type LoyaltyRewardRow,
+  type LoyaltyRewardType,
+  type LoyaltyRewardSource,
+  // Review Request service (PRD 2.3.9)
+  ReviewRequestSQLiteService,
+  type ReviewRequest,
+  type ReviewRequestRow,
+  type ReviewRequestStatus,
+  // Custom Segment service (PRD 2.3.10)
+  CustomSegmentSQLiteService,
+  type CustomSegment,
+  type CustomSegmentRow,
+  type SegmentComparisonOperator,
+  type SegmentFilterCondition,
+  type SegmentFilterGroup,
+} from './crmServices';

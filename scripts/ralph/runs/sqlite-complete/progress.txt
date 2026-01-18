@@ -815,3 +815,137 @@ Commit: a9f561e
 **Next story suggestion:** US-016 (Create TeamMemberSQLiteService) - depends on US-015 (just completed) and is the first CRM/team service to implement.
 
 ---
+
+## 2026-01-17 - US-016: Create TeamMemberSQLiteService
+Commit: 2342b93
+
+**Why this story?** US-016 is the only story with all dependencies satisfied. It depends on US-015 (just completed in the previous iteration) and follows the established BaseSQLiteService pattern for team member management with soft delete support.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/teamMemberService.ts` (NEW, 570 lines): Team member SQLite service
+  - `TeamMemberSQLiteService`: Extends BaseSQLiteService<TeamMember, TeamMemberRow>
+  - `getActive(storeId)`: Only active team members (is_deleted=0 AND is_active=1)
+  - `getByRole(storeId, role)`: Filter by permissions.role using json_extract()
+  - `getByStore(storeId, includeDeleted)`: All team members with optional deleted inclusion
+  - `getManagers(storeId)`: Find owners and managers
+  - `countByRole(storeId)`: SQL GROUP BY for role breakdown
+  - `softDelete(id, userId?, deviceId?)`: Tombstone pattern with 30-day retention
+  - `restore(id, userId?, deviceId?)`: Restore soft-deleted members
+  - `cleanupExpiredTombstones(storeId)`: Hard delete expired tombstones
+  - `activate(id)`, `deactivate(id)`: Toggle isActive without deleting
+  - `getInactive(storeId)`: Get deactivated (not deleted) members
+  - `getStatusCounts(storeId)`: Count active/inactive/deleted
+  - `getByEmail(email)`: Profile email lookup using json_extract()
+  - `getByEmployeeId(storeId, employeeId)`: Employee ID lookup
+  - `search(storeId, query)`: Search by displayName/firstName/lastName
+  - `updateProfile(id, profile)`: Update profile JSON
+  - `updatePermissions(id, permissions)`: Update permissions JSON
+  - `updateRole(id, role)`: Update role specifically
+  - `getPendingSync(storeId)`: Get members needing sync
+  - `getUpdatedSince(storeId, since)`: Recent changes
+  - `markSynced(id, syncedVersion)`: Mark as synced
+  - `countActive(storeId)`, `countByStore(storeId)`: Count queries
+  - Types: TeamMember, TeamMemberRow, TeamMemberProfile, TeamMemberPermissions, TeamMemberRole, TeamMemberSyncStatus, VectorClock
+- `packages/sqlite-adapter/src/services/index.ts:106-116`: Export TeamMemberSQLiteService and all types
+- `packages/sqlite-adapter/src/index.ts:93-101`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in teamMemberService.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _', 'console.log')
+
+**Learnings:**
+- TeamMember entity extends BaseSyncableEntity pattern from the app types (includes vectorClock, tombstoneExpiresAt for proper sync support)
+- Profile and permissions are stored as JSON TEXT columns with json_extract() for querying nested fields
+- Soft delete sets both isDeleted=true AND isActive=false to ensure the member doesn't appear in any active queries
+- VectorClock type is Record<string, number> matching the app's conflict detection pattern
+
+**Patterns to sync:** None new - follows established BaseSQLiteService and soft delete patterns
+
+**Next story suggestion:** US-017 (Create CRM SQLite services batch) - depends on US-016 (just completed) and creates 8 CRM-related services in a single file.
+
+---
+
+## 2026-01-17 - US-017: Create CRM SQLite services (batch)
+Commit: 8e9c99c
+
+**Why this story?** US-017 is the only story with all dependencies satisfied. It depends on US-016 (just completed) and follows the established BaseSQLiteService pattern for CRM-related tables.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/crmServices.ts` (NEW, 890 lines): 8 CRM SQLite services in single file
+  - `PatchTestSQLiteService`: Allergy/sensitivity test records (PRD 2.3.3)
+    - `getByClient(clientId)`: Get tests for a client
+    - `getExpiring(withinDays)`: Get tests expiring soon
+    - `getByClientAndService(clientId, serviceId)`: Get specific test
+    - `hasValidPatchTest(clientId, serviceId)`: Check valid non-expired pass
+    - `getExpired()`: Get all expired tests for cleanup
+  - `FormTemplateSQLiteService`: Consultation form templates (PRD 2.3.4)
+    - `getActive(storeId)`: Active templates
+    - `getByStore(storeId)`: All templates by store
+    - `getByLinkedService(storeId, serviceId)`: Templates linked to service using json_each()
+    - `getAutomatic(storeId)`: Auto-send templates
+  - `FormResponseSQLiteService`: Client form submissions (PRD 2.3.4)
+    - `getByClient(clientId)`: Responses by client
+    - `getByAppointment(appointmentId)`: Responses by appointment
+    - `getPendingByClient(clientId)`: Pending responses
+    - `getByTemplate(templateId)`: Responses by template
+    - `getCompletedInRange(storeId, start, end)`: Completed in date range
+    - `complete(id, completedBy)`: Mark response complete
+  - `ReferralSQLiteService`: Client referral tracking (PRD 2.3.8)
+    - `getByReferrer(referrerClientId)`: Referrals made by a client
+    - `getByCode(referralLinkCode)`: Get by referral code
+    - `getReferralCount(referrerClientId)`: Count referrals
+    - `getSuccessfulByReferrer(referrerClientId)`: Completed referrals
+    - `getPendingRewards()`: Referrals needing reward issuance
+    - `markReferrerRewardIssued(id)`, `markReferredRewardIssued(id)`: Mark rewards issued
+  - `ClientReviewSQLiteService`: Client reviews and ratings (PRD 2.3.9)
+    - `getByClient(clientId)`: Reviews by client
+    - `getByStaff(staffId)`: Reviews by staff
+    - `getAverageRating(staffId)`: SQL AVG for staff rating
+    - `getStoreAverageRating(storeId)`: SQL AVG/COUNT for store
+    - `getByRatingRange(storeId, min, max)`: Filter by rating
+    - `getNeedingResponse(storeId)`: Reviews without response
+    - `addResponse(id, response)`: Add staff response
+  - `LoyaltyRewardSQLiteService`: Loyalty program rewards (PRD 2.3.7)
+    - `getByClient(clientId)`: Rewards by client
+    - `getAvailable(clientId)`: Unredeemed, non-expired rewards
+    - `getByStore(storeId)`: Rewards by store
+    - `getByType(storeId, type)`: Filter by reward type
+    - `getExpiringSoon(storeId, withinDays)`: Rewards expiring soon
+    - `redeem(id)`: Mark reward redeemed
+    - `countAvailable(clientId)`: Count available rewards
+  - `ReviewRequestSQLiteService`: Review invitation tracking (PRD 2.3.9)
+    - `getByStatus(storeId, status)`: Filter by status
+    - `getPending(storeId)`: Pending requests
+    - `getByClient(clientId)`: Requests by client
+    - `getByStore(storeId)`: Requests by store
+    - `getNeedingReminder(storeId, maxReminders)`: Requests needing reminder
+    - `getExpired(storeId)`: Expired requests
+    - `markSent(id)`, `markOpened(id)`, `markCompleted(id, reviewId)`: Status updates
+    - `incrementReminderCount(id)`: Increment reminder count
+  - `CustomSegmentSQLiteService`: Custom client segmentation (PRD 2.3.10)
+    - `getActive(storeId)`: Active segments
+    - `getByStore(storeId)`: All segments by store
+    - `getByName(storeId, name)`: Uniqueness check
+    - `activate(id)`, `deactivate(id)`: Toggle segment active status
+    - `countActive(storeId)`: Count active segments
+- `packages/sqlite-adapter/src/services/index.ts:109-148`: Export all 8 CRM services and types
+- `packages/sqlite-adapter/src/index.ts:102-140`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in crmServices.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: Not run (no test file created for this batch - follows existing pattern of no tests for service files)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _', 'console.log')
+
+**Learnings:**
+- All 8 CRM services follow the same BaseSQLiteService pattern established in earlier stories
+- FormTemplateSQLiteService.getByLinkedService uses json_each() to search within linkedServiceIds JSON array
+- ClientReviewSQLiteService.getAverageRating uses SQL AVG() function directly - efficient aggregation
+- LoyaltyReward and ReviewRequest services have expiration-based queries that filter on expires_at timestamps
+- CustomSegment filters use nested SegmentFilterGroup interface for AND/OR logic
+
+**Patterns to sync:** None new - follows established BaseSQLiteService pattern for batch service creation
+
+**Next story suggestion:** US-018 (Add migration v005 for team and CRM tables) - depends on US-017 (just completed) and creates the SQLite schema for all these CRM services.
+
+---

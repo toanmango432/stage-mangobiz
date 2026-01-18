@@ -474,7 +474,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-015"],
       "notes": "TeamMember has profile object with name, email, avatar. Permissions object with role field. Soft delete pattern for audit trail."
     },
@@ -502,7 +502,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-016"],
       "notes": "Group related services in single file for maintainability. Each service ~50 lines with specific query methods."
     },
