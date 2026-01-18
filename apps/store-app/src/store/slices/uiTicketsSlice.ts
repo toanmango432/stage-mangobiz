@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { ticketsDB, syncQueueDB } from '../../db/database';
 import { dataService } from '../../services/dataService';
 import { auditLogger } from '../../services/audit/auditLogger';
@@ -2424,6 +2424,166 @@ export const selectCompletedTickets = (state: RootState) => state.uiTickets.comp
 export const selectPendingTickets = (state: RootState) => state.uiTickets.pendingTickets;
 export const selectTicketsLoading = (state: RootState) => state.uiTickets.loading;
 export const selectTicketsError = (state: RootState) => state.uiTickets.error;
+
+// ============================================================================
+// PRICE CHANGE SELECTORS
+// ============================================================================
+// Selectors for identifying tickets with price variances for UI display.
+// Used by PriceChangeWarningBanner, PriceResolutionModal, and checkout flow.
+
+/**
+ * Service price change information for UI display.
+ */
+export interface ServicePriceChange {
+  serviceId: string;
+  serviceName: string;
+  bookedPrice: number;
+  catalogPrice: number;
+  variance: number;
+  variancePercent: number;
+}
+
+/**
+ * Select all pending tickets that have at least one service with price variance.
+ * A service has variance when bookedPrice differs from catalogPriceAtCheckout.
+ */
+export const selectTicketsWithPriceChanges = createSelector(
+  [selectPendingTickets],
+  (pendingTickets: PendingTicket[]): PendingTicket[] => {
+    return pendingTickets.filter((ticket: PendingTicket) => {
+      if (!ticket.checkoutServices || ticket.checkoutServices.length === 0) {
+        return false;
+      }
+      return ticket.checkoutServices.some((service: CheckoutTicketService) => {
+        // Skip services without price data
+        if (service.bookedPrice === undefined || service.catalogPriceAtCheckout === undefined) {
+          return false;
+        }
+        // Check for variance (using tolerance for floating-point comparison)
+        const variance = Math.abs(service.catalogPriceAtCheckout - service.bookedPrice);
+        return variance >= 0.01; // $0.01 tolerance
+      });
+    });
+  }
+);
+
+/**
+ * Select price changes for all services in a specific ticket.
+ * Returns array of service price change details for UI display.
+ *
+ * @param ticketId - The ID of the ticket to check
+ * @returns Array of ServicePriceChange objects for services with variance
+ *
+ * @example
+ * const priceChanges = useAppSelector(selectServicePriceChanges('ticket-123'));
+ * // Returns: [{ serviceId: '...', serviceName: 'Haircut', bookedPrice: 50, catalogPrice: 55, variance: 5, variancePercent: 10 }]
+ */
+export const selectServicePriceChanges = (ticketId: string) =>
+  createSelector(
+    [selectPendingTickets],
+    (pendingTickets: PendingTicket[]): ServicePriceChange[] => {
+      const ticket = pendingTickets.find((t: PendingTicket) => t.id === ticketId);
+      if (!ticket || !ticket.checkoutServices) {
+        return [];
+      }
+
+      return ticket.checkoutServices
+        .filter((service: CheckoutTicketService) => {
+          // Only include services with price data where variance exists
+          if (service.bookedPrice === undefined || service.catalogPriceAtCheckout === undefined) {
+            return false;
+          }
+          const variance = Math.abs(service.catalogPriceAtCheckout - service.bookedPrice);
+          return variance >= 0.01; // $0.01 tolerance
+        })
+        .map((service: CheckoutTicketService) => {
+          const bookedPrice = service.bookedPrice!;
+          const catalogPrice = service.catalogPriceAtCheckout!;
+          const variance = catalogPrice - bookedPrice;
+          const variancePercent = bookedPrice > 0 ? (variance / bookedPrice) * 100 : 0;
+
+          return {
+            serviceId: service.id,
+            serviceName: service.serviceName,
+            bookedPrice,
+            catalogPrice,
+            variance,
+            variancePercent: Math.round(variancePercent * 100) / 100, // Round to 2 decimal places
+          };
+        });
+    }
+  );
+
+/**
+ * Check if a ticket has any price change warnings that should be displayed.
+ * Returns true if the ticket has services with unresolved price changes.
+ *
+ * @param ticketId - The ID of the ticket to check
+ * @returns Boolean indicating if warning should be shown
+ *
+ * @example
+ * const showWarning = useAppSelector(selectHasPriceChangeWarning('ticket-123'));
+ */
+export const selectHasPriceChangeWarning = (ticketId: string) =>
+  createSelector(
+    [selectPendingTickets],
+    (pendingTickets: PendingTicket[]): boolean => {
+      const ticket = pendingTickets.find((t: PendingTicket) => t.id === ticketId);
+      if (!ticket || !ticket.checkoutServices) {
+        return false;
+      }
+
+      // Warning if any service has:
+      // 1. Price variance (bookedPrice differs from catalogPriceAtCheckout)
+      // 2. No priceDecision yet (unresolved)
+      return ticket.checkoutServices.some((service: CheckoutTicketService) => {
+        if (service.bookedPrice === undefined || service.catalogPriceAtCheckout === undefined) {
+          return false;
+        }
+        const variance = Math.abs(service.catalogPriceAtCheckout - service.bookedPrice);
+        const hasVariance = variance >= 0.01;
+        const isUnresolved = service.priceDecision === undefined;
+        return hasVariance && isUnresolved;
+      });
+    }
+  );
+
+/**
+ * Select services that have price changes but no priceDecision yet.
+ * These are services that require staff input before checkout can proceed.
+ * Returns the full service objects for use in PriceResolutionModal.
+ *
+ * @param ticketId - The ID of the ticket to check
+ * @returns Array of CheckoutTicketService objects that need resolution
+ *
+ * @example
+ * const unresolvedServices = useAppSelector(selectUnresolvedPriceChanges('ticket-123'));
+ * // Returns services where priceDecision is undefined but price variance exists
+ */
+export const selectUnresolvedPriceChanges = (ticketId: string) =>
+  createSelector(
+    [selectPendingTickets],
+    (pendingTickets: PendingTicket[]): CheckoutTicketService[] => {
+      const ticket = pendingTickets.find((t: PendingTicket) => t.id === ticketId);
+      if (!ticket || !ticket.checkoutServices) {
+        return [];
+      }
+
+      return ticket.checkoutServices.filter((service: CheckoutTicketService) => {
+        // Only services with price data
+        if (service.bookedPrice === undefined || service.catalogPriceAtCheckout === undefined) {
+          return false;
+        }
+        // Only services with variance
+        const variance = Math.abs(service.catalogPriceAtCheckout - service.bookedPrice);
+        if (variance < 0.01) {
+          return false;
+        }
+        // Only unresolved services (no decision made yet)
+        return service.priceDecision === undefined;
+      });
+    }
+  );
 
 // ============================================================================
 // CONFLICT DETECTION HELPERS
