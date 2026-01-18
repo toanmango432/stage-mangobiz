@@ -928,11 +928,19 @@ class AppointmentSQLiteService extends BaseSQLiteService<Appointment> {
 
 ## Non-Goals (Out of Scope)
 
-- **Capacitor SQLite** - Mobile platforms stay on Dexie (separate future PRD)
-- **wa-sqlite for web** - Web browser stays on Dexie (not worth complexity)
+- **Capacitor SQLite for mobile** - iOS/Android stay on Dexie for now. **Planned for future PRD** after Electron SQLite is stable. Will use `@capacitor-community/sqlite` plugin.
+- **wa-sqlite for web** - Web browser stays on Dexie permanently (not worth complexity, no real benefit)
 - **Real-time sync** - Supabase sync unchanged, works with either backend
 - **Schema changes** - No changes to data model, just storage backend
 - **API mode** - REST API mode unchanged, this only affects local storage
+
+## Future Roadmap
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **This PRD** | Electron SQLite | 🔄 Planning |
+| **Future PRD** | iOS/Android Capacitor SQLite | 📋 Planned |
+| **No plans** | Web SQLite (wa-sqlite) | ❌ Not needed |
 
 ## Technical Considerations
 
@@ -957,6 +965,180 @@ class AppointmentSQLiteService extends BaseSQLiteService<Appointment> {
 1. Should we support Windows/Linux Electron builds or macOS only initially?
 2. What's the acceptable migration time for large datasets (10k+ records)?
 3. Should migration be mandatory or allow users to stay on Dexie?
+
+---
+
+## CRITICAL ISSUES IDENTIFIED (Review Findings)
+
+### Issue 1: Schema Column Mismatch (BLOCKING)
+
+**Problem**: Existing SQLite migrations (v001, v002) only create ~8 columns per table, but services expect 45-50 columns.
+
+| Table | v001 Columns | Service Expects | Gap |
+|-------|--------------|-----------------|-----|
+| clients | 8 | 50+ | **Missing 42 columns** |
+| tickets | 8 | 45 | **Missing 37 columns** |
+| appointments | 8 | 20+ | **Missing 12 columns** |
+
+**Fix**: US-004 MUST create complete schemas with ALL columns before any service can work.
+
+### Issue 2: Story Dependency Order
+
+**Problem**: US-003 (wire dataService, Priority 3) tries to use SQLite services that don't exist until Priority 5-9.
+
+**Fix**: Reorder priorities:
+- US-005-009 (create services) → Priority 3-7
+- US-003 (wire dataService) → Priority 8
+
+### Issue 3: Rollback Data Loss Risk
+
+**Problem**: If user creates 50 clients in SQLite, then rollback occurs, those clients are LOST because Dexie doesn't have them.
+
+**Fix**: Add US-038 for bi-directional sync - continue writing to Dexie during SQLite operation so rollback loses nothing.
+
+### Issue 4: getStaffTicketCounts Performance
+
+**Problem**: Current implementation loads ALL tickets into memory and parses JSON in JavaScript. For 10k tickets = 20MB memory.
+
+**Fix**: Use SQLite `json_each()` function:
+```sql
+SELECT json_extract(value, '$.staffId') as staff_id, COUNT(*)
+FROM tickets, json_each(tickets.services)
+WHERE store_id = ? GROUP BY staff_id
+```
+
+### Issue 5: Migration Resume Support Missing
+
+**Problem**: No checkpointing. If migration fails at record 25,000 of 50,000, must restart from scratch.
+
+**Fix**: Add `_migration_progress` table with per-table checkpoints.
+
+### Issue 6: Date/Boolean Type Handling
+
+**Problem**: `String(new Date())` produces "Mon Jan 17 2026..." not ISO format. Boolean fields may have `null` instead of `true/false`.
+
+**Fix**: Add utility functions with strict type conversion:
+```typescript
+function toISOString(value: unknown): string
+function boolToSQLite(value: unknown): 0 | 1
+```
+
+---
+
+## Additional User Stories (From Review)
+
+### US-036: Fix client schema with ALL columns
+**Priority:** 1.5 (must run before US-005)
+
+**Files:** `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts`
+
+**Criteria:**
+- [ ] Add all 50+ client columns from ClientSQLiteService interface
+- [ ] Add missing indexes: `[storeId+lastName]`, `[storeId+isVip]`, `[storeId+createdAt]`
+- [ ] Match Dexie schema v16 exactly
+
+---
+
+### US-037: Fix ticket schema with ALL columns
+**Priority:** 1.6
+
+**Files:** `packages/sqlite-adapter/src/migrations/v001_initial_schema.ts`
+
+**Criteria:**
+- [ ] Add all 45 ticket columns from TicketSQLiteService interface
+- [ ] Add `number`, `appointmentId`, `isGroupTicket`, `clients` JSON columns
+- [ ] Add `isMergedTicket`, `mergedFromTickets`, signature columns
+- [ ] Add missing indexes: `[clientId+createdAt]`, `[storeId+staffId+createdAt]`
+
+---
+
+### US-038: Bi-directional sync for safe rollback
+**Priority:** 28.5 (after migration, before production)
+
+**Files:** `apps/store-app/src/services/dualWriteService.ts` (NEW)
+
+**Criteria:**
+- [ ] When SQLite enabled, ALSO write to Dexie in background
+- [ ] Dexie acts as backup during SQLite stabilization period
+- [ ] On rollback, Dexie has all data - no loss
+- [ ] Disable dual-write after 30 days stable
+
+---
+
+### US-039: Database health monitoring
+**Priority:** 34.5
+
+**Files:** `packages/sqlite-adapter/src/health/dbHealth.ts` (NEW)
+
+**Criteria:**
+- [ ] Run `PRAGMA integrity_check` daily
+- [ ] Run `PRAGMA quick_check` on app start
+- [ ] Detect corruption and trigger rollback
+- [ ] Create daily backup file (keep 7 days)
+
+---
+
+### US-040: Optimize getStaffTicketCounts with SQL
+**Priority:** 9.5 (part of ticket service)
+
+**Files:** `packages/sqlite-adapter/src/services/ticketService.ts`
+
+**Criteria:**
+- [ ] Use `json_each()` for staff aggregation in SQL
+- [ ] No JavaScript loops over full ticket set
+- [ ] Benchmark: <100ms for 10k tickets
+
+---
+
+### US-041: Add migration checkpointing
+**Priority:** 27.5
+
+**Files:** `packages/sqlite-adapter/src/migrations/dataMigration.ts`
+
+**Criteria:**
+- [ ] Create `_migration_progress` table
+- [ ] Track `(table_name, last_migrated_id, count)` per table
+- [ ] Resume from checkpoint on restart
+- [ ] Clear checkpoints after successful full migration
+
+---
+
+### US-042: Type-safe conversion utilities
+**Priority:** 0.5 (foundation - run first)
+
+**Files:** `packages/sqlite-adapter/src/utils/typeConversions.ts` (NEW)
+
+**Criteria:**
+- [ ] `toISOString(value: unknown): string` - handles Date objects and strings
+- [ ] `boolToSQLite(value: unknown): 0 | 1` - strict boolean conversion
+- [ ] `safeParseJSON<T>(value: string, fallback: T): T` - already exists, verify
+- [ ] Unit tests for all edge cases
+
+---
+
+## Revised Priority Order
+
+| Priority | Story | Description |
+|----------|-------|-------------|
+| 0.5 | US-042 | Type conversion utilities (foundation) |
+| 1 | US-001 | BaseSQLiteService generic class |
+| 1.5 | US-036 | Fix client schema (ALL columns) |
+| 1.6 | US-037 | Fix ticket schema (ALL columns) |
+| 2 | US-002 | TableSchema registry |
+| 3 | US-005 | AppointmentSQLiteService |
+| 4 | US-006 | TransactionSQLiteService |
+| 5 | US-007 | StaffSQLiteService |
+| 6 | US-008 | ServiceSQLiteService |
+| 7 | US-009 | TicketSQLiteService enhancements |
+| 7.5 | US-040 | Optimize getStaffTicketCounts |
+| 8 | **US-003** | Wire dataService (MOVED from 3) |
+| 9 | US-004 | Migration v003 full schema |
+| 10 | US-010 | Wire remaining core services |
+| ... | ... | (rest unchanged) |
+| 27 | US-027 | Dexie→SQLite migration |
+| 27.5 | US-041 | Migration checkpointing |
+| 28.5 | US-038 | Bi-directional sync |
+| 34.5 | US-039 | Database health monitoring |
 
 ---
 

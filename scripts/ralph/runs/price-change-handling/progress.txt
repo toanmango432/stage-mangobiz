@@ -14,3 +14,20 @@
 ## Progress Entries
 (Ralph will append entries below as stories are completed)
 
+## 2026-01-17 - US-001: Add PriceSource type for tracking price origin
+Commit: (Pre-existing implementation found)
+
+**Why this story?** US-001 has the highest priority (1), no dependencies, and is the foundation for price tracking types.
+
+**Changes:**
+- `apps/store-app/src/types/appointment.ts:27-33`: PriceSource type already implemented with full JSDoc documentation
+
+**Learnings:**
+- Implementation was already present in the codebase - marked as passes: true
+- Pre-existing typecheck errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx) are unrelated to this story
+- Test mocks have incomplete AppointmentService data (missing staffId, staffName)
+
+**Next story suggestion:** US-002 (Add price snapshot fields to AppointmentService) - same file, direct dependency on US-001
+
+---
+

@@ -18,7 +18,7 @@
 # Run directories: scripts/ralph/runs/<run_name>/
 # Each run is isolated to prevent accidental modifications by other agents.
 
-RALPH_VERSION="2.1.0"
+RALPH_VERSION="2.2.0"
 RALPH_TEMPLATE_DATE="2026-01-15"
 
 # Strict mode: exit on error, undefined vars, pipe failures
@@ -227,6 +227,60 @@ if [[ -f "$CONFIG_FILE" ]]; then
     debug "Loading config from $CONFIG_FILE"
     # shellcheck source=/dev/null
     source "$CONFIG_FILE"
+fi
+
+# =============================================================================
+# AUTO-SYNC FROM TEMPLATE (ensures latest version)
+# =============================================================================
+
+TEMPLATE_DIR="$HOME/.claude/templates/ralph"
+
+sync_from_template() {
+    if [[ ! -d "$TEMPLATE_DIR" ]]; then
+        debug "Template directory not found: $TEMPLATE_DIR"
+        return 0
+    fi
+
+    local template_version
+    template_version=$(cat "$TEMPLATE_DIR/VERSION" 2>/dev/null || echo "0.0.0")
+
+    if [[ "$template_version" != "$RALPH_VERSION" ]]; then
+        echo "⚠️  Template v$template_version available (current: v$RALPH_VERSION)"
+
+        # Update ralph.sh
+        if [[ -f "$TEMPLATE_DIR/ralph.sh" ]]; then
+            echo "   Updating ralph.sh..."
+            cp "$TEMPLATE_DIR/ralph.sh" "$SCRIPT_DIR/ralph.sh"
+            chmod +x "$SCRIPT_DIR/ralph.sh"
+        fi
+
+        # Update prompt.md in all run directories
+        if [[ -f "$TEMPLATE_DIR/prompt.md" ]] && [[ -d "$SCRIPT_DIR/runs" ]]; then
+            for run_dir in "$SCRIPT_DIR/runs"/*/; do
+                if [[ -d "$run_dir" ]]; then
+                    local run_name
+                    run_name=$(basename "$run_dir")
+                    echo "   Updating prompt.md for run: $run_name"
+                    cp "$TEMPLATE_DIR/prompt.md" "$run_dir/prompt.md"
+                    # Replace placeholders with run name
+                    sed -i '' "s/{{RUN_NAME}}/$run_name/g" "$run_dir/prompt.md" 2>/dev/null || \
+                    sed -i "s/{{RUN_NAME}}/$run_name/g" "$run_dir/prompt.md"
+                fi
+            done
+        fi
+
+        echo "✅ Updated to v$template_version"
+        echo ""
+        echo "⚠️  ralph.sh was updated. Please re-run the command to use the new version."
+        exit 0
+    else
+        debug "Template is current (v$RALPH_VERSION)"
+    fi
+}
+
+# Run auto-sync (can be disabled with RALPH_SKIP_SYNC=true)
+if [[ "${RALPH_SKIP_SYNC:-false}" != true ]]; then
+    sync_from_template
 fi
 
 # =============================================================================

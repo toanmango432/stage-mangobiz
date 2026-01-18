@@ -1,6 +1,38 @@
 import { AppointmentStatus, BookingSource, SyncStatus } from './common';
 
 // ============================================================================
+// PRICE TRACKING TYPES
+// ============================================================================
+
+/**
+ * Indicates the origin/source of a service price.
+ *
+ * Used to track where a price came from at the time of booking,
+ * enabling accurate price change detection at checkout.
+ *
+ * @example
+ * // Standard catalog price
+ * priceSource: 'catalog'
+ *
+ * // Price adjusted for staff experience level
+ * priceSource: 'staff_level'
+ *
+ * @property 'catalog' - Standard price from service catalog
+ * @property 'staff_level' - Price adjusted based on staff tier (Junior/Senior/Master)
+ * @property 'package' - Discounted price from a service package/bundle
+ * @property 'membership' - Special pricing for membership holders
+ * @property 'custom' - Manually entered custom price
+ * @property 'promotion' - Promotional/discount pricing
+ */
+export type PriceSource =
+  | 'catalog'
+  | 'staff_level'
+  | 'package'
+  | 'membership'
+  | 'custom'
+  | 'promotion';
+
+// ============================================================================
 // API REQUEST/RESPONSE MODELS (Matching AppointmentController.cs)
 // ============================================================================
 
@@ -11,6 +43,61 @@ export interface AppointmentService {
   staffName: string;
   duration: number; // minutes
   price: number;
+
+  // ============================================================================
+  // PRICE SNAPSHOT FIELDS
+  // ============================================================================
+  // These fields capture the price at booking time, enabling price change
+  // detection at checkout. All fields are optional for backwards compatibility.
+
+  /**
+   * The price shown to the client at the time of booking.
+   * This is the "promised" price that should be honored unless changed.
+   * For walk-ins, this equals the current catalog price.
+   *
+   * @example
+   * // Client booked a haircut at $50
+   * bookedPrice: 50
+   */
+  bookedPrice?: number;
+
+  /**
+   * ISO 8601 timestamp when the price was locked/captured.
+   * Typically set when the appointment is created.
+   *
+   * @example
+   * bookedAt: '2026-01-15T10:30:00Z'
+   */
+  bookedAt?: string;
+
+  /**
+   * Indicates where/how the booked price was determined.
+   * Helps staff understand why the price might differ from catalog.
+   */
+  priceSource?: PriceSource;
+
+  /**
+   * The staff experience tier at booking time (e.g., 'Junior', 'Senior', 'Master').
+   * Relevant when using tiered pricing where staff level affects price.
+   * Captured to explain price variance if staff level changed.
+   *
+   * @example
+   * // Booked with a Senior stylist
+   * staffLevelAtBooking: 'Senior'
+   */
+  staffLevelAtBooking?: string;
+
+  /**
+   * The base catalog price before any staff-level adjustments.
+   * Useful for calculating variance when staff level changes.
+   * If no staff-level pricing, this equals bookedPrice.
+   *
+   * @example
+   * // Base catalog price $50, Senior tier adds $10
+   * catalogPriceAtBooking: 50
+   * bookedPrice: 60
+   */
+  catalogPriceAtBooking?: number;
 }
 
 export interface Appointment {

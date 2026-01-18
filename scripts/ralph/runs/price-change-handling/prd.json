@@ -1,7 +1,7 @@
 {
   "project": "Mango POS Store App",
   "branchName": "main",
-  "description": "Handle service price changes between booking and checkout with price snapshot, detection, staff override, deposit locking, manager approval, and reporting",
+  "description": "Handle service price changes between booking and checkout with price snapshot, detection, staff override, deposit locking, manager approval, reporting, and service archive model (industry best practice)",
   "userStories": [
     {
       "id": "US-001",
@@ -20,7 +20,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "This type tracks the origin of a price - catalog is standard, staff_level for tiered pricing, package for bundled services, etc."
     },
     {
@@ -687,7 +687,8 @@
       "category": "frontend",
       "complexity": 2,
       "files": [
-        "apps/store-app/src/components/Book/RescheduleModal.tsx"
+        "apps/store-app/src/components/Book/DraggableAppointment.tsx",
+        "apps/store-app/src/components/Book/AppointmentContextMenu.tsx"
       ],
       "acceptanceCriteria": [
         "Find RescheduleModal or similar component for rescheduling appointments",
@@ -845,6 +846,156 @@
       "passes": false,
       "dependencies": ["US-034"],
       "notes": "Basic reporting view. Full detailed report with export can be future enhancement."
+    },
+    {
+      "id": "US-036",
+      "title": "Add ServiceStatus type and status field to Service interface",
+      "description": "As a developer, I need to track whether a service is active or archived.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/types/service.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create ServiceStatus type: 'active' | 'archived'",
+        "Add status?: ServiceStatus field to Service interface (default 'active')",
+        "Add archivedAt?: string field (ISO timestamp when archived)",
+        "Add archivedBy?: string field (staffId who archived)",
+        "Add JSDoc comments explaining archive behavior",
+        "Export ServiceStatus type",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": "Following industry best practice (Fresha, Boulevard): services are archived, not deleted. Archived services work for existing appointments but are hidden from new bookings."
+    },
+    {
+      "id": "US-037",
+      "title": "Add archiveService action with dependency check",
+      "description": "As an admin, I want to archive a service instead of deleting it, with warnings about dependencies.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/hooks/useCatalog.ts",
+        "apps/store-app/src/db/database.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create archiveService async thunk: { serviceId, archivedBy }",
+        "Before archiving, check for dependencies: packages, memberships, gift cards",
+        "Return warning object with counts: { upcomingAppointments, packages, memberships }",
+        "If confirmed, set status = 'archived', archivedAt = now, archivedBy = staffId",
+        "Create restoreService action to set status back to 'active'",
+        "Do NOT delete services - only archive",
+        "Export both actions",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": false,
+      "dependencies": ["US-036"],
+      "notes": "Key behavior: services are NEVER deleted for active salons. Archive is reversible. Check Vagaro pattern: warn about packages/memberships affected."
+    },
+    {
+      "id": "US-038",
+      "title": "Filter archived services from service selection UI",
+      "description": "As a user, I should not see archived services when adding services to appointments or tickets.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/hooks/useCatalog.ts",
+        "apps/store-app/src/components/checkout/FullPageServiceSelector.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add filterActiveOnly option to useCatalog hook (default true)",
+        "Create getActiveServices and getArchivedServices helper functions",
+        "Update FullPageServiceSelector to filter out archived services by default",
+        "Add optional showArchived prop to ServiceSelector for admin views",
+        "When showArchived=true, show archived services with visual indicator",
+        "Online booking API should filter archived services",
+        "No forbidden strings: 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: archived services don't appear in service picker"
+      ],
+      "priority": 38,
+      "passes": false,
+      "dependencies": ["US-037"],
+      "notes": "ServiceSelector may have different name - search for component that displays service list for selection. Key: active services only by default."
+    },
+    {
+      "id": "US-039",
+      "title": "Allow checkout of tickets with archived services",
+      "description": "As a staff member, I need to checkout tickets that have archived services - they should work normally.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel.tsx",
+        "apps/store-app/src/components/checkout/ServiceLineItem.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Checkout flow works normally for tickets with archived services",
+        "Service name and price display correctly from ticket data (not catalog lookup)",
+        "Show subtle indicator: '(Archived)' or archive icon next to service name",
+        "Price resolution still works - use bookedPrice (no catalog price available)",
+        "Payment processing unaffected by service archive status",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: can checkout ticket with archived service"
+      ],
+      "priority": 39,
+      "passes": false,
+      "dependencies": ["US-038"],
+      "notes": "Critical: existing appointments MUST work. Following Fresha pattern: 'Existing appointments will not be affected by archiving services.'"
+    },
+    {
+      "id": "US-040",
+      "title": "Show archived service indicator on calendar appointments",
+      "description": "As a user, I want to see which appointments have archived services so I can address them if needed.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/Book/AppointmentCard.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Check if any service in appointment has status === 'archived'",
+        "If archived service found, show subtle warning icon (Archive or AlertTriangle)",
+        "Use muted color (gray/amber) - less prominent than price change indicator",
+        "Tooltip on hover: 'Contains archived service'",
+        "Don't block any functionality - just informational",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: calendar shows indicator on appointments with archived services"
+      ],
+      "priority": 40,
+      "passes": false,
+      "dependencies": ["US-036", "US-023"],
+      "notes": "Optional visual cue for staff awareness. Less urgent than price variance indicator. Staff can still check out, reschedule, etc."
+    },
+    {
+      "id": "US-041",
+      "title": "Show upcoming appointments warning when archiving service",
+      "description": "As an admin, I want to see how many upcoming appointments will be affected before archiving a service.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/components/modules/settings/services/ArchiveServiceModal.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Create ArchiveServiceModal component",
+        "Query upcoming appointments that include this serviceId",
+        "Display count: 'This service has X upcoming appointments'",
+        "Show list of affected appointments (next 5, with 'and X more' if many)",
+        "Options: 'Archive Anyway' | 'View Appointments' | 'Cancel'",
+        "Explain: 'Archived services can still be checked out for existing appointments'",
+        "On confirm, dispatch archiveService action",
+        "No forbidden strings: 'Test Client', 'Test Service', 'as any', 'void _'",
+        "Typecheck passes",
+        "Verify in browser: modal shows appointment count before archiving"
+      ],
+      "priority": 41,
+      "passes": false,
+      "dependencies": ["US-037"],
+      "notes": "Following Vagaro pattern: acknowledge impact before archiving. Reassure admin that existing appointments are not affected."
     }
   ]
 }
