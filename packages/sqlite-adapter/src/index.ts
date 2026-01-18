@@ -76,6 +76,14 @@ export {
   SettingsSQLiteService,
   type Setting as SQLiteSetting,
   type SettingValue as SQLiteSettingValue,
+  // Sync queue service (offline sync operations)
+  SyncQueueSQLiteService,
+  type SyncQueueOperation as SQLiteSyncQueueOperation,
+  type AddSyncOperationInput as SQLiteAddSyncOperationInput,
+  type SyncPriority as SQLiteSyncPriority,
+  type SyncStatus as SQLiteSyncStatus,
+  type SyncEntity as SQLiteSyncEntity,
+  type SyncOperation as SQLiteSyncOperation,
 } from './services';
 
 // Type conversion utilities

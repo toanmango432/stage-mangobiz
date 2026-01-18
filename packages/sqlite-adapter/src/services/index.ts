@@ -82,3 +82,14 @@ export {
   type Setting,
   type SettingValue,
 } from './settingsService';
+
+// Sync queue service (offline sync operations)
+export {
+  SyncQueueSQLiteService,
+  type SyncQueueOperation,
+  type AddSyncOperationInput,
+  type SyncPriority,
+  type SyncStatus,
+  type SyncEntity,
+  type SyncOperation,
+} from './syncQueueService';
