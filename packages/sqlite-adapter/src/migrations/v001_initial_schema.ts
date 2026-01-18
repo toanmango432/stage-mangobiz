@@ -3,7 +3,7 @@
  *
  * Creates the core tables for Mango POS:
  * - appointments: Scheduled appointments with staff and clients
- * - tickets: Service tickets with status tracking
+ * - tickets: Service tickets with all 45 columns matching TicketSQLiteService (Dexie v16)
  * - clients: Client contact and profile information (50+ columns matching Dexie v16)
  *
  * All tables include syncStatus for offline sync support.
@@ -34,18 +34,89 @@ export const migration_001: Migration = {
       )
     `);
 
-    // Create tickets table
-    // Note: services is stored as JSON TEXT array
+    // Create tickets table - all 45 columns matching TicketSQLiteService interface
+    // See: packages/sqlite-adapter/src/services/ticketService.ts for full TicketRow schema
+    // Matches Dexie v16: id, storeId, clientId, status, createdAt, syncStatus, appointmentId
     await db.exec(`
       CREATE TABLE IF NOT EXISTS tickets (
+        -- Primary fields
         id TEXT PRIMARY KEY,
-        storeId TEXT NOT NULL,
-        clientId TEXT,
+        number INTEGER,
+        store_id TEXT NOT NULL,
+        appointment_id TEXT,
+
+        -- Client fields
+        client_id TEXT NOT NULL,
+        client_name TEXT NOT NULL,
+        client_phone TEXT NOT NULL,
+
+        -- Group ticket fields
+        is_group_ticket INTEGER DEFAULT 0,
+        clients TEXT,
+
+        -- Merged ticket fields
+        is_merged_ticket INTEGER DEFAULT 0,
+        merged_from_tickets TEXT,
+        original_ticket_id TEXT,
+        merged_at TEXT,
+        merged_by TEXT,
+
+        -- Services and products (JSON arrays)
+        services TEXT NOT NULL,
+        products TEXT NOT NULL,
+
+        -- Status
         status TEXT NOT NULL,
-        services TEXT,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        syncStatus TEXT DEFAULT 'local'
+
+        -- Pricing fields
+        subtotal REAL NOT NULL DEFAULT 0,
+        discount REAL NOT NULL DEFAULT 0,
+        discount_reason TEXT,
+        discount_percent REAL,
+        tax REAL NOT NULL DEFAULT 0,
+        tax_rate REAL,
+        tip REAL NOT NULL DEFAULT 0,
+        total REAL NOT NULL DEFAULT 0,
+
+        -- Payments (JSON array)
+        payments TEXT NOT NULL,
+
+        -- Timestamps
+        created_at TEXT NOT NULL,
+        updated_at TEXT,
+        completed_at TEXT,
+
+        -- Audit fields
+        created_by TEXT NOT NULL,
+        last_modified_by TEXT NOT NULL,
+        sync_status TEXT DEFAULT 'local',
+
+        -- Draft fields
+        is_draft INTEGER DEFAULT 0,
+        draft_expires_at TEXT,
+        last_auto_save_at TEXT,
+
+        -- Source tracking
+        source TEXT,
+
+        -- Service charges
+        service_charges TEXT,
+        service_charge_total REAL,
+
+        -- Payment method (legacy/convenience field)
+        payment_method TEXT,
+
+        -- Staff assignment (primary staff for the ticket)
+        staff_id TEXT,
+        staff_name TEXT,
+
+        -- Closing fields
+        closed_at TEXT,
+        closed_by TEXT,
+
+        -- Signature
+        signature_base64 TEXT,
+        signature_timestamp TEXT
       )
     `);
 
@@ -143,10 +214,41 @@ export const migration_001: Migration = {
       ON appointments(storeId, status)
     `);
 
-    // Tickets indexes - optimized for turn queue and aggregation queries
+    // Tickets indexes - matching Dexie v16 compound indexes
+    // [storeId+status] - for status filtering
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tickets_store_status
+      ON tickets(store_id, status)
+    `);
+
+    // [storeId+createdAt] - for date-based sorting/filtering
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tickets_store_created
+      ON tickets(store_id, created_at)
+    `);
+
+    // [clientId+createdAt] - for client ticket history
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tickets_client_created
+      ON tickets(client_id, created_at)
+    `);
+
+    // [storeId+status+createdAt] - for optimized status + date queries (turn queue)
     await db.exec(`
       CREATE INDEX IF NOT EXISTS idx_tickets_store_status_created
-      ON tickets(storeId, status, createdAt)
+      ON tickets(store_id, status, created_at)
+    `);
+
+    // [storeId+staffId+createdAt] - for staff ticket reports
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tickets_store_staff_created
+      ON tickets(store_id, staff_id, created_at)
+    `);
+
+    // [storeId+appointmentId] - for appointment lookup
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tickets_store_appointment
+      ON tickets(store_id, appointment_id)
     `);
 
     // Clients indexes - matching Dexie v16 compound indexes
