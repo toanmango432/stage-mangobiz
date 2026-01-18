@@ -612,3 +612,47 @@ Commit: c4aae6b
 **Next story suggestion:** US-011 (Create SettingsSQLiteService) - depends on US-010 (just completed) and adds the simple key-value settings service.
 
 ---
+
+## 2026-01-17 - US-011: Create SettingsSQLiteService
+Commit: 451b22e
+
+**Why this story?** US-011 is the only story with all dependencies satisfied. It depends on US-010 (just completed in the previous iteration) and is a simple key-value service that follows established patterns. Priority 15 is highest among remaining stories.
+
+**Changes:**
+- `packages/sqlite-adapter/src/services/settingsService.ts` (NEW, 335 lines): Key-value settings service
+  - `SettingsSQLiteService`: Standalone service (not extending BaseSQLiteService since key-value pattern differs)
+  - `get<T>(key)`: Retrieve setting by key with generic type support
+  - `getWithMetadata(key)`: Get setting with full metadata (createdAt, updatedAt)
+  - `set(key, value)`: Upsert setting using INSERT OR REPLACE
+  - `getAll()`: All settings as key-value object
+  - `getAllWithMetadata()`: All settings as Setting objects with metadata
+  - `delete(key)`: Remove setting by key
+  - `exists(key)`: Check if setting exists
+  - `getMany(keys)`: Get multiple settings by keys
+  - `setMany(settings)`: Set multiple settings at once
+  - `deleteMany(keys)`: Delete multiple settings
+  - `getByPrefix(prefix)`: Get settings matching key prefix (e.g., 'feature.')
+  - `deleteByPrefix(prefix)`: Delete settings matching key prefix
+  - `count()`: Total settings count
+  - `clear()`: Delete all settings
+  - Types: `Setting`, `SettingValue` (union of JSON-serializable types)
+- `packages/sqlite-adapter/src/services/index.ts:79-84`: Export SettingsSQLiteService and types
+- `packages/sqlite-adapter/src/index.ts:75-78`: Export with SQLite prefix aliases
+
+**Quality Checks:**
+- Typecheck: PASS (no errors in settingsService.ts; pre-existing errors in factory.ts/adapters unrelated)
+- Tests: PASS (62 tests still passing)
+- Forbidden strings: PASS (no 'as any', 'Test Client', 'void _')
+
+**Learnings:**
+- Settings service uses standalone pattern rather than BaseSQLiteService since key-value store has different primary key semantics (key is string, not id)
+- INSERT OR REPLACE with COALESCE preserves original created_at on update: `COALESCE((SELECT created_at FROM settings WHERE key = ?), ?)`
+- Generic type `get<T>` allows typed retrieval: `settings.get<boolean>('darkMode')`
+- Added prefix-based queries for namespaced settings (e.g., 'feature.darkMode', 'feature.beta')
+
+**Patterns to sync:**
+- Pattern: Key-value service with prefix queries - use `LIKE ? || '%'` for prefix-based key matching
+
+**Next story suggestion:** US-012 (Create SyncQueueSQLiteService) - depends on US-011 (just completed) and adds the offline sync queue service.
+
+---

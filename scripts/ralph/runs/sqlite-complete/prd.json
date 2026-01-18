@@ -355,7 +355,7 @@
         "pnpm typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-010"],
       "notes": "Settings table has simple key-value structure. Value can be any JSON-serializable type."
     },
