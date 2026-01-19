@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   ShoppingBag,
+  Archive,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -31,6 +32,7 @@ import { AddOnsSection } from './sections/AddOnsSection';
 import { GiftCardsSection } from './sections/GiftCardsSection';
 import { StaffPermissionsSection } from './sections/StaffPermissionsSection';
 import { MenuGeneralSettingsSection } from './sections/MenuGeneralSettingsSection';
+import { ArchivedServicesTab } from './ArchivedServicesTab';
 
 interface MenuSettingsProps {
   onBack?: () => void;
@@ -111,19 +113,24 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     updateGiftCardDenomination,
     deleteGiftCardDenomination,
     updateGiftCardSettings,
+    // Service Archive Actions
+    getArchivedServices,
+    restoreService,
   } = catalog;
 
   // Tab configuration
   // Note: Gift Cards tab removed - now available under More > Gift Cards
+  const archivedServices = getArchivedServices();
   const tabs: { id: CatalogTab; label: string; icon: React.ReactNode; count?: number }[] = useMemo(() => [
     { id: 'categories', label: 'Categories', icon: <FolderOpen size={18} />, count: categories?.length || 0 },
     { id: 'services', label: 'Services', icon: <Sparkles size={18} />, count: services?.length || 0 },
+    { id: 'archived', label: 'Archived', icon: <Archive size={18} />, count: archivedServices?.length || 0 },
     { id: 'packages', label: 'Packages', icon: <Package size={18} />, count: packages?.length || 0 },
     { id: 'products', label: 'Products', icon: <ShoppingBag size={18} />, count: products?.length || 0 },
     { id: 'addons', label: 'Add-ons', icon: <Plus size={18} />, count: addOnGroupsWithOptions?.length || 0 },
     { id: 'staff', label: 'Staff Permissions', icon: <Users size={18} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-  ], [categories, services, packages, products, addOnGroupsWithOptions]);
+  ], [categories, services, archivedServices, packages, products, addOnGroupsWithOptions]);
 
   // Show error state if storeId is not available (user not logged in properly)
   if (!storeId) {
@@ -175,6 +182,14 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             onCreate={createService}
             onUpdate={updateService}
             onDelete={deleteService}
+          />
+        );
+      case 'archived':
+        return (
+          <ArchivedServicesTab
+            archivedServices={archivedServices || []}
+            categories={categories || []}
+            onRestore={restoreService}
           />
         );
       case 'packages':

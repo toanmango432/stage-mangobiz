@@ -418,7 +418,7 @@ export type CreateBookingSequenceInput = Omit<BookingSequence,
 // UI STATE TYPES (for Redux slice)
 // ============================================
 
-export type CatalogTab = 'categories' | 'services' | 'packages' | 'products' | 'addons' | 'giftcards' | 'staff' | 'settings';
+export type CatalogTab = 'categories' | 'services' | 'packages' | 'products' | 'addons' | 'giftcards' | 'staff' | 'settings' | 'archived';
 export type CatalogViewMode = 'grid' | 'list' | 'compact';
 
 export interface CatalogUIState {
