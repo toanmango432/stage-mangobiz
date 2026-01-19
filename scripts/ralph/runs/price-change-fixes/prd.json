@@ -119,7 +119,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "ArchiveServiceModal already exists at ./modals/ArchiveServiceModal. Add state for selectedServiceForArchive and showArchiveModal. Wire the modal's onArchive to useCatalog().archiveService()."
     },
     {

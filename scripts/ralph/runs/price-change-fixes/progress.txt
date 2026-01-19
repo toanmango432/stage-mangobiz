@@ -160,3 +160,41 @@ Commit: 35b4d18
 **Next story suggestion:** US-006 (Wire archive option in ServicesSection) - it completes the archive flow by adding the ability to archive services from the service list. Both US-005 and US-006 are in menu-settings so context is fresh.
 
 ---
+
+## 2026-01-19 - US-006: Wire archive option in ServicesSection
+Commit: 46771d7
+
+**Why this story?** US-006 was explicitly recommended by the previous iteration (US-005) and completes the service archive user flow. It has the highest priority among remaining stories (priority 6) and builds on the context from US-005 (both in menu-settings).
+
+**Changes:**
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:17: Added Archive icon import from lucide-react
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:28-29: Added ArchiveServiceModal import and type imports for ServiceArchiveDependencies, ArchiveServiceResult
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:42-43: Added onArchive and checkServiceDependencies props to interface
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:56-57: Added new props to component destructuring
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:62-66: Added archive modal state (showArchiveModal, selectedServiceForArchive, archiveDependencies, isArchiving)
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:153-191: Added handler functions (handleOpenArchiveModal, handleConfirmArchive, handleCloseArchiveModal)
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:257-262: Added Archive button to grid view dropdown menu (before Delete)
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:434-439: Added Archive button to list view dropdown menu (before Delete)
+- apps/store-app/src/components/menu-settings/sections/ServicesSection.tsx:612-621: Added ArchiveServiceModal component at end of JSX
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:118-119: Added archiveService and checkServiceDependencies to catalog destructuring
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:187-188: Added onArchive and checkServiceDependencies props to ServicesSection
+
+**Browser Verification:**
+- PRD file path incorrect: ServicesSection.tsx is in `sections/` subdirectory (not directly in menu-settings/)
+- TypeScript compiles without new errors in modified files
+- Pre-existing TypeScript errors in unrelated test files continue (AgendaView.test.tsx, CreateTicketButton.test.tsx, etc.)
+- Pre-existing test failures: AddNoteModal.test.tsx (missing Redux Provider), CreateTicketButton.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error)
+- Browser verification deferred: Archive option in ServicesSection requires navigating to Menu > Services, selecting a service, and opening the dropdown menu
+
+**Learnings:**
+- PRD `files` paths may be slightly inaccurate - always verify with Glob first
+- ServicesSection uses prop callbacks (onCreate, onUpdate, onDelete) pattern rather than calling hooks directly - onArchive follows same pattern
+- Dropdown menus are duplicated for grid view and list view - changes must be applied to both
+- ArchiveServiceModal requires dependencies prop that comes from checkServiceDependencies() call
+
+**Patterns to sync:**
+- None this iteration (archive modal wiring follows existing patterns)
+
+**Next story suggestion:** US-007 (Extract ServiceResolutionRow from PriceResolutionModal) - starts the PriceResolutionModal refactoring work. US-006 completes the service archive epic, so we move to the next epic (component refactoring).
+
+---

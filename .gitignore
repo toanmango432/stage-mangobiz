@@ -64,3 +64,4 @@ electron/mosquitto/bin/linux/arm64/mosquitto
 .env.*.local
 !.env.example
 !.env.*.example
+.vercel
