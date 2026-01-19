@@ -6,6 +6,7 @@ import {
   selectServicePriceChanges,
 } from '@/store/slices/uiTicketsSlice';
 import { formatPriceVariance } from '@/utils/priceComparisonUtils';
+import { colors } from '@/design-system';
 
 /**
  * Props for the PriceChangeWarningBanner component.
@@ -68,7 +69,17 @@ export default function PriceChangeWarningBanner({
     return (
       <button
         onClick={onReview}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-100 text-amber-700 text-xs font-medium hover:bg-amber-200 transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors"
+        style={{
+          backgroundColor: colors.status.warning.light,
+          color: colors.status.warning.dark,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = colors.status.warning.main + '33'; // 20% opacity
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = colors.status.warning.light;
+        }}
         aria-label={`${changeCount} service${changeCount !== 1 ? 's' : ''} with price changes. Click to review.`}
       >
         <Zap className="h-3 w-3" />
@@ -77,19 +88,35 @@ export default function PriceChangeWarningBanner({
     );
   }
 
+  // Warning color styles for the banner
+  const warningBorderColor = `${colors.status.warning.main}66`; // ~40% opacity for border
+
   // Full banner mode
   return (
     <div
-      className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200"
+      className="flex items-start gap-2 p-2.5 rounded-lg"
+      style={{
+        backgroundColor: colors.status.warning.light,
+        border: `1px solid ${warningBorderColor}`,
+      }}
       role="alert"
       data-testid="price-change-warning-banner"
     >
-      <Zap className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+      <Zap
+        className="h-4 w-4 flex-shrink-0 mt-0.5"
+        style={{ color: colors.status.warning.dark }}
+      />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-amber-800">
+        <p
+          className="text-xs font-semibold"
+          style={{ color: colors.status.warning.dark }}
+        >
           Price Changes Detected
         </p>
-        <p className="text-xs text-amber-700 mt-0.5">
+        <p
+          className="text-xs mt-0.5"
+          style={{ color: colors.status.warning.dark }}
+        >
           {changeCount} service{changeCount !== 1 ? 's have' : ' has'} price changes since booking
           {totalVariance !== 0 && (
             <span className="ml-1 font-medium">
@@ -101,7 +128,8 @@ export default function PriceChangeWarningBanner({
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 px-2 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-100 flex-shrink-0"
+        className="h-7 px-2 text-xs flex-shrink-0"
+        style={{ color: colors.status.warning.dark }}
         onClick={onReview}
         data-testid="button-review-price-changes"
       >
