@@ -99,7 +99,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Import ArchivedServicesTab from ./ArchivedServicesTab. Add to existing tab navigation. Use useCatalog().getArchivedServices().length for badge count."
     },
     {

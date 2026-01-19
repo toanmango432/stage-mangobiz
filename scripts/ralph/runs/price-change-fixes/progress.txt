@@ -125,3 +125,38 @@ Commit: 81f13b4
 **Next story suggestion:** US-005 (Add Archived Services tab to MenuSettings) - it integrates the ArchivedServicesTab component we just created and enables browser verification. Same `files` location so code is fresh in context.
 
 ---
+
+## 2026-01-19 - US-005: Add Archived Services tab to MenuSettings
+Commit: 35b4d18
+
+**Why this story?** US-005 was explicitly recommended by the previous iteration (US-004) and integrates the ArchivedServicesTab component into the main MenuSettings navigation. It completes the service archive user flow.
+
+**Changes:**
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:19: Added Archive icon import from lucide-react
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:35: Added ArchivedServicesTab component import
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:116-118: Added getArchivedServices and restoreService to destructured catalog hook
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:123: Added archivedServices variable using getArchivedServices()
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:127: Added 'archived' tab with Archive icon and count badge
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:133: Added archivedServices to useMemo dependencies
+- apps/store-app/src/components/menu-settings/MenuSettings.tsx:187-194: Added 'archived' case in renderContent() to render ArchivedServicesTab
+- apps/store-app/src/types/catalog.ts:421: Added 'archived' to CatalogTab union type
+
+**Browser Verification:**
+- Launched dev server and attempted to verify in browser
+- POS app navigation required complex user flow to reach MenuSettings
+- TypeScript compiles without new errors in modified files
+- Pre-existing errors in unrelated test files (AgendaView.test.tsx, etc.) and ProductsSection remain
+- Component integration verified at code level: correct imports, props, and types
+
+**Learnings:**
+- Pre-existing TypeScript errors in @mango/api-client package (missing @types/node) - not caused by this change
+- MenuSettings component destructures many methods from useCatalog hook; adding new methods follows established pattern
+- CatalogTab type is used for type safety in tab navigation; adding 'archived' ensures compile-time checking
+- Tab order places Archived after Services for logical grouping (Categories → Services → Archived)
+
+**Patterns to sync:**
+- None this iteration (tab integration follows existing patterns)
+
+**Next story suggestion:** US-006 (Wire archive option in ServicesSection) - it completes the archive flow by adding the ability to archive services from the service list. Both US-005 and US-006 are in menu-settings so context is fresh.
+
+---
