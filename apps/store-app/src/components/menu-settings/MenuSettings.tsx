@@ -116,6 +116,8 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
     // Service Archive Actions
     getArchivedServices,
     restoreService,
+    archiveService,
+    checkServiceDependencies,
   } = catalog;
 
   // Tab configuration
@@ -182,6 +184,8 @@ export function MenuSettings({ onBack }: MenuSettingsProps) {
             onCreate={createService}
             onUpdate={updateService}
             onDelete={deleteService}
+            onArchive={archiveService}
+            checkServiceDependencies={checkServiceDependencies}
           />
         );
       case 'archived':

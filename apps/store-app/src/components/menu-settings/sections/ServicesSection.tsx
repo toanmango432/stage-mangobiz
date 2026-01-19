@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Sparkles,
   Layers,
+  Archive,
 } from 'lucide-react';
 import type {
   MenuService,
@@ -24,6 +25,8 @@ import type {
 } from '@/types/catalog';
 import { formatDuration, formatPrice } from '../constants';
 import { ServiceModal } from '../modals/ServiceModal';
+import { ArchiveServiceModal } from '../modals/ArchiveServiceModal';
+import type { ServiceArchiveDependencies, ArchiveServiceResult } from '../../../hooks/useCatalog';
 
 interface ServicesSectionProps {
   services: MenuServiceWithEmbeddedVariants[];
@@ -36,6 +39,8 @@ interface ServicesSectionProps {
   onCreate?: (data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null>;
   onUpdate?: (id: string, data: Partial<MenuService>, variants?: EmbeddedVariant[]) => Promise<MenuService | null | undefined>;
   onDelete?: (id: string) => Promise<boolean | null>;
+  onArchive?: (id: string) => Promise<ArchiveServiceResult | null>;
+  checkServiceDependencies?: (serviceId: string) => Promise<ServiceArchiveDependencies>;
 }
 
 export function ServicesSection({
@@ -48,10 +53,18 @@ export function ServicesSection({
   onCreate,
   onUpdate,
   onDelete,
+  onArchive,
+  checkServiceDependencies,
 }: ServicesSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<MenuServiceWithEmbeddedVariants | undefined>();
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+
+  // Archive modal state
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [selectedServiceForArchive, setSelectedServiceForArchive] = useState<MenuServiceWithEmbeddedVariants | null>(null);
+  const [archiveDependencies, setArchiveDependencies] = useState<ServiceArchiveDependencies | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   // Get category by ID
   const getCategory = (categoryId: string) => {
@@ -137,6 +150,42 @@ export function ServicesSection({
     }
   };
 
+  // Handle opening archive modal
+  const handleOpenArchiveModal = async (service: MenuServiceWithEmbeddedVariants) => {
+    setSelectedServiceForArchive(service);
+    setExpandedMenuId(null);
+
+    // Check dependencies if available
+    if (checkServiceDependencies) {
+      const deps = await checkServiceDependencies(service.id);
+      setArchiveDependencies(deps);
+    }
+
+    setShowArchiveModal(true);
+  };
+
+  // Handle confirm archive
+  const handleConfirmArchive = async () => {
+    if (!selectedServiceForArchive || !onArchive) return;
+
+    setIsArchiving(true);
+    try {
+      await onArchive(selectedServiceForArchive.id);
+      setShowArchiveModal(false);
+      setSelectedServiceForArchive(null);
+      setArchiveDependencies(null);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  // Handle close archive modal
+  const handleCloseArchiveModal = () => {
+    setShowArchiveModal(false);
+    setSelectedServiceForArchive(null);
+    setArchiveDependencies(null);
+  };
+
   // Render price display
   const renderPrice = (service: MenuService) => {
     if (service.pricingType === 'free') return 'Free';
@@ -204,6 +253,12 @@ export function ServicesSection({
                       >
                         {service.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
                         {service.status === 'active' ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        onClick={() => handleOpenArchiveModal(service)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Archive size={14} /> Archive
                       </button>
                       <hr className="my-1" />
                       <button
@@ -376,6 +431,12 @@ export function ServicesSection({
                         {service.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
                         {service.status === 'active' ? 'Deactivate' : 'Activate'}
                       </button>
+                      <button
+                        onClick={() => handleOpenArchiveModal(service)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Archive size={14} /> Archive
+                      </button>
                       <hr className="my-1" />
                       <button
                         onClick={() => {
@@ -547,6 +608,16 @@ export function ServicesSection({
         service={editingService}
         categories={categories}
         onSave={handleSaveService}
+      />
+
+      {/* Archive Service Modal */}
+      <ArchiveServiceModal
+        isOpen={showArchiveModal}
+        onClose={handleCloseArchiveModal}
+        onConfirm={handleConfirmArchive}
+        service={selectedServiceForArchive}
+        dependencies={archiveDependencies}
+        isLoading={isArchiving}
       />
     </div>
   );
