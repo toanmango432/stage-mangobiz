@@ -349,3 +349,97 @@ Commit: 8c9927e
 **Next story suggestion:** US-011 (Replace hardcoded colors in PriceChangeWarningBanner) - same design system compliance task, smaller file (112 lines), completes the checkout module color migration
 
 ---
+
+## 2026-01-19 - US-011: Replace hardcoded colors in PriceChangeWarningBanner
+Commit: 34736bf
+
+**Why this story?** US-011 is the highest priority incomplete story (priority 11) and was explicitly recommended by the previous iteration (US-010). It's a design system compliance task like US-010, with a smaller file (112 lines). Completes the checkout module color migration.
+
+**Changes:**
+- apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx:9: Added `import { colors } from '@/design-system'`
+- apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx:72-82: Compact button - replaced `bg-amber-100 text-amber-700 hover:bg-amber-200` with design system tokens via style prop and hover handlers
+- apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx:91-101: Full banner container - replaced `bg-amber-50 border border-amber-200` with design system warning colors
+- apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx:105-108: Zap icon - replaced `text-amber-600` with design system warning dark color
+- apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx:110-119: Title and description - replaced `text-amber-800` and `text-amber-700` with design system warning dark color
+- apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx:128-132: Button - replaced `text-amber-700` with design system warning dark color
+
+**Browser Verification:**
+- Component is used in TicketPanel during checkout when price changes exist
+- TypeScript compiles without new errors in modified file
+- No hardcoded amber colors remain (verified with grep)
+- Pre-existing errors in unrelated test files continue (not caused by this change)
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- For hover effects, using onMouseEnter/onMouseLeave with style prop is necessary when style-based colors are used instead of Tailwind classes
+- The warning border uses opacity suffix on hex color (e.g., `#F59E0B66` for ~40% opacity)
+
+**Patterns to sync:**
+- None this iteration (design system patterns already documented)
+
+**Next story suggestion:** US-012 (Add unit tests for PriceResolutionModal) - begins the testing epic. Alternatively US-014 (Add notification toggle fields) starts the notification feature epic.
+
+---
+
+## 2026-01-19 - US-012: Add unit tests for PriceResolutionModal
+Commit: 0833126
+
+**Why this story?** US-012 is the highest priority incomplete story (priority 12) and was explicitly recommended by the previous iteration (US-011). It tests the PriceResolutionModal components that were just refactored (US-007, US-008, US-009, US-010), ensuring the refactoring didn't break functionality.
+
+**Changes:**
+- apps/store-app/src/components/checkout/PriceResolutionModal/__tests__/PriceResolutionModal.test.tsx (NEW):
+  - 772-line comprehensive test file with 34 test cases covering:
+    - Modal rendering: title, service count, no changes message, service names
+    - Resolution option selection: booked, current, custom price options
+    - Custom price validation: zero, negative, valid prices
+    - Reason field: appears when custom selected with requireOverrideReason
+    - Bulk actions: Honor All Booked, Apply All Current buttons
+    - Apply button: disabled states (invalid price, missing reason), enabled states
+    - Apply action: dispatches correct resolutions, shows toast, closes modal
+    - Deposit locked services: badge display, disabled options
+    - Deleted services: badge display
+    - Cancel button: calls onClose
+    - Accessibility: dialog role, aria-labels on RadioGroup
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (uiTicketsSlice.ts, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx (missing Redux Provider), AddNoteModal.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- ServiceStatus type for CheckoutTicketService is 'not_started' | 'in_progress' | 'paused' | 'completed' (not 'pending')
+- Mock Redux store with configureStore() and simple reducer functions () => initialState
+- Design system mock required for colors used in component styling
+
+**Patterns to sync:**
+- Pattern: Testing with Redux - Mock Redux store using configureStore with simple reducer functions. Mock hooks (useToast, useCatalog) at module level. Include design system mock for color-dependent components.
+
+**Next story suggestion:** US-013 (Add unit tests for PriceChangeWarningBanner) - continues the testing epic, smaller component (112 lines) so simpler test file
+
+---
+
+## 2026-01-19 - US-013: Add unit tests for PriceChangeWarningBanner
+Commit: (pending)
+
+**Why this story?** US-013 is the highest priority incomplete story (priority 13) and was explicitly recommended by the previous iteration (US-012). It tests the PriceChangeWarningBanner component that was refactored in US-011, completing the testing epic.
+
+**Changes:**
+- apps/store-app/src/components/checkout/__tests__/PriceChangeWarningBanner.test.tsx (NEW):
+  - 310-line comprehensive test file with 16 test cases covering:
+    - Null rendering: no price changes, no checkout services, ticket not found, all changes resolved
+    - Full banner mode: price change info display, single/multiple service counts, variance display
+    - Review button: click handler invocation, accessibility (alert role)
+    - Compact mode: button rendering, aria-label, pluralization, click handler, null on no changes
+    - Styling: design system colors via style props
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx, AddNoteModal.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts - not caused by this change
+- Mock store pattern: use configureStore with simple reducer functions () => initialState
+- formatPriceVariance mock: return a formatted string matching expected output pattern
+- PendingTicket type requires `as PendingTicket` casting when using partial mock data
+
+**Patterns to sync:**
+- None this iteration (Redux testing patterns already documented)
+
+**Next story suggestion:** US-014 (Add notification toggle fields to PricingPolicySettings type) - starts the notification feature epic. US-015 and US-016 depend on US-014's type definitions.
+
+---

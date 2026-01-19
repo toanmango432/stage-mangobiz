@@ -223,7 +223,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Component is only 112 lines. Find all amber color usages and replace with design tokens. Keep functionality identical."
     },
     {
@@ -246,7 +246,7 @@
         "No forbidden strings: 'as any' except in test mocks where necessary"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Create __tests__ directory inside PriceResolutionModal/. Use @testing-library/react for component testing. Mock Redux store with configureStore. Follow pattern from existing component tests."
     },
     {
@@ -266,7 +266,7 @@
         "All tests pass"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Create test file in checkout/__tests__/. Mock useAppSelector to return test data. Test both compact={true} and compact={false} modes."
     },
     {
