@@ -950,9 +950,15 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.3
       typescript:
         specifier: ^5.5.4
         version: 5.9.3
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.21(@types/node@22.19.3)(terser@5.44.1)
 
   packages/api-contracts:
     dependencies:
@@ -9716,7 +9722,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.0.4
       '@types/keyv': 3.1.4
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
       '@types/responselike': 1.0.3
 
   '@types/chai@5.2.3':
@@ -9762,7 +9768,7 @@ snapshots:
 
   '@types/fs-extra@9.0.13':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
 
   '@types/http-cache-semantics@4.0.4': {}
 
@@ -9772,7 +9778,7 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
 
   '@types/ms@2.1.0': {}
 
@@ -9794,7 +9800,7 @@ snapshots:
 
   '@types/plist@3.0.5':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
       xmlbuilder: 15.1.1
     optional: true
 
@@ -9820,11 +9826,11 @@ snapshots:
 
   '@types/readable-stream@4.0.23':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
 
   '@types/semver@7.7.1': {}
 
@@ -9846,11 +9852,11 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 25.0.6
+      '@types/node': 22.19.3
     optional: true
 
   '@typescript-eslint/eslint-plugin@5.62.0(@typescript-eslint/parser@5.62.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)':
@@ -10220,7 +10226,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.3)(@vitest/ui@3.2.4)(happy-dom@20.0.11)(jiti@1.21.7)(jsdom@27.4.0)(msw@2.12.7(@types/node@22.19.3)(typescript@5.9.3))(terser@5.44.1)(yaml@2.8.2)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.3)(@vitest/ui@3.2.4)(happy-dom@20.0.11)(jiti@1.21.7)(jsdom@22.1.0)(msw@2.12.7(@types/node@22.19.3)(typescript@5.9.3))(terser@5.44.1)(yaml@2.8.2)
 
   '@vitest/utils@1.6.1':
     dependencies:
@@ -14603,16 +14609,15 @@ snapshots:
       - supports-color
       - terser
 
-  vite-node@3.2.4(@types/node@22.19.3)(jiti@1.21.7)(terser@5.44.1)(yaml@2.8.2):
+  vite-node@3.2.4(@types/node@22.19.3)(terser@5.44.1):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 6.4.1(@types/node@22.19.3)(jiti@1.21.7)(terser@5.44.1)(yaml@2.8.2)
+      vite: 5.4.21(@types/node@22.19.3)(terser@5.44.1)
     transitivePeerDependencies:
       - '@types/node'
-      - jiti
       - less
       - lightningcss
       - sass
@@ -14621,8 +14626,6 @@ snapshots:
       - sugarss
       - supports-color
       - terser
-      - tsx
-      - yaml
 
   vite@5.4.21(@types/node@22.19.3)(terser@5.44.1):
     dependencies:
@@ -14784,7 +14787,7 @@ snapshots:
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 6.4.1(@types/node@22.19.3)(jiti@1.21.7)(terser@5.44.1)(yaml@2.8.2)
-      vite-node: 3.2.4(@types/node@22.19.3)(jiti@1.21.7)(terser@5.44.1)(yaml@2.8.2)
+      vite-node: 3.2.4(@types/node@22.19.3)(terser@5.44.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12
@@ -14829,7 +14832,7 @@ snapshots:
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 6.4.1(@types/node@22.19.3)(jiti@1.21.7)(terser@5.44.1)(yaml@2.8.2)
-      vite-node: 3.2.4(@types/node@22.19.3)(jiti@1.21.7)(terser@5.44.1)(yaml@2.8.2)
+      vite-node: 3.2.4(@types/node@22.19.3)(terser@5.44.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12

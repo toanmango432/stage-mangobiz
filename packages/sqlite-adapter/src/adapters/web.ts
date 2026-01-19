@@ -5,12 +5,12 @@
  * Origin Private File System (OPFS) for persistent storage.
  */
 
-import type { SQLiteAdapter, SQLiteConfig, SQLiteValue } from '../types';
+import type { SQLiteAdapter, SQLiteConfig } from '../types';
 
 /**
  * Create a Web SQLite adapter
  */
-export async function createWebAdapter(config: SQLiteConfig): Promise<SQLiteAdapter> {
+export async function createWebAdapter(_config: SQLiteConfig): Promise<SQLiteAdapter> {
   // TODO: Implement using wa-sqlite
   // Requires COOP/COEP headers for SharedArrayBuffer support
 
