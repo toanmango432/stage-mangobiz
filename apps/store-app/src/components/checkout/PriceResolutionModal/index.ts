@@ -10,6 +10,7 @@ export { default } from '../PriceResolutionModal';
 
 // Sub-components
 export { ServiceResolutionRow } from './ServiceResolutionRow';
+export { PriceResolutionSummary } from './PriceResolutionSummary';
 
 // Types
 export type {
@@ -17,3 +18,8 @@ export type {
   ServiceResolutionState,
   ServiceResolutionRowProps,
 } from './ServiceResolutionRow';
+
+export type {
+  PriceResolutionSummaryData,
+  PriceResolutionSummaryProps,
+} from './PriceResolutionSummary';
