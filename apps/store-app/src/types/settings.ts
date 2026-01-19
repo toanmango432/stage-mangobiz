@@ -290,6 +290,27 @@ export interface PricingPolicySettings {
    * @default true
    */
   requireOverrideReason: boolean;
+
+  /**
+   * Send notification to owner/manager when a service price increases.
+   * Helps track when higher prices are charged at checkout.
+   * @default true
+   */
+  notifyOnPriceIncrease: boolean;
+
+  /**
+   * Send notification to owner/manager when a service price decreases.
+   * Helps track when discounts or lower prices are applied at checkout.
+   * @default true
+   */
+  notifyOnPriceDecrease: boolean;
+
+  /**
+   * Minimum variance percentage to trigger price change review.
+   * Price differences below this threshold are auto-resolved silently.
+   * @default 5 (5% variance threshold)
+   */
+  varianceThresholdPercent: number;
 }
 
 export interface TipSettings {
@@ -611,6 +632,9 @@ export const DEFAULT_PRICING_POLICY: PricingPolicySettings = {
   keepPriceOnReschedule: true,
   allowStaffOverride: true,
   requireOverrideReason: true,
+  notifyOnPriceIncrease: true,
+  notifyOnPriceDecrease: true,
+  varianceThresholdPercent: 5,
 };
 
 export const DEFAULT_PAYMENT_METHODS: PaymentMethodsSettings = {
