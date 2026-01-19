@@ -159,12 +159,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Job 5: Notify Deployment
+  # Job 5: Notify Deployment (Optional - requires SLACK_WEBHOOK secret)
   notify:
     name: Notify Deployment Status
     needs: [deploy-netlify, deploy-vercel]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && vars.ENABLE_SLACK_NOTIFICATIONS == 'true'
 
     steps:
       - name: Send Slack notification
@@ -176,6 +176,5 @@ jobs:
             Deployment Status: ${{ job.status }}
             Branch: ${{ github.ref }}
             Commit: ${{ github.sha }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
