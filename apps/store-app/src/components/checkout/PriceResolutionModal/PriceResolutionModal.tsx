@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { Zap, AlertCircle, Check } from 'lucide-react';
+import { colors } from '@/design-system';
 import { Button } from '@/components/ui/Button';
 import {
   Dialog,
@@ -233,7 +234,7 @@ export default function PriceResolutionModal({
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-amber-500" />
+            <Zap className="h-5 w-5" style={{ color: colors.status.warning.main }} />
             Review Price Changes
           </DialogTitle>
           <DialogDescription>
@@ -241,7 +242,7 @@ export default function PriceResolutionModal({
               <>
                 {summary.totalServices} service{summary.totalServices !== 1 ? 's' : ''} have price changes since booking.
                 {summary.unresolvedCount > 0 && (
-                  <span className="text-amber-600 font-medium">
+                  <span className="font-medium" style={{ color: colors.status.warning.dark }}>
                     {' '}{summary.unresolvedCount} need{summary.unresolvedCount === 1 ? 's' : ''} resolution.
                   </span>
                 )}
@@ -300,19 +301,23 @@ export default function PriceResolutionModal({
               {resolvedChanges.length > 0 && (
                 <>
                   <div className="flex items-center gap-2 pt-3 pb-1">
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-xs text-gray-400">Already Resolved</span>
-                    <div className="flex-1 h-px bg-gray-200" />
+                    <div className="flex-1 h-px" style={{ backgroundColor: colors.border.light }} />
+                    <span className="text-xs" style={{ color: colors.text.muted }}>Already Resolved</span>
+                    <div className="flex-1 h-px" style={{ backgroundColor: colors.border.light }} />
                   </div>
                   {resolvedChanges.map((change) => (
                     <div
                       key={change.serviceId}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100 opacity-60"
+                      className="flex items-center gap-3 p-3 rounded-lg opacity-60"
+                      style={{
+                        backgroundColor: colors.background.secondary,
+                        border: `1px solid ${colors.border.light}`,
+                      }}
                     >
-                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="h-4 w-4" style={{ color: colors.status.success.main }} />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm text-gray-600 truncate">{change.serviceName}</span>
-                        <span className="text-xs text-gray-400 ml-2">(Resolved)</span>
+                        <span className="text-sm truncate" style={{ color: colors.text.secondary }}>{change.serviceName}</span>
+                        <span className="text-xs ml-2" style={{ color: colors.text.muted }}>(Resolved)</span>
                       </div>
                     </div>
                   ))}
@@ -322,11 +327,11 @@ export default function PriceResolutionModal({
 
             {unresolvedServices.length === 0 && (
               <div className="flex flex-col items-center justify-center py-6 text-center">
-                <div className="p-3 rounded-full bg-green-100 mb-3">
-                  <Check className="h-6 w-6 text-green-600" />
+                <div className="p-3 rounded-full mb-3" style={{ backgroundColor: colors.status.success.light }}>
+                  <Check className="h-6 w-6" style={{ color: colors.status.success.dark }} />
                 </div>
-                <p className="text-sm font-medium text-gray-900">All price changes resolved</p>
-                <p className="text-xs text-gray-500 mt-1">You can close this dialog and proceed with payment.</p>
+                <p className="text-sm font-medium" style={{ color: colors.text.primary }}>All price changes resolved</p>
+                <p className="text-xs mt-1" style={{ color: colors.text.secondary }}>You can close this dialog and proceed with payment.</p>
               </div>
             )}
           </>
@@ -334,11 +339,11 @@ export default function PriceResolutionModal({
 
         {!hasChanges && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="p-3 rounded-full bg-gray-100 mb-3">
-              <AlertCircle className="h-6 w-6 text-gray-400" />
+            <div className="p-3 rounded-full mb-3" style={{ backgroundColor: colors.background.tertiary }}>
+              <AlertCircle className="h-6 w-6" style={{ color: colors.text.muted }} />
             </div>
-            <p className="text-sm font-medium text-gray-700">No price changes to resolve</p>
-            <p className="text-xs text-gray-500 mt-1">All services are at their expected prices.</p>
+            <p className="text-sm font-medium" style={{ color: colors.text.secondary }}>No price changes to resolve</p>
+            <p className="text-xs mt-1" style={{ color: colors.text.secondary }}>All services are at their expected prices.</p>
           </div>
         )}
 

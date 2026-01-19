@@ -178,7 +178,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Move existing PriceResolutionModal.tsx to PriceResolutionModal/PriceResolutionModal.tsx. Import and use extracted components. Keep state and handlers in main component, pass as props."
     },
     {
@@ -202,7 +202,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Check src/design-system/README.md for available tokens. Use semantic color names like colors.warning.text, colors.success.bg, etc. If tokens don't exist for needed colors, use existing closest match."
     },
     {

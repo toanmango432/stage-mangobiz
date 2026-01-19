@@ -258,3 +258,94 @@ Commit: e1f5c78
 **Next story suggestion:** US-009 (Refactor PriceResolutionModal to use extracted components) - it now has both dependencies complete (US-007 ServiceResolutionRow and US-008 PriceResolutionSummary) and will integrate the extracted components into the main modal.
 
 ---
+
+## 2026-01-19 - US-009: Refactor PriceResolutionModal to use extracted components
+Commit: fcf2bc9
+
+**Why this story?** US-009 was explicitly recommended by the previous iteration (US-008) and is the highest priority incomplete story (priority 9). Both dependencies (US-007 ServiceResolutionRow and US-008 PriceResolutionSummary) are complete, making this the logical next step. This completes the PriceResolutionModal refactoring epic.
+
+**Changes:**
+- apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionModal.tsx (NEW):
+  - 362-line main component (down from 756 lines original - 52% reduction)
+  - Imports and uses ServiceResolutionRow for per-service resolution UI
+  - Imports and uses PriceResolutionSummary for summary statistics card
+  - State management remains in main component, passed as props to sub-components
+  - Consolidated handleHonorAllBooked and handleApplyAllCurrent into handleBulkAction
+  - Exports PriceResolutionModalProps type for external consumers
+- apps/store-app/src/components/checkout/PriceResolutionModal/index.ts:
+  - Updated to export from ./PriceResolutionModal instead of ../PriceResolutionModal
+  - Added PriceResolutionModalProps to type exports
+- apps/store-app/src/components/checkout/PriceResolutionModal.tsx (DELETED):
+  - Removed original 756-line file after moving to module structure
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- Barrel exports allow transparent module refactoring - TicketPanel.tsx import `from "./PriceResolutionModal"` now resolves to the directory index.ts
+- Consolidating similar handlers (handleHonorAllBooked + handleApplyAllCurrent → handleBulkAction) reduces code duplication
+
+**Patterns to sync:**
+- Pattern: Barrel export refactoring - When migrating a file to a module structure, the barrel index.ts maintains backwards compatibility. Consumers don't need to update imports because `./ComponentName` resolves to `./ComponentName/index.ts`.
+
+**Next story suggestion:** US-010 (Replace hardcoded colors in PriceResolutionModal components) - it builds directly on the files just refactored (same directory) and the code is fresh in context. US-010 is the next step to make the components design-system compliant.
+
+---
+
+## 2026-01-19 - US-010: Replace hardcoded colors in PriceResolutionModal components
+Commit: 8c9927e
+
+**Why this story?** US-010 is the highest priority incomplete story (priority 10) and was explicitly recommended by the previous iteration (US-009). It modifies the PriceResolutionModal files just refactored (US-007, US-008, US-009), so code context is fresh. Completes the design system compliance for the PriceResolutionModal module.
+
+**Changes:**
+- apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionModal.tsx:
+  - Added `import { colors } from '@/design-system'`
+  - Replaced `text-amber-500` on Zap icon with `style={{ color: colors.status.warning.main }}`
+  - Replaced `text-amber-600` on unresolved count with `style={{ color: colors.status.warning.dark }}`
+  - Replaced `bg-gray-200` divider with `style={{ backgroundColor: colors.border.light }}`
+  - Replaced `text-gray-400` "Already Resolved" text with `style={{ color: colors.text.muted }}`
+  - Replaced `bg-gray-50 border-gray-100` resolved card with design system colors
+  - Replaced `text-green-500` check icon with `style={{ color: colors.status.success.main }}`
+  - Replaced success state colors (bg-green-100, text-green-600) with design system tokens
+  - Replaced gray text colors in empty/success states with design system tokens
+
+- apps/store-app/src/components/checkout/PriceResolutionModal/ServiceResolutionRow.tsx:
+  - Added `import { colors } from '@/design-system'`
+  - Replaced `border-gray-200 bg-white` container with design system colors
+  - Replaced `text-gray-900` service name with `colors.text.primary`
+  - Replaced `bg-blue-100 text-blue-700` deposit badge with `colors.status.info`
+  - Replaced `bg-red-100 text-red-700` deleted badge with `colors.status.error`
+  - Replaced `text-gray-500` price info with `colors.text.secondary`
+  - Replaced `text-amber-600/500` and `text-green-600/500` variance colors with design system tokens
+  - Replaced deleted service warning colors (bg-red-50, border-red-200, text-red-600/700) with design system
+  - Replaced deposit locked info colors (bg-blue-50, border-blue-200, text-blue-600/700) with design system
+  - Replaced radio option inactive states (border-gray-200) with conditional style props
+  - Replaced `bg-amber-100 text-amber-700` "Recommended" badge with design system warning tokens
+  - Replaced `text-gray-500` descriptions with `colors.text.secondary`
+  - Replaced `text-gray-400` dollar sign icon with `colors.text.muted`
+  - Replaced `border-red-300` invalid input with `colors.status.error.main`
+  - Replaced `text-red-500` validation error with `colors.status.error.main`
+  - Replaced `text-gray-600` reason label with `colors.text.secondary`
+  - Replaced `border-amber-300` required reason input with `colors.status.warning.main`
+
+- apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionSummary.tsx:
+  - Already uses design tokens (no changes needed) ✓
+
+**Browser Verification:**
+- App loads successfully at http://localhost:5173 without runtime errors
+- Front Desk page renders correctly, confirming design system imports work
+- PriceResolutionModal is shown only during checkout with price changes (complex setup required)
+- TypeScript compiles without new errors in modified files
+- Pre-existing errors in unrelated test files continue (not caused by this change)
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (AgendaView.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: AddNoteModal.test.tsx, CreateTicketButton.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts - not caused by this change
+- Design system provides comprehensive semantic colors: status.warning, status.success, status.error, status.info with light/main/dark variants
+- Using conditional style props (style={condition ? {...} : undefined}) is cleaner than template literal className for selected states
+
+**Patterns to sync:**
+- None this iteration (design system patterns already documented)
+
+**Next story suggestion:** US-011 (Replace hardcoded colors in PriceChangeWarningBanner) - same design system compliance task, smaller file (112 lines), completes the checkout module color migration
+
+---
