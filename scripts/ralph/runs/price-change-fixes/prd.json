@@ -79,7 +79,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Create new file. Use useCatalog hook's getArchivedServices() and restoreService(). Follow pattern from existing settings tab components. Keep under 200 lines."
     },
     {

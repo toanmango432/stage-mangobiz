@@ -92,3 +92,36 @@ Commit: 087a3cd
 **Next story suggestion:** US-004 (Create ArchivedServicesTab component) - it's the first UI story that uses the archive infrastructure we built in US-001, US-002, US-003. It's a frontend component so will require browser verification.
 
 ---
+
+## 2026-01-19 - US-004: Create ArchivedServicesTab component
+Commit: 81f13b4
+
+**Why this story?** US-004 is the next logical story after completing the backend infrastructure (US-001, US-002, US-003). It was explicitly recommended by the previous iteration (US-003) and creates the UI component that displays and restores archived services.
+
+**Changes:**
+- apps/store-app/src/components/menu-settings/ArchivedServicesTab.tsx (NEW): Created 250-line component with:
+  - Service list displaying name, category, price, duration, and archived date
+  - Restore button with loading state using useCatalog().restoreService()
+  - Empty state with "No Archived Services" message
+  - Info footer explaining restore behavior
+  - All colors using design system tokens (no hardcoded colors)
+
+**Browser Verification:**
+- Component is standalone and not yet integrated into MenuSettings (that's US-005)
+- TypeScript compiles without errors specific to this file
+- No lint errors in the new file
+- Design system colors used throughout via style={} props
+- Browser verification will be completed with US-005 integration
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (AgendaView.test.tsx, etc.) - not caused by this change
+- Menu-settings sections use `max-w-4xl mx-auto` pattern for centered content
+- useCatalog hook already provides getArchivedServices() and restoreService() methods
+- GiftCardsSection is a good reference pattern for new settings sections
+
+**Patterns to sync:**
+- None this iteration (design system pattern already documented)
+
+**Next story suggestion:** US-005 (Add Archived Services tab to MenuSettings) - it integrates the ArchivedServicesTab component we just created and enables browser verification. Same `files` location so code is fresh in context.
+
+---
