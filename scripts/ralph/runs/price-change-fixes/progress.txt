@@ -1,0 +1,40 @@
+# Ralph Progress Log: price-change-fixes
+# Started: 2026-01-19
+# Branch: ralph/price-change-fixes
+
+## Codebase Patterns
+<!-- Accumulated patterns and learnings across iterations -->
+
+### Service Archive Pattern
+- Services are archived (not deleted) - industry best practice (Fresha/Boulevard/Vagaro)
+- Archive fields: status, archivedAt, archivedBy
+- Supabase uses snake_case: status, archived_at, archived_by
+- App uses camelCase: status, archivedAt, archivedBy
+- Type adapters convert between formats
+
+### Design System Colors
+- Import from @/design-system
+- Use semantic colors: colors.warning, colors.success, colors.error
+- Never hardcode Tailwind colors like text-amber-600
+
+### Component Size Guidelines
+- Target: <300 lines per component
+- Max: 500 lines
+- If exceeding, split into module structure:
+  ComponentName/
+  ├── index.ts
+  ├── ComponentName.tsx
+  ├── SubComponent.tsx
+  └── types.ts
+
+### Testing Patterns
+- Use @testing-library/react for component tests
+- Mock Redux store with configureStore
+- Test both happy path and edge cases
+- Follow pattern from existing tests in __tests__ directories
+
+---
+
+## Progress Log
+
+<!-- Iteration logs will be appended below -->

@@ -1,0 +1,353 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "main",
+  "description": "Address technical debt and incomplete features from price-change-handling Ralph session. Includes: Supabase archive schema, component refactoring, design system compliance, test coverage, and missing PRD features.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add archive fields to Supabase ServiceRow type",
+      "description": "As a developer, I need the Supabase ServiceRow type to include archive fields so that service archive data can persist to the cloud.",
+      "files": [
+        "apps/store-app/src/services/supabase/types.ts"
+      ],
+      "acceptanceCriteria": [
+        "ServiceRow interface includes `status: 'active' | 'archived'` field",
+        "ServiceRow interface includes `archived_at: string | null` field",
+        "ServiceRow interface includes `archived_by: string | null` field",
+        "Fields use snake_case matching Supabase convention",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Add fields to ServiceRow interface around line 292-320. Follow existing field patterns with snake_case. These fields will be mapped by adapter in US-002."
+    },
+    {
+      "id": "US-002",
+      "title": "Update serviceAdapter to map archive fields",
+      "description": "As a developer, I need the service type adapter to map archive fields between Supabase (snake_case) and app (camelCase) formats.",
+      "files": [
+        "apps/store-app/src/services/supabase/adapters/serviceAdapter.ts"
+      ],
+      "acceptanceCriteria": [
+        "toService() maps status, archived_at → archivedAt, archived_by → archivedBy",
+        "toServiceRow() maps status, archivedAt → archived_at, archivedBy → archived_by",
+        "Handles null/undefined values gracefully (archived_at/archived_by can be null)",
+        "Default status to 'active' if not present for backwards compatibility",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Follow existing adapter patterns. toService is around line 14-28, toServiceRow around line 30-44. Handle null values since archived services will have timestamps, active services will have null."
+    },
+    {
+      "id": "US-003",
+      "title": "Add archive/restore methods to servicesTable",
+      "description": "As a developer, I need Supabase table methods to archive and restore services so the operations sync to cloud.",
+      "files": [
+        "apps/store-app/src/services/supabase/tables/servicesTable.ts"
+      ],
+      "acceptanceCriteria": [
+        "archiveService(id, userId) method sets status='archived', archived_at=now, archived_by=userId",
+        "restoreService(id, userId) method sets status='active', archived_at=null, archived_by=null",
+        "Both methods return the updated ServiceRow",
+        "Methods use existing supabase client pattern",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Follow pattern from other table files like appointmentsTable.ts. Use supabase.from('services').update() pattern. Import types from ../types.ts."
+    },
+    {
+      "id": "US-004",
+      "title": "Create ArchivedServicesTab component",
+      "description": "As a salon admin, I want to view archived services and restore them so I can manage my service catalog history.",
+      "files": [
+        "apps/store-app/src/components/menu-settings/ArchivedServicesTab.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Component displays list of archived services with name, category, price, archived date",
+        "Each service row has a 'Restore' button",
+        "Restore button calls useCatalog().restoreService() and shows success toast",
+        "Empty state shows 'No archived services' message",
+        "Uses design tokens from @/design-system for colors",
+        "No hardcoded colors like text-amber-600",
+        "No forbidden strings: 'as any', 'void _', 'Test Service'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Create new file. Use useCatalog hook's getArchivedServices() and restoreService(). Follow pattern from existing settings tab components. Keep under 200 lines."
+    },
+    {
+      "id": "US-005",
+      "title": "Add Archived Services tab to MenuSettings",
+      "description": "As a salon admin, I want to access archived services from the menu settings so I can manage archived items.",
+      "files": [
+        "apps/store-app/src/components/menu-settings/MenuSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Archived' tab to the existing tabs list",
+        "Tab shows count of archived services in badge",
+        "Clicking tab renders ArchivedServicesTab component",
+        "Tab uses Archive icon from lucide-react",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Import ArchivedServicesTab from ./ArchivedServicesTab. Add to existing tab navigation. Use useCatalog().getArchivedServices().length for badge count."
+    },
+    {
+      "id": "US-006",
+      "title": "Wire archive option in ServicesSection",
+      "description": "As a salon admin, I want to archive services from the service list so I can remove them from booking without deleting.",
+      "files": [
+        "apps/store-app/src/components/menu-settings/ServicesSection.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Archive' option to service row dropdown menu",
+        "Archive option opens ArchiveServiceModal (already exists)",
+        "Archive option uses Archive icon from lucide-react",
+        "Position archive option before delete option in menu",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "ArchiveServiceModal already exists at ./modals/ArchiveServiceModal. Add state for selectedServiceForArchive and showArchiveModal. Wire the modal's onArchive to useCatalog().archiveService()."
+    },
+    {
+      "id": "US-007",
+      "title": "Extract ServiceResolutionRow from PriceResolutionModal",
+      "description": "As a developer, I need to reduce PriceResolutionModal file size by extracting the service row component.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal/ServiceResolutionRow.tsx",
+        "apps/store-app/src/components/checkout/PriceResolutionModal/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create new directory structure: PriceResolutionModal/",
+        "ServiceResolutionRow.tsx handles single service resolution UI (~150-200 lines)",
+        "Includes radio group, custom price input, reason input",
+        "Props interface clearly defined with JSDoc",
+        "index.ts exports main component",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Extract lines ~400-600 from PriceResolutionModal.tsx that render each service row. Create clean interface for props: service, resolutionState, onOptionChange, onCustomPriceChange, onReasonChange, isDepositLocked, etc."
+    },
+    {
+      "id": "US-008",
+      "title": "Extract PriceResolutionSummary from PriceResolutionModal",
+      "description": "As a developer, I need to extract the summary card component to reduce file size.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionSummary.tsx"
+      ],
+      "acceptanceCriteria": [
+        "PriceResolutionSummary.tsx shows variance totals (~80-100 lines)",
+        "Displays total booked, total current, total variance",
+        "Props: services array with price data",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Extract summary card section from PriceResolutionModal (~lines 340-400). Component should calculate and display totals from passed services array."
+    },
+    {
+      "id": "US-009",
+      "title": "Refactor PriceResolutionModal to use extracted components",
+      "description": "As a developer, I need to update PriceResolutionModal to use the extracted components and stay under 500 lines.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Main component imports ServiceResolutionRow and PriceResolutionSummary",
+        "File is under 400 lines after refactoring",
+        "All existing functionality preserved",
+        "State management remains in main component",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Move existing PriceResolutionModal.tsx to PriceResolutionModal/PriceResolutionModal.tsx. Import and use extracted components. Keep state and handlers in main component, pass as props."
+    },
+    {
+      "id": "US-010",
+      "title": "Replace hardcoded colors in PriceResolutionModal components",
+      "description": "As a developer, I need to use design system tokens instead of hardcoded Tailwind colors.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionModal.tsx",
+        "apps/store-app/src/components/checkout/PriceResolutionModal/ServiceResolutionRow.tsx",
+        "apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionSummary.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Import colors/tokens from @/design-system",
+        "Replace text-amber-500/600 with design system warning colors",
+        "Replace text-green-600 with design system success colors",
+        "Replace text-red-600 with design system error colors",
+        "Replace bg-amber-50, bg-green-50, bg-red-50 with design system background tokens",
+        "No hardcoded color classes remain",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Check src/design-system/README.md for available tokens. Use semantic color names like colors.warning.text, colors.success.bg, etc. If tokens don't exist for needed colors, use existing closest match."
+    },
+    {
+      "id": "US-011",
+      "title": "Replace hardcoded colors in PriceChangeWarningBanner",
+      "description": "As a developer, I need to use design system tokens in the warning banner component.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceChangeWarningBanner.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Import colors/tokens from @/design-system",
+        "Replace text-amber-500/600 with design system warning colors",
+        "Replace bg-amber-50/100 with design system warning background",
+        "Replace border-amber-200 with design system warning border",
+        "No hardcoded color classes remain",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Component is only 112 lines. Find all amber color usages and replace with design tokens. Keep functionality identical."
+    },
+    {
+      "id": "US-012",
+      "title": "Add unit tests for PriceResolutionModal",
+      "description": "As a developer, I need unit tests for the PriceResolutionModal to ensure checkout reliability.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal/__tests__/PriceResolutionModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Test renders with mock ticket data",
+        "Test resolution option selection (honor booked, apply current, etc.)",
+        "Test custom price input validation",
+        "Test reason field appears when custom price selected",
+        "Test bulk action buttons (Honor All, Apply All Current)",
+        "Test disabled state when not all services resolved",
+        "Test Apply button dispatches correct action",
+        "At least 10 test cases covering main scenarios",
+        "All tests pass",
+        "No forbidden strings: 'as any' except in test mocks where necessary"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Create __tests__ directory inside PriceResolutionModal/. Use @testing-library/react for component testing. Mock Redux store with configureStore. Follow pattern from existing component tests."
+    },
+    {
+      "id": "US-013",
+      "title": "Add unit tests for PriceChangeWarningBanner",
+      "description": "As a developer, I need unit tests for the warning banner component.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PriceChangeWarningBanner.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Test renders null when no price changes",
+        "Test renders banner when unresolved changes exist",
+        "Test compact mode renders differently than full mode",
+        "Test click handler called when Review button clicked",
+        "Test variance amount displayed correctly",
+        "At least 6 test cases",
+        "All tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Create test file in checkout/__tests__/. Mock useAppSelector to return test data. Test both compact={true} and compact={false} modes."
+    },
+    {
+      "id": "US-014",
+      "title": "Add notification toggle fields to PricingPolicySettings type",
+      "description": "As a developer, I need notification fields in the settings type to support price change notifications.",
+      "files": [
+        "apps/store-app/src/types/settings.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add notifyOnPriceIncrease: boolean field to PricingPolicySettings",
+        "Add notifyOnPriceDecrease: boolean field to PricingPolicySettings",
+        "Add varianceThresholdPercent: number field for minimum variance to trigger review",
+        "Add JSDoc comments explaining each new field",
+        "Update DEFAULT_PRICING_POLICY with defaults (true, true, 5)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Add to PricingPolicySettings interface around line 222-293. Add to DEFAULT_PRICING_POLICY constant around line 603-614. notifyOnPriceIncrease/Decrease default true, varianceThresholdPercent default 5 (5%)."
+    },
+    {
+      "id": "US-015",
+      "title": "Add notification toggles to CheckoutPaymentsSettings UI",
+      "description": "As a salon admin, I want to configure when to be notified about price changes.",
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add 'Notify on price increase' toggle switch",
+        "Add 'Notify on price decrease' toggle switch",
+        "Add 'Variance threshold' numeric input with % suffix",
+        "Threshold input has min=0, max=100, step=1 attributes",
+        "Toggles dispatch updatePricingPolicy with correct field",
+        "Group under 'Price Change Notifications' subsection",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Add after the pricing policy mode section. Follow existing toggle/input patterns in the file. Use FormField and Toggle components from existing imports."
+    },
+    {
+      "id": "US-016",
+      "title": "Add form validation to pricing policy numeric inputs",
+      "description": "As a developer, I need proper form validation on numeric settings inputs.",
+      "files": [
+        "apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "approvalThresholdAmount input has min=0, step=0.5 attributes",
+        "approvalThresholdPercent input has min=0, max=100, step=1 attributes",
+        "varianceThresholdPercent input has min=0, max=100, step=1 attributes",
+        "All numeric inputs have placeholder text showing example value",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Find existing approvalThreshold inputs and add HTML5 validation attributes. Add placeholder props like placeholder='10.00' for amounts, placeholder='15' for percentages."
+    },
+    {
+      "id": "US-017",
+      "title": "Add accessibility attributes to PriceResolutionModal RadioGroup",
+      "description": "As a user with screen reader, I need proper ARIA labels on form controls.",
+      "files": [
+        "apps/store-app/src/components/checkout/PriceResolutionModal/ServiceResolutionRow.tsx"
+      ],
+      "acceptanceCriteria": [
+        "RadioGroup has name attribute for form semantics",
+        "RadioGroup has aria-label describing the purpose",
+        "Custom price Input has aria-label or aria-labelledby",
+        "Reason Input has aria-label or aria-labelledby",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Add name='priceResolution' and aria-label='Select price resolution option' to RadioGroup. Add aria-label='Custom price' to price input, aria-label='Override reason' to reason input."
+    }
+  ]
+}

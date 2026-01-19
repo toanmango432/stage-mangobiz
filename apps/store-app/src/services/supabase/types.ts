@@ -298,6 +298,12 @@ export interface Database {
           duration: number;
           price: number;
           is_active: boolean;
+          /** Service archive status - 'active' for available services, 'archived' for hidden services */
+          status: 'active' | 'archived';
+          /** ISO timestamp when the service was archived, null if active */
+          archived_at: string | null;
+          /** User ID of who archived the service, null if active */
+          archived_by: string | null;
           sync_status: string;
           sync_version: number;
           created_at: string;
@@ -311,6 +317,12 @@ export interface Database {
           duration: number;
           price: number;
           is_active?: boolean;
+          /** Service archive status - defaults to 'active' */
+          status?: 'active' | 'archived';
+          /** ISO timestamp when archived, null for active services */
+          archived_at?: string | null;
+          /** User ID of who archived, null for active services */
+          archived_by?: string | null;
           sync_status?: string;
           sync_version?: number;
           created_at?: string;

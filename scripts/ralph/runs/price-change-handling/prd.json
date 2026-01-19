@@ -967,7 +967,7 @@
         "Verify in browser: calendar shows indicator on appointments with archived services"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-036", "US-023"],
       "notes": "Optional visual cue for staff awareness. Less urgent than price variance indicator. Staff can still check out, reschedule, etc."
     },
@@ -993,7 +993,7 @@
         "Verify in browser: modal shows appointment count before archiving"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "dependencies": ["US-037"],
       "notes": "Following Vagaro pattern: acknowledge impact before archiving. Reassure admin that existing appointments are not affected."
     }

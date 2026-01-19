@@ -114,6 +114,12 @@ function AppShellContent() {
     }
   }, [showBottomNav, isDesktop, activeModule]);
 
+  // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
+  const pendingTickets = useAppSelector(selectPendingTickets);
+  const pendingCount = pendingTickets.length;
+
+  const dispatch = useAppDispatch();
+
   // Listen for navigation events from child components (e.g., FrontDesk -> Checkout)
   useEffect(() => {
     const handleNavigate = (event: CustomEvent) => {
@@ -136,13 +142,6 @@ function AppShellContent() {
       window.removeEventListener('navigate-to-module', handleNavigate as EventListener);
     };
   }, [dispatch]);
-
-
-  // PERFORMANCE: Use direct Redux selector for pending count to avoid unnecessary re-renders
-  const pendingTickets = useAppSelector(selectPendingTickets);
-  const pendingCount = pendingTickets.length;
-
-  const dispatch = useAppDispatch();
   const fallbackStoreId = getTestSalonId(); // Fallback for unauthenticated/development mode
 
   // Initialize database and sync manager on app load
