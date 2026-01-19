@@ -1,10 +1,7 @@
-name: CI Pipeline
+name: CI Pipeline (Old - Disabled)
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  workflow_dispatch:  # Only manual trigger, disabled from automatic runs
 
 env:
   NODE_VERSION: '18.x'
