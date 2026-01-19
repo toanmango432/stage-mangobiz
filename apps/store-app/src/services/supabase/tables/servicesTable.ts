@@ -154,4 +154,44 @@ export const servicesTable = {
     if (error) throw error;
     return data || [];
   },
+
+  /**
+   * Archive a service (soft delete)
+   * Sets status to 'archived' and records who archived it and when
+   */
+  async archiveService(id: string, userId: string): Promise<ServiceRow> {
+    const { data, error } = await supabase
+      .from('services')
+      .update({
+        status: 'archived',
+        archived_at: new Date().toISOString(),
+        archived_by: userId,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Restore an archived service
+   * Sets status to 'active' and clears archive metadata
+   */
+  async restoreService(id: string): Promise<ServiceRow> {
+    const { data, error } = await supabase
+      .from('services')
+      .update({
+        status: 'active',
+        archived_at: null,
+        archived_by: null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
 };

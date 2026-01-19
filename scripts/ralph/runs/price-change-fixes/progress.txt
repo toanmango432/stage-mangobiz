@@ -55,3 +55,22 @@ Commit: 1592958
 **Next story suggestion:** US-002 (Update serviceAdapter to map archive fields) - it directly depends on US-001 since it needs to map the new fields from Supabase to app types
 
 ---
+
+## 2026-01-19 - US-002: Update serviceAdapter to map archive fields
+Commit: 077830e
+
+**Why this story?** US-002 directly builds on US-001 (just completed) - it's the next logical step in the service archive pipeline. The adapter must map the new Supabase fields before table methods (US-003) or UI components (US-004+) can work.
+
+**Changes:**
+- apps/store-app/src/services/supabase/adapters/serviceAdapter.ts:27-30 (toService): Added mapping for status, archived_at → archivedAt, archived_by → archivedBy with default to 'active' for backwards compatibility
+- apps/store-app/src/services/supabase/adapters/serviceAdapter.ts:50-53 (toServiceInsert): Added mapping for status, archivedAt → archived_at, archivedBy → archived_by with default to 'active' for new services
+- apps/store-app/src/services/supabase/adapters/serviceAdapter.ts:81-90 (toServiceUpdate): Added conditional mapping for archive fields when updating services
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (AgendaView.test.tsx, etc.) - not caused by this change
+- Adapter pattern uses `|| undefined` for toService (app type uses optional fields) and `|| null` for toServiceInsert/toServiceUpdate (Supabase fields are nullable)
+- toServiceUpdate uses conditional checks (if !== undefined) to only include fields that are being updated
+
+**Next story suggestion:** US-003 (Add archive/restore methods to servicesTable) - it needs the adapter mappings from US-002 and provides the Supabase CRUD operations needed by the UI stories (US-004, US-005, US-006)
+
+---
