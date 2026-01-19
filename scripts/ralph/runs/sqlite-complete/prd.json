@@ -1,0 +1,1025 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/sqlite-complete",
+  "description": "Complete SQLite migration from Dexie/IndexedDB for Electron platform. Implements all 42 table services, dataService routing, Dexie-to-SQLite data migration, and enables SQLite by default on Electron.",
+  "userStories": [
+    {
+      "id": "US-042",
+      "title": "Type-safe conversion utilities",
+      "description": "As a developer, I need utility functions for safe type conversions between SQLite and JavaScript types.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "packages/sqlite-adapter/src/utils/typeConversions.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "toISOString(value: unknown): string - handles Date objects and strings correctly",
+        "boolToSQLite(value: unknown): 0 | 1 - strict boolean conversion with null/undefined handling",
+        "safeParseJSON<T>(value: string, fallback: T): T - safe JSON parsing with fallback",
+        "Unit tests for all edge cases: Date objects, ISO strings, null, undefined, invalid input",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm typecheck passes in sqlite-adapter package"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Foundation story - all other services depend on these utilities. Use strict type checking. Date conversion must output ISO format (YYYY-MM-DDTHH:mm:ss.sssZ), not toString() format."
+    },
+    {
+      "id": "US-001",
+      "title": "Create BaseSQLiteService generic class",
+      "description": "As a developer, I need a reusable base service that handles common CRUD operations for any table, reducing code duplication.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/services/BaseSQLiteService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Generic class BaseSQLiteService<T, TRow> with table name and schema config",
+        "Implements: getAll(), getById(), getByIds(), create(), update(), delete(), count()",
+        "Handles camelCase to snake_case conversion via schema config",
+        "Handles boolean to integer conversion for SQLite using boolToSQLite utility",
+        "Handles JSON string to object conversion using safeParseJSON utility",
+        "Handles date conversion using toISOString utility",
+        "Uses parameterized queries (no SQL injection)",
+        "No forbidden strings: 'as any', 'Test Client'",
+        "pnpm typecheck passes in sqlite-adapter package"
+      ],
+      "priority": 2,
+      "passes": true,
+      "dependencies": ["US-042"],
+      "notes": "IMPORTANT: Use for ALL NEW services only. Do NOT refactor existing clientService.ts (702 lines) or ticketService.ts (~650 lines) - they work and are tested. Schema config defines field mappings: { storeId: 'store_id', isBlocked: { column: 'is_blocked', type: 'boolean' } }. Use generics to maintain type safety."
+    },
+    {
+      "id": "US-036",
+      "title": "Fix client schema with ALL columns",
+      "description": "As a developer, I need the client table schema to include all 50+ columns that ClientSQLiteService expects.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v001_initial_schema.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add all 50+ client columns from ClientSQLiteService interface",
+        "Add missing indexes: [storeId+lastName], [storeId+isVip], [storeId+createdAt]",
+        "Match Dexie schema v16 exactly for clients table",
+        "Include JSON columns for nested objects (visitSummary, preferences, etc.)",
+        "No forbidden strings: 'as any'",
+        "pnpm typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "dependencies": ["US-001"],
+      "notes": "CRITICAL: v001 migration only has 8 columns but ClientSQLiteService expects 50+. Reference apps/store-app/src/db/schema.ts v16 for exact column list. This must be fixed before services can work."
+    },
+    {
+      "id": "US-037",
+      "title": "Fix ticket schema with ALL columns",
+      "description": "As a developer, I need the ticket table schema to include all 45 columns that TicketSQLiteService expects.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v001_initial_schema.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add all 45 ticket columns from TicketSQLiteService interface",
+        "Add number, appointmentId, isGroupTicket, clients JSON columns",
+        "Add isMergedTicket, mergedFromTickets, signature columns",
+        "Add missing indexes: [clientId+createdAt], [storeId+staffId+createdAt]",
+        "Match Dexie schema v16 exactly for tickets table",
+        "No forbidden strings: 'as any'",
+        "pnpm typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "dependencies": ["US-036"],
+      "notes": "Similar to US-036, ticket schema is incomplete. Reference apps/store-app/src/db/schema.ts v16 for exact column list. Services JSON column stores array of service objects."
+    },
+    {
+      "id": "US-002",
+      "title": "Create TableSchema type and registry",
+      "description": "As a developer, I need a schema registry that defines the structure of each table for the generic service.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/schema/types.ts (NEW)",
+        "packages/sqlite-adapter/src/schema/registry.ts (NEW)",
+        "packages/sqlite-adapter/src/schema/index.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "TableSchema interface with: tableName, primaryKey, columns array",
+        "ColumnSchema interface with: name, dbColumn, type ('string'|'number'|'boolean'|'json'|'date')",
+        "schemaRegistry object with schemas for core tables (appointments, tickets, clients, staff, services, transactions)",
+        "Export from package index",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "dependencies": ["US-037"],
+      "notes": "Schema should match existing Dexie table definitions. Type field determines conversion logic in BaseSQLiteService."
+    },
+    {
+      "id": "US-005",
+      "title": "Create AppointmentSQLiteService",
+      "description": "As a developer, I need SQLite service for appointments with date range queries.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/appointmentService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extends BaseSQLiteService<Appointment>",
+        "getByDateRange(storeId, start, end) - uses SQL BETWEEN",
+        "getByStaff(staffId, date?) - filters by staff with optional date",
+        "getByClient(clientId) - filters by client",
+        "getByStatus(storeId, status) - filters by status",
+        "getUpcoming(storeId, hours) - appointments in next N hours",
+        "Handles nested objects (services array) as JSON",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "dependencies": ["US-002"],
+      "notes": "Date comparisons use ISO string format. Services array stored as JSON TEXT column. Reference existing Dexie appointmentsDB for method signatures."
+    },
+    {
+      "id": "US-006",
+      "title": "Create TransactionSQLiteService",
+      "description": "As a developer, I need SQLite service for transactions with aggregation queries.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/transactionService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extends BaseSQLiteService<Transaction>",
+        "getByTicket(ticketId) - all transactions for a ticket",
+        "getByDateRange(storeId, start, end) - for reporting",
+        "getTotalByDateRange(storeId, start, end) - SUM aggregation using SQL",
+        "getByPaymentMethod(storeId, method) - filter by payment type",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "dependencies": ["US-005"],
+      "notes": "Use SQL SUM() for aggregations instead of JS reduce. Transaction type includes payment method, amounts, status."
+    },
+    {
+      "id": "US-007",
+      "title": "Create StaffSQLiteService",
+      "description": "As a developer, I need SQLite service for staff with availability queries.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/staffService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extends BaseSQLiteService<Staff>",
+        "getAvailable(storeId) - staff with status != 'off'",
+        "getByStatus(storeId, status) - filter by status",
+        "updateStatus(id, status) - quick status update",
+        "Handles schedule JSON field properly",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "dependencies": ["US-006"],
+      "notes": "Staff status: 'available', 'busy', 'break', 'off'. Schedule stored as JSON with weekly hours."
+    },
+    {
+      "id": "US-008",
+      "title": "Create ServiceSQLiteService",
+      "description": "As a developer, I need SQLite service for services/menu items.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/serviceService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extends BaseSQLiteService<Service>",
+        "getByCategory(storeId, category) - filter by category",
+        "getActive(storeId) - only active services",
+        "search(storeId, query) - name/description search with LIKE",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "dependencies": ["US-007"],
+      "notes": "Services have category, price, duration fields. Used by booking flow for service selection."
+    },
+    {
+      "id": "US-009",
+      "title": "Add missing methods to TicketSQLiteService",
+      "description": "As a developer, I need to add any missing methods to the existing ticket service (~650 lines) to match Dexie ticketsDB methods.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/ticketService.ts"
+      ],
+      "acceptanceCriteria": [
+        "FIRST: Read existing ticketService.ts and list methods already implemented",
+        "ONLY add methods that are MISSING (do not rewrite existing methods)",
+        "Check if getActive, getByStatus, getByDateRange, getPending exist",
+        "Add only what's missing to match Dexie ticketsDB interface",
+        "Preserve existing code structure and patterns",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "dependencies": ["US-008"],
+      "notes": "IMPORTANT: ticketService.ts already has ~650 lines of working code. Do NOT refactor or rewrite. Only add missing methods. Read the file first, document what exists, then add only what's needed."
+    },
+    {
+      "id": "US-040",
+      "title": "Optimize getStaffTicketCounts with SQL json_each",
+      "description": "As a developer, I need getStaffTicketCounts to use SQL aggregation instead of loading all tickets into memory.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/services/ticketService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Use json_each() for staff aggregation in SQL",
+        "Query: SELECT json_extract(value, '$.staffId') as staff_id, COUNT(*) FROM tickets, json_each(tickets.services) WHERE store_id = ? GROUP BY staff_id",
+        "No JavaScript loops over full ticket set",
+        "Benchmark: <100ms for 10k tickets",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "dependencies": ["US-009"],
+      "notes": "CRITICAL PERFORMANCE: Current implementation in existing ticketService.ts may load tickets into memory. Optimize the existing method (or add if missing) to use SQLite's json_each() function. Do NOT rewrite the entire service."
+    },
+    {
+      "id": "US-003",
+      "title": "Wire dataService to use SQLite services",
+      "description": "As a developer, I need dataService to route to SQLite implementations when the feature flag is enabled.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/services/dataService.ts",
+        "apps/store-app/src/services/sqliteServices.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Import SQLite services from @mango/sqlite-adapter",
+        "Check shouldUseSQLite() at module level",
+        "Route each dataService method to SQLite or Dexie based on flag",
+        "Log backend selection on first use: '[DataService] Using SQLite backend'",
+        "All existing dataService.clients methods route correctly",
+        "No runtime errors when SQLite disabled (graceful fallback)",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "dependencies": ["US-040"],
+      "notes": "MOVED from priority 3 - depends on services existing first. Pattern: clients: shouldUseSQLite() ? sqliteClients : dexieClients. Use lazy initialization to avoid loading SQLite on web."
+    },
+    {
+      "id": "US-004",
+      "title": "Enhance migration system for full schema",
+      "description": "As a developer, I need the migration system to create all required tables with proper indexes.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v003_full_schema.ts (NEW)",
+        "packages/sqlite-adapter/src/migrations/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates all infrastructure tables: settings, syncQueue, deviceSettings",
+        "Creates all CRM tables with proper columns",
+        "Creates compound indexes matching Dexie schema v16",
+        "Creates foreign key constraints where appropriate",
+        "Has rollback (down) function that drops tables",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "dependencies": ["US-003"],
+      "notes": "Reference Dexie schema.ts v16 for exact table/column definitions. Use CREATE TABLE IF NOT EXISTS for idempotency. Group related tables in comments for readability."
+    },
+    {
+      "id": "US-010",
+      "title": "Wire remaining core services to dataService",
+      "description": "As a developer, I need dataService to route all core table operations to SQLite.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/services/dataService.ts",
+        "apps/store-app/src/services/sqliteServices.ts"
+      ],
+      "acceptanceCriteria": [
+        "dataService.appointments routes to SQLite when enabled",
+        "dataService.transactions routes to SQLite when enabled",
+        "dataService.staff routes to SQLite when enabled",
+        "dataService.services routes to SQLite when enabled",
+        "dataService.tickets routes to SQLite when enabled",
+        "All methods have matching signatures between SQLite and Dexie",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "dependencies": ["US-004"],
+      "notes": "Maintain backward compatibility - Dexie still works when SQLite disabled. Use consistent return types between both implementations."
+    },
+    {
+      "id": "US-011",
+      "title": "Create SettingsSQLiteService",
+      "description": "As a developer, I need SQLite service for key-value settings storage.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "packages/sqlite-adapter/src/services/settingsService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "get(key) - retrieve setting by key",
+        "set(key, value) - upsert setting (INSERT OR REPLACE)",
+        "getAll() - all settings as object",
+        "delete(key) - remove setting",
+        "Value stored as JSON TEXT for flexibility",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "dependencies": ["US-010"],
+      "notes": "Settings table has simple key-value structure. Value can be any JSON-serializable type."
+    },
+    {
+      "id": "US-012",
+      "title": "Create SyncQueueSQLiteService",
+      "description": "As a developer, I need SQLite service for the offline sync queue.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/syncQueueService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "add(operation) - queue a sync operation",
+        "getNext(limit) - get pending operations by priority",
+        "markComplete(id) - mark operation as synced",
+        "markFailed(id, error) - mark with failure reason",
+        "getPending() - all unsynced operations",
+        "clearCompleted() - remove synced items",
+        "Operations ordered by priority then createdAt",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "dependencies": ["US-011"],
+      "notes": "Sync queue critical for offline-first architecture. Priority: 1=high, 2=medium, 3=low. Status: 'pending', 'syncing', 'complete', 'failed'."
+    },
+    {
+      "id": "US-013",
+      "title": "Create DeviceSettingsSQLiteService",
+      "description": "As a developer, I need SQLite service for device-specific settings.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "packages/sqlite-adapter/src/services/deviceSettingsService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "get(deviceId) - get settings for device",
+        "set(deviceId, settings) - upsert device settings",
+        "delete(deviceId) - remove device settings",
+        "Handles mode, offlineModeEnabled, other device config as JSON",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "dependencies": ["US-012"],
+      "notes": "Primary key is deviceId (not auto-generated id). Device settings include POS configuration, printer settings."
+    },
+    {
+      "id": "US-014",
+      "title": "Add migration v004 for infrastructure tables",
+      "description": "As a developer, I need SQLite schema for settings, sync queue, and device settings.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v004_infrastructure.ts (NEW)",
+        "packages/sqlite-adapter/src/migrations/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates settings table with key PRIMARY KEY",
+        "Creates syncQueue table with priority index, status index",
+        "Creates deviceSettings table with deviceId PRIMARY KEY",
+        "All tables have proper indexes",
+        "Has down() function for rollback",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "dependencies": ["US-013"],
+      "notes": "Infrastructure tables are simpler than core tables. Use TEXT for JSON columns."
+    },
+    {
+      "id": "US-015",
+      "title": "Wire infrastructure services to dataService",
+      "description": "As a developer, I need dataService to route settings and sync operations to SQLite.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "dataService.settings routes to SQLite when enabled",
+        "dataService.syncQueue routes to SQLite when enabled",
+        "settingsDB methods all have SQLite equivalents",
+        "syncQueueDB methods all have SQLite equivalents",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 19,
+      "passes": true,
+      "dependencies": ["US-014"],
+      "notes": "Complete infrastructure wiring. After this, core + infrastructure tables are SQLite-ready."
+    },
+    {
+      "id": "US-016",
+      "title": "Create TeamMemberSQLiteService",
+      "description": "As a developer, I need SQLite service for team member management.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/teamMemberService.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extends BaseSQLiteService<TeamMember>",
+        "getActive(storeId) - only active team members (isDeleted=false)",
+        "getByRole(storeId, role) - filter by permissions role",
+        "softDelete(id) - sets isDeleted=true instead of hard delete",
+        "Profile stored as nested JSON column",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "dependencies": ["US-015"],
+      "notes": "TeamMember has profile object with name, email, avatar. Permissions object with role field. Soft delete pattern for audit trail."
+    },
+    {
+      "id": "US-017",
+      "title": "Create CRM SQLite services (batch)",
+      "description": "As a developer, I need SQLite services for all CRM-related tables.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/services/crmServices.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "PatchTestSQLiteService with getByClient, getExpiring methods",
+        "FormTemplateSQLiteService with getActive method",
+        "FormResponseSQLiteService with getByClient, getByAppointment methods",
+        "ReferralSQLiteService with getByReferrer method",
+        "ClientReviewSQLiteService with getByClient, getByStaff, getAverageRating (SQL AVG) methods",
+        "LoyaltyRewardSQLiteService with getByClient, getAvailable methods",
+        "ReviewRequestSQLiteService with getByStatus, getPending methods",
+        "CustomSegmentSQLiteService with getActive method",
+        "All use BaseSQLiteService pattern",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 21,
+      "passes": true,
+      "dependencies": ["US-016"],
+      "notes": "Group related services in single file for maintainability. Each service ~50 lines with specific query methods."
+    },
+    {
+      "id": "US-018",
+      "title": "Add migration v005 for team and CRM tables",
+      "description": "As a developer, I need SQLite schema for team and CRM tables.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v005_team_crm.ts (NEW)",
+        "packages/sqlite-adapter/src/migrations/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates teamMembers table with profile JSON column, isDeleted column",
+        "Creates timesheets, payRuns tables",
+        "Creates all CRM tables: patchTests, formTemplates, formResponses, referrals, clientReviews, loyaltyRewards, reviewRequests, customSegments",
+        "All tables have storeId index and appropriate compound indexes",
+        "Has down() function for rollback",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 22,
+      "passes": true,
+      "dependencies": ["US-017"],
+      "notes": "Large migration file. Reference Dexie schema v16 for exact column definitions. Use proper date columns for expiresAt, etc."
+    },
+    {
+      "id": "US-019",
+      "title": "Wire team/CRM services to dataService",
+      "description": "As a developer, I need dataService to route team and CRM operations to SQLite.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "All CRM dataService methods route to SQLite when enabled",
+        "patchTests, formResponses, referrals, clientReviews all wired",
+        "loyaltyRewards, reviewRequests, customSegments all wired",
+        "teamMembers wired with soft delete support",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 23,
+      "passes": true,
+      "dependencies": ["US-018"],
+      "notes": "Team and CRM tables complete. Phase 4 done after this."
+    },
+    {
+      "id": "US-020",
+      "title": "Create Catalog SQLite services",
+      "description": "As a developer, I need SQLite services for service catalog tables.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/services/catalogServices.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "ServiceCategorySQLiteService with getActive, getByParent methods",
+        "MenuServiceSQLiteService with getByCategory, getActive methods",
+        "ServiceVariantSQLiteService with getByService methods",
+        "ServicePackageSQLiteService with getActive method",
+        "AddOnGroupSQLiteService with getActive method",
+        "AddOnOptionSQLiteService with getByGroup method",
+        "StaffServiceAssignmentSQLiteService with getByStaff, getByService methods",
+        "CatalogSettingsSQLiteService with get/set methods",
+        "ProductSQLiteService with getByCategory, getActive, search (LIKE) methods",
+        "All use BaseSQLiteService pattern",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 24,
+      "passes": true,
+      "dependencies": ["US-019"],
+      "notes": "9 services in one file. Group by category hierarchy. Products are retail items separate from services."
+    },
+    {
+      "id": "US-021",
+      "title": "Add migration v006 for catalog tables",
+      "description": "As a developer, I need SQLite schema for catalog tables.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v006_catalog.ts (NEW)",
+        "packages/sqlite-adapter/src/migrations/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates serviceCategories with parentId relationship",
+        "Creates menuServices with categoryId foreign key",
+        "Creates serviceVariants, servicePackages, addOnGroups, addOnOptions",
+        "Creates staffServiceAssignments with staff+service compound index",
+        "Creates catalogSettings and products tables",
+        "Proper indexes for filtering queries",
+        "Has down() function for rollback",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 25,
+      "passes": true,
+      "dependencies": ["US-020"],
+      "notes": "Category hierarchy: parentId can be NULL for root categories. staffServiceAssignments links staff to services they can perform."
+    },
+    {
+      "id": "US-022",
+      "title": "Create Scheduling SQLite services",
+      "description": "As a developer, I need SQLite services for scheduling-related tables.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/services/schedulingServices.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "TimeOffTypeSQLiteService with getActive method",
+        "TimeOffRequestSQLiteService with getByStaff, getByDateRange, getByStatus methods",
+        "BlockedTimeTypeSQLiteService with getActive method",
+        "BlockedTimeEntrySQLiteService with getByStaff, getByDateRange, getBySeries methods",
+        "BusinessClosedPeriodSQLiteService with getActive, getByDateRange methods",
+        "ResourceSQLiteService with getActive, getByCategory methods",
+        "ResourceBookingSQLiteService with getByResource, getByAppointment methods",
+        "StaffScheduleSQLiteService with getByStaff, getEffective (current date) methods",
+        "All use BaseSQLiteService pattern",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 26,
+      "passes": true,
+      "dependencies": ["US-021"],
+      "notes": "8 services. Date range queries critical for calendar views. getEffective returns schedule valid for current date."
+    },
+    {
+      "id": "US-023",
+      "title": "Add migration v007 for scheduling tables",
+      "description": "As a developer, I need SQLite schema for scheduling tables.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v007_scheduling.ts (NEW)",
+        "packages/sqlite-adapter/src/migrations/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates timeOffTypes, timeOffRequests tables",
+        "Creates blockedTimeTypes, blockedTimeEntries tables with seriesId",
+        "Creates businessClosedPeriods table",
+        "Creates resources, resourceBookings tables",
+        "Creates staffSchedules table with effectiveDate",
+        "DateTime range indexes for efficient queries: [storeId+startDate], [storeId+endDate]",
+        "Has down() function for rollback",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 27,
+      "passes": true,
+      "dependencies": ["US-022"],
+      "notes": "Scheduling tables need good date indexes for calendar queries. seriesId links recurring blocked time entries."
+    },
+    {
+      "id": "US-024",
+      "title": "Create Gift Card SQLite services",
+      "description": "As a developer, I need SQLite services for gift card functionality.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/giftCardServices.ts (NEW)",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "GiftCardDenominationSQLiteService with getActive method",
+        "GiftCardSettingsSQLiteService with get/set methods",
+        "GiftCardSQLiteService with getByCode (unique), getByStatus, getByPurchaser methods",
+        "GiftCardTransactionSQLiteService with getByCard, getByTicket methods",
+        "GiftCardDesignSQLiteService with getActive, getDefault methods",
+        "Balance calculation uses SQL SUM on transactions",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 28,
+      "passes": true,
+      "dependencies": ["US-023"],
+      "notes": "Gift card balance = initialValue + SUM(transactions.amount). Transactions can be positive (reload) or negative (redemption)."
+    },
+    {
+      "id": "US-025",
+      "title": "Add migration v008 for gift card tables",
+      "description": "As a developer, I need SQLite schema for gift card tables.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v008_giftcards.ts (NEW)",
+        "packages/sqlite-adapter/src/migrations/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates giftCardDenominations table",
+        "Creates giftCardSettings table",
+        "Creates giftCards table with code UNIQUE index",
+        "Creates giftCardTransactions table with cardId foreign key",
+        "Creates giftCardDesigns table with isDefault column",
+        "Has down() function for rollback",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 29,
+      "passes": true,
+      "dependencies": ["US-024"],
+      "notes": "Gift card code must be unique across store. Transactions link to both card and ticket (when used in checkout)."
+    },
+    {
+      "id": "US-026",
+      "title": "Wire all remaining services to dataService",
+      "description": "As a developer, I need dataService to route all remaining tables to SQLite.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "All catalog services wired (9 services)",
+        "All scheduling services wired (8 services)",
+        "All gift card services wired (5 services)",
+        "Every Dexie DB export has SQLite equivalent route",
+        "Feature flag correctly switches all 42 table operations",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 30,
+      "passes": true,
+      "dependencies": ["US-025"],
+      "notes": "Final wiring story. After this, ALL tables route to SQLite when flag enabled. Phase 7 complete."
+    },
+    {
+      "id": "US-027",
+      "title": "Create Dexie to SQLite migration utility",
+      "description": "As a developer, I need a utility to migrate existing Dexie data to SQLite on first run.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/dataMigration.ts",
+        "apps/store-app/src/services/migrationService.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "migrateFromDexie(dexieDb, sqliteDb) function",
+        "Migrates all tables in dependency order (clients before tickets)",
+        "Progress callback for UI feedback: (table, current, total) => void",
+        "Transaction wrapping - all or nothing per table",
+        "Handles existing partial migrations (resume support via checkpoints)",
+        "Logs migration stats (records migrated per table)",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 31,
+      "passes": true,
+      "dependencies": ["US-026"],
+      "notes": "Migration should be idempotent - safe to run multiple times. Check for existing records to avoid duplicates. Use batch inserts for performance (100 records per batch)."
+    },
+    {
+      "id": "US-041",
+      "title": "Add migration checkpointing for resume support",
+      "description": "As a developer, I need migration to support resume from failure without restarting from scratch.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/dataMigration.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create _migration_progress table with (table_name, last_migrated_id, count, status)",
+        "Track progress per table during migration",
+        "Resume from checkpoint on restart",
+        "Clear checkpoints after successful full migration",
+        "If migration fails at record 25k of 50k, resume from 25k not 0",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 32,
+      "passes": true,
+      "dependencies": ["US-027"],
+      "notes": "CRITICAL: Without checkpointing, a failure at record 25,000 of 50,000 requires restart from scratch. Save checkpoint every 100 records."
+    },
+    {
+      "id": "US-028",
+      "title": "Create migration status tracking",
+      "description": "As a developer, I need to track migration status so we don't re-migrate on every app start.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/migrationStatus.ts (NEW)",
+        "apps/store-app/src/config/featureFlags.ts"
+      ],
+      "acceptanceCriteria": [
+        "getMigrationStatus() - returns { completed: boolean, version: number, migratedAt: string }",
+        "setMigrationComplete(version) - marks migration done",
+        "Status stored in SQLite _migrations meta table",
+        "needsMigration() export added to featureFlags",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 33,
+      "passes": true,
+      "dependencies": ["US-041"],
+      "notes": "Status table created in v001 migration. Check this before attempting Dexie-to-SQLite migration."
+    },
+    {
+      "id": "US-038",
+      "title": "Bi-directional sync for safe rollback",
+      "description": "As a developer, I need SQLite writes to also update Dexie so rollback doesn't lose data.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/src/services/dualWriteService.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "When SQLite enabled, ALSO write to Dexie in background (async, non-blocking)",
+        "Dexie acts as backup during SQLite stabilization period",
+        "On rollback, Dexie has all data - no loss",
+        "Configurable: VITE_DUAL_WRITE_DAYS=30 (disable after 30 days stable)",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 34,
+      "passes": true,
+      "dependencies": ["US-028"],
+      "notes": "CRITICAL SAFETY: If user creates 50 clients in SQLite, then rollback occurs, those clients would be LOST without this. Dexie backup ensures zero data loss on rollback."
+    },
+    {
+      "id": "US-029",
+      "title": "Add migration trigger on app initialization",
+      "description": "As a developer, I need the app to automatically trigger migration on first SQLite-enabled run.",
+      "category": "frontend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/App.tsx",
+        "apps/store-app/src/components/MigrationProgress.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Check needsMigration() on app mount",
+        "Show MigrationProgress modal during migration",
+        "Display progress: 'Migrating clients... 1,234 records'",
+        "Handle errors gracefully with retry option",
+        "Continue to Dexie mode if migration fails (with warning)",
+        "Mark complete and continue when done",
+        "No forbidden strings",
+        "pnpm typecheck passes",
+        "Verify in browser: modal shows during migration with progress"
+      ],
+      "priority": 35,
+      "passes": true,
+      "dependencies": ["US-038"],
+      "notes": "Migration runs once per device. Non-blocking UI - show progress modal. Allow user to skip and use Dexie if they prefer."
+    },
+    {
+      "id": "US-030",
+      "title": "Add SQLite service unit tests",
+      "description": "As a developer, I need unit tests for core SQLite services.",
+      "category": "test",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/services/__tests__/BaseSQLiteService.test.ts (NEW)",
+        "packages/sqlite-adapter/src/services/__tests__/clientService.test.ts (NEW)",
+        "packages/sqlite-adapter/src/services/__tests__/appointmentService.test.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Tests for BaseSQLiteService CRUD operations",
+        "Tests for type conversions (boolean, JSON, date)",
+        "Tests for ClientSQLiteService.getFiltered with various filters",
+        "Tests for AppointmentSQLiteService.getByDateRange",
+        "Mock SQLite adapter for isolated testing",
+        "All tests pass: pnpm test --filter=@mango/sqlite-adapter",
+        "No forbidden strings"
+      ],
+      "priority": 36,
+      "passes": true,
+      "dependencies": ["US-029"],
+      "notes": "Use vitest for consistency with rest of project. Create mock adapter that uses in-memory storage."
+    },
+    {
+      "id": "US-031",
+      "title": "Add integration tests for data migration",
+      "description": "As a developer, I need integration tests that verify Dexie-to-SQLite migration works correctly.",
+      "category": "test",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/migrations/__tests__/dataMigration.test.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Test migrates sample data correctly (all fields preserved)",
+        "Test handles empty database",
+        "Test resumes partial migration from checkpoint",
+        "Test rolls back on error (no partial state)",
+        "Test preserves data integrity (counts match)",
+        "All tests pass",
+        "No forbidden strings"
+      ],
+      "priority": 37,
+      "passes": true,
+      "dependencies": ["US-030"],
+      "notes": "Critical tests - migration must be bulletproof. Use small test datasets for speed."
+    },
+    {
+      "id": "US-032",
+      "title": "Enable SQLite by default on Electron",
+      "description": "As a developer, I need SQLite to be the default backend on Electron.",
+      "category": "backend",
+      "complexity": 1,
+      "files": [
+        "apps/store-app/src/config/featureFlags.ts",
+        "apps/store-app/.env.example"
+      ],
+      "acceptanceCriteria": [
+        "shouldUseSQLite() returns true by default on Electron",
+        "New env var VITE_DISABLE_SQLITE=true to opt-out",
+        "Web and Capacitor still default to Dexie",
+        "Update .env.example with new variable and comment",
+        "Log message on startup indicates SQLite is active",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 38,
+      "passes": true,
+      "dependencies": ["US-031"],
+      "notes": "Flip the default: SQLite ON unless explicitly disabled. This is the final switch to make SQLite primary on Electron."
+    },
+    {
+      "id": "US-033",
+      "title": "Add Electron build configuration for better-sqlite3",
+      "description": "As a developer, I need the Electron build to include native better-sqlite3 bindings.",
+      "category": "backend",
+      "complexity": 3,
+      "files": [
+        "apps/store-app/electron/package.json",
+        "apps/store-app/electron/electron-builder.json (NEW)",
+        "package.json"
+      ],
+      "acceptanceCriteria": [
+        "better-sqlite3 listed as dependency (not devDependency)",
+        "electron-rebuild script added",
+        "electron-builder config excludes native modules from asar",
+        "Build script: pnpm electron:build works",
+        "Native bindings compile for target platform",
+        "No forbidden strings",
+        "Build produces working Electron app"
+      ],
+      "priority": 39,
+      "passes": true,
+      "dependencies": ["US-032"],
+      "notes": "Native modules need special handling in Electron. Use electron-rebuild to compile for Electron's Node version. Test on at least macOS."
+    },
+    {
+      "id": "US-034",
+      "title": "Add performance benchmarks",
+      "description": "As a developer, I need benchmarks comparing SQLite vs Dexie performance.",
+      "category": "test",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/utils/__tests__/sqliteBenchmark.test.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Benchmark: bulk insert 1000 clients",
+        "Benchmark: filtered query with 10k records",
+        "Benchmark: aggregation (COUNT, SUM) with 10k records",
+        "Benchmark: complex filter (multiple conditions)",
+        "Results logged with timing comparisons",
+        "SQLite faster for all complex operations",
+        "No forbidden strings"
+      ],
+      "priority": 40,
+      "passes": true,
+      "dependencies": ["US-033"],
+      "notes": "Run with pnpm test -- sqliteBenchmark --reporter=verbose. Document results in PR for reference. Expected: SQLite 10-100x faster for aggregations."
+    },
+    {
+      "id": "US-039",
+      "title": "Database health monitoring",
+      "description": "As a developer, I need proactive database health checks to detect issues before they cause problems.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "packages/sqlite-adapter/src/health/dbHealth.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Run PRAGMA integrity_check daily (scheduled)",
+        "Run PRAGMA quick_check on app start",
+        "Detect corruption and trigger rollback automatically",
+        "Create daily backup file (keep 7 days, delete older)",
+        "Log health check results",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 41,
+      "passes": true,
+      "dependencies": ["US-034"],
+      "notes": "Proactive health monitoring catches issues early. quick_check is fast (<100ms), integrity_check is thorough (can take seconds on large DBs)."
+    },
+    {
+      "id": "US-035",
+      "title": "Create rollback safety mechanism",
+      "description": "As a developer, I need a way to rollback to Dexie if SQLite has issues in production.",
+      "category": "backend",
+      "complexity": 2,
+      "files": [
+        "apps/store-app/src/services/databaseRecovery.ts (NEW)",
+        "apps/store-app/src/config/featureFlags.ts"
+      ],
+      "acceptanceCriteria": [
+        "detectDatabaseIssues() - checks for corruption/errors",
+        "rollbackToIndexedDB() - disables SQLite, falls back to Dexie",
+        "Auto-rollback after 3 consecutive SQLite errors",
+        "User notification when rollback occurs (toast)",
+        "Rollback state persisted in localStorage (survives restart)",
+        "Manual re-enable via settings or env var",
+        "No forbidden strings",
+        "pnpm typecheck passes"
+      ],
+      "priority": 42,
+      "passes": false,
+      "dependencies": ["US-039"],
+      "notes": "Final safety mechanism for production issues. Should be rare but critical when needed. Bi-directional sync (US-038) ensures no data loss."
+    }
+  ]
+}

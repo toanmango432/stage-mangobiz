@@ -1,0 +1,429 @@
+{
+  "project": "Mango POS Offline V2 - SQLite Migration",
+  "branchName": "ralph/sqlite-migration",
+  "description": "Data layer performance optimization through architecture fixes and SQLite migration. Phase 1 fixes N+1 patterns and adds indexes. Phase 2 implements SQLite for Electron. Phase 3 evaluates mobile/web SQLite options.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add performance benchmarking utility",
+      "description": "As a developer, I need a performance measurement utility to establish baselines and validate improvements.",
+      "acceptanceCriteria": [
+        "measureAsync<T>(name: string, fn: () => Promise<T>, threshold?: number): Promise<T> function exists",
+        "measureSync<T>(name: string, fn: () => T, threshold?: number): T function exists",
+        "Results logged with [PERF] prefix: [PERF] {name}: {duration}ms",
+        "If threshold provided and exceeded, logs warning: [PERF WARNING] {name} exceeded threshold",
+        "Export both functions from utils/index.ts",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/utils/performanceBenchmark.ts",
+        "apps/store-app/src/utils/index.ts"
+      ],
+      "notes": "Use performance.now() for high-resolution timing. Follow pattern from existing utils in apps/store-app/src/utils/. Keep it simple - no external dependencies.",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "US-002",
+      "title": "Create database abstraction interface",
+      "description": "As a developer, I need a platform-agnostic database interface to support both Dexie and SQLite backends.",
+      "acceptanceCriteria": [
+        "DatabaseAdapter<T> interface with methods: findById, findMany, create, update, delete",
+        "QueryResult<T> generic type: { data: T[]; total: number }",
+        "QueryOptions type: { where?: Record<string, any>; orderBy?: string; limit?: number; offset?: number }",
+        "All methods return Promises",
+        "Export from packages/sqlite-adapter/src/index.ts",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/interfaces/DatabaseAdapter.ts",
+        "packages/sqlite-adapter/src/interfaces/index.ts",
+        "packages/sqlite-adapter/src/index.ts"
+      ],
+      "notes": "Reference existing SQLiteAdapter interface in packages/sqlite-adapter/src/types.ts. Design should work for both Dexie (async) and SQLite (sync wrapped in Promise).",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "US-003",
+      "title": "Fix client filtering to use Dexie indexes",
+      "description": "As a user, I want faster client filtering by using database indexes instead of JS filtering.",
+      "acceptanceCriteria": [
+        "Remove .toArray() call at line ~602 before filtering",
+        "Use Dexie .where('storeId').equals(storeId) as base query",
+        "For searchQuery filter: use .filter() on indexed collection (not full array)",
+        "Keep pagination working with .offset(offset).limit(limit)",
+        "Wrap function with measureAsync('clientsDB.getFiltered', ...)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/database.ts"
+      ],
+      "notes": "Current issue at line 602: const filteredClients = await collection.toArray(); loads ALL clients. Dexie .filter() on Collection is more efficient than .toArray().filter(). Pattern reference: appointmentsDB.getByStatus uses compound index correctly.",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "US-004",
+      "title": "Add missing compound indexes for tickets",
+      "description": "As a developer, I need additional ticket indexes to optimize turn queue and aggregation queries.",
+      "acceptanceCriteria": [
+        "Add new schema version (increment from current highest version)",
+        "Add compound index [storeId+status+createdAt] to tickets table",
+        "Add compound index [storeId+staffId+createdAt] to tickets table",
+        "Include upgrade function with console.log",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/schema.ts"
+      ],
+      "notes": "Follow pattern from existing version upgrades (see lines 146-230 in schema.ts). CRITICAL: Copy ALL existing table definitions in new version, only modify tickets line.",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "US-005",
+      "title": "Add helper method for staff ticket counts",
+      "description": "As a developer, I need an optimized method to get ticket counts per staff member for turn queue.",
+      "acceptanceCriteria": [
+        "Add ticketsDB.getStaffTicketCounts(storeId: string, staffIds: string[], since: Date): Promise<Map<string, number>>",
+        "Method fetches tickets once with compound index query",
+        "Counts tickets per staffId by iterating ticket.services array",
+        "Returns Map<staffId, count> for O(1) lookups",
+        "Wrap with measureAsync",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/database.ts"
+      ],
+      "notes": "This replaces multiple getAll() calls in turn queue calculation. Staff ID is in ticket.services[].staffId, not on ticket directly.",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "US-006",
+      "title": "Fix turn queue N+1 - pre-fetch tickets",
+      "description": "As a user, I want faster turn queue calculation by eliminating N+1 query pattern.",
+      "acceptanceCriteria": [
+        "In findBestStaff(): fetch all recent tickets ONCE before the Promise.all loop",
+        "Pass pre-fetched tickets to scoreStaff() as new parameter",
+        "Modify calculateTurnScore() to use passed tickets instead of calling ticketsDB.getAll()",
+        "Modify calculateLoadScore() to use passed tickets",
+        "Remove ticketsDB.getAll() call at line ~145",
+        "Wrap findBestStaff() with measureAsync",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/turnQueueService.ts"
+      ],
+      "notes": "Current N+1: line 145 ticketsDB.getAll(storeId) called per staff. Also line 200 in getTurnQueueStats() has same issue. Pre-fetch once, filter in memory.",
+      "priority": 6,
+      "passes": true
+    },
+    {
+      "id": "US-007",
+      "title": "Add turn queue result caching",
+      "description": "As a user, I want turn queue results cached to avoid recalculation on every request.",
+      "acceptanceCriteria": [
+        "Create TurnQueueCache class with private cache: Map<string, { result: Staff | null; timestamp: number }>",
+        "get(key: string): Staff | null | undefined - returns undefined if not cached or expired",
+        "set(key: string, result: Staff | null): void - stores with current timestamp",
+        "invalidate(storeId: string): void - clears all entries for store",
+        "TTL constant: CACHE_TTL_MS = 30000 (30 seconds)",
+        "In findBestStaff(): check cache before calculation, store result after",
+        "Export invalidateTurnQueueCache(storeId: string) function",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/services/turnQueueCache.ts",
+        "apps/store-app/src/services/turnQueueService.ts"
+      ],
+      "notes": "Simple in-memory cache with Map. 30-second TTL balances freshness vs performance.",
+      "priority": 7,
+      "passes": true
+    },
+    {
+      "id": "US-008",
+      "title": "Fix performance metrics N+1 query pattern",
+      "description": "As a user, I want faster performance reports by eliminating per-client queries.",
+      "acceptanceCriteria": [
+        "Remove the for-loop at lines 154-167 that queries previousVisits per clientId",
+        "Replace with single batch query: supabase.from('tickets').select('client_id').in('client_id', Array.from(clientIds))",
+        "Process results in memory: create Set<string> of clientIds with previous visits",
+        "Update newClientIds logic using the batch results",
+        "Wrap getStaffPerformanceMetrics() with measureAsync",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/db/performanceOperations.ts"
+      ],
+      "notes": "Current issue: lines 154-167 make N queries for N clients. Supabase .in() supports arrays up to 100 items efficiently.",
+      "priority": 8,
+      "passes": true
+    },
+    {
+      "id": "US-009",
+      "title": "Implement better-sqlite3 Electron adapter",
+      "description": "As a developer, I need a working SQLite adapter for Electron using better-sqlite3.",
+      "acceptanceCriteria": [
+        "Import Database from better-sqlite3 (type import for now since peer dependency)",
+        "createElectronAdapter(config: SQLiteConfig): Promise<SQLiteAdapter> returns working adapter",
+        "Implement exec(sql: string): Promise<void> - run DDL statements",
+        "Implement run(sql: string, params?: SQLiteValue[]): Promise<{ changes: number; lastInsertRowid: number }>",
+        "Implement get<T>(sql: string, params?: SQLiteValue[]): Promise<T | undefined>",
+        "Implement all<T>(sql: string, params?: SQLiteValue[]): Promise<T[]>",
+        "Implement transaction<T>(fn: () => Promise<T>): Promise<T> - wrap in transaction",
+        "Implement close(): Promise<void> - close database connection",
+        "Database path from config: config.dbPath || 'mango.db'",
+        "Remove the placeholder error: throw new Error('Electron adapter not yet implemented...')",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/adapters/electron.ts"
+      ],
+      "notes": "better-sqlite3 is synchronous - wrap all methods in Promise.resolve() for interface compatibility. Reference: https://github.com/WiseLibs/better-sqlite3/blob/master/docs/api.md. Transaction pattern: const tx = db.transaction(() => { ... }); tx();",
+      "priority": 9,
+      "passes": true
+    },
+    {
+      "id": "US-010",
+      "title": "Create SQLite migration runner",
+      "description": "As a developer, I need a migration system to manage SQLite schema versions.",
+      "acceptanceCriteria": [
+        "Migration interface: { version: number; name: string; up: (db: SQLiteAdapter) => Promise<void>; down: (db: SQLiteAdapter) => Promise<void> }",
+        "runMigrations(db: SQLiteAdapter, migrations: Migration[]): Promise<void> function",
+        "Creates _migrations table if not exists: CREATE TABLE IF NOT EXISTS _migrations (version INTEGER PRIMARY KEY, name TEXT, applied_at TEXT)",
+        "Gets current version: SELECT MAX(version) FROM _migrations",
+        "Runs pending migrations in order (version > currentVersion)",
+        "Records each migration: INSERT INTO _migrations (version, name, applied_at) VALUES (?, ?, ?)",
+        "Logs progress: console.log('[SQLite] Running migration ${version}: ${name}')",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/migrations/index.ts",
+        "packages/sqlite-adapter/src/migrations/types.ts"
+      ],
+      "notes": "Migrations run in a transaction for safety. If migration fails, transaction rolls back. Similar pattern to Dexie's .version(N).stores({...}).upgrade(...).",
+      "priority": 10,
+      "passes": true
+    },
+    {
+      "id": "US-011",
+      "title": "Create initial SQLite schema (core tables)",
+      "description": "As a developer, I need the initial SQLite schema for appointments, tickets, and clients.",
+      "acceptanceCriteria": [
+        "Export migration_001 implementing Migration interface",
+        "version: 1, name: 'initial_schema'",
+        "Create appointments table with columns matching Dexie schema (id TEXT PRIMARY KEY, storeId TEXT, clientId TEXT, staffId TEXT, status TEXT, scheduledStartTime TEXT, scheduledEndTime TEXT, createdAt TEXT, updatedAt TEXT, syncStatus TEXT)",
+        "Create tickets table (id, storeId, clientId, status, services TEXT (JSON), createdAt, updatedAt, syncStatus)",
+        "Create clients table (id, storeId, firstName TEXT, lastName TEXT, phone TEXT, email TEXT, createdAt, updatedAt, syncStatus)",
+        "Create indexes: CREATE INDEX idx_appointments_store_status ON appointments(storeId, status)",
+        "Create indexes: CREATE INDEX idx_tickets_store_status_created ON tickets(storeId, status, createdAt)",
+        "Create indexes: CREATE INDEX idx_clients_store ON clients(storeId)",
+        "down() drops all tables in reverse order",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v001_initial_schema.ts"
+      ],
+      "notes": "Reference apps/store-app/src/db/schema.ts for Dexie field names. SQLite types: TEXT for strings/dates, INTEGER for numbers, REAL for decimals. JSON fields (like services array) stored as TEXT, parsed in application.",
+      "priority": 11,
+      "passes": true
+    },
+    {
+      "id": "US-012",
+      "title": "Create SQLite schema (staff and services tables)",
+      "description": "As a developer, I need SQLite schema for staff and services tables.",
+      "acceptanceCriteria": [
+        "Export migration_002 implementing Migration interface",
+        "version: 2, name: 'staff_services'",
+        "Create staff table (id, storeId, name TEXT, email TEXT, phone TEXT, status TEXT, skills TEXT (JSON array), rating REAL, createdAt, updatedAt, syncStatus)",
+        "Create services table (id, storeId, name TEXT, category TEXT, duration INTEGER, price REAL, createdAt, updatedAt, syncStatus)",
+        "Create indexes for common queries",
+        "down() drops tables",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/migrations/v002_staff_services.ts"
+      ],
+      "notes": "Continue pattern from v001. Staff skills is JSON array stored as TEXT. Services duration in minutes as INTEGER.",
+      "priority": 12,
+      "passes": true
+    },
+    {
+      "id": "US-013",
+      "title": "Create Dexie to SQLite data migration utility",
+      "description": "As a developer, I need a utility to migrate data from IndexedDB to SQLite.",
+      "acceptanceCriteria": [
+        "migrateFromDexie(dexieDb: any, sqliteDb: SQLiteAdapter, onProgress?: (table: string, count: number) => void): Promise<MigrationResult> function",
+        "MigrationResult type: { success: boolean; tables: { name: string; count: number }[]; errors: string[] }",
+        "Migrate tables in order: staff, clients, services, appointments, tickets (dependencies first)",
+        "For each table: const records = await dexieDb[tableName].toArray()",
+        "Batch insert to SQLite: 500 records per transaction",
+        "Call onProgress(tableName, recordCount) after each table",
+        "Validate counts match: dexieCount === sqliteCount",
+        "Return errors array if any validation fails",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/migrations/dataMigration.ts"
+      ],
+      "notes": "Read from Dexie via .toArray() (one-time full read is OK for migration). Batch insert for performance: INSERT INTO table VALUES (...), (...), .... JSON fields: JSON.stringify() before insert. UUIDs preserved as-is (TEXT in SQLite).",
+      "priority": 13,
+      "passes": true
+    },
+    {
+      "id": "US-014",
+      "title": "Add feature flag for SQLite backend selection",
+      "description": "As a developer, I need a feature flag to switch between Dexie and SQLite backends.",
+      "acceptanceCriteria": [
+        "VITE_USE_SQLITE environment variable support",
+        "isElectron(): boolean function - checks window.electron or similar",
+        "shouldUseSQLite(): boolean - returns true only if isElectron() && import.meta.env.VITE_USE_SQLITE === 'true'",
+        "getBackendType(): 'dexie' | 'sqlite' function",
+        "Log backend selection on app init: console.log('[DataService] Using backend:', getBackendType())",
+        "In dataService.ts: check shouldUseSQLite() and route accordingly (placeholder for now)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "apps/store-app/src/config/featureFlags.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "notes": "Default to Dexie for safety (SQLite is opt-in). Web/Capacitor always use Dexie (no SQLite support yet). Electron can opt-in via env var. Actual routing logic implemented in later story.",
+      "priority": 14,
+      "passes": true
+    },
+    {
+      "id": "US-015",
+      "title": "Create SQLite client service",
+      "description": "As a developer, I need a SQLite-based client service matching the Dexie API.",
+      "acceptanceCriteria": [
+        "ClientSQLiteService class with constructor (db: SQLiteAdapter)",
+        "getAll(storeId: string, limit?: number, offset?: number): Promise<Client[]>",
+        "getById(id: string): Promise<Client | undefined>",
+        "getFiltered(storeId: string, filters: ClientFilters, sort: ClientSortOptions, limit: number, offset: number): Promise<{ clients: Client[]; total: number }>",
+        "create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Promise<Client>",
+        "update(id: string, updates: Partial<Client>): Promise<Client | undefined>",
+        "delete(id: string): Promise<boolean>",
+        "SQL queries use parameterized statements (no string concatenation)",
+        "getFiltered uses SQL WHERE clauses instead of JS filtering",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/services/clientService.ts",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "notes": "This is the SQLite equivalent of clientsDB in database.ts. Key benefit: getFiltered can use SQL WHERE/LIKE instead of JS filter. Pattern for other services to follow.",
+      "priority": 15,
+      "passes": true
+    },
+    {
+      "id": "US-016",
+      "title": "Create SQLite ticket service with aggregations",
+      "description": "As a developer, I need a SQLite-based ticket service with SQL aggregation support.",
+      "acceptanceCriteria": [
+        "TicketSQLiteService class with constructor (db: SQLiteAdapter)",
+        "Standard CRUD: getAll, getById, create, update, delete",
+        "getByStatus(storeId: string, status: string): Promise<Ticket[]> using SQL WHERE",
+        "getActive(storeId: string): Promise<Ticket[]> - status IN ('waiting', 'in-service')",
+        "getStaffTicketCounts(storeId: string, staffIds: string[], since: Date): Promise<Map<string, number>> using SQL GROUP BY",
+        "getDailyStats(storeId: string, date: Date): Promise<{ total: number; completed: number; revenue: number }> using SQL aggregation",
+        "All queries parameterized",
+        "No forbidden strings: 'as any', 'void _', '// TODO:'",
+        "pnpm run typecheck passes"
+      ],
+      "files": [
+        "packages/sqlite-adapter/src/services/ticketService.ts",
+        "packages/sqlite-adapter/src/services/index.ts"
+      ],
+      "notes": "Key benefit: getStaffTicketCounts uses SELECT staffId, COUNT(*) FROM ... GROUP BY staffId. getDailyStats uses SELECT COUNT(*), SUM(total) FROM .... These SQL aggregations replace expensive JS loops. services JSON field: use json_extract() for SQLite or parse in application.",
+      "priority": 16,
+      "passes": true
+    },
+    {
+      "id": "US-017",
+      "title": "Research wa-sqlite for web platform",
+      "description": "As a developer, I need to evaluate wa-sqlite viability for web browsers.",
+      "acceptanceCriteria": [
+        "Create WA_SQLITE_EVALUATION.md in packages/sqlite-adapter/docs/",
+        "Document wa-sqlite requirements: COOP/COEP headers, SharedArrayBuffer",
+        "Document OPFS (Origin Private File System) browser support matrix",
+        "List performance benchmarks from wa-sqlite docs/issues (WASM overhead vs native IndexedDB)",
+        "Compare: wa-sqlite ~10-50ms per query vs native IndexedDB ~1-5ms",
+        "Include recommendation: use wa-sqlite OR stick with Dexie for web",
+        "If recommending wa-sqlite: list implementation steps needed",
+        "If recommending Dexie: document reasoning why",
+        "No forbidden strings: '// TODO:'",
+        "File is well-structured markdown with clear sections"
+      ],
+      "files": [
+        "packages/sqlite-adapter/docs/WA_SQLITE_EVALUATION.md"
+      ],
+      "notes": "This is a research/documentation story, no code changes. wa-sqlite has WASM overhead. COOP/COEP headers required for SharedArrayBuffer (needed for OPFS). Research official docs: https://github.com/nickvdyck/nickvdyck.github.io/tree/master/nickvd and https://nickvdyck.github.io/nickvd/2024/10/12/sqlite-in-the-browser/",
+      "priority": 17,
+      "passes": true
+    },
+    {
+      "id": "US-018",
+      "title": "Research Capacitor SQLite for mobile",
+      "description": "As a developer, I need to evaluate @capacitor-community/sqlite for iOS/Android.",
+      "acceptanceCriteria": [
+        "Create CAPACITOR_SQLITE_EVALUATION.md in packages/sqlite-adapter/docs/",
+        "Document @capacitor-community/sqlite plugin capabilities and API",
+        "Document iOS vs Android platform differences",
+        "List performance benchmarks if available from plugin docs/issues",
+        "Document migration path from IndexedDB to native SQLite",
+        "Document offline sync considerations for mobile",
+        "Include recommendation: implement Capacitor adapter OR defer",
+        "If implementing: list user stories needed for full implementation",
+        "No forbidden strings: '// TODO:'",
+        "File is well-structured markdown with clear sections"
+      ],
+      "files": [
+        "packages/sqlite-adapter/docs/CAPACITOR_SQLITE_EVALUATION.md"
+      ],
+      "notes": "This is a research/documentation story, no code changes. @capacitor-community/sqlite is community-maintained (not official). Research official docs: https://github.com/capacitor-community/sqlite. Consider: plugin updates, native code maintenance, iOS vs Android quirks.",
+      "priority": 18,
+      "passes": true
+    },
+    {
+      "id": "US-019",
+      "title": "Phase 3 decision checkpoint",
+      "description": "As a developer, I need to make a go/no-go decision on mobile/web SQLite based on Phase 1-3 findings.",
+      "acceptanceCriteria": [
+        "Create PHASE_3_DECISION.md in packages/sqlite-adapter/docs/",
+        "Summarize Phase 1 performance results (Dexie optimizations)",
+        "Summarize Phase 2 Electron SQLite implementation status",
+        "Reference wa-sqlite evaluation from US-017",
+        "Reference Capacitor SQLite evaluation from US-018",
+        "Include decision matrix: effort vs benefit for each platform (Web, iOS, Android, Electron)",
+        "Final recommendation: 'Full SQLite' | 'Hybrid' | 'Dexie everywhere'",
+        "If Full SQLite: outline follow-up PRD for implementation",
+        "If Hybrid/Dexie: document maintenance plan",
+        "No forbidden strings: '// TODO:'",
+        "File is well-structured markdown with clear executive summary"
+      ],
+      "files": [
+        "packages/sqlite-adapter/docs/PHASE_3_DECISION.md"
+      ],
+      "notes": "This is the Phase 3 evaluation gate. Decision should be data-driven based on actual findings from Phase 1, 2, and earlier Phase 3 research stories. This completes the SQLite Migration PRD.",
+      "priority": 19,
+      "passes": true
+    }
+  ]
+}

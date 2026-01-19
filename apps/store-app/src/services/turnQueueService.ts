@@ -4,7 +4,9 @@
  */
 
 import { staffDB, ticketsDB } from '../db/database';
-import type { Staff } from '../types';
+import type { Staff, Ticket } from '../types';
+import { measureAsync } from '../utils';
+import { turnQueueCache } from './turnQueueCache';
 
 interface AssignmentCriteria {
   serviceIds: string[];
@@ -19,6 +21,31 @@ interface StaffScore {
   reasons: string[];
 }
 
+/**
+ * Pre-fetched tickets data to avoid N+1 queries
+ */
+interface PreFetchedTickets {
+  allTickets: Ticket[];
+  activeTickets: Ticket[];
+  twoHoursAgo: Date;
+}
+
+/**
+ * Generate a cache key from store ID and assignment criteria.
+ * The key is deterministic for the same criteria.
+ * Note: Uses spread operator to avoid mutating the caller's arrays when sorting.
+ */
+function generateCacheKey(storeId: string, criteria: AssignmentCriteria): string {
+  const parts = [
+    storeId,
+    [...criteria.serviceIds].sort().join(','),
+    criteria.vipClient ? 'vip' : '',
+    criteria.preferredStaffId || '',
+    [...(criteria.requiredSkills || [])].sort().join(','),
+  ];
+  return parts.join(':');
+}
+
 export class TurnQueueService {
   /**
    * Find the best available staff member for a service
@@ -27,46 +54,73 @@ export class TurnQueueService {
     storeId: string,
     criteria: AssignmentCriteria
   ): Promise<Staff | null> {
-    // Get all available staff
-    const availableStaff = await staffDB.getAvailable(storeId);
-    
-    if (availableStaff.length === 0) {
-      return null;
-    }
-
-    // If preferred staff is available, use them
-    if (criteria.preferredStaffId) {
-      const preferredStaff = availableStaff.find(s => s.id === criteria.preferredStaffId);
-      if (preferredStaff) {
-        return preferredStaff;
+    return measureAsync('turnQueueService.findBestStaff', async () => {
+      // Check cache first
+      const cacheKey = generateCacheKey(storeId, criteria);
+      const cachedResult = turnQueueCache.get(cacheKey);
+      if (cachedResult !== undefined) {
+        console.log('[PERF] turnQueueService.findBestStaff: cache hit');
+        return cachedResult;
       }
-    }
 
-    // Score each staff member
-    const staffScores = await Promise.all(
-      availableStaff.map(staff => this.scoreStaff(staff, criteria, storeId))
-    );
+      // Get all available staff
+      const availableStaff = await staffDB.getAvailable(storeId);
 
-    // Sort by score (highest first)
-    staffScores.sort((a, b) => b.score - a.score);
+      if (availableStaff.length === 0) {
+        turnQueueCache.set(cacheKey, null);
+        return null;
+      }
 
-    // Log top 3 candidates
-    console.log('🎯 Top staff candidates:');
-    staffScores.slice(0, 3).forEach((s, i) => {
-      console.log(`  ${i + 1}. ${s.staff.name} (Score: ${s.score}) - ${s.reasons.join(', ')}`);
+      // If preferred staff is available, use them
+      if (criteria.preferredStaffId) {
+        const preferredStaff = availableStaff.find(s => s.id === criteria.preferredStaffId);
+        if (preferredStaff) {
+          turnQueueCache.set(cacheKey, preferredStaff);
+          return preferredStaff;
+        }
+      }
+
+      // Pre-fetch all tickets ONCE to avoid N+1 query pattern
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const [allTickets, activeTickets] = await Promise.all([
+        ticketsDB.getAll(storeId),
+        ticketsDB.getActive(storeId),
+      ]);
+
+      const preFetchedTickets: PreFetchedTickets = {
+        allTickets,
+        activeTickets,
+        twoHoursAgo,
+      };
+
+      // Score each staff member using pre-fetched tickets
+      const staffScores = await Promise.all(
+        availableStaff.map(staff => this.scoreStaff(staff, criteria, preFetchedTickets))
+      );
+
+      // Sort by score (highest first)
+      staffScores.sort((a, b) => b.score - a.score);
+
+      // Log top 3 candidates
+      console.log('🎯 Top staff candidates:');
+      staffScores.slice(0, 3).forEach((s, i) => {
+        console.log(`  ${i + 1}. ${s.staff.name} (Score: ${s.score}) - ${s.reasons.join(', ')}`);
+      });
+
+      const bestStaff = staffScores[0]?.staff || null;
+      turnQueueCache.set(cacheKey, bestStaff);
+      return bestStaff;
     });
-
-    return staffScores[0]?.staff || null;
   }
 
   /**
    * Score a staff member based on assignment criteria
    */
-  private async scoreStaff(
+  private scoreStaff(
     staff: Staff,
     criteria: AssignmentCriteria,
-    storeId: string
-  ): Promise<StaffScore> {
+    preFetchedTickets: PreFetchedTickets
+  ): StaffScore {
     let score = 0;
     const reasons: string[] = [];
 
@@ -82,7 +136,7 @@ export class TurnQueueService {
 
     // 2. Turn Rotation (0-25 points)
     // Staff who haven't had a turn recently get higher score
-    const turnScore = await this.calculateTurnScore(staff, storeId);
+    const turnScore = this.calculateTurnScore(staff, preFetchedTickets);
     score += turnScore;
     if (turnScore > 0) {
       reasons.push(`Turn rotation: +${turnScore}`);
@@ -97,7 +151,7 @@ export class TurnQueueService {
 
     // 4. Current Load (0-15 points)
     // Staff with fewer active tickets get priority
-    const loadScore = await this.calculateLoadScore(staff, storeId);
+    const loadScore = this.calculateLoadScore(staff, preFetchedTickets);
     score += loadScore;
     if (loadScore > 0) {
       reasons.push(`Low workload: +${loadScore}`);
@@ -137,16 +191,14 @@ export class TurnQueueService {
   /**
    * Calculate turn rotation score
    * Staff who haven't had a turn recently get higher score
+   * Uses pre-fetched tickets to avoid N+1 queries
    */
-  private async calculateTurnScore(staff: Staff, storeId: string): Promise<number> {
+  private calculateTurnScore(staff: Staff, preFetchedTickets: PreFetchedTickets): number {
     try {
-      // Get staff's recent tickets (last 2 hours)
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-      const allTickets = await ticketsDB.getAll(storeId);
-      
-      const staffRecentTickets = allTickets.filter(ticket => {
+      // Filter from pre-fetched tickets - no database call needed
+      const staffRecentTickets = preFetchedTickets.allTickets.filter(ticket => {
         const hasStaff = ticket.services.some(s => s.staffId === staff.id);
-        const isRecent = new Date(ticket.createdAt) >= twoHoursAgo;
+        const isRecent = new Date(ticket.createdAt) >= preFetchedTickets.twoHoursAgo;
         return hasStaff && isRecent;
       });
 
@@ -163,12 +215,12 @@ export class TurnQueueService {
   /**
    * Calculate current workload score
    * Staff with fewer active tickets get higher score
+   * Uses pre-fetched tickets to avoid N+1 queries
    */
-  private async calculateLoadScore(staff: Staff, storeId: string): Promise<number> {
+  private calculateLoadScore(staff: Staff, preFetchedTickets: PreFetchedTickets): number {
     try {
-      const activeTickets = await ticketsDB.getActive(storeId);
-      
-      const staffActiveTickets = activeTickets.filter(ticket =>
+      // Filter from pre-fetched active tickets - no database call needed
+      const staffActiveTickets = preFetchedTickets.activeTickets.filter(ticket =>
         ticket.services.some(s => s.staffId === staff.id)
       );
 
@@ -184,36 +236,45 @@ export class TurnQueueService {
 
   /**
    * Get turn queue stats for display
+   * Pre-fetches tickets once to avoid N+1 queries
    */
   async getTurnQueueStats(storeId: string) {
     try {
-      const allStaff = await staffDB.getAll(storeId);
-      const activeTickets = await ticketsDB.getActive(storeId);
+      // Pre-fetch all data ONCE to avoid N+1 queries
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const [allStaff, allTickets, activeTickets] = await Promise.all([
+        staffDB.getAll(storeId),
+        ticketsDB.getAll(storeId),
+        ticketsDB.getActive(storeId),
+      ]);
 
-      const staffStats = await Promise.all(
-        allStaff.map(async (staff) => {
-          const staffTickets = activeTickets.filter(ticket =>
-            ticket.services.some(s => s.staffId === staff.id)
-          );
+      const preFetchedTickets: PreFetchedTickets = {
+        allTickets,
+        activeTickets,
+        twoHoursAgo,
+      };
 
-          const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-          const allTickets = await ticketsDB.getAll(storeId);
-          const recentTickets = allTickets.filter(ticket => {
-            const hasStaff = ticket.services.some(s => s.staffId === staff.id);
-            const isRecent = new Date(ticket.createdAt) >= twoHoursAgo;
-            return hasStaff && isRecent;
-          });
+      // Calculate stats using pre-fetched data - no more N+1
+      const staffStats = allStaff.map((staff) => {
+        const staffActiveTickets = activeTickets.filter(ticket =>
+          ticket.services.some(s => s.staffId === staff.id)
+        );
 
-          return {
-            staffId: staff.id,
-            name: staff.name,
-            status: staff.status,
-            activeTickets: staffTickets.length,
-            recentTickets: recentTickets.length,
-            turnScore: await this.calculateTurnScore(staff, storeId),
-          };
-        })
-      );
+        const recentTickets = allTickets.filter(ticket => {
+          const hasStaff = ticket.services.some(s => s.staffId === staff.id);
+          const isRecent = new Date(ticket.createdAt) >= twoHoursAgo;
+          return hasStaff && isRecent;
+        });
+
+        return {
+          staffId: staff.id,
+          name: staff.name,
+          status: staff.status,
+          activeTickets: staffActiveTickets.length,
+          recentTickets: recentTickets.length,
+          turnScore: this.calculateTurnScore(staff, preFetchedTickets),
+        };
+      });
 
       // Sort by turn score (highest = most deserving of next turn)
       staffStats.sort((a, b) => b.turnScore - a.turnScore);
@@ -233,7 +294,7 @@ export class TurnQueueService {
   /**
    * Auto-assign staff to a walk-in client
    */
-  async autoAssignWalkIn(storeId: string, serviceIds: string[], vipClient: boolean = false): Promise<Staff | null> {
+  async autoAssignWalkIn(storeId: string, serviceIds: string[], vipClient = false): Promise<Staff | null> {
     return this.findBestStaff(storeId, {
       serviceIds,
       vipClient,
@@ -243,15 +304,29 @@ export class TurnQueueService {
   /**
    * Suggest staff for a service
    * Returns top 3 suggestions with reasons
+   * Pre-fetches tickets once to avoid N+1 queries
    */
   async suggestStaff(
     storeId: string,
     criteria: AssignmentCriteria
   ): Promise<StaffScore[]> {
-    const availableStaff = await staffDB.getAvailable(storeId);
-    
-    const staffScores = await Promise.all(
-      availableStaff.map(staff => this.scoreStaff(staff, criteria, storeId))
+    // Pre-fetch all data ONCE to avoid N+1 queries
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const [availableStaff, allTickets, activeTickets] = await Promise.all([
+      staffDB.getAvailable(storeId),
+      ticketsDB.getAll(storeId),
+      ticketsDB.getActive(storeId),
+    ]);
+
+    const preFetchedTickets: PreFetchedTickets = {
+      allTickets,
+      activeTickets,
+      twoHoursAgo,
+    };
+
+    // Score using pre-fetched tickets - no more N+1
+    const staffScores = availableStaff.map(staff =>
+      this.scoreStaff(staff, criteria, preFetchedTickets)
     );
 
     // Sort and return top 3
@@ -280,3 +355,6 @@ export class TurnQueueService {
 // Export singleton instance
 export const turnQueueService = new TurnQueueService();
 export default turnQueueService;
+
+// Re-export cache invalidation function for external use
+export { invalidateTurnQueueCache } from './turnQueueCache';

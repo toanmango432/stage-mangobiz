@@ -12,13 +12,21 @@ import { resolve } from 'path';
 export default defineConfig({
   // Main process configuration
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [
+      externalizeDepsPlugin({
+        // Externalize native modules - they will be loaded from node_modules
+        exclude: [],
+        include: ['better-sqlite3'],
+      }),
+    ],
     build: {
       lib: {
         entry: resolve(__dirname, 'electron/main.ts'),
         formats: ['es'],
       },
       rollupOptions: {
+        // Treat native modules as external
+        external: ['better-sqlite3'],
         output: {
           entryFileNames: '[name].mjs',
         },

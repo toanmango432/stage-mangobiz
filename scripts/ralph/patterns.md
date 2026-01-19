@@ -130,3 +130,93 @@ Search for `void _` and `void [` patterns to find cleanup opportunities.
 - PRD notes can become outdated when work is done across multiple iterations
 - **Always verify current implementation before assuming work is needed**
 - Check git history when PRD line numbers don't match current file
+
+## From ralph/sqlite-complete (2026-01-17)
+
+### BaseSQLiteService Type Constraint
+Entity interfaces used with BaseSQLiteService must extend `Record<string, unknown>`:
+```typescript
+// GOOD - satisfies BaseSQLiteService<T> constraint
+export interface Appointment extends Record<string, unknown> {
+  id: string;
+  storeId: string;
+  // ... other fields
+}
+
+// BAD - will cause TS2344 error
+export interface Appointment {
+  id: string;
+  storeId: string;
+}
+```
+
+### SQLite Type Conversion Pattern
+Use conversion utilities from `@mango/sqlite-adapter` consistently:
+```typescript
+import { toISOString, boolToSQLite, sqliteToBool, safeParseJSON, toJSONString } from '@mango/sqlite-adapter';
+
+// Date → SQLite TEXT
+const isoDate = toISOString(new Date()); // "2026-01-17T00:00:00.000Z"
+
+// Boolean → SQLite INTEGER (0/1)
+const sqliteInt = boolToSQLite(true); // 1
+
+// JSON object → SQLite TEXT
+const jsonText = toJSONString({ services: [] }); // '{"services":[]}'
+```
+
+### Schema Registry Pattern
+Define table schemas in registry for type-safe lookup:
+```typescript
+// Use columnMapping shorthand or full definition
+const schema: TableSchema = {
+  tableName: 'appointments',
+  primaryKey: 'id',
+  columns: {
+    id: 'id',  // shorthand
+    isActive: { column: 'is_active', type: 'boolean' },  // full definition
+    services: { column: 'services', type: 'json', defaultValue: [] },
+  }
+};
+```
+
+### SQL Aggregation with COALESCE
+Use COALESCE to handle null values in SUM/COUNT aggregations:
+```sql
+-- Returns 0 instead of null when no rows match
+SELECT
+  COALESCE(SUM(amount), 0) as total_amount,
+  COUNT(*) as transaction_count,
+  COALESCE(SUM(refunded_amount), 0) as refunded_amount
+FROM transactions
+WHERE store_id = ?
+```
+This pattern ensures numeric results even with empty result sets.
+
+### JSON Array Search with json_each()
+Use `json_each()` to search within JSON array columns in SQLite:
+```sql
+-- Find staff members with a specific skill
+SELECT s.*
+FROM staff s, json_each(s.skills) AS skill
+WHERE s.store_id = ?
+  AND s.is_active = 1
+  AND skill.value = ?
+ORDER BY s.display_name ASC
+```
+This pattern enables efficient searching within JSON arrays without loading full records into JS.
+
+### JSON Array Aggregation with json_each() + GROUP BY
+Use `json_each()` with `GROUP BY` for in-database aggregation over JSON arrays:
+```sql
+-- Count services per staff from tickets (services is a JSON array)
+SELECT
+  json_extract(service.value, '$.staffId') as staff_id,
+  COUNT(*) as service_count
+FROM tickets, json_each(tickets.services) as service
+WHERE tickets.store_id = ?
+  AND tickets.created_at >= ?
+  AND json_extract(service.value, '$.staffId') IS NOT NULL
+GROUP BY staff_id
+```
+This pattern replaces memory-intensive JS loops with SQL aggregation. Expected: <100ms for 10k records vs 500ms+ with JS.

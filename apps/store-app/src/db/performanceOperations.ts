@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/services/supabase/client';
+import { measureAsync } from '@/utils';
 import type {
   PerformancePeriod,
   PerformanceMetrics,
@@ -89,7 +90,8 @@ export async function getStaffPerformanceMetrics(
   period: PerformancePeriod,
   referenceDate: Date = new Date()
 ): Promise<PerformanceMetrics> {
-  const { start, end } = getDateRange(period, referenceDate);
+  return measureAsync('performanceDB.getStaffPerformanceMetrics', async () => {
+    const { start, end } = getDateRange(period, referenceDate);
 
   // Fetch tickets completed by this staff member
   const { data: tickets, error: ticketsError } = await supabase
@@ -150,19 +152,29 @@ export async function getStaffPerformanceMetrics(
     }
   }
 
-  // Check for new clients (first visit in this period)
-  for (const clientId of clientIds) {
-    const { data: previousVisits, error: prevError } = await supabase
+  // Check for new clients (first visit in this period) - batch query instead of N+1
+  if (clientIds.size > 0) {
+    const clientIdArray = Array.from(clientIds);
+    const { data: existingClientVisits, error: prevError } = await supabase
       .from('tickets')
-      .select('id')
+      .select('client_id')
       .eq('store_id', storeId)
-      .eq('client_id', clientId)
+      .in('client_id', clientIdArray)
       .eq('status', 'completed')
-      .lt('created_at', start.toISOString())
-      .limit(1);
+      .lt('created_at', start.toISOString());
 
-    if (!prevError && (!previousVisits || previousVisits.length === 0)) {
-      newClientIds.add(clientId);
+    if (!prevError) {
+      // Build set of clients who have previous visits
+      const clientsWithPreviousVisits = new Set<string>(
+        (existingClientVisits || []).map(ticket => ticket.client_id).filter(Boolean)
+      );
+
+      // New clients are those in clientIds but NOT in clientsWithPreviousVisits
+      for (const clientId of clientIds) {
+        if (!clientsWithPreviousVisits.has(clientId)) {
+          newClientIds.add(clientId);
+        }
+      }
     }
   }
 
@@ -241,28 +253,29 @@ export async function getStaffPerformanceMetrics(
     ? (ticketData.filter(t => t.services?.some((s: any) => s.type === 'product')).length / ticketData.length) * 100
     : 0;
 
-  return {
-    periodType: period,
-    periodStart: start.toISOString(),
-    periodEnd: end.toISOString(),
-    totalRevenue,
-    serviceRevenue,
-    productRevenue,
-    tipRevenue,
-    servicesCompleted,
-    averageTicket,
-    utilizationRate,
-    totalClients: clientIds.size,
-    newClients: newClientIds.size,
-    returningClients: clientIds.size - newClientIds.size,
-    rebookingRate,
-    retailSales: productRevenue,
-    retailUnits: 0, // Would need product line items to calculate
-    retailAttachRate,
-    averageRating,
-    totalReviews,
-    fiveStarReviews,
-  };
+    return {
+      periodType: period,
+      periodStart: start.toISOString(),
+      periodEnd: end.toISOString(),
+      totalRevenue,
+      serviceRevenue,
+      productRevenue,
+      tipRevenue,
+      servicesCompleted,
+      averageTicket,
+      utilizationRate,
+      totalClients: clientIds.size,
+      newClients: newClientIds.size,
+      returningClients: clientIds.size - newClientIds.size,
+      rebookingRate,
+      retailSales: productRevenue,
+      retailUnits: 0, // Would need product line items to calculate
+      retailAttachRate,
+      averageRating,
+      totalReviews,
+      fiveStarReviews,
+    };
+  });
 }
 
 // ============================================
