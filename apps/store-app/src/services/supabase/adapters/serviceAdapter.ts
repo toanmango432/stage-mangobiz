@@ -24,6 +24,10 @@ export function toService(row: ServiceRow): Service {
     createdAt: row.created_at, // ISO string (UTC)
     updatedAt: row.updated_at, // ISO string (UTC)
     syncStatus: row.sync_status as SyncStatus,
+    // Archive fields - default to 'active' for backwards compatibility
+    status: row.status || 'active',
+    archivedAt: row.archived_at || undefined,
+    archivedBy: row.archived_by || undefined,
   };
 }
 
@@ -43,6 +47,10 @@ export function toServiceInsert(
     is_active: service.isActive,
     sync_status: service.syncStatus || 'synced',
     sync_version: 1,
+    // Archive fields - default to 'active' for new services
+    status: service.status || 'active',
+    archived_at: service.archivedAt || null,
+    archived_by: service.archivedBy || null,
   };
 }
 
@@ -69,6 +77,16 @@ export function toServiceUpdate(updates: Partial<Service>): ServiceUpdate {
   }
   if (updates.syncStatus !== undefined) {
     result.sync_status = updates.syncStatus;
+  }
+  // Archive fields
+  if (updates.status !== undefined) {
+    result.status = updates.status;
+  }
+  if (updates.archivedAt !== undefined) {
+    result.archived_at = updates.archivedAt || null;
+  }
+  if (updates.archivedBy !== undefined) {
+    result.archived_by = updates.archivedBy || null;
   }
 
   return result;

@@ -38,3 +38,20 @@
 ## Progress Log
 
 <!-- Iteration logs will be appended below -->
+
+## 2026-01-19 - US-001: Add archive fields to Supabase ServiceRow type
+Commit: 1592958
+
+**Why this story?** US-001 is the foundational story that all archive-related stories (US-002, US-003, US-004, US-005, US-006) depend on. It has priority 1 and no dependencies.
+
+**Changes:**
+- apps/store-app/src/services/supabase/types.ts:301-306 (Row): Added `status: 'active' | 'archived'`, `archived_at: string | null`, `archived_by: string | null` with JSDoc comments
+- apps/store-app/src/services/supabase/types.ts:320-325 (Insert): Added same fields as optional with JSDoc comments
+
+**Learnings:**
+- The file has many pre-existing TypeScript errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, MonthView.test.tsx, SmartBookingPanel.test.tsx) and other unrelated files (ServiceSection.tsx, mqttBridge.ts) - these are not caused by this change
+- Supabase types use snake_case consistently across all table definitions
+
+**Next story suggestion:** US-002 (Update serviceAdapter to map archive fields) - it directly depends on US-001 since it needs to map the new fields from Supabase to app types
+
+---
