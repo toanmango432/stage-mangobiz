@@ -198,3 +198,63 @@ Commit: 46771d7
 **Next story suggestion:** US-007 (Extract ServiceResolutionRow from PriceResolutionModal) - starts the PriceResolutionModal refactoring work. US-006 completes the service archive epic, so we move to the next epic (component refactoring).
 
 ---
+
+## 2026-01-19 - US-007: Extract ServiceResolutionRow from PriceResolutionModal
+Commit: dbf0c0a
+
+**Why this story?** US-007 is the highest priority (7) among remaining incomplete stories and was explicitly recommended by the previous iteration (US-006). It starts the PriceResolutionModal refactoring epic, which US-008, US-009, US-010, US-012, and US-017 depend on.
+
+**Changes:**
+- apps/store-app/src/components/checkout/PriceResolutionModal/ (NEW directory): Created module structure
+- apps/store-app/src/components/checkout/PriceResolutionModal/ServiceResolutionRow.tsx (NEW):
+  - 305-line component handling single service resolution UI
+  - Includes RadioGroup with booked/current/custom options
+  - Custom price input with validation (positive numbers only)
+  - Reason input when custom price selected
+  - Props interface with comprehensive JSDoc documentation
+  - Added accessibility attributes: name, aria-label on RadioGroup and inputs
+- apps/store-app/src/components/checkout/PriceResolutionModal/index.ts (NEW):
+  - Barrel exports for ServiceResolutionRow and types
+  - Re-exports default from original PriceResolutionModal.tsx (for backwards compatibility until US-009)
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- The ServiceResolutionRow component handles 3 distinct states: deleted service, deposit locked, and normal (with radio options)
+- Component is slightly larger than PRD target (~150-200 lines) at 305 lines due to comprehensive JSDoc and all three state variations
+
+**Patterns to sync:**
+- Pattern: Module structure with barrel exports - When extracting components from a large file, create a directory with index.ts that re-exports the original component for backwards compatibility until the main refactor is complete (US-009)
+
+**Next story suggestion:** US-008 (Extract PriceResolutionSummary from PriceResolutionModal) - it's the next step in the PriceResolutionModal refactoring epic and modifies the same directory just created. Both US-007 and US-008 must complete before US-009 can use them.
+
+---
+
+## 2026-01-19 - US-008: Extract PriceResolutionSummary from PriceResolutionModal
+Commit: e1f5c78
+
+**Why this story?** US-008 was explicitly recommended by the previous iteration (US-007) and is the next step in the PriceResolutionModal refactoring epic. It's the highest priority incomplete story (priority 8) and modifies the same directory created in US-007 - code context is fresh. Both US-007 and US-008 must complete before US-009 can use the extracted components.
+
+**Changes:**
+- apps/store-app/src/components/checkout/PriceResolutionModal/PriceResolutionSummary.tsx (NEW):
+  - 127-line component showing variance totals
+  - Displays: total services affected, total variance, pending count
+  - Uses design system tokens for all colors (no hardcoded Tailwind classes)
+  - Props interface with JSDoc: PriceResolutionSummaryData (summary statistics)
+  - Helper functions: formatCurrency() and getVarianceColorStyle()
+- apps/store-app/src/components/checkout/PriceResolutionModal/index.ts:
+  - Added export for PriceResolutionSummary component
+  - Added type exports for PriceResolutionSummaryData and PriceResolutionSummaryProps
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- Component is larger than PRD target (~80-100 lines) at 127 lines due to comprehensive JSDoc comments and helper functions
+- Design system has colors.status.warning.dark and colors.status.success.dark for semantic color usage
+
+**Patterns to sync:**
+- None this iteration (design system color pattern already documented in progress.txt)
+
+**Next story suggestion:** US-009 (Refactor PriceResolutionModal to use extracted components) - it now has both dependencies complete (US-007 ServiceResolutionRow and US-008 PriceResolutionSummary) and will integrate the extracted components into the main modal.
+
+---

@@ -140,7 +140,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Extract lines ~400-600 from PriceResolutionModal.tsx that render each service row. Create clean interface for props: service, resolutionState, onOptionChange, onCustomPriceChange, onReasonChange, isDepositLocked, etc."
     },
     {
@@ -158,7 +158,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Extract summary card section from PriceResolutionModal (~lines 340-400). Component should calculate and display totals from passed services array."
     },
     {

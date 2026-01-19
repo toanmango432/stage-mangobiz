@@ -4,9 +4,9 @@
  * @module PriceResolutionModal
  */
 
-// Main modal component - default export from original file location
-// Note: The main PriceResolutionModal.tsx will be moved here in US-009
-export { default } from '../PriceResolutionModal';
+// Main modal component
+export { default } from './PriceResolutionModal';
+export type { PriceResolutionModalProps } from './PriceResolutionModal';
 
 // Sub-components
 export { ServiceResolutionRow } from './ServiceResolutionRow';
