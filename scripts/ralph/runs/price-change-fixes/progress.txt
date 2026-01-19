@@ -417,7 +417,7 @@ Commit: 0833126
 ---
 
 ## 2026-01-19 - US-013: Add unit tests for PriceChangeWarningBanner
-Commit: (pending)
+Commit: 181a089
 
 **Why this story?** US-013 is the highest priority incomplete story (priority 13) and was explicitly recommended by the previous iteration (US-012). It tests the PriceChangeWarningBanner component that was refactored in US-011, completing the testing epic.
 
