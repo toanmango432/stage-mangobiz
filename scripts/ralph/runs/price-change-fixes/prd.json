@@ -57,7 +57,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Follow pattern from other table files like appointmentsTable.ts. Use supabase.from('services').update() pattern. Import types from ../types.ts."
     },
     {

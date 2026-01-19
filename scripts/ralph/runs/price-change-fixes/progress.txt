@@ -74,3 +74,21 @@ Commit: 077830e
 **Next story suggestion:** US-003 (Add archive/restore methods to servicesTable) - it needs the adapter mappings from US-002 and provides the Supabase CRUD operations needed by the UI stories (US-004, US-005, US-006)
 
 ---
+
+## 2026-01-19 - US-003: Add archive/restore methods to servicesTable
+Commit: 087a3cd
+
+**Why this story?** US-003 completes the backend service archive pipeline. It was explicitly recommended by the previous iteration (US-002) and provides the Supabase CRUD operations that UI components (US-004, US-005, US-006) will use.
+
+**Changes:**
+- apps/store-app/src/services/supabase/tables/servicesTable.ts:158-176: Added `archiveService(id, userId)` method that sets status='archived', archived_at=now(), archived_by=userId
+- apps/store-app/src/services/supabase/tables/servicesTable.ts:178-196: Added `restoreService(id)` method that sets status='active', archived_at=null, archived_by=null
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files continue (same as US-001, US-002)
+- Pre-existing test failures (CreateTicketButton.test.tsx missing Redux provider, padCheckoutFlow.test.ts assertion) - not caused by this change
+- The restoreService method doesn't need userId param since the operation just clears the archive metadata
+
+**Next story suggestion:** US-004 (Create ArchivedServicesTab component) - it's the first UI story that uses the archive infrastructure we built in US-001, US-002, US-003. It's a frontend component so will require browser verification.
+
+---
