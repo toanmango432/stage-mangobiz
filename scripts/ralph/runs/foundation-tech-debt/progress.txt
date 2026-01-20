@@ -151,3 +151,22 @@ Commit: cbd8e53
 **Next story suggestion:** US-005 (Fix silent error in cacheMigrationStatus) - same file, same pattern, line ~265.
 
 ---
+
+## 2026-01-19 - US-005: Fix silent error in featureFlags cacheMigrationStatus
+Commit: 741ca53
+
+**Why this story?** US-005 is the next priority after US-004, same file (featureFlags.ts), same pattern (adding error logging to silent catch blocks). Code structure is fresh in context from previous story.
+
+**Changes:**
+- `apps/store-app/src/config/featureFlags.ts:266-267`: Changed empty catch block to log errors:
+  - Before: `} catch { // Ignore localStorage errors }`
+  - After: `} catch (error) { console.warn('[FeatureFlags] Failed to cache migration status:', error); }`
+
+**Learnings:**
+- PRD title says "getJsonFeatureFlag" but the actual function is `cacheMigrationStatus()`. Intent is correct (add logging to silent catch blocks).
+- The function doesn't return a value (void), so we just log without changing return behavior.
+- Pre-existing TypeScript errors (Book/__tests__/*.tsx) and test failures (6 test files, 116 failed tests) continue to exist - these are unrelated to featureFlags.ts changes.
+
+**Next story suggestion:** US-006 (Fix silent error in clearCachedMigrationStatus) - same file, same pattern, line ~280.
+
+---

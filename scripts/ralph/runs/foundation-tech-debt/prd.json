@@ -98,7 +98,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "Empty catch block at line ~264. Same pattern as US-003."

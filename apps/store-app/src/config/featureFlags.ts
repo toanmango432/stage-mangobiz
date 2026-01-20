@@ -277,8 +277,8 @@ export function clearCachedMigrationStatus(): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(MIGRATION_STATUS_KEY);
     }
-  } catch {
-    // Ignore localStorage errors
+  } catch (error) {
+    console.warn('[FeatureFlags] Failed to clear cached migration status:', error);
   }
 }
 
