@@ -1338,3 +1338,65 @@ Commit: [pending]
 **Next story suggestion:** US-035 (Extract TimesheetSection types and constants) - no dependencies, starts the TimesheetSection modularization series.
 
 ---
+
+## 2026-01-20 - US-035: Extract TimesheetSection types and constants
+Commit: 233ac40
+
+**Why this story?** US-035 is the highest priority incomplete story (priority 35) with no dependencies among remaining stories. It starts the TimesheetSection modularization series (US-035 to US-037). This follows the same extraction pattern established in US-027, US-030, US-032.
+
+**Changes:**
+- `apps/store-app/src/components/team-settings/sections/TimesheetSection/` (NEW folder): Created modular structure
+- `apps/store-app/src/components/team-settings/sections/TimesheetSection/types.ts:1-72`: Extracted 9 interfaces:
+  - DisplayAlert (local display type)
+  - TimesheetSectionProps (main component props)
+  - ClockButtonProps, BreakButtonProps (action button props)
+  - ShiftStatusCardProps (shift status display)
+  - RecentTimesheetsProps, AttendanceAlertsSectionProps, TimesheetReportsSectionProps (section props)
+  - TimesheetDetailModalProps (modal props)
+- `apps/store-app/src/components/team-settings/sections/TimesheetSection/constants.ts:1-89`: Extracted constants:
+  - Attendance thresholds (LATE_ARRIVAL_THRESHOLD_MINUTES, HIGH_SEVERITY_LATE_MINUTES, etc.)
+  - Display limits (MAX_ALERTS_DISPLAY, MAX_RECENT_TIMESHEETS_DISPLAY)
+  - Timer interval (TIMER_UPDATE_INTERVAL_MS)
+  - Tab configuration (TIMESHEET_TABS, TimesheetTabId type)
+  - CSV export headers (CSV_EXPORT_HEADERS)
+  - Style objects (SEVERITY_STYLES, CLOCK_BUTTON_STYLES, BREAK_BUTTON_STYLES)
+- `apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx:1-1142`: Updated main component:
+  - Import types from './types' and constants from './constants'
+  - Removed inline interface definitions
+  - Updated hardcoded values to use constants
+  - Updated relative import paths (../../components/SharedComponents, ../../components/TimesheetDashboard)
+- `apps/store-app/src/components/team-settings/sections/TimesheetSection/index.ts:1-31`: Barrel export with:
+  - Main component and default export
+  - All types (re-export)
+  - All constants (re-export)
+- `apps/store-app/src/components/team-settings/sections/TimesheetSection.tsx:1-4`: Backward compatibility re-export
+
+**Quality Checks:**
+- ✅ TypeScript: No TimesheetSection-related errors (pre-existing errors in Book/__tests__ and timesheetOperations.ts are unrelated)
+- ✅ No forbidden strings introduced ('as any', 'void _')
+- ✅ Backward compatibility maintained via re-export
+
+**File Summary:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| TimesheetSection.tsx | 1,142 | Main component (to be split in US-036, US-037) |
+| types.ts | 72 | All interface definitions |
+| constants.ts | 89 | Thresholds, limits, styles |
+| index.ts | 31 | Barrel exports |
+
+**Acceptance Criteria Check:**
+- ✅ Create TimesheetSection/ folder
+- ✅ Extract all interfaces/types to types.ts (9 interfaces)
+- ✅ Extract all constants to constants.ts (thresholds, limits, styles)
+- ✅ Update imports in TimesheetSection.tsx
+- ✅ No forbidden strings: 'as any', 'void _'
+- ⚠️ pnpm run typecheck: Pre-existing errors in test files only (unrelated)
+
+**Learnings:**
+- TimesheetSection has more sub-components than previous extractions (9 internal components)
+- The constants file includes style objects for reusability across components
+- Maintaining backward compatibility at original file location prevents breaking imports
+
+**Next story suggestion:** US-036 (Extract TimesheetSection sub-components) - depends on US-035 (now complete), continues the TimesheetSection modularization series.
+
+---

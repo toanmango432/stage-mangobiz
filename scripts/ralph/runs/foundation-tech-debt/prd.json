@@ -792,7 +792,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 2,
       "notes": "TimesheetSection.tsx is 1,187 lines. Same pattern as US-027/US-030."
