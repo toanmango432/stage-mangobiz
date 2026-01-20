@@ -300,7 +300,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 3,
       "dependencies": ["US-012"],
@@ -323,7 +323,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 2,
       "notes": "Check if types.ts already exists in TicketPanel folder. Include TicketPanelProps and internal state types."

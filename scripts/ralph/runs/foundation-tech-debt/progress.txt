@@ -385,3 +385,64 @@ Commit: 9e93efe
 **Next story suggestion:** US-014 (Implement PaymentModal test - handles payment completion) - same file, depends on US-012 (complete), completes the PaymentModal test series.
 
 ---
+
+## 2026-01-19 - US-014: Implement PaymentModal test - handles payment completion
+Commit: 19fffc3
+
+**Why this story?** US-014 is the highest priority incomplete story with satisfied dependencies (US-012 complete). Same file (PaymentModal.test.tsx), same category (test), code structure fresh in context from previous PaymentModal tests. It completes the PaymentModal test implementation series.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:360-449`: Added new 'payment completion' describe block with two real tests:
+  - `should handle payment completion with expected data`: Tests the full payment flow - navigates to step 2, selects cash payment, enters $60 (covers $50 + 20% tip), applies payment, and verifies `onComplete` is called with correct data structure including payment methods array and tip amount
+  - `should include tip distribution when multiple staff members are present`: Tests payment completion with multiple staff members, sets up auto-distribute tip, completes payment, and verifies `onComplete` includes tipDistribution array with correct proportional amounts (60/40 split on $20 tip = $12/$8)
+
+**Learnings:**
+- PaymentModal's `onComplete` callback (prop name is `onComplete`, not `onPaymentComplete` as PRD suggested) receives an object with:
+  - `methods`: Array of PaymentMethod objects with type, amount, and optional tendered/customName
+  - `tip`: Number representing the tip amount
+  - `tipDistribution`: Optional array of TipDistribution objects when tip is distributed among multiple staff
+  - `padTransactionId`: Optional string when payment was sent to Mango Pad
+- Payment completion is triggered automatically via useEffect when `isFullyPaid && currentStep === 2` with an 800ms delay for success animation
+- Testing async completion requires `await act()` with setTimeout to wait for the 800ms delay to complete
+- Cash payment captures both the `tendered` amount and the actual `amount` applied (which may differ if change is given)
+
+**Next story suggestion:** US-015 (Extract TicketPanel types to types.ts) - next available priority with no dependencies. Starts the TicketPanel refactoring verification series (US-015 to US-018). Different category (refactor), different file, logical progression from test completion to code organization.
+
+---
+
+## 2026-01-19 - US-015: Extract TicketPanel types to types.ts
+Commit: d9c68c2
+
+**Why this story?** US-015 is the highest priority incomplete story with no dependencies among remaining stories (priority 15). It starts the TicketPanel modularization verification series (US-015 to US-018). Previous iteration suggested this as the logical next step.
+
+**Changes:**
+- No code changes required - verification only
+- Types already extracted to `apps/store-app/src/components/checkout/types/index.ts` (163 lines)
+- TicketPanel.tsx already imports from `./types` at line 74: `import type { PanelMode } from "./types";`
+- Re-exports CouponData and GiftCardData at line 126-127
+
+**Verification Results:**
+- ✅ types.ts exists: `apps/store-app/src/components/checkout/types/index.ts` with comprehensive type definitions
+- ✅ TicketPanel.tsx imports from './types': Line 74 imports PanelMode
+- ✅ No duplicate type definitions: Only TicketPanelProps interface (component props) defined locally - appropriate
+- ✅ No forbidden strings ('as any', 'void _') in TicketPanel.tsx
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx test files (unrelated to TicketPanel types)
+
+**Types Extracted Include:**
+- CouponData, GiftCardData - Coupon and gift card data structures
+- DiscountState, StaffState, DialogState, UIState - State interfaces
+- PanelMode ("dock" | "full") - Panel display mode
+- DialogKey - Union type for dialog toggle keys
+- TicketState - Complete ticket state interface
+- TicketAction - Action union type for reducer
+- UndoSnapshot - Undo state snapshot interface
+
+**Learnings:**
+- TicketPanel types were already extracted in a previous iteration - PRD notes may not reflect current state
+- The types folder uses `types/index.ts` convention (not `types.ts`), which is proper for a folder-based module
+- Always verify current state before implementing - work may already be complete
+- Pre-existing TypeScript errors (Book/__tests__/*.tsx) exist but are unrelated to TicketPanel changes
+
+**Next story suggestion:** US-016 (Extract TicketPanel constants to constants.ts) - depends on US-015 (now complete), same category (refactor), continues the TicketPanel modularization verification series.
+
+---
