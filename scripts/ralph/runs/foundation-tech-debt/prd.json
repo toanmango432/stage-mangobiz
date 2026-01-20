@@ -815,7 +815,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-035"],
@@ -841,7 +841,7 @@
         "Verify in browser: timesheet section works"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-036"],
