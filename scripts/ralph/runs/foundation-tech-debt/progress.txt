@@ -1083,3 +1083,44 @@ Commit: 5f5b25b
 **Next story suggestion:** US-030 (Extract PaymentModal types and constants) - no dependencies, starts the PaymentModal modularization series (US-030 to US-031).
 
 ---
+
+## 2026-01-20 - US-030: Extract PaymentModal types and constants
+Commit: 6908c09
+
+**Why this story?** US-030 is the highest priority incomplete story with no dependencies among remaining stories (priority 30). It starts the PaymentModal modularization series (US-030 to US-031). Previous iteration (US-029) completed AddTeamMember modularization and suggested this as the next logical step.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/PaymentModal/types.ts (NEW):1-70`: Created type definitions file with:
+  - PaymentMethod, TipDistribution, TicketItem - Core payment data types
+  - StaffMember, PaymentCompletionData - Helper interfaces
+  - PaymentModalProps - Component props interface (extracted from inline definition)
+  - PaymentMethodType - Union type for payment method IDs
+  - PaymentMethodOption, Step - UI configuration types
+- `apps/store-app/src/components/checkout/PaymentModal/constants.ts (NEW):1-34`: Created constants file with:
+  - TIP_PERCENTAGES - Default tip percentage options [15, 18, 20, 25]
+  - DEFAULT_TIP_PERCENTAGE - Pre-selected tip (20%)
+  - STEPS - Wizard step configuration
+  - PAYMENT_METHODS - Payment method options with icons
+  - SUCCESS_ANIMATION_DELAY, PAYMENT_COMPLETION_THRESHOLD - Behavior constants
+- `apps/store-app/src/components/checkout/PaymentModal.tsx:44-60`: Updated imports to use modularized types and constants
+- `apps/store-app/src/components/checkout/PaymentModal.tsx:138`: Updated currentMethod state to use PaymentMethodType
+- `apps/store-app/src/components/checkout/PaymentModal.tsx:396-401`: Removed inline PAYMENT_METHODS constant (now imported)
+- `apps/store-app/src/components/checkout/PaymentModal.tsx:785`: Simplified type assertion in handleSelectMethod call
+
+**Acceptance Criteria Check:**
+- ✅ Create PaymentModal/ folder
+- ✅ Extract all interfaces/types to types.ts
+- ✅ Extract all constants to constants.ts
+- ✅ Update imports in PaymentModal.tsx
+- ⚠️ TypeScript: Pre-existing TS6310 errors in monorepo tsconfig (unrelated to PaymentModal)
+- ✅ PaymentModal tests pass (all 10 tests in PaymentModal.test.tsx passing)
+
+**Learnings:**
+- Icons (Gift, DollarSign) used by constants.ts need to stay in lucide-react imports in both files since constants.ts imports them directly
+- Using `as const` for arrays creates readonly types that may not be compatible with prop types expecting mutable arrays - use explicit typing instead
+- Re-exporting types for backward compatibility (`export type { PaymentMethod, TipDistribution, TicketItem }`) maintains API stability
+- PaymentMethodType union type improves type safety for payment method selection state
+
+**Next story suggestion:** US-031 (Extract PaymentModal components and complete modularization) - depends on US-030 (now complete), same category (refactor), completes the PaymentModal modularization series.
+
+---

@@ -670,7 +670,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 2,
       "notes": "PaymentModal.tsx is 1,154 lines. Same pattern as US-027."
