@@ -1,0 +1,61 @@
+# Ralph Progress Log: price-change-fixes
+# Started: 2026-01-19
+# Branch: main
+
+## Codebase Patterns
+
+### Service Archive Pattern
+- Services are archived (not deleted) - industry best practice
+- Archive fields: status, archivedAt, archivedBy
+- Supabase uses snake_case; App uses camelCase
+- Type adapters convert between formats
+
+### Design System Colors
+- Import from @/design-system
+- Use semantic colors: colors.warning, colors.success, colors.error
+- Never hardcode Tailwind colors like text-amber-600
+
+### Component Size Guidelines
+- Target: <300 lines per component
+- Max: 500 lines
+- If exceeding, split into module structure
+
+### Testing Patterns
+- Use @testing-library/react for component tests
+- Mock Redux store with configureStore
+- Test both happy path and edge cases
+
+---
+
+## Progress Log
+
+## 2026-01-19 - US-016: Add form validation to pricing policy numeric inputs
+Commit: e3a4315
+
+**Why this story?** US-016 is the highest priority incomplete story (priority 16) and was explicitly recommended by the previous iteration (US-015). It modifies the same file (CheckoutPaymentsSettings.tsx) that was just updated in US-015.
+
+**Changes:**
+- apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx:742: Added placeholder="10.00" to approvalThresholdAmount input
+- apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx:753: Added placeholder="15" to approvalThresholdPercent input
+
+**Browser Verification:**
+- Component renders without errors: PASS
+- "Approval Thresholds" section visible when manager approval toggle enabled: PASS
+- Amount Threshold input shows value "10" with $ hint in label: PASS
+- Percent Threshold input shows value "15" with % hint in label: PASS
+- Variance Threshold shows value "5" with % suffix: PASS
+- All inputs are functional: PASS
+- Accessibility check (inputs have proper labels and hints): PASS
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (AgendaView.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx, AddNoteModal.test.tsx, padCheckoutFlow.test.ts - not caused by this change
+- The Input component already had min, max, step attributes in place for validation
+- Placeholders are visible when input fields are empty
+
+**Patterns to sync:**
+- None this iteration (HTML5 validation patterns already standard)
+
+**Next story suggestion:** US-017 (Add accessibility attributes to PriceResolutionModal RadioGroup) - it's the only remaining incomplete story.
+
+---

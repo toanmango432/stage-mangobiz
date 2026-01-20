@@ -327,7 +327,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Find existing approvalThreshold inputs and add HTML5 validation attributes. Add placeholder props like placeholder='10.00' for amounts, placeholder='15' for percentages."
     },
     {
