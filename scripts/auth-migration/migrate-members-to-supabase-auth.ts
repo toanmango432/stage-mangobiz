@@ -76,11 +76,32 @@ const CONFIG = {
 
   /** Output file for email failures (restricted permissions) */
   EMAIL_FAILURES_FILE: 'migration_email_failures.json',
+
+  /** Number of database retry attempts for transient failures */
+  DB_RETRY_ATTEMPTS: 3,
+
+  /** Base delay between database retries (ms) - exponential backoff: 1s, 2s, 4s */
+  DB_RETRY_BASE_DELAY_MS: 1000,
 };
 
 // ============================================================================
 // Types
 // ============================================================================
+
+/**
+ * Raw member row from database query
+ */
+interface MemberRow {
+  id: string;
+  email: string | null;
+  name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  pin: string | null;
+  auth_user_id: string | null;
+  role: string | null;
+  tenant_id: string | null;
+}
 
 /**
  * Member data structure from database
@@ -213,6 +234,64 @@ async function sendWelcomeEmailWithRetry(
 }
 
 // ============================================================================
+// Database Retry Logic
+// ============================================================================
+
+/**
+ * Execute a database operation with retry logic and exponential backoff
+ * Handles transient failures (network glitches, rate limits) gracefully
+ *
+ * @param operation - Async function that returns { data, error }
+ * @param operationName - Name for logging purposes
+ * @returns The operation result (data or error)
+ */
+async function updateWithRetry<T>(
+  operation: () => Promise<{ data: T | null; error: { message: string } | null }>,
+  operationName: string
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  let lastError: { message: string } | null = null;
+
+  for (let attempt = 1; attempt <= CONFIG.DB_RETRY_ATTEMPTS; attempt++) {
+    const result = await operation();
+
+    // Success or non-retryable error
+    if (!result.error) {
+      return result;
+    }
+
+    lastError = result.error;
+
+    // Check if error is retryable (network, rate limit, timeout)
+    const isRetryable =
+      result.error.message.toLowerCase().includes('network') ||
+      result.error.message.toLowerCase().includes('timeout') ||
+      result.error.message.toLowerCase().includes('rate limit') ||
+      result.error.message.toLowerCase().includes('connection') ||
+      result.error.message.toLowerCase().includes('econnreset') ||
+      result.error.message.toLowerCase().includes('socket');
+
+    if (!isRetryable) {
+      // Non-retryable error, return immediately
+      return result;
+    }
+
+    if (attempt < CONFIG.DB_RETRY_ATTEMPTS) {
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = CONFIG.DB_RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      process.stdout.write(
+        `⚠️  ${operationName} attempt ${attempt}/${CONFIG.DB_RETRY_ATTEMPTS} failed (${result.error.message}), retrying in ${delay}ms...\n`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  process.stdout.write(
+    `❌ ${operationName} failed after ${CONFIG.DB_RETRY_ATTEMPTS} attempts\n`
+  );
+  return { data: null, error: lastError };
+}
+
+// ============================================================================
 // Member Migration
 // ============================================================================
 
@@ -323,17 +402,21 @@ async function migrateMember(
     pinHash = await bcrypt.hash(member.pin, CONFIG.BCRYPT_COST_FACTOR);
   }
 
-  // Update member record in database
-  const { error: updateError } = await supabaseAdmin
-    .from('members')
-    .update({
-      auth_user_id: authUserId,
-      pin_hash: pinHash,
-      pin_legacy: member.pin, // Preserve for rollback
-      pin: null, // Clear plaintext PIN
-      last_online_auth: new Date().toISOString(),
-    })
-    .eq('id', member.id);
+  // Update member record in database with retry logic
+  const { error: updateError } = await updateWithRetry<null>(
+    () =>
+      supabaseAdmin
+        .from('members')
+        .update({
+          auth_user_id: authUserId,
+          pin_hash: pinHash,
+          pin_legacy: member.pin, // Preserve for rollback
+          pin: null, // Clear plaintext PIN
+          last_online_auth: new Date().toISOString(),
+        })
+        .eq('id', member.id),
+    `Update member ${member.id}`
+  );
 
   if (updateError) {
     result.failed.push({
@@ -433,12 +516,17 @@ async function main(): Promise<void> {
   let totalProcessed = 0;
 
   while (true) {
-    // Fetch batch of members that haven't been migrated yet
-    const { data: members, error } = await supabaseAdmin
-      .from('members')
-      .select('id, email, name, first_name, last_name, pin, auth_user_id, role, tenant_id')
-      .is('auth_user_id', null) // Only members not yet migrated
-      .range(offset, offset + CONFIG.BATCH_SIZE - 1);
+    // Fetch batch of members that haven't been migrated yet (with retry)
+    const batchNumber = Math.floor(offset / CONFIG.BATCH_SIZE) + 1;
+    const { data: members, error } = await updateWithRetry<MemberRow[]>(
+      () =>
+        supabaseAdmin
+          .from('members')
+          .select('id, email, name, first_name, last_name, pin, auth_user_id, role, tenant_id')
+          .is('auth_user_id', null) // Only members not yet migrated
+          .range(offset, offset + CONFIG.BATCH_SIZE - 1),
+      `Fetch members batch ${batchNumber}`
+    );
 
     if (error) {
       process.stdout.write(`❌ Failed to fetch members: ${error.message}\n`);
@@ -449,7 +537,6 @@ async function main(): Promise<void> {
       break;
     }
 
-    const batchNumber = Math.floor(offset / CONFIG.BATCH_SIZE) + 1;
     process.stdout.write(
       `\nProcessing batch ${batchNumber} (${members.length} members)...\n`
     );
