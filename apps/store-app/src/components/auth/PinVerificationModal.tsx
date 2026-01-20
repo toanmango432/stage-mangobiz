@@ -1,32 +1,33 @@
 /**
- * Staff Authentication Modal
+ * PIN Verification Modal for Store-Login Mode Sensitive Actions
  *
- * Supports multiple authentication methods simultaneously:
- * - PIN: 4-6 digit numeric code (manual entry)
- * - Staff Card: NFC/magnetic stripe card scan (auto-detected)
+ * This modal is used in STORE-LOGIN context when staff need to verify their
+ * identity before accessing sensitive features (checkout, settings, reports).
  *
- * The modal listens for rapid keyboard input (card swipe) while
- * also accepting manual PIN entry. Card readers typically send
- * data as rapid keystrokes followed by Enter.
+ * Authentication Flow:
+ * 1. Staff enters their PIN (4-6 digits)
+ * 2. PIN is validated using bcrypt via memberAuthService.loginWithPin()
+ * 3. On success, returns verified member session
+ * 4. On failure, tracks attempts (5 max, 15-min lockout)
  *
- * Two modes based on auth state:
+ * Features:
+ * - Uses PinInput component for PIN entry
+ * - Shows lockout status if PIN is locked
+ * - Shows "Forgot PIN?" link for admin reset flow
+ * - Auto-focuses PIN input when modal opens
+ * - Supports card scan detection (legacy, disabled by default)
  *
- * 1. STORE-ONLY MODE (store logged in, no member):
- *    - PIN/Card identifies WHO is performing the action
- *    - Any valid staff PIN/Card works
- *    - Returns the verified member info for audit trail
- *
- * 2. MEMBER MODE (member logged in):
- *    - PIN/Card confirms it's really the logged-in member
- *    - Only that member's credentials work
- *    - Used for sensitive actions within their session
+ * @see docs/AUTH_MIGRATION_PLAN.md
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Loader2, AlertCircle, CheckCircle, ShieldCheck, User, CreditCard } from 'lucide-react';
+import { X, Loader2, AlertCircle, CheckCircle, ShieldCheck, User, CreditCard, Lock, HelpCircle } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { selectMember, selectStoreId } from '../../store/slices/authSlice';
 import { authService } from '../../services/supabase/authService';
+import { memberAuthService } from '../../services/memberAuthService';
+import { PinInput } from './PinInput';
+import type { MemberAuthSession } from '../../types/memberAuth';
 
 export interface VerifiedMember {
   memberId: string;
@@ -37,21 +38,29 @@ export interface VerifiedMember {
 }
 
 interface PinVerificationModalProps {
+  /** Whether the modal is open */
   isOpen: boolean;
+  /** Callback when modal is closed */
   onClose: () => void;
-  /** Called with verified member info (for audit trail) */
-  onSuccess: (verifiedMember?: VerifiedMember) => void;
-  title?: string;
+  /** Called with member session on successful verification */
+  onSuccess: (memberSession: MemberAuthSession) => void;
+  /** Member ID to verify. If provided, validates specific member's PIN. If omitted, allows any staff PIN (legacy store-only mode). */
+  memberId?: string;
+  /** Description of the action being verified (e.g., 'Verify to access Checkout') */
+  actionDescription?: string;
+  /**
+   * @deprecated Use actionDescription instead
+   */
   description?: string;
-  /** If true, only the current member's PIN is accepted (even in store-only mode) */
-  requireCurrentMember?: boolean;
-  /** Enable card scan detection (default: true) */
+  /** Modal title override */
+  title?: string;
+  /** Enable card scan detection (default: false for new implementation) */
   enableCardScan?: boolean;
 }
 
 type Step = 'auth' | 'success';
 
-// Card reader detection settings
+// Card reader detection settings (legacy feature)
 const CARD_INPUT_TIMEOUT = 100; // ms - if keys come faster than this, it's likely a card reader
 const CARD_MIN_LENGTH = 4; // Minimum length to consider as card input
 
@@ -59,54 +68,65 @@ export function PinVerificationModal({
   isOpen,
   onClose,
   onSuccess,
-  title = 'Staff Authentication',
-  description,
-  requireCurrentMember = false,
-  enableCardScan = true,
+  memberId,
+  actionDescription,
+  description, // deprecated, use actionDescription
+  title = 'Verify Identity',
+  enableCardScan = false, // Disabled by default for new implementation
 }: PinVerificationModalProps) {
+  // Support deprecated description prop
+  const displayActionDescription = actionDescription || description;
   const currentMember = useAppSelector(selectMember);
   const storeId = useAppSelector(selectStoreId);
 
-  // Determine mode based on auth state
-  const isStoreOnlyMode = !currentMember && !!storeId;
-  const isMemberMode = !!currentMember;
-
   const [step, setStep] = useState<Step>('auth');
-  const [pin, setPin] = useState(['', '', '', '', '', '']);
+  const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifiedMember, setVerifiedMember] = useState<VerifiedMember | null>(null);
   const [cardScanActive, setCardScanActive] = useState(false);
+  const [lockoutInfo, setLockoutInfo] = useState<{ isLocked: boolean; remainingMinutes: number }>({ isLocked: false, remainingMinutes: 0 });
+  const [memberName, setMemberName] = useState<string>('');
 
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Card reader detection
+  // Card reader detection (legacy feature)
   const cardBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
   const cardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Dynamic description
-  const displayDescription = description || (
-    isMemberMode
-      ? 'Confirm your identity'
-      : 'Enter your PIN or scan your staff card'
-  );
-
-  // Focus first input when modal opens
+  // Check lockout status and get member name when modal opens
   useEffect(() => {
-    if (isOpen && inputRefs.current[0]) {
-      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    if (isOpen) {
+      if (memberId) {
+        // Specific member mode: Check lockout status
+        const lockout = memberAuthService.checkPinLockout(memberId);
+        setLockoutInfo(lockout);
+
+        // Get cached member info for display
+        const cachedMembers = memberAuthService.getCachedMembers();
+        const cachedMember = cachedMembers.find(m => m.memberId === memberId);
+        if (cachedMember) {
+          setMemberName(cachedMember.name);
+        } else if (currentMember && currentMember.memberId === memberId) {
+          setMemberName(`${currentMember.firstName} ${currentMember.lastName}`.trim());
+        }
+      } else {
+        // Legacy store-only mode: No lockout check, no specific member
+        setLockoutInfo({ isLocked: false, remainingMinutes: 0 });
+        setMemberName('');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, memberId, currentMember]);
 
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setStep('auth');
-      setPin(['', '', '', '', '', '']);
+      setPin('');
       setError(null);
       setVerifiedMember(null);
       setCardScanActive(false);
+      setLockoutInfo({ isLocked: false, remainingMinutes: 0 });
+      setMemberName('');
       cardBufferRef.current = '';
       if (cardTimeoutRef.current) {
         clearTimeout(cardTimeoutRef.current);
@@ -183,13 +203,18 @@ export function PinVerificationModal({
     };
   }, [isOpen, enableCardScan, step, loading]);
 
-  // Handle success - common flow for both PIN and Card
-  const handleAuthSuccess = useCallback((memberSession: { memberId: string; firstName: string; lastName: string; role: string }) => {
+  // Handle success with member session
+  const handleAuthSuccess = useCallback((memberSession: MemberAuthSession) => {
+    // Extract name parts from session name
+    const nameParts = memberSession.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     const verified: VerifiedMember = {
       memberId: memberSession.memberId,
-      memberName: `${memberSession.firstName} ${memberSession.lastName}`.trim(),
-      firstName: memberSession.firstName,
-      lastName: memberSession.lastName,
+      memberName: memberSession.name,
+      firstName,
+      lastName,
       role: memberSession.role,
     };
 
@@ -197,62 +222,78 @@ export function PinVerificationModal({
     setStep('success');
 
     setTimeout(() => {
-      onSuccess(verified);
+      onSuccess(memberSession);
       onClose();
     }, 800);
   }, [onSuccess, onClose]);
 
-  // Handle PIN submission
+  // Handle PIN submission using memberAuthService.loginWithPin() with bcrypt
   const handlePinSubmit = useCallback(async (enteredPin?: string) => {
-    const pinToVerify = enteredPin || pin.join('');
+    const pinToVerify = enteredPin || pin;
     if (pinToVerify.length < 4) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      if (isStoreOnlyMode && storeId && !requireCurrentMember) {
-        const memberSession = await authService.loginMemberWithPin(storeId, pinToVerify);
-        handleAuthSuccess(memberSession);
-      } else if (currentMember) {
-        const isValid = await authService.verifyMemberPin(
-          currentMember.memberId,
-          pinToVerify
-        );
-
-        if (isValid) {
-          handleAuthSuccess({
-            memberId: currentMember.memberId,
-            firstName: currentMember.firstName,
-            lastName: currentMember.lastName,
-            role: currentMember.role,
-          });
-        } else {
-          setError('Invalid PIN');
-          setPin(['', '', '', '', '', '']);
-          inputRefs.current[0]?.focus();
+      if (memberId) {
+        // New flow: Specific member verification using bcrypt
+        // Check lockout first
+        const lockout = memberAuthService.checkPinLockout(memberId);
+        if (lockout.isLocked) {
+          setLockoutInfo(lockout);
+          setError(`PIN locked. Try again in ${lockout.remainingMinutes} minutes.`);
+          setPin('');
+          setLoading(false);
+          return;
         }
-      } else if (storeId) {
-        const memberSession = await authService.loginMemberWithPin(storeId, pinToVerify);
+
+        // Use memberAuthService.loginWithPin() for bcrypt validation
+        const memberSession = await memberAuthService.loginWithPin(memberId, pinToVerify);
         handleAuthSuccess(memberSession);
       } else {
-        setError('Store not connected');
+        // Legacy flow: Any staff PIN in store-only mode
+        // Uses old authService.loginMemberWithPin()
+        if (!storeId) {
+          setError('Store not connected');
+          setLoading(false);
+          return;
+        }
+
+        const legacySession = await authService.loginMemberWithPin(storeId, pinToVerify);
+
+        // Convert legacy session to MemberAuthSession format
+        const memberSession: MemberAuthSession = {
+          memberId: legacySession.memberId,
+          authUserId: '', // Not available from legacy service
+          email: '', // Not available from legacy service
+          name: `${legacySession.firstName} ${legacySession.lastName}`.trim(),
+          role: legacySession.role,
+          storeIds: storeId ? [storeId] : [],
+          permissions: {},
+          lastOnlineAuth: new Date(),
+          sessionCreatedAt: new Date(),
+          defaultStoreId: null,
+        };
+        handleAuthSuccess(memberSession);
       }
+
     } catch (err: unknown) {
-      console.error('PIN verification failed:', err);
-      const authError = err as { code?: string };
-      const message = authError.code === 'INVALID_PIN'
-        ? 'Invalid PIN'
-        : 'Verification failed. Please try again.';
-      setError(message);
-      setPin(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+      const errorMessage = err instanceof Error ? err.message : 'Verification failed. Please try again.';
+      setError(errorMessage);
+      setPin('');
+
+      // Re-check lockout status after failed attempt (if memberId provided)
+      if (memberId) {
+        const lockout = memberAuthService.checkPinLockout(memberId);
+        setLockoutInfo(lockout);
+      }
     } finally {
       setLoading(false);
     }
-  }, [pin, isStoreOnlyMode, storeId, requireCurrentMember, currentMember, handleAuthSuccess]);
+  }, [pin, memberId, storeId, handleAuthSuccess]);
 
-  // Handle Card submission
+  // Handle Card submission (legacy feature - kept for backwards compatibility)
   const handleCardSubmit = useCallback(async (cardId: string) => {
     if (!cardId.trim()) return;
 
@@ -266,81 +307,46 @@ export function PinVerificationModal({
         return;
       }
 
+      // Legacy card verification - uses old authService
       const memberSession = await authService.verifyMemberCard(storeId, cardId.trim());
 
       if (memberSession) {
-        handleAuthSuccess(memberSession);
+        // Convert legacy session to MemberAuthSession format
+        const session: MemberAuthSession = {
+          memberId: memberSession.memberId,
+          authUserId: '', // Not available from legacy service
+          email: '', // Not available from legacy service
+          name: `${memberSession.firstName} ${memberSession.lastName}`.trim(),
+          role: memberSession.role,
+          storeIds: storeId ? [storeId] : [],
+          permissions: {},
+          lastOnlineAuth: new Date(),
+          sessionCreatedAt: new Date(),
+          defaultStoreId: null,
+        };
+        handleAuthSuccess(session);
       } else {
         setError('Card not recognized');
-        inputRefs.current[0]?.focus();
       }
     } catch (err: unknown) {
-      console.error('Card verification failed:', err);
       setError('Card not recognized');
-      inputRefs.current[0]?.focus();
     } finally {
       setLoading(false);
     }
   }, [storeId, handleAuthSuccess]);
 
-  const handlePinChange = useCallback((index: number, value: string) => {
-    // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
-
-    const newPin = [...pin];
-    newPin[index] = value;
-    setPin(newPin);
+  // Handle PIN change from PinInput component
+  const handlePinChange = useCallback((value: string) => {
+    setPin(value);
     setError(null);
+  }, []);
 
-    // Auto-focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+  // Handle PIN completion - auto-submit when PIN length is reached
+  const handlePinComplete = useCallback((value: string) => {
+    if (value.length >= 4 && !loading && !lockoutInfo.isLocked) {
+      handlePinSubmit(value);
     }
-
-    // Auto-submit when all 4+ digits entered
-    const enteredPin = newPin.join('');
-    if (enteredPin.length >= 4 && !newPin.slice(0, 4).includes('')) {
-      const hasMoreDigits = newPin.slice(4).some(d => d !== '');
-      if (!hasMoreDigits && index === 3) {
-        handlePinSubmit(enteredPin.slice(0, 4));
-      } else if (enteredPin.length === 6) {
-        handlePinSubmit(enteredPin);
-      }
-    }
-  }, [pin, handlePinSubmit]);
-
-  const handleKeyDown = useCallback((index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !pin[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    } else if (e.key === 'Enter') {
-      const enteredPin = pin.join('');
-      if (enteredPin.length >= 4) {
-        handlePinSubmit(enteredPin);
-      }
-    }
-  }, [pin, handlePinSubmit]);
-
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pastedData) {
-      const newPin = ['', '', '', '', '', ''];
-      pastedData.split('').forEach((digit, i) => {
-        if (i < 6) newPin[i] = digit;
-      });
-      setPin(newPin);
-      setError(null);
-
-      const lastIndex = pastedData.length - 1;
-      if (lastIndex >= 0 && lastIndex < 6) {
-        inputRefs.current[lastIndex]?.focus();
-      }
-
-      if (pastedData.length >= 4) {
-        handlePinSubmit(pastedData);
-      }
-    }
-  }, [handlePinSubmit]);
+  }, [handlePinSubmit, loading, lockoutInfo.isLocked]);
 
   if (!isOpen) return null;
 
@@ -375,77 +381,65 @@ export function PinVerificationModal({
           {/* Auth Step */}
           {step === 'auth' && (
             <div className="space-y-6">
-              {/* Member Mode: Show current member */}
-              {isMemberMode && currentMember && (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
-                    {currentMember.firstName?.[0]}{currentMember.lastName?.[0]}
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {currentMember.firstName} {currentMember.lastName}
-                  </p>
+              {/* Member Name Display */}
+              <div className="text-center">
+                {/* Show initials avatar */}
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                  {memberName ? memberName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : <User className="w-8 h-8" />}
                 </div>
-              )}
-
-              {/* Store-Only Mode: Show generic icon */}
-              {!isMemberMode && (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white mx-auto mb-3">
-                    <User className="w-8 h-8" />
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Staff Authentication
+                <p className="text-sm font-medium text-gray-700">
+                  {memberName || 'Staff Member'}
+                </p>
+                {displayActionDescription && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    {displayActionDescription}
                   </p>
-                </div>
-              )}
-
-              {/* Description */}
-              <p className="text-sm text-gray-500 text-center">
-                {displayDescription}
-              </p>
-
-              {/* PIN Input */}
-              <div className="flex justify-center gap-2" onPaste={handlePaste}>
-                {pin.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={el => inputRefs.current[index] = el}
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={e => handlePinChange(index, e.target.value)}
-                    onKeyDown={e => handleKeyDown(index, e)}
-                    disabled={loading || cardScanActive}
-                    className={`
-                      w-12 h-14 text-center text-2xl font-bold border-2 rounded-xl
-                      focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500
-                      transition-all
-                      ${error ? 'border-red-300 bg-red-50' : 'border-gray-200'}
-                      ${digit ? 'bg-purple-50 border-purple-300' : 'bg-gray-50'}
-                      ${index >= 4 ? 'opacity-50' : ''}
-                      ${cardScanActive ? 'opacity-50' : ''}
-                    `}
-                    style={{ WebkitTextSecurity: 'disc' } as React.CSSProperties}
-                  />
-                ))}
+                )}
               </div>
 
-              {/* Card Scan Indicator */}
-              {enableCardScan && (
-                <div className={`flex items-center justify-center gap-2 transition-all ${cardScanActive ? 'text-purple-600' : 'text-gray-400'}`}>
-                  <CreditCard className={`w-4 h-4 ${cardScanActive ? 'animate-pulse' : ''}`} />
-                  <span className="text-xs">
-                    {cardScanActive ? 'Reading card...' : 'or scan staff card'}
-                  </span>
-                  {!cardScanActive && (
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                  )}
+              {/* Lockout Warning */}
+              {lockoutInfo.isLocked && (
+                <div className="flex items-center justify-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <Lock className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-red-700">PIN Locked</p>
+                    <p className="text-xs text-red-600">
+                      Too many failed attempts. Try again in {lockoutInfo.remainingMinutes} {lockoutInfo.remainingMinutes === 1 ? 'minute' : 'minutes'}.
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              {/* PIN Input using PinInput component */}
+              {!lockoutInfo.isLocked && (
+                <>
+                  <PinInput
+                    value={pin}
+                    onChange={handlePinChange}
+                    onComplete={handlePinComplete}
+                    length={4}
+                    disabled={loading || cardScanActive}
+                    error={!!error}
+                    autoFocus
+                  />
+
+                  {/* Card Scan Indicator (legacy feature) */}
+                  {enableCardScan && (
+                    <div className={`flex items-center justify-center gap-2 transition-all ${cardScanActive ? 'text-purple-600' : 'text-gray-400'}`}>
+                      <CreditCard className={`w-4 h-4 ${cardScanActive ? 'animate-pulse' : ''}`} />
+                      <span className="text-xs">
+                        {cardScanActive ? 'Reading card...' : 'or scan staff card'}
+                      </span>
+                      {!cardScanActive && (
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                      )}
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Error Message */}
-              {error && (
+              {error && !lockoutInfo.isLocked && (
                 <div className="flex items-center justify-center gap-2 text-red-600">
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-sm">{error}</span>
@@ -460,12 +454,21 @@ export function PinVerificationModal({
                 </div>
               )}
 
-              {/* Help Text */}
-              {!enableCardScan && (
-                <p className="text-xs text-gray-400 text-center">
-                  Enter your 4-6 digit security PIN
-                </p>
-              )}
+              {/* Forgot PIN Link */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-purple-600 transition-colors"
+                  onClick={() => {
+                    // TODO: Implement admin reset flow navigation
+                    // For now, just show a helpful message
+                    setError('Contact your administrator to reset your PIN.');
+                  }}
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  Forgot PIN?
+                </button>
+              </div>
             </div>
           )}
 

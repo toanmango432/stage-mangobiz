@@ -13,7 +13,8 @@ import { storeAuthManager } from '../../services/storeAuthManager';
 import { selectStore, selectStoreName, selectMember, selectAvailableStores, switchStore, type StoreSession } from '../../store/slices/authSlice';
 import { setPendingBookingClient } from '../../store/slices/uiSlice';
 import { SwitchUserModal } from '../auth/SwitchUserModal';
-import { PinVerificationModal, type VerifiedMember } from '../auth/PinVerificationModal';
+import { PinVerificationModal } from '../auth/PinVerificationModal';
+import type { MemberAuthSession } from '../../types/memberAuth';
 import { GlobalSearchModal } from '../search';
 
 interface TopHeaderBarProps {
@@ -817,8 +818,7 @@ export function TopHeaderBar({
           setShowPinVerificationModal(false);
           setPendingPinAction(null);
         }}
-        onSuccess={(verifiedMember?: VerifiedMember) => {
-          console.log('PIN verified for:', verifiedMember?.memberName);
+        onSuccess={(memberSession: MemberAuthSession) => {
           // Execute the pending action
           if (pendingPinAction === 'settings') {
             onModuleChange?.('more');
@@ -828,7 +828,7 @@ export function TopHeaderBar({
           setPendingPinAction(null);
         }}
         title={pendingPinAction === 'settings' ? 'Access Store Settings' : 'Enter Staff PIN'}
-        description={
+        actionDescription={
           pendingPinAction === 'settings'
             ? 'Enter your staff PIN to access store settings'
             : 'Enter your staff PIN to continue'
