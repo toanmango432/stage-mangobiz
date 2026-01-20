@@ -259,3 +259,25 @@ CREATE INDEX IF NOT EXISTS idx_table_column
   ON table(column) WHERE column IS NOT NULL;
 ```
 **Why:** Prevents migration failures on re-runs and supports incremental deployment.
+
+### Promise Timeout Wrapper Pattern
+Use Promise.race for clean timeout implementation without external dependencies:
+```typescript
+function createTimeoutPromise<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([promise, createTimeoutPromise<T>(ms, message)]);
+}
+
+// Usage:
+const result = await withTimeout(
+  supabase.auth.signInWithPassword({ email, password }),
+  AUTH_TIMEOUT_MS,
+  'Authentication timeout'
+);
+```
+**Why:** Prevents UI hangs during slow network conditions. Separating createTimeoutPromise allows reuse for different timeout scenarios (auth, bcrypt, etc.).

@@ -41,6 +41,9 @@ export const GRACE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 /** Authentication timeout in milliseconds (30 seconds) */
 export const AUTH_TIMEOUT_MS = 30000;
 
+/** bcrypt compare timeout in milliseconds (5 seconds) */
+export const BCRYPT_TIMEOUT_MS = 5000;
+
 // ==================== MODULE STATE ====================
 
 /** Grace checker interval reference (for idempotent start/stop) */
@@ -69,6 +72,25 @@ function createTimeoutPromise<T>(ms: number, message: string): Promise<T> {
  */
 async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([promise, createTimeoutPromise<T>(ms, message)]);
+}
+
+/**
+ * Validate PIN against bcrypt hash with timeout protection
+ *
+ * bcrypt.compare is CPU-intensive and could hang on malicious inputs.
+ * This wrapper adds a timeout to prevent denial-of-service attacks.
+ *
+ * @param pin - The plaintext PIN to validate
+ * @param pinHash - The bcrypt hash to compare against
+ * @returns True if PIN matches, false otherwise
+ * @throws Error with 'PIN validation timeout' on timeout
+ */
+async function validatePin(pin: string, pinHash: string): Promise<boolean> {
+  return withTimeout(
+    bcrypt.compare(pin, pinHash),
+    BCRYPT_TIMEOUT_MS,
+    'PIN validation timeout'
+  );
 }
 
 // ==================== SESSION STORAGE KEYS ====================
@@ -769,8 +791,8 @@ async function loginWithPin(memberId: string, pin: string): Promise<MemberAuthSe
     throw new Error('PIN not configured. Please login online to set up your PIN.');
   }
 
-  // 5. Validate PIN using bcrypt
-  const isValidPin = await bcrypt.compare(pin, pinHash);
+  // 5. Validate PIN using bcrypt (with timeout to prevent DOS)
+  const isValidPin = await validatePin(pin, pinHash);
 
   if (!isValidPin) {
     // 6a. Record failed attempt
@@ -1019,6 +1041,7 @@ export const memberAuthService = {
   OFFLINE_GRACE_DAYS,
   GRACE_CHECK_INTERVAL_MS,
   AUTH_TIMEOUT_MS,
+  BCRYPT_TIMEOUT_MS,
 };
 
 export default memberAuthService;

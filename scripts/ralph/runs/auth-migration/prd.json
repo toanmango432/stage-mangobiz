@@ -794,7 +794,7 @@
         "pnpm test passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "Without timeout, slow network could cause UI to hang indefinitely on login attempt."

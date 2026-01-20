@@ -1512,3 +1512,37 @@ All 6 acceptance criteria met:
 **Next story suggestion:** US-030 (add timeout to Supabase auth calls) has no dependencies, adds robustness, and is backend work in the same file. Or US-033 (verify SecureStorage.set success) has lowest complexity (1).
 
 ---
+
+## 2026-01-20 - US-030: Add timeout to Supabase auth calls
+Commit: 445c73b
+
+**Why this story?** US-030 has the lowest priority (30) among stories with no unmet dependencies, complexity 2. It adds robustness to the auth service by preventing UI hangs during slow network conditions. The memberAuthService.ts code is fresh from previous stories.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:42`: Added AUTH_TIMEOUT_MS constant (30000ms)
+- `apps/store-app/src/services/memberAuthService.ts:48-71`: Added createTimeoutPromise() and withTimeout() helper functions
+- `apps/store-app/src/services/memberAuthService.ts:173-181`: Wrapped signInWithPassword call in withTimeout()
+- `apps/store-app/src/services/memberAuthService.ts:1021`: Added AUTH_TIMEOUT_MS to exports
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:291-340`: Added 2 new timeout tests
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:937-939`: Added constant test for AUTH_TIMEOUT_MS
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ Added AUTH_TIMEOUT_MS constant (30000ms)
+- ✅ Wrapped signInWithPassword in Promise.race with timeout (using withTimeout helper)
+- ✅ Throw clear error message on timeout: 'Authentication timeout'
+- ✅ Added unit test for timeout scenario (3 tests: timeout fires, success before timeout, constant value)
+- ✅ pnpm run typecheck passes
+- ✅ pnpm test passes (56 tests total, all passing)
+
+**Learnings:**
+- Promise.race with a timeout promise is a clean way to implement timeouts without external dependencies
+- Separate createTimeoutPromise helper allows reuse for future timeout wrappers (e.g., US-031 bcrypt)
+- vi.advanceTimersByTime() with fake timers works well for testing timeout scenarios
+
+**Patterns to sync:**
+- Pattern: Timeout Wrapper - Use `withTimeout(promise, ms, message)` helper with Promise.race for clean timeout implementation. Creates reusable pattern for network and CPU-intensive operations.
+
+**Next story suggestion:** US-031 (add timeout to bcrypt.compare) is the natural next step - same pattern, same file, and can reuse the withTimeout helper just created.
+
+---

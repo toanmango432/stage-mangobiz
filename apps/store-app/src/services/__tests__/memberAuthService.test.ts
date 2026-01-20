@@ -441,6 +441,37 @@ describe('memberAuthService', () => {
       const session = await memberAuthService.loginWithPin('member-123', '1234');
       expect(session.memberId).toBe('member-123');
     });
+
+    it('should throw PIN validation timeout when bcrypt.compare times out', async () => {
+      // Create a promise that never resolves (simulates CPU hang from malicious input)
+      vi.mocked(bcrypt.compare).mockImplementation(
+        () => new Promise(() => {
+          // Never resolves - simulates hung bcrypt operation
+        }) as Promise<never>
+      );
+
+      // Start the login attempt
+      const loginPromise = memberAuthService.loginWithPin('member-123', '1234');
+
+      // Allow microtasks to process (async operations before bcrypt.compare)
+      await Promise.resolve();
+
+      // Fast-forward time past the BCRYPT_TIMEOUT_MS (5 seconds)
+      vi.advanceTimersByTime(memberAuthService.BCRYPT_TIMEOUT_MS + 100);
+
+      // The promise should reject with timeout error
+      await expect(loginPromise).rejects.toThrow('PIN validation timeout');
+    });
+
+    it('should complete PIN validation successfully before timeout', async () => {
+      // bcrypt.compare succeeds quickly
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+
+      // PIN login should succeed before timeout
+      const session = await memberAuthService.loginWithPin('member-123', '1234');
+
+      expect(session.memberId).toBe('member-123');
+    });
   });
 
   // ==================== setPin TESTS ====================
@@ -935,6 +966,10 @@ describe('memberAuthService', () => {
 
     it('should export AUTH_TIMEOUT_MS as 30 seconds', () => {
       expect(memberAuthService.AUTH_TIMEOUT_MS).toBe(30000);
+    });
+
+    it('should export BCRYPT_TIMEOUT_MS as 5 seconds', () => {
+      expect(memberAuthService.BCRYPT_TIMEOUT_MS).toBe(5000);
     });
   });
 });
