@@ -1162,3 +1162,97 @@ All 10 acceptance criteria met (with appropriate test coverage):
 **Next story suggestion:** US-022 (PinVerificationModal) has all dependencies met (US-009✅, US-013✅), complexity 2, and unblocks US-026.
 
 ---
+
+## 2026-01-20 - US-022: Update PinVerificationModal for bcrypt PIN validation
+Commit: d3e161d
+
+**Why this story?** US-022's dependencies (US-009✅ loginWithPin, US-013✅ PinInput) are both complete. It has the lowest priority (22) among incomplete stories with all dependencies met. It unblocks US-026 (offline store switching) which depends on it.
+
+**Changes:**
+- `apps/store-app/src/components/auth/PinVerificationModal.tsx:1-483`: Refactored existing modal (not new file)
+  - Updated imports: Added memberAuthService, PinInput, MemberAuthSession type, Lock and HelpCircle icons
+  - Changed props interface: Added optional memberId for specific member verification, added actionDescription (deprecated description), changed enableCardScan default to false, updated onSuccess to return MemberAuthSession
+  - Replaced inline PIN inputs with PinInput component
+  - Added lockout status check on modal open (when memberId provided)
+  - Added lockout warning display with remaining minutes
+  - Added "Forgot PIN?" link that shows admin reset message
+  - Updated handlePinSubmit to use memberAuthService.loginWithPin() for specific member verification
+  - Maintained backwards compatibility for legacy store-only mode (when memberId not provided, falls back to authService.loginMemberWithPin)
+- `apps/store-app/src/components/layout/TopHeaderBar.tsx:16,820-835`: Updated to use new MemberAuthSession type and actionDescription prop
+
+**Implementation Details:**
+- Two modes supported:
+  1. **Specific member mode** (memberId provided): Uses memberAuthService.loginWithPin() with bcrypt validation, checks lockout status, shows member name
+  2. **Legacy store-only mode** (no memberId): Falls back to old authService.loginMemberWithPin() for any staff PIN
+- Lockout status checked on modal open and after each failed attempt
+- "Forgot PIN?" shows helpful message: "Contact your administrator to reset your PIN."
+- PinInput auto-focuses when modal opens (via autoFocus prop)
+- onComplete callback auto-submits when PIN is fully entered
+
+**Browser Verification:**
+- Component renders without errors: PASS
+- Modal shows "Enter Staff PIN" title: PASS
+- PIN input dots display correctly: PASS
+- Auto-focus on PIN input: PASS
+- "Forgot PIN?" link shows admin contact message: PASS
+- Cancel button closes modal: PASS
+- Accessibility (aria-label on PIN input): PASS
+
+**Learnings:**
+- Existing PinVerificationModal was already in place but using old authService - refactored instead of creating new file
+- Maintaining backwards compatibility is important when changing component interfaces
+- deprecated JSDoc annotation useful for signaling prop changes without breaking existing code
+
+**Patterns to sync:**
+- Pattern: Backwards Compatibility - When updating component interfaces, make breaking params optional and support deprecated props with comments. This allows gradual migration without breaking all consumers.
+
+**Next story suggestion:** US-023 (PIN opt-in in member settings) has all dependencies met (US-010✅, US-014✅), complexity 2. Or US-024 (StoreSelectionModal) depends on US-001✅, US-008✅.
+
+---
+
+## 2026-01-20 - US-023: Add PIN opt-in in member settings for offline access
+Commit: 001bded
+
+**Why this story?** US-023's dependencies (US-010✅ PIN management, US-014✅ PinSetupModal) are both complete. It has the lowest priority (23) among incomplete stories with all dependencies met.
+
+**Changes:**
+- `apps/store-app/src/components/modules/settings/categories/AccountLicensingSettings.tsx:1-575` (~200 lines added)
+  - Added imports: useState, useEffect, useCallback, useSelector, useMemberAuth, selectMember, memberAuthService, PinSetupModal, clearSkipPreference, PinVerificationModal, WifiOff, KeyRound, Trash2, Loader2 icons
+  - Added PIN-related state: hasPinConfigured, showPinSetupModal, showPinVerifyModal, showRemoveConfirm, isRemovingPin, pinActionType
+  - Added login context detection: `const { loginContext, memberSession } = useMemberAuth()` and `showPinSettings = loginContext === 'member' && memberId`
+  - Added useEffect to check hasPin on mount when memberId is available
+  - Added handlers: handleSetupPin, handleChangePin, handleRemovePin, handlePinVerified, handlePinSetupComplete, handleRemovePinConfirmed, handleCancelRemove
+  - Added "Offline Access PIN" section within Security section (conditionally rendered when showPinSettings is true)
+  - Section shows WifiOff icon, explanation text, and conditional buttons based on PIN status
+  - Shows "Set up PIN" when no PIN configured
+  - Shows "Change PIN" and "Remove PIN" when PIN exists
+  - Remove PIN shows confirmation dialog with warning text
+  - Added PinSetupModal and PinVerificationModal at component end
+
+**Implementation Details:**
+- PRD specified `apps/store-app/src/components/settings/SecuritySettings.tsx` but this file doesn't exist
+- Found existing `AccountLicensingSettings.tsx` which has a Security section - added PIN settings there
+- PIN settings only visible for member-login users (loginContext === 'member' check)
+- Change PIN flow opens PinVerificationModal first to verify current PIN, then PinSetupModal
+- Remove PIN flow shows confirmation dialog before calling memberAuthService.removePin()
+- Uses useMemberAuth() hook from AuthProvider to get login context
+
+**Browser Verification:**
+- Navigated to localhost:5173 > More > Settings > Account & Billing: PASS
+- "Offline Access PIN" section visible in Security section: PASS
+- "Set up PIN" button displayed (no PIN configured): PASS
+- WifiOff icon and explanation text displayed: PASS
+- Section only shows for member-login context: PASS
+- All acceptance criteria verified: PASS
+
+**Learnings:**
+- PRD file paths may not match actual codebase structure - search for existing files first
+- Integrating into existing settings sections maintains consistency with overall UX
+- useMemberAuth() hook provides loginContext which is key for conditional rendering
+
+**Patterns to sync:**
+- Pattern: Settings Integration - When PRD specifies a new settings file but similar settings exist elsewhere, integrate into existing structure for consistency. Check for existing settings components before creating new ones.
+
+**Next story suggestion:** US-024 (StoreSelectionModal) has all dependencies met (US-001✅, US-008✅), complexity 3. Or US-025 (default store preference) depends on US-001✅, US-008✅, complexity 2.
+
+---
