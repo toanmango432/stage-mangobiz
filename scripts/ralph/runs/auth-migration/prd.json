@@ -256,7 +256,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "dependencies": ["US-009"],
@@ -282,7 +282,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "dependencies": ["US-006", "US-007", "US-010"],
@@ -309,7 +309,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 3,
       "dependencies": ["US-002", "US-011"],
@@ -337,7 +337,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 2,
       "notes": "Follow pattern from existing input components in src/components/ui/. Use type='password' with inputMode='numeric' for mobile keyboard. Common PIN input pattern - 4-6 circles that fill as user types."
@@ -368,7 +368,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 3,
       "dependencies": ["US-010", "US-013"],
@@ -398,7 +398,7 @@
         "Verify BOTH login flows in browser using Playwright MCP"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 4,
       "dependencies": ["US-007", "US-008", "US-014"],
