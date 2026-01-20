@@ -721,7 +721,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 2,
       "notes": "OperationTemplateSetup.tsx is 1,380 lines. Same pattern as US-027/US-030."

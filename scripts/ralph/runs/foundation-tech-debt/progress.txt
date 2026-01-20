@@ -1187,3 +1187,40 @@ Commit: bcd3bdf
 **Next story suggestion:** US-032 (Extract OperationTemplateSetup types and constants) - no dependencies, starts the OperationTemplateSetup modularization series (US-032 to US-034).
 
 ---
+
+## 2026-01-20 - US-032: Extract OperationTemplateSetup types and constants
+Commit: 4bb9e96
+
+**Why this story?** US-032 has no dependencies and starts the OperationTemplateSetup modularization series (US-032 to US-034). US-031 was just completed, so this is a logical next step for continuing the large file refactoring work.
+
+**Changes:**
+- `apps/store-app/src/components/OperationTemplateSetup/types.ts:1-35`: Created types file with:
+  - `OperationTemplateSetupProps` interface
+  - `QuickAnswers` interface
+  - `TemplateDetails` interface (for UI display with computed ratios)
+- `apps/store-app/src/components/OperationTemplateSetup/constants.ts:1-165`: Created constants file with:
+  - `TEMPLATE_SETUP_STYLES` - CSS styles injected via style tag
+  - `TOAST_DISPLAY_DURATION` - 3000ms for toast notification
+  - `SCROLL_DELAY` - 300ms for auto-scrolling
+  - `MOBILE_BREAKPOINT` - 768px for responsive detection
+- `apps/store-app/src/components/OperationTemplateSetup/index.ts:1-17`: Barrel export for module
+- `apps/store-app/src/components/OperationTemplateSetup/OperationTemplateSetup.tsx:1-1223`: Moved main component to folder, updated imports
+- `apps/store-app/src/components/OperationTemplateSetup.tsx:1-22`: Converted to re-export facade for backward compatibility
+
+**Quality Checks:**
+- ✅ TypeScript: No OperationTemplateSetup-related errors (pre-existing test file errors unrelated)
+- ✅ Lint: Pre-existing warnings only (setState in effect, etc. - carried over from original)
+- ✅ No forbidden strings introduced
+
+**Learnings:**
+- Fixed temporal dead zone issue: moved `templates` and `getSuggestedTemplate` declarations before useEffect that uses them
+- Added `isMobile` and `templates` to useEffect dependencies to fix exhaustive-deps warnings
+- CSS styles extracted as single template literal constant for easy management
+- The re-export facade pattern maintains backward compatibility for existing imports
+
+**Patterns to sync:**
+- Pattern #32: Temporal Dead Zone Fix - When useEffect uses functions/variables declared later in the component, move those declarations before the useEffect to avoid accessing them before initialization
+
+**Next story suggestion:** US-033 (Extract OperationTemplateSetup form sections to components) - depends on US-032, continues the modularization.
+
+---
