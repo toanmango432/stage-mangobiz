@@ -346,7 +346,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Add name='priceResolution' and aria-label='Select price resolution option' to RadioGroup. Add aria-label='Custom price' to price input, aria-label='Override reason' to reason input."
     }
   ]
