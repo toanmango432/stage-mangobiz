@@ -114,7 +114,7 @@ import {
 } from '@/services/sqliteServices';
 
 // Domain services (extracted for modularity)
-import { appointmentsService, clientsService, ticketsService, staffService } from '@/services/domain';
+import { appointmentsService, clientsService, ticketsService, staffService, transactionsService } from '@/services/domain';
 
 // API-FIRST: Import API client and endpoints
 import { createAPIClient, endpoints } from '@mango/api-client';
@@ -461,167 +461,8 @@ export const servicesService = {
 
 // Note: appointmentsService is imported from '@/services/domain' (extracted for modularity)
 // Note: ticketsService is imported from '@/services/domain' (extracted for modularity)
+// Note: transactionsService is imported from '@/services/domain' (extracted for modularity)
 
-/**
- * Transactions data operations - LOCAL-FIRST
- * Reads from IndexedDB or SQLite, writes queue for background sync
- *
- * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteTransactionsDB
- */
-export const transactionsService = {
-  async getByDate(date: Date): Promise<Transaction[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    if (USE_SQLITE) {
-      return sqliteTransactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
-    }
-    return transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
-  },
-
-  async getById(id: string): Promise<Transaction | null> {
-    if (USE_SQLITE) {
-      const transaction = await sqliteTransactionsDB.getById(id);
-      return transaction || null;
-    }
-    const transaction = await transactionsDB.getById(id);
-    return transaction || null;
-  },
-
-  async getByTicketId(ticketId: string): Promise<Transaction[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      const allTransactions = await sqliteTransactionsDB.getAll(storeId, 1000);
-      return allTransactions.filter(t => t.ticketId === ticketId);
-    }
-    const allTransactions = await transactionsDB.getAll(storeId, 1000);
-    return allTransactions.filter(t => t.ticketId === ticketId);
-  },
-
-  async getByClientId(clientId: string): Promise<Transaction[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      const allTransactions = await sqliteTransactionsDB.getAll(storeId, 1000);
-      return allTransactions.filter(t => t.clientId === clientId);
-    }
-    const allTransactions = await transactionsDB.getAll(storeId, 1000);
-    return allTransactions.filter(t => t.clientId === clientId);
-  },
-
-  async getByPaymentMethod(paymentMethod: string, date?: Date): Promise<Transaction[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    let transactions: Transaction[];
-    if (date) {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      if (USE_SQLITE) {
-        transactions = await sqliteTransactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
-      } else {
-        transactions = await transactionsDB.getByDateRange(storeId, startOfDay, endOfDay);
-      }
-    } else {
-      if (USE_SQLITE) {
-        transactions = await sqliteTransactionsDB.getAll(storeId, 1000);
-      } else {
-        transactions = await transactionsDB.getAll(storeId, 1000);
-      }
-    }
-    return transactions.filter(t => t.paymentMethod === paymentMethod);
-  },
-
-  async create(transaction: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'>): Promise<Transaction> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-
-    let created: Transaction;
-    if (USE_SQLITE) {
-      created = await sqliteTransactionsDB.create({ ...transaction, storeId });
-    } else {
-      created = await transactionsDB.create({ ...transaction, storeId });
-    }
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('transaction', 'create', created.id, created);
-
-    return created;
-  },
-
-  async update(id: string, updates: Partial<Transaction>): Promise<Transaction | null> {
-    let updated: Transaction | null;
-    if (USE_SQLITE) {
-      updated = await sqliteTransactionsDB.update(id, updates);
-    } else {
-      const result = await transactionsDB.update(id, updates);
-      updated = result ?? null;
-    }
-    if (!updated) return null;
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('transaction', 'update', id, updated);
-
-    return updated;
-  },
-
-  async delete(id: string): Promise<void> {
-    if (USE_SQLITE) {
-      await sqliteTransactionsDB.delete(id);
-    } else {
-      await transactionsDB.delete(id);
-    }
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('transaction', 'delete', id, { id });
-  },
-
-  async getDailySummary(date: Date) {
-    const transactions = await this.getByDate(date);
-    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-    const byPaymentMethod = transactions.reduce((acc, t) => {
-      const method = t.paymentMethod || 'unknown';
-      acc[method] = (acc[method] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      totalTransactions: transactions.length,
-      totalAmount,
-      byPaymentMethod,
-    };
-  },
-
-  async getPaymentBreakdown(date: Date) {
-    const transactions = await this.getByDate(date);
-    return transactions.reduce((acc, t) => {
-      const method = t.paymentMethod || 'unknown';
-      acc[method] = (acc[method] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-  },
-
-  async getUpdatedSince(since: Date): Promise<Transaction[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    const sinceIso = since.toISOString();
-
-    if (USE_SQLITE) {
-      const allTransactions = await sqliteTransactionsDB.getAll(storeId, 1000);
-      return allTransactions.filter(t => t.createdAt >= sinceIso);
-    }
-    const allTransactions = await transactionsDB.getAll(storeId, 1000);
-    return allTransactions.filter(t => t.createdAt >= sinceIso);
-  },
-};
 
 // ==================== PR #2: EXTENDED ENTITY SERVICES ====================
 // These services wrap the 7 IndexedDB modules that were previously accessed directly
@@ -2461,7 +2302,7 @@ const giftCardDesignsService = {
 export { shouldUseSQLite, getBackendType } from '@/config/featureFlags';
 
 // Re-export domain services for backward compatibility
-export { appointmentsService, clientsService, staffService } from '@/services/domain';
+export { appointmentsService, clientsService, staffService, transactionsService } from '@/services/domain';
 
 export const dataService = {
   // Execution helpers
