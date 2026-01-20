@@ -26,3 +26,13 @@ export {
   catalogSettingsService,
   productsService,
 } from './catalogDataService';
+export {
+  timeOffTypesService,
+  timeOffRequestsService,
+  blockedTimeTypesService,
+  blockedTimeEntriesService,
+  businessClosedPeriodsService,
+  resourcesService,
+  resourceBookingsService,
+  staffSchedulesService,
+} from './scheduleDataService';

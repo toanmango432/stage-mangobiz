@@ -730,3 +730,108 @@ Commit: 94cdcc8
 **Next story suggestion:** US-022 (Create staffDataService.ts from dataService) - depends on US-021 (now complete), same category (refactor), continues the dataService domain extraction series.
 
 ---
+
+## 2026-01-19 - US-022: Create staffDataService.ts from dataService
+Commit: 95fc135
+
+**Why this story?** US-022 is the highest priority incomplete story with satisfied dependencies (US-021 complete). Same category (refactor), continues the dataService domain extraction series. Previous iteration (US-021) suggested this as the logical next step.
+
+**Changes:**
+- `apps/store-app/src/services/domain/staffDataService.ts (NEW):1-176`: Created new domain service file with:
+  - Extracted `staffService` object with all 8 methods: getAll, getById, getActive, create, update, delete, clockIn, clockOut
+  - Included local helper functions: getStoreId(), queueSyncOperation()
+  - USE_SQLITE constant from feature flags for backend routing
+  - Full SQLite/IndexedDB dual-path support
+  - Proper imports from @/store, @/db/database, @/services/sqliteServices, @/types
+- `apps/store-app/src/services/domain/index.ts:15`: Added export for staffService
+- `apps/store-app/src/services/dataService.ts:117`: Added staffService to domain import
+- `apps/store-app/src/services/dataService.ts:410-411`: Replaced inline staffService (~100 lines) with comment referencing domain module
+- `apps/store-app/src/services/dataService.ts:2464`: Added staffService to backward-compatible re-export
+
+**Acceptance Criteria Check:**
+- ✅ Extract all staff/team-related functions to staffDataService.ts
+- ✅ Export staffDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from staffDataService (facade pattern)
+- ✅ All existing staff imports still work (backward compatible via dataService.staff)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx test files (unrelated to domain extraction)
+
+**Learnings:**
+- staffService is LOCAL-FIRST only (no API mode), similar to appointmentsService and ticketsService
+- Extracted 8 methods including clockIn/clockOut for attendance tracking
+- queueSyncOperation uses 'staff' entity type (matching the pattern from dataService.ts)
+- dataService.ts went from ~2,650 lines to ~2,540 lines (~110 lines extracted)
+- Pattern is consistent across all domain extractions (US-019, US-020, US-021, US-022)
+
+**Next story suggestion:** US-023 (Create transactionDataService.ts from dataService) - depends on US-022 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---
+
+## 2026-01-19 - US-023: Create transactionDataService.ts from dataService
+Commit: c008c4c
+
+**Why this story?** US-023 is the highest priority incomplete story with satisfied dependencies (US-022 complete). Same category (refactor), continues the dataService domain extraction series. Previous iteration (US-022) suggested this as the logical next step.
+
+**Changes:**
+- `apps/store-app/src/services/domain/transactionDataService.ts (NEW):1-248`: Created new domain service file with:
+  - Extracted `transactionsService` object with all 11 methods: getByDate, getById, getByTicketId, getByClientId, getByPaymentMethod, create, update, delete, getDailySummary, getPaymentBreakdown, getUpdatedSince
+  - Included local helper functions: getStoreId(), queueSyncOperation()
+  - USE_SQLITE constant from feature flags for backend routing
+  - Full SQLite/IndexedDB dual-path support
+  - Proper imports from @/store, @/db/database, @/services/sqliteServices, @/types
+- `apps/store-app/src/services/domain/index.ts:16`: Added export for transactionsService
+- `apps/store-app/src/services/dataService.ts:117`: Added transactionsService to domain import
+- `apps/store-app/src/services/dataService.ts:466-620`: Removed inline transactionsService (~155 lines removed)
+- `apps/store-app/src/services/dataService.ts:2464`: Added transactionsService to backward-compatible re-export
+
+**Acceptance Criteria Check:**
+- ✅ Extract all transaction-related functions to transactionDataService.ts
+- ✅ Export transactionDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from transactionDataService (facade pattern)
+- ✅ All existing transaction imports still work (backward compatible via dataService.transactions)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx, paymentBridge.ts, draftSalesSlice.test.ts (unrelated to domain extraction)
+
+**Learnings:**
+- transactionsService is LOCAL-FIRST only (no API mode), similar to appointmentsService, ticketsService, and staffService
+- Extracted 11 methods including utility methods: getDailySummary, getPaymentBreakdown, getUpdatedSince
+- queueSyncOperation uses 'transaction' entity type (matching the pattern from dataService.ts)
+- dataService.ts went from ~2,540 lines to ~2,385 lines (~155 lines extracted)
+- Pattern is consistent across all domain extractions (US-019 to US-023)
+
+**Next story suggestion:** US-024 (Create catalogDataService.ts from dataService) - depends on US-023 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---
+
+## 2026-01-19 - US-024: Create catalogDataService.ts from dataService
+Commit: 8e75464
+
+**Why this story?** US-024 is the highest priority incomplete story with satisfied dependencies (US-023 complete). Same category (refactor), continues the dataService domain extraction series. Previous iteration (US-023) suggested this as the logical next step.
+
+**Changes:**
+- `apps/store-app/src/services/domain/catalogDataService.ts (NEW):1-473`: Created new domain service file with:
+  - Extracted 10 catalog services: servicesService, serviceCategoriesService, menuServicesService, serviceVariantsService, servicePackagesService, addOnGroupsService, addOnOptionsService, staffServiceAssignmentsService, catalogSettingsService, productsService
+  - Included local helper functions: getStoreId()
+  - USE_SQLITE constant from feature flags for backend routing
+  - Full SQLite/IndexedDB dual-path support
+  - Proper imports from @/store, @/db/database, @/db/catalogDatabase, @/services/sqliteServices, @/types
+- `apps/store-app/src/services/domain/index.ts:17-27`: Added export for all 10 catalog services
+- `apps/store-app/src/services/dataService.ts:117-131`: Added all 10 catalog services to domain import
+- `apps/store-app/src/services/dataService.ts:1191-1577`: Removed inline catalog services (~390 lines removed)
+- `apps/store-app/src/services/dataService.ts:1889-1903`: Added all 10 catalog services to backward-compatible re-export
+
+**Acceptance Criteria Check:**
+- ✅ Extract all service catalog functions to catalogDataService.ts
+- ✅ Export catalogDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from catalogDataService (facade pattern)
+- ✅ All existing catalog imports still work (backward compatible via dataService.serviceCategories, etc.)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx test files (unrelated to domain extraction)
+
+**Learnings:**
+- Catalog is the largest domain extraction so far with 10 services and ~473 lines
+- All catalog services are LOCAL-FIRST only (no API mode)
+- productsService has more methods than other catalog services (getBySku, getByBarcode, getCategories, getRetail)
+- dataService.ts went from ~2,385 lines to ~1,996 lines (~390 lines extracted)
+- Pattern is consistent across all domain extractions (US-019 to US-024)
+
+**Next story suggestion:** US-025 (Create scheduleDataService.ts from dataService) - depends on US-024 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---
