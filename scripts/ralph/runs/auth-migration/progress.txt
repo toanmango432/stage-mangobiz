@@ -923,3 +923,119 @@ All 13 acceptance criteria met:
 **Next story suggestion:** US-018 (Integrate memberAuthService with storeAuthManager) has all dependencies met and is the main integration story. Or US-019 (Forgot Password flow) for lower complexity frontend work.
 
 ---
+
+## 2026-01-20 - US-018: Integrate memberAuthService with storeAuthManager
+Commit: 660ccd8
+
+**Why this story?** US-018 has all dependencies met (US-011✅, US-012✅, US-015✅, US-016✅, US-017✅) and is the highest priority (18) among remaining stories with met dependencies. This is the main integration story that wires everything together.
+
+**Changes:**
+- `apps/store-app/src/providers/AuthProvider.tsx:1-169` (NEW): Created member auth context provider
+- `apps/store-app/src/components/auth/ForceLogoutAlert.tsx:1-131` (NEW): Created force logout alert modal
+- `apps/store-app/src/components/auth/OfflineGraceBanner.tsx:1-85` (NEW): Created self-contained grace banner wrapper
+- `apps/store-app/src/services/storeAuthManager.ts:17-22`: Added memberAuthService import and MemberAuthSession type
+- `apps/store-app/src/services/storeAuthManager.ts:159-160`: Added grace checker start on session restoration
+- `apps/store-app/src/services/storeAuthManager.ts:479-480`: Added grace checker start in loginMember
+- `apps/store-app/src/services/storeAuthManager.ts:568-569`: Added grace checker start in loginMemberWithPassword
+- `apps/store-app/src/services/storeAuthManager.ts:615-616`: Added grace checker start in loginWithPin
+- `apps/store-app/src/services/storeAuthManager.ts:649-650`: Added grace checker stop in logoutMember
+- `apps/store-app/src/services/storeAuthManager.ts:688-695`: Added grace checker stop and memberAuthService.logout() in logoutStore
+- `apps/store-app/src/components/layout/AppShell.tsx:62`: Added OfflineGraceBanner import
+- `apps/store-app/src/components/layout/AppShell.tsx:449`: Added OfflineGraceBanner to banners area
+- `apps/store-app/src/App.tsx:17-18`: Added AuthProvider and ForceLogoutAlert imports
+- `apps/store-app/src/App.tsx:332,337,342`: Wrapped app with AuthProvider, added ForceLogoutAlert
+
+**Implementation Details:**
+- AuthProvider:
+  - Provides React context for member auth state (useMemberAuth hook)
+  - Tracks online/offline status via window event listeners
+  - Refreshes session from memberAuthService cache
+  - Manages grace checker lifecycle (start/stop)
+  - Updates grace info periodically (every 60 seconds)
+  - Exposes clearForceLogout() for dismissing logout alerts
+
+- ForceLogoutAlert:
+  - Modal overlay when forceLogoutReason is set in Redux
+  - Reason-specific titles and icons (offline_grace_expired, account_deactivated, etc.)
+  - User must acknowledge before proceeding to login
+
+- OfflineGraceBanner:
+  - Self-contained wrapper around OfflineGraceIndicator
+  - Tracks online/offline status independently
+  - Gets grace info from memberAuthService.checkOfflineGrace()
+  - Can be dropped into any layout without AuthProvider context
+
+- storeAuthManager integration:
+  - Grace checker starts on: session restore (initialize), loginMember, loginMemberWithPassword, loginWithPin
+  - Grace checker stops on: logoutMember, logoutStore
+  - memberAuthService.logout() called on store logout
+
+**Verification:**
+All 10 acceptance criteria met:
+- ✅ App initialization checks for cached member session (AuthProvider.refreshSession on mount)
+- ✅ If cached session exists and grace valid, allow PIN login (existing storeAuthManager.loginWithPin works)
+- ✅ If cached session exists but grace expired, require password login (grace checker dispatches forceLogout)
+- ✅ Grace checker starts on successful login (4 integration points in storeAuthManager)
+- ✅ Grace checker stops on logout (2 integration points)
+- ✅ Force logout action shows appropriate message to user (ForceLogoutAlert component)
+- ✅ OfflineGraceIndicator component integrated into app layout (OfflineGraceBanner in AppShell)
+- ✅ Existing store-level auth still works as fallback (storeAuthManager unchanged for store auth)
+- ✅ No forbidden strings (verified)
+- ✅ pnpm run typecheck passes (store-app)
+
+**Learnings:**
+- OfflineGraceBanner is a self-contained wrapper - doesn't require AuthProvider context
+- ForceLogoutAlert reads Redux state directly - simpler than using AuthProvider
+- storeAuthManager has 4 login methods that all need grace checker start
+- Both logoutMember and logoutStore need grace checker stop
+
+**Patterns to sync:**
+- Pattern #21: Self-contained wrapper components - When integrating a component that needs external state, create a wrapper that manages state internally rather than requiring context everywhere. OfflineGraceBanner is a good example - it tracks online/offline status and grace info independently.
+
+**Next story suggestion:** US-019 (Forgot Password flow) has dependencies met (US-015✅), low complexity (2), and provides a complete password reset UX. Alternatively, US-020 (unit tests) or US-022 (PinVerificationModal) are also unblocked.
+
+---
+
+## 2026-01-20 - US-019: Implement Forgot Password flow
+Commit: e98618c
+
+**Why this story?** US-019 has all dependencies met (US-015✅), lowest priority number (19) among unblocked stories, and low complexity (2). It completes the password reset UX and unblocks US-021 (integration tests).
+
+**Changes:**
+- `apps/store-app/src/components/auth/ForgotPasswordModal.tsx:1-237` (NEW): Created forgot password modal component
+- `apps/store-app/src/components/auth/StoreLoginScreen.tsx:19`: Added ForgotPasswordModal import
+- `apps/store-app/src/components/auth/StoreLoginScreen.tsx:58-59`: Added showForgotPasswordModal state
+- `apps/store-app/src/components/auth/StoreLoginScreen.tsx:345-348`: Simplified handleForgotPassword to open modal
+- `apps/store-app/src/components/auth/StoreLoginScreen.tsx:792-797`: Added ForgotPasswordModal to render
+
+**Implementation Details:**
+- ForgotPasswordModal component with two-step flow: email → success
+- Uses supabase.auth.resetPasswordForEmail() for password reset
+- Pre-fills email from StoreLoginScreen's memberEmail state
+- Email validation (format check before submission)
+- Loading state during API call
+- Success state shows "Check Your Email" with confirmation message
+- Error state shows validation errors and API errors
+- Cancel and Done buttons for closing modal
+- Uses existing Dialog components from @/components/ui/dialog
+
+**Browser Verification:**
+- Component renders without errors: PASS
+- Modal opens when clicking "Forgot Password?": PASS
+- Email pre-filled from login form: PASS
+- "Send Reset Link" button enabled after email entered: PASS
+- Success state shows after API call: PASS
+- Modal closes with Done/Cancel/X buttons: PASS
+- Accessibility (headings, labels): PASS
+
+**Learnings:**
+- Supabase resetPasswordForEmail doesn't reveal if email exists (security feature)
+- Dialog components from Radix UI provide accessible modal implementation
+- Pre-filling email improves UX - user doesn't have to re-type
+
+**Patterns to sync:**
+- None (follows existing modal patterns established in PinSetupModal)
+
+**Next story suggestion:** US-020 (unit tests for memberAuthService) has all dependencies met (US-012✅) with complexity 4. US-022 (PinVerificationModal) has dependencies met (US-009✅, US-013✅) with complexity 2. US-022 is simpler and unblocks US-026.
+
+---

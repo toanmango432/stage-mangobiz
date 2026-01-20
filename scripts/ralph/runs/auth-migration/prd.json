@@ -485,7 +485,7 @@
         "Verify full login flow in browser using Playwright MCP"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 4,
       "dependencies": ["US-011", "US-012", "US-015", "US-016", "US-017"],
@@ -511,7 +511,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 2,
       "dependencies": ["US-015"],
