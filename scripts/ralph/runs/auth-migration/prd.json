@@ -1046,7 +1046,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 1,
       "notes": "Currently no recovery path when member fetch fails."
@@ -1066,7 +1066,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "dependencies": [

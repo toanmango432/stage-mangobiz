@@ -1867,3 +1867,98 @@ All 6 acceptance criteria met:
 **Next story suggestion:** US-039 (Add retry button for failed member fetch) is frontend, complexity 1, no dependencies. Or US-040 (Add database retry logic in migration script) depends on US-027✅ and US-028✅.
 
 ---
+
+## 2026-01-20 - US-039: Add retry button for failed member fetch
+Commit: b271234
+
+**Why this story?** US-039 has the lowest priority (39) among incomplete stories with no unmet dependencies, and complexity 1. It's a straightforward frontend fix for the SwitchUserModal - adding a retry button when member loading fails.
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:523-536`: Added conditional rendering for error state with "Try again" button
+
+**Implementation Details:**
+- Added error state check: `error && error.includes('Failed to load')`
+- Shows AlertCircle icon (red-300) with error message
+- "Try again" button clears error and calls `fetchMembers()`
+- Button styled consistently with other modal buttons (text-blue-600, hover states, rounded-lg)
+
+**Verification:**
+All 4 acceptance criteria met:
+- ✅ Show 'Try again' button when error contains 'Failed to load' (line 523)
+- ✅ Button calls fetchMembers() on click (lines 528-531)
+- ✅ Button styled consistently with other modal buttons (line 532)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Error state should be cleared before retrying to avoid stale error display
+- Consistent button styling uses text-blue-600 with hover:text-blue-700 and hover:bg-blue-50
+
+**Patterns to sync:**
+- None (standard retry pattern)
+
+**Next story suggestion:** US-040 (Add database retry logic in migration script) has all dependencies met (US-027✅, US-028✅), complexity 2. Or US-042/US-043/US-044/US-045/US-046 have no dependencies with lower complexity.
+
+---
+## 2026-01-20 - US-040: Add database retry logic in migration script
+Commit: 8c6a078
+
+**Why this story?** US-040 has all dependencies met (US-027✅, US-028✅), complexity 2, and priority 40 (lowest among remaining incomplete stories). It improves migration resilience by handling transient network failures.
+
+**Changes:**
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:80-84`: Added DB_RETRY_ATTEMPTS=3 and DB_RETRY_BASE_DELAY_MS=1000 config constants
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:91-104`: Added MemberRow interface for type safety
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:233-276`: Created updateWithRetry<T>() generic helper function
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:405-419`: Wrapped member update call in retry logic
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:521-529`: Wrapped batch fetch query in retry logic
+
+**Implementation Details:**
+- `updateWithRetry<T>()` helper: Executes operation with 3 retries and exponential backoff
+- Exponential backoff: 1s, 2s, 4s delays between retries
+- Only retries on transient errors: network, timeout, rate limit, connection, econnreset, socket
+- Non-retryable errors (permission denied, invalid query) return immediately without retry
+- Logs retry attempts with operation name and delay time
+- Returns original error after all retries exhausted
+
+**Retryable Error Detection:**
+| Error Pattern | Reason |
+|---------------|--------|
+| `network` | Network connectivity issues |
+| `timeout` | Request timeout |
+| `rate limit` | API rate limiting |
+| `connection` | Connection refused/reset |
+| `econnreset` | TCP connection reset |
+| `socket` | Socket errors |
+
+**Verification:**
+All 5 acceptance criteria met:
+- ✅ Create updateWithRetry helper function
+- ✅ 3 retries with exponential backoff (1s, 2s, 4s)
+- ✅ Wrap database update calls in retry logic
+- ✅ Log retry attempts
+- ✅ pnpm run typecheck passes (store-app package)
+
+**Learnings:**
+- TypeScript generics need explicit type parameters when inferring from complex Supabase query builders
+- MemberRow type needed for proper type inference in batch fetch
+- Pre-existing @mango/supabase tsconfig error is unrelated to migration script changes
+
+**Patterns to sync:**
+- Pattern: Database Retry with Exponential Backoff - For Supabase operations that may fail due to transient network issues, wrap in updateWithRetry<T>() with exponential backoff. Only retry on network-related errors, not business logic errors.
+
+**Next story suggestion:** US-041 (Add checkpoint/resume to migration script) depends on US-040✅ and is the natural next step to complete migration resilience. Or US-042/US-043/US-044/US-045/US-046 have no dependencies.
+
+---
+## Session Summary - 2026-01-20
+
+**Completed this session:** 1 story (US-040)
+**Total progress:** 40/52 stories (77%)
+
+**Blocked stories:** None
+
+**Patterns synced:** 1 new pattern (Database Retry with Exponential Backoff)
+
+**Next session should:**
+- Start with: US-041 (Add checkpoint/resume to migration script) - continues migration resilience work
+- Alternative: US-042, US-043, US-045, US-046 have no dependencies and could be done in parallel
+
+---
