@@ -14,3 +14,15 @@ export { clientsService } from './clientDataService';
 export { ticketsService } from './ticketDataService';
 export { staffService } from './staffDataService';
 export { transactionsService } from './transactionDataService';
+export {
+  servicesService,
+  serviceCategoriesService,
+  menuServicesService,
+  serviceVariantsService,
+  servicePackagesService,
+  addOnGroupsService,
+  addOnOptionsService,
+  staffServiceAssignmentsService,
+  catalogSettingsService,
+  productsService,
+} from './catalogDataService';

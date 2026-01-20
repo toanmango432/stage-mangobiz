@@ -114,7 +114,23 @@ import {
 } from '@/services/sqliteServices';
 
 // Domain services (extracted for modularity)
-import { appointmentsService, clientsService, ticketsService, staffService, transactionsService } from '@/services/domain';
+import {
+  appointmentsService,
+  clientsService,
+  ticketsService,
+  staffService,
+  transactionsService,
+  servicesService,
+  serviceCategoriesService,
+  menuServicesService,
+  serviceVariantsService,
+  servicePackagesService,
+  addOnGroupsService,
+  addOnOptionsService,
+  staffServiceAssignmentsService,
+  catalogSettingsService,
+  productsService,
+} from '@/services/domain';
 
 // API-FIRST: Import API client and endpoints
 import { createAPIClient, endpoints } from '@mango/api-client';
@@ -409,56 +425,7 @@ const USE_SQLITE = shouldUseSQLite();
 
 // Note: clientsService is imported from '@/services/domain' (extracted for modularity)
 // Note: staffService is imported from '@/services/domain' (extracted for modularity)
-
-/**
- * Services data operations - LOCAL-FIRST
- * Reads from IndexedDB or SQLite (services are read-only in POS, managed via Admin)
- *
- * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteServicesDB
- */
-export const servicesService = {
-  async getAll(): Promise<Service[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      return sqliteServicesDB.getAll(storeId);
-    }
-    return servicesDB.getAll(storeId);
-  },
-
-  async getById(id: string): Promise<Service | null> {
-    if (USE_SQLITE) {
-      const service = await sqliteServicesDB.getById(id);
-      return service || null;
-    }
-    const service = await servicesDB.getById(id);
-    return service || null;
-  },
-
-  async getActive(): Promise<Service[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      const services = await sqliteServicesDB.getAll(storeId);
-      return services.filter(s => s.isActive);
-    }
-    const services = await servicesDB.getAll(storeId);
-    return services.filter(s => s.isActive);
-  },
-
-  async getByCategory(category: string): Promise<Service[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      return sqliteServicesDB.getByCategory(storeId, category);
-    }
-    return servicesDB.getByCategory(storeId, category);
-  },
-};
-
+// Note: servicesService is imported from '@/services/domain' (extracted for modularity)
 // Note: appointmentsService is imported from '@/services/domain' (extracted for modularity)
 // Note: ticketsService is imported from '@/services/domain' (extracted for modularity)
 // Note: transactionsService is imported from '@/services/domain' (extracted for modularity)
@@ -1222,392 +1189,10 @@ export const syncQueueService = {
 };
 
 // ==================== CATALOG SERVICES ====================
-
-const serviceCategoriesService = {
-  async getAll(storeId: string, includeInactive = false) {
-    if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.getAll(storeId, includeInactive);
-    }
-    return serviceCategoriesDB.getAll(storeId, includeInactive);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.getById(id);
-    }
-    return serviceCategoriesDB.getById(id);
-  },
-
-  async create(input: unknown, userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.create(input);
-    }
-    return serviceCategoriesDB.create(input as Parameters<typeof serviceCategoriesDB.create>[0], userId, storeId);
-  },
-
-  async update(id: string, updates: unknown, userId: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.update(id, updates);
-    }
-    return serviceCategoriesDB.update(id, updates as Partial<unknown>, userId);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceCategoriesDB.delete(id);
-    }
-    return serviceCategoriesDB.delete(id);
-  },
-};
-
-const menuServicesService = {
-  async getAll(storeId: string, includeInactive = false) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.getAll(storeId, includeInactive);
-    }
-    return menuServicesDB.getAll(storeId, includeInactive);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.getById(id);
-    }
-    return menuServicesDB.getById(id);
-  },
-
-  async getByCategory(storeId: string, categoryId: string) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.getByCategory(storeId, categoryId);
-    }
-    return menuServicesDB.getByCategory(storeId, categoryId);
-  },
-
-  async create(input: unknown, userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.create(input);
-    }
-    return menuServicesDB.create(input as Parameters<typeof menuServicesDB.create>[0], userId, storeId);
-  },
-
-  async update(id: string, updates: unknown, userId: string) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.update(id, updates);
-    }
-    return menuServicesDB.update(id, updates as Partial<unknown>, userId);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.delete(id);
-    }
-    return menuServicesDB.delete(id);
-  },
-
-  async search(storeId: string, query: string) {
-    if (USE_SQLITE) {
-      return sqliteMenuServicesDB.search(storeId, query);
-    }
-    return menuServicesDB.search(storeId, query);
-  },
-};
-
-const serviceVariantsService = {
-  async getByService(serviceId: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceVariantsDB.getByService(serviceId);
-    }
-    return serviceVariantsDB.getByService(serviceId);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceVariantsDB.getById(id);
-    }
-    return serviceVariantsDB.getById(id);
-  },
-
-  async create(input: unknown, _userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceVariantsDB.create(input);
-    }
-    // Dexie API: create(input, storeId) - no userId
-    return serviceVariantsDB.create(input as Parameters<typeof serviceVariantsDB.create>[0], storeId);
-  },
-
-  async update(id: string, updates: unknown, _userId: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceVariantsDB.update(id, updates);
-    }
-    // Dexie API: update(id, updates) - no userId
-    return serviceVariantsDB.update(id, updates as Partial<unknown>);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteServiceVariantsDB.delete(id);
-    }
-    return serviceVariantsDB.delete(id);
-  },
-};
-
-const servicePackagesService = {
-  async getAll(storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteServicePackagesDB.getAll(storeId);
-    }
-    return servicePackagesDB.getAll(storeId);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteServicePackagesDB.getById(id);
-    }
-    return servicePackagesDB.getById(id);
-  },
-
-  async create(input: unknown, userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteServicePackagesDB.create(input);
-    }
-    return servicePackagesDB.create(input as Parameters<typeof servicePackagesDB.create>[0], userId, storeId);
-  },
-
-  async update(id: string, updates: unknown, userId: string) {
-    if (USE_SQLITE) {
-      return sqliteServicePackagesDB.update(id, updates);
-    }
-    return servicePackagesDB.update(id, updates as Partial<unknown>, userId);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteServicePackagesDB.delete(id);
-    }
-    return servicePackagesDB.delete(id);
-  },
-
-  // Note: search not available in Dexie servicePackagesDB - can be added later if needed
-};
-
-const addOnGroupsService = {
-  async getAll(storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnGroupsDB.getAll(storeId);
-    }
-    return addOnGroupsDB.getAll(storeId);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnGroupsDB.getById(id);
-    }
-    return addOnGroupsDB.getById(id);
-  },
-
-  async create(input: unknown, _userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnGroupsDB.create(input);
-    }
-    // Dexie API: create(input, storeId) - no userId
-    return addOnGroupsDB.create(input as Parameters<typeof addOnGroupsDB.create>[0], storeId);
-  },
-
-  async update(id: string, updates: unknown, _userId: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnGroupsDB.update(id, updates);
-    }
-    // Dexie API: update(id, updates) - no userId
-    return addOnGroupsDB.update(id, updates as Partial<unknown>);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnGroupsDB.delete(id);
-    }
-    return addOnGroupsDB.delete(id);
-  },
-};
-
-const addOnOptionsService = {
-  async getByGroup(groupId: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnOptionsDB.getByGroup(groupId);
-    }
-    return addOnOptionsDB.getByGroup(groupId);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnOptionsDB.getById(id);
-    }
-    return addOnOptionsDB.getById(id);
-  },
-
-  async create(input: unknown, _userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnOptionsDB.create(input);
-    }
-    // Dexie API: create(input, storeId) - no userId
-    return addOnOptionsDB.create(input as Parameters<typeof addOnOptionsDB.create>[0], storeId);
-  },
-
-  async update(id: string, updates: unknown, _userId: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnOptionsDB.update(id, updates);
-    }
-    // Dexie API: update(id, updates) - no userId
-    return addOnOptionsDB.update(id, updates as Partial<unknown>);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteAddOnOptionsDB.delete(id);
-    }
-    return addOnOptionsDB.delete(id);
-  },
-};
-
-const staffServiceAssignmentsService = {
-  async getByStaff(storeId: string, staffId: string) {
-    if (USE_SQLITE) {
-      return sqliteStaffServiceAssignmentsDB.getByStaff(staffId);
-    }
-    // Dexie API: getByStaff(storeId, staffId)
-    return staffServiceAssignmentsDB.getByStaff(storeId, staffId);
-  },
-
-  async getByService(storeId: string, serviceId: string) {
-    if (USE_SQLITE) {
-      return sqliteStaffServiceAssignmentsDB.getByService(serviceId);
-    }
-    // Dexie API: getByService(storeId, serviceId)
-    return staffServiceAssignmentsDB.getByService(storeId, serviceId);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteStaffServiceAssignmentsDB.getById(id);
-    }
-    return staffServiceAssignmentsDB.getById(id);
-  },
-
-  async create(input: unknown, _userId: string, storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteStaffServiceAssignmentsDB.create(input);
-    }
-    // Dexie API: create(input, storeId) - no userId
-    return staffServiceAssignmentsDB.create(input as Parameters<typeof staffServiceAssignmentsDB.create>[0], storeId);
-  },
-
-  async update(id: string, updates: unknown, _userId: string) {
-    if (USE_SQLITE) {
-      return sqliteStaffServiceAssignmentsDB.update(id, updates);
-    }
-    // Dexie API: update(id, updates) - no userId
-    return staffServiceAssignmentsDB.update(id, updates as Partial<unknown>);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteStaffServiceAssignmentsDB.delete(id);
-    }
-    return staffServiceAssignmentsDB.delete(id);
-  },
-};
-
-const catalogSettingsService = {
-  async get(storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteCatalogSettingsDB.get(storeId);
-    }
-    return catalogSettingsDB.get(storeId);
-  },
-
-  async set(storeId: string, settings: unknown, _userId: string) {
-    if (USE_SQLITE) {
-      return sqliteCatalogSettingsDB.set(storeId, settings);
-    }
-    // Dexie API: update(storeId, updates) - no userId
-    return catalogSettingsDB.update(storeId, settings as Partial<unknown>);
-  },
-};
-
-const productsService = {
-  async getAll(storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getAll(storeId);
-    }
-    return productsDB.getAll(storeId);
-  },
-
-  async getById(id: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getById(id);
-    }
-    return productsDB.getById(id);
-  },
-
-  async getByCategory(storeId: string, categoryId: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getByCategory(storeId, categoryId);
-    }
-    return productsDB.getByCategory(storeId, categoryId);
-  },
-
-  async create(input: unknown, _userId: string, storeId: string, tenantId?: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.create(input);
-    }
-    // Dexie API: create(data, storeId, tenantId) - no userId
-    return productsDB.create(input as Parameters<typeof productsDB.create>[0], storeId, tenantId || storeId);
-  },
-
-  async update(id: string, updates: unknown, _userId: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.update(id, updates);
-    }
-    // Dexie API: update(id, changes) - no userId
-    return productsDB.update(id, updates as Partial<unknown>);
-  },
-
-  async delete(id: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.delete(id);
-    }
-    return productsDB.delete(id);
-  },
-
-  // Note: search not available in Dexie productsDB
-
-  async getBySku(storeId: string, sku: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getBySku(storeId, sku);
-    }
-    return productsDB.getBySku(storeId, sku);
-  },
-
-  async getByBarcode(storeId: string, barcode: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getByBarcode(barcode);
-    }
-    // Dexie API: getByBarcode(storeId, barcode)
-    return productsDB.getByBarcode(storeId, barcode);
-  },
-
-  async getCategories(storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getCategories(storeId);
-    }
-    return productsDB.getCategories(storeId);
-  },
-
-  async getRetail(storeId: string) {
-    if (USE_SQLITE) {
-      return sqliteProductsDB.getRetail(storeId);
-    }
-    return productsDB.getRetail(storeId);
-  },
-};
+// Note: Catalog services are imported from '@/services/domain' (extracted for modularity)
+// Includes: servicesService, serviceCategoriesService, menuServicesService, serviceVariantsService,
+//           servicePackagesService, addOnGroupsService, addOnOptionsService, staffServiceAssignmentsService,
+//           catalogSettingsService, productsService
 
 // ==================== SCHEDULING SERVICES ====================
 
@@ -2302,7 +1887,22 @@ const giftCardDesignsService = {
 export { shouldUseSQLite, getBackendType } from '@/config/featureFlags';
 
 // Re-export domain services for backward compatibility
-export { appointmentsService, clientsService, staffService, transactionsService } from '@/services/domain';
+export {
+  appointmentsService,
+  clientsService,
+  staffService,
+  transactionsService,
+  servicesService,
+  serviceCategoriesService,
+  menuServicesService,
+  serviceVariantsService,
+  servicePackagesService,
+  addOnGroupsService,
+  addOnOptionsService,
+  staffServiceAssignmentsService,
+  catalogSettingsService,
+  productsService,
+} from '@/services/domain';
 
 export const dataService = {
   // Execution helpers
