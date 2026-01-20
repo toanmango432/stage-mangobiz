@@ -13,8 +13,20 @@ import PaymentModal from '../PaymentModal';
 
 // Mock Dialog component from Radix UI
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) => (
-    open ? <div data-testid="payment-modal-dialog">{children}</div> : null
+  Dialog: ({ open, onOpenChange, children }: { open: boolean; onOpenChange?: (open: boolean) => void; children: React.ReactNode }) => (
+    open ? (
+      <div data-testid="payment-modal-dialog">
+        {/* Close button to trigger onOpenChange */}
+        <button
+          data-testid="dialog-close-button"
+          onClick={() => onOpenChange?.(false)}
+          aria-label="Close dialog"
+        >
+          ×
+        </button>
+        {children}
+      </div>
+    ) : null
   ),
   DialogContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div data-testid="dialog-content" className={className}>{children}</div>
@@ -137,6 +149,25 @@ describe('PaymentModal', () => {
 
       // Modal dialog should NOT be in the document
       expect(screen.queryByTestId('payment-modal-dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('closing', () => {
+    it('should call onClose when close button is clicked', async () => {
+      const mockOnClose = vi.fn();
+      renderWithProvider(<PaymentModal {...defaultProps} onClose={mockOnClose} />);
+
+      // Modal should be open
+      expect(screen.getByTestId('payment-modal-dialog')).toBeInTheDocument();
+
+      // Click the close button
+      const closeButton = screen.getByTestId('dialog-close-button');
+      await act(async () => {
+        fireEvent.click(closeButton);
+      });
+
+      // onClose should have been called
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
   });
 
