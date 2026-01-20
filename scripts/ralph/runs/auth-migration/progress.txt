@@ -1962,3 +1962,52 @@ All 5 acceptance criteria met:
 - Alternative: US-042, US-043, US-045, US-046 have no dependencies and could be done in parallel
 
 ---
+## 2026-01-20 - US-041: Add checkpoint/resume to migration script
+Commit: af43069
+
+**Why this story?** US-041 was suggested by the previous iteration as the natural next step after US-040 (retry logic). It continues the migration script resilience work and all dependencies are met (US-040✅). The migration script code is fresh in context from the previous iteration.
+
+**Changes:**
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:88`: Added CHECKPOINT_FILE config constant
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:123-147`: Added MigrationCheckpoint interface
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:520-621`: Added checkpoint management functions:
+  - `getCheckpointFilePath()`: Returns checkpoint file path
+  - `loadCheckpoint()`: Loads checkpoint from file, validates structure, returns null if invalid
+  - `saveCheckpoint()`: Saves checkpoint after each batch with result counts and processed IDs
+  - `deleteCheckpoint()`: Deletes checkpoint file on successful completion
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:651-697`: Updated main() to resume from checkpoint:
+  - Loads checkpoint on startup
+  - Resumes from last completed batch + 1
+  - Tracks processed member IDs for deduplication
+  - Saves checkpoint after each batch
+  - Saves checkpoint before exit on fetch error
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:762`: Deletes checkpoint on successful completion (non-DRY_RUN)
+
+**Implementation Details:**
+- MigrationCheckpoint interface tracks: lastBatchCompleted, totalProcessed, timestamp, result counts, processedMemberIds
+- Checkpoint saved after each successful batch (not member) for efficiency
+- Processed member IDs array enables deduplication on resume
+- Checkpoint file has restricted permissions (0o600) like email failures file
+- Checkpoint deleted only on successful completion and non-DRY_RUN mode
+- Invalid/corrupted checkpoint file causes fresh start (graceful degradation)
+
+**Verification:**
+All 5 acceptance criteria met:
+- ✅ Create saveCheckpoint() to write progress to migration_checkpoint.json
+- ✅ Create loadCheckpoint() to read progress on startup
+- ✅ Save checkpoint after each successful batch (line 742)
+- ✅ Resume from checkpoint if file exists (lines 651-666)
+- ✅ pnpm run typecheck passes (store-app package)
+
+**Learnings:**
+- Checkpoint validation should check all fields to handle corrupted files gracefully
+- Tracking processed member IDs enables deduplication even if query returns overlapping results
+- Saving checkpoint before exit on error allows recovery from network failures mid-migration
+- DRY_RUN mode should not delete checkpoint (allows testing resume without full migration)
+
+**Patterns to sync:**
+- Pattern: Checkpoint/Resume - For long-running batch operations, save checkpoint after each batch with: batch number, total processed, timestamp, result counts, and processed entity IDs for deduplication. Validate checkpoint structure on load and fall back to fresh start if invalid.
+
+**Next story suggestion:** US-042 (ARIA labels to PIN display) has no dependencies and complexity 1. Or US-045 (listener cleanup in storeAuthManager) also has no dependencies and complexity 1.
+
+---

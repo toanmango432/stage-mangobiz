@@ -1090,7 +1090,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "dependencies": [
