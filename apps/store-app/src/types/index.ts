@@ -244,3 +244,6 @@ export type {
 
 // Activity Logs (audit trail)
 export * from './activityLog';
+
+// Member Authentication (Supabase Auth integration)
+export * from './memberAuth';
