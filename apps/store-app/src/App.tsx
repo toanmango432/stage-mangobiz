@@ -14,6 +14,8 @@ import { authService } from './services/supabase';
 import { TooltipProvider } from './components/ui/tooltip';
 import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
 import { ConflictNotificationProvider } from './providers/ConflictNotificationContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { ForceLogoutAlert } from './components/auth/ForceLogoutAlert';
 import { MigrationProgress, type MigrationProgressInfo } from './components/MigrationProgress';
 import { isMigrationNeeded, runDataMigration } from './services/migrationService';
 import { getSQLiteAdapter } from './services/sqliteServices';
@@ -327,14 +329,17 @@ export function App() {
   return (
     <ErrorBoundary module="app">
       <Provider store={store}>
-        <SupabaseSyncProvider autoSyncInterval={0} enableRealtime={true}>
-          <ConflictNotificationProvider>
-            <TooltipProvider>
-              <AppShell />
-              <Toaster {...toasterConfig} />
-            </TooltipProvider>
-          </ConflictNotificationProvider>
-        </SupabaseSyncProvider>
+        <AuthProvider loginContext="member">
+          <SupabaseSyncProvider autoSyncInterval={0} enableRealtime={true}>
+            <ConflictNotificationProvider>
+              <TooltipProvider>
+                <AppShell />
+                <ForceLogoutAlert />
+                <Toaster {...toasterConfig} />
+              </TooltipProvider>
+            </ConflictNotificationProvider>
+          </SupabaseSyncProvider>
+        </AuthProvider>
       </Provider>
     </ErrorBoundary>
   );

@@ -867,3 +867,59 @@ All 9 acceptance criteria met:
 **Next story suggestion:** US-018 (Integrate memberAuthService with storeAuthManager) now has all dependencies met (US-011✅, US-012✅, US-015✅, US-016✅, US-017✅). Alternatively, US-019 (Forgot Password flow) has lower complexity.
 
 ---
+
+## 2026-01-20 - US-004: Create member migration script
+Commit: 5772b4b
+
+**Why this story?** US-004 has all dependencies met (US-001✅, US-002✅, US-003✅), highest priority (4) among remaining stories, and is a backend script that uses the migration utilities created in US-003. Good variety after recent frontend work.
+
+**Changes:**
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:1-503` (NEW): Created production-ready migration script
+
+**Implementation Details:**
+- `main()`: Entry point that processes members in batches
+- `migrateMember()`: Migrates a single member to Supabase Auth
+- `findExistingAuthUser()`: Uses getUserByEmail() for efficient lookup (not listUsers())
+- `sendWelcomeEmailWithRetry()`: 3 attempts with exponential backoff
+- `writeEmailFailures()`: Writes failures to JSON with 0o600 permissions
+- CONFIG object centralizes all configuration constants
+
+**Key Features:**
+- Reads DRY_RUN env var to preview changes without committing
+- Uses BATCH_SIZE = 50 for pagination (avoids memory issues)
+- Uses supabaseAdmin.auth.admin.getUserByEmail() for efficient lookup
+- Creates new Supabase Auth user if email not found
+- Links to existing auth user if email exists (Control Center case)
+- Hashes existing PIN with bcrypt (cost factor 12)
+- Preserves original PIN in pin_legacy column for rollback
+- Clears plaintext pin column after hashing
+- Logs email failures to migration_email_failures.json with restricted permissions
+
+**Verification:**
+All 13 acceptance criteria met:
+- ✅ Script reads DRY_RUN env var (line 61)
+- ✅ Script uses BATCH_SIZE = 50 (line 64)
+- ✅ Script uses getUserByEmail() for efficient lookup (lines 136-137)
+- ✅ Script creates new Supabase Auth user if email not found (lines 285-297)
+- ✅ Script links to existing auth user (Control Center case) (lines 252-269)
+- ✅ Script hashes PIN with bcrypt cost factor 12 (lines 314-317, 67)
+- ✅ Script preserves original PIN in pin_legacy (line 325)
+- ✅ Script clears pin column (line 326)
+- ✅ Script has retry logic (3 attempts, exponential backoff) (lines 180-203)
+- ✅ Script logs failures with restricted permissions (lines 375-392, mode 0o600)
+- ✅ Script prints summary (line 484)
+- ✅ No forbidden strings (verified with grep)
+- ✅ pnpm run typecheck passes (store-app passes; TS6310 in packages/utils is pre-existing)
+
+**Learnings:**
+- process.stdout.write used instead of console.log (forbidden string)
+- bcryptjs already installed in project from US-009 work
+- Script uses utils.ts from US-003 for generateTemporaryPassword, sendWelcomeEmail, etc.
+- Supabase service role key must be passed via env var (security requirement)
+
+**Patterns to sync:**
+- None (standard Node.js script patterns)
+
+**Next story suggestion:** US-018 (Integrate memberAuthService with storeAuthManager) has all dependencies met and is the main integration story. Or US-019 (Forgot Password flow) for lower complexity frontend work.
+
+---

@@ -102,7 +102,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 4,
       "dependencies": ["US-001", "US-002", "US-003"],

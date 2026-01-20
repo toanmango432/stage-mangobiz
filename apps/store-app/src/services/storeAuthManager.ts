@@ -14,10 +14,12 @@ import {
   authService,
   AuthError as SupabaseAuthError,
 } from './supabase';
+import { memberAuthService } from './memberAuthService';
 import { devicesDB } from './devicesDB';
 import { setStoreTimezone } from '@/utils/dateUtils';
 import { auditLogger } from './audit/auditLogger';
 import type { DeviceMode, Device } from '@/types/device';
+import type { MemberAuthSession } from '@/types/memberAuth';
 
 const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -153,6 +155,9 @@ class StoreAuthManager {
         // Validate in background (non-blocking)
         authService.validateStoreSessionInBackground(storeSession.storeId);
         authService.validateMemberSessionInBackground(memberSession.memberId);
+
+        // Start grace period checker for memberAuthService
+        memberAuthService.startGraceChecker();
 
         return this.currentState;
       }
@@ -471,6 +476,9 @@ class StoreAuthManager {
         message: 'Logged in successfully.',
       });
 
+      // Start grace period checker for member session
+      memberAuthService.startGraceChecker();
+
       return { success: true, member };
     } catch (error) {
       console.error('❌ Member login failed:', error);
@@ -557,6 +565,9 @@ class StoreAuthManager {
         message: 'Logged in successfully.',
       });
 
+      // Start grace period checker for member session
+      memberAuthService.startGraceChecker();
+
       console.log(`✅ Member has access to ${allStores.length} store(s):`, allStores.map(s => s.storeName).join(', '));
 
       return { success: true, member, store, availableStores: allStores };
@@ -601,6 +612,9 @@ class StoreAuthManager {
         message: 'Logged in successfully.',
       });
 
+      // Start grace period checker for member session
+      memberAuthService.startGraceChecker();
+
       return member;
     } catch (error) {
       console.error('❌ PIN login failed:', error);
@@ -640,6 +654,10 @@ class StoreAuthManager {
    */
   logoutMember(): void {
     console.log('👤 Member logged out');
+
+    // Stop grace period checker (will restart when member logs back in)
+    memberAuthService.stopGraceChecker();
+
     authService.logoutMember();
     this.updateState({
       ...this.currentState,
@@ -680,8 +698,14 @@ class StoreAuthManager {
       await auditLogger.flush().catch(console.warn);
     }
 
-    // Clear Supabase auth sessions
+    // Stop grace period checker
+    memberAuthService.stopGraceChecker();
+
+    // Clear Supabase auth sessions (legacy)
     authService.logoutStore();
+
+    // Clear member auth session
+    await memberAuthService.logout();
 
     // Clear legacy storage
     await secureStorage.clearLicenseData();

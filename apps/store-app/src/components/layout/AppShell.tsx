@@ -59,6 +59,7 @@ import { NetworkStatus } from '../NetworkStatus';
 import { LicenseBanner } from '../licensing/LicenseBanner';
 import { AnnouncementBanner } from '../AnnouncementBanner';
 import { HelpRequestNotification } from '../common/HelpRequestNotification';
+import { OfflineGraceBanner } from '../auth/OfflineGraceBanner';
 import { defaultsPopulator } from '../../services/defaultsPopulator';
 import { useBreakpoint } from '../../hooks/useMobileModal';
 
@@ -445,6 +446,7 @@ function AppShellContent() {
           <LicenseBanner />
           <AnnouncementBanner />
           <NetworkStatus />
+          <OfflineGraceBanner />
         </div>
 
         {/* Module Content */}
