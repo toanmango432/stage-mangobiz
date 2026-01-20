@@ -52,7 +52,7 @@
         "File follows existing migration patterns"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "category": "database",
       "complexity": 1,
       "dependencies": ["US-001"],
@@ -74,7 +74,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "Email sending is stubbed - will be implemented when SMTP is configured. Password must include uppercase, lowercase, and numbers."
