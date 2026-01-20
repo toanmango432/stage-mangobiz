@@ -86,12 +86,16 @@ export function PinVerificationModal({
   const [verifiedMember, setVerifiedMember] = useState<VerifiedMember | null>(null);
   const [cardScanActive, setCardScanActive] = useState(false);
   const [lockoutInfo, setLockoutInfo] = useState<{ isLocked: boolean; remainingMinutes: number }>({ isLocked: false, remainingMinutes: 0 });
+  const [lockoutSeconds, setLockoutSeconds] = useState<number>(0);
   const [memberName, setMemberName] = useState<string>('');
 
   // Card reader detection (legacy feature)
   const cardBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
   const cardTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Lockout countdown timer ref
+  const lockoutIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check lockout status and get member name when modal opens
   useEffect(() => {
@@ -100,6 +104,11 @@ export function PinVerificationModal({
         // Specific member mode: Check lockout status
         const lockout = memberAuthService.checkPinLockout(memberId);
         setLockoutInfo(lockout);
+
+        // Initialize countdown seconds from remaining minutes
+        if (lockout.isLocked) {
+          setLockoutSeconds(lockout.remainingMinutes * 60);
+        }
 
         // Get cached member info for display
         const cachedMembers = memberAuthService.getCachedMembers();
@@ -112,6 +121,7 @@ export function PinVerificationModal({
       } else {
         // Legacy store-only mode: No lockout check, no specific member
         setLockoutInfo({ isLocked: false, remainingMinutes: 0 });
+        setLockoutSeconds(0);
         setMemberName('');
       }
     }
@@ -126,13 +136,54 @@ export function PinVerificationModal({
       setVerifiedMember(null);
       setCardScanActive(false);
       setLockoutInfo({ isLocked: false, remainingMinutes: 0 });
+      setLockoutSeconds(0);
       setMemberName('');
       cardBufferRef.current = '';
       if (cardTimeoutRef.current) {
         clearTimeout(cardTimeoutRef.current);
       }
+      // Clear lockout countdown interval on close
+      if (lockoutIntervalRef.current) {
+        clearInterval(lockoutIntervalRef.current);
+        lockoutIntervalRef.current = null;
+      }
     }
   }, [isOpen]);
+
+  // Real-time countdown timer for lockout
+  useEffect(() => {
+    // Start interval when locked
+    if (lockoutInfo.isLocked && lockoutSeconds > 0) {
+      // Clear any existing interval first
+      if (lockoutIntervalRef.current) {
+        clearInterval(lockoutIntervalRef.current);
+      }
+
+      lockoutIntervalRef.current = setInterval(() => {
+        setLockoutSeconds(prev => {
+          const newValue = prev - 1;
+          if (newValue <= 0) {
+            // Lockout expired - clear interval and reset lockout state
+            if (lockoutIntervalRef.current) {
+              clearInterval(lockoutIntervalRef.current);
+              lockoutIntervalRef.current = null;
+            }
+            setLockoutInfo({ isLocked: false, remainingMinutes: 0 });
+            return 0;
+          }
+          return newValue;
+        });
+      }, 1000);
+    }
+
+    // Cleanup on unmount or when lockout state changes
+    return () => {
+      if (lockoutIntervalRef.current) {
+        clearInterval(lockoutIntervalRef.current);
+        lockoutIntervalRef.current = null;
+      }
+    };
+  }, [lockoutInfo.isLocked, lockoutSeconds > 0]); // Note: Only start interval based on isLocked state and whether lockoutSeconds is positive
 
   // Global keyboard listener for card reader detection
   useEffect(() => {
@@ -287,6 +338,10 @@ export function PinVerificationModal({
       if (memberId) {
         const lockout = memberAuthService.checkPinLockout(memberId);
         setLockoutInfo(lockout);
+        // Initialize countdown if newly locked
+        if (lockout.isLocked) {
+          setLockoutSeconds(lockout.remainingMinutes * 60);
+        }
       }
     } finally {
       setLoading(false);
@@ -404,7 +459,10 @@ export function PinVerificationModal({
                   <div className="text-center">
                     <p className="text-sm font-medium text-red-700">PIN Locked</p>
                     <p className="text-xs text-red-600">
-                      Too many failed attempts. Try again in {lockoutInfo.remainingMinutes} {lockoutInfo.remainingMinutes === 1 ? 'minute' : 'minutes'}.
+                      Too many failed attempts. Try again in{' '}
+                      <span className="font-mono font-semibold">
+                        {Math.floor(lockoutSeconds / 60)}:{String(lockoutSeconds % 60).padStart(2, '0')}
+                      </span>
                     </p>
                   </div>
                 </div>
