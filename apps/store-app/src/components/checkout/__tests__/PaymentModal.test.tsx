@@ -357,6 +357,137 @@ describe('PaymentModal', () => {
     });
   });
 
+  describe('payment completion', () => {
+    it('should handle payment completion with expected data', async () => {
+      const mockOnComplete = vi.fn();
+      const total = 50;
+
+      renderWithProvider(
+        <PaymentModal
+          {...defaultProps}
+          total={total}
+          onComplete={mockOnComplete}
+        />
+      );
+
+      // Navigate to step 2 (Payment)
+      const continueButton = screen.getByTestId('button-continue-to-payment');
+      await act(async () => {
+        fireEvent.click(continueButton);
+      });
+
+      // Select Cash payment method
+      const cashCard = screen.getByTestId('card-payment-method-cash');
+      await act(async () => {
+        fireEvent.click(cashCard);
+      });
+
+      // Enter exact cash amount (including default 20% tip: $50 + $10 = $60)
+      const cashInput = screen.getByTestId('input-cash-received');
+      await act(async () => {
+        fireEvent.change(cashInput, { target: { value: '60' } });
+      });
+
+      // Apply cash payment
+      const applyCashButton = screen.getByTestId('button-apply-cash');
+      await act(async () => {
+        fireEvent.click(applyCashButton);
+      });
+
+      // Wait for the completion callback (PaymentModal has an 800ms delay)
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      });
+
+      // Verify onComplete was called
+      expect(mockOnComplete).toHaveBeenCalled();
+
+      // Verify the call arguments include expected data structure
+      const callArgs = mockOnComplete.mock.calls[0][0];
+      expect(callArgs).toHaveProperty('methods');
+      expect(callArgs).toHaveProperty('tip');
+      expect(callArgs.methods).toBeInstanceOf(Array);
+      expect(callArgs.methods.length).toBeGreaterThan(0);
+
+      // Verify the cash payment method was recorded
+      const cashPayment = callArgs.methods.find((m: { type: string }) => m.type === 'cash');
+      expect(cashPayment).toBeDefined();
+      expect(cashPayment.amount).toBe(60); // Full amount with tip
+
+      // Verify tip was calculated correctly (20% of $50 = $10)
+      expect(callArgs.tip).toBe(10);
+    });
+
+    it('should include tip distribution when multiple staff members are present', async () => {
+      const mockOnComplete = vi.fn();
+      const total = 100;
+      const multipleStaff = [
+        { id: 'staff-1', name: 'John Doe', serviceTotal: 60 },
+        { id: 'staff-2', name: 'Jane Smith', serviceTotal: 40 },
+      ];
+
+      renderWithProvider(
+        <PaymentModal
+          {...defaultProps}
+          total={total}
+          staffMembers={multipleStaff}
+          onComplete={mockOnComplete}
+        />
+      );
+
+      // Set up tip distribution before navigating to payment
+      // Click auto-distribute button (default 20% tip on $100 = $20)
+      const autoDistributeButton = screen.getByTestId('button-auto-distribute-tip');
+      await act(async () => {
+        fireEvent.click(autoDistributeButton);
+      });
+
+      // Navigate to step 2 (Payment)
+      const continueButton = screen.getByTestId('button-continue-to-payment');
+      await act(async () => {
+        fireEvent.click(continueButton);
+      });
+
+      // Select Cash payment method
+      const cashCard = screen.getByTestId('card-payment-method-cash');
+      await act(async () => {
+        fireEvent.click(cashCard);
+      });
+
+      // Enter exact cash amount (including default 20% tip: $100 + $20 = $120)
+      const cashInput = screen.getByTestId('input-cash-received');
+      await act(async () => {
+        fireEvent.change(cashInput, { target: { value: '120' } });
+      });
+
+      // Apply cash payment
+      const applyCashButton = screen.getByTestId('button-apply-cash');
+      await act(async () => {
+        fireEvent.click(applyCashButton);
+      });
+
+      // Wait for the completion callback (PaymentModal has an 800ms delay)
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      });
+
+      // Verify onComplete was called
+      expect(mockOnComplete).toHaveBeenCalled();
+
+      // Verify the call arguments include tip distribution
+      const callArgs = mockOnComplete.mock.calls[0][0];
+      expect(callArgs).toHaveProperty('tipDistribution');
+      expect(callArgs.tipDistribution).toBeInstanceOf(Array);
+      expect(callArgs.tipDistribution.length).toBe(2);
+
+      // Verify tip distribution amounts (John: 60% of $20 = $12, Jane: 40% of $20 = $8)
+      const johnTip = callArgs.tipDistribution.find((d: { staffId: string }) => d.staffId === 'staff-1');
+      const janeTip = callArgs.tipDistribution.find((d: { staffId: string }) => d.staffId === 'staff-2');
+      expect(johnTip?.amount).toBe(12); // 60% of $20
+      expect(janeTip?.amount).toBe(8);  // 40% of $20
+    });
+  });
+
   describe('validation', () => {
     it('should validate payment amount', () => {
       // Placeholder for validation test

@@ -358,3 +358,30 @@ Commit: 4e52b41
 **Next story suggestion:** US-013 (Implement PaymentModal test - displays correct totals) - same file, depends on US-008 (complete), tests total display calculations.
 
 ---
+
+## 2026-01-19 - US-013: Implement PaymentModal test - displays correct totals
+Commit: 9e93efe
+
+**Why this story?** US-013 is the highest priority incomplete story with satisfied dependencies (US-008 complete). Same file (PaymentModal.test.tsx), same category (test), code structure fresh in context from previous PaymentModal tests.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:231-300`: Added new 'totals display' describe block with real tests:
+  - `should display correct totals on tip step`: Tests service total ($100) and total with tip ($120 = $100 + 20% default tip) are displayed correctly
+  - `should update total when tip percentage changes`: Tests clicking 15% tip button changes total from $120 to $115
+  - `should show zero tip when no tip is selected`: Tests "No Tip" button results in service total = total with tip
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:302-358`: Replaced placeholder tip handling tests with real implementations:
+  - `should show tip options`: Verifies tip percentage buttons and custom tip input are visible
+  - `should calculate tip based on percentage`: Tests 25% of $50 = $12.50, total = $62.50
+  - `should show tip distribution preview`: Tests auto-distribute with multiple staff (30/70 split on $20 tip = $6/$14)
+
+**Learnings:**
+- PaymentModal Step 1 displays "Service total" and "Your total (with tip)" cards
+- Default tip percentage is 20% (initialized in useState at line 172)
+- Tip options include 15%, 18%, 20%, 25% and a "No Tip" button
+- Tip distribution is only shown when `staffMembers.length > 1 && tipAmount > 0` (line 566)
+- Auto-distribute calculates tip proportionally based on each staff member's `serviceTotal`
+- The component uses data-testid attributes for all interactive elements (button-tip-{percentage}, input-custom-tip, etc.)
+
+**Next story suggestion:** US-014 (Implement PaymentModal test - handles payment completion) - same file, depends on US-012 (complete), completes the PaymentModal test series.
+
+---

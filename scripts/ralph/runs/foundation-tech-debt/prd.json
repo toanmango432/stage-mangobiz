@@ -276,7 +276,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 2,
       "dependencies": ["US-008"],
