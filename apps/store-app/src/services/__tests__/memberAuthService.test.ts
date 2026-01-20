@@ -280,6 +280,9 @@ describe('memberAuthService', () => {
 
       mockSupabaseFrom.mockImplementation(() => createMockQueryBuilder(mockMember));
 
+      // SecureStorage should return the same value that was set (successful verification)
+      mockSecureStorage.get.mockResolvedValue('hashed_pin_value');
+
       await memberAuthService.loginWithPassword('test@example.com', 'password');
 
       // Check session was cached
@@ -287,6 +290,65 @@ describe('memberAuthService', () => {
 
       // Check PIN hash was stored in SecureStorage
       expect(mockSecureStorage.set).toHaveBeenCalledWith('pin_hash_member-123', 'hashed_pin_value');
+
+      // Check verification was performed
+      expect(mockSecureStorage.get).toHaveBeenCalledWith('pin_hash_member-123');
+    });
+
+    it('should throw error when SecureStorage verification fails during login', async () => {
+      mockSupabaseAuth.signInWithPassword.mockResolvedValue({
+        data: { user: { id: 'auth-user-456' } },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: 'hashed_pin_value',
+        default_store_id: null,
+      };
+
+      mockSupabaseFrom.mockImplementation(() => createMockQueryBuilder(mockMember));
+
+      // SecureStorage.get returns different value (simulating storage failure)
+      mockSecureStorage.get.mockResolvedValue('corrupted_value');
+
+      await expect(
+        memberAuthService.loginWithPassword('test@example.com', 'password')
+      ).rejects.toThrow('Failed to persist PIN securely');
+    });
+
+    it('should throw error when SecureStorage returns null after set during login', async () => {
+      mockSupabaseAuth.signInWithPassword.mockResolvedValue({
+        data: { user: { id: 'auth-user-456' } },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: 'hashed_pin_value',
+        default_store_id: null,
+      };
+
+      mockSupabaseFrom.mockImplementation(() => createMockQueryBuilder(mockMember));
+
+      // SecureStorage.get returns null (simulating storage failure)
+      mockSecureStorage.get.mockResolvedValue(null);
+
+      await expect(
+        memberAuthService.loginWithPassword('test@example.com', 'password')
+      ).rejects.toThrow('Failed to persist PIN securely');
     });
 
     it('should throw Authentication timeout when request times out', async () => {
@@ -501,6 +563,9 @@ describe('memberAuthService', () => {
     });
 
     it('should accept valid 4-digit PIN', async () => {
+      // SecureStorage.get returns the expected hash (successful verification)
+      mockSecureStorage.get.mockResolvedValue('$2a$12$new_hashed_pin');
+
       await memberAuthService.setPin('member-123', '1234');
 
       expect(bcrypt.hash).toHaveBeenCalledWith('1234', 12);
@@ -511,18 +576,44 @@ describe('memberAuthService', () => {
     });
 
     it('should accept valid 6-digit PIN', async () => {
+      // SecureStorage.get returns the expected hash (successful verification)
+      mockSecureStorage.get.mockResolvedValue('$2a$12$new_hashed_pin');
+
       await memberAuthService.setPin('member-123', '123456');
 
       expect(bcrypt.hash).toHaveBeenCalledWith('123456', 12);
     });
 
     it('should update database and SecureStorage', async () => {
+      // SecureStorage.get returns the expected hash (successful verification)
+      mockSecureStorage.get.mockResolvedValue('$2a$12$new_hashed_pin');
+
       await memberAuthService.setPin('member-123', '5678');
 
       expect(mockSupabaseFrom).toHaveBeenCalledWith('members');
       expect(mockSecureStorage.set).toHaveBeenCalledWith(
         'pin_hash_member-123',
         '$2a$12$new_hashed_pin'
+      );
+      // Check verification was performed
+      expect(mockSecureStorage.get).toHaveBeenCalledWith('pin_hash_member-123');
+    });
+
+    it('should throw error when SecureStorage verification fails after setPin', async () => {
+      // SecureStorage.get returns different value (simulating storage failure)
+      mockSecureStorage.get.mockResolvedValue('corrupted_hash');
+
+      await expect(memberAuthService.setPin('member-123', '1234')).rejects.toThrow(
+        'Failed to persist PIN securely'
+      );
+    });
+
+    it('should throw error when SecureStorage returns null after setPin', async () => {
+      // SecureStorage.get returns null (simulating storage failure)
+      mockSecureStorage.get.mockResolvedValue(null);
+
+      await expect(memberAuthService.setPin('member-123', '1234')).rejects.toThrow(
+        'Failed to persist PIN securely'
       );
     });
   });

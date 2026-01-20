@@ -275,7 +275,15 @@ async function loginWithPassword(email: string, password: string): Promise<Membe
 
   // 7. Store PIN hash in SecureStorage if member has one
   if (member.pin_hash) {
-    await SecureStorage.set(`pin_hash_${member.id}`, member.pin_hash);
+    const pinKey = `pin_hash_${member.id}`;
+    await SecureStorage.set(pinKey, member.pin_hash);
+
+    // Verify PIN hash was stored successfully
+    const storedHash = await SecureStorage.get(pinKey);
+    if (storedHash !== member.pin_hash) {
+      console.error('SecureStorage verification failed: PIN hash mismatch');
+      throw new Error('Failed to persist PIN securely. Please try again.');
+    }
   }
 
   return session;
@@ -482,7 +490,15 @@ async function setPin(memberId: string, newPin: string): Promise<void> {
   }
 
   // 4. Update PIN hash in SecureStorage for offline access
-  await SecureStorage.set(`pin_hash_${memberId}`, pinHash);
+  const pinKey = `pin_hash_${memberId}`;
+  await SecureStorage.set(pinKey, pinHash);
+
+  // Verify PIN hash was stored successfully
+  const storedHash = await SecureStorage.get(pinKey);
+  if (storedHash !== pinHash) {
+    console.error('SecureStorage verification failed: PIN hash mismatch after setPin');
+    throw new Error('Failed to persist PIN securely. Please try again.');
+  }
 }
 
 /**
