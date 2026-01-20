@@ -138,6 +138,7 @@ import {
   resourcesService,
   resourceBookingsService,
   staffSchedulesService,
+  syncQueueService,
 } from '@/services/domain';
 
 // API-FIRST: Import API client and endpoints
@@ -1134,67 +1135,7 @@ export const settingsService = {
 };
 
 // ==================== SYNC QUEUE SERVICE ====================
-
-/**
- * Sync Queue data operations - LOCAL-FIRST
- * Manages offline sync operation queue
- *
- * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteSyncQueueDB
- */
-export const syncQueueService = {
-  async getAll(limit: number = 100, offset: number = 0) {
-    if (USE_SQLITE) {
-      return sqliteSyncQueueDB.getAll(limit, offset);
-    }
-    return syncQueueDB.getAll(limit, offset);
-  },
-
-  async getPending(limit: number = 50) {
-    if (USE_SQLITE) {
-      return sqliteSyncQueueDB.getPending(limit);
-    }
-    return syncQueueDB.getPending(limit);
-  },
-
-  async add(operation: Parameters<typeof syncQueueDB.add>[0]) {
-    if (USE_SQLITE) {
-      return sqliteSyncQueueDB.add(operation);
-    }
-    return syncQueueDB.add(operation);
-  },
-
-  async update(id: string, updates: Parameters<typeof syncQueueDB.update>[1]) {
-    if (USE_SQLITE) {
-      // Map 'success' status to 'complete' for SQLite service compatibility
-      const sqliteUpdates: { status?: 'pending' | 'syncing' | 'complete' | 'failed'; lastError?: string } = {};
-      if (updates.status) {
-        sqliteUpdates.status = updates.status === 'success' ? 'complete' : updates.status as 'pending' | 'syncing' | 'failed';
-      }
-      if (updates.error) {
-        sqliteUpdates.lastError = updates.error;
-      }
-      await sqliteSyncQueueDB.update(id, sqliteUpdates);
-      return;
-    }
-    await syncQueueDB.update(id, updates);
-  },
-
-  async remove(id: string): Promise<void> {
-    if (USE_SQLITE) {
-      await sqliteSyncQueueDB.remove(id);
-      return;
-    }
-    await syncQueueDB.remove(id);
-  },
-
-  async clear(): Promise<void> {
-    if (USE_SQLITE) {
-      await sqliteSyncQueueDB.clear();
-      return;
-    }
-    await syncQueueDB.clear();
-  },
-};
+// Note: syncQueueService is imported from '@/services/domain' (extracted for modularity)
 
 // ==================== CATALOG SERVICES ====================
 // Note: Catalog services are imported from '@/services/domain' (extracted for modularity)
@@ -1492,6 +1433,7 @@ export {
   resourcesService,
   resourceBookingsService,
   staffSchedulesService,
+  syncQueueService,
 } from '@/services/domain';
 
 export const dataService = {

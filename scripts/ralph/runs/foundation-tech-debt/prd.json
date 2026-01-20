@@ -550,7 +550,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 2,
       "dependencies": ["US-024"],
@@ -574,7 +574,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-025"],

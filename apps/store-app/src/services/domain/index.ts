@@ -36,3 +36,4 @@ export {
   resourceBookingsService,
   staffSchedulesService,
 } from './scheduleDataService';
+export { syncQueueService } from './syncDataService';

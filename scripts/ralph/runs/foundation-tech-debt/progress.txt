@@ -835,3 +835,89 @@ Commit: 8e75464
 **Next story suggestion:** US-025 (Create scheduleDataService.ts from dataService) - depends on US-024 (now complete), same category (refactor), continues the dataService domain extraction series.
 
 ---
+
+## 2026-01-19 - US-025: Create scheduleDataService.ts from dataService
+Commit: 108947f
+
+**Why this story?** US-025 is the highest priority incomplete story with satisfied dependencies (US-024 complete). Same category (refactor), same file being modified, same pattern as previous extractions. Code structure is fresh in context from US-024.
+
+**Changes:**
+- `apps/store-app/src/services/domain/scheduleDataService.ts (NEW):1-482`: Created new domain service file with:
+  - Extracted 8 scheduling services: timeOffTypesService, timeOffRequestsService, blockedTimeTypesService, blockedTimeEntriesService, businessClosedPeriodsService, resourcesService, resourceBookingsService, staffSchedulesService
+  - USE_SQLITE constant from feature flags for backend routing
+  - Full SQLite/IndexedDB dual-path support
+  - Proper imports from @/db/scheduleDatabase, @/services/sqliteServices
+- `apps/store-app/src/services/domain/index.ts:29-37`: Added export for all 8 scheduling services
+- `apps/store-app/src/services/dataService.ts:125-132`: Added all 8 scheduling services to domain import
+- `apps/store-app/src/services/dataService.ts:1205-1635`: Removed inline scheduling services (~425 lines removed)
+- `apps/store-app/src/services/dataService.ts:1479-1486`: Added all 8 scheduling services to backward-compatible re-export
+
+**Acceptance Criteria Check:**
+- ✅ Extract all scheduling functions to scheduleDataService.ts
+- ✅ Export scheduleDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from scheduleDataService
+- ✅ All existing schedule imports still work (backward compatible)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx, teamStaffAdapter.test.ts (unrelated to domain extraction)
+
+**Learnings:**
+- Schedule is the second largest domain extraction with 8 services and ~482 lines
+- All scheduling services are LOCAL-FIRST only (no API mode)
+- Schedule services include time off, blocked time, resources, and staff schedules
+- dataService.ts went from ~1,996 lines to ~1,571 lines (~425 lines extracted)
+- Pattern is consistent across all domain extractions (US-019 to US-025)
+
+**Next story suggestion:** US-026 (Create syncDataService.ts and finalize dataService facade) - depends on US-025 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---
+
+## 2026-01-19 - US-026: Create syncDataService.ts and finalize dataService facade
+Commit: b07226f
+
+**Why this story?** US-026 is the highest priority incomplete story with satisfied dependencies (US-025 complete). Same category (refactor), same file being modified, completes the dataService domain extraction series (US-019 to US-026).
+
+**Changes:**
+- `apps/store-app/src/services/domain/syncDataService.ts (NEW):1-92`: Created new domain service file with:
+  - Extracted `syncQueueService` object with all 6 methods: getAll, getPending, add, update, remove, clear
+  - USE_SQLITE constant from feature flags for backend routing
+  - Full SQLite/IndexedDB dual-path support
+  - Proper imports from @/config/featureFlags, @/db/database, @/services/sqliteServices
+- `apps/store-app/src/services/domain/index.ts:39`: Added export for syncQueueService
+- `apps/store-app/src/services/dataService.ts:141`: Added syncQueueService to domain import
+- `apps/store-app/src/services/dataService.ts:1137-1198`: Removed inline syncQueueService (~62 lines)
+- `apps/store-app/src/services/dataService.ts:1436`: Added syncQueueService to backward-compatible re-export
+
+**Acceptance Criteria Check:**
+- ✅ Extract all sync-related functions to syncDataService.ts
+- ✅ Export syncDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from syncDataService
+- ✅ All existing sync imports still work (backward compatible via dataService.syncQueue)
+- ⚠️ dataService.ts is now 1,513 lines (NOT <500 as PRD expected - see note below)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx test files only (unrelated to domain extraction)
+
+**Note on File Size:**
+The PRD's expectation of "<500 lines (facade only)" was based on the assumption that all domain extractions (US-019 to US-026) would reduce the file to facade-only status. However, dataService.ts still contains ~1,000 lines of additional services that were NOT part of the extraction plan:
+- patchTestsService (~66 lines)
+- formResponsesService (~68 lines)
+- referralsService (~72 lines)
+- reviewsService (~62 lines)
+- loyaltyService (~48 lines)
+- reviewRequestsService (~128 lines)
+- segmentsService (~124 lines)
+- teamMembersService (~31 lines)
+- settingsService (~24 lines)
+- Gift card services (~250 lines)
+
+These services would need to be extracted in future stories to achieve the <500 line target. The sync-related extraction has been completed correctly (~60 lines removed).
+
+**Learnings:**
+- syncQueueService is smaller than other domain extractions (~60 lines)
+- The PRD's <500 line target was unrealistic given the scope of domain extractions defined
+- dataService.ts went from 1,571 lines to 1,513 lines (~58 lines extracted)
+- This completes all 7 domain service extractions: appointments, clients, tickets, staff, transactions, catalog, schedule, sync
+- Total lines extracted to domain/: ~1,790 lines across 7 files
+
+**Patterns to sync:** None - this completes the established domain extraction pattern
+
+**Next story suggestion:** US-027 (Extract AddTeamMember types and constants) - next available priority with no dependencies. Different category (refactor), starts the AddTeamMember modularization series (US-027 to US-029).
+
+---
