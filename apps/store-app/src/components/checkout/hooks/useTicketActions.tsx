@@ -924,20 +924,26 @@ export function useTicketActions({
         })),
         notes: '',
       };
-      await dataService.transactions.create(transactionData as any);
-      console.log("✅ Transaction record created");
-
-      if (effectiveTicketId) {
-        console.log("📝 Marking ticket as paid:", effectiveTicketId);
-        const mappedPaymentMethod = primaryPaymentMethod === 'card' ? 'credit-card' : primaryPaymentMethod;
-        await reduxDispatch(markTicketAsPaid({
-          ticketId: effectiveTicketId,
-          paymentMethod: mappedPaymentMethod as any,
-          paymentDetails: paymentDetails as any,
-          tip: payment.tip || 0,
-        })).unwrap();
-        console.log("✅ Ticket marked as paid and moved to closed");
-      }
+      // Run transaction creation and marking as paid in parallel for faster response
+      const mappedPaymentMethod = primaryPaymentMethod === 'card' ? 'credit-card' : primaryPaymentMethod;
+      await Promise.all([
+        (async () => {
+          await dataService.transactions.create(transactionData as any);
+          console.log("✅ Transaction record created");
+        })(),
+        effectiveTicketId
+          ? (async () => {
+              console.log("📝 Marking ticket as paid:", effectiveTicketId);
+              await reduxDispatch(markTicketAsPaid({
+                ticketId: effectiveTicketId,
+                paymentMethod: mappedPaymentMethod as any,
+                paymentDetails: paymentDetails as any,
+                tip: payment.tip || 0,
+              })).unwrap();
+              console.log("✅ Ticket marked as paid and moved to closed");
+            })()
+          : Promise.resolve(),
+      ]);
 
       // Send payment result to Mango Pad (if transaction was sent to Pad)
       const padTxId = payment.padTransactionId || activePadTransaction?.transactionId;

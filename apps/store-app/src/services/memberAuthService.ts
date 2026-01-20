@@ -262,6 +262,101 @@ function checkOfflineGrace(member: MemberAuthSession): GraceInfo {
   };
 }
 
+// ==================== PIN MANAGEMENT ====================
+
+/** bcrypt cost factor for PIN hashing - 12 provides good security/performance balance */
+const BCRYPT_COST_FACTOR = 12;
+
+/** PIN format validation regex - 4-6 digits only */
+const PIN_FORMAT_REGEX = /^\d{4,6}$/;
+
+/**
+ * Validate PIN format
+ * @param pin - PIN to validate
+ * @returns true if valid format (4-6 digits)
+ */
+function isValidPinFormat(pin: string): boolean {
+  return PIN_FORMAT_REGEX.test(pin);
+}
+
+/**
+ * Set or update a member's PIN
+ *
+ * This function:
+ * 1. Validates PIN format (4-6 digits only)
+ * 2. Hashes PIN with bcrypt (cost factor 12)
+ * 3. Updates PIN hash in database
+ * 4. Updates PIN hash in SecureStorage for offline access
+ *
+ * @param memberId - Member ID to set PIN for
+ * @param newPin - New PIN (4-6 digits)
+ * @throws Error if PIN format is invalid or database update fails
+ */
+async function setPin(memberId: string, newPin: string): Promise<void> {
+  // 1. Validate PIN format
+  if (!isValidPinFormat(newPin)) {
+    throw new Error('PIN must be 4-6 digits');
+  }
+
+  // 2. Hash PIN with bcrypt
+  const pinHash = await bcrypt.hash(newPin, BCRYPT_COST_FACTOR);
+
+  // 3. Update PIN hash in database
+  const { error: updateError } = await supabase
+    .from('members')
+    .update({ pin_hash: pinHash })
+    .eq('id', memberId);
+
+  if (updateError) {
+    console.error('Failed to update PIN hash in database:', updateError);
+    throw new Error('Failed to update PIN. Please try again.');
+  }
+
+  // 4. Update PIN hash in SecureStorage for offline access
+  await SecureStorage.set(`pin_hash_${memberId}`, pinHash);
+}
+
+/**
+ * Remove a member's PIN
+ *
+ * This function:
+ * 1. Clears PIN hash from database (sets to null)
+ * 2. Removes PIN hash from SecureStorage
+ *
+ * @param memberId - Member ID to remove PIN for
+ * @throws Error if database update fails
+ */
+async function removePin(memberId: string): Promise<void> {
+  // 1. Clear PIN hash in database
+  const { error: updateError } = await supabase
+    .from('members')
+    .update({ pin_hash: null })
+    .eq('id', memberId);
+
+  if (updateError) {
+    console.error('Failed to remove PIN hash from database:', updateError);
+    throw new Error('Failed to remove PIN. Please try again.');
+  }
+
+  // 2. Remove PIN hash from SecureStorage
+  await SecureStorage.remove(`pin_hash_${memberId}`);
+
+  // 3. Clear any lockout state
+  localStorage.removeItem(`pin_lockout_${memberId}`);
+  localStorage.removeItem(`pin_attempts_${memberId}`);
+}
+
+/**
+ * Check if a member has a PIN configured
+ *
+ * @param memberId - Member ID to check
+ * @returns true if PIN is configured
+ */
+async function hasPin(memberId: string): Promise<boolean> {
+  const pinHash = await SecureStorage.get(`pin_hash_${memberId}`);
+  return pinHash !== null;
+}
+
 // ==================== PIN ATTEMPT TRACKING ====================
 
 /**
@@ -409,7 +504,6 @@ function updateLastOnlineAuthInBackground(memberId: string): void {
  *
  * Provides methods for member authentication using Supabase Auth.
  * Subsequent stories will add:
- * - setPin() - PIN management (US-010)
  * - startGraceChecker() / stopGraceChecker() - Grace period monitoring (US-011)
  * - validateSessionInBackground() - Background session validation (US-012)
  * - logout() - Full logout (US-012)
@@ -418,6 +512,12 @@ export const memberAuthService = {
   // Login methods
   loginWithPassword,
   loginWithPin,
+
+  // PIN management
+  setPin,
+  removePin,
+  hasPin,
+  isValidPinFormat,
 
   // Session cache helpers
   getCachedMemberSession,
