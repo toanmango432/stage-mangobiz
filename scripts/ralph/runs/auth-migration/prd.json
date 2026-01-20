@@ -1005,7 +1005,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "Emoji console.logs are unprofessional and clutter logs."
@@ -1027,7 +1027,7 @@
         "pnpm test passes"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "Empty strings could pass to Supabase causing confusing errors."

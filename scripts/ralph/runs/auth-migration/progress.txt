@@ -1780,3 +1780,90 @@ All 6 acceptance criteria met:
 - Pattern: Structured Error Logging - Use auditLogger.log instead of console.error for all error cases. Include action, entityType, entityId, description, severity, success:false, errorMessage, and metadata with operation/step context.
 
 **Next story suggestion:** US-037 (Replace console.log in storeAuthManager) is the natural next step as it continues the logging improvement work. Or US-038 (input validation) which is simpler with complexity 1.
+
+---
+
+## 2026-01-20 - US-037: Replace console.log with structured logging in storeAuthManager
+Commit: 6a777ee
+
+**Why this story?** US-037 continues the logging improvement work from US-036 (memberAuthService). US-036 was just completed, so logging patterns are fresh in context. US-037 has no dependencies and is priority 37 (lowest among ready stories).
+
+**Changes:**
+- `apps/store-app/src/utils/logger.ts:1-171` (NEW): Created structured logger utility
+- `apps/store-app/src/services/storeAuthManager.ts:21`: Added authLogger import
+- `apps/store-app/src/services/storeAuthManager.ts`: Replaced all 27 console.log + 6 console.error + 4 console.warn with logger calls
+
+**Implementation Details:**
+- Logger utility with four levels: debug, info, warn, error
+- Configurable via LoggerConfig: minLevel, prefix, includeTimestamp, jsonOutput
+- Child logger support via logger.child(moduleName) for module-specific prefixes
+- Pre-configured authLogger exported for auth-related logging
+- Uses console.debug/info/warn/error internally for proper level output
+- Context support via second parameter: logger.info('message', { key: value })
+
+**Log Level Mapping:**
+| Original | New Level | Reason |
+|----------|-----------|--------|
+| console.log (success/info) | authLogger.info | General operational info |
+| console.log (debug) | authLogger.debug | Verbose diagnostic info |
+| console.warn | authLogger.warn | Potential issues |
+| console.error | authLogger.error | Error conditions |
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ Create logger utility in apps/store-app/src/utils/logger.ts
+- ✅ Logger has levels: debug, info, warn, error
+- ✅ Replace all console.log with logger.info/debug (~27 occurrences)
+- ✅ Remove all emoji characters from log messages (all emojis removed)
+- ✅ No remaining console.log calls (verified via grep)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- authLogger.child('Auth') creates a child logger with [Mango][Auth] prefix
+- Context objects passed as second parameter are logged separately for structured output
+- .catch(console.warn) patterns replaced with .catch((err) => authLogger.warn('message', { error: err }))
+- debug level is useful for verbose operations like device updates that don't need to show in normal operation
+
+**Patterns to sync:**
+- Pattern: Logger Utility - Create a centralized logger with levels (debug, info, warn, error) and child logger support for module-specific prefixes. Configure minLevel based on environment (debug in dev, info in prod). Use context objects for structured data.
+
+**Next story suggestion:** US-038 (Add input validation before Supabase calls) has no dependencies and complexity 1. It improves error handling for edge cases.
+
+---
+
+## 2026-01-20 - US-038: Add input validation before Supabase calls
+Commit: 508df32
+
+**Why this story?** US-038 has no dependencies, complexity 1, and is priority 38 (lowest among incomplete stories). It follows naturally from the logging improvements (US-036, US-037) as another code quality enhancement to memberAuthService.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:197-205`: Added input validation at start of loginWithPassword
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:209-277`: Added 6 unit tests for validation
+
+**Implementation Details:**
+- Validates email is non-empty trimmed string before any network call
+- Validates password is non-empty (null/undefined check via truthiness)
+- Trims email before sending to Supabase (prevents whitespace issues)
+- Handles null/undefined inputs gracefully with optional chaining
+- Tests cover: empty email, whitespace-only email, empty password, null/undefined email, and email trimming behavior
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ Validate email is non-empty trimmed string before loginWithPassword
+- ✅ Validate password is non-empty
+- ✅ Throw clear error messages for each case ('Email is required', 'Password is required')
+- ✅ Add unit tests for validation (6 tests added)
+- ✅ pnpm run typecheck passes
+- ✅ pnpm test passes (74 memberAuthService tests pass; pre-existing failures in other files are unrelated)
+
+**Learnings:**
+- Input validation should be the FIRST operation in auth functions (before network calls)
+- Use optional chaining with nullish coalescing for safe string operations: `email?.trim() ?? ''`
+- Pre-existing test failures (topics.test.ts, teamStaffAdapter.test.ts) are unrelated to memberAuthService changes
+
+**Patterns to sync:**
+- None (standard input validation pattern)
+
+**Next story suggestion:** US-039 (Add retry button for failed member fetch) is frontend, complexity 1, no dependencies. Or US-040 (Add database retry logic in migration script) depends on US-027✅ and US-028✅.
+
+---

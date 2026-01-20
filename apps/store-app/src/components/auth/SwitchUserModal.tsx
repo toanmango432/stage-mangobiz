@@ -520,6 +520,20 @@ export function SwitchUserModal({
                     <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
                     <span className="ml-2 text-gray-500">Loading staff...</span>
                   </div>
+                ) : error && error.includes('Failed to load') ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-red-300 mx-auto mb-2" />
+                    <p className="text-gray-500">{error}</p>
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        fetchMembers();
+                      }}
+                      className="mt-3 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      Try again
+                    </button>
+                  </div>
                 ) : members.length === 0 ? (
                   <div className="text-center py-8">
                     <User className="w-12 h-12 text-gray-300 mx-auto mb-2" />
