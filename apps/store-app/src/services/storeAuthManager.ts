@@ -20,6 +20,7 @@ import { setStoreTimezone } from '@/utils/dateUtils';
 import { auditLogger } from './audit/auditLogger';
 import type { DeviceMode, Device } from '@/types/device';
 import type { MemberAuthSession } from '@/types/memberAuth';
+import type { DefaultsData } from './defaultsPopulator';
 
 const OFFLINE_GRACE_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -68,7 +69,8 @@ export interface StoreAuthState {
   store?: StoreSession;
   member?: MemberSession;
   message?: string;
-  defaults?: any;
+  /** Store defaults from control center (first-time setup data) */
+  defaults?: DefaultsData;
 }
 
 type AuthStateListener = (state: StoreAuthState) => void;
