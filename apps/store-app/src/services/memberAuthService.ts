@@ -16,6 +16,8 @@
 import { supabase } from './supabase/client';
 import bcrypt from 'bcryptjs';
 import { SecureStorage } from '@/utils/secureStorage';
+import { store } from '@/store';
+import { forceLogout } from '@/store/slices/authSlice';
 import type {
   MemberAuthSession,
   PinLockoutInfo,
@@ -32,6 +34,14 @@ export const PIN_LOCKOUT_MINUTES = 15;
 
 /** Default offline grace period in days */
 export const OFFLINE_GRACE_DAYS = 7;
+
+/** Grace period check interval in milliseconds (30 minutes) */
+export const GRACE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+
+// ==================== MODULE STATE ====================
+
+/** Grace checker interval reference (for idempotent start/stop) */
+let graceCheckInterval: ReturnType<typeof setInterval> | null = null;
 
 // ==================== SESSION STORAGE KEYS ====================
 
@@ -240,7 +250,7 @@ function checkPinLockout(memberId: string): PinLockoutInfo {
   return { isLocked: true, remainingMinutes };
 }
 
-// ==================== GRACE PERIOD HELPERS (PLACEHOLDER) ====================
+// ==================== GRACE PERIOD HELPERS ====================
 
 /**
  * Check offline grace period status
@@ -260,6 +270,71 @@ function checkOfflineGrace(member: MemberAuthSession): GraceInfo {
     isValid: msRemaining > 0,
     daysRemaining,
   };
+}
+
+// ==================== GRACE PERIOD CHECKER ====================
+
+/**
+ * Start periodic grace period checker
+ *
+ * Runs every 30 minutes to check if the offline grace period has expired.
+ * If expired while offline, dispatches forceLogout action to clear auth state.
+ *
+ * The checker is idempotent - calling startGraceChecker() multiple times
+ * will not create multiple intervals.
+ */
+function startGraceChecker(): void {
+  // Already running - don't start another
+  if (graceCheckInterval) {
+    return;
+  }
+
+  graceCheckInterval = setInterval(() => {
+    // Get current member from Redux store
+    const authState = store.getState().auth;
+    const currentMemberId = authState.member?.memberId;
+
+    // No member logged in - nothing to check
+    if (!currentMemberId) {
+      return;
+    }
+
+    // Get cached member session
+    const cachedMembers = getCachedMembers();
+    const member = cachedMembers.find(m => m.memberId === currentMemberId);
+
+    if (!member) {
+      return;
+    }
+
+    // Check grace period
+    const graceInfo = checkOfflineGrace(member);
+
+    // Only force logout if grace expired AND we're offline
+    // (If online, the user can re-authenticate automatically)
+    if (!graceInfo.isValid && !navigator.onLine) {
+      // Dispatch force logout with reason
+      store.dispatch(forceLogout({
+        reason: 'offline_grace_expired',
+        message: 'Your offline access has expired. Please connect to the internet to continue.',
+      }));
+
+      // Stop the checker (no need to keep checking after logout)
+      stopGraceChecker();
+    }
+  }, GRACE_CHECK_INTERVAL_MS);
+}
+
+/**
+ * Stop the grace period checker
+ *
+ * Should be called on logout to clean up the interval.
+ */
+function stopGraceChecker(): void {
+  if (graceCheckInterval) {
+    clearInterval(graceCheckInterval);
+    graceCheckInterval = null;
+  }
 }
 
 // ==================== PIN MANAGEMENT ====================
@@ -504,7 +579,6 @@ function updateLastOnlineAuthInBackground(memberId: string): void {
  *
  * Provides methods for member authentication using Supabase Auth.
  * Subsequent stories will add:
- * - startGraceChecker() / stopGraceChecker() - Grace period monitoring (US-011)
  * - validateSessionInBackground() - Background session validation (US-012)
  * - logout() - Full logout (US-012)
  */
@@ -537,10 +611,15 @@ export const memberAuthService = {
   // Grace period helpers
   checkOfflineGrace,
 
+  // Grace period checker (US-011)
+  startGraceChecker,
+  stopGraceChecker,
+
   // Constants
   PIN_MAX_ATTEMPTS,
   PIN_LOCKOUT_MINUTES,
   OFFLINE_GRACE_DAYS,
+  GRACE_CHECK_INTERVAL_MS,
 };
 
 export default memberAuthService;
