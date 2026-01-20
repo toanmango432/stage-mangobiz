@@ -432,6 +432,135 @@ async function hasPin(memberId: string): Promise<boolean> {
   return pinHash !== null;
 }
 
+// ==================== DEFAULT STORE PREFERENCE ====================
+
+/** Storage key prefix for cached default store preference (offline support) */
+const DEFAULT_STORE_CACHE_PREFIX = 'member_default_store_';
+
+/**
+ * Get a member's default store ID
+ *
+ * This function:
+ * 1. If online, fetches from database and updates cache
+ * 2. If offline, returns cached value from localStorage
+ *
+ * @param memberId - Member ID to get default store for
+ * @returns Store ID or null if no default is set
+ */
+async function getDefaultStore(memberId: string): Promise<string | null> {
+  // If online, try to fetch from database
+  if (navigator.onLine) {
+    try {
+      const { data: member, error } = await supabase
+        .from('members')
+        .select('default_store_id')
+        .eq('id', memberId)
+        .single();
+
+      if (error) {
+        console.error('Failed to fetch default store from database:', error);
+        // Fall back to cached value
+      } else if (member) {
+        const defaultStoreId = member.default_store_id || null;
+        // Update cache for offline access
+        if (defaultStoreId) {
+          localStorage.setItem(`${DEFAULT_STORE_CACHE_PREFIX}${memberId}`, defaultStoreId);
+        } else {
+          localStorage.removeItem(`${DEFAULT_STORE_CACHE_PREFIX}${memberId}`);
+        }
+        return defaultStoreId;
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching default store:', err);
+      // Fall back to cached value
+    }
+  }
+
+  // Offline or error - return cached value
+  return localStorage.getItem(`${DEFAULT_STORE_CACHE_PREFIX}${memberId}`);
+}
+
+/**
+ * Set a member's default store
+ *
+ * This function:
+ * 1. Updates the database (if online)
+ * 2. Updates the local cache
+ * 3. Updates the cached member session
+ *
+ * @param memberId - Member ID to set default store for
+ * @param storeId - Store ID to set as default
+ * @throws Error if online and database update fails
+ */
+async function setDefaultStore(memberId: string, storeId: string): Promise<void> {
+  // Update local cache immediately (optimistic update)
+  localStorage.setItem(`${DEFAULT_STORE_CACHE_PREFIX}${memberId}`, storeId);
+
+  // Update cached member session
+  const cachedMembers = getCachedMembers();
+  const memberIndex = cachedMembers.findIndex(m => m.memberId === memberId);
+  if (memberIndex >= 0) {
+    cachedMembers[memberIndex] = {
+      ...cachedMembers[memberIndex],
+      defaultStoreId: storeId,
+    };
+    localStorage.setItem(CACHED_MEMBERS_KEY, JSON.stringify(cachedMembers));
+  }
+
+  // If online, update database
+  if (navigator.onLine) {
+    const { error } = await supabase
+      .from('members')
+      .update({ default_store_id: storeId })
+      .eq('id', memberId);
+
+    if (error) {
+      console.error('Failed to update default store in database:', error);
+      throw new Error('Failed to save default store. Changes saved locally.');
+    }
+  }
+}
+
+/**
+ * Clear a member's default store preference
+ *
+ * This function:
+ * 1. Updates the database (if online)
+ * 2. Clears the local cache
+ * 3. Updates the cached member session
+ *
+ * @param memberId - Member ID to clear default store for
+ * @throws Error if online and database update fails
+ */
+async function clearDefaultStore(memberId: string): Promise<void> {
+  // Clear local cache immediately (optimistic update)
+  localStorage.removeItem(`${DEFAULT_STORE_CACHE_PREFIX}${memberId}`);
+
+  // Update cached member session
+  const cachedMembers = getCachedMembers();
+  const memberIndex = cachedMembers.findIndex(m => m.memberId === memberId);
+  if (memberIndex >= 0) {
+    cachedMembers[memberIndex] = {
+      ...cachedMembers[memberIndex],
+      defaultStoreId: null,
+    };
+    localStorage.setItem(CACHED_MEMBERS_KEY, JSON.stringify(cachedMembers));
+  }
+
+  // If online, update database
+  if (navigator.onLine) {
+    const { error } = await supabase
+      .from('members')
+      .update({ default_store_id: null })
+      .eq('id', memberId);
+
+    if (error) {
+      console.error('Failed to clear default store in database:', error);
+      throw new Error('Failed to clear default store. Changes saved locally.');
+    }
+  }
+}
+
 // ==================== PIN ATTEMPT TRACKING ====================
 
 /**
@@ -747,6 +876,11 @@ export const memberAuthService = {
 
   // Grace period helpers
   checkOfflineGrace,
+
+  // Default store preference
+  getDefaultStore,
+  setDefaultStore,
+  clearDefaultStore,
 
   // Grace period checker
   startGraceChecker,
