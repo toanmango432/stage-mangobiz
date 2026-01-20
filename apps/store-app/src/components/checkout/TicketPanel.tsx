@@ -73,7 +73,7 @@ import { storeAuthManager } from "@/services/storeAuthManager";
 // Import extracted types, reducer, constants, and components
 import type { PanelMode } from "./types";
 import { createInitialState, ticketReducer, ticketActions } from "./reducers/ticketReducer";
-import { MOCK_OPEN_TICKETS, KEYBOARD_HINTS_DISMISSED_KEY } from "./constants";
+import { MOCK_OPEN_TICKETS, KEYBOARD_HINTS_DISMISSED_KEY, DEFAULT_TAX_RATE } from "./constants";
 import { 
   KeyboardShortcutsHint, 
   ClientProfileDialog, 
@@ -242,7 +242,7 @@ export default function TicketPanel({
 
   const subtotal = services.reduce((sum, s) => sum + s.price, 0);
   const discountedSubtotal = subtotal - discount - appliedPointsDiscount - couponDiscount;
-  const tax = Math.max(0, discountedSubtotal) * 0.085;
+  const tax = Math.max(0, discountedSubtotal) * DEFAULT_TAX_RATE;
   const total = Math.max(0, discountedSubtotal) + tax;
   const canCheckout = services.length > 0 && total > 0;
 
