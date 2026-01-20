@@ -89,7 +89,8 @@ function isInRollbackState(): boolean {
     if (!stored) return false;
     const state = JSON.parse(stored);
     return state.isRolledBack === true;
-  } catch {
+  } catch (error) {
+    console.warn('[FeatureFlags] Failed to parse rollback state:', error);
     return false;
   }
 }
