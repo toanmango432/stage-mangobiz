@@ -129,6 +129,9 @@ describe('authSlice', () => {
             store: null,
             member: null,
             availableStores: [],
+            // Force logout state
+            forceLogoutReason: null,
+            forceLogoutMessage: null,
             // Legacy fields
             isAuthenticated: false,
             user: null,

@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 import { loginUser, loginSalonMode, logoutUser, verifyToken } from './authThunks';
 import type { DeviceMode, DevicePolicy, AuthDeviceState } from '@/types/device';
+import type { ForceLogoutReason, ForceLogoutPayload } from '@/types/memberAuth';
 
 // Member session type (from storeAuthManager)
 interface MemberSession {
@@ -41,6 +42,10 @@ interface AuthState {
   member: MemberSession | null;
   availableStores: StoreSession[]; // Stores the member has access to (for store switching)
 
+  // Force logout state (set when session is invalidated)
+  forceLogoutReason: ForceLogoutReason | null;
+  forceLogoutMessage: string | null;
+
   // Legacy fields for backward compatibility
   isAuthenticated: boolean;
   user: {
@@ -67,6 +72,10 @@ const initialState: AuthState = {
   store: null,
   member: null,
   availableStores: [],
+
+  // Force logout state
+  forceLogoutReason: null,
+  forceLogoutMessage: null,
 
   // Legacy fields
   isAuthenticated: false,
@@ -152,6 +161,37 @@ const authSlice = createSlice({
       state.error = null;
       state.device = null;
       state.storePolicy = null;
+      state.forceLogoutReason = null;
+      state.forceLogoutMessage = null;
+    },
+
+    // Force logout with reason (used by memberAuthService when session is invalidated)
+    forceLogout: (state, action: PayloadAction<ForceLogoutPayload>) => {
+      // Store the reason and message BEFORE clearing state
+      const { reason, message } = action.payload;
+
+      // Clear all auth state
+      state.status = 'not_logged_in';
+      state.store = null;
+      state.member = null;
+      state.availableStores = [];
+      state.isAuthenticated = false;
+      state.user = null;
+      state.storeId = null;
+      state.token = null;
+      state.error = null;
+      state.device = null;
+      state.storePolicy = null;
+
+      // Set the force logout reason and message (for UI to display)
+      state.forceLogoutReason = reason;
+      state.forceLogoutMessage = message;
+    },
+
+    // Clear force logout reason (after user acknowledges the message)
+    clearForceLogoutReason: (state) => {
+      state.forceLogoutReason = null;
+      state.forceLogoutMessage = null;
     },
 
     // Set available stores (for store switching)
@@ -279,6 +319,8 @@ export const {
   setAuthStatus,
   clearMemberSession,
   clearAllAuth,
+  forceLogout,
+  clearForceLogoutReason,
   setAvailableStores,
   switchStore,
   // Legacy actions
@@ -322,6 +364,12 @@ export const selectIsMemberLoginRequired = (state: RootState): boolean =>
   state.auth.status === 'store_logged_in';
 export const selectIsFullyAuthenticated = (state: RootState): boolean =>
   state.auth.status === 'active' && state.auth.store !== null && state.auth.member !== null;
+
+// Force logout selectors (for displaying logout reason to user)
+export const selectForceLogoutReason = (state: RootState): ForceLogoutReason | null =>
+  state.auth.forceLogoutReason;
+export const selectForceLogoutMessage = (state: RootState): string | null =>
+  state.auth.forceLogoutMessage;
 
 // ==================== LEGACY SELECTORS ====================
 
