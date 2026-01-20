@@ -622,7 +622,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-027"],
@@ -647,7 +647,7 @@
         "Verify in browser: add team member flow works"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-028"],

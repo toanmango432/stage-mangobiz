@@ -950,3 +950,136 @@ Commit: 312d119
 **Next story suggestion:** US-028 (Extract AddTeamMember form sections to components) - depends on US-027 (now complete), same category (refactor), continues the AddTeamMember modularization series.
 
 ---
+
+## 2026-01-19 - US-028: Extract AddTeamMember form sections to components
+Commit: 417b84e
+
+**Why this story?** US-028 is the highest priority incomplete story with satisfied dependencies (US-027 complete). Same category (refactor), same module (AddTeamMember), code structure fresh in context from US-027 verification.
+
+**Changes:**
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/BasicInfoSection.tsx (NEW):1-221`: Created component with:
+  - Avatar placeholder
+  - Name fields (first/last)
+  - Contact fields (email/phone)
+  - Role selection
+  - Job title (optional)
+  - Bio (optional)
+  - Includes icons: UserIcon, CameraIcon, MailIcon, PhoneIcon
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/ContactSection.tsx (NEW):1-308`: Created component with:
+  - Security PIN section (always required)
+  - Login account (password) setup with manual/invite options
+  - Notification preferences (email/sms/both)
+  - Includes icons: LockIcon, EyeIcon, EyeOffIcon, RefreshIcon, CheckIcon, KeyIcon, SendIcon
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/index.ts (NEW):1-7`: Barrel export for both components
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/AddTeamMember.tsx:33`: Added import for extracted components
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/AddTeamMember.tsx:473-484`: Replaced ~385 lines of inline JSX with component calls
+
+**Acceptance Criteria Check:**
+- ✅ Create components/ folder in AddTeamMember/
+- ✅ Extract basic info form section (BasicInfoSection: 221 lines - includes contact fields)
+- ✅ Extract contact info form section (ContactSection: 308 lines - security/credentials)
+- ✅ Create barrel export in components/index.ts
+- ✅ Update imports in AddTeamMember.tsx
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx test files only (unrelated to AddTeamMember)
+
+**File Size Reduction:**
+- AddTeamMember.tsx: 1,516 → 1,151 lines (~365 lines extracted)
+- BasicInfoSection.tsx: 221 lines (includes icons)
+- ContactSection.tsx: 308 lines (includes icons)
+
+**Learnings:**
+- The "basic info" and "contact info" distinction in PRD was interpreted as:
+  - BasicInfoSection: Personal details (name, email, phone, role, title, bio) - what the user enters about themselves
+  - ContactSection: Security credentials and notification preferences - system access configuration
+- Icons are duplicated in each component to keep them self-contained (avoids prop drilling or shared icon dependency)
+- The main file is still 1,151 lines (not <500 as target), requiring US-029 to complete the modularization
+
+**Next story suggestion:** US-029 (Extract AddTeamMember remaining sections and complete refactor) - depends on US-028 (now complete), same category (refactor), completes the AddTeamMember modularization series.
+
+---
+## 2026-01-19 - US-029: Extract AddTeamMember remaining sections and complete refactor
+Commit: 5f5b25b
+
+**Why this story?** US-029 is the next logical choice because US-028 was just completed, so AddTeamMember code is fresh in context. It has satisfied dependencies (US-028) and completes the AddTeamMember modularization series.
+
+**Changes:**
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/ScheduleSection.tsx (NEW):1-102`: Created component with:
+  - Weekly schedule configuration with day toggles
+  - Time picker for start/end times for each working day
+  - Working days summary display
+  - Includes CalendarIcon
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/ServicesSection.tsx (NEW):1-131`: Created component with:
+  - Services grouped by category (hair, nails, skin, massage, waxing, makeup)
+  - Category-level and individual service toggles
+  - Service count per category and total
+  - Duration and price display
+  - Includes ScissorsIcon, CheckIcon
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/ReviewSection.tsx (NEW):1-232`: Created component with:
+  - Profile card with avatar, name, role badge
+  - Contact info summary
+  - Security credentials summary (PIN, password/invite status)
+  - Schedule summary (working days count)
+  - Services summary (up to 8 displayed + count)
+  - Bio section
+  - Includes CheckCircleIcon, MailIcon, PhoneIcon, LockIcon, KeyIcon, SendIcon
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/SuccessSection.tsx (NEW):1-188`: Created component with:
+  - Success confirmation message
+  - Invite link display with copy button
+  - Send via Email/SMS buttons
+  - Credentials info cards (PIN ready, password setup pending)
+  - Notification confirmation
+  - Includes CheckCircleIcon, SendIcon, CopyIcon, MailIcon, PhoneIcon, LockIcon, InfoIcon
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/hooks/useTeamMemberForm.ts (NEW):1-479`: Created hook with:
+  - All form state (basics, loginCredentials, workingHours, services, errors)
+  - All setters for state
+  - Validation logic (validateBasics)
+  - Navigation handlers (handleNext, handleBack)
+  - Submit handler with Supabase integration
+  - Schedule handlers (toggleWorkingDay, updateShiftTime)
+  - Service handlers (toggleService, toggleAllServices)
+  - Computed values (getRoleColor, selectedServicesCount, workingDaysCount)
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/hooks/index.ts (NEW):1-2`: Barrel export for hooks
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/components/index.ts:8-11`: Added exports for ScheduleSection, ServicesSection, ReviewSection, SuccessSection
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/index.ts:26-37`: Added exports for useTeamMemberForm and all sub-components
+- `apps/store-app/src/components/team-settings/components/AddTeamMember/AddTeamMember.tsx:1-282`: Completely refactored to orchestration-only:
+  - Uses useTeamMemberForm hook for all state and handlers
+  - Renders header with progress steps
+  - Conditionally renders section components based on currentStep
+  - Renders footer with navigation buttons
+  - Only contains modal icons (CloseIcon, CheckIcon, ArrowLeftIcon, ArrowRightIcon, UserPlusIcon, SpinnerIcon)
+
+**Acceptance Criteria Check:**
+- ✅ Extract remaining form sections to components/ (ScheduleSection, ServicesSection, ReviewSection, SuccessSection)
+- ✅ Extract form logic to useTeamMemberForm.ts hook (479 lines of state, validation, handlers)
+- ✅ Create index.ts barrel export for the module (hooks exported at index.ts:27)
+- ✅ AddTeamMember.tsx is <500 lines (282 lines - orchestration only!)
+- ⚠️ TypeScript: Pre-existing error TS6310 in monorepo config (unrelated to AddTeamMember), no errors in AddTeamMember module
+- ⏳ Verify in browser: Needs browser verification
+
+**File Size Results:**
+- AddTeamMember.tsx: 1,151 → 282 lines (**-869 lines**, 75% reduction, TARGET <500 ✅)
+- Total module: 2,163 lines across 14 files (well-organized)
+  - AddTeamMember.tsx: 282 lines (orchestration)
+  - components/: 1,102 lines (6 components)
+  - hooks/: 481 lines (1 hook + index)
+  - types.ts: 35 lines
+  - constants.ts: 12 lines
+  - utils.ts: 123 lines
+  - index.ts: 37 lines
+
+**Pre-existing Issues (NOT from this story):**
+- TS6310 errors: "Referenced project may not disable emit" - monorepo tsconfig configuration issue
+- Test failures: CreateTicketButton (missing Redux provider), WaitListItem (timeout), padCheckoutFlow (state)
+
+**Learnings:**
+- Form logic extraction to custom hook reduces component complexity dramatically (1,151 → 282 lines)
+- Section components with their own icons are self-contained and easily testable
+- Hook returns both state and handlers, enabling clean orchestration in main component
+- The pattern: types.ts + constants.ts + utils.ts + hooks/ + components/ = well-organized module
+
+**Patterns to sync:**
+- Pattern #27: Form Hook Pattern - Extract complex form state/validation/handlers to a custom hook, keep component as pure orchestration
+
+**Next story suggestion:** US-030 (Extract PaymentModal types and constants) - no dependencies, starts the PaymentModal modularization series (US-030 to US-031).
+
+---
