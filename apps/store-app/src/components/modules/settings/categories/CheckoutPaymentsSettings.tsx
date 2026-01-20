@@ -754,6 +754,62 @@ export function CheckoutPaymentsSettings() {
               </div>
             </div>
           )}
+
+          {/* Price Change Notifications */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-3">
+              Price Change Notifications
+            </p>
+            <p className="text-xs text-gray-500 mb-4">
+              Configure when staff should be notified about price changes between booking and checkout
+            </p>
+
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium text-gray-900">Notify on price increase</p>
+                <p className="text-sm text-gray-500">
+                  Alert staff when current price is higher than booked price
+                </p>
+              </div>
+              <Toggle
+                checked={pricingPolicy.notifyOnPriceIncrease ?? true}
+                onChange={(checked) => handlePricingPolicyChange('notifyOnPriceIncrease', checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-t border-gray-100">
+              <div>
+                <p className="font-medium text-gray-900">Notify on price decrease</p>
+                <p className="text-sm text-gray-500">
+                  Alert staff when current price is lower than booked price
+                </p>
+              </div>
+              <Toggle
+                checked={pricingPolicy.notifyOnPriceDecrease ?? true}
+                onChange={(checked) => handlePricingPolicyChange('notifyOnPriceDecrease', checked)}
+              />
+            </div>
+
+            <div className="mt-4">
+              <FormField
+                label="Variance Threshold (%)"
+                hint="Only trigger price change review when variance exceeds this percentage"
+              >
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={pricingPolicy.varianceThresholdPercent ?? 5}
+                    onChange={(v) => handlePricingPolicyChange('varianceThresholdPercent', parseFloat(v) || 0)}
+                    min={0}
+                    max={100}
+                    step={1}
+                    placeholder="5"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                </div>
+              </FormField>
+            </div>
+          </div>
         </div>
       </SettingsSection>
 

@@ -286,7 +286,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Add to PricingPolicySettings interface around line 222-293. Add to DEFAULT_PRICING_POLICY constant around line 603-614. notifyOnPriceIncrease/Decrease default true, varianceThresholdPercent default 5 (5%)."
     },
     {

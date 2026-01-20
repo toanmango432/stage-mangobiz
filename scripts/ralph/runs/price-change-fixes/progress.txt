@@ -443,3 +443,32 @@ Commit: 181a089
 **Next story suggestion:** US-014 (Add notification toggle fields to PricingPolicySettings type) - starts the notification feature epic. US-015 and US-016 depend on US-014's type definitions.
 
 ---
+
+## 2026-01-19 - US-014: Add notification toggle fields to PricingPolicySettings type
+Commit: 9cbab85
+
+**Why this story?** US-014 is the highest priority incomplete story (priority 14) and was explicitly recommended by the previous iteration (US-013). It starts the notification feature epic - US-015 and US-016 depend on US-014's type definitions being in place.
+
+**Changes:**
+- apps/store-app/src/types/settings.ts:294-313: Added three new fields to PricingPolicySettings interface:
+  - `notifyOnPriceIncrease: boolean` - Send notification when service price increases
+  - `notifyOnPriceDecrease: boolean` - Send notification when service price decreases
+  - `varianceThresholdPercent: number` - Minimum variance to trigger price change review (default 5%)
+  - All fields include comprehensive JSDoc comments explaining their purpose and default values
+- apps/store-app/src/types/settings.ts:635-637: Added default values to DEFAULT_PRICING_POLICY constant:
+  - `notifyOnPriceIncrease: true` - Notify by default
+  - `notifyOnPriceDecrease: true` - Notify by default
+  - `varianceThresholdPercent: 5` - 5% threshold
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx, AddNoteModal.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- Pre-existing turbo/tsconfig issues with referenced projects (TS6310 errors in packages) - not caused by this change
+- Type-only changes (interfaces and constants) don't affect runtime behavior - safe to proceed without browser verification
+
+**Patterns to sync:**
+- None this iteration (TypeScript interface patterns already established)
+
+**Next story suggestion:** US-015 (Add notification toggles to CheckoutPaymentsSettings UI) - it depends on US-014's type definitions and creates the UI for the new settings. US-016 also modifies CheckoutPaymentsSettings.tsx, so they could be done in sequence.
+
+---
