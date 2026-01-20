@@ -2,14 +2,21 @@
  * Store Login Screen
  * Supports two authentication modes:
  * 1. Store Login: Store credentials (email + password) - for shared POS devices
- * 2. Member Login: Member credentials (email + password) - for individual staff login
+ * 2. Member Login: Member credentials (email + password) via Supabase Auth - for individual staff login
+ *
+ * Member Login now uses Supabase Auth for enhanced security with optional PIN setup.
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { Store, Loader2, AlertCircle, CheckCircle2, WifiOff, XCircle, User, KeyRound, ArrowLeft } from 'lucide-react';
 import { storeAuthManager, type StoreAuthState, type MemberSession } from '../../services/storeAuthManager';
+import { memberAuthService } from '../../services/memberAuthService';
+import { authService } from '../../services/supabase';
 import { setStoreSession, setMemberSession, clearAllAuth, setAuthStatus, setAvailableStores } from '../../store/slices/authSlice';
+import { setStoreTimezone } from '../../utils/dateUtils';
+import { PinSetupModal, hasSkippedPinSetup } from './PinSetupModal';
+import type { MemberAuthSession } from '../../types/memberAuth';
 
 type LoginMode = 'store' | 'member';
 
@@ -41,9 +48,28 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // PIN setup modal state (for member login mode)
+  const [showPinSetupModal, setShowPinSetupModal] = useState(false);
+  const [pinSetupMember, setPinSetupMember] = useState<{ memberId: string; name: string } | null>(null);
 
   // Track if we're in a login attempt to prevent error from being cleared
   const isLoginAttemptRef = useRef(false);
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const state = initialState || storeAuthManager.getState();
 
@@ -150,7 +176,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     }
   };
 
-  // Handle member email/password login
+  // Handle member email/password login (uses Supabase Auth via memberAuthService)
   const handleMemberLogin = async () => {
     if (!memberEmail.trim()) {
       setError('Please enter your email');
@@ -161,59 +187,183 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
       return;
     }
 
-    console.log('🔐 Starting member login for:', memberEmail.trim());
+    // Check offline status for member login
+    if (!isOnline) {
+      setError('Connect to the internet for first login. Once logged in, you can use PIN for offline access.');
+      return;
+    }
+
+    console.log('🔐 Starting member login (Supabase Auth) for:', memberEmail.trim());
     isLoginAttemptRef.current = true;
     setIsLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const result = await storeAuthManager.loginMemberWithPassword(memberEmail.trim(), memberPassword);
-      console.log('🔐 Member login result:', JSON.stringify(result, null, 2));
+      // 1. Authenticate with Supabase Auth via memberAuthService
+      const authSession: MemberAuthSession = await memberAuthService.loginWithPassword(
+        memberEmail.trim(),
+        memberPassword
+      );
+      console.log('✅ Supabase Auth successful for member:', authSession.memberId);
 
-      if (result.success && result.member && result.store) {
-        console.log('✅ Member login successful for:', result.member.memberName);
-        setSuccess(`Welcome, ${result.member.firstName || result.member.memberName}!`);
-
-        // Dispatch Redux action for store session
-        dispatch(setStoreSession({
-          storeId: result.store.storeId,
-          storeName: result.store.storeName,
-          storeLoginId: result.store.storeLoginId,
-          tenantId: result.store.tenantId,
-          tier: result.store.tier,
-        }));
-
-        // Dispatch Redux action for member session
-        dispatch(setMemberSession({
-          memberId: result.member.memberId,
-          memberName: result.member.memberName,
-          firstName: result.member.firstName,
-          lastName: result.member.lastName,
-          email: result.member.email,
-          role: result.member.role,
-          avatarUrl: result.member.avatarUrl,
-          permissions: result.member.permissions,
-        }));
-
-        // Dispatch available stores for store switching
-        if (result.availableStores && result.availableStores.length > 0) {
-          dispatch(setAvailableStores(result.availableStores));
-        }
-
-        dispatch(setAuthStatus('active'));
-        onLoggedIn();
-      } else {
-        const errorMessage = result.error || 'Login failed. Please check your credentials.';
-        console.log('❌ Member login failed:', errorMessage);
-        setError(errorMessage);
-        isLoginAttemptRef.current = false;
+      // 2. Get the member's store access list
+      const storeIds = authSession.storeIds || [];
+      if (storeIds.length === 0) {
+        throw new Error('No store access assigned to this account');
       }
-    } catch (err: any) {
+
+      // 3. Fetch all store details for switching
+      const allStores: Array<{
+        storeId: string;
+        storeName: string;
+        storeLoginId: string;
+        tenantId: string;
+        tier: string;
+        timezone?: string;
+      }> = [];
+
+      for (const storeId of storeIds) {
+        const storeDetails = await authService.getStoreById(storeId);
+        if (storeDetails) {
+          allStores.push({
+            storeId: storeDetails.storeId,
+            storeName: storeDetails.storeName,
+            storeLoginId: storeDetails.storeLoginId,
+            tenantId: storeDetails.tenantId,
+            tier: storeDetails.tier,
+            timezone: storeDetails.timezone || undefined,
+          });
+        }
+      }
+
+      if (allStores.length === 0) {
+        throw new Error('Could not load store details');
+      }
+
+      // 4. Use default store or first store as the primary
+      const defaultStoreId = authSession.defaultStoreId;
+      const primaryStore = defaultStoreId
+        ? allStores.find(s => s.storeId === defaultStoreId) || allStores[0]
+        : allStores[0];
+
+      // 5. Set store timezone for date formatting
+      if (primaryStore.timezone) {
+        setStoreTimezone(primaryStore.timezone);
+      }
+
+      // 6. Persist the store session for session restoration
+      authService.setStoreSession({
+        storeId: primaryStore.storeId,
+        storeName: primaryStore.storeName,
+        storeLoginId: primaryStore.storeLoginId,
+        tenantId: primaryStore.tenantId,
+        tier: primaryStore.tier,
+        timezone: primaryStore.timezone,
+      });
+
+      // 7. Create member session for Redux (map MemberAuthSession to MemberSession)
+      const nameParts = authSession.name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      const memberSessionData: MemberSession = {
+        memberId: authSession.memberId,
+        memberName: authSession.name,
+        firstName,
+        lastName,
+        email: authSession.email,
+        role: authSession.role as MemberSession['role'],
+        avatarUrl: undefined, // MemberAuthSession doesn't have avatarUrl
+        permissions: authSession.permissions,
+      };
+
+      console.log('✅ Member login successful for:', memberSessionData.memberName);
+      setSuccess(`Welcome, ${firstName || memberSessionData.memberName}!`);
+
+      // 8. Dispatch Redux actions
+      dispatch(setStoreSession({
+        storeId: primaryStore.storeId,
+        storeName: primaryStore.storeName,
+        storeLoginId: primaryStore.storeLoginId,
+        tenantId: primaryStore.tenantId,
+        tier: primaryStore.tier,
+      }));
+
+      dispatch(setMemberSession(memberSessionData));
+
+      if (allStores.length > 0) {
+        dispatch(setAvailableStores(allStores));
+      }
+
+      dispatch(setAuthStatus('active'));
+
+      // 9. Start grace period checker for offline access
+      memberAuthService.startGraceChecker();
+
+      // 10. Check if user has PIN set up - show modal if not (optional)
+      const hasPin = await memberAuthService.hasPin(authSession.memberId);
+      const hasSkipped = hasSkippedPinSetup(authSession.memberId);
+
+      if (!hasPin && !hasSkipped) {
+        // Show PIN setup modal (user can skip)
+        setPinSetupMember({ memberId: authSession.memberId, name: firstName || authSession.name });
+        setShowPinSetupModal(true);
+        // Don't call onLoggedIn yet - wait for modal to close
+      } else {
+        // PIN already set up or user has skipped - proceed directly
+        onLoggedIn();
+      }
+    } catch (err: unknown) {
       console.error('❌ Member login exception:', err);
-      const errorMessage = err?.message || 'Unable to connect. Please check your connection and try again.';
+      const errorMessage = err instanceof Error ? err.message : 'Unable to connect. Please check your connection and try again.';
       setError(errorMessage);
       isLoginAttemptRef.current = false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle PIN setup completion
+  const handlePinSetupComplete = () => {
+    setShowPinSetupModal(false);
+    setPinSetupMember(null);
+    onLoggedIn();
+  };
+
+  // Handle PIN setup skip
+  const handlePinSetupSkip = () => {
+    setShowPinSetupModal(false);
+    setPinSetupMember(null);
+    onLoggedIn();
+  };
+
+  // Handle forgot password (opens Supabase reset flow)
+  const handleForgotPassword = async () => {
+    if (!memberEmail.trim()) {
+      setError('Please enter your email address first');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { error: resetError } = await import('../../services/supabase/client').then(m =>
+        m.supabase.auth.resetPasswordForEmail(memberEmail.trim(), {
+          // Redirect URL after password reset - adjust to your app URL
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        })
+      );
+
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setSuccess('Check your email for a password reset link');
+      }
+    } catch (err) {
+      console.error('Failed to send reset email:', err);
+      setError('Failed to send reset email. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -614,6 +764,8 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
             success={success}
             onLogin={handleMemberLogin}
             onKeyDown={handleMemberKeyDown}
+            isOnline={isOnline}
+            onForgotPassword={handleForgotPassword}
           />
         ) : (
           <LoginForm
@@ -647,6 +799,17 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           )}
         </div>
       </div>
+
+      {/* PIN Setup Modal - shown after successful member login if PIN not set up */}
+      <PinSetupModal
+        isOpen={showPinSetupModal}
+        onClose={handlePinSetupComplete}
+        onSubmit={handlePinSetupComplete}
+        onSkip={handlePinSetupSkip}
+        memberId={pinSetupMember?.memberId || ''}
+        memberName={pinSetupMember?.name || ''}
+        isRequired={false}
+      />
     </div>
   );
 }
@@ -758,6 +921,8 @@ interface MemberLoginFormProps {
   success: string | null;
   onLogin: () => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
+  isOnline: boolean;
+  onForgotPassword?: () => void;
 }
 
 function MemberLoginForm({
@@ -770,6 +935,8 @@ function MemberLoginForm({
   success,
   onLogin,
   onKeyDown,
+  isOnline,
+  onForgotPassword,
 }: MemberLoginFormProps) {
   return (
     <div className="space-y-4">
@@ -791,9 +958,21 @@ function MemberLoginForm({
       </div>
 
       <div>
-        <label htmlFor="member-password" className="block text-sm font-medium text-gray-700 mb-2">
-          Password
-        </label>
+        <div className="flex justify-between items-center mb-2">
+          <label htmlFor="member-password" className="block text-sm font-medium text-gray-700">
+            Password
+          </label>
+          {/* Forgot Password link - only visible when online */}
+          {isOnline && onForgotPassword && (
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-sm text-brand-600 hover:text-brand-700 hover:underline"
+            >
+              Forgot Password?
+            </button>
+          )}
+        </div>
         <input
           id="member-password"
           type="password"
