@@ -10,6 +10,7 @@
  */
 
 import { colors } from '@/design-system';
+import { formatCurrencyWithSign } from '@/utils/formatters';
 
 /**
  * Summary statistics for display.
@@ -29,17 +30,6 @@ export interface PriceResolutionSummaryData {
 export interface PriceResolutionSummaryProps {
   /** Summary statistics to display */
   summary: PriceResolutionSummaryData;
-}
-
-/**
- * Format currency with optional sign for variance display.
- */
-function formatCurrency(amount: number, showSign = false): string {
-  if (showSign) {
-    const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
-    return `${sign}$${Math.abs(amount).toFixed(2)}`;
-  }
-  return `$${amount.toFixed(2)}`;
 }
 
 /**
@@ -113,7 +103,7 @@ export function PriceResolutionSummary({ summary }: PriceResolutionSummaryProps)
           className="text-lg font-semibold"
           style={getVarianceColorStyle(totalVariance)}
         >
-          {formatCurrency(totalVariance, true)}
+          {formatCurrencyWithSign(totalVariance, true)}
         </p>
       </div>
 

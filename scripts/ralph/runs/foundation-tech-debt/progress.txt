@@ -1,0 +1,134 @@
+## Codebase Patterns
+
+See patterns.md for accumulated patterns from previous runs.
+
+---
+
+# Ralph Progress Log
+Started: 2026-01-19
+Branch: ralph/foundation-tech-debt
+PRD: Foundation & Technical Debt (Phase 1 & 2)
+
+## Overview
+
+This run implements the Foundation Fixes (Phase 1) and Technical Debt (Phase 2) plan:
+
+**Phase 1 - Foundation Fixes:**
+- US-001, US-002: Vitest coverage config updates
+- US-003 to US-006: Fix 4 silent error failures in featureFlags.ts
+- US-007: Add console removal plugin
+- US-008 to US-014: PaymentModal real tests
+- US-015 to US-018: Verify/complete TicketPanel modularization
+
+**Phase 2 - Technical Debt:**
+- US-019 to US-026: Extract dataService.ts into domain services
+- US-027 to US-029: Split AddTeamMember.tsx
+- US-030, US-031: Split PaymentModal.tsx
+- US-032 to US-034: Split OperationTemplateSetup.tsx
+- US-035 to US-037: Split TimesheetSection.tsx
+
+## Setup Information
+
+**PRD Document:** `/tasks/prd-foundation-tech-debt.md`
+**PRD JSON:** `scripts/ralph/runs/foundation-tech-debt/prd.json`
+**Total Stories:** 37
+
+### Key File Sizes (Before)
+
+| File | Lines | Target |
+|------|-------|--------|
+| dataService.ts | 3,090 | <500 |
+| TicketPanel.tsx | 1,668 | Already partially modularized |
+| AddTeamMember.tsx | 1,516 | <500 |
+| OperationTemplateSetup.tsx | 1,380 | <500 |
+| TimesheetSection.tsx | 1,187 | <500 |
+| PaymentModal.tsx | 1,154 | <500 |
+| featureFlags.ts | 345 | ~360 (add logging) |
+| vitest.config.ts | 59 | ~70 |
+| PaymentModal.test.tsx | 70 | ~200 (real tests) |
+
+### Existing Checkout Modularization
+
+TicketPanel already has partial module structure:
+- `hooks/` - 11 files (useTicketKeyboard.ts, useTicketPersistence.ts, etc.)
+- `components/` - 9 files (CatalogPanel.tsx, TicketHeader.tsx, etc.)
+- `reducers/` - ticketReducer.ts
+- `constants/` - exists
+
+US-015 to US-018 are verification stories to audit completeness.
+
+### Empty Catch Blocks in featureFlags.ts
+
+Located at lines:
+- ~92: getFeatureFlag
+- ~250: getNumericFeatureFlag
+- ~264: getJsonFeatureFlag
+- ~278: getArrayFeatureFlag
+
+---
+
+## 2026-01-19 - US-001: Add checkout, auth, and common paths to Vitest coverage
+Commit: ede3706
+
+**Why this story?** US-001 is the highest priority story with no dependencies. It's a prerequisite for US-002 (coverage thresholds).
+
+**Changes:**
+- `apps/store-app/vitest.config.ts:22-26`: Added three glob patterns to coverage include array:
+  - `src/components/checkout/**/*.{ts,tsx}`
+  - `src/components/auth/**/*.{ts,tsx}`
+  - `src/components/common/**/*.{ts,tsx}`
+
+**Learnings:**
+- Changes were already present in working directory (uncommitted) - verified and committed
+- Pre-existing TypeScript errors exist across the codebase (test files, uiTicketsSlice.ts, types/index.ts) - these are NOT related to US-001 and should be addressed separately
+- The typecheck criterion in PRD may need adjustment since pre-existing errors block all stories
+
+**Next story suggestion:** US-002 (Add coverage thresholds) since US-001 is now complete and US-002 depends on it. Same file, same category, fresh in context.
+
+---
+
+## 2026-01-19 - US-002: Add coverage thresholds to Vitest config
+Commit: a628f67
+
+**Why this story?** US-002 has dependency on US-001 (now complete), same file (vitest.config.ts), same category (test), and lowest priority among available stories with satisfied dependencies.
+
+**Changes:**
+- `apps/store-app/vitest.config.ts:39-44`: Added coverage thresholds object:
+  - `statements: 50`
+  - `branches: 40`
+  - `functions: 50`
+  - `lines: 50`
+
+**Learnings:**
+- Changes were already present in working directory (uncommitted from previous session) - verified against acceptance criteria and committed
+- Pre-existing TypeScript errors in test files persist (Book/__tests__/*.tsx) - these are unrelated to US-002 and affect the "typecheck passes" criterion for all stories
+- The PRD's "typecheck passes" acceptance criteria should be interpreted as "no NEW typecheck errors introduced by this story" since pre-existing errors exist
+
+**Next story suggestion:** US-003 (Fix silent error in featureFlags getFeatureFlag) - next available priority, no dependencies, different file so a clean context switch.
+
+---
+
+## 2026-01-19 - US-003: Fix silent error in featureFlags isInRollbackState
+Commit: eb4dba3
+
+**Why this story?** US-003 is the highest priority story with no dependencies among remaining stories. It starts the pattern for US-004 to US-006 which all work on the same file.
+
+**Changes:**
+- `apps/store-app/src/config/featureFlags.ts:92-94`: Changed empty catch block to log errors:
+  - Before: `} catch { return false; }`
+  - After: `} catch (error) { console.warn('[FeatureFlags] Failed to parse rollback state:', error); return false; }`
+
+**Learnings:**
+- PRD notes referenced `getFeatureFlag` function at line ~92, but actual function is `isInRollbackState()`. PRD function names are outdated but the intent (add logging to silent catch blocks) is clear and correct.
+- The four functions named in US-003 to US-006 (`getFeatureFlag`, `getNumericFeatureFlag`, `getJsonFeatureFlag`, `getArrayFeatureFlag`) don't exist in featureFlags.ts. The actual functions with empty catch blocks are:
+  - `isInRollbackState()` (~line 92) - US-003
+  - `getCachedMigrationStatus()` (~line 250) - US-004
+  - `cacheMigrationStatus()` (~line 264) - US-005
+  - `clearCachedMigrationStatus()` (~line 278) - US-006
+- featureFlagService.ts is a separate file with different feature flag functions
+
+**Patterns to sync:** None - this is standard error logging best practice
+
+**Next story suggestion:** US-004 (Fix silent error in getCachedMigrationStatus) - same file, same pattern, code is fresh in context.
+
+---

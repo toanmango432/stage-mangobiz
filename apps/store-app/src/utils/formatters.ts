@@ -76,3 +76,17 @@ export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
   return `${text.substring(0, maxLength)}...`;
 };
+
+/**
+ * Format currency with optional sign for variance display
+ * @param amount - Amount in dollars
+ * @param showSign - If true, shows +/- prefix for positive/negative amounts
+ * @returns Formatted currency (e.g., "+$5.00" or "-$5.00" or "$5.00")
+ */
+export function formatCurrencyWithSign(amount: number, showSign = false): string {
+  if (showSign) {
+    const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+    return `${sign}$${Math.abs(amount).toFixed(2)}`;
+  }
+  return `$${amount.toFixed(2)}`;
+}

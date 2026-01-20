@@ -3,7 +3,7 @@
  * @module PriceResolutionModal
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Zap, AlertCircle, Check } from 'lucide-react';
 import { colors } from '@/design-system';
 import { Button } from '@/components/ui/Button';
@@ -71,20 +71,19 @@ export default function PriceResolutionModal({
 
   const [resolutionStates, setResolutionStates] = useState<ResolutionStates>({});
 
-  useMemo(() => {
-    const initialStates: ResolutionStates = {};
-    unresolvedServices.forEach(service => {
-      initialStates[service.id] = resolutionStates[service.id] || {
-        option: 'booked',
-        customPrice: '',
-        reason: '',
-      };
+  // Initialize resolution states for new unresolved services
+  useEffect(() => {
+    const newServiceIds = unresolvedServices.filter(s => !resolutionStates[s.id]);
+    if (newServiceIds.length === 0) return;
+
+    setResolutionStates(prev => {
+      const updated = { ...prev };
+      newServiceIds.forEach(service => {
+        updated[service.id] = { option: 'booked', customPrice: '', reason: '' };
+      });
+      return updated;
     });
-    const hasNewServices = unresolvedServices.some(s => !resolutionStates[s.id]);
-    if (hasNewServices && Object.keys(initialStates).length > 0) {
-      setResolutionStates(prev => ({ ...prev, ...initialStates }));
-    }
-  }, [unresolvedServices]);
+  }, [unresolvedServices, resolutionStates]);
 
   const summary = useMemo(() => ({
     totalServices: priceChanges.length,
@@ -96,18 +95,20 @@ export default function PriceResolutionModal({
     if (!service.bookedPrice || !service.catalogPriceAtCheckout) return 'booked';
 
     const mode = pricingPolicy?.defaultMode || 'ask_staff';
-    const recommendation = getPriceDecisionRecommendation(
+    const { priceDecision } = getPriceDecisionRecommendation(
       mode,
       service.bookedPrice,
       service.catalogPriceAtCheckout,
       { depositPaid: service.depositLocked }
     );
 
-    if (recommendation.priceDecision === 'booked_honored' ||
-        recommendation.priceDecision === 'deposit_locked') return 'booked';
-    if (recommendation.priceDecision === 'catalog_applied' ||
-        recommendation.priceDecision === 'lower_applied') return 'current';
-    return 'booked';
+    switch (priceDecision) {
+      case 'catalog_applied':
+      case 'lower_applied':
+        return 'current';
+      default:
+        return 'booked';
+    }
   }, [pricingPolicy]);
 
   const handleOptionChange = useCallback((serviceId: string, option: ResolutionOption) => {

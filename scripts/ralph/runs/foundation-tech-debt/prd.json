@@ -1,0 +1,851 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/foundation-tech-debt",
+  "description": "Foundation Fixes & Technical Debt - Phase 1 & 2 implementation covering vitest coverage config, featureFlags silent error fixes, console removal plugin, PaymentModal tests, TicketPanel verification, dataService domain extraction, and large file splits.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add checkout, auth, and common paths to Vitest coverage",
+      "description": "As a developer, I need coverage reports to include all critical paths.",
+      "files": [
+        "apps/store-app/vitest.config.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add 'src/components/checkout/**/*.{ts,tsx}' to coverage include array",
+        "Add 'src/components/auth/**/*.{ts,tsx}' to coverage include array",
+        "Add 'src/components/common/**/*.{ts,tsx}' to coverage include array",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "category": "test",
+      "complexity": 1,
+      "notes": "Current include array is at lines 32-40. Follow existing glob pattern format."
+    },
+    {
+      "id": "US-002",
+      "title": "Add coverage thresholds to Vitest config",
+      "description": "As a developer, I need coverage thresholds to prevent regressions.",
+      "files": [
+        "apps/store-app/vitest.config.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add statements: 50 threshold",
+        "Add branches: 40 threshold",
+        "Add functions: 50 threshold",
+        "Add lines: 50 threshold",
+        "Thresholds are inside the coverage object",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "category": "test",
+      "complexity": 1,
+      "dependencies": ["US-001"],
+      "notes": "Add thresholds after the include array. Format: thresholds: { statements: 50, branches: 40, functions: 50, lines: 50 }"
+    },
+    {
+      "id": "US-003",
+      "title": "Fix silent error in featureFlags getFeatureFlag",
+      "description": "As a developer, I need to see error logs when feature flag parsing fails.",
+      "files": [
+        "apps/store-app/src/config/featureFlags.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add console.warn('[FeatureFlags] Failed to parse ${key}:', error) to catch block at line ~92",
+        "Catch block captures the error parameter: catch (error)",
+        "Still returns defaultValue after logging",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Current catch block at line 92 is empty: } catch { return false; }. Change to: } catch (error) { console.warn(...); return defaultValue; }"
+    },
+    {
+      "id": "US-004",
+      "title": "Fix silent error in featureFlags getNumericFeatureFlag",
+      "description": "As a developer, I need to see error logs when numeric feature flag parsing fails.",
+      "files": [
+        "apps/store-app/src/config/featureFlags.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add console.warn('[FeatureFlags] Failed to parse numeric ${key}:', error) to catch block at line ~250",
+        "Catch block captures the error parameter: catch (error)",
+        "Still returns defaultValue after logging",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Empty catch block at line ~250. Same pattern as US-003."
+    },
+    {
+      "id": "US-005",
+      "title": "Fix silent error in featureFlags getJsonFeatureFlag",
+      "description": "As a developer, I need to see error logs when JSON feature flag parsing fails.",
+      "files": [
+        "apps/store-app/src/config/featureFlags.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add console.warn('[FeatureFlags] Failed to parse JSON ${key}:', error) to catch block at line ~264",
+        "Catch block captures the error parameter: catch (error)",
+        "Still returns defaultValue after logging",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Empty catch block at line ~264. Same pattern as US-003."
+    },
+    {
+      "id": "US-006",
+      "title": "Fix silent error in featureFlags getArrayFeatureFlag",
+      "description": "As a developer, I need to see error logs when array feature flag parsing fails.",
+      "files": [
+        "apps/store-app/src/config/featureFlags.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add console.warn('[FeatureFlags] Failed to parse array ${key}:', error) to catch block at line ~278",
+        "Catch block captures the error parameter: catch (error)",
+        "Still returns defaultValue after logging",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Empty catch block at line ~278. Same pattern as US-003."
+    },
+    {
+      "id": "US-007",
+      "title": "Add vite-plugin-remove-console for production builds",
+      "description": "As a developer, I need console.log statements removed from production builds.",
+      "files": [
+        "apps/store-app/vite.config.ts",
+        "apps/store-app/package.json"
+      ],
+      "acceptanceCriteria": [
+        "Install vite-plugin-remove-console as dev dependency",
+        "Import plugin in vite.config.ts",
+        "Add plugin to plugins array with config",
+        "Plugin only active for production builds (check mode === 'production')",
+        "Keep console.warn and console.error (do NOT remove them)",
+        "pnpm run typecheck passes",
+        "pnpm run build passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "category": "build",
+      "complexity": 2,
+      "notes": "Use conditional plugin: mode === 'production' && removeConsole({ includes: ['log', 'debug'] }). Run pnpm add -D vite-plugin-remove-console first."
+    },
+    {
+      "id": "US-008",
+      "title": "Implement PaymentModal test - renders when open",
+      "description": "As a developer, I need real tests for PaymentModal rendering.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder expect(true).toBe(true) with real assertions",
+        "Test renders PaymentModal with isOpen={true}",
+        "Assert modal container is in the document",
+        "Assert modal title or header is visible",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "category": "test",
+      "complexity": 2,
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Import PaymentModal from '../PaymentModal'. Wrap in necessary providers (Redux). Use @testing-library/react."
+    },
+    {
+      "id": "US-009",
+      "title": "Implement PaymentModal test - does not render when closed",
+      "description": "As a developer, I need tests verifying PaymentModal hides when closed.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder test for 'does not render when isOpen is false'",
+        "Render PaymentModal with isOpen={false}",
+        "Assert modal container is NOT in the document",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "category": "test",
+      "complexity": 1,
+      "dependencies": ["US-008"],
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Use queryByRole or similar that returns null if not found."
+    },
+    {
+      "id": "US-010",
+      "title": "Implement PaymentModal test - displays payment method options",
+      "description": "As a developer, I need tests verifying payment options are shown.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder test for 'displays payment method options'",
+        "Render PaymentModal with isOpen={true} and mock payment methods",
+        "Assert Cash option is visible",
+        "Assert Card option is visible",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "category": "test",
+      "complexity": 2,
+      "dependencies": ["US-008"],
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Check PaymentModal props for how payment methods are passed."
+    },
+    {
+      "id": "US-011",
+      "title": "Implement PaymentModal test - handles close callback",
+      "description": "As a developer, I need tests verifying onClose is called.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder test for 'calls onClose when cancel is clicked'",
+        "Create mock onClose function with vi.fn()",
+        "Render PaymentModal with mock onClose",
+        "Find and click cancel/close button",
+        "Assert onClose was called",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "category": "test",
+      "complexity": 2,
+      "dependencies": ["US-008"],
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Use fireEvent.click or userEvent.click."
+    },
+    {
+      "id": "US-012",
+      "title": "Implement PaymentModal test - handles payment selection",
+      "description": "As a developer, I need tests verifying payment method selection works.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder test for 'handles payment method selection'",
+        "Render PaymentModal with multiple payment options",
+        "Click on a payment method option",
+        "Assert selected state changes or callback is called",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "category": "test",
+      "complexity": 2,
+      "dependencies": ["US-010"],
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Check how PaymentModal handles selection (callback prop or internal state)."
+    },
+    {
+      "id": "US-013",
+      "title": "Implement PaymentModal test - displays correct totals",
+      "description": "As a developer, I need tests verifying totals are calculated correctly.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder test for 'displays correct totals'",
+        "Render PaymentModal with known subtotal, tax, tip values",
+        "Assert subtotal displays correctly",
+        "Assert tax displays correctly",
+        "Assert total displays correctly",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "category": "test",
+      "complexity": 2,
+      "dependencies": ["US-008"],
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Use specific values like subtotal=100, tax=8.25, tip=15 for easy verification."
+    },
+    {
+      "id": "US-014",
+      "title": "Implement PaymentModal test - handles payment completion",
+      "description": "As a developer, I need tests verifying successful payment callback.",
+      "files": [
+        "apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replace placeholder test for 'handles payment completion'",
+        "Create mock onPaymentComplete function",
+        "Render PaymentModal with required props",
+        "Simulate completing payment",
+        "Assert onPaymentComplete was called with expected data",
+        "Test passes: pnpm test PaymentModal",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "category": "test",
+      "complexity": 3,
+      "dependencies": ["US-012"],
+      "testCommand": "pnpm test -- PaymentModal --run",
+      "notes": "Check PaymentModal for onPaymentComplete or similar callback prop."
+    },
+    {
+      "id": "US-015",
+      "title": "Extract TicketPanel types to types.ts",
+      "description": "As a developer, I need TicketPanel types in a dedicated file.",
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel/types.ts",
+        "apps/store-app/src/components/checkout/TicketPanel.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Verify types.ts exists or create with all interfaces from TicketPanel.tsx",
+        "TicketPanel.tsx imports types from './TicketPanel/types' or './types'",
+        "No duplicate type definitions",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "notes": "Check if types.ts already exists in TicketPanel folder. Include TicketPanelProps and internal state types."
+    },
+    {
+      "id": "US-016",
+      "title": "Extract TicketPanel constants to constants.ts",
+      "description": "As a developer, I need TicketPanel constants in a dedicated file.",
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel/constants.ts",
+        "apps/store-app/src/components/checkout/TicketPanel.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Verify constants.ts exists or create with all constants from TicketPanel.tsx",
+        "TicketPanel.tsx imports constants from './TicketPanel/constants' or './constants'",
+        "No magic numbers/strings remaining in TicketPanel.tsx",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 1,
+      "dependencies": ["US-015"],
+      "notes": "Look for DEFAULT_, INITIAL_, config objects at top of file."
+    },
+    {
+      "id": "US-017",
+      "title": "Verify TicketPanel hooks are properly extracted",
+      "description": "As a developer, I need to verify existing hook extractions are complete.",
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel.tsx",
+        "apps/store-app/src/components/checkout/hooks/"
+      ],
+      "acceptanceCriteria": [
+        "Audit TicketPanel.tsx for any inline hook logic that should be in hooks/",
+        "All complex state management uses extracted hooks",
+        "TicketPanel.tsx imports all hooks from './hooks' or './TicketPanel/hooks'",
+        "No useState/useEffect with >10 lines of logic inline",
+        "Document findings in progress.txt",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "dependencies": ["US-016"],
+      "notes": "hooks/ folder already exists with useTicketKeyboard.ts, useTicketPersistence.ts, useTicketActions.tsx. This is about VERIFYING completeness."
+    },
+    {
+      "id": "US-018",
+      "title": "Verify TicketPanel components are properly extracted",
+      "description": "As a developer, I need to verify existing component extractions are complete.",
+      "files": [
+        "apps/store-app/src/components/checkout/TicketPanel.tsx",
+        "apps/store-app/src/components/checkout/components/"
+      ],
+      "acceptanceCriteria": [
+        "Audit TicketPanel.tsx for any inline JSX that should be in components/",
+        "All reusable UI sections use extracted components",
+        "No JSX blocks >50 lines that could be extracted",
+        "Document findings in progress.txt",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "dependencies": ["US-017"],
+      "notes": "components/ folder already exists with CatalogPanel.tsx, ClientProfileDialog.tsx, TicketHeader.tsx. This is about VERIFYING completeness."
+    },
+    {
+      "id": "US-019",
+      "title": "Create appointmentDataService.ts from dataService",
+      "description": "As a developer, I need appointment operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/appointmentDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts (NEW)",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create src/services/domain/ folder if not exists",
+        "Extract all appointment-related functions to appointmentDataService.ts",
+        "Export appointmentDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from appointmentDataService (facade pattern)",
+        "All existing appointment imports still work (backward compatible)",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "notes": "Look for functions like: getAppointments, createAppointment, updateAppointment, deleteAppointment. Use facade pattern."
+    },
+    {
+      "id": "US-020",
+      "title": "Create clientDataService.ts from dataService",
+      "description": "As a developer, I need client operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/clientDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all client-related functions to clientDataService.ts",
+        "Export clientDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from clientDataService",
+        "All existing client imports still work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-019"],
+      "notes": "Look for: getClients, getClientById, createClient, updateClient, searchClients."
+    },
+    {
+      "id": "US-021",
+      "title": "Create ticketDataService.ts from dataService",
+      "description": "As a developer, I need ticket operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/ticketDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all ticket-related functions to ticketDataService.ts",
+        "Export ticketDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from ticketDataService",
+        "All existing ticket imports still work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-020"],
+      "notes": "Tickets may be the largest domain. Look for: getTickets, createTicket, updateTicket, closeTicket."
+    },
+    {
+      "id": "US-022",
+      "title": "Create staffDataService.ts from dataService",
+      "description": "As a developer, I need staff operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/staffDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all staff/team-related functions to staffDataService.ts",
+        "Export staffDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from staffDataService",
+        "All existing staff imports still work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-021"],
+      "notes": "Look for: getStaff, getStaffById, updateStaffStatus, clockIn, clockOut."
+    },
+    {
+      "id": "US-023",
+      "title": "Create transactionDataService.ts from dataService",
+      "description": "As a developer, I need transaction operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/transactionDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all transaction-related functions to transactionDataService.ts",
+        "Export transactionDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from transactionDataService",
+        "All existing transaction imports still work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-022"],
+      "notes": "Look for: getTransactions, createTransaction, refundTransaction."
+    },
+    {
+      "id": "US-024",
+      "title": "Create catalogDataService.ts from dataService",
+      "description": "As a developer, I need catalog operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/catalogDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all service catalog functions to catalogDataService.ts",
+        "Export catalogDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from catalogDataService",
+        "All existing catalog imports still work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "dependencies": ["US-023"],
+      "notes": "Look for: getServices, getServiceCategories, getProducts."
+    },
+    {
+      "id": "US-025",
+      "title": "Create scheduleDataService.ts from dataService",
+      "description": "As a developer, I need scheduling operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/scheduleDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all scheduling functions to scheduleDataService.ts",
+        "Export scheduleDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from scheduleDataService",
+        "All existing schedule imports still work",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "dependencies": ["US-024"],
+      "notes": "Look for: getSchedule, getAvailability, getTimeSlots."
+    },
+    {
+      "id": "US-026",
+      "title": "Create syncDataService.ts and finalize dataService facade",
+      "description": "As a developer, I need sync queue operations in a dedicated service.",
+      "files": [
+        "apps/store-app/src/services/domain/syncDataService.ts (NEW)",
+        "apps/store-app/src/services/domain/index.ts",
+        "apps/store-app/src/services/dataService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Extract all sync-related functions to syncDataService.ts",
+        "Export syncDataService from domain/index.ts",
+        "dataService.ts imports and re-exports from syncDataService",
+        "All existing sync imports still work",
+        "dataService.ts is now <500 lines (facade only)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-025"],
+      "notes": "Look for: addToSyncQueue, processSyncQueue, getSyncStatus. After this, dataService.ts should be ~300-400 lines."
+    },
+    {
+      "id": "US-027",
+      "title": "Extract AddTeamMember types and constants",
+      "description": "As a developer, I need AddTeamMember types/constants extracted.",
+      "files": [
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/types.ts (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/constants.ts (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/AddTeamMember.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create AddTeamMember/ folder if not exists",
+        "Extract all interfaces/types to types.ts",
+        "Extract all constants to constants.ts",
+        "Update imports in AddTeamMember.tsx",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "notes": "AddTeamMember.tsx is 1,516 lines. First step: extract types and constants."
+    },
+    {
+      "id": "US-028",
+      "title": "Extract AddTeamMember form sections to components",
+      "description": "As a developer, I need AddTeamMember form sections as separate components.",
+      "files": [
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/components/BasicInfoSection.tsx (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/components/ContactSection.tsx (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/components/index.ts (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/AddTeamMember.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create components/ folder in AddTeamMember/",
+        "Extract basic info form section (~100-150 lines)",
+        "Extract contact info form section (~100-150 lines)",
+        "Create barrel export in components/index.ts",
+        "Update imports in AddTeamMember.tsx",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-027"],
+      "notes": "Look for logical form groupings (personal info, contact, schedule). Each section component <200 lines."
+    },
+    {
+      "id": "US-029",
+      "title": "Extract AddTeamMember remaining sections and complete refactor",
+      "description": "As a developer, I need AddTeamMember fully modularized.",
+      "files": [
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/components/",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/hooks/useTeamMemberForm.ts (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/index.ts (NEW)",
+        "apps/store-app/src/components/team-settings/components/AddTeamMember/AddTeamMember.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Extract remaining form sections to components/",
+        "Extract form logic to useTeamMemberForm.ts hook",
+        "Create index.ts barrel export for the module",
+        "AddTeamMember.tsx is <500 lines (orchestration only)",
+        "pnpm run typecheck passes",
+        "Verify in browser: add team member flow works"
+      ],
+      "priority": 29,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-028"],
+      "notes": "Look for: schedule section, permissions section, pay rate section. Form state logic goes in hook."
+    },
+    {
+      "id": "US-030",
+      "title": "Extract PaymentModal types and constants",
+      "description": "As a developer, I need PaymentModal types/constants extracted.",
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/types.ts (NEW)",
+        "apps/store-app/src/components/checkout/PaymentModal/constants.ts (NEW)",
+        "apps/store-app/src/components/checkout/PaymentModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create PaymentModal/ folder",
+        "Extract all interfaces/types to types.ts",
+        "Extract all constants to constants.ts",
+        "Update imports in PaymentModal.tsx",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "notes": "PaymentModal.tsx is 1,154 lines. Same pattern as US-027."
+    },
+    {
+      "id": "US-031",
+      "title": "Extract PaymentModal components and complete modularization",
+      "description": "As a developer, I need PaymentModal fully modularized.",
+      "files": [
+        "apps/store-app/src/components/checkout/PaymentModal/components/ (NEW)",
+        "apps/store-app/src/components/checkout/PaymentModal/hooks/ (NEW)",
+        "apps/store-app/src/components/checkout/PaymentModal/index.ts (NEW)",
+        "apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx (NEW)",
+        "apps/store-app/src/components/checkout/PaymentModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Extract payment method selector component",
+        "Extract summary/totals display component",
+        "Extract payment processing hook",
+        "Create index.ts barrel export",
+        "PaymentModal.tsx is <500 lines",
+        "All existing imports still work (backward compatible)",
+        "pnpm run typecheck passes",
+        "Verify in browser: payment flow works"
+      ],
+      "priority": 31,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 4,
+      "dependencies": ["US-030"],
+      "notes": "Update barrel export for backward compatibility. Look for: PaymentMethodSelector, PaymentSummary, TipSelector."
+    },
+    {
+      "id": "US-032",
+      "title": "Extract OperationTemplateSetup types and constants",
+      "description": "As a developer, I need OperationTemplateSetup types/constants extracted.",
+      "files": [
+        "apps/store-app/src/components/OperationTemplateSetup/types.ts (NEW)",
+        "apps/store-app/src/components/OperationTemplateSetup/constants.ts (NEW)",
+        "apps/store-app/src/components/OperationTemplateSetup.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create OperationTemplateSetup/ folder",
+        "Extract all interfaces/types to types.ts",
+        "Extract all constants to constants.ts",
+        "Update imports in OperationTemplateSetup.tsx",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "notes": "OperationTemplateSetup.tsx is 1,380 lines. Same pattern as US-027/US-030."
+    },
+    {
+      "id": "US-033",
+      "title": "Extract OperationTemplateSetup form sections to components",
+      "description": "As a developer, I need OperationTemplateSetup form sections as separate components.",
+      "files": [
+        "apps/store-app/src/components/OperationTemplateSetup/components/ (NEW)",
+        "apps/store-app/src/components/OperationTemplateSetup/OperationTemplateSetup.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create components/ folder in OperationTemplateSetup/",
+        "Extract 2-3 major form/UI sections (~150-200 lines each)",
+        "Create barrel export in components/index.ts",
+        "Update imports in main file",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-032"],
+      "notes": "Identify logical groupings (template config, schedule setup, preview). Each section component <200 lines."
+    },
+    {
+      "id": "US-034",
+      "title": "Complete OperationTemplateSetup modularization",
+      "description": "As a developer, I need OperationTemplateSetup fully modularized.",
+      "files": [
+        "apps/store-app/src/components/OperationTemplateSetup/components/",
+        "apps/store-app/src/components/OperationTemplateSetup/hooks/ (NEW)",
+        "apps/store-app/src/components/OperationTemplateSetup/index.ts (NEW)",
+        "apps/store-app/src/components/OperationTemplateSetup/OperationTemplateSetup.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Extract remaining UI sections to components/",
+        "Extract complex logic to hooks/",
+        "Create index.ts barrel export",
+        "OperationTemplateSetup.tsx is <500 lines",
+        "All existing imports still work (backward compatible)",
+        "pnpm run typecheck passes",
+        "Verify in browser: operation template setup flow works"
+      ],
+      "priority": 34,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-033"],
+      "notes": "Main file should be orchestration only. Move to folder structure with backward-compatible barrel export."
+    },
+    {
+      "id": "US-035",
+      "title": "Extract TimesheetSection types and constants",
+      "description": "As a developer, I need TimesheetSection types/constants extracted.",
+      "files": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/types.ts (NEW)",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/constants.ts (NEW)",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create TimesheetSection/ folder",
+        "Extract all interfaces/types to types.ts",
+        "Extract all constants to constants.ts",
+        "Update imports in TimesheetSection.tsx",
+        "No forbidden strings: 'as any', 'void _'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 2,
+      "notes": "TimesheetSection.tsx is 1,187 lines. Same pattern as US-027/US-030."
+    },
+    {
+      "id": "US-036",
+      "title": "Extract TimesheetSection sub-components",
+      "description": "As a developer, I need TimesheetSection UI sections as separate components.",
+      "files": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/ (NEW)",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create components/ folder in TimesheetSection/",
+        "Extract timesheet table/grid component",
+        "Extract timesheet entry row component",
+        "Extract timesheet summary/totals component",
+        "Create barrel export in components/index.ts",
+        "Update imports in main file",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-035"],
+      "notes": "Look for: table rendering, row items, summary/footer sections. Each component <200 lines."
+    },
+    {
+      "id": "US-037",
+      "title": "Complete TimesheetSection modularization",
+      "description": "As a developer, I need TimesheetSection fully modularized.",
+      "files": [
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/components/",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/hooks/ (NEW)",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/index.ts (NEW)",
+        "apps/store-app/src/components/team-settings/sections/TimesheetSection/TimesheetSection.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Extract remaining UI sections to components/",
+        "Extract timesheet data/state logic to hooks/",
+        "Create index.ts barrel export",
+        "TimesheetSection.tsx is <500 lines",
+        "All existing imports still work (backward compatible)",
+        "pnpm run typecheck passes",
+        "Verify in browser: timesheet section works"
+      ],
+      "priority": 37,
+      "passes": false,
+      "category": "refactor",
+      "complexity": 3,
+      "dependencies": ["US-036"],
+      "notes": "Main file should be orchestration only. Move to folder structure with backward-compatible barrel export."
+    }
+  ]
+}

@@ -248,7 +248,8 @@ function getCachedMigrationStatus(): LocalMigrationStatus | null {
     const stored = localStorage.getItem(MIGRATION_STATUS_KEY);
     if (!stored) return null;
     return JSON.parse(stored) as LocalMigrationStatus;
-  } catch {
+  } catch (error) {
+    console.warn('[FeatureFlags] Failed to parse cached migration status:', error);
     return null;
   }
 }

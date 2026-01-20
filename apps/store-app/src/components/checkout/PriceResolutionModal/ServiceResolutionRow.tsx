@@ -3,6 +3,7 @@ import { colors } from '@/design-system';
 import { Input } from '@/components/ui/Input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { formatCurrencyWithSign } from '@/utils/formatters';
 import type { CheckoutTicketService } from '@/store/slices/uiTicketsSlice';
 
 /** Resolution option type for radio buttons */
@@ -77,15 +78,6 @@ export function ServiceResolutionRow({
   const variance = catalogPrice - bookedPrice;
   const isIncrease = variance > 0;
 
-  /** Format currency with optional sign for variance display */
-  const formatCurrency = (amount: number, showSign = false) => {
-    if (showSign) {
-      const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
-      return `${sign}$${Math.abs(amount).toFixed(2)}`;
-    }
-    return `$${amount.toFixed(2)}`;
-  };
-
   /** Check if custom price is valid (positive number) */
   const isValidCustomPrice = (): boolean => {
     if (state?.option !== 'custom') return true;
@@ -135,17 +127,17 @@ export function ServiceResolutionRow({
           {/* Price info - hide variance for deleted services (no current price) */}
           {isDeleted ? (
             <div className="flex items-center gap-2 mt-1 text-sm" style={{ color: colors.text.secondary }}>
-              <span>Booked: {formatCurrency(bookedPrice)}</span>
+              <span>Booked: {formatCurrencyWithSign(bookedPrice)}</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1 text-sm" style={{ color: colors.text.secondary }}>
-              <span>Booked: {formatCurrency(bookedPrice)}</span>
+              <span>Booked: {formatCurrencyWithSign(bookedPrice)}</span>
               <span style={{ color: colors.border.medium }}>→</span>
               <span style={{ color: isIncrease ? colors.status.warning.dark : colors.status.success.dark }}>
-                Current: {formatCurrency(catalogPrice)}
+                Current: {formatCurrencyWithSign(catalogPrice)}
               </span>
               <span className="text-xs" style={{ color: isIncrease ? colors.status.warning.main : colors.status.success.main }}>
-                ({formatCurrency(variance, true)})
+                ({formatCurrencyWithSign(variance, true)})
               </span>
             </div>
           )}
@@ -168,7 +160,7 @@ export function ServiceResolutionRow({
               This service has been removed from your catalog
             </span>
             <p className="text-xs mt-1" style={{ color: colors.status.error.main }}>
-              The booked price of {formatCurrency(bookedPrice)} will be used.
+              The booked price of {formatCurrencyWithSign(bookedPrice)} will be used.
             </p>
           </div>
         </div>
@@ -182,7 +174,7 @@ export function ServiceResolutionRow({
         >
           <Check className="h-4 w-4" style={{ color: colors.status.info.dark }} />
           <span className="text-sm" style={{ color: colors.status.info.dark }}>
-            Price locked at {formatCurrency(bookedPrice)} due to deposit
+            Price locked at {formatCurrencyWithSign(bookedPrice)} due to deposit
           </span>
         </div>
       ) : (
@@ -220,7 +212,7 @@ export function ServiceResolutionRow({
                 )}
               </div>
               <span className="text-sm" style={{ color: colors.text.secondary }}>
-                Charge {formatCurrency(bookedPrice)} (original booking price)
+                Charge {formatCurrencyWithSign(bookedPrice)} (original booking price)
               </span>
             </div>
           </Label>
@@ -252,7 +244,7 @@ export function ServiceResolutionRow({
                 )}
               </div>
               <span className="text-sm" style={{ color: colors.text.secondary }}>
-                Charge {formatCurrency(catalogPrice)} (current catalog price)
+                Charge {formatCurrencyWithSign(catalogPrice)} (current catalog price)
               </span>
             </div>
           </Label>
