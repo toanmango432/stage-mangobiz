@@ -113,6 +113,9 @@ import {
   sqliteGiftCardDesignsDB,
 } from '@/services/sqliteServices';
 
+// Domain services (extracted for modularity)
+import { appointmentsService } from '@/services/domain';
+
 // API-FIRST: Import API client and endpoints
 import { createAPIClient, endpoints } from '@mango/api-client';
 import type { APIResponse } from '@mango/api-client';
@@ -727,113 +730,7 @@ export const servicesService = {
   },
 };
 
-/**
- * Appointments data operations - LOCAL-FIRST
- * Reads from IndexedDB or SQLite, writes queue for background sync
- *
- * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteAppointmentsDB
- */
-export const appointmentsService = {
-  async getByDate(date: Date): Promise<Appointment[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      return sqliteAppointmentsDB.getByDate(storeId, date);
-    }
-    return appointmentsDB.getByDate(storeId, date);
-  },
-
-  async getById(id: string): Promise<Appointment | null> {
-    if (USE_SQLITE) {
-      const appointment = await sqliteAppointmentsDB.getById(id);
-      return appointment || null;
-    }
-    const appointment = await appointmentsDB.getById(id);
-    return appointment || null;
-  },
-
-  async create(appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'>): Promise<Appointment> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID available');
-
-    let created: Appointment;
-    if (USE_SQLITE) {
-      created = await sqliteAppointmentsDB.create(
-        appointment as Parameters<typeof appointmentsDB.create>[0],
-        'system',
-        storeId
-      );
-    } else {
-      created = await appointmentsDB.create(
-        appointment as Parameters<typeof appointmentsDB.create>[0],
-        'system',
-        storeId
-      );
-    }
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('appointment', 'create', created.id, created);
-
-    return created;
-  },
-
-  async update(id: string, updates: Partial<Appointment>): Promise<Appointment | null> {
-    let updated: Appointment | null | undefined;
-    if (USE_SQLITE) {
-      updated = await sqliteAppointmentsDB.update(id, updates, 'system');
-    } else {
-      updated = await appointmentsDB.update(id, updates, 'system');
-    }
-    if (!updated) return null;
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('appointment', 'update', id, updated);
-
-    return updated;
-  },
-
-  async getUpcoming(limit = 50): Promise<Appointment[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-    // Get appointments from today onwards
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (USE_SQLITE) {
-      return sqliteAppointmentsDB.getByDate(storeId, today, limit);
-    }
-    return appointmentsDB.getByDate(storeId, today, limit);
-  },
-
-  async updateStatus(id: string, status: string): Promise<Appointment | null> {
-    return this.update(id, { status: status as Appointment['status'] });
-  },
-
-  async delete(id: string): Promise<void> {
-    if (USE_SQLITE) {
-      await sqliteAppointmentsDB.delete(id);
-    } else {
-      await appointmentsDB.delete(id);
-    }
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('appointment', 'delete', id, { id });
-  },
-
-  async checkIn(id: string): Promise<Appointment | null> {
-    let updated: Appointment | null | undefined;
-    if (USE_SQLITE) {
-      updated = await sqliteAppointmentsDB.checkIn(id, 'system');
-    } else {
-      updated = await appointmentsDB.checkIn(id, 'system');
-    }
-    if (updated) {
-      queueSyncOperation('appointment', 'update', id, updated);
-    }
-    return updated || null;
-  },
-};
+// Note: appointmentsService is imported from '@/services/domain' (extracted for modularity)
 
 /**
  * Tickets data operations - LOCAL-FIRST
@@ -3012,6 +2909,9 @@ const giftCardDesignsService = {
 
 // Re-export feature flags for convenience
 export { shouldUseSQLite, getBackendType } from '@/config/featureFlags';
+
+// Re-export domain services for backward compatibility
+export { appointmentsService } from '@/services/domain';
 
 export const dataService = {
   // Execution helpers
