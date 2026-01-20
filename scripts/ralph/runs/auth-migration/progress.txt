@@ -1480,3 +1480,35 @@ All 4 acceptance criteria met:
 **Next story suggestion:** US-029 (fix type safety in catch blocks) has no dependencies and is a code quality improvement. Alternatively US-030 (auth timeout) adds robustness.
 
 ---
+
+## 2026-01-20 - US-029: Fix type safety in memberAuthService catch blocks
+Commit: d8951d5
+
+**Why this story?** US-029 has lowest priority (29) among incomplete stories, no dependencies, and is a code quality improvement for the security-critical memberAuthService file. It also unblocks US-036 (structured logging) and US-051 (localStorage tests).
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:473-475`: Changed `catch (err)` to `catch (err: unknown)` with type guard pattern
+- `apps/store-app/src/services/memberAuthService.ts:886-889`: Changed `catch (error)` to `catch (error: unknown)` with type guard pattern
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ All catch blocks use 'catch (err: unknown)' - both catch blocks fixed
+- ✅ Use 'err instanceof Error ? err.message : Unknown error' pattern - implemented in both blocks
+- ✅ No direct err.message access without type guard - all access uses instanceof check
+- ✅ Lines to fix: PRD line numbers were outdated (file modified since PRD), fixed actual catch blocks at lines 473 and 886
+- ✅ No forbidden strings: as any - verified via grep
+- ✅ pnpm run typecheck passes
+- ✅ All 53 memberAuthService tests pass
+
+**Learnings:**
+- PRD line numbers can become outdated when file is modified across multiple stories - always search for actual patterns
+- Empty catch blocks (`catch {}`) are valid ES2019+ and don't need modification
+- Supabase responses with destructured `{ error }` are already typed - only actual catch blocks need `unknown` annotation
+- Type guard pattern `err instanceof Error ? err.message : 'Unknown error'` is standard for typed error handling
+
+**Patterns to sync:**
+- None (standard TypeScript error handling pattern)
+
+**Next story suggestion:** US-030 (add timeout to Supabase auth calls) has no dependencies, adds robustness, and is backend work in the same file. Or US-033 (verify SecureStorage.set success) has lowest complexity (1).
+
+---

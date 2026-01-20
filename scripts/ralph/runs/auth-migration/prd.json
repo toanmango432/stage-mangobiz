@@ -772,7 +772,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "Untyped catch blocks can cause runtime errors when accessing .message on non-Error objects."
