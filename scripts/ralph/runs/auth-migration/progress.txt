@@ -1452,20 +1452,31 @@ The bug described in the PRD ("DRY_RUN still updates database for existing Contr
 
 ---
 
-## Session Summary - 2026-01-20
+## 2026-01-20 - US-028: Remove hardcoded production Supabase URL
+Commit: ad5f866
 
-**Completed this session:** 1 story (US-027 verified)
-**Total progress:** 27/52 stories (52%)
+**Why this story?** US-028 has no dependencies, lowest priority (28) among remaining stories with `passes: false`, and is a critical security fix for the migration script. It prevents accidental connection to production database.
 
-**Blocked stories:** None - all stories complete!
+**Changes:**
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:43-47`: Removed hardcoded fallback URL, made SUPABASE_URL required
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:102-109`: Added validation for SUPABASE_URL in createSupabaseAdminClient()
+- `scripts/auth-migration/migrate-members-to-supabase-auth.ts:14-21`: Updated documentation with clear usage examples
 
-**Patterns synced:** 0 new patterns
+**Verification:**
+All 4 acceptance criteria met:
+- ✅ Removed fallback URL 'https://cpaldkcvdcdyzytosntc.supabase.co' (line 47 now just `process.env.SUPABASE_URL`)
+- ✅ Require SUPABASE_URL env var with clear error message (lines 103-109)
+- ✅ Script fails fast if env var not set (throws Error before creating client)
+- ✅ pnpm run typecheck passes
 
-**Auth Migration Complete!** All 26 user stories have been implemented:
-- US-001 to US-004: Database migrations and migration script
-- US-005 to US-012: memberAuthService implementation (password login, PIN login, PIN management, grace checker, background validation)
-- US-013 to US-019: UI components (PinInput, PinSetupModal, StoreLoginScreen, SwitchUserModal, OfflineGraceIndicator, AuthProvider, ForceLogoutAlert, ForgotPasswordModal)
-- US-020 to US-021: Tests (unit tests, E2E tests)
-- US-022 to US-026: Multi-store support (PinVerificationModal update, PIN opt-in settings, StoreSelectionModal, default store preference, offline store switching)
+**Learnings:**
+- Hardcoded fallback URLs are dangerous in migration scripts - always require explicit configuration
+- Error messages should include full usage example to help developers understand requirements
+- Security-critical changes should be documented in both code comments and file header
+
+**Patterns to sync:**
+- Pattern: Migration Script Safety - Never include hardcoded database URLs in migration scripts. Require explicit environment variables with clear error messages showing full usage examples.
+
+**Next story suggestion:** US-029 (fix type safety in catch blocks) has no dependencies and is a code quality improvement. Alternatively US-030 (auth timeout) adds robustness.
 
 ---

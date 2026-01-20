@@ -470,8 +470,9 @@ async function getDefaultStore(memberId: string): Promise<string | null> {
         }
         return defaultStoreId;
       }
-    } catch (err) {
-      console.error('Unexpected error fetching default store:', err);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Unexpected error fetching default store:', errorMessage);
       // Fall back to cached value
     }
   }
@@ -882,9 +883,10 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
         }
       });
 
-  } catch (error) {
+  } catch (error: unknown) {
     // Catch any unexpected errors - don't logout on network/parsing issues
-    console.error('Background validation: Unexpected error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Background validation: Unexpected error:', errorMessage);
   }
 }
 

@@ -751,7 +751,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "CRITICAL: Hardcoded production URL is a security risk - could accidentally modify live data."
