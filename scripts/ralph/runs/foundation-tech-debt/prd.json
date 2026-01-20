@@ -205,7 +205,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 2,
       "dependencies": ["US-008"],
@@ -229,7 +229,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 2,
       "dependencies": ["US-008"],

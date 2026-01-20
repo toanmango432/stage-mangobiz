@@ -282,3 +282,51 @@ Commit: c39f873 (part of US-008)
 **Next story suggestion:** US-010 (Implement PaymentModal test - displays payment method options) - same file, depends on US-008 (complete), next in the PaymentModal test series.
 
 ---
+
+## 2026-01-19 - US-010: Implement PaymentModal test - displays payment method options
+Commit: 0ea2975
+
+**Why this story?** US-010 is the highest priority incomplete story with satisfied dependencies (US-008 complete). Same file (PaymentModal.test.tsx), same category (test), code structure fresh in context from US-008/US-009 work.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:7-8`: Added imports for `fireEvent` and `act` from testing-library
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:143-164`: Replaced placeholder test with real assertions:
+  - Added `async` to test function for proper act() handling
+  - Click "Continue to Payment" button to navigate to step 2 where payment methods are shown
+  - Used `act()` wrapper around `fireEvent.click()` to properly handle React state updates
+  - Assert all 4 payment method cards are visible via data-testid
+  - Assert payment method labels are visible (Credit Card, Cash, Gift Card, Other)
+
+**Learnings:**
+- PaymentModal uses a multi-step flow: Step 1 is "Add Tip", Step 2 shows payment methods
+- Must navigate to step 2 by clicking "Continue to Payment" button before payment methods are rendered
+- React state updates in tests need to be wrapped in `act()` to avoid warnings and ensure DOM updates complete
+- Payment methods are defined in `PAYMENT_METHODS` array at line 433-438 with ids: card, cash, gift_card, custom
+- Each payment method card has data-testid format `card-payment-method-{id}`
+
+**Next story suggestion:** US-011 (Implement PaymentModal test - handles close callback) - same file, depends on US-008 (complete), tests user interaction with close functionality.
+
+---
+
+## 2026-01-19 - US-011: Implement PaymentModal test - handles close callback
+Commit: bbb0fa9
+
+**Why this story?** US-011 is the highest priority incomplete story with satisfied dependencies (US-008 complete). Same file (PaymentModal.test.tsx), same category (test), code structure fresh in context from US-008/US-009/US-010 work.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:14-40`: Updated Dialog mock to include `onOpenChange` prop and a close button that triggers `onOpenChange(false)` when clicked
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:155-171`: Added new 'closing' describe block with test for onClose callback:
+  - Creates mock onClose function with `vi.fn()`
+  - Renders PaymentModal with mock onClose
+  - Finds and clicks the dialog close button
+  - Asserts onClose was called exactly once
+
+**Learnings:**
+- PaymentModal passes `onClose` to the Dialog component via `onOpenChange={onClose}` (line 475)
+- There's no explicit "Cancel" button in the component - closing happens through Radix UI Dialog mechanisms
+- To test close functionality, needed to enhance the Dialog mock to simulate the onOpenChange callback trigger
+- Standard pattern: Mock Dialog with close button that calls `onOpenChange?.(false)` to simulate closing
+
+**Next story suggestion:** US-012 (Implement PaymentModal test - handles payment selection) - same file, depends on US-010 (complete), tests payment method selection interaction.
+
+---

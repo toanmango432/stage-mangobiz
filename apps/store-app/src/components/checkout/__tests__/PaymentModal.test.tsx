@@ -194,14 +194,37 @@ describe('PaymentModal', () => {
       expect(screen.getByText('Other')).toBeInTheDocument();
     });
 
-    it('should handle card payment', () => {
-      // Placeholder for card payment test
-      expect(true).toBe(true);
-    });
+    it('should handle payment method selection', async () => {
+      renderWithProvider(<PaymentModal {...defaultProps} />);
 
-    it('should handle cash payment', () => {
-      // Placeholder for cash payment test
-      expect(true).toBe(true);
+      // Navigate to step 2 (Payment) where payment methods are shown
+      const continueButton = screen.getByTestId('button-continue-to-payment');
+      await act(async () => {
+        fireEvent.click(continueButton);
+      });
+
+      // Initially no payment method should be selected (no ring-2 class)
+      // Click on the Cash payment method card
+      const cashCard = screen.getByTestId('card-payment-method-cash');
+      await act(async () => {
+        fireEvent.click(cashCard);
+      });
+
+      // After clicking Cash, the cash input section should appear
+      // The "Cash received" label and input should be visible
+      expect(screen.getByText('Cash received')).toBeInTheDocument();
+      expect(screen.getByTestId('input-cash-received')).toBeInTheDocument();
+
+      // Click on a different payment method (Credit Card)
+      const cardCard = screen.getByTestId('card-payment-method-card');
+      await act(async () => {
+        fireEvent.click(cardCard);
+      });
+
+      // Now the Card payment section should be visible (Apply button)
+      expect(screen.getByTestId('button-apply-card')).toBeInTheDocument();
+      // Cash input should no longer be visible
+      expect(screen.queryByTestId('input-cash-received')).not.toBeInTheDocument();
     });
   });
 
