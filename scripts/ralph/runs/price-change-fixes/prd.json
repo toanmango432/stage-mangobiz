@@ -308,7 +308,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Add after the pricing policy mode section. Follow existing toggle/input patterns in the file. Use FormField and Toggle components from existing imports."
     },
     {

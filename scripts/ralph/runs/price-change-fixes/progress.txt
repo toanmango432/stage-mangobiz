@@ -472,3 +472,36 @@ Commit: 9cbab85
 **Next story suggestion:** US-015 (Add notification toggles to CheckoutPaymentsSettings UI) - it depends on US-014's type definitions and creates the UI for the new settings. US-016 also modifies CheckoutPaymentsSettings.tsx, so they could be done in sequence.
 
 ---
+
+## 2026-01-19 - US-015: Add notification toggles to CheckoutPaymentsSettings UI
+Commit: 8de1890
+
+**Why this story?** US-015 is the highest priority incomplete story (priority 15) and was explicitly recommended by the previous iteration (US-014). US-014 (type definitions) is complete, so the UI can now use those fields. US-016 also modifies CheckoutPaymentsSettings.tsx, making it logical to do both in sequence.
+
+**Changes:**
+- apps/store-app/src/components/modules/settings/categories/CheckoutPaymentsSettings.tsx:756-810: Added "Price Change Notifications" subsection with:
+  - Section header with title and description explaining the purpose
+  - "Notify on price increase" toggle - dispatches updatePricingPolicy('notifyOnPriceIncrease', value)
+  - "Notify on price decrease" toggle - dispatches updatePricingPolicy('notifyOnPriceDecrease', value)
+  - "Variance Threshold (%)" input with min=0, max=100, step=1, placeholder="5", and % suffix
+  - All toggles use nullish coalescing (?? true) for backwards compatibility with existing settings
+
+**Browser Verification:**
+- Component renders without errors: PASS
+- "Price Change Notifications" section visible in Pricing Policy settings: PASS
+- Both notification toggles display correctly (checked by default): PASS
+- Variance threshold input shows default value of 5 with % suffix: PASS
+- Accessibility check: PASS (uses existing Toggle and Input components with proper semantics)
+
+**Learnings:**
+- Pre-existing TypeScript errors in test files (AgendaView.test.tsx, AppointmentCard.test.tsx, etc.) - not caused by this change
+- Pre-existing test failures: CreateTicketButton.test.tsx, AddNoteModal.test.tsx (missing Redux Provider), padCheckoutFlow.test.ts (assertion error) - not caused by this change
+- The Input component already supports min, max, step, and placeholder props - no need to extend it
+- Using nullish coalescing (?? defaultValue) ensures backwards compatibility when fields don't exist in stored settings
+
+**Patterns to sync:**
+- None this iteration (existing UI patterns followed)
+
+**Next story suggestion:** US-016 (Add form validation to pricing policy numeric inputs) - it modifies the same file (CheckoutPaymentsSettings.tsx) and adds validation to existing inputs. Code context is fresh.
+
+---

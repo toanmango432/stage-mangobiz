@@ -739,6 +739,7 @@ export function CheckoutPaymentsSettings() {
                     onChange={(v) => handlePricingPolicyChange('approvalThresholdAmount', parseFloat(v) || 0)}
                     min={0}
                     step={0.5}
+                    placeholder="10.00"
                   />
                 </FormField>
                 <FormField label="Percent Threshold (%)" hint="Approval if increase exceeds this percent">
@@ -749,6 +750,7 @@ export function CheckoutPaymentsSettings() {
                     min={0}
                     max={100}
                     step={1}
+                    placeholder="15"
                   />
                 </FormField>
               </div>
