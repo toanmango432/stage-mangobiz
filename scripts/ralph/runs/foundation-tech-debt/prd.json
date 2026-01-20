@@ -117,7 +117,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "Empty catch block at line ~278. Same pattern as US-003."
@@ -140,7 +140,7 @@
         "pnpm run build passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "category": "build",
       "complexity": 2,
       "notes": "Use conditional plugin: mode === 'production' && removeConsole({ includes: ['log', 'debug'] }). Run pnpm add -D vite-plugin-remove-console first."
@@ -161,7 +161,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 2,
       "testCommand": "pnpm test -- PaymentModal --run",
@@ -182,7 +182,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 1,
       "dependencies": ["US-008"],

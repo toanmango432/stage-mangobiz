@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -141,9 +141,26 @@ describe('PaymentModal', () => {
   });
 
   describe('payment methods', () => {
-    it('should display available payment methods', () => {
-      // Placeholder for payment methods test
-      expect(true).toBe(true);
+    it('should display available payment methods', async () => {
+      renderWithProvider(<PaymentModal {...defaultProps} />);
+
+      // Click "Continue to Payment" to go to step 2 where payment methods are shown
+      const continueButton = screen.getByTestId('button-continue-to-payment');
+      await act(async () => {
+        fireEvent.click(continueButton);
+      });
+
+      // Payment method cards should be visible
+      expect(screen.getByTestId('card-payment-method-card')).toBeInTheDocument();
+      expect(screen.getByTestId('card-payment-method-cash')).toBeInTheDocument();
+      expect(screen.getByTestId('card-payment-method-gift_card')).toBeInTheDocument();
+      expect(screen.getByTestId('card-payment-method-custom')).toBeInTheDocument();
+
+      // Labels should be visible
+      expect(screen.getByText('Credit Card')).toBeInTheDocument();
+      expect(screen.getByText('Cash')).toBeInTheDocument();
+      expect(screen.getByText('Gift Card')).toBeInTheDocument();
+      expect(screen.getByText('Other')).toBeInTheDocument();
     });
 
     it('should handle card payment', () => {

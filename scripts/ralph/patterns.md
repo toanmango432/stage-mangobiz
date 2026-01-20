@@ -220,3 +220,17 @@ WHERE tickets.store_id = ?
 GROUP BY staff_id
 ```
 This pattern replaces memory-intensive JS loops with SQL aggregation. Expected: <100ms for 10k records vs 500ms+ with JS.
+
+## From ralph/foundation-tech-debt (2026-01-19)
+
+### Console Removal in Vite Production Builds
+Use esbuild's native `pure` option instead of vite-plugin-remove-console:
+```typescript
+// vite.config.ts
+export default defineConfig(({ mode }) => ({
+  esbuild: {
+    pure: mode === 'production' ? ['console.log', 'console.debug'] : [],
+  },
+}));
+```
+**Why:** vite-plugin-remove-console uses regex-based removal which fails on JSX like `onClick={() => console.log(...)}`. esbuild `pure` is built-in, faster, and handles standalone console calls correctly while preserving console.warn/error.

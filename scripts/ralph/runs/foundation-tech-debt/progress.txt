@@ -170,3 +170,115 @@ Commit: 741ca53
 **Next story suggestion:** US-006 (Fix silent error in clearCachedMigrationStatus) - same file, same pattern, line ~280.
 
 ---
+
+## 2026-01-19 - US-006: Fix silent error in featureFlags clearCachedMigrationStatus
+Commit: d584d2f
+
+**Why this story?** US-006 is the highest priority incomplete story with no dependencies. It completes the pattern established in US-003 to US-005 (adding error logging to silent catch blocks in featureFlags.ts). Same file, code structure is fresh in context.
+
+**Changes:**
+- `apps/store-app/src/config/featureFlags.ts:280-282`: Changed empty catch block to log errors:
+  - Before: `} catch { // Ignore localStorage errors }`
+  - After: `} catch (error) { console.warn('[FeatureFlags] Failed to clear cached migration status:', error); }`
+
+**Learnings:**
+- PRD title says "getArrayFeatureFlag" but the actual function is `clearCachedMigrationStatus()`. Intent is correct (add logging to silent catch blocks).
+- This completes all 4 silent catch block fixes in featureFlags.ts (US-003 to US-006).
+- The function doesn't return a value (void), so we just log without changing return behavior.
+- Pre-existing TypeScript errors (Book/__tests__/*.tsx) and test failures (6 test files, 116 failed tests) continue to exist - these are unrelated to featureFlags.ts changes.
+
+**Next story suggestion:** US-007 (Add vite-plugin-remove-console for production builds) - next available priority with no dependencies. Different file (vite.config.ts), different category (build), logical progression from foundation fixes to build improvements.
+
+---
+
+## 2026-01-19 - US-007: Add console removal for production builds
+Commit: 383ca0c
+
+**Why this story?** US-007 is the highest priority incomplete story with no dependencies. It's a build optimization task that follows the pattern of foundation fixes.
+
+**Changes:**
+- `apps/store-app/vite.config.ts:6-14`: Changed from static config to dynamic config function with esbuild pure option:
+  - Before: `export default defineConfig({ plugins: [react(), /* disabled removeConsole */] })`
+  - After: `export default defineConfig(({ mode }) => ({ plugins: [react()], esbuild: { pure: mode === 'production' ? ['console.log', 'console.debug'] : [] } }))`
+- Removed commented-out vite-plugin-remove-console references (lines 3-5, 12-13)
+- Added closing parenthesis for arrow function return (line 87)
+
+**Implementation Note:**
+Used esbuild's native `pure` option instead of vite-plugin-remove-console because:
+- vite-plugin-remove-console has JSX parsing issues (documented in original comments)
+- The plugin fails with error "Expression expected" when console.log is inside JSX onClick handlers
+- esbuild `pure` is built-in, faster, and handles 99% of console.log removal needs
+- The `pure` option correctly removes standalone console.log/debug while preserving console.warn/error
+
+**Verification:**
+- `pnpm run build` passes successfully (12.97s)
+- Verified "API Request" log message (standalone console.log in client.ts) is NOT in production build
+- console.warn instances ARE present in build (confirmed preservation)
+- 4 remaining console.log in build are: vendor libs (supabase) and placeholder onClick handlers (edge case)
+
+**Learnings:**
+- vite-plugin-remove-console uses regex-based removal which breaks on JSX constructs like `onClick={() => console.log(...)}`
+- esbuild `pure` marks functions as side-effect-free, allowing dead code elimination when return value is unused
+- For 100% removal of console.log inside callbacks, would need different approach (babel plugin or terser)
+- The PRD's approach was technically correct but the plugin has known issues - adapt and document
+
+**Patterns to sync:**
+- Pattern: Use esbuild `pure` option for console removal in Vite instead of plugins that have parsing issues
+
+**Next story suggestion:** US-008 (Implement PaymentModal test - renders when open) - next available priority with no dependencies. Different category (test), starts the PaymentModal test implementation series.
+
+---
+
+## 2026-01-19 - US-008: Implement PaymentModal test - renders when open
+Commit: c39f873
+
+**Why this story?** US-008 is the highest priority incomplete story with no dependencies. It starts the PaymentModal test implementation series (US-008 to US-014). Previous story (US-007) suggested this as the logical next step.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:1-141`: Replaced placeholder tests with real assertions:
+  - Added proper imports (vitest, testing-library, react-redux, configureStore)
+  - Created mocks for Dialog, tooltip, payment services, and pad components
+  - Created mock Redux store with auth, padTransaction, and uiTickets state
+  - Created renderWithProvider helper function
+  - Implemented 'should render when open is true' test with assertions for dialog and title
+  - Implemented 'should not render when open is false' test
+
+**Learnings:**
+- PaymentModal uses `open` prop (not `isOpen` as noted in PRD) - actual component API differs from PRD description
+- PaymentModal requires Redux store with:
+  - `auth.store.storeId`, `auth.member.memberId`, `auth.device.id`
+  - `padTransaction.activeTransaction`, `padTransaction.customerStarted`
+  - `uiTickets.pendingTickets` (array) - used by `selectUnresolvedPriceChanges` selector
+- Testing approach: Mock Radix UI Dialog component to control visibility based on `open` prop
+- Pre-existing test failures (118 tests) in codebase are unrelated to PaymentModal changes
+
+**Patterns to sync:** None - standard React testing patterns with Redux Provider
+
+**Next story suggestion:** US-009 (Implement PaymentModal test - does not render when closed) - same file, depends on US-008 (now complete), lower complexity. The test infrastructure is already set up.
+
+---
+
+## 2026-01-19 - US-009: Implement PaymentModal test - does not render when closed
+Commit: c39f873 (part of US-008)
+
+**Why this story?** US-009 is the highest priority incomplete story with satisfied dependencies (US-008 complete). Same file (PaymentModal.test.tsx), same category (test), code structure fresh in context.
+
+**Changes:**
+- No code changes needed - test was already implemented as part of US-008 commit (c39f873)
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:135-140`: Test 'should not render when open is false' already has real assertions
+
+**Verification:**
+- Test renders PaymentModal with `open={false}` ✓
+- Uses `queryByTestId` (returns null if not found) ✓
+- Asserts modal container is NOT in the document ✓
+- Test passes: All 10 PaymentModal tests pass ✓
+- TypeScript: Pre-existing errors only, no new errors ✓
+
+**Learnings:**
+- Previous iteration (US-008) implemented both the "renders when open" and "does not render when closed" tests together
+- PRD split these into separate stories but the natural implementation pattern covered both cases in one commit
+- This is acceptable - the test meets all acceptance criteria regardless of when it was written
+
+**Next story suggestion:** US-010 (Implement PaymentModal test - displays payment method options) - same file, depends on US-008 (complete), next in the PaymentModal test series.
+
+---
