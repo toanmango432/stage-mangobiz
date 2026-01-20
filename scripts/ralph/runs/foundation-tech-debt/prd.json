@@ -697,7 +697,7 @@
         "Verify in browser: payment flow works"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 4,
       "dependencies": ["US-030"],

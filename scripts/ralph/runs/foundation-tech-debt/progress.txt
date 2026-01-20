@@ -1124,3 +1124,66 @@ Commit: 6908c09
 **Next story suggestion:** US-031 (Extract PaymentModal components and complete modularization) - depends on US-030 (now complete), same category (refactor), completes the PaymentModal modularization series.
 
 ---
+
+## 2026-01-20 - US-031: Extract PaymentModal components and complete modularization
+Commit: bcd3bdf
+
+**Why this story?** US-031 is the highest priority incomplete story with satisfied dependencies (US-030 complete). Same category (refactor), same module (PaymentModal), code structure fresh in context from US-030. It completes the PaymentModal modularization series.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/PaymentModal/PaymentModal.tsx (NEW):1-317`: Main orchestrating component with:
+  - Imports extracted sub-components and hook
+  - Uses usePaymentModal hook for all state management
+  - Renders StepIndicator, ProcessingOverlay, TipSection, PaymentMethodSelector, PaymentSummary, PaymentInputs, CompletionSection, PriceChangeWarning
+  - Handles dialog, Send to Pad, and GiftCardRedeemModal rendering
+- `apps/store-app/src/components/checkout/PaymentModal/components/StepIndicator.tsx (NEW):1-65`: Step progress indicator showing Tip → Payment → Done
+- `apps/store-app/src/components/checkout/PaymentModal/components/TipSection.tsx (NEW):1-152`: Complete tip selection UI with percentage buttons, custom tip input, and tip distribution preview
+- `apps/store-app/src/components/checkout/PaymentModal/components/PaymentMethodSelector.tsx (NEW):1-79`: Payment method option cards (Card, Cash, Gift Card, Custom)
+- `apps/store-app/src/components/checkout/PaymentModal/components/PaymentSummary.tsx (NEW):1-113`: Displays remaining amount, applied payments, and change calculation
+- `apps/store-app/src/components/checkout/PaymentModal/components/PaymentInputs.tsx (NEW):1-254`: Payment method specific inputs (cash tendered, card apply, gift card, custom payment)
+- `apps/store-app/src/components/checkout/PaymentModal/components/CompletionSection.tsx (NEW):1-81`: Success state with receipt preview and done button
+- `apps/store-app/src/components/checkout/PaymentModal/components/ProcessingOverlay.tsx (NEW):1-51`: Processing and success animation overlay
+- `apps/store-app/src/components/checkout/PaymentModal/components/PriceChangeWarning.tsx (NEW):1-58`: Warning card for unresolved price changes
+- `apps/store-app/src/components/checkout/PaymentModal/components/index.ts (NEW):1-17`: Barrel export for all components
+- `apps/store-app/src/components/checkout/PaymentModal/hooks/usePaymentModal.ts (NEW):1-437`: Central hook with all state, computed values, and handlers
+- `apps/store-app/src/components/checkout/PaymentModal/hooks/index.ts (NEW):1-5`: Barrel export for hooks
+- `apps/store-app/src/components/checkout/PaymentModal/index.ts (NEW):1-46`: Main barrel export with backward-compatible re-exports
+- `apps/store-app/src/components/checkout/PaymentModal.tsx:1-56`: Converted to facade re-export file for backward compatibility
+
+**Acceptance Criteria Check:**
+- ✅ Extract payment method selector component (PaymentMethodSelector: 79 lines)
+- ✅ Extract summary/totals display component (PaymentSummary: 113 lines)
+- ✅ Extract payment processing hook (usePaymentModal: 437 lines)
+- ✅ Create index.ts barrel export
+- ✅ PaymentModal.tsx is <500 lines (317 lines - target achieved!)
+- ✅ All existing imports still work (backward compatible via facade)
+- ⚠️ TypeScript: Pre-existing TS6310 errors in monorepo tsconfig (unrelated to PaymentModal)
+- ✅ PaymentModal tests pass (all 15 tests passing)
+- ✅ Browser verification: Payment flow verified working in Store App
+
+**File Size Results:**
+- PaymentModal.tsx: 1,113 → 317 lines (**-796 lines**, 72% reduction, TARGET <500 ✅)
+- Total module: 1,675 lines across 14 files (well-organized)
+  - PaymentModal.tsx: 317 lines (orchestration)
+  - components/: 870 lines (8 components + index)
+  - hooks/: 442 lines (1 hook + index)
+  - types.ts: 70 lines
+  - constants.ts: 34 lines
+  - index.ts: 46 lines
+
+**TypeScript Fix:**
+- Fixed TS2322 error: `unresolvedPriceChanges` type was using `ReturnType<typeof selectUnresolvedPriceChanges>` which returned the selector function type, not the result array type
+- Solution: Import `CheckoutTicketService` type directly and use `CheckoutTicketService[]` for the type
+
+**Learnings:**
+- When extracting selectors that use createSelector, the type needs to be the result type (e.g., `CheckoutTicketService[]`), not `ReturnType<typeof selector>` which gives the selector function type
+- The facade pattern (re-export file) maintains backward compatibility without changing any import paths in consumers
+- Hook extraction pattern: all useState, useMemo, useCallback, useEffect, and handlers go into hook; component becomes pure render orchestration
+- Component extraction: each logical UI section (tip selection, payment methods, summary, inputs, completion) becomes its own focused component
+
+**Patterns to sync:**
+- Pattern #31: Selector Type Pattern - For createSelector selectors, use explicit result types (e.g., `Item[]`) rather than `ReturnType<typeof selector>` which gives the selector function signature
+
+**Next story suggestion:** US-032 (Extract OperationTemplateSetup types and constants) - no dependencies, starts the OperationTemplateSetup modularization series (US-032 to US-034).
+
+---
