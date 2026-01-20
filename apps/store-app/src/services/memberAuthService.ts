@@ -38,10 +38,38 @@ export const OFFLINE_GRACE_DAYS = 7;
 /** Grace period check interval in milliseconds (30 minutes) */
 export const GRACE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 
+/** Authentication timeout in milliseconds (30 seconds) */
+export const AUTH_TIMEOUT_MS = 30000;
+
 // ==================== MODULE STATE ====================
 
 /** Grace checker interval reference (for idempotent start/stop) */
 let graceCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+// ==================== TIMEOUT HELPERS ====================
+
+/**
+ * Create a timeout promise that rejects after the specified duration
+ * @param ms - Timeout in milliseconds
+ * @param message - Error message on timeout
+ * @returns Promise that rejects with an Error after ms milliseconds
+ */
+function createTimeoutPromise<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+/**
+ * Wrap a promise with a timeout
+ * @param promise - The promise to wrap
+ * @param ms - Timeout in milliseconds
+ * @param message - Error message on timeout
+ * @returns The original promise result or throws on timeout
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([promise, createTimeoutPromise<T>(ms, message)]);
+}
 
 // ==================== SESSION STORAGE KEYS ====================
 
@@ -137,11 +165,17 @@ function clearCachedMemberSession(): void {
  * @throws Error with descriptive message on failure
  */
 async function loginWithPassword(email: string, password: string): Promise<MemberAuthSession> {
-  // 1. Authenticate with Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+  // 1. Authenticate with Supabase Auth (with timeout)
+  const authPromise = supabase.auth.signInWithPassword({
     email,
     password,
   });
+
+  const { data: authData, error: authError } = await withTimeout(
+    authPromise,
+    AUTH_TIMEOUT_MS,
+    'Authentication timeout'
+  );
 
   if (authError) {
     // Map Supabase auth errors to user-friendly messages
@@ -984,6 +1018,7 @@ export const memberAuthService = {
   PIN_LOCKOUT_MINUTES,
   OFFLINE_GRACE_DAYS,
   GRACE_CHECK_INTERVAL_MS,
+  AUTH_TIMEOUT_MS,
 };
 
 export default memberAuthService;

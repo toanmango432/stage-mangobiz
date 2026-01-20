@@ -288,6 +288,57 @@ describe('memberAuthService', () => {
       // Check PIN hash was stored in SecureStorage
       expect(mockSecureStorage.set).toHaveBeenCalledWith('pin_hash_member-123', 'hashed_pin_value');
     });
+
+    it('should throw Authentication timeout when request times out', async () => {
+      // Create a promise that never resolves (simulates network hang)
+      mockSupabaseAuth.signInWithPassword.mockImplementation(
+        () => new Promise(() => {
+          // Never resolves - simulates stuck network request
+        })
+      );
+
+      // Start the login attempt
+      const loginPromise = memberAuthService.loginWithPassword('test@example.com', 'password123');
+
+      // Fast-forward time past the AUTH_TIMEOUT_MS (30 seconds)
+      vi.advanceTimersByTime(memberAuthService.AUTH_TIMEOUT_MS + 100);
+
+      // The promise should reject with timeout error
+      await expect(loginPromise).rejects.toThrow('Authentication timeout');
+    });
+
+    it('should complete successfully before timeout', async () => {
+      // Mock Supabase auth success
+      mockSupabaseAuth.signInWithPassword.mockResolvedValue({
+        data: { user: { id: 'auth-user-456' } },
+        error: null,
+      });
+
+      // Mock member lookup
+      const mockMember = {
+        id: 'member-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: null,
+        default_store_id: null,
+      };
+
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === 'members') {
+          return createMockQueryBuilder(mockMember);
+        }
+        return createMockQueryBuilder(null);
+      });
+
+      // Login should succeed before timeout
+      const session = await memberAuthService.loginWithPassword('test@example.com', 'password123');
+
+      expect(session.memberId).toBe('member-123');
+    });
   });
 
   // ==================== loginWithPin TESTS ====================
@@ -880,6 +931,10 @@ describe('memberAuthService', () => {
 
     it('should export GRACE_CHECK_INTERVAL_MS as 30 minutes', () => {
       expect(memberAuthService.GRACE_CHECK_INTERVAL_MS).toBe(30 * 60 * 1000);
+    });
+
+    it('should export AUTH_TIMEOUT_MS as 30 seconds', () => {
+      expect(memberAuthService.AUTH_TIMEOUT_MS).toBe(30000);
     });
   });
 });
