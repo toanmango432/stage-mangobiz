@@ -16,6 +16,7 @@ import { authService } from '../../services/supabase';
 import { setStoreSession, setMemberSession, clearAllAuth, setAuthStatus, setAvailableStores } from '../../store/slices/authSlice';
 import { setStoreTimezone } from '../../utils/dateUtils';
 import { PinSetupModal, hasSkippedPinSetup } from './PinSetupModal';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 import type { MemberAuthSession } from '../../types/memberAuth';
 
 type LoginMode = 'store' | 'member';
@@ -53,6 +54,9 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
   // PIN setup modal state (for member login mode)
   const [showPinSetupModal, setShowPinSetupModal] = useState(false);
   const [pinSetupMember, setPinSetupMember] = useState<{ memberId: string; name: string } | null>(null);
+
+  // Forgot password modal state
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   // Track if we're in a login attempt to prevent error from being cleared
   const isLoginAttemptRef = useRef(false);
@@ -338,35 +342,9 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     onLoggedIn();
   };
 
-  // Handle forgot password (opens Supabase reset flow)
-  const handleForgotPassword = async () => {
-    if (!memberEmail.trim()) {
-      setError('Please enter your email address first');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error: resetError } = await import('../../services/supabase/client').then(m =>
-        m.supabase.auth.resetPasswordForEmail(memberEmail.trim(), {
-          // Redirect URL after password reset - adjust to your app URL
-          redirectTo: `${window.location.origin}/auth/reset-password`,
-        })
-      );
-
-      if (resetError) {
-        setError(resetError.message);
-      } else {
-        setSuccess('Check your email for a password reset link');
-      }
-    } catch (err) {
-      console.error('Failed to send reset email:', err);
-      setError('Failed to send reset email. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle forgot password (opens modal)
+  const handleForgotPassword = () => {
+    setShowForgotPasswordModal(true);
   };
 
   // Handle PIN login
@@ -809,6 +787,13 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
         memberId={pinSetupMember?.memberId || ''}
         memberName={pinSetupMember?.name || ''}
         isRequired={false}
+      />
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+        defaultEmail={memberEmail}
       />
     </div>
   );
