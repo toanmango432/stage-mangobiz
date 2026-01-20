@@ -555,10 +555,15 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           )}
 
           {/* PIN Display */}
-          <div className="flex justify-center gap-3">
+          <div
+            role="group"
+            aria-label="PIN entry"
+            className="flex justify-center gap-3"
+          >
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
+                aria-label={`PIN digit ${i + 1}${pin.length > i ? ', filled' : ', empty'}`}
                 className={`w-12 h-14 rounded-lg border-2 flex items-center justify-center text-2xl font-bold transition-all ${
                   pin.length > i
                     ? 'border-brand-500 bg-brand-50 text-brand-600'
