@@ -12,13 +12,13 @@
  *   US-002 (030_create_member_session_revocations.sql) FIRST
  *
  * Environment Variables:
- * - SUPABASE_URL: Supabase project URL (defaults to project URL if not set)
+ * - SUPABASE_URL: Supabase project URL (REQUIRED - no default for safety)
  * - SUPABASE_SERVICE_ROLE_KEY: Admin key with auth.admin access (REQUIRED)
  * - DRY_RUN: Set to 'true' to preview changes without committing
  *
  * Usage:
- *   DRY_RUN=true npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts
- *   SUPABASE_SERVICE_ROLE_KEY=your-key npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts
+ *   DRY_RUN=true SUPABASE_URL=https://your-project.supabase.co SUPABASE_SERVICE_ROLE_KEY=your-key npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts
+ *   SUPABASE_URL=https://your-project.supabase.co SUPABASE_SERVICE_ROLE_KEY=your-key npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts
  *
  * @see docs/AUTH_MIGRATION_PLAN.md for full implementation details
  */
@@ -41,11 +41,10 @@ import {
 // ============================================================================
 
 /**
- * Supabase project URL (can be overridden via SUPABASE_URL env var)
- * This is the same URL used in the app
+ * Supabase project URL (REQUIRED for security)
+ * Must be passed via environment variable to prevent accidental production use
  */
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || 'https://cpaldkcvdcdyzytosntc.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 
 /**
  * Service role key is REQUIRED for auth.admin operations
@@ -101,10 +100,18 @@ interface MemberRecord extends MemberForMigration {
  * Creates and validates the Supabase admin client
  */
 function createSupabaseAdminClient(): SupabaseClient {
+  if (!SUPABASE_URL) {
+    throw new Error(
+      'SUPABASE_URL environment variable is required.\n' +
+        'This prevents accidental connection to the wrong Supabase project.\n' +
+        'Usage: SUPABASE_URL=https://your-project.supabase.co SUPABASE_SERVICE_ROLE_KEY=your-key npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts'
+    );
+  }
+
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
       'SUPABASE_SERVICE_ROLE_KEY environment variable is required.\n' +
-        'Usage: SUPABASE_SERVICE_ROLE_KEY=your-key npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts'
+        'Usage: SUPABASE_URL=https://your-project.supabase.co SUPABASE_SERVICE_ROLE_KEY=your-key npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts'
     );
   }
 
