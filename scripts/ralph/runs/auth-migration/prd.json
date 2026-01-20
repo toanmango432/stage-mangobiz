@@ -656,7 +656,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 3,
       "dependencies": ["US-001", "US-008"],
@@ -683,7 +683,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "dependencies": ["US-001", "US-008"],

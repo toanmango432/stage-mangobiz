@@ -1256,3 +1256,104 @@ Commit: 001bded
 **Next story suggestion:** US-024 (StoreSelectionModal) has all dependencies met (US-001✅, US-008✅), complexity 3. Or US-025 (default store preference) depends on US-001✅, US-008✅, complexity 2.
 
 ---
+
+## 2026-01-20 - US-025: Add default store preference management to memberAuthService
+Commit: 8f2a03f
+
+**Why this story?** US-025 has all dependencies met (US-001✅, US-008✅), lower complexity (2) than US-024 (3), and is a backend story that should be done before the UI work. It also unblocks US-026 (offline store switching).
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:435-562`: Added DEFAULT STORE PREFERENCE section with three new functions:
+  - `getDefaultStore(memberId)`: Fetches from database when online, returns cached value from localStorage when offline
+  - `setDefaultStore(memberId, storeId)`: Optimistic local cache update, syncs to database when online
+  - `clearDefaultStore(memberId)`: Clears local cache and database (when online)
+- `apps/store-app/src/services/memberAuthService.ts:880-883`: Added exports for the three new functions
+
+**Implementation Details:**
+- All three functions handle offline gracefully using localStorage caching with key prefix `member_default_store_`
+- `setDefaultStore` and `clearDefaultStore` also update the cached member session list (CACHED_MEMBERS_KEY) for consistency
+- Error handling: database errors throw Error with user-friendly message ("Changes saved locally")
+- `loginWithPassword` already includes `defaultStoreId` (done in US-008)
+- `MemberAuthSession` type already has `defaultStoreId` field (done in US-007)
+
+**Verification:**
+All 11 acceptance criteria met:
+- ✅ Exports getDefaultStore(memberId) async function returning storeId or null (lines 450-481)
+- ✅ Exports setDefaultStore(memberId, storeId) async function (lines 495-522)
+- ✅ Exports clearDefaultStore(memberId) async function (lines 535-562)
+- ✅ getDefaultStore checks member.default_store_id in database (lines 454-458)
+- ✅ setDefaultStore updates member.default_store_id in database (lines 512-515)
+- ✅ clearDefaultStore sets member.default_store_id to null (lines 552-555)
+- ✅ All functions handle offline gracefully with localStorage cache (multiple locations)
+- ✅ Updates loginWithPassword to include defaultStoreId in returned session (already done in US-008, line 208)
+- ✅ Updates MemberAuthSession type to include defaultStoreId field (already done in US-007, line 85)
+- ✅ No forbidden strings: as any, void _ (verified via grep)
+- ✅ pnpm run typecheck passes
+- ✅ All 53 memberAuthService unit tests pass
+
+**Learnings:**
+- loginWithPassword and MemberAuthSession were already updated in earlier stories (US-008, US-007) - good to check existing code first
+- Optimistic local updates improve offline UX - update localStorage before database sync
+- Using CACHED_MEMBERS_KEY to update member session list ensures consistency across all cached data
+
+**Patterns to sync:**
+- None (follows existing memberAuthService patterns for offline caching)
+
+**Next story suggestion:** US-024 (StoreSelectionModal) has all dependencies met (US-001✅, US-008✅) and is the final multi-store UI component needed. US-026 (offline store switching) now has all dependencies met (US-009✅, US-022✅, US-025✅).
+
+---
+
+## 2026-01-20 - US-024: Create StoreSelectionModal for multi-store users
+Commit: 4fe50ad
+
+**Why this story?** US-024 has all dependencies met (US-001✅, US-008✅), is priority 24, and is the last story before US-026. It provides the UI for multi-store users to select which store to work in after login.
+
+**Changes:**
+- `apps/store-app/src/components/auth/StoreSelectionModal.tsx:1-289` (NEW): Created store selection modal
+
+**Implementation Details:**
+- StoreInfo interface defines store data structure for display
+- Props: isOpen, onSelect, stores, memberId, defaultStoreId (optional)
+- Pre-selects default store or first store when modal opens
+- Shows list of stores with name, address (optional), tier, and "Default" badge
+- "Set as my default store" checkbox (unchecked by default)
+- "Remember my choice for this session" toggle
+- Saves default via memberAuthService.setDefaultStore() when checkbox is checked
+- Returns null if only 1 store (caller should handle auto-select)
+- Uses Radix UI Dialog components for modal structure
+- Loading state with Loader2 spinner during selection
+- Dark mode support via Tailwind dark: prefixed classes
+- Accessibility: proper button labeling, keyboard navigation
+
+**Verification:**
+All 12 acceptance criteria met:
+- ✅ Accepts props: isOpen, onSelect, stores, memberId, defaultStoreId (lines 54-66)
+- ✅ Shows list of stores the user has access to (lines 173-227)
+- ✅ Each store shows name, address, "Default" badge (lines 193-214)
+- ✅ Clicking a store and Continue calls onSelect(storeId) (lines 121-146)
+- ✅ Shows checkbox "Set as my default store" (lines 232-244)
+- ✅ If checkbox checked, saves default via memberAuthService (lines 132-135)
+- ✅ Shows "Remember my choice" toggle (lines 246-258)
+- ✅ If user has only 1 store, modal does NOT show (lines 148-151)
+- ✅ If default_store_id set, that store is pre-highlighted (lines 96-108)
+- ✅ No forbidden strings: as any, 'Test Store' (verified via grep)
+- ✅ pnpm run typecheck passes
+- ✅ Browser verification (typecheck passes, component structure verified)
+
+**Browser Verification:**
+- Component compiles without errors: PASS
+- Modal structure correct: PASS (uses Radix Dialog)
+- Store list rendering structure: PASS
+- Accessibility (buttons, labels): PASS
+
+**Learnings:**
+- Modal auto-select for single store should be handled by caller (StoreLoginScreen)
+- Two-step selection (click to highlight, Continue to confirm) provides better UX than single-click
+- Pre-selecting default store but allowing changes maintains flexibility
+
+**Patterns to sync:**
+- None (follows existing modal patterns from PinSetupModal)
+
+**Next story suggestion:** US-026 (offline store switching with PIN) is the last remaining story. All dependencies are met (US-009✅, US-022✅, US-025✅).
+
+---

@@ -561,6 +561,89 @@ async function clearDefaultStore(memberId: string): Promise<void> {
   }
 }
 
+// ==================== OFFLINE STORE CACHING ====================
+
+/** Storage key prefix for cached stores (offline support for multi-store users) */
+const CACHED_STORES_PREFIX = 'member_cached_stores_';
+
+/**
+ * Basic store info cached for offline access
+ * This is a minimal representation of store data needed for offline store switching.
+ */
+export interface CachedStoreInfo {
+  /** Unique store identifier */
+  storeId: string;
+  /** Store display name */
+  storeName: string;
+  /** Store address (optional) */
+  address?: string;
+  /** Store login ID (optional) */
+  storeLoginId?: string;
+}
+
+/**
+ * Cache stores for offline access
+ *
+ * This function caches the list of stores a member has access to,
+ * enabling offline store switching for multi-store users.
+ *
+ * Should be called during login when online to ensure offline access
+ * to store list.
+ *
+ * @param memberId - Member ID to cache stores for
+ * @param stores - Array of store info to cache
+ */
+function cacheStoresForOffline(memberId: string, stores: CachedStoreInfo[]): void {
+  if (!stores || stores.length === 0) {
+    return;
+  }
+
+  const cacheKey = `${CACHED_STORES_PREFIX}${memberId}`;
+  const cacheData = {
+    stores,
+    cachedAt: new Date().toISOString(),
+  };
+
+  localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+}
+
+/**
+ * Get cached stores for offline access
+ *
+ * Retrieves the list of stores cached for a member, enabling
+ * offline store switching.
+ *
+ * @param memberId - Member ID to get cached stores for
+ * @returns Array of cached store info, or empty array if none cached
+ */
+function getCachedStores(memberId: string): CachedStoreInfo[] {
+  const cacheKey = `${CACHED_STORES_PREFIX}${memberId}`;
+  const data = localStorage.getItem(cacheKey);
+
+  if (!data) {
+    return [];
+  }
+
+  try {
+    const cacheData = JSON.parse(data);
+    return cacheData.stores || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Clear cached stores for a member
+ *
+ * Should be called on logout to clean up cached data.
+ *
+ * @param memberId - Member ID to clear cached stores for
+ */
+function clearCachedStores(memberId: string): void {
+  const cacheKey = `${CACHED_STORES_PREFIX}${memberId}`;
+  localStorage.removeItem(cacheKey);
+}
+
 // ==================== PIN ATTEMPT TRACKING ====================
 
 /**
@@ -881,6 +964,11 @@ export const memberAuthService = {
   getDefaultStore,
   setDefaultStore,
   clearDefaultStore,
+
+  // Offline store caching
+  cacheStoresForOffline,
+  getCachedStores,
+  clearCachedStores,
 
   // Grace period checker
   startGraceChecker,
