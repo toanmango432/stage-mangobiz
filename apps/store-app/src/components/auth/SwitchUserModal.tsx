@@ -400,7 +400,11 @@ export function SwitchUserModal({
     setError(null);
   };
 
-  const getInitials = (member: MemberSession) => {
+  /**
+   * Get initials from a member's name.
+   * Accepts any object with firstName and lastName properties.
+   */
+  const getInitials = (member: { firstName?: string | null; lastName?: string | null }) => {
     const first = member.firstName?.[0] || '';
     const last = member.lastName?.[0] || '';
     return (first + last).toUpperCase() || 'U';
@@ -487,7 +491,7 @@ export function SwitchUserModal({
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {getInitials(currentMember as any)}
+                      {getInitials(currentMember)}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">

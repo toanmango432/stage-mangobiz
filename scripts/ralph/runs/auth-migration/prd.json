@@ -922,7 +922,7 @@
         "pnpm test passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "Without verification, PIN could fail to store but user would think it succeeded."

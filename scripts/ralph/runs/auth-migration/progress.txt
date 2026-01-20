@@ -1623,3 +1623,38 @@ All 6 acceptance criteria met:
 **Next story suggestion:** US-033 (Verify SecureStorage.set success for PIN hash) has no dependencies and lowest complexity (1). Or US-034 (Fix as any cast in SwitchUserModal) is also a quick fix with no dependencies.
 
 ---
+
+---
+
+## 2026-01-20 - US-033: Verify SecureStorage.set success for PIN hash
+Commit: 5db2321
+
+**Why this story?** US-033 has no dependencies, lowest priority (33) among remaining incomplete stories, and complexity 1. It's a security improvement that ensures PIN hashes are actually persisted successfully.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:276-287`: Added PIN hash verification after SecureStorage.set in loginWithPassword
+- `apps/store-app/src/services/memberAuthService.ts:492-501`: Added PIN hash verification after SecureStorage.set in setPin
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:283-295`: Updated existing test to verify SecureStorage.get is called
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:298-352`: Added tests for SecureStorage verification failure during login
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:565-612`: Added tests for SecureStorage verification failure during setPin
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ After SecureStorage.set, read back and verify value matches (lines 282-286, 497-501)
+- ✅ Throw clear error if verification fails: 'Failed to persist PIN securely' (lines 285, 500)
+- ✅ Add unit test for SecureStorage failure scenario (5 new tests added)
+- ✅ Lines to modify: Actual lines differ from PRD due to prior changes (276-287, 492-501)
+- ✅ pnpm run typecheck passes
+- ✅ pnpm test passes (69 tests)
+
+**Learnings:**
+- Line numbers in PRD were outdated (referenced 216, 391 but actual locations were 276-287 and 492-501)
+- Pattern: Always verify critical security operations succeeded by reading back the value
+- Existing tests needed to mock SecureStorage.get to pass after adding verification
+
+**Patterns to sync:**
+- None (standard verification pattern)
+
+**Next story suggestion:** US-034 (Fix as any cast in SwitchUserModal) - no dependencies, complexity 1. Or US-035 (Fix defaults any type) - also no dependencies, complexity 1.
+
+---
