@@ -19,6 +19,7 @@
         "Migration adds last_online_auth TIMESTAMPTZ column",
         "Migration adds offline_grace_period INTERVAL DEFAULT '7 days' column",
         "Migration adds password_changed_at TIMESTAMPTZ column",
+        "Migration adds default_store_id UUID REFERENCES stores(id) column for multi-store users",
         "Migration creates index idx_members_auth_user_id on auth_user_id",
         "Migration adds RLS policy for members to read own profile via auth.uid() = auth_user_id",
         "Migration adds RLS policy for members to update own profile",
@@ -27,7 +28,7 @@
         "File follows existing migration patterns in supabase/migrations/"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "category": "database",
       "complexity": 2,
       "notes": "Follow pattern from supabase/migrations/028_add_device_pairing_columns.sql. Do NOT add pin_salt - bcrypt includes salt in the hash. Do NOT add foreign key constraint to auth.users (cross-schema). Schema defined in docs/AUTH_MIGRATION_PLAN.md lines 157-215."
@@ -343,13 +344,13 @@
     },
     {
       "id": "US-014",
-      "title": "Create PinSetupModal component",
-      "description": "As a user, I need a modal to set up my PIN after first login.",
+      "title": "Create PinSetupModal component with optional skip",
+      "description": "As a user, I need a modal to optionally set up my PIN after first login. PIN setup is OPTIONAL for member-login users but recommended for quick access.",
       "files": [
         "apps/store-app/src/components/auth/PinSetupModal.tsx (NEW)"
       ],
       "acceptanceCriteria": [
-        "Accepts props: isOpen, onClose, onSubmit, memberId, memberName",
+        "Accepts props: isOpen, onClose, onSubmit, onSkip, memberId, memberName, isRequired (default false)",
         "Shows two-step flow: Enter PIN, Confirm PIN",
         "Uses PinInput component for both steps",
         "Validates PIN is 4-6 digits",
@@ -358,7 +359,10 @@
         "Calls memberAuthService.setPin() on successful confirmation",
         "Shows loading state during submission",
         "Shows success message and closes on completion",
-        "Cannot be dismissed without setting PIN (no close button on first setup)",
+        "Shows 'Skip for now' button when isRequired=false (calls onSkip callback)",
+        "Skip button stores preference in localStorage: pin_setup_skipped_{memberId}",
+        "Shows helpful message: 'PIN enables quick access on this device. You can set it up later in Settings.'",
+        "Close button (X) visible when isRequired=false",
         "No forbidden strings",
         "pnpm run typecheck passes",
         "Verify in browser using Playwright MCP"
@@ -368,62 +372,69 @@
       "category": "frontend",
       "complexity": 3,
       "dependencies": ["US-010", "US-013"],
-      "notes": "Use Dialog component from @/components/ui/dialog. Follow modal patterns from existing modals like EditTicketModal."
+      "notes": "Use Dialog component from @/components/ui/dialog. Follow modal patterns from existing modals like EditTicketModal. CRITICAL: PIN is OPTIONAL for member-login users. The skip functionality is essential for preserving the existing UX where users can login with email/password without being forced to set up PIN."
     },
     {
       "id": "US-015",
-      "title": "Update StoreLoginScreen for email/password login",
-      "description": "As a user, I want to login with email and password instead of store login ID.",
+      "title": "Update StoreLoginScreen to preserve both login modes with Supabase Auth",
+      "description": "As a user, I want to login using EITHER Member Login (email/password) OR Store Login (store ID/password), preserving the existing two-mode toggle. Member Login now uses Supabase Auth for enhanced security.",
       "files": [
         "apps/store-app/src/components/auth/StoreLoginScreen.tsx"
       ],
       "acceptanceCriteria": [
-        "Replaces 'Store Login ID' field with 'Email' field",
-        "Keeps 'Password' field",
-        "Adds 'Forgot Password?' link below password field",
-        "Updates form submission to call memberAuthService.loginWithPassword()",
-        "On successful login without PIN, shows PinSetupModal",
-        "On successful login with PIN, proceeds to PIN entry or main app",
-        "Shows loading state during login",
-        "Shows error messages from auth service",
-        "Handles offline state (show 'Please connect to internet for first login')",
+        "PRESERVES existing login mode toggle (Member Login / Store Login tabs or buttons)",
+        "Member Login mode: Uses email/password fields",
+        "Member Login mode: Calls memberAuthService.loginWithPassword() (Supabase Auth)",
+        "Member Login mode: On successful login, optionally shows PinSetupModal (can be skipped)",
+        "Member Login mode: Adds 'Forgot Password?' link that opens Supabase reset flow",
+        "Store Login mode: UNCHANGED - Uses Store ID/password fields (existing behavior)",
+        "Store Login mode: After store auth, shows staff list for PIN verification",
+        "Default mode: 'member' (matching current default in StoreLoginScreen.tsx line 25)",
+        "Both modes show loading state during login",
+        "Both modes show appropriate error messages",
+        "Handles offline state: Member Login shows 'Connect to internet for first login', Store Login works offline with cached data",
         "No forbidden strings: as any, 'Test', 'demo123'",
         "pnpm run typecheck passes",
-        "Verify in browser using Playwright MCP"
+        "Verify BOTH login flows in browser using Playwright MCP"
       ],
       "priority": 15,
       "passes": false,
       "category": "frontend",
-      "complexity": 3,
+      "complexity": 4,
       "dependencies": ["US-007", "US-008", "US-014"],
-      "notes": "Read current implementation first to understand structure. Keep store-level login as fallback option (small link at bottom). 'Forgot Password?' opens Supabase password reset flow. Uses MemberAuthSession type from US-007."
+      "notes": "CRITICAL: Read existing StoreLoginScreen.tsx first - it already has TWO login modes (member/store). DO NOT remove the store login mode or demote it. The existing handleMemberLogin() becomes Supabase-powered, but handleLogin() for store-level auth remains unchanged. Member is the default mode per line 25: useState<LoginMode>('member'). Uses MemberAuthSession type from US-007."
     },
     {
       "id": "US-016",
-      "title": "Update SwitchUserModal for cached members with PIN",
-      "description": "As a user, I want to quickly switch between cached members using PIN.",
+      "title": "Update SwitchUserModal with context-aware authentication",
+      "description": "As a user, I want to switch between users with the appropriate verification method based on login context and online/offline status.",
       "files": [
         "apps/store-app/src/components/auth/SwitchUserModal.tsx"
       ],
       "acceptanceCriteria": [
-        "Shows list of cached members from memberAuthService.getCachedMembers()",
+        "Accepts props: loginContext ('store' | 'member'), isOnline (boolean)",
+        "Shows list of available members (from cache or staff list depending on context)",
         "Each member shows avatar, name, and role",
-        "Selecting a member shows PinInput for that member",
-        "Validates PIN via memberAuthService.loginWithPin()",
+        "STORE-LOGIN CONTEXT: Selecting a member shows PinInput (PIN required for shared device)",
+        "STORE-LOGIN CONTEXT: Validates PIN via memberAuthService.loginWithPin()",
+        "MEMBER-LOGIN CONTEXT + ONLINE: Selecting a member shows email/password login form",
+        "MEMBER-LOGIN CONTEXT + ONLINE: Other user logs in with their own credentials (normal Supabase Auth)",
+        "MEMBER-LOGIN CONTEXT + OFFLINE: Selecting a member shows PinInput (if they have PIN set up)",
+        "MEMBER-LOGIN CONTEXT + OFFLINE: If member has no PIN, shows 'Connect to internet to switch users'",
         "Shows lockout message if member's PIN is locked",
-        "Shows 'Login with password' option for full re-auth",
         "Updates Redux state on successful switch",
-        "Shows grace period warning if < 2 days remaining",
+        "Shows grace period warning if < 2 days remaining (store-login only)",
+        "Shows offline indicator when not connected",
         "No forbidden strings: as any, 'Test Client'",
         "pnpm run typecheck passes",
-        "Verify in browser using Playwright MCP"
+        "Verify ALL scenarios in browser using Playwright MCP"
       ],
       "priority": 16,
       "passes": false,
       "category": "frontend",
-      "complexity": 3,
+      "complexity": 4,
       "dependencies": ["US-009", "US-013"],
-      "notes": "If file doesn't exist, create it following modal patterns. Cached members may have expired grace - handle gracefully. Show offline indicator if not connected."
+      "notes": "The verification flow depends on BOTH context AND online status. Store-login: always PIN. Member-login online: password (normal login). Member-login offline: PIN if available, otherwise require internet. This ensures member-login users only use PIN as offline fallback, not as primary auth."
     },
     {
       "id": "US-017",
@@ -567,6 +578,144 @@
       "dependencies": ["US-018", "US-019"],
       "testCommand": "pnpm playwright test auth-flow.spec.ts",
       "notes": "May need test fixtures for member data. Consider using Supabase test environment. Follow E2E patterns if they exist in project. Uses Playwright for browser automation."
+    },
+    {
+      "id": "US-022",
+      "title": "Create PinVerificationModal for store-login mode sensitive actions",
+      "description": "As a staff member on a store-login device, I need to verify my identity with PIN before accessing sensitive features (checkout, settings, reports).",
+      "files": [
+        "apps/store-app/src/components/auth/PinVerificationModal.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Accepts props: isOpen, onClose, onSuccess, memberId, actionDescription",
+        "Shows member name and action being verified (e.g., 'Verify to access Checkout')",
+        "Uses PinInput component for PIN entry",
+        "Validates PIN via memberAuthService.loginWithPin() with bcrypt",
+        "Shows lockout message if PIN is locked (5 failed attempts)",
+        "Shows 'Forgot PIN?' link for admin reset flow",
+        "Calls onSuccess callback with member session on successful verification",
+        "Auto-focuses PIN input when modal opens",
+        "Closes on successful verification or user cancellation",
+        "No forbidden strings: as any, 'Test', '1234'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 22,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["US-009", "US-013"],
+      "notes": "This modal is ONLY used in store-login context where the device is logged in as a store and individual staff verify with PIN for sensitive actions. Different from SwitchUserModal which switches the active user. This is for action verification without switching."
+    },
+    {
+      "id": "US-023",
+      "title": "Add PIN opt-in in member settings for offline access",
+      "description": "As a member-login user, I want to optionally set up a PIN so I can switch users when offline (not required but recommended for offline scenarios).",
+      "files": [
+        "apps/store-app/src/components/settings/SecuritySettings.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Adds 'Offline Access PIN' section to security settings",
+        "Shows 'Set up PIN' button if no PIN is configured",
+        "Shows 'Change PIN' and 'Remove PIN' buttons if PIN exists",
+        "Clicking 'Set up PIN' opens PinSetupModal with isRequired=false",
+        "Clicking 'Change PIN' opens PinSetupModal with existing PIN verification first",
+        "Clicking 'Remove PIN' shows confirmation and removes PIN from database and SecureStorage",
+        "Shows explanation: 'PIN allows you to switch users when offline. Without PIN, you need internet to switch users.'",
+        "Settings only visible for member-login users (not store-login context)",
+        "No forbidden strings: as any, void _",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 23,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["US-010", "US-014"],
+      "notes": "PIN for member-login users is specifically for OFFLINE user switching. When online, users switch via normal email/password login. PIN is optional but recommended if users frequently work offline. Check if settings page structure exists first."
+    },
+    {
+      "id": "US-024",
+      "title": "Create StoreSelectionModal for multi-store users",
+      "description": "As a user with access to multiple stores, I want to select which store to work in after logging in.",
+      "files": [
+        "apps/store-app/src/components/auth/StoreSelectionModal.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Accepts props: isOpen, onSelect, stores, memberId, defaultStoreId (optional)",
+        "Shows list of stores the user has access to",
+        "Each store shows: name, address, and 'Default' badge if it's the default",
+        "Clicking a store calls onSelect(storeId)",
+        "Shows checkbox: 'Set as my default store' (unchecked by default)",
+        "If checkbox checked, saves default to member.default_store_id via memberAuthService",
+        "Shows 'Remember my choice' toggle for session-only vs persistent selection",
+        "If user has only 1 store, modal does NOT show (auto-select)",
+        "If user has default_store_id set, that store is pre-highlighted but user can change",
+        "No forbidden strings: as any, 'Test Store'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 24,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-001", "US-008"],
+      "notes": "This modal appears AFTER successful member login if user has multiple stores. Uses the storeIds array from MemberAuthSession. Depends on US-001 which adds default_store_id column to members table."
+    },
+    {
+      "id": "US-025",
+      "title": "Add default store preference management to memberAuthService",
+      "description": "As a developer, I need functions to get/set a member's default store preference for multi-store users.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Exports getDefaultStore(memberId) async function returning storeId or null",
+        "Exports setDefaultStore(memberId, storeId) async function",
+        "Exports clearDefaultStore(memberId) async function",
+        "getDefaultStore checks member.default_store_id in database",
+        "setDefaultStore updates member.default_store_id in database",
+        "clearDefaultStore sets member.default_store_id to null",
+        "All functions handle offline gracefully (cache in localStorage for offline)",
+        "Updates loginWithPassword to include defaultStoreId in returned session",
+        "Updates MemberAuthSession type to include defaultStoreId field",
+        "No forbidden strings: as any, void _",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-001", "US-008"],
+      "notes": "Builds on existing memberAuthService. The default_store_id column is added by US-001 migration. For offline, cache last known default in localStorage and sync when back online."
+    },
+    {
+      "id": "US-026",
+      "title": "Enable offline store switching with PIN for multi-store users",
+      "description": "As a multi-store user working offline, I want to switch between my authorized stores using PIN verification.",
+      "files": [
+        "apps/store-app/src/components/auth/OfflineStoreSwitcher.tsx (NEW)",
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Creates OfflineStoreSwitcher component showing cached stores list",
+        "Component only appears when offline AND user has multiple stores cached",
+        "Selecting a different store requires PIN verification (uses PinVerificationModal)",
+        "After PIN verification, switches active store context in Redux",
+        "Caches store list and basic store data in localStorage on login",
+        "Adds cacheStoresForOffline(memberId, stores) to memberAuthService",
+        "Adds getCachedStores(memberId) to memberAuthService",
+        "Shows 'Offline - Limited store data available' warning",
+        "No forbidden strings: as any, void _",
+        "pnpm run typecheck passes",
+        "Verify offline behavior in browser using Playwright MCP"
+      ],
+      "priority": 26,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-009", "US-022", "US-025"],
+      "notes": "This enables multi-store users to switch stores while offline. PIN verification is required to prevent unauthorized store access on shared devices. Store data cached during online login. Limited functionality available offline (read-only mostly)."
     }
   ]
 }

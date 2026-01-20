@@ -26,3 +26,97 @@
 > Append entries below as stories are completed. Never delete or reorder.
 
 ---
+
+### Entry 1: PRD Revision - Preserve Two Login Modes (2026-01-20)
+
+**Context:** Ultrathink analysis revealed the original PRD was changing the login paradigm instead of just enhancing it with Supabase Auth. The system has TWO distinct login modes that must be preserved:
+- **Member Login:** Staff logs in with email/password → Full access by role → PIN optional
+- **Store Login:** Shared device logs into store → Staff use PIN for identity verification
+
+**Changes Made:**
+
+1. **US-001 Updated:** Added `default_store_id UUID REFERENCES stores(id)` column for multi-store users
+
+2. **US-014 Revised:** PinSetupModal now has optional skip
+   - Added `onSkip` prop and "Skip for now" button
+   - PIN is optional for member-login users
+   - Skip preference stored in localStorage
+
+3. **US-015 Revised:** StoreLoginScreen preserves BOTH modes
+   - Keeps existing Member Login / Store Login toggle
+   - Member Login uses Supabase Auth (enhanced)
+   - Store Login remains unchanged
+   - Default mode is 'member' (matching existing code)
+
+4. **US-016 Revised:** SwitchUserModal is context-aware
+   - Store-login context: PIN only (required for shared device)
+   - Member-login context: PIN or password (user choice)
+
+5. **NEW US-022:** PinVerificationModal for store-login sensitive actions
+   - Used when store-logged device needs staff verification
+
+6. **NEW US-023:** PIN opt-in in member settings
+   - Allows member-login users to optionally set up PIN
+
+7. **NEW US-024:** StoreSelectionModal for multi-store users
+   - Shows store selection after login if user has multiple stores
+
+8. **NEW US-025:** Default store preference management
+   - Functions to get/set/clear default store preference
+
+9. **NEW US-026:** Offline store switching with PIN
+   - Multi-store users can switch stores offline with PIN verification
+
+**Total Stories:** 26 (was 21, added 5 new)
+
+---
+
+### Entry 2: Clarify PIN usage in Member-Login Mode (2026-01-20)
+
+**Clarification:** In member-login mode, PIN is ONLY used when offline:
+- **Online + Switch User** → Other user logs in with email/password (normal Supabase Auth)
+- **Offline + Switch User** → Other user uses PIN (if set up), otherwise "connect to internet"
+
+**Updated:**
+- US-016: Added `isOnline` prop, clarified online = password, offline = PIN
+- US-023: Renamed to "Offline Access PIN", clarified purpose for offline user switching
+
+---
+
+## 2026-01-20 - US-001: Create migration for Supabase Auth columns on members table
+Commit: 070717c77a5c1e35b91d562dfa1ac3a5b6610dcc
+
+**Why this story?** US-001 has no dependencies and is priority 1. It's the foundation that unblocks US-002, US-004, US-008, US-024, and US-025.
+
+**Changes:**
+- `supabase/migrations/029_add_supabase_auth_to_members.sql:1-114`: Migration already existed with all required columns
+
+**Verification:**
+All 15 acceptance criteria verified against existing migration:
+- ✅ auth_user_id UUID UNIQUE column (line 14)
+- ✅ pin_hash TEXT column (line 21)
+- ✅ pin_legacy TEXT column (line 25)
+- ✅ pin_attempts INTEGER DEFAULT 0 (line 29)
+- ✅ pin_locked_until TIMESTAMPTZ (line 33)
+- ✅ last_online_auth TIMESTAMPTZ (line 40)
+- ✅ offline_grace_period INTERVAL DEFAULT '7 days' (line 44)
+- ✅ password_changed_at TIMESTAMPTZ (line 48)
+- ✅ default_store_id UUID REFERENCES stores(id) (line 55)
+- ✅ idx_members_auth_user_id index (lines 60-62)
+- ✅ RLS read own profile policy (lines 68-78)
+- ✅ RLS update own profile policy (lines 81-92)
+- ✅ Column comments (lines 97-113)
+- ✅ No forbidden strings
+- ✅ Follows migration 028 patterns
+
+**Learnings:**
+- Migration file 029 was already created in a previous session
+- Pattern: Use `IF NOT EXISTS` for all schema changes and `DO $$ ... END $$` blocks for conditional policy creation
+- Pattern: Partial index with `WHERE column IS NOT NULL` for efficient sparse lookups
+
+**Patterns to sync:**
+- Pattern #1: PostgreSQL migration pattern - Use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` for idempotent migrations
+
+**Next story suggestion:** US-002 (session revocation table) as it only depends on US-001 (now complete) and is priority 2 with complexity 1.
+
+---

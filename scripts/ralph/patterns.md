@@ -234,3 +234,28 @@ export default defineConfig(({ mode }) => ({
 }));
 ```
 **Why:** vite-plugin-remove-console uses regex-based removal which fails on JSX like `onClick={() => console.log(...)}`. esbuild `pure` is built-in, faster, and handles standalone console calls correctly while preserving console.warn/error.
+
+## From ralph/auth-migration-supabase (2026-01-20)
+
+### PostgreSQL Migration Patterns
+Idempotent migrations for Supabase:
+```sql
+-- Column addition (idempotent)
+ALTER TABLE members ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE;
+
+-- Policy creation (idempotent via DO block)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'policy_name'
+  ) THEN
+    CREATE POLICY "policy_name" ON table_name
+      FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+-- Partial index for sparse columns
+CREATE INDEX IF NOT EXISTS idx_table_column
+  ON table(column) WHERE column IS NOT NULL;
+```
+**Why:** Prevents migration failures on re-runs and supports incremental deployment.
