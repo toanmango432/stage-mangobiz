@@ -82,6 +82,9 @@ const CONFIG = {
 
   /** Base delay between database retries (ms) - exponential backoff: 1s, 2s, 4s */
   DB_RETRY_BASE_DELAY_MS: 1000,
+
+  /** Checkpoint file for resume capability */
+  CHECKPOINT_FILE: 'migration_checkpoint.json',
 };
 
 // ============================================================================
@@ -111,6 +114,28 @@ interface MemberRecord extends MemberForMigration {
   name: string;
   role: string;
   tenant_id: string | null;
+}
+
+/**
+ * Checkpoint data for resume capability
+ * Saved after each successful batch to allow resuming from last known good state
+ */
+interface MigrationCheckpoint {
+  /** Last successfully processed batch number (1-indexed) */
+  lastBatchCompleted: number;
+  /** Total members processed so far */
+  totalProcessed: number;
+  /** Timestamp when checkpoint was saved */
+  timestamp: string;
+  /** Running totals for result tracking */
+  result: {
+    successCount: number;
+    failedCount: number;
+    skippedCount: number;
+    emailFailedCount: number;
+  };
+  /** Array of successfully migrated member IDs (for deduplication) */
+  processedMemberIds: string[];
 }
 
 // ============================================================================
@@ -483,12 +508,126 @@ function writeEmailFailures(result: MigrationResult): void {
 }
 
 // ============================================================================
+// Checkpoint Management
+// ============================================================================
+
+/**
+ * Get the checkpoint file path
+ */
+function getCheckpointFilePath(): string {
+  return path.join(__dirname, CONFIG.CHECKPOINT_FILE);
+}
+
+/**
+ * Load checkpoint from file if it exists
+ * Returns null if no checkpoint exists or file is corrupted
+ */
+function loadCheckpoint(): MigrationCheckpoint | null {
+  const filePath = getCheckpointFilePath();
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const checkpoint = JSON.parse(content) as MigrationCheckpoint;
+
+    // Validate checkpoint structure
+    if (
+      typeof checkpoint.lastBatchCompleted !== 'number' ||
+      typeof checkpoint.totalProcessed !== 'number' ||
+      !checkpoint.timestamp ||
+      !checkpoint.result ||
+      !Array.isArray(checkpoint.processedMemberIds)
+    ) {
+      process.stdout.write(
+        '⚠️  Invalid checkpoint file format, starting fresh\n'
+      );
+      return null;
+    }
+
+    return checkpoint;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    process.stdout.write(
+      `⚠️  Failed to load checkpoint: ${errorMessage}, starting fresh\n`
+    );
+    return null;
+  }
+}
+
+/**
+ * Save checkpoint after each successful batch
+ * Allows migration to resume from last known good state if interrupted
+ *
+ * @param batchNumber - The batch number that was just completed
+ * @param totalProcessed - Total members processed so far
+ * @param result - Current migration result
+ * @param processedMemberIds - Array of successfully processed member IDs
+ */
+function saveCheckpoint(
+  batchNumber: number,
+  totalProcessed: number,
+  result: MigrationResult,
+  processedMemberIds: string[]
+): void {
+  const checkpoint: MigrationCheckpoint = {
+    lastBatchCompleted: batchNumber,
+    totalProcessed,
+    timestamp: new Date().toISOString(),
+    result: {
+      successCount: result.success.length,
+      failedCount: result.failed.length,
+      skippedCount: result.skipped.length,
+      emailFailedCount: result.emailFailed.length,
+    },
+    processedMemberIds,
+  };
+
+  const filePath = getCheckpointFilePath();
+
+  try {
+    // Write checkpoint with restricted permissions
+    fs.writeFileSync(filePath, JSON.stringify(checkpoint, null, 2), {
+      mode: 0o600,
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    process.stdout.write(
+      `⚠️  Failed to save checkpoint: ${errorMessage}\n`
+    );
+    // Continue migration even if checkpoint save fails
+  }
+}
+
+/**
+ * Delete checkpoint file after successful migration completion
+ */
+function deleteCheckpoint(): void {
+  const filePath = getCheckpointFilePath();
+
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+      process.stdout.write('✅ Checkpoint file deleted (migration complete)\n');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      process.stdout.write(
+        `⚠️  Failed to delete checkpoint file: ${errorMessage}\n`
+      );
+    }
+  }
+}
+
+// ============================================================================
 // Main Migration Function
 // ============================================================================
 
 /**
  * Main migration entry point
  * Processes members in batches to avoid memory issues and rate limiting
+ * Supports checkpoint/resume to recover from interruptions
  */
 async function main(): Promise<void> {
   process.stdout.write(`\n${'='.repeat(60)}\n`);
@@ -508,12 +647,34 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Load checkpoint if it exists (for resume)
+  const checkpoint = loadCheckpoint();
+  let startBatch = 1;
+  let processedMemberIds: string[] = [];
+
+  if (checkpoint) {
+    startBatch = checkpoint.lastBatchCompleted + 1;
+    processedMemberIds = checkpoint.processedMemberIds;
+    process.stdout.write(
+      `📍 Resuming from checkpoint (last completed batch: ${checkpoint.lastBatchCompleted})\n`
+    );
+    process.stdout.write(
+      `   Previous progress: ${checkpoint.totalProcessed} processed, ` +
+        `${checkpoint.result.successCount} success, ` +
+        `${checkpoint.result.failedCount} failed, ` +
+        `${checkpoint.result.skippedCount} skipped\n`
+    );
+    process.stdout.write(
+      `   Checkpoint saved: ${checkpoint.timestamp}\n\n`
+    );
+  }
+
   // Initialize result tracking
   const result = createEmptyResult();
 
   // Process members in batches
-  let offset = 0;
-  let totalProcessed = 0;
+  let offset = (startBatch - 1) * CONFIG.BATCH_SIZE;
+  let totalProcessed = checkpoint?.totalProcessed ?? 0;
 
   while (true) {
     // Fetch batch of members that haven't been migrated yet (with retry)
@@ -530,6 +691,11 @@ async function main(): Promise<void> {
 
     if (error) {
       process.stdout.write(`❌ Failed to fetch members: ${error.message}\n`);
+      // Save checkpoint before exiting so we can resume
+      if (totalProcessed > 0) {
+        saveCheckpoint(batchNumber - 1, totalProcessed, result, processedMemberIds);
+        process.stdout.write(`📍 Checkpoint saved at batch ${batchNumber - 1}\n`);
+      }
       process.exit(1);
     }
 
@@ -543,6 +709,11 @@ async function main(): Promise<void> {
 
     // Process each member in the batch
     for (const member of members) {
+      // Skip if already processed (from checkpoint)
+      if (processedMemberIds.includes(member.id)) {
+        continue;
+      }
+
       // Convert to MemberRecord format
       const memberRecord: MemberRecord = {
         id: member.id,
@@ -562,7 +733,13 @@ async function main(): Promise<void> {
 
       await migrateMember(supabaseAdmin, memberRecord, result);
       totalProcessed++;
+
+      // Track processed member IDs for checkpoint
+      processedMemberIds.push(member.id);
     }
+
+    // Save checkpoint after each successful batch
+    saveCheckpoint(batchNumber, totalProcessed, result, processedMemberIds);
 
     offset += CONFIG.BATCH_SIZE;
 
@@ -579,6 +756,11 @@ async function main(): Promise<void> {
 
   // Write email failures to file for manual follow-up
   writeEmailFailures(result);
+
+  // Delete checkpoint file on successful completion (not in dry run)
+  if (!CONFIG.DRY_RUN) {
+    deleteCheckpoint();
+  }
 
   process.stdout.write(
     `\nMigration ${CONFIG.DRY_RUN ? 'preview ' : ''}complete! Total processed: ${totalProcessed}\n`
