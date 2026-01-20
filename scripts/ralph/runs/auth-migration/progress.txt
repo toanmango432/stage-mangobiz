@@ -200,3 +200,44 @@ All 6 acceptance criteria met:
 **Next story suggestion:** US-007 (MemberAuthSession types) - lowest complexity (1), no dependencies, unblocks US-008/US-011/US-015. Or US-005 (SecureStorage) for backend continuity.
 
 ---
+
+## 2026-01-20 - US-007: Create MemberAuthSession types
+Commit: 74102b2
+
+**Why this story?** US-007 has no dependencies and lowest complexity (1). It unblocks US-008 (password login), US-011 (grace checker), and US-015 (StoreLoginScreen). Creating types first is a good pattern before implementing services.
+
+**Changes:**
+- `apps/store-app/src/types/memberAuth.ts:1-181` (NEW): Created TypeScript interfaces
+- `apps/store-app/src/types/index.ts:249`: Added export for memberAuth types
+
+**Implementation Details:**
+- `MemberAuthSession`: Primary session interface with memberId, authUserId, email, name, role, storeIds, permissions, lastOnlineAuth, sessionCreatedAt, defaultStoreId
+- `PinLockoutInfo`: PIN lockout status (isLocked, remainingMinutes)
+- `GraceInfo`: Offline grace period status (isValid, daysRemaining)
+- `ForceLogoutReason`: Type union for logout reasons
+- `ForceLogoutPayload`: Payload for Redux forceLogout action (added for US-006)
+- `LoginContext`: Type for login context ('store' | 'member') (added for US-016)
+- `CachedMember`: Cached member data for offline operations
+
+**Verification:**
+All 8 acceptance criteria met:
+- ✅ MemberAuthSession interface with all required fields (lines 29-86)
+- ✅ PinLockoutInfo interface with isLocked, remainingMinutes (lines 92-103)
+- ✅ GraceInfo interface with isValid, daysRemaining (lines 109-121)
+- ✅ ForceLogoutReason type union with all 4 values (lines 16-20)
+- ✅ All fields have JSDoc comments
+- ✅ No pinHash field in MemberAuthSession (security note in header)
+- ✅ No forbidden strings (as any, void _, console.log)
+- ✅ pnpm run typecheck passes (store-app passes; pre-existing error in packages/utils is unrelated)
+
+**Learnings:**
+- Pre-existing tsconfig reference error in packages/utils and packages/supabase (TS6310) - unrelated to types work
+- Pattern: Add extra useful types that downstream stories will need (ForceLogoutPayload, LoginContext, CachedMember)
+- Pattern: File header should include security notes for sensitive data handling
+
+**Patterns to sync:**
+- None (standard TypeScript interface patterns)
+
+**Next story suggestion:** US-005 (SecureStorage utility) has no dependencies and is priority 5 with complexity 2. Alternatively US-006 (forceLogout action) has no dependencies and can use ForceLogoutPayload type we just created.
+
+---

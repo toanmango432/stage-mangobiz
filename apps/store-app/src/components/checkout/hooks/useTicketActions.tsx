@@ -855,15 +855,20 @@ export function useTicketActions({
         console.log("✅ Ticket created for direct checkout:", effectiveTicketId, "Number:", result.number);
       }
 
-      if (effectiveTicketId) {
-        console.log("📝 Completing ticket in database:", effectiveTicketId);
-        const completedTicket = await dataService.tickets.complete(effectiveTicketId, payment.methods || []);
-        if (completedTicket) {
-          console.log("✅ Ticket completed:", completedTicket.id, "Status:", completedTicket.status);
-        }
-      }
-
-      await processGiftCardSales(effectiveTicketId || '', services, selectedClient?.id);
+      // Run ticket completion and gift card processing in parallel for faster response
+      const [completedTicket] = await Promise.all([
+        effectiveTicketId
+          ? (async () => {
+              console.log("📝 Completing ticket in database:", effectiveTicketId);
+              const result = await dataService.tickets.complete(effectiveTicketId, payment.methods || []);
+              if (result) {
+                console.log("✅ Ticket completed:", result.id, "Status:", result.status);
+              }
+              return result;
+            })()
+          : Promise.resolve(null),
+        processGiftCardSales(effectiveTicketId || '', services, selectedClient?.id),
+      ]);
 
       const primaryMethod = payment.methods?.[0];
       const primaryPaymentMethod = (primaryMethod?.type || 'cash') as 'cash' | 'card' | 'gift_card' | 'other';
@@ -981,9 +986,10 @@ export function useTicketActions({
 
     dispatch(ticketActions.resetTicket());
 
+    // Reduced from 1500ms to 300ms - the success toast already provides feedback
     const closeTimeout = setTimeout(() => {
       onClose();
-    }, 1500);
+    }, 300);
 
     if (checkoutCloseTimeoutRef.current) {
       clearTimeout(checkoutCloseTimeoutRef.current);

@@ -178,6 +178,7 @@ export function usePaymentModal({
 
       redeemGiftCards();
 
+      // Reduced from 800ms to 400ms for faster UI response
       setTimeout(() => {
         onComplete({
           methods: paymentMethods,
@@ -185,7 +186,7 @@ export function usePaymentModal({
           tipDistribution: showTipDistribution && tipDistribution.length > 0 ? tipDistribution : undefined,
           padTransactionId: sentToPadTransactionId || undefined,
         });
-      }, 800);
+      }, 400);
     }
   }, [isFullyPaid, currentStep, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, appliedGiftCards, storeId, userId, deviceId, ticketId, sentToPadTransactionId]);
 
@@ -260,6 +261,7 @@ export function usePaymentModal({
     if (isFullyPaid) {
       setShowSuccess(true);
 
+      // Reduced from 800ms to 400ms for faster UI response
       setTimeout(() => {
         onComplete({
           methods: paymentMethods,
@@ -277,7 +279,7 @@ export function usePaymentModal({
         setShowSuccess(false);
         setCurrentMethod(null);
         setSentToPadTransactionId(null);
-      }, 800);
+      }, 400);
     }
   }, [isFullyPaid, paymentMethods, tipAmount, showTipDistribution, tipDistribution, onComplete, sentToPadTransactionId]);
 

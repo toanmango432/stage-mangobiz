@@ -174,7 +174,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "Types defined in docs/AUTH_MIGRATION_PLAN.md lines 559-570. Keep types separate from implementation for clean imports."
