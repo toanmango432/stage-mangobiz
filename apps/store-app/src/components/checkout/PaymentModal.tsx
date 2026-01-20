@@ -42,59 +42,24 @@ import {
 } from "@/store/slices/padTransactionSlice";
 import { selectUnresolvedPriceChanges } from "@/store/slices/uiTicketsSlice";
 
-export interface PaymentMethod {
-  type: "card" | "cash" | "gift_card" | "custom";
-  amount: number;
-  customName?: string;
-  tendered?: number;
-}
+// Import types and constants from modularized files
+import type {
+  PaymentMethod,
+  TipDistribution,
+  TicketItem,
+  PaymentModalProps,
+  PaymentMethodType,
+} from "./PaymentModal/types";
+import {
+  TIP_PERCENTAGES,
+  STEPS,
+  PAYMENT_METHODS,
+  SUCCESS_ANIMATION_DELAY,
+  PAYMENT_COMPLETION_THRESHOLD,
+} from "./PaymentModal/constants";
 
-export interface TipDistribution {
-  staffId: string;
-  staffName: string;
-  amount: number;
-}
-
-export interface TicketItem {
-  name: string;
-  quantity: number;
-  price: number;
-  staffName?: string;
-}
-
-interface PaymentModalProps {
-  open: boolean;
-  onClose: () => void;
-  total: number;
-  subtotal?: number;
-  tax?: number;
-  discount?: number;
-  onComplete: (payment: {
-    methods: PaymentMethod[];
-    tip: number;
-    tipDistribution?: TipDistribution[];
-    padTransactionId?: string;
-  }) => void;
-  staffMembers?: { id: string; name: string; serviceTotal?: number }[];
-  ticketId?: string; // Bug #8 fix: Pass actual ticket ID for transaction linking
-  clientId?: string;
-  clientName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
-  items?: TicketItem[];
-  onShowReceipt?: () => void; // Callback to show receipt preview
-  onSentToPad?: (transactionId: string) => void;
-  /** Callback to open PriceResolutionModal when there are unresolved price changes */
-  onOpenPriceResolution?: () => void;
-}
-
-const TIP_PERCENTAGES = [15, 18, 20, 25];
-
-const STEPS = [
-  { id: 1, label: "Add Tip", sublabel: "optional" },
-  { id: 2, label: "Payment", sublabel: "required" },
-  { id: 3, label: "Complete", sublabel: "final" },
-];
+// Re-export types for backward compatibility
+export type { PaymentMethod, TipDistribution, TicketItem };
 
 function StepIndicator({ currentStep, isFullyPaid }: { currentStep: number; isFullyPaid: boolean }) {
   return (
@@ -172,7 +137,7 @@ export default function PaymentModal({
   const [tipPercentage, setTipPercentage] = useState<number | null>(20);
   const [customTip, setCustomTip] = useState("");
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [currentMethod, setCurrentMethod] = useState<"card" | "cash" | "gift_card" | "custom" | null>(null);
+  const [currentMethod, setCurrentMethod] = useState<PaymentMethodType | null>(null);
   const [cashTendered, setCashTendered] = useState("");
   const [customPaymentName, setCustomPaymentName] = useState("");
   const [showTipDistribution, setShowTipDistribution] = useState(false);
@@ -430,14 +395,7 @@ export default function PaymentModal({
     }
   }, [appliedGiftCards]);
 
-  const PAYMENT_METHODS = [
-    { id: "card", label: "Credit Card", icon: CreditCard },
-    { id: "cash", label: "Cash", icon: Banknote },
-    { id: "gift_card", label: "Gift Card", icon: Gift },
-    { id: "custom", label: "Other", icon: DollarSign },
-  ];
-
-  const handleSelectMethod = (methodId: "card" | "cash" | "gift_card" | "custom") => {
+  const handleSelectMethod = (methodId: PaymentMethodType) => {
     setCurrentMethod(methodId);
     // Ensure we're on step 2 when selecting a payment method
     setCurrentStep(2);
@@ -826,7 +784,7 @@ export default function PaymentModal({
                                     ? "opacity-50 cursor-not-allowed"
                                     : "cursor-pointer hover-elevate active-elevate-2"
                                 } ${isSelected && !isDisabled ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                                onClick={isDisabled ? undefined : () => handleSelectMethod(method.id as "card" | "cash" | "gift_card" | "custom")}
+                                onClick={isDisabled ? undefined : () => handleSelectMethod(method.id)}
                                 data-testid={`card-payment-method-${method.id}`}
                               >
                                 <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center ${
