@@ -18,6 +18,7 @@ import bcrypt from 'bcryptjs';
 import { SecureStorage } from '@/utils/secureStorage';
 import { store } from '@/store';
 import { forceLogout } from '@/store/slices/authSlice';
+import { auditLogger } from '@/services/audit/auditLogger';
 import type {
   MemberAuthSession,
   PinLockoutInfo,
@@ -252,7 +253,16 @@ async function loginWithPassword(email: string, password: string): Promise<Membe
     .eq('id', member.id);
 
   if (updateError) {
-    console.error('Failed to update last_online_auth:', updateError);
+    auditLogger.log({
+      action: 'update',
+      entityType: 'member',
+      entityId: member.id,
+      description: 'Failed to update last_online_auth timestamp',
+      severity: 'low',
+      success: false,
+      errorMessage: updateError.message || 'Unknown database error',
+      metadata: { operation: 'loginWithPassword', field: 'last_online_auth' },
+    });
     // Non-fatal - continue with login
   }
 
@@ -281,7 +291,16 @@ async function loginWithPassword(email: string, password: string): Promise<Membe
     // Verify PIN hash was stored successfully
     const storedHash = await SecureStorage.get(pinKey);
     if (storedHash !== member.pin_hash) {
-      console.error('SecureStorage verification failed: PIN hash mismatch');
+      auditLogger.log({
+        action: 'update',
+        entityType: 'member',
+        entityId: member.id,
+        description: 'SecureStorage verification failed: PIN hash mismatch during login',
+        severity: 'high',
+        success: false,
+        errorMessage: 'PIN hash verification failed after storage',
+        metadata: { operation: 'loginWithPassword', step: 'pinHashStorage' },
+      });
       throw new Error('Failed to persist PIN securely. Please try again.');
     }
   }
@@ -485,7 +504,16 @@ async function setPin(memberId: string, newPin: string): Promise<void> {
     .eq('id', memberId);
 
   if (updateError) {
-    console.error('Failed to update PIN hash in database:', updateError);
+    auditLogger.log({
+      action: 'update',
+      entityType: 'member',
+      entityId: memberId,
+      description: 'Failed to update PIN hash in database',
+      severity: 'medium',
+      success: false,
+      errorMessage: updateError.message || 'Unknown database error',
+      metadata: { operation: 'setPin' },
+    });
     throw new Error('Failed to update PIN. Please try again.');
   }
 
@@ -496,7 +524,16 @@ async function setPin(memberId: string, newPin: string): Promise<void> {
   // Verify PIN hash was stored successfully
   const storedHash = await SecureStorage.get(pinKey);
   if (storedHash !== pinHash) {
-    console.error('SecureStorage verification failed: PIN hash mismatch after setPin');
+    auditLogger.log({
+      action: 'update',
+      entityType: 'member',
+      entityId: memberId,
+      description: 'SecureStorage verification failed: PIN hash mismatch after setPin',
+      severity: 'high',
+      success: false,
+      errorMessage: 'PIN hash verification failed after storage',
+      metadata: { operation: 'setPin', step: 'pinHashStorage' },
+    });
     throw new Error('Failed to persist PIN securely. Please try again.');
   }
 }
@@ -519,7 +556,16 @@ async function removePin(memberId: string): Promise<void> {
     .eq('id', memberId);
 
   if (updateError) {
-    console.error('Failed to remove PIN hash from database:', updateError);
+    auditLogger.log({
+      action: 'delete',
+      entityType: 'member',
+      entityId: memberId,
+      description: 'Failed to remove PIN hash from database',
+      severity: 'medium',
+      success: false,
+      errorMessage: updateError.message || 'Unknown database error',
+      metadata: { operation: 'removePin' },
+    });
     throw new Error('Failed to remove PIN. Please try again.');
   }
 
@@ -568,7 +614,16 @@ async function getDefaultStore(memberId: string): Promise<string | null> {
         .single();
 
       if (error) {
-        console.error('Failed to fetch default store from database:', error);
+        auditLogger.log({
+          action: 'read',
+          entityType: 'member',
+          entityId: memberId,
+          description: 'Failed to fetch default store from database',
+          severity: 'low',
+          success: false,
+          errorMessage: error.message || 'Unknown database error',
+          metadata: { operation: 'getDefaultStore' },
+        });
         // Fall back to cached value
       } else if (member) {
         const defaultStoreId = member.default_store_id || null;
@@ -581,8 +636,17 @@ async function getDefaultStore(memberId: string): Promise<string | null> {
         return defaultStoreId;
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Unexpected error fetching default store:', errorMessage);
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      auditLogger.log({
+        action: 'read',
+        entityType: 'member',
+        entityId: memberId,
+        description: 'Unexpected error fetching default store',
+        severity: 'low',
+        success: false,
+        errorMessage: errMsg,
+        metadata: { operation: 'getDefaultStore' },
+      });
       // Fall back to cached value
     }
   }
@@ -626,7 +690,16 @@ async function setDefaultStore(memberId: string, storeId: string): Promise<void>
       .eq('id', memberId);
 
     if (error) {
-      console.error('Failed to update default store in database:', error);
+      auditLogger.log({
+        action: 'update',
+        entityType: 'member',
+        entityId: memberId,
+        description: 'Failed to update default store in database',
+        severity: 'medium',
+        success: false,
+        errorMessage: error.message || 'Unknown database error',
+        metadata: { operation: 'setDefaultStore', storeId },
+      });
       throw new Error('Failed to save default store. Changes saved locally.');
     }
   }
@@ -666,7 +739,16 @@ async function clearDefaultStore(memberId: string): Promise<void> {
       .eq('id', memberId);
 
     if (error) {
-      console.error('Failed to clear default store in database:', error);
+      auditLogger.log({
+        action: 'update',
+        entityType: 'member',
+        entityId: memberId,
+        description: 'Failed to clear default store in database',
+        severity: 'medium',
+        success: false,
+        errorMessage: error.message || 'Unknown database error',
+        metadata: { operation: 'clearDefaultStore' },
+      });
       throw new Error('Failed to clear default store. Changes saved locally.');
     }
   }
@@ -887,8 +969,17 @@ function updateLastOnlineAuthInBackground(memberId: string): void {
     .eq('id', memberId)
     .then(({ error }) => {
       if (error) {
-        // Silently log - don't disrupt user experience
-        console.error('Failed to update last_online_auth in background:', error);
+        // Log to audit trail - don't disrupt user experience
+        auditLogger.log({
+          action: 'update',
+          entityType: 'member',
+          entityId: memberId,
+          description: 'Failed to update last_online_auth in background',
+          severity: 'low',
+          success: false,
+          errorMessage: error.message || 'Unknown database error',
+          metadata: { operation: 'updateLastOnlineAuthInBackground' },
+        });
       }
     });
 }
@@ -920,7 +1011,16 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
 
     if (memberError) {
       // Network error or member not found - don't logout, just log
-      console.error('Background validation: Failed to fetch member:', memberError);
+      auditLogger.log({
+        action: 'read',
+        entityType: 'member',
+        entityId: member.memberId,
+        description: 'Background validation: Failed to fetch member',
+        severity: 'low',
+        success: false,
+        errorMessage: memberError.message || 'Unknown database error',
+        metadata: { operation: 'validateSessionInBackground', step: 'fetchMember' },
+      });
       return;
     }
 
@@ -957,7 +1057,16 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
 
     if (revocationError) {
       // Network error - don't logout, just log
-      console.error('Background validation: Failed to check revocations:', revocationError);
+      auditLogger.log({
+        action: 'read',
+        entityType: 'member',
+        entityId: member.memberId,
+        description: 'Background validation: Failed to check revocations',
+        severity: 'low',
+        success: false,
+        errorMessage: revocationError.message || 'Unknown database error',
+        metadata: { operation: 'validateSessionInBackground', step: 'checkRevocations' },
+      });
       return;
     }
 
@@ -989,14 +1098,32 @@ async function validateSessionInBackground(member: MemberAuthSession): Promise<v
       .eq('id', member.memberId)
       .then(({ error }) => {
         if (error) {
-          console.error('Background validation: Failed to update last_online_auth:', error);
+          auditLogger.log({
+            action: 'update',
+            entityType: 'member',
+            entityId: member.memberId,
+            description: 'Background validation: Failed to update last_online_auth',
+            severity: 'low',
+            success: false,
+            errorMessage: error.message || 'Unknown database error',
+            metadata: { operation: 'validateSessionInBackground', step: 'updateLastOnlineAuth' },
+          });
         }
       });
 
   } catch (error: unknown) {
     // Catch any unexpected errors - don't logout on network/parsing issues
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Background validation: Unexpected error:', errorMessage);
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
+    auditLogger.log({
+      action: 'read',
+      entityType: 'member',
+      entityId: member.memberId,
+      description: 'Background validation: Unexpected error',
+      severity: 'low',
+      success: false,
+      errorMessage: errMsg,
+      metadata: { operation: 'validateSessionInBackground', step: 'unexpected' },
+    });
   }
 }
 
@@ -1023,7 +1150,15 @@ async function logout(): Promise<void> {
   // 3. Sign out of Supabase Auth
   const { error } = await supabase.auth.signOut();
   if (error) {
-    console.error('Failed to sign out of Supabase:', error);
+    auditLogger.log({
+      action: 'logout',
+      entityType: 'member',
+      description: 'Failed to sign out of Supabase Auth',
+      severity: 'low',
+      success: false,
+      errorMessage: error.message || 'Unknown auth error',
+      metadata: { operation: 'logout' },
+    });
     // Don't throw - session is already cleared locally
   }
 }
