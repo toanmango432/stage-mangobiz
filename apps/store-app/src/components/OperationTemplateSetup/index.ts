@@ -15,3 +15,9 @@ export {
   SCROLL_DELAY,
   MOBILE_BREAKPOINT,
 } from './constants';
+
+// Hooks
+export { useOperationTemplateSetup } from './hooks';
+
+// Sub-components
+export { QuestionsSection, TemplateCard, TemplatePreview, TemplateSettings } from './components';

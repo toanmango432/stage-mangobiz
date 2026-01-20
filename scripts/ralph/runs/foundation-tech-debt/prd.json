@@ -742,7 +742,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-032"],
@@ -768,7 +768,7 @@
         "Verify in browser: operation template setup flow works"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-033"],

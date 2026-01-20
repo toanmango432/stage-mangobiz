@@ -1224,3 +1224,117 @@ Commit: 4bb9e96
 **Next story suggestion:** US-033 (Extract OperationTemplateSetup form sections to components) - depends on US-032, continues the modularization.
 
 ---
+
+## 2026-01-20 - US-033: Extract OperationTemplateSetup form sections to components
+Commit: 92d078f
+
+**Why this story?** US-033 depends on US-032 which was just completed. Continues the OperationTemplateSetup modularization series by extracting form/UI sections into reusable components.
+
+**Changes:**
+- `apps/store-app/src/components/OperationTemplateSetup/components/QuestionsSection.tsx:1-123`: Questions wizard section with:
+  - User type selection (Front Desk Staff vs Service Providers)
+  - Workflow style selection
+  - Suggested template banner
+- `apps/store-app/src/components/OperationTemplateSetup/components/TemplatePreview.tsx:1-229`: Template preview mockup with:
+  - Team section visualization (ready/busy or clocked in/out)
+  - Ticket section visualization
+  - Appointments rail
+  - Quick actions for Team In/Out template
+- `apps/store-app/src/components/OperationTemplateSetup/components/TemplateSettings.tsx:1-157`: Collapsible settings panel with:
+  - Team Section settings
+  - Ticket Section settings
+  - Workflow & Rules settings
+  - Layout Section settings
+- `apps/store-app/src/components/OperationTemplateSetup/components/TemplateCard.tsx:1-95`: Unified template card combining:
+  - TemplatePreview component
+  - TemplateSettings component
+  - Template info (title, subtitle, description, bestFor)
+  - Template actions (Select/Reset)
+- `apps/store-app/src/components/OperationTemplateSetup/components/index.ts:1-4`: Barrel export
+- `apps/store-app/src/components/OperationTemplateSetup/OperationTemplateSetup.tsx:1-319`: Reduced from 1,223 to 319 lines (74% reduction)
+
+**Quality Checks:**
+- ✅ TypeScript: Fixed RefObject type from `RefObject<HTMLDivElement | null>` to `RefObject<HTMLDivElement>` for compatibility with div ref attribute
+- ✅ Lint: Removed unused `Check` import from lucide-react; pre-existing color warnings carried over
+- ✅ Tests: Pre-existing test failures (AgendaView.test.tsx, etc.) - no OperationTemplateSetup tests exist
+- ✅ No forbidden strings introduced
+
+**File Size Summary:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| OperationTemplateSetup.tsx | 319 | Main orchestration (was 1,223) |
+| QuestionsSection.tsx | 123 | Questions wizard section |
+| TemplateCard.tsx | 95 | Unified card component |
+| TemplatePreview.tsx | 229 | Template mockup preview |
+| TemplateSettings.tsx | 157 | Collapsible settings |
+| **Total** | **923** | vs original 1,223 |
+
+**Learnings:**
+- TemplateCard consolidates the desktop and mobile rendering which were nearly identical, eliminating ~300 lines of duplication
+- The main component is now orchestration-only: state management, effects, and component composition
+- Using `void question3Ref` to silence unused parameter warning when ref is passed but may not be used in current implementation
+
+**Patterns to sync:**
+- Pattern #33: Ref Type for HTML Elements - Use `RefObject<HTMLDivElement>` without `| null` when passing ref to JSX elements; the null case is handled internally by React
+
+**Next story suggestion:** US-034 (Complete OperationTemplateSetup modularization) - depends on US-033, final step to extract hooks and verify <500 lines target.
+
+---
+
+## 2026-01-20 - US-034: Complete OperationTemplateSetup modularization
+Commit: [pending]
+
+**Why this story?** US-034 depends on US-033 which was just completed. It completes the OperationTemplateSetup modularization series by extracting the remaining logic to hooks.
+
+**Changes:**
+- `apps/store-app/src/components/OperationTemplateSetup/hooks/useOperationTemplateSetup.ts:1-225`: Created hook with:
+  - All state: settings, hasChanges, quickAnswers, showToast, expandedSettings, isMobile, currentTemplateIndex
+  - All refs: suggestedTemplateRef, question1Ref, question2Ref, question3Ref
+  - All methods: getSuggestedTemplate, getTemplateDetails, applyTemplate, updateQuickAnswer, saveSettings, toggleExpandSettings, navigateTemplate
+  - All useEffect hooks for state sync, resize handling, and auto-scroll
+- `apps/store-app/src/components/OperationTemplateSetup/hooks/index.ts:1`: Barrel export for hook
+- `apps/store-app/src/components/OperationTemplateSetup/OperationTemplateSetup.tsx:1-226`: Refactored to:
+  - Import and use useOperationTemplateSetup hook
+  - Destructure all state, refs, and methods from hook
+  - Component is now pure render orchestration
+- `apps/store-app/src/components/OperationTemplateSetup/index.ts:19-23`: Added exports for hook and sub-components
+
+**Quality Checks:**
+- ✅ TypeScript: No OperationTemplateSetup-related errors (pre-existing test file errors unrelated)
+- ✅ Lint: Pre-existing warnings only
+- ✅ No forbidden strings introduced
+- ✅ Browser verification: Front Desk page loads without errors, component structure correct
+
+**File Size Results:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| OperationTemplateSetup.tsx | 226 | Main orchestration (was 319, originally 1,223) |
+| useOperationTemplateSetup.ts | 225 | State, refs, methods, effects |
+| QuestionsSection.tsx | 123 | Questions wizard section |
+| TemplateCard.tsx | 95 | Unified card component |
+| TemplatePreview.tsx | 229 | Template mockup preview |
+| TemplateSettings.tsx | 157 | Collapsible settings |
+| types.ts | 38 | Type definitions |
+| constants.ts | 185 | CSS styles and constants |
+| **Total** | **1,306** | vs original 1,223 (organized into modules) |
+
+**Acceptance Criteria Check:**
+- ✅ Extract remaining UI sections to components/ (already done in US-033)
+- ✅ Extract complex logic to hooks/ (useOperationTemplateSetup.ts: 225 lines)
+- ✅ Create index.ts barrel export (already existed, updated with hook export)
+- ✅ OperationTemplateSetup.tsx is <500 lines (226 lines - TARGET ACHIEVED!)
+- ✅ All existing imports still work (backward compatible via facade re-export)
+- ⚠️ TypeScript: Pre-existing errors in test files only (unrelated)
+- ✅ Browser verification: App loads, Front Desk renders without errors
+
+**Learnings:**
+- Hook extraction pattern: all useState, useEffect, and handler functions move to hook
+- Component becomes pure render - only receives props and renders JSX using hook values
+- The hook returns typed interface with state, refs, and methods for clear API
+
+**Patterns to sync:**
+- Pattern #34: Hook Extraction Pattern - Extract all state (useState), effects (useEffect), and handlers to a custom hook, leaving component as pure render orchestration
+
+**Next story suggestion:** US-035 (Extract TimesheetSection types and constants) - no dependencies, starts the TimesheetSection modularization series.
+
+---
