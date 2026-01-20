@@ -126,7 +126,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "Install plugin: pnpm add capacitor-secure-storage-plugin. Web fallback uses btoa/atob - NOT cryptographically secure, but better than plaintext. Full implementation in docs/AUTH_MIGRATION_PLAN.md lines 1268-1335. For web, prefix keys with secure_ in localStorage."
@@ -150,7 +150,7 @@
         "Existing tests still pass: pnpm test -- authSlice"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "testCommand": "pnpm test -- authSlice --run",
@@ -201,7 +201,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 3,
       "dependencies": ["US-001", "US-005", "US-007"],
