@@ -921,3 +921,32 @@ These services would need to be extracted in future stories to achieve the <500 
 **Next story suggestion:** US-027 (Extract AddTeamMember types and constants) - next available priority with no dependencies. Different category (refactor), starts the AddTeamMember modularization series (US-027 to US-029).
 
 ---
+
+## 2026-01-19 - US-027: Extract AddTeamMember types and constants
+Commit: 312d119
+
+**Why this story?** US-027 is the highest priority incomplete story (priority 27) with no dependencies among remaining stories. It starts the AddTeamMember modularization series (US-027 to US-029). This is the next logical step after completing the dataService domain extractions.
+
+**Changes:**
+- No code changes needed - verification only
+- Types already extracted to `types.ts` (36 lines): WizardStep, BasicInfo, PasswordSetupMethod, LoginCredentials, WizardStepConfig
+- Constants already extracted to `constants.ts` (13 lines): WIZARD_STEPS
+- `utils.ts` already exists (utility functions extracted)
+- `index.ts` barrel export already exists
+
+**Verification Results:**
+- ✅ AddTeamMember/ folder exists
+- ✅ types.ts exists with all interfaces/types
+- ✅ constants.ts exists with WIZARD_STEPS
+- ✅ AddTeamMember.tsx imports from './types' (line 22) and './constants' (line 32)
+- ✅ No forbidden strings ('as any', 'void _')
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx, uiTicketsSlice.ts, types/index.ts (unrelated to AddTeamMember)
+
+**Learnings:**
+- PRD notes indicated file was NEW but extraction was already done in a previous iteration
+- Always verify current state before implementing - PRD may not reflect latest changes
+- AddTeamMember already has good module structure: types.ts, constants.ts, utils.ts, index.ts
+
+**Next story suggestion:** US-028 (Extract AddTeamMember form sections to components) - depends on US-027 (now complete), same category (refactor), continues the AddTeamMember modularization series.
+
+---
