@@ -194,9 +194,18 @@ function clearCachedMemberSession(): void {
  * @throws Error with descriptive message on failure
  */
 async function loginWithPassword(email: string, password: string): Promise<MemberAuthSession> {
+  // 0. Input validation (before making any network calls)
+  const trimmedEmail = email?.trim() ?? '';
+  if (!trimmedEmail) {
+    throw new Error('Email is required');
+  }
+  if (!password) {
+    throw new Error('Password is required');
+  }
+
   // 1. Authenticate with Supabase Auth (with timeout)
   const authPromise = supabase.auth.signInWithPassword({
-    email,
+    email: trimmedEmail,
     password,
   });
 

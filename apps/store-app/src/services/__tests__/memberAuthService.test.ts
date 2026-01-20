@@ -206,6 +206,77 @@ describe('memberAuthService', () => {
       ).rejects.toThrow('Invalid email or password');
     });
 
+    // ==================== INPUT VALIDATION TESTS ====================
+
+    it('should throw error when email is empty', async () => {
+      await expect(
+        memberAuthService.loginWithPassword('', 'password123')
+      ).rejects.toThrow('Email is required');
+
+      // Supabase should not be called
+      expect(mockSupabaseAuth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when email is only whitespace', async () => {
+      await expect(
+        memberAuthService.loginWithPassword('   ', 'password123')
+      ).rejects.toThrow('Email is required');
+
+      // Supabase should not be called
+      expect(mockSupabaseAuth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when password is empty', async () => {
+      await expect(
+        memberAuthService.loginWithPassword('test@example.com', '')
+      ).rejects.toThrow('Password is required');
+
+      // Supabase should not be called
+      expect(mockSupabaseAuth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('should trim email before sending to Supabase', async () => {
+      mockSupabaseAuth.signInWithPassword.mockResolvedValue({
+        data: { user: { id: 'auth-user-456' } },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'staff',
+        status: 'active',
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: null,
+        default_store_id: null,
+      };
+
+      mockSupabaseFrom.mockImplementation(() => createMockQueryBuilder(mockMember));
+
+      await memberAuthService.loginWithPassword('  test@example.com  ', 'password123');
+
+      // Supabase should receive trimmed email
+      expect(mockSupabaseAuth.signInWithPassword).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    it('should throw error when email is null or undefined', async () => {
+      await expect(
+        memberAuthService.loginWithPassword(null as unknown as string, 'password123')
+      ).rejects.toThrow('Email is required');
+
+      await expect(
+        memberAuthService.loginWithPassword(undefined as unknown as string, 'password123')
+      ).rejects.toThrow('Email is required');
+
+      // Supabase should not be called
+      expect(mockSupabaseAuth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
     it('should throw error when email not confirmed', async () => {
       mockSupabaseAuth.signInWithPassword.mockResolvedValue({
         data: { user: null },
