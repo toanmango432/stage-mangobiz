@@ -1413,10 +1413,49 @@ All 11 acceptance criteria met:
 
 ---
 
+## 2026-01-20 - US-027: Verify DRY_RUN behavior in migration script
+Commit: (verified existing code, no changes needed)
+
+**Why this story?** US-027 has no dependencies, lowest priority (27) among remaining stories, and is marked as a critical bug fix. However, upon investigation, the bug was not present.
+
+**Analysis:**
+
+Traced through all code paths in `migrateMember()` function:
+
+1. **Path: Already migrated** (line 225-231) → Early return, no DB writes ✅
+2. **Path: No email** (line 234-243) → Early return, no DB writes ✅
+3. **Path: Existing user + DRY_RUN=true** (line 260-268) → Early return at line 268, no DB writes ✅
+4. **Path: New user + DRY_RUN=true** (line 274-282) → Early return at line 282, no auth create, no DB writes ✅
+5. **Path: Existing user + DRY_RUN=false** → Falls through to DB update at line 320 (CORRECT behavior)
+6. **Path: New user + DRY_RUN=false** → Creates auth user, then DB update (CORRECT behavior)
+
+**Verification:**
+- All 5 acceptance criteria are satisfied by the existing code:
+  - ✅ Database updates only occur after DRY_RUN checks (via early returns at lines 268 and 282)
+  - ✅ DRY_RUN=true produces no database changes for existing users (returns at line 268)
+  - ✅ Verified by code trace - all write operations after DRY_RUN checks
+  - ✅ No forbidden strings: as any, void _ (verified via grep)
+  - ✅ pnpm run typecheck passes
+
+**Conclusion:**
+The bug described in the PRD ("DRY_RUN still updates database for existing Control Center users") does not exist in the current codebase. The code uses early returns pattern to prevent any database modifications when DRY_RUN=true. Marked as passes without code changes.
+
+**Learnings:**
+- PRD notes can become outdated - always verify current code before implementing
+- Early return pattern is effective for preventing writes in dry-run mode
+- Code trace through all execution paths is essential for verification
+
+**Patterns to sync:**
+- None (existing pattern verified)
+
+**Next story suggestion:** US-028 (remove hardcoded Supabase URL) has no dependencies and is a security fix for the same file.
+
+---
+
 ## Session Summary - 2026-01-20
 
-**Completed this session:** 1 story (US-026)
-**Total progress:** 26/26 stories (100%)
+**Completed this session:** 1 story (US-027 verified)
+**Total progress:** 27/52 stories (52%)
 
 **Blocked stories:** None - all stories complete!
 

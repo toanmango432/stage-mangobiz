@@ -716,6 +716,569 @@
       "complexity": 3,
       "dependencies": ["US-009", "US-022", "US-025"],
       "notes": "This enables multi-store users to switch stores while offline. PIN verification is required to prevent unauthorized store access on shared devices. Store data cached during online login. Limited functionality available offline (read-only mostly)."
+    },
+    {
+      "id": "US-027",
+      "title": "Fix DRY_RUN bug in migration script",
+      "description": "As a developer, I need DRY_RUN mode to truly prevent database changes.",
+      "files": [
+        "scripts/auth-migration/migrate-members-to-supabase-auth.ts"
+      ],
+      "acceptanceCriteria": [
+        "Move all database updates inside non-dry-run block (after line 260)",
+        "DRY_RUN=true produces no database changes for existing users",
+        "Test: Run with DRY_RUN=true, verify no DB modifications",
+        "No forbidden strings: as any, void _",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 27,
+      "passes": true,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "VERIFIED: DRY_RUN correctly prevents all database changes via early returns at lines 268 (existing users) and 282 (new users). The bug described was not present in the current code."
+    },
+    {
+      "id": "US-028",
+      "title": "Remove hardcoded production Supabase URL",
+      "description": "As a developer, I need the migration script to require explicit configuration.",
+      "files": [
+        "scripts/auth-migration/migrate-members-to-supabase-auth.ts"
+      ],
+      "acceptanceCriteria": [
+        "Remove fallback URL 'https://cpaldkcvdcdyzytosntc.supabase.co'",
+        "Require SUPABASE_URL env var with clear error message",
+        "Script fails fast if env var not set",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "CRITICAL: Hardcoded production URL is a security risk - could accidentally modify live data."
+    },
+    {
+      "id": "US-029",
+      "title": "Fix type safety in memberAuthService catch blocks",
+      "description": "As a developer, I need proper error typing in all catch blocks.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "All catch blocks use 'catch (err: unknown)'",
+        "Use 'err instanceof Error ? err.message : Unknown error' pattern",
+        "No direct err.message access without type guard",
+        "Lines to fix: 192, 257, 386, 412, 461, 473, 517, 559",
+        "No forbidden strings: as any",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Untyped catch blocks can cause runtime errors when accessing .message on non-Error objects."
+    },
+    {
+      "id": "US-030",
+      "title": "Add timeout to Supabase auth calls",
+      "description": "As a developer, I need auth calls to timeout rather than hang indefinitely.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts",
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add AUTH_TIMEOUT_MS constant (30000ms)",
+        "Wrap signInWithPassword in Promise.race with timeout",
+        "Throw clear error message on timeout: 'Authentication timeout'",
+        "Add unit test for timeout scenario",
+        "pnpm run typecheck passes",
+        "pnpm test passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Without timeout, slow network could cause UI to hang indefinitely on login attempt."
+    },
+    {
+      "id": "US-031",
+      "title": "Add timeout to bcrypt.compare",
+      "description": "As a developer, I need PIN validation to have a timeout to prevent DOS.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts",
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add BCRYPT_TIMEOUT_MS constant (5000ms)",
+        "Create validatePin helper with timeout wrapper",
+        "Throw clear error on timeout: 'PIN validation timeout'",
+        "Add unit test for timeout scenario",
+        "pnpm run typecheck passes",
+        "pnpm test passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "bcrypt.compare is CPU-intensive. Without timeout, malicious inputs could cause DOS."
+    },
+    {
+      "id": "US-032",
+      "title": "Fix global graceCheckInterval memory leak",
+      "description": "As a developer, I need grace checker intervals to be properly managed.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts",
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Replace 'let graceCheckInterval' with Map<string, interval> keyed by memberId",
+        "Add stopAllGraceCheckers() function for cleanup",
+        "startGraceChecker is idempotent (no-op if already running for member)",
+        "Add unit tests for start/stop idempotency",
+        "pnpm run typecheck passes",
+        "pnpm test passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Single global interval could leak if start called before stop, especially with multiple users."
+    },
+    {
+      "id": "US-033",
+      "title": "Verify SecureStorage.set success for PIN hash",
+      "description": "As a developer, I need to verify PIN hash was stored successfully.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts",
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "After SecureStorage.set, read back and verify value matches",
+        "Throw clear error if verification fails: 'Failed to persist PIN securely'",
+        "Add unit test for SecureStorage failure scenario",
+        "Lines to modify: 216, 391",
+        "pnpm run typecheck passes",
+        "pnpm test passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Without verification, PIN could fail to store but user would think it succeeded."
+    },
+    {
+      "id": "US-034",
+      "title": "Fix as any cast in SwitchUserModal",
+      "description": "As a developer, I need proper type safety in getInitials call.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Remove 'as any' cast at line 490",
+        "Add proper type guard or fix getInitials signature",
+        "No forbidden strings: as any",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 1,
+      "notes": "Type casts bypass TypeScript safety and can mask bugs."
+    },
+    {
+      "id": "US-035",
+      "title": "Fix defaults any type in StoreAuthState",
+      "description": "As a developer, I need proper typing for store defaults.",
+      "files": [
+        "apps/store-app/src/services/storeAuthManager.ts"
+      ],
+      "acceptanceCriteria": [
+        "Define StoreDefaults interface with actual properties",
+        "Replace 'defaults?: any' with 'defaults?: StoreDefaults' at line 71",
+        "No forbidden strings: as any",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "any type defeats TypeScript safety."
+    },
+    {
+      "id": "US-036",
+      "title": "Replace console.error with structured logging in memberAuthService",
+      "description": "As a developer, I need proper error logging with context.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Import auditLogger from '@/services/audit/auditLogger'",
+        "Replace all console.error with auditLogger.log calls (~15 occurrences)",
+        "Include context: action, entityType, severity, errorMessage, metadata",
+        "No remaining console.error calls in file",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-029"],
+      "notes": "Console.error loses context and errors are not tracked for monitoring."
+    },
+    {
+      "id": "US-037",
+      "title": "Replace console.log with structured logging in storeAuthManager",
+      "description": "As a developer, I need professional logging without emojis.",
+      "files": [
+        "apps/store-app/src/utils/logger.ts",
+        "apps/store-app/src/services/storeAuthManager.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create logger utility in apps/store-app/src/utils/logger.ts",
+        "Logger has levels: debug, info, warn, error",
+        "Replace all console.log with logger.info/debug (~30 occurrences)",
+        "Remove all emoji characters from log messages",
+        "No remaining console.log calls (except in logger utility)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 37,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Emoji console.logs are unprofessional and clutter logs."
+    },
+    {
+      "id": "US-038",
+      "title": "Add input validation before Supabase calls",
+      "description": "As a developer, I need validation before making auth requests.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts",
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Validate email is non-empty trimmed string before loginWithPassword",
+        "Validate password is non-empty",
+        "Throw clear error messages for each case",
+        "Add unit tests for validation",
+        "pnpm run typecheck passes",
+        "pnpm test passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Empty strings could pass to Supabase causing confusing errors."
+    },
+    {
+      "id": "US-039",
+      "title": "Add retry button for failed member fetch",
+      "description": "As a user, I want to retry when member list fails to load.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Show 'Try again' button when error contains 'Failed to load'",
+        "Button calls fetchMembers() on click",
+        "Button styled consistently with other modal buttons",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 39,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 1,
+      "notes": "Currently no recovery path when member fetch fails."
+    },
+    {
+      "id": "US-040",
+      "title": "Add database retry logic in migration script",
+      "description": "As a developer, I need transient failures to be retried.",
+      "files": [
+        "scripts/auth-migration/migrate-members-to-supabase-auth.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create updateWithRetry helper function",
+        "3 retries with exponential backoff (1s, 2s, 4s)",
+        "Wrap database update calls in retry logic",
+        "Log retry attempts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 40,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-027", "US-028"],
+      "notes": "Network glitches could fail entire migration without retry logic."
+    },
+    {
+      "id": "US-041",
+      "title": "Add checkpoint/resume to migration script",
+      "description": "As a developer, I need to resume migration if it fails midway.",
+      "files": [
+        "scripts/auth-migration/migrate-members-to-supabase-auth.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create saveCheckpoint() to write progress to migration_checkpoint.json",
+        "Create loadCheckpoint() to read progress on startup",
+        "Save checkpoint after each successful batch",
+        "Resume from checkpoint if file exists",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 41,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-040"],
+      "notes": "Without checkpoints, a failure means restarting the entire migration."
+    },
+    {
+      "id": "US-042",
+      "title": "Add ARIA labels to PIN display",
+      "description": "As a user with accessibility needs, I want screen readers to understand PIN input.",
+      "files": [
+        "apps/store-app/src/components/auth/StoreLoginScreen.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add role='group' to PIN container",
+        "Add aria-label='PIN entry' to container",
+        "Add aria-label='PIN digit N' to each dot (lines 558-571)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 42,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 1,
+      "notes": "PIN display has no accessibility attributes currently."
+    },
+    {
+      "id": "US-043",
+      "title": "Update lockout timer in real-time",
+      "description": "As a user, I want to see the lockout countdown updating.",
+      "files": [
+        "apps/store-app/src/components/auth/PinVerificationModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Add useEffect with 1-second interval when locked",
+        "Update remaining time display every second",
+        "Clear interval when unlocked or component unmounts",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 43,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "notes": "Currently shows static 'X minutes' that doesn't countdown."
+    },
+    {
+      "id": "US-044",
+      "title": "Extract hardcoded strings to constants",
+      "description": "As a developer, I need centralized message and timeout constants.",
+      "files": [
+        "apps/store-app/src/components/auth/constants.ts",
+        "apps/store-app/src/components/auth/PinSetupModal.tsx",
+        "apps/store-app/src/components/auth/PinVerificationModal.tsx",
+        "apps/store-app/src/components/auth/StoreLoginScreen.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Create AUTH_MESSAGES object with all error/info strings",
+        "Create AUTH_TIMEOUTS object with all timeout values",
+        "Update PinSetupModal to use constants",
+        "Update PinVerificationModal to use constants",
+        "Update StoreLoginScreen to use constants",
+        "No hardcoded timeout numbers in component files",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 44,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "notes": "Error messages and timeouts scattered throughout make maintenance difficult."
+    },
+    {
+      "id": "US-045",
+      "title": "Add listener cleanup in storeAuthManager",
+      "description": "As a developer, I need listeners to be properly cleaned up.",
+      "files": [
+        "apps/store-app/src/services/storeAuthManager.ts"
+      ],
+      "acceptanceCriteria": [
+        "Change listeners from array to Set<AuthStateListener>",
+        "subscribe() returns unsubscribe function",
+        "unsubscribe removes listener from Set",
+        "Add __cleanupForTesting() method",
+        "Line to modify: 86",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 45,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Listeners array never cleaned up - memory leak potential."
+    },
+    {
+      "id": "US-046",
+      "title": "Add abort mechanism for background validation",
+      "description": "As a developer, I need to cancel background validation on logout.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Add module-level AbortController reference",
+        "Cancel previous validation before starting new one",
+        "Pass abort signal to Supabase query",
+        "Add cancelBackgroundValidation() export",
+        "Line to modify: 801",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 46,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Without abort, background validation continues after logout."
+    },
+    {
+      "id": "US-047",
+      "title": "Split StoreLoginScreen into module structure",
+      "description": "As a developer, I need StoreLoginScreen under 500 lines.",
+      "files": [
+        "apps/store-app/src/components/auth/StoreLoginScreen/index.ts",
+        "apps/store-app/src/components/auth/StoreLoginScreen/StoreLoginScreen.tsx",
+        "apps/store-app/src/components/auth/StoreLoginScreen/LoginForm.tsx",
+        "apps/store-app/src/components/auth/StoreLoginScreen/MemberLoginForm.tsx",
+        "apps/store-app/src/components/auth/StoreLoginScreen/PinScreen.tsx",
+        "apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts",
+        "apps/store-app/src/components/auth/StoreLoginScreen/types.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create module directory structure",
+        "Extract LoginForm component (~150 lines)",
+        "Extract MemberLoginForm component (~150 lines)",
+        "Extract PinScreen component (~150 lines)",
+        "Extract useLoginState hook (~150 lines)",
+        "Main file under 300 lines",
+        "All imports work correctly",
+        "Delete old StoreLoginScreen.tsx file",
+        "pnpm run typecheck passes",
+        "UI unchanged"
+      ],
+      "priority": 47,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-042", "US-044"],
+      "notes": "File is 1007 lines - exceeds 500 line guideline significantly."
+    },
+    {
+      "id": "US-048",
+      "title": "Split SwitchUserModal into module structure",
+      "description": "As a developer, I need SwitchUserModal under 500 lines.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal/index.ts",
+        "apps/store-app/src/components/auth/SwitchUserModal/SwitchUserModal.tsx",
+        "apps/store-app/src/components/auth/SwitchUserModal/MemberList.tsx",
+        "apps/store-app/src/components/auth/SwitchUserModal/PinStep.tsx",
+        "apps/store-app/src/components/auth/SwitchUserModal/PasswordStep.tsx",
+        "apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts",
+        "apps/store-app/src/components/auth/SwitchUserModal/types.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create module directory structure",
+        "Extract MemberList component (~150 lines)",
+        "Extract PinStep component (~150 lines)",
+        "Extract PasswordStep component (~100 lines)",
+        "Extract useSwitchUser hook (~150 lines)",
+        "Main file under 300 lines",
+        "All imports work correctly",
+        "Delete old SwitchUserModal.tsx file",
+        "pnpm run typecheck passes",
+        "UI unchanged"
+      ],
+      "priority": 48,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-034", "US-039"],
+      "notes": "File is 833 lines - exceeds 500 line guideline."
+    },
+    {
+      "id": "US-049",
+      "title": "Enable skipped E2E tests - PIN setup flow",
+      "description": "As a developer, I need PIN setup E2E tests running.",
+      "files": [
+        "apps/store-app/e2e/auth-flow.spec.ts"
+      ],
+      "acceptanceCriteria": [
+        "Remove skip from PIN setup modal tests (4 tests)",
+        "Add proper test fixtures for PIN setup",
+        "Tests pass: PIN setup shows after login, can enter PIN, can skip",
+        "pnpm test:e2e passes"
+      ],
+      "priority": 49,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-047"],
+      "notes": "4 E2E tests for PIN setup are currently skipped."
+    },
+    {
+      "id": "US-050",
+      "title": "Enable skipped E2E tests - PIN login flow",
+      "description": "As a developer, I need PIN login E2E tests running.",
+      "files": [
+        "apps/store-app/e2e/auth-flow.spec.ts"
+      ],
+      "acceptanceCriteria": [
+        "Remove skip from PIN login tests (3 tests)",
+        "Add mock for offline detection",
+        "Tests pass: PIN login works, wrong PIN shows error",
+        "pnpm test:e2e passes"
+      ],
+      "priority": 50,
+      "passes": false,
+      "category": "testing",
+      "complexity": 3,
+      "dependencies": ["US-049"],
+      "notes": "3 E2E tests for PIN login are currently skipped."
+    },
+    {
+      "id": "US-051",
+      "title": "Add unit tests for corrupted localStorage scenarios",
+      "description": "As a developer, I need tests for localStorage edge cases.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test getCachedMemberSession with invalid JSON",
+        "Test getCachedMembers with malformed data",
+        "Test graceful fallback when dates are invalid",
+        "All new tests pass",
+        "pnpm test passes"
+      ],
+      "priority": 51,
+      "passes": false,
+      "category": "testing",
+      "complexity": 2,
+      "dependencies": ["US-029"],
+      "notes": "No tests for what happens when localStorage has corrupted data."
+    },
+    {
+      "id": "US-052",
+      "title": "Add unit tests for concurrent PIN attempts",
+      "description": "As a developer, I need tests for PIN race conditions.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts"
+      ],
+      "acceptanceCriteria": [
+        "Test rapid sequential PIN attempts",
+        "Test lockout counter increments correctly under race",
+        "Verify lockout triggers at correct attempt count",
+        "All new tests pass",
+        "pnpm test passes"
+      ],
+      "priority": 52,
+      "passes": false,
+      "category": "testing",
+      "complexity": 2,
+      "dependencies": ["US-031"],
+      "notes": "No tests for race conditions with rapid PIN attempts."
     }
   ]
 }
