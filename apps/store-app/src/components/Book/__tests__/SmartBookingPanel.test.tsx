@@ -46,7 +46,7 @@ function createMockQuickBooking() {
         staffName: 'Jane Stylist',
       },
     ],
-    suggestedTime: new Date('2026-01-15T14:00:00').toISOString(),
+    suggestedTime: new Date('2026-01-15T14:00:00'),
     estimatedDuration: 45,
     estimatedPrice: 65,
     confidence: 92.5,

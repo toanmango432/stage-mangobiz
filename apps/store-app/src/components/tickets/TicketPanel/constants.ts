@@ -29,13 +29,14 @@ export const SERVICE_STATUS_OPTIONS = [
 ] as const;
 
 // Service status colors (Tailwind classes)
-export const SERVICE_STATUS_COLORS = {
+export const SERVICE_STATUS_COLORS: Record<import('@/store/slices/uiTicketsSlice').ServiceStatus, string> = {
+  not_started: 'bg-gray-100 text-gray-700',
   pending: 'bg-gray-100 text-gray-700',
   in_progress: 'bg-blue-100 text-blue-700',
   paused: 'bg-yellow-100 text-yellow-700',
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700',
-} as const;
+};
 
 // Discount presets
 export const DISCOUNT_PRESETS = [

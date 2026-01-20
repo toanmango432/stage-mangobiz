@@ -1,0 +1,572 @@
+{
+  "project": "Mango POS Store App",
+  "branchName": "ralph/auth-migration-supabase",
+  "description": "Authentication Migration - Migrate Store App staff authentication from custom implementation to Supabase Auth as the single identity provider, with PIN as local/offline quick unlock. Based on docs/AUTH_MIGRATION_PLAN.md v1.1.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create migration for Supabase Auth columns on members table",
+      "description": "As a developer, I need the members table to support Supabase Auth linking and secure PIN storage.",
+      "files": [
+        "supabase/migrations/029_add_supabase_auth_to_members.sql (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Migration adds auth_user_id UUID UNIQUE column",
+        "Migration adds pin_hash TEXT column (for bcrypt hash)",
+        "Migration adds pin_legacy TEXT column (for rollback)",
+        "Migration adds pin_attempts INTEGER DEFAULT 0 column",
+        "Migration adds pin_locked_until TIMESTAMPTZ column",
+        "Migration adds last_online_auth TIMESTAMPTZ column",
+        "Migration adds offline_grace_period INTERVAL DEFAULT '7 days' column",
+        "Migration adds password_changed_at TIMESTAMPTZ column",
+        "Migration creates index idx_members_auth_user_id on auth_user_id",
+        "Migration adds RLS policy for members to read own profile via auth.uid() = auth_user_id",
+        "Migration adds RLS policy for members to update own profile",
+        "Migration adds column comments explaining each field",
+        "No forbidden strings: as any, void _, console.log",
+        "File follows existing migration patterns in supabase/migrations/"
+      ],
+      "priority": 1,
+      "passes": false,
+      "category": "database",
+      "complexity": 2,
+      "notes": "Follow pattern from supabase/migrations/028_add_device_pairing_columns.sql. Do NOT add pin_salt - bcrypt includes salt in the hash. Do NOT add foreign key constraint to auth.users (cross-schema). Schema defined in docs/AUTH_MIGRATION_PLAN.md lines 157-215."
+    },
+    {
+      "id": "US-002",
+      "title": "Create migration for session revocation table",
+      "description": "As a developer, I need a table to track session revocations for immediate logout across devices.",
+      "files": [
+        "supabase/migrations/030_create_member_session_revocations.sql (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Creates member_session_revocations table with columns: id, member_id, revoked_at, reason, revoke_all_before",
+        "id is UUID PRIMARY KEY with default gen_random_uuid()",
+        "member_id is UUID NOT NULL with REFERENCES members(id) ON DELETE CASCADE",
+        "revoked_at defaults to NOW()",
+        "revoke_all_before defaults to NOW()",
+        "Creates index idx_session_revocations_member on member_id",
+        "Adds table comment explaining purpose",
+        "No forbidden strings",
+        "File follows existing migration patterns"
+      ],
+      "priority": 2,
+      "passes": false,
+      "category": "database",
+      "complexity": 1,
+      "dependencies": ["US-001"],
+      "notes": "This table enables immediate session revocation across all devices. Reason values: 'password_change', 'admin_revoke', 'security_concern'. Schema defined in docs/AUTH_MIGRATION_PLAN.md lines 204-215."
+    },
+    {
+      "id": "US-003",
+      "title": "Create migration script utilities",
+      "description": "As a developer, I need utility functions for the migration script (password generation, email templates).",
+      "files": [
+        "scripts/auth-migration/utils.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports generateTemporaryPassword() that returns 12-char alphanumeric string",
+        "Exports sendWelcomeEmail(email, name, tempPassword) that logs to console (stub for now)",
+        "Exports MigrationResult interface with success, failed, skipped, emailFailed arrays",
+        "Password generator uses crypto.randomBytes for security",
+        "No forbidden strings: as any, void _",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Email sending is stubbed - will be implemented when SMTP is configured. Password must include uppercase, lowercase, and numbers."
+    },
+    {
+      "id": "US-004",
+      "title": "Create member migration script",
+      "description": "As a developer, I need a script to migrate existing members to Supabase Auth.",
+      "files": [
+        "scripts/auth-migration/migrate-members-to-supabase-auth.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Script reads DRY_RUN env var to preview without changes",
+        "Script uses BATCH_SIZE = 50 for pagination",
+        "Script uses supabaseAdmin.auth.admin.getUserByEmail() for efficient lookup (NOT listUsers)",
+        "Script creates new Supabase Auth user if email not found",
+        "Script links to existing auth user if email already exists (Control Center case)",
+        "Script hashes existing PIN with bcrypt (cost factor 12)",
+        "Script preserves original PIN in pin_legacy column for rollback",
+        "Script clears pin column after hashing",
+        "Script has retry logic for email sending (3 attempts, exponential backoff)",
+        "Script logs failures to migration_email_failures.json with restricted permissions",
+        "Script prints summary at end (success, failed, skipped, email failures)",
+        "No forbidden strings: as any (except for Supabase types if necessary)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "category": "backend",
+      "complexity": 4,
+      "dependencies": ["US-001", "US-002", "US-003"],
+      "notes": "Run with: DRY_RUN=true npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts. Requires SUPABASE_SERVICE_ROLE_KEY env var. Full implementation in docs/AUTH_MIGRATION_PLAN.md lines 269-519. Install bcryptjs: pnpm add bcryptjs && pnpm add -D @types/bcryptjs. IMPORTANT: Schema migrations (US-001, US-002) must be applied before running this script."
+    },
+    {
+      "id": "US-005",
+      "title": "Create SecureStorage utility for PIN hash storage",
+      "description": "As a developer, I need a platform-aware secure storage utility to store PIN hashes securely.",
+      "files": [
+        "apps/store-app/src/utils/secureStorage.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports SecureStorage object with get(key), set(key, value), remove(key) methods",
+        "Uses @capacitor/core to detect native platform",
+        "On native platforms, uses capacitor-secure-storage-plugin for iOS Keychain / Android Keystore",
+        "On web, falls back to base64-encoded localStorage (basic obfuscation)",
+        "All methods are async and return Promises",
+        "Handles errors gracefully (returns null on get failure)",
+        "No forbidden strings: as any, void _, console.log (except error logging)",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "notes": "Install plugin: pnpm add capacitor-secure-storage-plugin. Web fallback uses btoa/atob - NOT cryptographically secure, but better than plaintext. Full implementation in docs/AUTH_MIGRATION_PLAN.md lines 1268-1335. For web, prefix keys with secure_ in localStorage."
+    },
+    {
+      "id": "US-006",
+      "title": "Add forceLogout action to authSlice",
+      "description": "As a developer, I need a Redux action to force logout with a reason message.",
+      "files": [
+        "apps/store-app/src/store/slices/authSlice.ts"
+      ],
+      "acceptanceCriteria": [
+        "Adds ForceLogoutPayload interface with reason and message fields",
+        "Adds forceLogout reducer action that clears all auth state",
+        "Adds forceLogoutReason and forceLogoutMessage to AuthState",
+        "forceLogout sets these fields before clearing state",
+        "Exports selectForceLogoutReason and selectForceLogoutMessage selectors",
+        "Exports forceLogout action",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Existing tests still pass: pnpm test -- authSlice"
+      ],
+      "priority": 6,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "testCommand": "pnpm test -- authSlice --run",
+      "notes": "Reason values: 'offline_grace_expired', 'account_deactivated', 'password_changed', 'session_revoked'. This action is dispatched by memberAuthService when background validation fails. Follow existing reducer patterns in authSlice.ts."
+    },
+    {
+      "id": "US-007",
+      "title": "Create MemberAuthSession types",
+      "description": "As a developer, I need TypeScript interfaces for the new member auth session.",
+      "files": [
+        "apps/store-app/src/types/memberAuth.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Exports MemberAuthSession interface with: memberId, authUserId, email, name, role, storeIds, permissions, lastOnlineAuth, sessionCreatedAt",
+        "Exports PinLockoutInfo interface with: isLocked, remainingMinutes",
+        "Exports GraceInfo interface with: isValid, daysRemaining",
+        "Exports ForceLogoutReason type union: 'offline_grace_expired' | 'account_deactivated' | 'password_changed' | 'session_revoked'",
+        "All fields have JSDoc comments",
+        "No pinHash field in MemberAuthSession (stored separately in SecureStorage)",
+        "No forbidden strings",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "category": "backend",
+      "complexity": 1,
+      "notes": "Types defined in docs/AUTH_MIGRATION_PLAN.md lines 559-570. Keep types separate from implementation for clean imports."
+    },
+    {
+      "id": "US-008",
+      "title": "Create memberAuthService - Supabase password login",
+      "description": "As a developer, I need the password login function for the new auth service.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Creates new file with imports from supabase client, bcryptjs, SecureStorage",
+        "Defines constants: PIN_MAX_ATTEMPTS=5, PIN_LOCKOUT_MINUTES=15, OFFLINE_GRACE_DAYS=7",
+        "Exports loginWithPassword(email, password) async function",
+        "Function calls supabase.auth.signInWithPassword()",
+        "Function fetches linked member by auth_user_id",
+        "Function updates last_online_auth timestamp in database",
+        "Function creates MemberAuthSession object (WITHOUT pinHash)",
+        "Function caches session in localStorage via cacheMemberSession()",
+        "Function stores PIN hash in SecureStorage if member has one",
+        "Function throws Error with descriptive message on failure",
+        "No forbidden strings: as any, void _, 'Test Client'",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-001", "US-005", "US-007"],
+      "notes": "This is the FIRST part of memberAuthService - more functions in subsequent stories. Follow error handling pattern from existing authService.ts. Do NOT store pinHash in the session object - store in SecureStorage only. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 579-648. Queries member table columns (auth_user_id, last_online_auth, pin_hash) created by US-001."
+    },
+    {
+      "id": "US-009",
+      "title": "Create memberAuthService - PIN login",
+      "description": "As a developer, I need the PIN login function for offline-capable quick access.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Exports loginWithPin(memberId, pin) async function",
+        "Function gets cached member from localStorage",
+        "Function checks PIN lockout via helper function",
+        "Function checks offline grace period via helper function",
+        "Function gets PIN hash from SecureStorage (NOT from session object)",
+        "Function validates PIN using bcrypt.compare(pin, pinHash)",
+        "Function records failed attempts and locks after 5 failures",
+        "Function clears failed attempts on success",
+        "Function triggers background validation if online",
+        "Function returns MemberAuthSession on success",
+        "No forbidden strings",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-008"],
+      "notes": "PIN hash retrieved from SecureStorage, not session. Must check lockout BEFORE grace period (fail fast). Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 651-709."
+    },
+    {
+      "id": "US-010",
+      "title": "Create memberAuthService - PIN management",
+      "description": "As a developer, I need functions to set/update PIN and manage PIN lockout.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Exports setPin(memberId, newPin) async function",
+        "setPin validates PIN format (4-6 digits only)",
+        "setPin hashes PIN with bcrypt (cost factor 12)",
+        "setPin updates database and SecureStorage",
+        "Adds private checkPinLockout(memberId) function returning PinLockoutInfo",
+        "Adds private recordFailedPinAttempt(memberId) function",
+        "Adds private clearFailedAttempts(memberId) function",
+        "Adds private lockPin(memberId) function",
+        "Lockout info stored in localStorage with keys pin_lockout_{memberId}, pin_attempts_{memberId}",
+        "No forbidden strings",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-009"],
+      "notes": "PIN validation regex: /^\\d{4,6}$/. bcrypt cost factor 12 provides good security/performance balance. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 712-873."
+    },
+    {
+      "id": "US-011",
+      "title": "Create memberAuthService - grace period checker",
+      "description": "As a developer, I need a periodic checker that forces logout when offline grace expires.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Defines constant GRACE_CHECK_INTERVAL_MS = 30 * 60 * 1000 (30 minutes)",
+        "Adds module-level graceCheckInterval variable to track interval",
+        "Exports startGraceChecker() function that starts setInterval",
+        "Exports stopGraceChecker() function that clears interval",
+        "Exports checkOfflineGrace(member) function returning GraceInfo",
+        "Grace checker gets current member from Redux store",
+        "Grace checker dispatches forceLogout if grace expired while offline",
+        "Grace checker is idempotent (doesn't start multiple intervals)",
+        "No forbidden strings",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "category": "backend",
+      "complexity": 2,
+      "dependencies": ["US-006", "US-007", "US-010"],
+      "notes": "Import store directly: import { store } from '@/store'. Check navigator.onLine to determine if offline. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 779-815. Uses MemberAuthSession and GraceInfo types from US-007."
+    },
+    {
+      "id": "US-012",
+      "title": "Create memberAuthService - background validation",
+      "description": "As a developer, I need background validation that checks session validity and dispatches logout if invalid.",
+      "files": [
+        "apps/store-app/src/services/memberAuthService.ts"
+      ],
+      "acceptanceCriteria": [
+        "Adds private validateSessionInBackground(member) async function",
+        "Function checks if member is still active in database",
+        "Function checks password_changed_at against session.sessionCreatedAt",
+        "Function checks member_session_revocations table for revocations",
+        "Function dispatches forceLogout with appropriate reason if invalid",
+        "Function updates cached session lastOnlineAuth on success",
+        "Function catches network errors silently (doesn't logout on network failure)",
+        "Exports logout() function that stops grace checker and signs out of Supabase",
+        "Exports complete memberAuthService object with all functions",
+        "No forbidden strings",
+        "pnpm run typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "category": "backend",
+      "complexity": 3,
+      "dependencies": ["US-002", "US-011"],
+      "notes": "This completes the memberAuthService file. Background validation is called on every PIN login when online. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 876-942. Queries member_session_revocations table created by US-002."
+    },
+    {
+      "id": "US-013",
+      "title": "Create PinInput component",
+      "description": "As a user, I need a PIN input field with proper masking and digit display.",
+      "files": [
+        "apps/store-app/src/components/auth/PinInput.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Accepts props: value, onChange, length (default 4), disabled, error, autoFocus",
+        "Renders hidden input for actual value capture",
+        "Renders visual dots/circles for each digit position",
+        "Filled positions show filled circle, empty show outline",
+        "Supports keyboard input (numbers only)",
+        "Supports backspace to delete",
+        "Calls onChange with new value on each keystroke",
+        "Shows error state with red border when error prop is true",
+        "Uses Tailwind classes, follows design system",
+        "No forbidden strings: as any, void _, '1234'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 13,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "notes": "Follow pattern from existing input components in src/components/ui/. Use type='password' with inputMode='numeric' for mobile keyboard. Common PIN input pattern - 4-6 circles that fill as user types."
+    },
+    {
+      "id": "US-014",
+      "title": "Create PinSetupModal component",
+      "description": "As a user, I need a modal to set up my PIN after first login.",
+      "files": [
+        "apps/store-app/src/components/auth/PinSetupModal.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Accepts props: isOpen, onClose, onSubmit, memberId, memberName",
+        "Shows two-step flow: Enter PIN, Confirm PIN",
+        "Uses PinInput component for both steps",
+        "Validates PIN is 4-6 digits",
+        "Validates confirmation matches original",
+        "Shows error message if PINs don't match",
+        "Calls memberAuthService.setPin() on successful confirmation",
+        "Shows loading state during submission",
+        "Shows success message and closes on completion",
+        "Cannot be dismissed without setting PIN (no close button on first setup)",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 14,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-010", "US-013"],
+      "notes": "Use Dialog component from @/components/ui/dialog. Follow modal patterns from existing modals like EditTicketModal."
+    },
+    {
+      "id": "US-015",
+      "title": "Update StoreLoginScreen for email/password login",
+      "description": "As a user, I want to login with email and password instead of store login ID.",
+      "files": [
+        "apps/store-app/src/components/auth/StoreLoginScreen.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Replaces 'Store Login ID' field with 'Email' field",
+        "Keeps 'Password' field",
+        "Adds 'Forgot Password?' link below password field",
+        "Updates form submission to call memberAuthService.loginWithPassword()",
+        "On successful login without PIN, shows PinSetupModal",
+        "On successful login with PIN, proceeds to PIN entry or main app",
+        "Shows loading state during login",
+        "Shows error messages from auth service",
+        "Handles offline state (show 'Please connect to internet for first login')",
+        "No forbidden strings: as any, 'Test', 'demo123'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 15,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-007", "US-008", "US-014"],
+      "notes": "Read current implementation first to understand structure. Keep store-level login as fallback option (small link at bottom). 'Forgot Password?' opens Supabase password reset flow. Uses MemberAuthSession type from US-007."
+    },
+    {
+      "id": "US-016",
+      "title": "Update SwitchUserModal for cached members with PIN",
+      "description": "As a user, I want to quickly switch between cached members using PIN.",
+      "files": [
+        "apps/store-app/src/components/auth/SwitchUserModal.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Shows list of cached members from memberAuthService.getCachedMembers()",
+        "Each member shows avatar, name, and role",
+        "Selecting a member shows PinInput for that member",
+        "Validates PIN via memberAuthService.loginWithPin()",
+        "Shows lockout message if member's PIN is locked",
+        "Shows 'Login with password' option for full re-auth",
+        "Updates Redux state on successful switch",
+        "Shows grace period warning if < 2 days remaining",
+        "No forbidden strings: as any, 'Test Client'",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 16,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 3,
+      "dependencies": ["US-009", "US-013"],
+      "notes": "If file doesn't exist, create it following modal patterns. Cached members may have expired grace - handle gracefully. Show offline indicator if not connected."
+    },
+    {
+      "id": "US-017",
+      "title": "Create OfflineGraceIndicator component",
+      "description": "As a user, I want to see how many days of offline access I have remaining.",
+      "files": [
+        "apps/store-app/src/components/auth/OfflineGraceIndicator.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Accepts props: daysRemaining, isOffline",
+        "Shows nothing when online and grace > 5 days",
+        "Shows yellow warning when offline or grace <= 5 days",
+        "Shows red critical when grace <= 2 days",
+        "Displays 'X days offline access remaining' message",
+        "Displays 'Offline - connect to extend access' when offline",
+        "Uses appropriate icons (wifi-off, clock, warning)",
+        "Positioned as small banner or badge",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 17,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["US-011"],
+      "notes": "Use design tokens for colors. Keep minimal - shouldn't distract from main UI. Could be placed in header or status bar area."
+    },
+    {
+      "id": "US-018",
+      "title": "Integrate memberAuthService with storeAuthManager",
+      "description": "As a developer, I need to wire up the new memberAuthService to the existing auth flow.",
+      "files": [
+        "apps/store-app/src/services/storeAuthManager.ts",
+        "apps/store-app/src/providers/AuthProvider.tsx (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "App initialization checks for cached member session",
+        "If cached session exists and grace valid, allow PIN login",
+        "If cached session exists but grace expired, require password login",
+        "Grace checker starts on successful login",
+        "Grace checker stops on logout",
+        "Force logout action shows appropriate message to user",
+        "OfflineGraceIndicator component integrated into app layout",
+        "Existing store-level auth still works as fallback",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify full login flow in browser using Playwright MCP"
+      ],
+      "priority": 18,
+      "passes": false,
+      "category": "backend",
+      "complexity": 4,
+      "dependencies": ["US-011", "US-012", "US-015", "US-016", "US-017"],
+      "notes": "This story integrates previous work - test the full flow. May need to modify App.tsx or main router. Ensure backward compatibility with existing sessions. AuthProvider.tsx may not exist - create if needed or integrate into existing auth context. Uses grace checker from US-011 and OfflineGraceIndicator from US-017."
+    },
+    {
+      "id": "US-019",
+      "title": "Implement Forgot Password flow",
+      "description": "As a user, I want to reset my password via email.",
+      "files": [
+        "apps/store-app/src/components/auth/ForgotPasswordModal.tsx (NEW)",
+        "apps/store-app/src/components/auth/StoreLoginScreen.tsx"
+      ],
+      "acceptanceCriteria": [
+        "Creates ForgotPasswordModal with email input",
+        "Modal calls supabase.auth.resetPasswordForEmail()",
+        "Shows success message: 'Check your email for reset link'",
+        "Shows error if email not found",
+        "Adds 'Forgot Password?' link to StoreLoginScreen that opens modal",
+        "Link only visible when online",
+        "No forbidden strings",
+        "pnpm run typecheck passes",
+        "Verify in browser using Playwright MCP"
+      ],
+      "priority": 19,
+      "passes": false,
+      "category": "frontend",
+      "complexity": 2,
+      "dependencies": ["US-015"],
+      "notes": "Supabase handles the actual password reset flow. User clicks link in email -> Supabase reset page -> redirected back. May need to configure redirect URL in Supabase dashboard."
+    },
+    {
+      "id": "US-020",
+      "title": "Add unit tests for memberAuthService",
+      "description": "As a developer, I need unit tests for the new memberAuthService.",
+      "files": [
+        "apps/store-app/src/services/__tests__/memberAuthService.test.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Tests loginWithPassword success case",
+        "Tests loginWithPassword invalid credentials case",
+        "Tests loginWithPin success case",
+        "Tests loginWithPin with invalid PIN",
+        "Tests loginWithPin lockout after 5 failures",
+        "Tests loginWithPin lockout expiry",
+        "Tests setPin validation (4-6 digits)",
+        "Tests checkOfflineGrace with valid and expired cases",
+        "Tests validateSessionInBackground with active member",
+        "Tests validateSessionInBackground with deactivated member",
+        "Tests validateSessionInBackground with password changed after session",
+        "Tests validateSessionInBackground with session revocation",
+        "Tests validateSessionInBackground network error (silent handling)",
+        "Tests startGraceChecker/stopGraceChecker lifecycle",
+        "Tests grace checker dispatches forceLogout when expired",
+        "Mocks Supabase client and SecureStorage",
+        "All tests pass: pnpm test -- memberAuthService",
+        "No forbidden strings"
+      ],
+      "priority": 20,
+      "passes": false,
+      "category": "test",
+      "complexity": 4,
+      "dependencies": ["US-012"],
+      "testCommand": "pnpm test -- memberAuthService --run",
+      "notes": "Use vitest for testing (project standard). Mock SecureStorage and Supabase. Follow test patterns in src/store/slices/__tests__/. Comprehensive test coverage for background validation and grace checker is critical for security."
+    },
+    {
+      "id": "US-021",
+      "title": "Add integration tests for auth flow",
+      "description": "As a developer, I need E2E tests for the complete authentication flow.",
+      "files": [
+        "apps/store-app/e2e/auth-flow.spec.ts (NEW)"
+      ],
+      "acceptanceCriteria": [
+        "Tests email/password login flow",
+        "Tests PIN setup after first login",
+        "Tests PIN login for returning user",
+        "Tests fast staff switching",
+        "Tests PIN lockout and recovery",
+        "Tests offline grace period warning display",
+        "Tests forgot password link visibility",
+        "Uses Playwright for browser automation",
+        "All tests pass: pnpm test:e2e -- auth-flow",
+        "No forbidden strings"
+      ],
+      "priority": 21,
+      "passes": false,
+      "category": "test",
+      "complexity": 3,
+      "dependencies": ["US-018", "US-019"],
+      "testCommand": "pnpm playwright test auth-flow.spec.ts",
+      "notes": "May need test fixtures for member data. Consider using Supabase test environment. Follow E2E patterns if they exist in project. Uses Playwright for browser automation."
+    }
+  ]
+}

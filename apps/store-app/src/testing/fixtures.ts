@@ -275,6 +275,7 @@ export const mockAppointments: LocalAppointment[] = [
     services: [{
       serviceId: mockServices[0].id,
       serviceName: mockServices[0].name,
+      name: mockServices[0].name,
       staffId: 'staff-1',
       staffName: 'Alice Smith',
       duration: mockServices[0].duration,
@@ -302,6 +303,7 @@ export const mockAppointments: LocalAppointment[] = [
     services: [{
       serviceId: mockServices[2].id,
       serviceName: mockServices[2].name,
+      name: mockServices[2].name,
       staffId: 'staff-2',
       staffName: 'Bob Johnson',
       duration: mockServices[2].duration,
@@ -328,6 +330,7 @@ export const mockAppointments: LocalAppointment[] = [
     services: [{
       serviceId: mockServices[1].id,
       serviceName: mockServices[1].name,
+      name: mockServices[1].name,
       staffId: 'staff-1',
       staffName: 'Alice Smith',
       duration: mockServices[1].duration,

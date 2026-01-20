@@ -27,7 +27,7 @@ export interface PaymentResult {
   /** Error message if failed */
   error?: string;
   /** Error code for programmatic handling */
-  errorCode?: 'DECLINED' | 'NETWORK_ERROR' | 'INVALID_CARD' | 'INSUFFICIENT_FUNDS' | 'PROCESSING_ERROR';
+  errorCode?: 'DECLINED' | 'NETWORK_ERROR' | 'INVALID_CARD' | 'INSUFFICIENT_FUNDS' | 'PROCESSING_ERROR' | 'SYSTEM_ERROR';
   /** Amount actually processed */
   amountProcessed?: number;
   /** For cash, the change to return */

@@ -24,7 +24,7 @@ function createMockTurnLogRow(overrides: Partial<TurnLogRow> = {}): TurnLogRow {
     date: '2026-01-06',
     turn_timestamp: now,
     turn_number: 1,
-    turn_type: 'walk_in',
+    turn_type: 'service',
     turn_value: 1,
     ticket_id: 'ticket-001',
     appointment_id: null,
@@ -37,6 +37,8 @@ function createMockTurnLogRow(overrides: Partial<TurnLogRow> = {}): TurnLogRow {
     voided_at: null,
     voided_by: null,
     void_reason: null,
+    created_by: null,
+    created_by_device: null,
     created_at: now,
     ...overrides,
   };
@@ -53,7 +55,7 @@ describe('turnLogAdapter', () => {
       expect(entry.staffId).toBe('staff-001');
       expect(entry.date).toBe('2026-01-06');
       expect(entry.turnNumber).toBe(1);
-      expect(entry.turnType).toBe('walk_in');
+      expect(entry.turnType).toBe('service');
     });
 
     it('should convert turn values correctly', () => {
@@ -125,13 +127,13 @@ describe('turnLogAdapter', () => {
 
     it('should handle adjustment turns', () => {
       const row = createMockTurnLogRow({
-        turn_type: 'adjustment',
+        turn_type: 'adjust',
         adjustment_reason: 'Queue position correction',
         adjusted_by: 'manager-001',
       });
       const entry = toTurnEntry(row);
 
-      expect(entry.turnType).toBe('adjustment');
+      expect(entry.turnType).toBe('adjust');
       expect(entry.adjustmentReason).toBe('Queue position correction');
       expect(entry.adjustedBy).toBe('manager-001');
     });
@@ -182,7 +184,7 @@ describe('turnLogAdapter', () => {
         timestamp: new Date().toISOString(),
         turnNumber: 3,
         turnValue: 1,
-        turnType: 'walk_in' as const,
+        turnType: 'service' as const,
         amount: 85.00,
         serviceCount: 2,
         bonusAmount: 0,
@@ -199,7 +201,7 @@ describe('turnLogAdapter', () => {
       expect(insert.staff_id).toBe('staff-001');
       expect(insert.date).toBe('2026-01-06');
       expect(insert.turn_number).toBe(3);
-      expect(insert.turn_type).toBe('walk_in');
+      expect(insert.turn_type).toBe('service');
       expect(insert.service_amount).toBe(85.00);
     });
 
@@ -211,7 +213,7 @@ describe('turnLogAdapter', () => {
         timestamp: new Date().toISOString(),
         turnNumber: 1,
         turnValue: 1,
-        turnType: 'walk_in' as const,
+        turnType: 'service' as const,
         amount: 50.00,
         serviceCount: 1,
         bonusAmount: 0,

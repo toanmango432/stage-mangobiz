@@ -10,7 +10,10 @@ export type { Staff } from './staff';
 // Selectively export from timesheet (avoiding PaymentMethod and createEmptyHoursBreakdown duplicates)
 export type { TimesheetEntry, TimesheetStatus, HoursBreakdown } from './timesheet';
 export * from './client';
-export * from './service';
+// Selectively export from service (avoiding ServiceStatus duplicate with common.ts)
+export type { Service } from './service';
+// Rename ServiceStatus from service.ts to avoid conflict with common.ts
+export { type ServiceStatus as ServiceArchiveStatus } from './service';
 export * from './sync';
 // Export from catalog - renaming ServiceStatus to avoid conflict with common.ts
 export {
@@ -114,13 +117,58 @@ export * from './waitlist';
 export * from './deposit';
 
 // Reviews & Reputation
-export * from './review';
+// Selectively export from review.ts (avoiding ReviewRequest duplicate with client.ts)
+export {
+  type ReviewSource,
+  type ReputationTrend,
+  type Review,
+  type ReviewRequest as ReputationReviewRequest,
+  type ReputationSummary,
+  type NPSResponse,
+  type NPSSummary,
+  type ReviewSettings,
+  type SubmitReviewInput,
+  type RespondToReviewInput,
+  type SendReviewRequestInput,
+  getStarDisplay,
+  getRatingColor,
+  calculateNPS,
+  getNPSCategory,
+  getTrendDisplay,
+  createDefaultReviewSettings,
+  formatTimeSince,
+} from './review';
 
 // Notifications
 export * from './notification';
 
 // Marketing & Campaigns
-export * from './marketing';
+// Selectively export from marketing.ts (avoiding ClientSegment/LoyaltyTier duplicates with client.ts)
+export {
+  type PromotionType,
+  type CampaignStatus,
+  type CampaignChannel,
+  type ClientSegmentType,
+  type LoyaltyTier as MarketingLoyaltyTier,
+  type Promotion,
+  type Campaign,
+  type CampaignFilter,
+  type CampaignMetrics,
+  type ClientSegment as MarketingClientSegment,
+  type LoyaltyAccount,
+  type LoyaltyTransaction,
+  type CreatePromotionInput,
+  type CreateCampaignInput,
+  type AdjustLoyaltyPointsInput,
+  getCampaignStatusInfo,
+  getLoyaltyTierInfo,
+  isValidPromoCode,
+  isPromotionValid,
+  calculatePromotionDiscount,
+  createEmptyCampaignMetrics,
+  determineLoyaltyTier,
+  getDefaultSegments,
+} from './marketing';
 
 // Integrations & Webhooks
 export * from './integration';

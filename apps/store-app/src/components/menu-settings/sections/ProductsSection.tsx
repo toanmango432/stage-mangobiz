@@ -23,9 +23,8 @@ interface ProductsSectionProps {
   productCategories: string[];
   viewMode: CatalogViewMode;
   searchQuery?: string;
-  // Action callbacks
   onCreate?: (data: CreateProductInput) => Promise<Product | null>;
-  onUpdate?: (id: string, data: Partial<Product>) => Promise<Product | null | undefined>;
+  onUpdate?: (id: string, data: Partial<Product>) => Promise<number | null>;
   onDelete?: (id: string) => Promise<boolean | null>;
   onArchive?: (id: string) => Promise<Product | null | undefined>;
 }

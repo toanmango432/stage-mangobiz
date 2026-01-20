@@ -17,15 +17,16 @@ const createMockAppointment = (overrides?: Partial<LocalAppointment>): LocalAppo
   clientPhone: '555-123-4567',
   staffId: 'staff-1',
   staffName: 'Jane Stylist',
-  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', duration: 30, price: 25 }],
+  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 }],
   status: 'scheduled',
-  scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // Jan 15, 2026 10:00 AM
-  scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0),
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // Jan 15, 2026 10:00 AM
+  scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0).toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   source: 'walk-in',
+  syncStatus: 'synced',
   ...overrides,
-});
+} as LocalAppointment);
 
 describe('AgendaView', () => {
   const defaultProps = {
@@ -76,7 +77,7 @@ describe('AgendaView', () => {
 
     it('renders appointment start time', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(),
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('10:00 AM')).toBeInTheDocument();
@@ -84,7 +85,7 @@ describe('AgendaView', () => {
 
     it('renders appointment end time', () => {
       const apt = createMockAppointment({
-        scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0),
+        scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0).toISOString(),
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('10:30 AM')).toBeInTheDocument();
@@ -92,8 +93,8 @@ describe('AgendaView', () => {
 
     it('renders PM times correctly', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 14, 30, 0),
-        scheduledEndTime: new Date(2026, 0, 15, 15, 0, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 14, 30, 0).toISOString(),
+        scheduledEndTime: new Date(2026, 0, 15, 15, 0, 0).toISOString(),
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('2:30 PM')).toBeInTheDocument();
@@ -143,7 +144,7 @@ describe('AgendaView', () => {
   describe('service rendering', () => {
     it('renders service name', () => {
       const apt = createMockAppointment({
-        services: [{ serviceId: 'svc-1', serviceName: 'Color Treatment', duration: 60, price: 80 }],
+        services: [{ serviceId: 'svc-1', serviceName: 'Color Treatment', name: 'Color Treatment', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 60, price: 80 }],
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Color Treatment')).toBeInTheDocument();
@@ -151,7 +152,7 @@ describe('AgendaView', () => {
 
     it('renders service duration', () => {
       const apt = createMockAppointment({
-        services: [{ serviceId: 'svc-1', serviceName: 'Haircut', duration: 45, price: 30 }],
+        services: [{ serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 45, price: 30 }],
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('(45 min)')).toBeInTheDocument();
@@ -160,8 +161,8 @@ describe('AgendaView', () => {
     it('renders multiple services', () => {
       const apt = createMockAppointment({
         services: [
-          { serviceId: 'svc-1', serviceName: 'Haircut', duration: 30, price: 25 },
-          { serviceId: 'svc-2', serviceName: 'Color', duration: 60, price: 80 },
+          { serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-2', serviceName: 'Color', name: 'Color', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 60, price: 80 },
         ],
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
@@ -172,10 +173,10 @@ describe('AgendaView', () => {
     it('shows only first 3 services', () => {
       const apt = createMockAppointment({
         services: [
-          { serviceId: 'svc-1', serviceName: 'Service A', duration: 30, price: 25 },
-          { serviceId: 'svc-2', serviceName: 'Service B', duration: 30, price: 25 },
-          { serviceId: 'svc-3', serviceName: 'Service C', duration: 30, price: 25 },
-          { serviceId: 'svc-4', serviceName: 'Service D', duration: 30, price: 25 },
+          { serviceId: 'svc-1', serviceName: 'Service A', name: 'Service A', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-2', serviceName: 'Service B', name: 'Service B', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-3', serviceName: 'Service C', name: 'Service C', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-4', serviceName: 'Service D', name: 'Service D', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
         ],
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
@@ -190,11 +191,11 @@ describe('AgendaView', () => {
     it('shows correct "+X more" count', () => {
       const apt = createMockAppointment({
         services: [
-          { serviceId: 'svc-1', serviceName: 'Service A', duration: 30, price: 25 },
-          { serviceId: 'svc-2', serviceName: 'Service B', duration: 30, price: 25 },
-          { serviceId: 'svc-3', serviceName: 'Service C', duration: 30, price: 25 },
-          { serviceId: 'svc-4', serviceName: 'Service D', duration: 30, price: 25 },
-          { serviceId: 'svc-5', serviceName: 'Service E', duration: 30, price: 25 },
+          { serviceId: 'svc-1', serviceName: 'Service A', name: 'Service A', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-2', serviceName: 'Service B', name: 'Service B', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-3', serviceName: 'Service C', name: 'Service C', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-4', serviceName: 'Service D', name: 'Service D', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
+          { serviceId: 'svc-5', serviceName: 'Service E', name: 'Service E', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 },
         ],
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
@@ -294,7 +295,7 @@ describe('AgendaView', () => {
   describe('date grouping', () => {
     it('shows "Today" for today\'s appointments', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // Today
+        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // Today
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Today')).toBeInTheDocument();
@@ -302,7 +303,7 @@ describe('AgendaView', () => {
 
     it('shows "Tomorrow" for tomorrow\'s appointments', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 16, 10, 0, 0), // Tomorrow
+        scheduledStartTime: new Date(2026, 0, 16, 10, 0, 0).toISOString(), // Tomorrow
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Tomorrow')).toBeInTheDocument();
@@ -310,7 +311,7 @@ describe('AgendaView', () => {
 
     it('shows full date for other dates', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 20, 10, 0, 0), // Tuesday Jan 20
+        scheduledStartTime: new Date(2026, 0, 20, 10, 0, 0).toISOString(), // Tuesday Jan 20
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Tuesday, January 20')).toBeInTheDocument();
@@ -318,7 +319,7 @@ describe('AgendaView', () => {
 
     it('shows year for dates in different year', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2027, 5, 15, 10, 0, 0), // June 15, 2027 (Tuesday)
+        scheduledStartTime: new Date(2027, 5, 15, 10, 0, 0).toISOString(), // June 15, 2027 (Tuesday)
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Tuesday, June 15, 2027')).toBeInTheDocument();
@@ -341,8 +342,8 @@ describe('AgendaView', () => {
 
     it('groups multiple dates correctly', () => {
       const appointments = [
-        createMockAppointment({ id: 'apt-1', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0) }),
-        createMockAppointment({ id: 'apt-2', scheduledStartTime: new Date(2026, 0, 16, 10, 0, 0) }),
+        createMockAppointment({ id: 'apt-1', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString() }),
+        createMockAppointment({ id: 'apt-2', scheduledStartTime: new Date(2026, 0, 16, 10, 0, 0).toISOString() }),
       ];
       render(<AgendaView {...defaultProps} appointments={appointments} />);
 
@@ -381,8 +382,8 @@ describe('AgendaView', () => {
   describe('sorting', () => {
     it('sorts appointments by time within same day', () => {
       const appointments = [
-        createMockAppointment({ id: 'apt-2', clientName: 'Later', scheduledStartTime: new Date(2026, 0, 15, 14, 0, 0) }),
-        createMockAppointment({ id: 'apt-1', clientName: 'Earlier', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0) }),
+        createMockAppointment({ id: 'apt-2', clientName: 'Later', scheduledStartTime: new Date(2026, 0, 15, 14, 0, 0).toISOString() }),
+        createMockAppointment({ id: 'apt-1', clientName: 'Earlier', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString() }),
       ];
       const { container } = render(<AgendaView {...defaultProps} appointments={appointments} />);
 
@@ -397,8 +398,8 @@ describe('AgendaView', () => {
 
     it('sorts appointments by date', () => {
       const appointments = [
-        createMockAppointment({ id: 'apt-2', clientName: 'Day 2', scheduledStartTime: new Date(2026, 0, 16, 10, 0, 0) }),
-        createMockAppointment({ id: 'apt-1', clientName: 'Day 1', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0) }),
+        createMockAppointment({ id: 'apt-2', clientName: 'Day 2', scheduledStartTime: new Date(2026, 0, 16, 10, 0, 0).toISOString() }),
+        createMockAppointment({ id: 'apt-1', clientName: 'Day 1', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString() }),
       ];
       const { container } = render(<AgendaView {...defaultProps} appointments={appointments} />);
 
@@ -457,7 +458,7 @@ describe('AgendaView', () => {
   describe('time formatting', () => {
     it('formats midnight correctly', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 0, 0, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 0, 0, 0).toISOString(),
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('12:00 AM')).toBeInTheDocument();
@@ -465,7 +466,7 @@ describe('AgendaView', () => {
 
     it('formats noon correctly', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 12, 0, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 12, 0, 0).toISOString(),
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('12:00 PM')).toBeInTheDocument();
@@ -473,7 +474,7 @@ describe('AgendaView', () => {
 
     it('formats minutes with leading zero', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 9, 5, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 9, 5, 0).toISOString(),
       });
       render(<AgendaView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('9:05 AM')).toBeInTheDocument();

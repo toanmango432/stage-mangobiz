@@ -327,12 +327,18 @@ export interface CheckinStaffPayload {
  * Used for real-time state sync between Store App and Pad
  */
 export type PadScreen =
+  | 'idle'              // Initial idle state
   | 'waiting'           // Idle, waiting for transaction
   | 'order-review'      // Customer reviewing order
   | 'tip'               // Tip selection
   | 'signature'         // Signature capture
   | 'payment'           // Waiting for card / processing
   | 'receipt'           // Receipt preference selection
+  | 'result'            // Payment result display
+  | 'thank-you'         // Thank you screen
+  | 'split-selection'   // Split payment selection
+  | 'split-status'      // Split payment status
+  | 'settings'          // Pad settings screen
   | 'processing'        // Payment processing
   | 'complete'          // Transaction successful
   | 'failed'            // Transaction failed

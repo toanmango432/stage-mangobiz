@@ -99,6 +99,7 @@ const createTestAppointment = (overrides: Partial<LocalAppointment> = {}): Local
     {
       serviceId: 'service-1',
       serviceName: 'Hair Cut',
+      name: 'Hair Cut',
       staffId: 'staff-1',
       staffName: 'Test Staff',
       price: 50,
@@ -134,7 +135,7 @@ describe('calculateAssignmentScore', () => {
   describe('Service Type Compatibility (30% weight)', () => {
     it('should give full points for matching specialty', () => {
       const appointment = createTestAppointment({
-        services: [{ serviceId: 's1', serviceName: 'Hair Color', staffId: 'staff-1', staffName: 'Test Staff', price: 100, duration: 60 }],
+        services: [{ serviceId: 's1', serviceName: 'Hair Color', name: 'Hair Color', staffId: 'staff-1', staffName: 'Test Staff', price: 100, duration: 60 }],
       });
 
       const score = calculateAssignmentScore(
@@ -153,7 +154,7 @@ describe('calculateAssignmentScore', () => {
 
     it('should give partial points for non-matching specialty', () => {
       const appointment = createTestAppointment({
-        services: [{ serviceId: 's1', serviceName: 'Hair Cut', staffId: 'staff-2', staffName: 'Test Staff', price: 50, duration: 30 }],
+        services: [{ serviceId: 's1', serviceName: 'Hair Cut', name: 'Hair Cut', staffId: 'staff-2', staffName: 'Test Staff', price: 50, duration: 30 }],
       });
 
       const score = calculateAssignmentScore(
@@ -341,8 +342,8 @@ describe('calculateAssignmentScore', () => {
         createTestAppointment({
           id: 'completed-1',
           staffId: 'staff-1',
-          scheduledStartTime: new Date(now.getTime() - 60 * 60000),
-          scheduledEndTime: new Date(now.getTime() + 30 * 60000),
+          scheduledStartTime: new Date(now.getTime() - 60 * 60000).toISOString(),
+          scheduledEndTime: new Date(now.getTime() + 30 * 60000).toISOString(),
           status: 'completed',
         }),
       ];
@@ -383,8 +384,8 @@ describe('calculateAssignmentScore', () => {
         createTestAppointment({
           id: 'conflict-1',
           staffId: 'staff-1',
-          scheduledStartTime: new Date('2025-01-15T10:15:00.000Z'), // Overlaps
-          scheduledEndTime: new Date('2025-01-15T10:45:00.000Z'),
+          scheduledStartTime: new Date('2025-01-15T10:15:00.000Z').toISOString(), // Overlaps
+          scheduledEndTime: new Date('2025-01-15T10:45:00.000Z').toISOString(),
         }),
       ];
 
@@ -407,7 +408,7 @@ describe('calculateAssignmentScore', () => {
   describe('Total Score Calculation', () => {
     it('should calculate cumulative score correctly', () => {
       const appointment = createTestAppointment({
-        services: [{ serviceId: 's1', serviceName: 'Hair Styling', staffId: 'staff-1', staffName: 'Test Staff', price: 80, duration: 45 }],
+        services: [{ serviceId: 's1', serviceName: 'Hair Styling', name: 'Hair Styling', staffId: 'staff-1', staffName: 'Test Staff', price: 80, duration: 45 }],
         clientId: 'client-1',
       });
 
@@ -418,7 +419,7 @@ describe('calculateAssignmentScore', () => {
           staffId: 'staff-1',
           clientId: 'client-1',
           status: 'completed',
-          scheduledStartTime: new Date('2025-01-01T10:00:00.000Z'),
+          scheduledStartTime: new Date('2025-01-01T10:00:00.000Z').toISOString(),
         }),
       ];
 
@@ -448,7 +449,7 @@ describe('findBestStaffForAssignment', () => {
 
   beforeEach(() => {
     appointment = createTestAppointment({
-      services: [{ serviceId: 's1', serviceName: 'Hair Treatment', staffId: 'staff-1', staffName: 'Test Staff', price: 120, duration: 90 }],
+      services: [{ serviceId: 's1', serviceName: 'Hair Treatment', name: 'Hair Treatment', staffId: 'staff-1', staffName: 'Test Staff', price: 120, duration: 90 }],
     });
     startTime = new Date('2025-01-15T14:00:00');
     endTime = new Date('2025-01-15T15:30:00');
@@ -462,7 +463,7 @@ describe('findBestStaffForAssignment', () => {
         staffId: 'staff-1',
         clientId: 'client-1',
         status: 'completed',
-        scheduledStartTime: new Date('2025-01-01T10:00:00.000Z'),
+        scheduledStartTime: new Date('2025-01-01T10:00:00.000Z').toISOString(),
       }),
     ];
 
@@ -507,8 +508,8 @@ describe('findBestStaffForAssignment', () => {
       createTestAppointment({
         id: `block-${i}`,
         staffId: staff.id,
-        scheduledStartTime: new Date('2025-01-15T14:00:00.000Z'),
-        scheduledEndTime: new Date('2025-01-15T15:30:00.000Z'),
+        scheduledStartTime: new Date('2025-01-15T14:00:00.000Z').toISOString(),
+        scheduledEndTime: new Date('2025-01-15T15:30:00.000Z').toISOString(),
       })
     );
 
@@ -704,8 +705,8 @@ describe('autoAssignStaff', () => {
       const blockingAppointment = createTestAppointment({
         id: 'block-1',
         staffId: 'staff-2',
-        scheduledStartTime: new Date('2025-01-15T14:00:00.000Z'),
-        scheduledEndTime: new Date('2025-01-15T14:30:00.000Z'),
+        scheduledStartTime: new Date('2025-01-15T14:00:00.000Z').toISOString(),
+        scheduledEndTime: new Date('2025-01-15T14:30:00.000Z').toISOString(),
       });
 
       const result = autoAssignStaff(
@@ -733,8 +734,8 @@ describe('autoAssignStaff', () => {
         createTestAppointment({
           id: `block-${i}`,
           staffId: staff.id,
-          scheduledStartTime: new Date('2025-01-15T14:00:00.000Z'),
-          scheduledEndTime: new Date('2025-01-15T14:30:00.000Z'),
+          scheduledStartTime: new Date('2025-01-15T14:00:00.000Z').toISOString(),
+          scheduledEndTime: new Date('2025-01-15T14:30:00.000Z').toISOString(),
         })
       );
 
@@ -769,7 +770,7 @@ describe('autoAssignStaff', () => {
   describe('Edge cases', () => {
     it('should handle partial appointment objects', () => {
       const partialAppointment = createTestAppointment({
-        services: [{ serviceId: 's1', serviceName: 'Service', staffId: 'staff-1', staffName: 'Alice', price: 50, duration: 30 }],
+        services: [{ serviceId: 's1', serviceName: 'Service', name: 'Service', staffId: 'staff-1', staffName: 'Alice', price: 50, duration: 30 }],
       });
 
       const result = autoAssignStaff(
@@ -836,7 +837,7 @@ describe('Integration scenarios', () => {
   it('should handle complex multi-factor scoring', () => {
     const appointment = createTestAppointment({
       clientId: 'loyal-client',
-      services: [{ serviceId: 's1', serviceName: 'Premium Hair Treatment', staffId: 'staff-1', staffName: 'Test Staff', price: 200, duration: 120 }],
+      services: [{ serviceId: 's1', serviceName: 'Premium Hair Treatment', name: 'Premium Hair Treatment', staffId: 'staff-1', staffName: 'Test Staff', price: 200, duration: 120 }],
     });
 
     const appointments = [
@@ -846,25 +847,25 @@ describe('Integration scenarios', () => {
         staffId: 'staff-1',
         clientId: 'loyal-client',
         status: 'completed',
-        scheduledStartTime: new Date('2025-01-01T10:00:00.000Z'),
+        scheduledStartTime: new Date('2025-01-01T10:00:00.000Z').toISOString(),
       }),
       createTestAppointment({
         id: 'history-2',
         staffId: 'staff-1',
         clientId: 'loyal-client',
         status: 'completed',
-        scheduledStartTime: new Date('2025-01-08T10:00:00.000Z'),
+        scheduledStartTime: new Date('2025-01-08T10:00:00.000Z').toISOString(),
       }),
       // Today's appointments
       createTestAppointment({
         id: 'today-1',
         staffId: 'staff-2',
-        scheduledStartTime: new Date('2025-01-15T09:00:00.000Z'),
+        scheduledStartTime: new Date('2025-01-15T09:00:00.000Z').toISOString(),
       }),
       createTestAppointment({
         id: 'today-2',
         staffId: 'staff-2',
-        scheduledStartTime: new Date('2025-01-15T11:00:00.000Z'),
+        scheduledStartTime: new Date('2025-01-15T11:00:00.000Z').toISOString(),
       }),
     ];
 
@@ -886,8 +887,8 @@ describe('Integration scenarios', () => {
   it('should handle group booking staff assignment', () => {
     const groupAppointment = createTestAppointment({
       services: [
-        { serviceId: 's1', serviceName: 'Hair Cut', staffId: 'staff-1', staffName: 'Alice', price: 50, duration: 30 },
-        { serviceId: 's2', serviceName: 'Nail Art', staffId: 'staff-2', staffName: 'Bob', price: 40, duration: 45 },
+        { serviceId: 's1', serviceName: 'Hair Cut', name: 'Hair Cut', staffId: 'staff-1', staffName: 'Alice', price: 50, duration: 30 },
+        { serviceId: 's2', serviceName: 'Nail Art', name: 'Nail Art', staffId: 'staff-2', staffName: 'Bob', price: 40, duration: 45 },
       ],
     } as any);
 
@@ -907,7 +908,7 @@ describe('Integration scenarios', () => {
   it('should respect business logic priorities', () => {
     const vipAppointment = createTestAppointment({
       clientId: 'vip-client',
-      services: [{ serviceId: 'vip-service', serviceName: 'VIP Hair Package', staffId: 'staff-1', staffName: 'Test Staff', price: 500, duration: 180 }],
+      services: [{ serviceId: 'vip-service', serviceName: 'VIP Hair Package', name: 'VIP Hair Package', staffId: 'staff-1', staffName: 'Test Staff', price: 500, duration: 180 }],
     });
 
     // Create scenario where staff-1 is best despite being busier
@@ -919,14 +920,14 @@ describe('Integration scenarios', () => {
           staffId: 'staff-1',
           clientId: 'vip-client',
           status: 'completed',
-          scheduledStartTime: new Date(2025, 0, i + 1),
+          scheduledStartTime: new Date(2025, 0, i + 1).toISOString(),
         })
       ),
       // staff-1 has more appointments today
       createTestAppointment({
         id: 'today-staff1-1',
         staffId: 'staff-1',
-        scheduledStartTime: new Date('2025-01-15T09:00:00.000Z'),
+        scheduledStartTime: new Date('2025-01-15T09:00:00.000Z').toISOString(),
       }),
     ];
 

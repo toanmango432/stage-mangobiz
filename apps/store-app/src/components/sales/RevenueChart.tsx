@@ -177,7 +177,7 @@ export function RevenueChart({ tickets }: RevenueChartProps) {
               stroke="#6b7280"
               style={{ fontSize: '12px' }}
               tickLine={false}
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value: number) => `$${value}`}
             />
             <Tooltip
               contentStyle={{

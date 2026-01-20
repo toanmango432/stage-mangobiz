@@ -10,6 +10,78 @@ import { DEFAULT_PRICING_POLICY } from '../../types/settings';
 import type { PricingPolicySettings } from '../../types/settings';
 // NOTE: Do NOT import RootState from '../index' - causes circular dependency
 // Instead, define a local type for the state we need access to
+// Local RootState type to avoid circular dependency with store/index.ts
+// This type only includes the slices accessed by this file's thunks and selectors
+interface RootState {
+  uiTickets: {
+    waitlist: UITicket[];
+    serviceTickets: UITicket[];
+    completedTickets: UITicket[];
+    pendingTickets: PendingTicket[];
+    loading: boolean;
+    error: string | null;
+    lastTicketNumber: number;
+    lastCheckInDate: string | null;
+    lastCheckInNumber: number;
+  };
+  appointments: {
+    appointments: Array<{
+      id: string;
+      serverId?: string;
+      clientId?: string;
+      clientName: string;
+      clientPhone?: string;
+      staffId: string;
+      staffName?: string;
+      notes?: string;
+      services: Array<{
+        id?: string;
+        serviceId?: string;
+        name: string;
+        serviceName?: string;
+        price?: number;
+        duration?: number;
+        staffId?: string;
+        staffName?: string;
+      }>;
+      scheduledStartTime: string;
+      scheduledEndTime: string;
+      status: string;
+    }>;
+  };
+  auth: {
+    store: {
+      storeId: string;
+      storeName: string;
+      storeLoginId: string;
+      tenantId: string;
+      tier: string;
+    } | null;
+    member: {
+      memberId: string;
+      memberName: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      role: string;
+      avatarUrl?: string;
+    } | null;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      storeId?: string;
+    } | null;
+    storeId: string | null;
+    device: {
+      id: string;
+      mode: 'online-only' | 'offline-enabled';
+      offlineModeEnabled: boolean;
+      registeredAt: string;
+    } | null;
+  };
+}
 import { v4 as uuidv4 } from 'uuid';
 // NOTE: Do NOT import thunks from transactionsSlice directly - causes circular dependency
 // Use dynamic import instead: const { createTransactionInSupabase } = await import('./transactionsSlice');
@@ -70,7 +142,7 @@ interface DBTicket {
 }
 
 // Service status for individual services within a ticket
-export type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
+export type ServiceStatus = 'not_started' | 'pending' | 'in_progress' | 'paused' | 'completed' | 'cancelled';
 
 // Helper function to create a status change entry for history tracking
 function createStatusHistoryEntry(
@@ -2747,9 +2819,11 @@ const uiTicketsSlice = createSlice({
         // Try to find and update in pendingTickets
         const pendingIndex = state.pendingTickets.findIndex(t => t.id === ticketId);
         if (pendingIndex !== -1) {
+          // Type assertion needed because updates may include UITicket fields
+          // that don't exist on PendingTicket (safe since we're just merging)
           state.pendingTickets[pendingIndex] = {
             ...state.pendingTickets[pendingIndex],
-            ...updates,
+            ...updates as Partial<PendingTicket>,
           };
           console.log('✅ Updated ticket in pendingTickets:', ticketId);
           return;

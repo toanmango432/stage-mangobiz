@@ -7,7 +7,7 @@ import {
 } from './paper';
 
 // Service status for individual services within a ticket
-type ServiceStatus = 'not_started' | 'in_progress' | 'paused' | 'completed';
+import type { ServiceStatus } from '@/store/slices/uiTicketsSlice';
 
 // Checkout service type for displaying actual services
 interface CheckoutService {

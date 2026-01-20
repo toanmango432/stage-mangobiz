@@ -128,6 +128,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-1',
         serviceName: 'Gel Manicure',
+        name: 'Gel Manicure',
         staffId: '1',
         staffName: 'Sophia',
         duration: 60,
@@ -157,6 +158,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-2',
         serviceName: 'Acrylic Full Set',
+        name: 'Acrylic Full Set',
         staffId: '2',
         staffName: 'Isabella',
         duration: 90,
@@ -186,6 +188,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-3',
         serviceName: 'Pedicure',
+        name: 'Pedicure',
         staffId: '1',
         staffName: 'Sophia',
         duration: 45,
@@ -215,6 +218,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-4',
         serviceName: 'Spa Pedicure',
+        name: 'Spa Pedicure',
         staffId: '3',
         staffName: 'Mia',
         duration: 60,
@@ -244,6 +248,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-5',
         serviceName: 'Gel Manicure',
+        name: 'Gel Manicure',
         staffId: '4',
         staffName: 'Olivia',
         duration: 60,
@@ -252,6 +257,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-6',
         serviceName: 'Nail Art',
+        name: 'Nail Art',
         staffId: '4',
         staffName: 'Olivia',
         duration: 30,
@@ -281,6 +287,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-7',
         serviceName: 'Acrylic Fill',
+        name: 'Acrylic Fill',
         staffId: '2',
         staffName: 'Isabella',
         duration: 60,

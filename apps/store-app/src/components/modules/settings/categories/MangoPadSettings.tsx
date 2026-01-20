@@ -266,7 +266,9 @@ export function MangoPadSettings() {
         return;
       }
 
-      const testTopic = buildTopic(TOPIC_PATTERNS.POS_HEARTBEAT, { storeId });
+      // Get device ID for heartbeat topic
+      const deviceId = await getOrCreateDeviceId();
+      const testTopic = buildTopic(TOPIC_PATTERNS.DEVICE_HEARTBEAT, { storeId, deviceId });
       await client.publish(testTopic, {
         storeId,
         storeName: storeName || 'Test Store',

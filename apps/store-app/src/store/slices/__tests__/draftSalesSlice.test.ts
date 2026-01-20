@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, EnhancedStore } from '@reduxjs/toolkit';
 import checkoutReducer, {
   loadDrafts,
   saveDraft,
@@ -9,6 +9,7 @@ import checkoutReducer, {
   selectDrafts,
   selectDraftsLoading,
   selectDraftsError,
+  CheckoutState,
 } from '../checkoutSlice';
 
 // Mock ticketsDB
@@ -22,8 +23,14 @@ vi.mock('@/db/database', () => ({
   },
 }));
 
+// Type for test store with only checkout reducer
+interface TestState {
+  checkout: CheckoutState;
+}
+
 describe('Draft Sales System', () => {
-  let store: ReturnType<typeof configureStore>;
+  // Use any for store type to avoid complex EnhancedStore type conflicts
+  let store: EnhancedStore;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,6 +40,12 @@ describe('Draft Sales System', () => {
       },
     });
   });
+
+  // Helper to get state typed properly
+  const getTestState = (): TestState => store.getState() as unknown as TestState;
+
+  // Helper to get checkout state
+  const getCheckoutState = (): CheckoutState => (store.getState() as unknown as TestState).checkout;
 
   describe('DraftSale interface', () => {
     it('should have required fields', () => {
@@ -44,6 +57,7 @@ describe('Draft Sales System', () => {
         staffId: 'staff-1',
         staffName: 'John',
         totalAmount: 100,
+        serviceCount: 2,
       };
 
       expect(draft.ticketId).toBeDefined();
@@ -51,6 +65,7 @@ describe('Draft Sales System', () => {
       expect(draft.lastSavedAt).toBeDefined();
       expect(draft.staffName).toBeDefined();
       expect(draft.totalAmount).toBeDefined();
+      expect(draft.serviceCount).toBeDefined();
     });
 
     it('should allow optional client name', () => {
@@ -63,6 +78,7 @@ describe('Draft Sales System', () => {
         staffName: 'John',
         clientName: 'Jane Doe',
         totalAmount: 100,
+        serviceCount: 1,
       };
 
       expect(draft.clientName).toBe('Jane Doe');
@@ -76,13 +92,13 @@ describe('Draft Sales System', () => {
         () => new Promise((resolve) => setTimeout(() => resolve([]), 100))
       );
 
-      const promise = store.dispatch(loadDrafts('store-1'));
+      const promise = store.dispatch(loadDrafts('store-1') as any);
 
-      expect(selectDraftsLoading(store.getState())).toBe(true);
+      expect(selectDraftsLoading(getTestState() as any)).toBe(true);
 
       await promise;
 
-      expect(selectDraftsLoading(store.getState())).toBe(false);
+      expect(selectDraftsLoading(getTestState() as any)).toBe(false);
     });
 
     it('should populate drafts array on success', async () => {
@@ -100,9 +116,9 @@ describe('Draft Sales System', () => {
         },
       ] as any);
 
-      await store.dispatch(loadDrafts('store-1'));
+      await store.dispatch(loadDrafts('store-1') as any);
 
-      const drafts = selectDrafts(store.getState());
+      const drafts = selectDrafts(getTestState() as any);
       expect(drafts.length).toBe(1);
       expect(drafts[0].ticketId).toBe('ticket-1');
     });
@@ -111,9 +127,9 @@ describe('Draft Sales System', () => {
       const { ticketsDB } = await import('@/db/database');
       vi.mocked(ticketsDB.getDrafts).mockRejectedValue(new Error('Database error'));
 
-      await store.dispatch(loadDrafts('store-1'));
+      await store.dispatch(loadDrafts('store-1') as any);
 
-      const error = selectDraftsError(store.getState());
+      const error = selectDraftsError(getTestState() as any);
       expect(error).toBe('Database error');
     });
   });
@@ -128,7 +144,7 @@ describe('Draft Sales System', () => {
           ticketId: 'ticket-1',
           updates: { total: 150 },
           userId: 'user-1',
-        })
+        }) as any
       );
 
       expect(ticketsDB.update).toHaveBeenCalledWith(
@@ -150,10 +166,10 @@ describe('Draft Sales System', () => {
           ticketId: 'ticket-1',
           updates: {},
           userId: 'user-1',
-        })
+        }) as any
       );
 
-      const state = store.getState().checkout;
+      const state = getCheckoutState();
       expect(state.lastAutoSave).toBeDefined();
     });
   });
@@ -162,7 +178,7 @@ describe('Draft Sales System', () => {
     it('should remove draft from database', async () => {
       const { ticketsDB } = await import('@/db/database');
 
-      await store.dispatch(deleteDraft('ticket-1'));
+      await store.dispatch(deleteDraft('ticket-1') as any);
 
       expect(ticketsDB.delete).toHaveBeenCalledWith('ticket-1');
     });
@@ -181,12 +197,12 @@ describe('Draft Sales System', () => {
         },
       ] as any);
 
-      await store.dispatch(loadDrafts('store-1'));
-      expect(selectDrafts(store.getState()).length).toBe(1);
+      await store.dispatch(loadDrafts('store-1') as any);
+      expect(selectDrafts(getTestState() as any).length).toBe(1);
 
       // Delete the draft
-      await store.dispatch(deleteDraft('ticket-1'));
-      expect(selectDrafts(store.getState()).length).toBe(0);
+      await store.dispatch(deleteDraft('ticket-1') as any);
+      expect(selectDrafts(getTestState() as any).length).toBe(0);
     });
   });
 
@@ -201,16 +217,16 @@ describe('Draft Sales System', () => {
         total: 100,
       } as any);
 
-      const result = await store.dispatch(resumeDraft('ticket-1'));
+      const result = await store.dispatch(resumeDraft('ticket-1') as any);
 
       expect(result.type).toContain('fulfilled');
     });
 
     it('should reject if ticket not found', async () => {
       const { ticketsDB } = await import('@/db/database');
-      vi.mocked(ticketsDB.getById).mockResolvedValue(null);
+      vi.mocked(ticketsDB.getById).mockResolvedValue(undefined as any);
 
-      const result = await store.dispatch(resumeDraft('ticket-1'));
+      const result = await store.dispatch(resumeDraft('ticket-1') as any);
 
       expect(result.type).toContain('rejected');
     });
@@ -222,7 +238,7 @@ describe('Draft Sales System', () => {
         isDraft: false,
       } as any);
 
-      const result = await store.dispatch(resumeDraft('ticket-1'));
+      const result = await store.dispatch(resumeDraft('ticket-1') as any);
 
       expect(result.type).toContain('rejected');
     });
@@ -230,17 +246,17 @@ describe('Draft Sales System', () => {
 
   describe('selectors', () => {
     it('selectDrafts should return empty array initially', () => {
-      const drafts = selectDrafts(store.getState());
+      const drafts = selectDrafts(getTestState() as any);
       expect(drafts).toEqual([]);
     });
 
     it('selectDraftsLoading should return false initially', () => {
-      const loading = selectDraftsLoading(store.getState());
+      const loading = selectDraftsLoading(getTestState() as any);
       expect(loading).toBe(false);
     });
 
     it('selectDraftsError should return null initially', () => {
-      const error = selectDraftsError(store.getState());
+      const error = selectDraftsError(getTestState() as any);
       expect(error).toBeNull();
     });
   });

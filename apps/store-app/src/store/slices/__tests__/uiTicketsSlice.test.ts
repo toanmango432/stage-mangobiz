@@ -8,6 +8,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
+import type { RootState } from '../../index';
 import uiTicketsReducer, {
   clearError,
   ticketUpdated,
@@ -23,16 +24,22 @@ import uiTicketsReducer, {
   selectTicketsError,
   markTicketAsPaid,
 } from '../uiTicketsSlice';
-import type { UITicket, PendingTicket } from '../uiTicketsSlice';
+import type { UITicket, PendingTicket, UITicketWithServices } from '../uiTicketsSlice';
 
 // Create a minimal test store
 function createTestStore(preloadedState?: Partial<ReturnType<typeof uiTicketsReducer>>) {
-  return configureStore({
+  const testStore = configureStore({
     reducer: {
       uiTickets: uiTicketsReducer,
     },
     preloadedState: preloadedState ? { uiTickets: { ...getInitialState(), ...preloadedState } } : undefined,
   });
+
+  // Return store with typed getState that casts to RootState for selector compatibility
+  return {
+    ...testStore,
+    getState: () => testStore.getState() as unknown as RootState,
+  };
 }
 
 // Helper to get initial state
@@ -61,7 +68,8 @@ function createMockUITicket(overrides: Partial<UITicket> = {}): UITicket {
     time: '10:00 AM',
     duration: '30min',
     status: 'waiting',
-    createdAt: new Date().toISOString(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
     technician: 'John Doe',
     techId: 'tech-1',
     techColor: '#FF5733',
@@ -576,7 +584,7 @@ describe('uiTicketsSlice', () => {
       });
 
       // Verify total equals 65 (50 + 5 + 10)
-      const completedTickets = store.getState().uiTickets.completedTickets;
+      const completedTickets = store.getState().uiTickets.completedTickets as UITicketWithServices[];
       expect(completedTickets).toHaveLength(1);
       expect(completedTickets[0].total).toBe(65);
     });
@@ -605,7 +613,7 @@ describe('uiTicketsSlice', () => {
       });
 
       // Verify paymentMethod 'credit-card' becomes 'Card' in completedTicket
-      const completedTickets = store.getState().uiTickets.completedTickets;
+      const completedTickets = store.getState().uiTickets.completedTickets as (UITicket & { paymentMethod?: string })[];
       expect(completedTickets).toHaveLength(1);
       expect(completedTickets[0].paymentMethod).toBe('Card');
     });
@@ -634,7 +642,7 @@ describe('uiTicketsSlice', () => {
       });
 
       // Verify paymentMethod 'cash' becomes 'Cash' in completedTicket
-      const completedTickets = store.getState().uiTickets.completedTickets;
+      const completedTickets = store.getState().uiTickets.completedTickets as (UITicket & { paymentMethod?: string })[];
       expect(completedTickets).toHaveLength(1);
       expect(completedTickets[0].paymentMethod).toBe('Cash');
     });

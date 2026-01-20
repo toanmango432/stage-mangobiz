@@ -21,15 +21,16 @@ const createMockAppointment = (overrides?: Partial<LocalAppointment>): LocalAppo
   clientName: 'John Doe',
   staffId: 'staff-1',
   staffName: 'Jane Stylist',
-  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', duration: 30, price: 25 }],
+  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 }],
   status: 'scheduled',
-  scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // Jan 15, 2026 10:00 AM
-  scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0),
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // Jan 15, 2026 10:00 AM
+  scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0).toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   source: 'walk-in',
+  syncStatus: 'synced',
   ...overrides,
-});
+} as LocalAppointment);
 
 describe('MonthView', () => {
   const defaultProps = {
@@ -174,7 +175,7 @@ describe('MonthView', () => {
 
     it('shows appointment time', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(),
       });
       render(<MonthView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('10:00 AM')).toBeInTheDocument();
@@ -399,7 +400,7 @@ describe('MonthView', () => {
     it('appointment buttons have title with full info', () => {
       const apt = createMockAppointment({
         clientName: 'Test Client',
-        scheduledStartTime: new Date(2026, 0, 15, 14, 30, 0),
+        scheduledStartTime: new Date(2026, 0, 15, 14, 30, 0).toISOString(),
       });
       render(<MonthView {...defaultProps} appointments={[apt]} />);
 

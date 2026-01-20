@@ -69,9 +69,11 @@ export function createMockService(overrides: Partial<Service> = {}): Service {
  * Create a mock appointment service with optional overrides
  */
 export function createMockAppointmentService(overrides: Partial<AppointmentService> = {}): AppointmentService {
+  const serviceName = overrides.serviceName ?? 'Test Service';
   return {
     serviceId: generateId('service'),
-    serviceName: 'Test Service',
+    serviceName,
+    name: overrides.name ?? serviceName,
     staffId: 'staff-1',
     staffName: 'Test Staff',
     duration: 30,

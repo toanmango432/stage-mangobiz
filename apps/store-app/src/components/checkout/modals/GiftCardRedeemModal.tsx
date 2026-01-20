@@ -162,7 +162,7 @@ export default function GiftCardRedeemModal({
   const [isScanning, setIsScanning] = useState(false);
 
   // Get store context
-  const storeId = useAppSelector((state) => state.auth.currentStore?.id);
+  const storeId = useAppSelector((state) => state.auth.store?.storeId ?? state.auth.storeId);
 
   // Calculate totals
   const totalApplied = appliedGiftCards.reduce((sum, gc) => sum + gc.amountUsed, 0);

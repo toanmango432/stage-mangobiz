@@ -36,7 +36,8 @@ export type AuditAction =
   | 'refund'
   | 'void'
   | 'staff_assign'   // FIX 4.3: Added for staff assignment audit logging
-  | 'price_override'; // Price override decision during checkout
+  | 'price_override' // Price override decision during checkout
+  | 'communication_blocked'; // Communication blocked due to client preferences
 
 export type AuditEntityType =
   | 'client'
@@ -148,6 +149,7 @@ const ACTION_SEVERITY: Record<AuditAction, AuditSeverity> = {
   void: 'critical',
   staff_assign: 'low',
   price_override: 'medium',
+  communication_blocked: 'low',
 };
 
 // ============================================================================

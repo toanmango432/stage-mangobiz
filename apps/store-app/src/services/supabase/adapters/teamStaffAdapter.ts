@@ -10,7 +10,8 @@
  */
 
 import type { TeamMemberSettings } from '@/components/team-settings/types';
-import type { Staff, StaffSchedule } from '@/types';
+import type { Staff } from '@/types';
+import type { StaffSchedule } from '@/types/staff';
 import type { StaffStatus, SyncStatus } from '@/types/common';
 
 /**
@@ -29,7 +30,7 @@ export function teamMemberToStaff(member: TeamMemberSettings): Staff {
     dayOfWeek: rh.dayOfWeek,
     startTime: rh.shifts?.[0]?.startTime || '09:00',
     endTime: rh.shifts?.[0]?.endTime || '17:00',
-    isAvailable: rh.isEnabled,
+    isAvailable: rh.isWorking,
   }));
 
   // Get service IDs that this staff member can perform
@@ -38,7 +39,7 @@ export function teamMemberToStaff(member: TeamMemberSettings): Staff {
     .map((s) => s.serviceId);
 
   // Map status - team uses isActive boolean, staff uses status string
-  const status: StaffStatus = member.isActive ? 'available' : 'unavailable';
+  const status: StaffStatus = member.isActive ? 'available' : 'clocked-out';
 
   return {
     id: member.id,
@@ -52,7 +53,7 @@ export function teamMemberToStaff(member: TeamMemberSettings): Staff {
     isActive: member.isActive,
     role: member.profile?.title,
     hireDate: member.profile?.hireDate,
-    commissionRate: member.commission?.defaultRate,
+    commissionRate: member.commission?.basePercentage,
     schedule,
     // Runtime metrics - these are not persisted, set to defaults
     servicesCountToday: 0,

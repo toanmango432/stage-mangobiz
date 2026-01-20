@@ -170,7 +170,7 @@ describe('Client Adapter Integration Tests', () => {
           id: 'note-2',
           date: '2024-01-12T14:30:00Z',
           content: 'Allergic to certain hair products',
-          type: 'allergy',
+          type: 'medical',
           isPrivate: true,
           createdBy: 'staff-002',
           createdByName: 'Bob Manager',
@@ -194,9 +194,9 @@ describe('Client Adapter Integration Tests', () => {
       expect(client.notes).toHaveLength(3);
 
       // Verify private note handling
-      const allergyNote = client.notes?.find(n => n.type === 'allergy');
-      expect(allergyNote?.isPrivate).toBe(true);
-      expect(allergyNote?.content).toContain('Allergic');
+      const medicalNote = client.notes?.find(n => n.type === 'medical');
+      expect(medicalNote?.isPrivate).toBe(true);
+      expect(medicalNote?.content).toContain('Allergic');
 
       const insert = toClientInsert(client);
       const insertedNotes = insert.notes as Array<Record<string, unknown>>;

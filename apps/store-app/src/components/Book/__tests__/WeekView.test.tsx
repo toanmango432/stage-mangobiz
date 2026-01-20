@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WeekView } from '../WeekView';
 import { LocalAppointment } from '../../../types/appointment';
@@ -21,15 +21,16 @@ const createMockAppointment = (overrides?: Partial<LocalAppointment>): LocalAppo
   clientName: 'John Doe',
   staffId: 'staff-1',
   staffName: 'Jane Stylist',
-  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', duration: 30, price: 25 }],
+  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 }],
   status: 'scheduled',
-  scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // Jan 15, 2026 10:00 AM
-  scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0), // Jan 15, 2026 10:30 AM
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // Jan 15, 2026 10:00 AM
+  scheduledEndTime: new Date(2026, 0, 15, 10, 30, 0).toISOString(), // Jan 15, 2026 10:30 AM
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   source: 'walk-in',
+  syncStatus: 'synced',
   ...overrides,
-});
+} as LocalAppointment);
 
 describe('WeekView', () => {
   const defaultProps = {
@@ -122,7 +123,7 @@ describe('WeekView', () => {
       const apt = createMockAppointment({
         id: 'apt-wed',
         clientName: 'Wednesday Client',
-        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // Wednesday Jan 15
+        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // Wednesday Jan 15
       });
       render(<WeekView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Wednesday Client')).toBeInTheDocument();
@@ -133,12 +134,12 @@ describe('WeekView', () => {
         createMockAppointment({
           id: 'apt-2',
           clientName: 'Client B',
-          scheduledStartTime: new Date(2026, 0, 15, 14, 0, 0), // 2 PM
+          scheduledStartTime: new Date(2026, 0, 15, 14, 0, 0).toISOString(), // 2 PM
         }),
         createMockAppointment({
           id: 'apt-1',
           clientName: 'Client A',
-          scheduledStartTime: new Date(2026, 0, 15, 9, 0, 0), // 9 AM
+          scheduledStartTime: new Date(2026, 0, 15, 9, 0, 0).toISOString(), // 9 AM
         }),
       ];
       const { container } = render(<WeekView {...defaultProps} appointments={appointments} />);
@@ -150,7 +151,7 @@ describe('WeekView', () => {
 
     it('shows time for appointments', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // 10 AM
+        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // 10 AM
       });
       render(<WeekView {...defaultProps} appointments={[apt]} />);
       // Time format: "10:00 AM"
@@ -159,7 +160,7 @@ describe('WeekView', () => {
 
     it('shows first service name', () => {
       const apt = createMockAppointment({
-        services: [{ serviceId: 'svc-1', serviceName: 'Haircut Special', duration: 30, price: 25 }],
+        services: [{ serviceId: 'svc-1', serviceName: 'Haircut Special', name: 'Haircut Special', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 }],
       });
       render(<WeekView {...defaultProps} appointments={[apt]} />);
       expect(screen.getByText('Haircut Special')).toBeInTheDocument();
@@ -167,8 +168,8 @@ describe('WeekView', () => {
 
     it('updates appointment count in header', () => {
       const appointments = [
-        createMockAppointment({ id: 'apt-1', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0) }),
-        createMockAppointment({ id: 'apt-2', scheduledStartTime: new Date(2026, 0, 15, 11, 0, 0) }),
+        createMockAppointment({ id: 'apt-1', scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString() }),
+        createMockAppointment({ id: 'apt-2', scheduledStartTime: new Date(2026, 0, 15, 11, 0, 0).toISOString() }),
       ];
       render(<WeekView {...defaultProps} appointments={appointments} />);
       expect(screen.getByText('2 appts')).toBeInTheDocument();
@@ -184,7 +185,7 @@ describe('WeekView', () => {
 
     it('does not show empty message for days with appointments', () => {
       const apt = createMockAppointment({
-        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0), // Wednesday Jan 15
+        scheduledStartTime: new Date(2026, 0, 15, 10, 0, 0).toISOString(), // Wednesday Jan 15
       });
       render(<WeekView {...defaultProps} appointments={[apt]} />);
       // Only 6 empty days now

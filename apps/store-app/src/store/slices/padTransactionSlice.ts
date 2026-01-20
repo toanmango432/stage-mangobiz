@@ -109,6 +109,10 @@ const padTransactionSlice = createSlice({
           'split-selection': 'tip_selected',
           'split-status': 'processing',
           'settings': null,
+          'processing': 'processing',
+          'complete': 'complete',
+          'failed': null,
+          'cancelled': null,
         };
 
         const newStatus = screenToStatus[action.payload.screen];

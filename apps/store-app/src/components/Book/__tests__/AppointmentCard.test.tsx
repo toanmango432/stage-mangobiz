@@ -10,6 +10,8 @@ import { AppointmentCard } from '../AppointmentCard';
 import type { LocalAppointment } from '../../../types/appointment';
 
 // Helper to create a mock appointment
+// Note: Uses 'confirmed' as any cast since AppointmentCard supports 'confirmed' via StatusBadge
+// but it's not in the official AppointmentStatus type
 function createMockAppointment(overrides: Partial<LocalAppointment> = {}): LocalAppointment {
   const baseTime = new Date('2026-01-08T10:00:00');
   const endTime = new Date('2026-01-08T11:00:00');
@@ -22,10 +24,10 @@ function createMockAppointment(overrides: Partial<LocalAppointment> = {}): Local
     clientEmail: 'john@example.com',
     scheduledStartTime: baseTime.toISOString(),
     scheduledEndTime: endTime.toISOString(),
-    status: 'confirmed',
+    status: 'confirmed' as any, // Cast needed as 'confirmed' is not in AppointmentStatus but used by StatusBadge
     source: 'online',
     services: [
-      { serviceId: 's1', serviceName: 'Haircut', price: 30, duration: 30 },
+      { serviceId: 's1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', price: 30, duration: 30 },
     ],
     staffId: 'staff-1',
     storeId: 'store-1',
@@ -138,7 +140,7 @@ describe('AppointmentCard', () => {
     });
 
     it('applies app source color', () => {
-      const appointment = createMockAppointment({ source: 'app' });
+      const appointment = createMockAppointment({ source: 'client-app' });
       const { container } = render(<AppointmentCard {...defaultProps} appointment={appointment} />);
       const card = container.firstChild as HTMLElement;
       expect(card.style.borderLeftColor).toBe('rgb(236, 72, 153)'); // #EC4899
@@ -161,9 +163,9 @@ describe('AppointmentCard', () => {
     it('renders up to 3 services', () => {
       const appointment = createMockAppointment({
         services: [
-          { serviceId: 's1', serviceName: 'Haircut', price: 30, duration: 30 },
-          { serviceId: 's2', serviceName: 'Coloring', price: 80, duration: 60 },
-          { serviceId: 's3', serviceName: 'Styling', price: 40, duration: 30 },
+          { serviceId: 's1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', price: 30, duration: 30 },
+          { serviceId: 's2', serviceName: 'Coloring', name: 'Coloring', staffId: 'staff-1', staffName: 'Jane Stylist', price: 80, duration: 60 },
+          { serviceId: 's3', serviceName: 'Styling', name: 'Styling', staffId: 'staff-1', staffName: 'Jane Stylist', price: 40, duration: 30 },
         ],
       });
       render(<AppointmentCard {...defaultProps} appointment={appointment} />);
@@ -175,11 +177,11 @@ describe('AppointmentCard', () => {
     it('shows overflow indicator for more than 3 services', () => {
       const appointment = createMockAppointment({
         services: [
-          { serviceId: 's1', serviceName: 'Haircut', price: 30, duration: 30 },
-          { serviceId: 's2', serviceName: 'Coloring', price: 80, duration: 60 },
-          { serviceId: 's3', serviceName: 'Styling', price: 40, duration: 30 },
-          { serviceId: 's4', serviceName: 'Treatment', price: 50, duration: 45 },
-          { serviceId: 's5', serviceName: 'Wash', price: 15, duration: 15 },
+          { serviceId: 's1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', price: 30, duration: 30 },
+          { serviceId: 's2', serviceName: 'Coloring', name: 'Coloring', staffId: 'staff-1', staffName: 'Jane Stylist', price: 80, duration: 60 },
+          { serviceId: 's3', serviceName: 'Styling', name: 'Styling', staffId: 'staff-1', staffName: 'Jane Stylist', price: 40, duration: 30 },
+          { serviceId: 's4', serviceName: 'Treatment', name: 'Treatment', staffId: 'staff-1', staffName: 'Jane Stylist', price: 50, duration: 45 },
+          { serviceId: 's5', serviceName: 'Wash', name: 'Wash', staffId: 'staff-1', staffName: 'Jane Stylist', price: 15, duration: 15 },
         ],
       });
       render(<AppointmentCard {...defaultProps} appointment={appointment} />);
@@ -196,7 +198,7 @@ describe('AppointmentCard', () => {
     });
 
     it('does not show confirmed icon for pending status', () => {
-      const appointment = createMockAppointment({ status: 'pending' });
+      const appointment = createMockAppointment({ status: 'scheduled' as any }); // Using 'scheduled' since 'pending' is not a valid AppointmentStatus
       const { container } = render(<AppointmentCard {...defaultProps} appointment={appointment} />);
       const icon = container.querySelector('.text-emerald-500');
       expect(icon).not.toBeInTheDocument();
@@ -207,7 +209,7 @@ describe('AppointmentCard', () => {
     it('shows REQ badge when staff is requested', () => {
       const appointment = createMockAppointment({
         services: [
-          { serviceId: 's1', serviceName: 'Haircut', price: 30, duration: 30, staffRequested: true },
+          { serviceId: 's1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', price: 30, duration: 30, staffRequested: true } as any,
         ],
       });
       render(<AppointmentCard {...defaultProps} appointment={appointment} />);
@@ -264,8 +266,8 @@ describe('AppointmentCard', () => {
       expect(card).toHaveAttribute('draggable', 'true');
     });
 
-    it('is draggable for pending appointments', () => {
-      const appointment = createMockAppointment({ status: 'pending' });
+    it('is draggable for scheduled appointments', () => {
+      const appointment = createMockAppointment({ status: 'scheduled' });
       const { container } = render(<AppointmentCard {...defaultProps} appointment={appointment} />);
       const card = container.firstChild as HTMLElement;
       expect(card).toHaveAttribute('draggable', 'true');
@@ -327,7 +329,7 @@ describe('AppointmentCard', () => {
 
     it('renders confirmed status correctly', () => {
       // Confirmed already tested in basic rendering, but verify status badge class
-      const appointment = createMockAppointment({ status: 'confirmed' });
+      const appointment = createMockAppointment({ status: 'confirmed' as any });
       const { container } = render(<AppointmentCard {...defaultProps} appointment={appointment} />);
       const badge = container.querySelector('.status-confirmed');
       expect(badge).toBeInTheDocument();

@@ -131,7 +131,7 @@ function ServiceItem({
   };
   void handlePriceAdjustment; // Prevent unused warning
 
-  const handlePan = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDrag = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Only allow left swipe (negative offset)
     const offset = Math.min(0, info.offset.x);
     setSwipeOffset(offset);
@@ -144,7 +144,7 @@ function ServiceItem({
     }
   };
 
-  const handlePanEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Snap to revealed or hidden state
     if (info.offset.x < -60) {
       // Snap to revealed
@@ -188,8 +188,8 @@ function ServiceItem({
         drag="x"
         dragConstraints={{ left: -80, right: 0 }}
         dragElastic={0.1}
-        onPan={handlePan}
-        onPanEnd={handlePanEnd}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
         animate={{ x: swipeOffset }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={`group px-3 py-2 flex items-center gap-2 transition-colors bg-card border-l-4 ${

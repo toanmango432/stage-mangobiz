@@ -13,9 +13,9 @@ import {
   removeDiscoveredDevice,
   type DevicePresence,
 } from '@/store/slices/syncSlice';
-import { MqttClient } from './MqttClient';
+import { getMqttClient, MqttClient } from './MqttClient';
 import { TOPIC_PATTERNS, buildTopic } from './topics';
-import type { MqttMessage, DevicePresencePayload } from './types';
+import type { MqttMessage, DevicePresencePayload, MqttConfig, MqttBrokerType } from './types';
 
 // Alias for cleaner code
 const TOPICS = TOPIC_PATTERNS;
@@ -42,6 +42,8 @@ class MqttBridgeService {
   private client: MqttClient | null = null;
   private config: MqttBridgeConfig | null = null;
   private eventHandlers: Map<string, EventHandler[]> = new Map();
+  private unsubscribeFunctions: Map<string, () => void> = new Map();
+  private stateUnsubscribe: (() => void) | null = null;
   private isInitialized = false;
 
   // ===========================================================================
@@ -58,16 +60,7 @@ class MqttBridgeService {
     }
 
     this.config = config;
-    this.client = MqttClient.getInstance();
-
-    // Configure the client
-    this.client.configure({
-      storeId: config.storeId,
-      deviceId: config.deviceId,
-      deviceType: config.deviceType,
-      localBrokerUrl: config.localBrokerUrl,
-      cloudBrokerUrl: config.cloudBrokerUrl,
-    });
+    this.client = getMqttClient();
 
     // Set up connection status listeners
     this.setupConnectionListeners();
@@ -80,12 +73,24 @@ class MqttBridgeService {
    * Connect to MQTT broker
    */
   async connect(): Promise<void> {
-    if (!this.client) {
+    if (!this.client || !this.config) {
       throw new Error('MqttBridge not initialized');
     }
 
     try {
-      await this.client.connect();
+      // Determine broker URL and type
+      const brokerUrl = this.config.localBrokerUrl || this.config.cloudBrokerUrl || 'ws://localhost:9001';
+      const brokerType: MqttBrokerType = this.config.localBrokerUrl ? 'local' : 'cloud';
+
+      const mqttConfig: MqttConfig = {
+        storeId: this.config.storeId,
+        deviceId: this.config.deviceId,
+        deviceType: this.config.deviceType,
+        cloudBrokerUrl: this.config.cloudBrokerUrl || 'wss://mqtt.mango.cloud:8883',
+        localBrokerUrl: this.config.localBrokerUrl,
+      };
+
+      await this.client.connect(brokerUrl, mqttConfig, brokerType);
 
       // Subscribe to device presence for this store
       if (this.config?.storeId) {
@@ -102,6 +107,19 @@ class MqttBridgeService {
    * Disconnect from MQTT broker
    */
   async disconnect(): Promise<void> {
+    // Clean up subscriptions
+    for (const unsubscribe of this.unsubscribeFunctions.values()) {
+      unsubscribe();
+    }
+    this.unsubscribeFunctions.clear();
+    this.eventHandlers.clear();
+
+    // Clean up state listener
+    if (this.stateUnsubscribe) {
+      this.stateUnsubscribe();
+      this.stateUnsubscribe = null;
+    }
+
     if (this.client) {
       await this.client.disconnect();
     }
@@ -116,25 +134,20 @@ class MqttBridgeService {
   private setupConnectionListeners(): void {
     if (!this.client) return;
 
-    this.client.on('connected', (brokerType: 'local' | 'cloud') => {
-      console.log(`[MqttBridge] Connected to ${brokerType} broker`);
-      store.dispatch(
-        setMqttConnected({ connected: true, connectionType: brokerType })
-      );
-    });
-
-    this.client.on('disconnected', () => {
-      console.log('[MqttBridge] Disconnected');
-      store.dispatch(setMqttConnected({ connected: false, connectionType: null }));
-    });
-
-    this.client.on('error', (error: Error) => {
-      console.error('[MqttBridge] Error:', error.message);
-      store.dispatch(setMqttError(error.message));
-    });
-
-    this.client.on('message', (topic: string, message: MqttMessage) => {
-      this.handleMessage(topic, message);
+    // Subscribe to state changes using onStateChange
+    this.stateUnsubscribe = this.client.onStateChange((info) => {
+      if (info.state === 'connected') {
+        console.log(`[MqttBridge] Connected to ${info.brokerType} broker`);
+        store.dispatch(
+          setMqttConnected({ connected: true, connectionType: info.brokerType })
+        );
+      } else if (info.state === 'disconnected') {
+        console.log('[MqttBridge] Disconnected');
+        store.dispatch(setMqttConnected({ connected: false, connectionType: null }));
+      } else if (info.state === 'error' && info.error) {
+        console.error('[MqttBridge] Error:', info.error.message);
+        store.dispatch(setMqttError(info.error.message));
+      }
     });
   }
 
@@ -150,7 +163,11 @@ class MqttBridgeService {
       deviceId: '+', // Wildcard to receive all devices
     });
 
-    await this.client.subscribe(presenceTopic, 1);
+    // Subscribe returns an unsubscribe function
+    const unsubscribe = this.client.subscribe(presenceTopic, (topic, message) => {
+      this.handleMessage(topic, message);
+    });
+    this.unsubscribeFunctions.set(presenceTopic, unsubscribe);
     console.log(`[MqttBridge] Subscribed to device presence: ${presenceTopic}`);
   }
 
@@ -176,7 +193,7 @@ class MqttBridgeService {
       timestamp: new Date().toISOString(),
     };
 
-    await this.client.publish(topic, payload, 1, true); // QoS 1, retained
+    await this.client.publish(topic, payload, { qos: 1, retain: true }); // QoS 1, retained
     console.log(`[MqttBridge] Published presence: ${isOnline ? 'online' : 'offline'}`);
   }
 
@@ -237,15 +254,23 @@ class MqttBridgeService {
   ): Promise<void> {
     if (!this.client || !this.config?.storeId) return;
 
-    const topic = buildTopic(TOPICS.APPOINTMENTS, {
+    // Map action to topic pattern
+    const topicPatternMap: Record<string, string> = {
+      created: TOPICS.APPOINTMENT_CREATED,
+      updated: TOPICS.APPOINTMENT_UPDATED,
+      deleted: TOPICS.APPOINTMENT_DELETED,
+      checked_in: TOPICS.APPOINTMENT_STATUS,
+    };
+
+    const topicPattern = topicPatternMap[action] || TOPICS.APPOINTMENT_UPDATED;
+    const topic = buildTopic(topicPattern, {
       storeId: this.config.storeId,
-      action,
     });
 
     await this.client.publish(
       topic,
       { appointmentId, action, data, timestamp: new Date().toISOString() },
-      1 // QoS 1 for reliable delivery
+      { qos: 1 } // QoS 1 for reliable delivery
     );
   }
 
@@ -259,15 +284,23 @@ class MqttBridgeService {
   ): Promise<void> {
     if (!this.client || !this.config?.storeId) return;
 
-    const topic = buildTopic(TOPICS.TICKETS, {
+    // Map action to topic pattern
+    const topicPatternMap: Record<string, string> = {
+      created: TOPICS.TICKET_CREATED,
+      updated: TOPICS.TICKET_UPDATED,
+      closed: TOPICS.TICKET_COMPLETED,
+      voided: TOPICS.TICKET_VOIDED,
+    };
+
+    const topicPattern = topicPatternMap[action] || TOPICS.TICKET_UPDATED;
+    const topic = buildTopic(topicPattern, {
       storeId: this.config.storeId,
-      action,
     });
 
     await this.client.publish(
       topic,
       { ticketId, action, data, timestamp: new Date().toISOString() },
-      1 // QoS 1 for reliable delivery
+      { qos: 1 } // QoS 1 for reliable delivery
     );
   }
 
@@ -294,7 +327,7 @@ class MqttBridgeService {
         timestamp: new Date().toISOString(),
         deviceId: this.config.deviceId,
       },
-      1 // QoS 1 for reliable delivery
+      { qos: 1 } // QoS 1 for reliable delivery
     );
   }
 
@@ -305,20 +338,26 @@ class MqttBridgeService {
   /**
    * Subscribe to a specific event topic
    */
-  async subscribeToEvent(topic: string, handler: EventHandler): Promise<void> {
+  subscribeToEvent(topic: string, handler: EventHandler): void {
     if (!this.client) return;
 
     const handlers = this.eventHandlers.get(topic) || [];
     handlers.push(handler);
     this.eventHandlers.set(topic, handlers);
 
-    await this.client.subscribe(topic, 1);
+    // If not already subscribed at MQTT level, subscribe now
+    if (!this.unsubscribeFunctions.has(topic)) {
+      const unsubscribe = this.client.subscribe(topic, (t, message) => {
+        this.handleMessage(t, message);
+      });
+      this.unsubscribeFunctions.set(topic, unsubscribe);
+    }
   }
 
   /**
    * Unsubscribe from a specific event topic
    */
-  async unsubscribeFromEvent(topic: string, handler?: EventHandler): Promise<void> {
+  unsubscribeFromEvent(topic: string, handler?: EventHandler): void {
     if (!this.client) return;
 
     if (handler) {
@@ -327,11 +366,21 @@ class MqttBridgeService {
       this.eventHandlers.set(topic, filtered);
 
       if (filtered.length === 0) {
-        await this.client.unsubscribe(topic);
+        // Call the unsubscribe function
+        const unsubscribe = this.unsubscribeFunctions.get(topic);
+        if (unsubscribe) {
+          unsubscribe();
+          this.unsubscribeFunctions.delete(topic);
+        }
         this.eventHandlers.delete(topic);
       }
     } else {
-      await this.client.unsubscribe(topic);
+      // Call the unsubscribe function
+      const unsubscribe = this.unsubscribeFunctions.get(topic);
+      if (unsubscribe) {
+        unsubscribe();
+        this.unsubscribeFunctions.delete(topic);
+      }
       this.eventHandlers.delete(topic);
     }
   }
@@ -358,7 +407,7 @@ class MqttBridgeService {
    * Get current connection type
    */
   getConnectionType(): 'local' | 'cloud' | null {
-    return this.client?.getConnectionType() || null;
+    return this.client?.getBrokerType() || null;
   }
 
   /**

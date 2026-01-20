@@ -16,7 +16,7 @@ import { store } from '@/store';
 import { shouldUseSQLite } from '@/config/featureFlags';
 import { transactionsDB, syncQueueDB } from '@/db/database';
 import { sqliteTransactionsDB } from '@/services/sqliteServices';
-import type { Transaction } from '@/types';
+import type { Transaction, CreateTransactionInput } from '@/types';
 
 // ==================== HELPERS ====================
 
@@ -152,16 +152,38 @@ export const transactionsService = {
 
   /**
    * Create a new transaction
+   * Accepts either a full Transaction object (minus auto-generated fields) or a CreateTransactionInput
    */
-  async create(transaction: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'>): Promise<Transaction> {
+  async create(input: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'> | CreateTransactionInput): Promise<Transaction> {
     const storeId = getStoreId();
     if (!storeId) throw new Error('No store ID available');
 
+    // Compute derived fields if not provided (for CreateTransactionInput)
+    const transaction: Omit<Transaction, 'id' | 'createdAt' | 'syncStatus'> = {
+      storeId,
+      ticketId: input.ticketId,
+      ticketNumber: input.ticketNumber,
+      clientId: input.clientId,
+      clientName: input.clientName,
+      subtotal: input.subtotal,
+      tax: input.tax,
+      tip: input.tip,
+      discount: input.discount ?? 0,
+      amount: ('amount' in input && input.amount !== undefined) ? input.amount : (input.subtotal + input.tax),
+      total: ('total' in input && input.total !== undefined) ? input.total : (input.subtotal + input.tax + input.tip - (input.discount ?? 0)),
+      paymentMethod: input.paymentMethod,
+      paymentDetails: input.paymentDetails,
+      services: input.services,
+      status: ('status' in input && input.status !== undefined) ? input.status : 'completed',
+      processedBy: input.processedBy,
+      notes: input.notes,
+    };
+
     let created: Transaction;
     if (USE_SQLITE) {
-      created = await sqliteTransactionsDB.create({ ...transaction, storeId });
+      created = await sqliteTransactionsDB.create(transaction);
     } else {
-      created = await transactionsDB.create({ ...transaction, storeId });
+      created = await transactionsDB.create(transaction);
     }
 
     // Queue for background sync (non-blocking)

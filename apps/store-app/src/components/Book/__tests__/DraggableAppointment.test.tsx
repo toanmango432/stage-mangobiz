@@ -12,25 +12,23 @@ import { LocalAppointment } from '../../../types/appointment';
 // Mock appointment
 const mockAppointment: LocalAppointment = {
   id: 'apt-1',
+  storeId: 'store-1',
   clientId: 'client-1',
   clientName: 'John Doe',
-  phone: '555-0100',
-  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', price: 30, duration: 30 }],
-  assignedStaffId: 'staff-1',
-  assignedStaffName: 'Jane Smith',
+  clientPhone: '555-0100',
+  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Smith', price: 30, duration: 30 }],
+  staffId: 'staff-1',
+  staffName: 'Jane Smith',
   scheduledStartTime: new Date('2026-01-15T10:00:00').toISOString(),
   scheduledEndTime: new Date('2026-01-15T10:30:00').toISOString(),
-  status: 'confirmed',
+  status: 'scheduled',
   source: 'walk-in',
   syncStatus: 'synced',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  subtotal: 30,
-  tax: 0,
-  tip: 0,
-  total: 30,
+  createdBy: 'user-1',
+  lastModifiedBy: 'user-1',
   notes: '',
-  number: 1001,
 };
 
 describe('DraggableAppointment', () => {

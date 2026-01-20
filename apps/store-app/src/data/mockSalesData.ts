@@ -884,6 +884,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-001',
         serviceName: 'Manicure',
+        name: 'Manicure',
         staffId: 'staff-001',
         staffName: 'Emily Chen',
         duration: 45,
@@ -913,6 +914,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-003',
         serviceName: 'Haircut',
+        name: 'Haircut',
         staffId: 'staff-002',
         staffName: 'David Kim',
         duration: 30,
@@ -921,6 +923,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-008',
         serviceName: 'Hair Styling',
+        name: 'Hair Styling',
         staffId: 'staff-002',
         staffName: 'David Kim',
         duration: 20,
@@ -950,6 +953,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-004',
         serviceName: 'Gel Nails',
+        name: 'Gel Nails',
         staffId: 'staff-003',
         staffName: 'Lisa Martinez',
         duration: 75,
@@ -981,6 +985,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-003',
         serviceName: 'Haircut',
+        name: 'Haircut',
         staffId: 'staff-002',
         staffName: 'David Kim',
         duration: 30,
@@ -1010,6 +1015,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-006',
         serviceName: 'Facial Treatment',
+        name: 'Facial Treatment',
         staffId: 'staff-004',
         staffName: 'Anna Taylor',
         duration: 60,
@@ -1018,6 +1024,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-009',
         serviceName: 'Massage',
+        name: 'Massage',
         staffId: 'staff-004',
         staffName: 'Anna Taylor',
         duration: 30,
@@ -1047,6 +1054,7 @@ export const mockAppointments: LocalAppointment[] = [
       {
         serviceId: 'svc-003',
         serviceName: 'Haircut',
+        name: 'Haircut',
         staffId: 'staff-002',
         staffName: 'David Kim',
         duration: 30,
@@ -1122,14 +1130,18 @@ for (let i = 107; i <= 130; i++) {
     staffId: `staff-${Math.floor(Math.random() * 4) + 1}`,
     staffName: ['Emily Chen', 'David Kim', 'Lisa Martinez', 'Anna Taylor'][Math.floor(Math.random() * 4)],
     services: [
-      {
-        serviceId: `svc-${i}`,
-        serviceName: ['Manicure', 'Pedicure', 'Gel Nails', 'Haircut', 'Facial'][Math.floor(Math.random() * 5)],
-        staffId: `staff-${Math.floor(Math.random() * 4) + 1}`,
-        staffName: ['Emily Chen', 'David Kim', 'Lisa Martinez', 'Anna Taylor'][Math.floor(Math.random() * 4)],
-        duration: [30, 45, 60][Math.floor(Math.random() * 3)],
-        price: Math.floor(Math.random() * 60) + 30
-      }
+      (() => {
+        const serviceName = ['Manicure', 'Pedicure', 'Gel Nails', 'Haircut', 'Facial'][Math.floor(Math.random() * 5)];
+        return {
+          serviceId: `svc-${i}`,
+          serviceName,
+          name: serviceName,
+          staffId: `staff-${Math.floor(Math.random() * 4) + 1}`,
+          staffName: ['Emily Chen', 'David Kim', 'Lisa Martinez', 'Anna Taylor'][Math.floor(Math.random() * 4)],
+          duration: [30, 45, 60][Math.floor(Math.random() * 3)],
+          price: Math.floor(Math.random() * 60) + 30
+        };
+      })()
     ],
     status: ['scheduled', 'completed', 'cancelled', 'no-show', 'checked-in'][Math.floor(Math.random() * 5)] as any,
     scheduledStartTime: date.toISOString(),

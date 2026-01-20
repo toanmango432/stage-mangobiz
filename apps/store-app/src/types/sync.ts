@@ -78,10 +78,10 @@ export interface SyncOperation {
 /**
  * Type guard to check if a SyncOperation is for a specific entity
  */
-export function isSyncOperationForEntity<E extends TypedSyncOperation['entity']>(
+export function isSyncOperationForEntity<E extends SyncOperation['entity']>(
   op: SyncOperation,
   entity: E
-): op is TypedSyncOperation & { entity: E } {
+): op is SyncOperation & { entity: E } {
   return op.entity === entity;
 }
 

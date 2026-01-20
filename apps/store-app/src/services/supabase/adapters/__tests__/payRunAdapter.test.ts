@@ -23,20 +23,50 @@ function createMockPayRunRow(overrides: Partial<PayRunRow> = {}): PayRunRow {
     tenant_id: 'tenant-001',
     period_start: '2026-01-01',
     period_end: '2026-01-15',
+    pay_date: null,
     pay_period_type: 'bi-weekly',
     status: 'draft',
     staff_payments: [
       {
         staffId: 'staff-001',
         staffName: 'John Doe',
-        regularHours: 80,
-        overtimeHours: 5,
-        wages: 1200,
-        commission: 500,
-        tips: 200,
-        adjustments: 50,
-        total: 1950,
-        status: 'pending',
+        staffRole: 'Stylist',
+        hours: {
+          scheduledHours: 80,
+          actualHours: 85,
+          regularHours: 80,
+          overtimeHours: 5,
+          doubleTimeHours: 0,
+          unpaidBreakMinutes: 300,
+        },
+        hourlyRate: 15,
+        baseWages: 1200,
+        overtimePay: 112.5,
+        doubleTimePay: 0,
+        totalWages: 1312.5,
+        commission: {
+          serviceRevenue: 2000,
+          serviceCommission: 400,
+          productRevenue: 500,
+          productCommission: 50,
+          retailRevenue: 250,
+          retailCommission: 50,
+          newClientCount: 3,
+          newClientBonus: 30,
+          rebookCount: 5,
+          rebookBonus: 25,
+          tipsReceived: 200,
+          tipsKept: 200,
+        },
+        totalCommission: 500,
+        totalTips: 200,
+        adjustments: [],
+        totalAdjustments: 50,
+        grossPay: 2062.5,
+        guaranteedMinimum: 0,
+        netPay: 2062.5,
+        paymentMethod: 'direct_deposit',
+        isPaid: false,
       },
     ],
     totals: {
@@ -63,6 +93,11 @@ function createMockPayRunRow(overrides: Partial<PayRunRow> = {}): PayRunRow {
     voided_at: null,
     voided_by: null,
     void_reason: null,
+    rejected_by: null,
+    rejected_at: null,
+    rejection_reason: null,
+    notes: null,
+    payment_method: null,
     created_at: now,
     updated_at: now,
     sync_status: 'synced',
@@ -90,14 +125,43 @@ function createMockPayRun(overrides: Partial<PayRun> = {}): PayRun {
       {
         staffId: 'staff-001',
         staffName: 'John Doe',
-        regularHours: 80,
-        overtimeHours: 5,
-        wages: 1200,
-        commission: 500,
-        tips: 200,
-        adjustments: 50,
-        total: 1950,
-        status: 'pending',
+        staffRole: 'Stylist',
+        hours: {
+          scheduledHours: 80,
+          actualHours: 85,
+          regularHours: 80,
+          overtimeHours: 5,
+          doubleTimeHours: 0,
+          unpaidBreakMinutes: 300,
+        },
+        hourlyRate: 15,
+        baseWages: 1200,
+        overtimePay: 112.5,
+        doubleTimePay: 0,
+        totalWages: 1312.5,
+        commission: {
+          serviceRevenue: 2000,
+          serviceCommission: 400,
+          productRevenue: 500,
+          productCommission: 50,
+          retailRevenue: 250,
+          retailCommission: 50,
+          newClientCount: 3,
+          newClientBonus: 30,
+          rebookCount: 5,
+          rebookBonus: 25,
+          tipsReceived: 200,
+          tipsKept: 200,
+        },
+        totalCommission: 500,
+        totalTips: 200,
+        adjustments: [],
+        totalAdjustments: 50,
+        grossPay: 2062.5,
+        guaranteedMinimum: 0,
+        netPay: 2062.5,
+        paymentMethod: 'direct_deposit',
+        isPaid: false,
       },
     ],
     totals: {
@@ -148,8 +212,8 @@ describe('payRunAdapter', () => {
 
       expect(payRun.staffPayments).toHaveLength(1);
       expect(payRun.staffPayments[0].staffId).toBe('staff-001');
-      expect(payRun.staffPayments[0].regularHours).toBe(80);
-      expect(payRun.staffPayments[0].total).toBe(1950);
+      expect(payRun.staffPayments[0].hours.regularHours).toBe(80);
+      expect(payRun.staffPayments[0].netPay).toBe(2062.5);
     });
 
     it('should parse totals correctly', () => {
@@ -290,13 +354,13 @@ describe('payRunAdapter', () => {
   describe('toPayRunUpdate', () => {
     it('should convert partial updates correctly', () => {
       const updates: Partial<PayRun> = {
-        status: 'submitted',
+        status: 'pending_approval',
         submittedAt: new Date().toISOString(),
         submittedBy: 'user-001',
       };
       const result = toPayRunUpdate(updates);
 
-      expect(result.status).toBe('submitted');
+      expect(result.status).toBe('pending_approval');
       expect(result.submitted_at).toBeDefined();
       expect(result.submitted_by).toBe('user-001');
     });
@@ -318,14 +382,43 @@ describe('payRunAdapter', () => {
         {
           staffId: 'staff-002',
           staffName: 'Jane Doe',
-          regularHours: 40,
-          overtimeHours: 0,
-          wages: 600,
-          commission: 300,
-          tips: 100,
-          adjustments: 0,
-          total: 1000,
-          status: 'pending',
+          staffRole: 'Stylist',
+          hours: {
+            scheduledHours: 40,
+            actualHours: 40,
+            regularHours: 40,
+            overtimeHours: 0,
+            doubleTimeHours: 0,
+            unpaidBreakMinutes: 150,
+          },
+          hourlyRate: 15,
+          baseWages: 600,
+          overtimePay: 0,
+          doubleTimePay: 0,
+          totalWages: 600,
+          commission: {
+            serviceRevenue: 1000,
+            serviceCommission: 200,
+            productRevenue: 500,
+            productCommission: 50,
+            retailRevenue: 250,
+            retailCommission: 50,
+            newClientCount: 2,
+            newClientBonus: 20,
+            rebookCount: 3,
+            rebookBonus: 15,
+            tipsReceived: 100,
+            tipsKept: 100,
+          },
+          totalCommission: 300,
+          totalTips: 100,
+          adjustments: [],
+          totalAdjustments: 0,
+          grossPay: 1000,
+          guaranteedMinimum: 0,
+          netPay: 1000,
+          paymentMethod: 'direct_deposit',
+          isPaid: false,
         },
       ];
       const updates: Partial<PayRun> = { staffPayments: newPayments };

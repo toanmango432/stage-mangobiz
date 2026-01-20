@@ -715,7 +715,7 @@ export const timesheetDB = {
         totalRegularHours: 0,
         totalOvertimeHours: 0,
         totalBreakMinutes: 0,
-        totalDays: 0,
+        variance: 0,
         pendingCount: 0,
         approvedCount: 0,
         disputedCount: 0,

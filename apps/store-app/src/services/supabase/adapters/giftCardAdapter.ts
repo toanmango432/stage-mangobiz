@@ -19,7 +19,7 @@ import type {
   GiftCardTransaction,
   GiftCardStatus as AppGiftCardStatus,
   GiftCardTransactionType as AppTransactionType,
-} from '@mango-pos/types';
+} from '../../../types/gift-card';
 
 // ============================================================================
 // STATUS MAPPING
@@ -117,6 +117,7 @@ function mapTransactionTypeToSupabase(appType: AppTransactionType): SupabaseTran
 export function toGiftCard(row: GiftCardRow): GiftCard {
   return {
     id: row.id,
+    tenantId: (row as Record<string, unknown>).tenant_id as string || '',
     storeId: row.store_id,
     code: row.code,
     type: row.delivery_method === 'physical' ? 'physical' : 'digital',
@@ -135,7 +136,16 @@ export function toGiftCard(row: GiftCardRow): GiftCard {
     purchaseTicketId: row.order_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    createdBy: (row as Record<string, unknown>).created_by as string || 'system',
+    createdByDevice: (row as Record<string, unknown>).created_by_device as string || 'unknown',
+    lastModifiedBy: (row as Record<string, unknown>).last_modified_by as string || 'system',
+    lastModifiedByDevice: (row as Record<string, unknown>).last_modified_by_device as string || 'unknown',
+    isDeleted: false,
+    deletedAt: (row as Record<string, unknown>).deleted_at as string | undefined,
     syncStatus: 'synced',
+    version: 1,
+    vectorClock: {},
+    lastSyncedVersion: 1,
   };
 }
 
@@ -215,6 +225,7 @@ export function toGiftCardUpdate(updates: Partial<GiftCard>): GiftCardUpdate {
 export function toGiftCardTransaction(row: GiftCardTransactionRow): GiftCardTransaction {
   return {
     id: row.id,
+    tenantId: (row as Record<string, unknown>).tenant_id as string || '',
     storeId: row.store_id,
     giftCardId: row.gift_card_id,
     type: mapTransactionTypeToApp(row.transaction_type),
@@ -226,7 +237,16 @@ export function toGiftCardTransaction(row: GiftCardTransactionRow): GiftCardTran
     notes: row.notes || undefined,
     createdAt: row.created_at,
     updatedAt: row.created_at, // Transactions are immutable
+    createdBy: row.performed_by || 'system',
+    createdByDevice: (row as Record<string, unknown>).created_by_device as string || 'unknown',
+    lastModifiedBy: row.performed_by || 'system',
+    lastModifiedByDevice: (row as Record<string, unknown>).last_modified_by_device as string || 'unknown',
+    isDeleted: false,
+    deletedAt: undefined,
     syncStatus: 'synced',
+    version: 1,
+    vectorClock: {},
+    lastSyncedVersion: 1,
   };
 }
 

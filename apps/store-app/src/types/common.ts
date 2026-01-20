@@ -40,8 +40,10 @@ export type PaymentMethod =
   | 'venmo'
   | 'digital-wallet'
   | 'gift-card'
+  | 'gift_card'         // Alias for gift-card (used in payment splits)
   | 'account-credit'
-  | 'split';
+  | 'split'
+  | 'other';            // Catch-all for other payment methods
 
 export type CardType =
   | 'visa'

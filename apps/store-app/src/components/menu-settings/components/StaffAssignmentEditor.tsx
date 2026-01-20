@@ -119,9 +119,9 @@ export function StaffAssignmentEditor({
                     className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                   />
                   <div className="ml-3 flex items-center gap-2">
-                    {staff.profile.photoUrl ? (
+                    {staff.profile.avatar ? (
                       <img
-                        src={staff.profile.photoUrl}
+                        src={staff.profile.avatar}
                         alt={staff.profile.displayName}
                         className="w-8 h-8 rounded-full object-cover"
                       />

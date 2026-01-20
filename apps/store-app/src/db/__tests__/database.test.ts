@@ -73,6 +73,7 @@ describe('Database Tests', () => {
         staffName: staff[0].name,
         services: [{
           serviceId: 'service-1',
+          name: 'Haircut',
           staffId: staff[0].id,
           duration: 60,
           price: 50,
@@ -99,6 +100,7 @@ describe('Database Tests', () => {
         staffName: staff[0].name,
         services: [{
           serviceId: 'service-1',
+          name: 'Haircut',
           staffId: staff[0].id,
           duration: 60,
           price: 50,

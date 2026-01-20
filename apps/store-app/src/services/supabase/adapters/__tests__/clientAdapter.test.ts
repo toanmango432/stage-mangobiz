@@ -600,6 +600,8 @@ describe('clientAdapter', () => {
         totalVisits: 30,
         totalSpent: 1800,
         averageTicket: 60,
+        noShowCount: 0,
+        lateCancelCount: 1,
       };
       const result = toClientUpdate({ visitSummary });
 

@@ -349,6 +349,7 @@ export class AppointmentService {
       services: apt.lstService.map((svc) => ({
         serviceId: svc.itemID.toString(),
         serviceName: svc.itemName || '',
+        name: svc.itemName || '',
         staffId: svc.empID.toString(),
         staffName: svc.empName || '',
         duration: svc.duration,
@@ -469,7 +470,7 @@ export class AppointmentService {
     const startTime = new Date(local.scheduledStartTime);
     const endTime = new Date(local.scheduledEndTime);
     return {
-      appointmentID: local.serverId || 0,
+      appointmentID: local.serverId ? parseInt(local.serverId, 10) : 0,
       customerID: parseInt(local.clientId),
       customerName: local.clientName,
       customerPhone: local.clientPhone,

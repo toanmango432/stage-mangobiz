@@ -63,9 +63,9 @@ describe('MqttClient', () => {
     mockPublish.mockImplementation((_topic: string, _message: string, _opts: unknown, callback?: Function) => {
       if (callback) callback();
     });
-    mockEnd.mockImplementation((force?: boolean, _opts?: unknown, callback?: Function) => {
+    mockEnd.mockImplementation((force?: boolean | Function, _opts?: unknown, callback?: Function) => {
       if (typeof force === 'function') {
-        force();
+        (force as Function)();
       } else if (callback) {
         callback();
       }
@@ -78,18 +78,18 @@ describe('MqttClient', () => {
 
   describe('constructor', () => {
     it('should create instance with config', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       expect(client).toBeInstanceOf(MqttClient);
     });
 
     it('should initialize with disconnected state', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       const info = client.getConnectionInfo();
       expect(info.state).toBe('disconnected');
     });
 
     it('should store config values', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       const info = client.getConnectionInfo();
       expect(info.brokerType).toBeNull();
       expect(info.brokerUrl).toBeNull();
@@ -98,7 +98,7 @@ describe('MqttClient', () => {
 
   describe('getConnectionInfo', () => {
     it('should return connection info object', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       const info = client.getConnectionInfo();
 
       expect(info).toHaveProperty('state');
@@ -109,7 +109,7 @@ describe('MqttClient', () => {
     });
 
     it('should have correct initial values', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       const info = client.getConnectionInfo();
 
       expect(info.state).toBe('disconnected');
@@ -122,16 +122,16 @@ describe('MqttClient', () => {
 
   describe('singleton functions', () => {
     it('getMqttClient should return singleton instance', () => {
-      const client1 = getMqttClient(testConfig);
-      const client2 = getMqttClient(testConfig);
+      const client1 = getMqttClient();
+      const client2 = getMqttClient();
 
       expect(client1).toBe(client2);
     });
 
     it('destroyMqttClient should clear singleton', () => {
-      const client1 = getMqttClient(testConfig);
+      const client1 = getMqttClient();
       destroyMqttClient();
-      const client2 = getMqttClient(testConfig);
+      const client2 = getMqttClient();
 
       expect(client1).not.toBe(client2);
     });
@@ -139,13 +139,13 @@ describe('MqttClient', () => {
 
   describe('connect method', () => {
     it('should exist', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       expect(typeof client.connect).toBe('function');
     });
 
     it('should return a promise', async () => {
-      const client = new MqttClient(testConfig);
-      const result = client.connect();
+      const client = new MqttClient();
+      const result = client.connect(testConfig.cloudBrokerUrl!, testConfig, 'cloud');
       expect(result).toBeInstanceOf(Promise);
       // Catch any errors to avoid unhandled rejection
       await result.catch(() => {});
@@ -154,21 +154,21 @@ describe('MqttClient', () => {
 
   describe('disconnect method', () => {
     it('should exist', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       expect(typeof client.disconnect).toBe('function');
     });
   });
 
   describe('subscribe method', () => {
     it('should exist', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       expect(typeof client.subscribe).toBe('function');
     });
   });
 
   describe('publish method', () => {
     it('should exist', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       expect(typeof client.publish).toBe('function');
     });
   });
@@ -179,12 +179,12 @@ describe('MqttClient', () => {
         ...testConfig,
         localBrokerUrl: 'ws://192.168.1.100:1883',
       };
-      const client = new MqttClient(configWithLocal);
+      const client = new MqttClient();
       expect(client).toBeInstanceOf(MqttClient);
     });
 
     it('should require storeId', () => {
-      const client = new MqttClient(testConfig);
+      const client = new MqttClient();
       const info = client.getConnectionInfo();
       expect(info).toBeDefined();
     });

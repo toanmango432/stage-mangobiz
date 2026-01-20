@@ -191,9 +191,9 @@ export function MqttProvider({
   );
 
   const subscribe = useCallback(
-    (topic: string, handler: MqttMessageHandler): (() => void) => {
+    <T = unknown>(topic: string, handler: MqttMessageHandler<T>): (() => void) => {
       const client = clientRef.current;
-      return client.subscribe(topic, handler);
+      return client.subscribe(topic, handler as MqttMessageHandler);
     },
     []
   );

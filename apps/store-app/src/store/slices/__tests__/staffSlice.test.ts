@@ -113,51 +113,57 @@ function createMockTeamMember(overrides: Partial<TeamMemberSettings> = {}): Team
       phone: '555-1234',
     },
     services: [
-      { serviceId: 'svc-001', serviceName: 'Service 1', serviceCategory: 'Category', canPerform: true, customPrice: null, customDuration: null },
+      { serviceId: 'svc-001', serviceName: 'Service 1', serviceCategory: 'Category', canPerform: true, defaultPrice: 50, defaultDuration: 30 },
     ],
     workingHours: {
       regularHours: [
-        { dayOfWeek: 1, isEnabled: true, shifts: [{ startTime: '09:00', endTime: '17:00' }] },
+        { dayOfWeek: 1, isWorking: true, shifts: [{ startTime: '09:00', endTime: '17:00' }] },
       ],
       timeOffRequests: [],
       scheduleOverrides: [],
+      defaultBreakDuration: 30,
+      autoScheduleBreaks: false,
     },
     permissions: {
       role: 'stylist',
-      canViewReports: false,
-      canManageStaff: false,
-      canManageSchedule: true,
-      canManageClients: true,
-      canManageServices: false,
-      canProcessPayments: true,
-      canApplyDiscounts: 'limited',
-      maxDiscountPercent: 10,
-      canVoidTransactions: false,
-      canAccessSettings: false,
+      permissions: [],
+      canAccessAdminPortal: false,
+      canAccessReports: false,
+      canModifyPrices: false,
+      canProcessRefunds: false,
+      canDeleteRecords: false,
+      canManageTeam: false,
+      canViewOthersCalendar: true,
+      canBookForOthers: true,
+      canEditOthersAppointments: false,
+      pinRequired: false,
     },
     commission: {
       type: 'percentage',
-      defaultRate: 0.40,
+      basePercentage: 40,
       tiers: [],
-      productCommission: 0.10,
-      tipShare: 1.0,
+      productCommission: 10,
+      tipHandling: 'keep_all',
     },
     payroll: {
-      payType: 'commission',
       hourlyRate: 0,
-      salary: 0,
       payPeriod: 'bi-weekly',
-      overtimeEligible: false,
       overtimeRate: 1.5,
-      taxWithholding: { federal: true, state: true, local: false },
     },
     onlineBooking: {
-      acceptsOnlineBookings: true,
-      displayOnWebsite: true,
-      bookingBuffer: { type: 'both', minutes: 15 },
+      isBookableOnline: true,
+      showOnWebsite: true,
+      showOnApp: true,
       maxAdvanceBookingDays: 60,
       minAdvanceBookingHours: 2,
+      bufferBetweenAppointments: 15,
+      bufferType: 'both',
       allowDoubleBooking: false,
+      maxConcurrentAppointments: 1,
+      requireDeposit: false,
+      autoAcceptBookings: true,
+      acceptNewClients: true,
+      displayOrder: 1,
     },
     notifications: {
       email: {
@@ -275,15 +281,15 @@ describe('staffSlice team-derived selectors', () => {
       const state = createMockState([
         {
           id: 'member-001',
-          services: [{ serviceId: 'svc-haircut', serviceName: 'Haircut', serviceCategory: 'Hair', canPerform: true, customPrice: null, customDuration: null }],
+          services: [{ serviceId: 'svc-haircut', serviceName: 'Haircut', serviceCategory: 'Hair', canPerform: true, defaultPrice: 50, defaultDuration: 30 }],
         },
         {
           id: 'member-002',
-          services: [{ serviceId: 'svc-haircut', serviceName: 'Haircut', serviceCategory: 'Hair', canPerform: false, customPrice: null, customDuration: null }],
+          services: [{ serviceId: 'svc-haircut', serviceName: 'Haircut', serviceCategory: 'Hair', canPerform: false, defaultPrice: 50, defaultDuration: 30 }],
         },
         {
           id: 'member-003',
-          services: [{ serviceId: 'svc-color', serviceName: 'Color', serviceCategory: 'Hair', canPerform: true, customPrice: null, customDuration: null }],
+          services: [{ serviceId: 'svc-color', serviceName: 'Color', serviceCategory: 'Hair', canPerform: true, defaultPrice: 50, defaultDuration: 30 }],
         },
       ]);
 
@@ -298,7 +304,7 @@ describe('staffSlice team-derived selectors', () => {
       const state = createMockState([
         {
           id: 'member-001',
-          services: [{ serviceId: 'svc-other', serviceName: 'Other', serviceCategory: 'Other', canPerform: true, customPrice: null, customDuration: null }],
+          services: [{ serviceId: 'svc-other', serviceName: 'Other', serviceCategory: 'Other', canPerform: true, defaultPrice: 50, defaultDuration: 30 }],
         },
       ]);
 

@@ -54,15 +54,18 @@ vi.mock('../../../constants/appointment', () => ({
 // Create mock time slots (full day for proper appointment positioning)
 const createMockTimeSlots = (): TimeSlotType[] => {
   const slots: TimeSlotType[] = [];
+  const baseDate = new Date('2026-01-15');
   // Full day: 0:00 to 23:45 = 96 slots (each 15 min)
   // This ensures appointments can be positioned regardless of time
   for (let hour = 0; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += 15) {
       const timeInSeconds = hour * 3600 + minute * 60;
+      const slotDate = new Date(baseDate);
+      slotDate.setHours(hour, minute, 0, 0);
       slots.push({
         timeInSeconds,
-        label: `${hour}:${minute.toString().padStart(2, '0')}`,
-        isBlocked: false,
+        time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+        date: slotDate,
       });
     }
   }
@@ -76,15 +79,16 @@ const createMockAppointment = (overrides?: Partial<LocalAppointment>): LocalAppo
   clientName: 'John Doe',
   staffId: 'staff-1',
   staffName: 'Jane Stylist',
-  services: ['Haircut'],
+  services: [{ serviceId: 'svc-1', serviceName: 'Haircut', name: 'Haircut', staffId: 'staff-1', staffName: 'Jane Stylist', duration: 30, price: 25 }],
   status: 'scheduled',
-  scheduledStartTime: new Date('2026-01-15T10:00:00'),
-  scheduledEndTime: new Date('2026-01-15T10:30:00'),
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  scheduledStartTime: new Date('2026-01-15T10:00:00').toISOString(),
+  scheduledEndTime: new Date('2026-01-15T10:30:00').toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   source: 'walk-in',
+  syncStatus: 'synced',
   ...overrides,
-});
+} as LocalAppointment);
 
 describe('StaffColumn', () => {
   const defaultProps = {

@@ -753,8 +753,9 @@ export const productsDB = {
     }
 
     return await db.products
-      .where('[storeId+isActive]')
-      .equals([storeId, true])
+      .where('storeId')
+      .equals(storeId)
+      .and(p => p.isActive === true)
       .toArray();
   },
 
@@ -766,9 +767,9 @@ export const productsDB = {
     if (!storeId) return [];
 
     return await db.products
-      .where('[storeId+isRetail]')
-      .equals([storeId, true])
-      .and(p => p.isActive === true)
+      .where('storeId')
+      .equals(storeId)
+      .and(p => p.isRetail === true && p.isActive === true)
       .toArray();
   },
 
@@ -830,7 +831,7 @@ export const productsDB = {
   /**
    * Create a new product from input data.
    */
-  async create(data: CreateProductInput, storeId: string, tenantId: string): Promise<Product> {
+  async create(data: CreateProductInput, storeId: string, tenantId: string, userId: string = 'system', deviceId: string = 'unknown'): Promise<Product> {
     const now = new Date().toISOString();
     const product: Product = {
       id: uuidv4(),
@@ -845,6 +846,14 @@ export const productsDB = {
       updatedAt: now,
       version: 1,
       isDeleted: false,
+      // Sync-related fields (required by BaseSyncableEntity)
+      syncStatus: 'local',
+      vectorClock: { [deviceId]: 1 },
+      lastSyncedVersion: 0,
+      createdBy: userId,
+      createdByDevice: deviceId,
+      lastModifiedBy: userId,
+      lastModifiedByDevice: deviceId,
     };
 
     await db.products.add(product);

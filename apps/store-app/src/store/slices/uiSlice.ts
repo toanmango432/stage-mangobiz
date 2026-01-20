@@ -1,6 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
-import type { Client } from '@/types/client';
+
+/** Minimal client info needed for booking flow */
+interface PendingBookingClientInfo {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+}
 
 interface UIState {
   activeModule: 'book' | 'frontdesk' | 'checkout' | 'transactions' | 'more';
@@ -13,7 +20,7 @@ interface UIState {
     timestamp: Date;
   }>;
   /** Client pre-selected for booking from search */
-  pendingBookingClient: Client | null;
+  pendingBookingClient: PendingBookingClientInfo | null;
 }
 
 const initialState: UIState = {
@@ -50,7 +57,7 @@ const uiSlice = createSlice({
     removeNotification: (state, action: PayloadAction<string>) => {
       state.notifications = state.notifications.filter(n => n.id !== action.payload);
     },
-    setPendingBookingClient: (state, action: PayloadAction<Client | null>) => {
+    setPendingBookingClient: (state, action: PayloadAction<PendingBookingClientInfo | null>) => {
       state.pendingBookingClient = action.payload;
     },
     clearPendingBookingClient: (state) => {

@@ -540,7 +540,7 @@ const appointmentSlice = createSlice({
         state.loading.deleteAppointment = false;
         
         // Update local appointment status
-        const appointment = state.appointments.find(apt => apt.serverId === action.payload.id);
+        const appointment = state.appointments.find(apt => apt.serverId === String(action.payload.id));
         if (appointment) {
           appointment.status = 'cancelled';
         }
@@ -742,7 +742,7 @@ function ticketDTOToLocalAppointment(ticket: TicketDTO): LocalAppointment {
 
   return {
     id: `apt_${ticket.appointmentID}`,
-    serverId: ticket.appointmentID,
+    serverId: String(ticket.appointmentID),
     storeId: '0', // Will be set from context
     clientId: ticket.customerID.toString(),
     clientName: ticket.customerName,
@@ -752,6 +752,7 @@ function ticketDTOToLocalAppointment(ticket: TicketDTO): LocalAppointment {
     services: [{
       serviceId: '0',
       serviceName: ticket.serviceName,
+      name: ticket.serviceName,
       staffId: ticket.staffID.toString(),
       staffName: ticket.staffName,
       duration: ticket.duration,

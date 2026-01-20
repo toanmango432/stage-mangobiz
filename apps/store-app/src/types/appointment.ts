@@ -39,6 +39,7 @@ export type PriceSource =
 export interface AppointmentService {
   serviceId: string;
   serviceName: string;
+  name: string;       // Alias for serviceName (required by checkout selectors)
   staffId: string;
   staffName: string;
   duration: number; // minutes
@@ -302,7 +303,7 @@ export interface RDParty {
  */
 export interface LocalAppointment extends Appointment {
   localId?: string;           // Local-only ID before sync
-  serverId?: number;          // Server appointment ID after sync
+  serverId?: string;          // Server appointment ID after sync (string UUID)
   syncStatus: SyncStatus;
   lastSyncAttempt?: string;   // ISO 8601 string
   syncError?: string;

@@ -1,0 +1,28 @@
+# Auth Migration - Ralph Progress Log
+
+## Run Information
+- **PRD**: `tasks/prd-auth-migration-supabase.md`
+- **Branch**: `ralph/auth-migration-supabase`
+- **Started**: January 20, 2026
+- **Reference**: `docs/AUTH_MIGRATION_PLAN.md` v1.1
+
+## Codebase Patterns
+
+> Add discovered patterns here as they are found. These persist across iterations.
+
+### Auth Service Patterns
+- (To be discovered)
+
+### Database Migration Patterns
+- (To be discovered)
+
+### UI Component Patterns
+- (To be discovered)
+
+---
+
+## Progress Entries
+
+> Append entries below as stories are completed. Never delete or reorder.
+
+---

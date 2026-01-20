@@ -148,9 +148,11 @@ function parseServices(json: Json): AppointmentService[] {
     const services = Array.isArray(json) ? json : [];
     return services.map((s) => {
       const service = s as Record<string, unknown>;
+      const serviceName = String(service.serviceName || service.service_name || '');
       return {
         serviceId: String(service.serviceId || service.service_id || ''),
-        serviceName: String(service.serviceName || service.service_name || ''),
+        serviceName,
+        name: String(service.name || serviceName),
         staffId: String(service.staffId || service.staff_id || ''),
         staffName: String(service.staffName || service.staff_name || ''),
         duration: Number(service.duration || 0),

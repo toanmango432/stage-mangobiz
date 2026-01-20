@@ -21,8 +21,7 @@ import {
 import type { ReviewRequest, ClientReview, Client } from '../types';
 
 // Helper to create a test client (kept for potential use in future tests)
-// @ts-expect-error - Unused but kept for future test scenarios
-const createTestClient = async (overrides: Partial<Client> = {}): Promise<Client> => {
+const _createTestClient = async (overrides: Partial<Client> = {}): Promise<Client> => {
   const client: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'syncStatus'> = {
     storeId: 'test-salon',
     firstName: 'Test',

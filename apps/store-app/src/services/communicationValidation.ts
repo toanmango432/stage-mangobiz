@@ -59,7 +59,7 @@ export async function validateClientCommunication(
 
   // Check specific channel preferences
   if (channel === 'sms' || channel === 'all') {
-    if (!client.communicationPreferences?.smsEnabled) {
+    if (!client.communicationPreferences?.allowSms) {
       await logBlockedAttempt(clientId, 'sms', 'no_sms_consent');
       return {
         canContact: false,
@@ -71,7 +71,7 @@ export async function validateClientCommunication(
   }
 
   if (channel === 'email' || channel === 'all') {
-    if (!client.communicationPreferences?.emailEnabled) {
+    if (!client.communicationPreferences?.allowEmail) {
       await logBlockedAttempt(clientId, 'email', 'no_email_consent');
       return {
         canContact: false,
@@ -83,7 +83,7 @@ export async function validateClientCommunication(
   }
 
   if (channel === 'push' || channel === 'all') {
-    if (!client.communicationPreferences?.pushEnabled) {
+    if (!client.communicationPreferences?.allowPhone) {
       return {
         canContact: false,
         blockedReason: 'no_sms_consent', // Using closest equivalent
@@ -145,12 +145,14 @@ async function logBlockedAttempt(
       action: 'communication_blocked',
       entityType: 'client',
       entityId: clientId,
-      details: {
+      description: `Communication blocked for client ${clientId} on ${channel}: ${reason}`,
+      metadata: {
         channel,
         reason,
         timestamp: new Date().toISOString(),
       },
-      severity: 'info',
+      severity: 'low',
+      success: true,
     });
   } catch (error) {
     console.warn('Failed to log blocked communication attempt:', error);

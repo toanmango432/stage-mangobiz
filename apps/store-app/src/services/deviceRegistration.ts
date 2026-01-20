@@ -267,12 +267,13 @@ export async function registerDevice(storeId: string): Promise<DeviceRegistratio
     // In demo mode, fall back to local-only operation
     if (isDemoMode) {
       console.log('[DeviceRegistration] Demo mode - using local-only registration');
-      storePairingCode(pairingCode);
+      const demoPairingCode = pairingCode || generatePairingCode();
+      storePairingCode(demoPairingCode);
 
       return {
         success: true,
         deviceId,
-        pairingCode,
+        pairingCode: demoPairingCode,
         stationName: DEFAULT_STATION_NAME,
       };
     }

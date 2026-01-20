@@ -39,15 +39,19 @@ import type { IssueGiftCardInput, GiftCardType, GiftCardDeliveryMethod } from "@
 
 type TicketStatus = 'waiting' | 'in-service' | 'completed';
 
-interface ToastFunction {
-  (props: {
-    title?: string;
-    description?: string;
-    action?: React.ReactNode;
-    variant?: "default" | "destructive";
-    duration?: number;
-  }): void;
+interface ToastInput {
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+  duration?: number;
+  action?: React.ReactElement;
 }
+
+type ToastFunction = (props: ToastInput) => {
+  id: string;
+  dismiss: () => void;
+  update: (props: ToastInput & { id: string }) => void;
+};
 
 export interface UseTicketActionsParams {
   state: TicketState;

@@ -357,7 +357,9 @@ export default function TicketPanel({
     showPaymentModal,
     canCheckout,
     onClose,
-    dispatch,
+    onShowKeyboardShortcuts: (show: boolean) => dispatch(ticketActions.toggleDialog("showKeyboardShortcuts", show)),
+    onShowPaymentModal: (show: boolean) => dispatch(ticketActions.toggleDialog("showPaymentModal", show)),
+    onSetFullPageTab: (tab: "services" | "staff") => dispatch(ticketActions.setFullPageTab(tab)),
     handleCheckout,
   });
 

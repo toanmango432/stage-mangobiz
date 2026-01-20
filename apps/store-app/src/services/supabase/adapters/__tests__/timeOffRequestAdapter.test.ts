@@ -28,6 +28,7 @@ function createMockTimeOffRequestRow(overrides: Partial<TimeOffRequestRow> = {})
     start_time: null,
     end_time: null,
     notes: 'Family vacation to Hawaii',
+    reason: null,
     total_hours: 40,
     status: 'pending',
     reviewed_by: null,

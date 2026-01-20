@@ -132,7 +132,7 @@ export default function GiftCardDetailModal({
   const auth = useAppSelector((state) => state.auth);
   const storeId = auth.storeId || '';
   const userId = auth.user?.id || '';
-  const deviceId = auth.deviceId || 'device-1';
+  const deviceId = auth.device?.id || 'device-1';
 
   // Load transaction history
   const loadTransactions = useCallback(async () => {
@@ -162,7 +162,7 @@ export default function GiftCardDetailModal({
     setActionLoading('reload');
     try {
       await giftCardDB.reloadGiftCard(
-        { giftCardId: giftCard.id, amount },
+        { giftCardId: giftCard.id, amount, staffId: userId },
         storeId,
         userId,
         deviceId
