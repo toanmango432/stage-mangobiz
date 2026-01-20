@@ -14,6 +14,7 @@
  */
 
 import { supabase } from './supabase/client';
+import bcrypt from 'bcryptjs';
 import { SecureStorage } from '@/utils/secureStorage';
 import type {
   MemberAuthSession,
@@ -261,22 +262,162 @@ function checkOfflineGrace(member: MemberAuthSession): GraceInfo {
   };
 }
 
+// ==================== PIN ATTEMPT TRACKING ====================
+
+/**
+ * Get number of failed PIN attempts for a member
+ * @param memberId - Member ID to check
+ * @returns Number of failed attempts
+ */
+function getFailedAttempts(memberId: string): number {
+  const attemptsKey = `pin_attempts_${memberId}`;
+  const attempts = localStorage.getItem(attemptsKey);
+  return attempts ? parseInt(attempts, 10) : 0;
+}
+
+/**
+ * Record a failed PIN attempt for a member
+ * @param memberId - Member ID that failed
+ */
+function recordFailedPinAttempt(memberId: string): void {
+  const attemptsKey = `pin_attempts_${memberId}`;
+  const currentAttempts = getFailedAttempts(memberId);
+  localStorage.setItem(attemptsKey, (currentAttempts + 1).toString());
+}
+
+/**
+ * Clear failed PIN attempts after successful login
+ * @param memberId - Member ID to clear
+ */
+function clearFailedAttempts(memberId: string): void {
+  localStorage.removeItem(`pin_attempts_${memberId}`);
+}
+
+/**
+ * Lock PIN for a member after too many failed attempts
+ * @param memberId - Member ID to lock
+ */
+function lockPin(memberId: string): void {
+  const lockoutKey = `pin_lockout_${memberId}`;
+  const lockoutUntil = Date.now() + PIN_LOCKOUT_MINUTES * 60 * 1000;
+  localStorage.setItem(lockoutKey, lockoutUntil.toString());
+}
+
+// ==================== PIN LOGIN ====================
+
+/**
+ * Login with PIN (offline capable)
+ *
+ * This function enables quick login for returning users and fast staff switching.
+ * It works offline by validating PIN against the cached hash in SecureStorage.
+ *
+ * Flow:
+ * 1. Get cached member profile from localStorage
+ * 2. Check PIN lockout status (fail fast)
+ * 3. Check offline grace period validity
+ * 4. Get PIN hash from SecureStorage (NOT from session object)
+ * 5. Validate PIN using bcrypt.compare()
+ * 6. Record/clear failed attempts based on result
+ * 7. Trigger background validation if online (non-blocking)
+ *
+ * @param memberId - Member ID to authenticate
+ * @param pin - PIN entered by user (4-6 digits)
+ * @returns MemberAuthSession on success
+ * @throws Error with descriptive message on failure
+ */
+async function loginWithPin(memberId: string, pin: string): Promise<MemberAuthSession> {
+  // 1. Get cached member profile
+  const cachedMembers = getCachedMembers();
+  const member = cachedMembers.find(m => m.memberId === memberId);
+
+  if (!member) {
+    throw new Error('Member not found in cache. Please login online first.');
+  }
+
+  // 2. Check lockout FIRST (fail fast before any other checks)
+  const lockoutInfo = checkPinLockout(memberId);
+  if (lockoutInfo.isLocked) {
+    throw new Error(`PIN locked. Try again in ${lockoutInfo.remainingMinutes} minutes.`);
+  }
+
+  // 3. Check offline grace period
+  const graceInfo = checkOfflineGrace(member);
+  if (!graceInfo.isValid) {
+    throw new Error('Offline access expired. Please login online to continue.');
+  }
+
+  // 4. Get PIN hash from SecureStorage (NOT from session object - security separation)
+  const pinHash = await SecureStorage.get(`pin_hash_${memberId}`);
+  if (!pinHash) {
+    throw new Error('PIN not configured. Please login online to set up your PIN.');
+  }
+
+  // 5. Validate PIN using bcrypt
+  const isValidPin = await bcrypt.compare(pin, pinHash);
+
+  if (!isValidPin) {
+    // 6a. Record failed attempt
+    recordFailedPinAttempt(memberId);
+    const attempts = getFailedAttempts(memberId);
+    const remaining = PIN_MAX_ATTEMPTS - attempts;
+
+    if (remaining <= 0) {
+      lockPin(memberId);
+      throw new Error(`PIN locked for ${PIN_LOCKOUT_MINUTES} minutes.`);
+    }
+
+    throw new Error(`Invalid PIN. ${remaining} attempts remaining.`);
+  }
+
+  // 6b. Clear failed attempts on success
+  clearFailedAttempts(memberId);
+
+  // 7. Background validation if online (non-blocking)
+  // Note: validateSessionInBackground will be implemented in US-012
+  if (navigator.onLine) {
+    // Will call: validateSessionInBackground(member);
+    // For now, just update last online auth if we can reach the server
+    updateLastOnlineAuthInBackground(member.memberId);
+  }
+
+  return member;
+}
+
+/**
+ * Update last_online_auth timestamp in the background (non-blocking)
+ * This runs after successful PIN login when online
+ * @param memberId - Member ID to update
+ */
+function updateLastOnlineAuthInBackground(memberId: string): void {
+  // Fire and forget - don't await
+  supabase
+    .from('members')
+    .update({ last_online_auth: new Date().toISOString() })
+    .eq('id', memberId)
+    .then(({ error }) => {
+      if (error) {
+        // Silently log - don't disrupt user experience
+        console.error('Failed to update last_online_auth in background:', error);
+      }
+    });
+}
+
 // ==================== EXPORTS ====================
 
 /**
  * Member Authentication Service
  *
  * Provides methods for member authentication using Supabase Auth.
- * Subsequent stories (US-009 through US-012) will add:
- * - loginWithPin() - PIN-based offline login
- * - setPin() - PIN management
- * - startGraceChecker() / stopGraceChecker() - Grace period monitoring
- * - validateSessionInBackground() - Background session validation
- * - logout() - Full logout
+ * Subsequent stories will add:
+ * - setPin() - PIN management (US-010)
+ * - startGraceChecker() / stopGraceChecker() - Grace period monitoring (US-011)
+ * - validateSessionInBackground() - Background session validation (US-012)
+ * - logout() - Full logout (US-012)
  */
 export const memberAuthService = {
-  // Password login (this story - US-008)
+  // Login methods
   loginWithPassword,
+  loginWithPin,
 
   // Session cache helpers
   getCachedMemberSession,
@@ -284,10 +425,16 @@ export const memberAuthService = {
   cacheMemberSession,
   clearCachedMemberSession,
 
-  // PIN lockout helpers (used by future stories)
+  // PIN lockout helpers
   checkPinLockout,
 
-  // Grace period helpers (used by future stories)
+  // PIN attempt tracking helpers
+  getFailedAttempts,
+  recordFailedPinAttempt,
+  clearFailedAttempts,
+  lockPin,
+
+  // Grace period helpers
   checkOfflineGrace,
 
   // Constants
