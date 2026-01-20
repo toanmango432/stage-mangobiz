@@ -745,3 +745,125 @@ All 14 acceptance criteria met:
 **Next story suggestion:** US-004 (Migration script) has all dependencies met (US-001✅, US-002✅, US-003✅), or US-017 (OfflineGraceIndicator) which has simpler scope and lower complexity (2). US-016 (SwitchUserModal) also has all dependencies met now.
 
 ---
+
+## 2026-01-20 - US-016: Update SwitchUserModal with context-aware authentication
+Commit: 5e7f76d
+
+**Why this story?** US-016 has all dependencies met (US-009✅, US-013✅) and is a critical unblocker for US-018 (main integration story). It continues the frontend auth UI chain (US-013 → US-014 → US-015 → US-016). The PinInput component from US-013 is used directly.
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:1-31`: Updated imports and added documentation
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:32-46`: Added loginContext and isOnline props
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:48-76`: Added DisplayMember interface with hasPinSetup, lockoutInfo, graceInfo
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:141-177`: getVerificationStep() determines auth method based on context and online status
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:179-210`: Updated handleMemberSelect to check lockout and determine next step
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:265-323`: Added handlePinSubmit() for PIN verification
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:328-387`: Added handlePinComplete() for auto-submit on complete
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:474-560`: Updated member list to show lockout status, no-PIN warning, grace period warning
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:565-661`: Added PIN step UI with PinInput component
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:663-744`: Added Password step UI for member-login + online
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:762-773`: Updated footer text to be context-aware
+
+**Implementation Details:**
+- Context-aware verification flow:
+  - STORE-LOGIN: Always PIN (required for shared device security)
+  - MEMBER-LOGIN + ONLINE: Password (normal Supabase Auth via memberAuthService.loginWithPassword)
+  - MEMBER-LOGIN + OFFLINE: PIN if configured, else "Connect to internet to switch users"
+- DisplayMember interface enriches MemberSession with:
+  - hasPinSetup: Whether member has PIN configured
+  - lockoutInfo: PIN lockout status from memberAuthService.checkPinLockout()
+  - graceInfo: Offline grace info from memberAuthService.checkOfflineGrace()
+- Visual indicators in member list:
+  - Red background + lock icon for locked members
+  - Amber background + wifi-off icon for offline members without PIN
+  - Clock icon + days remaining for grace period warning
+- Offline indicator in header when not connected
+- Grace period warning banner in PIN step (store-login only)
+- "Offline - Using PIN for verification" banner in PIN step (member-login + offline)
+
+**Verification:**
+All 14 acceptance criteria met:
+- ✅ Accepts props: loginContext ('store' | 'member'), isOnline (boolean) (lines 37-41)
+- ✅ Shows list of available members with avatar, name, role (lines 474-560)
+- ✅ STORE-LOGIN CONTEXT: Shows PinInput after selecting member (lines 565-661)
+- ✅ STORE-LOGIN CONTEXT: Validates PIN via memberAuthService.loginWithPin() (line 335)
+- ✅ MEMBER-LOGIN + ONLINE: Shows email/password form (lines 663-744)
+- ✅ MEMBER-LOGIN + ONLINE: Uses memberAuthService.loginWithPassword() (lines 215-260)
+- ✅ MEMBER-LOGIN + OFFLINE: Shows PinInput if PIN set up (getVerificationStep logic)
+- ✅ MEMBER-LOGIN + OFFLINE: Shows "Connect to internet" message if no PIN (line 198)
+- ✅ Shows lockout message if PIN is locked (lines 183-186, 529-533)
+- ✅ Updates Redux state on successful switch (setMemberSession calls)
+- ✅ Shows grace period warning if < 2 days remaining (lines 589-602)
+- ✅ Shows offline indicator when not connected (lines 410-416)
+- ✅ No forbidden strings: as any, 'Test Client' (verified)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- MemberSession.role is type MemberRole, MemberAuthSession.role is string - need type casting
+- MemberSession requires storeIds array from MemberAuthSession
+- useCallback dependencies must be complete to avoid stale closure issues
+- Pre-existing lint errors in codebase (485 errors total) - not from this change
+
+**Patterns to sync:**
+- None (follows patterns established in US-015)
+
+**Next story suggestion:** US-017 (OfflineGraceIndicator) has all dependencies met (US-011✅) and unblocks US-018. Alternatively, US-019 (ForgotPasswordModal) depends only on US-015✅.
+
+---
+
+## 2026-01-20 - US-017: Create OfflineGraceIndicator component
+Commit: 177f960
+
+**Why this story?** US-017 has all dependencies met (US-011✅), low complexity (2), and is a critical unblocker for US-018 (main integration story). Creating this component continues the frontend auth UI chain.
+
+**Changes:**
+- `apps/store-app/src/components/auth/OfflineGraceIndicator.tsx:1-124` (NEW): Created offline grace indicator component
+
+**Implementation Details:**
+- Props: daysRemaining, isOffline, className
+- Three severity levels: none (hidden), warning (yellow), critical (red)
+- Severity logic:
+  - Critical: <= 2 days remaining (red background)
+  - Warning: offline OR <= 5 days remaining (amber/yellow background)
+  - None: online AND > 5 days (component returns null)
+- Icons based on state:
+  - Offline: WifiOff icon
+  - Critical: AlertTriangle icon
+  - Warning: Clock icon
+- Messages:
+  - Offline: "Offline - connect to extend access"
+  - Critical/Warning: "X days offline access remaining"
+- Accessibility: role="status", aria-live="polite", aria-atomic="true"
+- Uses Tailwind classes with design-consistent amber/red color scheme
+- Dark mode support via dark: prefixed classes
+
+**Verification:**
+All 9 acceptance criteria met:
+- ✅ Accepts props: daysRemaining, isOffline (lines 19-28)
+- ✅ Shows nothing when online and grace > 5 days (getSeverity returns 'none', line 80)
+- ✅ Shows yellow warning when offline or grace <= 5 days (lines 88-92)
+- ✅ Shows red critical when grace <= 2 days (lines 94-98)
+- ✅ Displays 'X days offline access remaining' message (formatDaysRemaining function)
+- ✅ Displays 'Offline - connect to extend access' when offline (line 110)
+- ✅ Uses appropriate icons (wifi-off, clock, warning) (lines 104-106)
+- ✅ No forbidden strings (verified)
+- ✅ pnpm run typecheck passes
+
+**Browser Verification:**
+- Component renders without errors: PASS
+- Warning state styling (amber background): PASS
+- Critical state styling (red background): PASS
+- Offline state with WifiOff icon: PASS
+- Accessibility (role="status"): PASS
+
+**Learnings:**
+- lucide-react provides WifiOff, Clock, and AlertTriangle icons used in the component
+- cn() utility from @/lib/utils handles conditional class merging
+- Component uses inline-flex for minimal footprint as badge/banner
+
+**Patterns to sync:**
+- None (standard React component pattern)
+
+**Next story suggestion:** US-018 (Integrate memberAuthService with storeAuthManager) now has all dependencies met (US-011✅, US-012✅, US-015✅, US-016✅, US-017✅). Alternatively, US-019 (Forgot Password flow) has lower complexity.
+
+---

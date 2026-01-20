@@ -430,7 +430,7 @@
         "Verify ALL scenarios in browser using Playwright MCP"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 4,
       "dependencies": ["US-009", "US-013"],
@@ -457,7 +457,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 2,
       "dependencies": ["US-011"],
