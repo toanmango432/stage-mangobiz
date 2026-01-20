@@ -114,7 +114,7 @@ import {
 } from '@/services/sqliteServices';
 
 // Domain services (extracted for modularity)
-import { appointmentsService, clientsService, ticketsService } from '@/services/domain';
+import { appointmentsService, clientsService, ticketsService, staffService } from '@/services/domain';
 
 // API-FIRST: Import API client and endpoints
 import { createAPIClient, endpoints } from '@mango/api-client';
@@ -407,114 +407,8 @@ logBackendSelection();
 // Current placeholder: always uses Dexie for backwards compatibility.
 const USE_SQLITE = shouldUseSQLite();
 
-// clientsService is imported from @/services/domain/clientDataService
-
-/**
- * Staff data operations - LOCAL-FIRST
- * Reads from IndexedDB or SQLite, writes queue for background sync
- *
- * SQLite routing: When USE_SQLITE=true and running in Electron, uses SQLite via sqliteStaffDB
- */
-export const staffService = {
-  async getAll(): Promise<Staff[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      return sqliteStaffDB.getAll(storeId);
-    }
-    return staffDB.getAll(storeId);
-  },
-
-  async getById(id: string): Promise<Staff | null> {
-    if (USE_SQLITE) {
-      const staff = await sqliteStaffDB.getById(id);
-      return staff || null;
-    }
-    const staff = await staffDB.getById(id);
-    return staff || null;
-  },
-
-  async getActive(): Promise<Staff[]> {
-    const storeId = getStoreId();
-    if (!storeId) return [];
-
-    if (USE_SQLITE) {
-      return sqliteStaffDB.getAvailable(storeId);
-    }
-    return staffDB.getAvailable(storeId);
-  },
-
-  async create(staffData: Omit<Staff, 'id' | 'createdAt' | 'updatedAt'>): Promise<Staff> {
-    const storeId = getStoreId();
-    if (!storeId) throw new Error('No store ID');
-
-    let created: Staff;
-    if (USE_SQLITE) {
-      created = await sqliteStaffDB.create({ ...staffData, storeId });
-    } else {
-      created = await staffDB.create({ ...staffData, storeId });
-    }
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('staff', 'create', created.id, created);
-
-    return created;
-  },
-
-  async update(id: string, updates: Partial<Staff>): Promise<Staff | null> {
-    let updated: Staff | null;
-    if (USE_SQLITE) {
-      updated = await sqliteStaffDB.update(id, updates);
-    } else {
-      const result = await staffDB.update(id, updates);
-      updated = result ?? null;
-    }
-    if (!updated) return null;
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('staff', 'update', id, updated);
-
-    return updated;
-  },
-
-  async delete(id: string): Promise<void> {
-    if (USE_SQLITE) {
-      await sqliteStaffDB.delete(id);
-    } else {
-      await staffDB.delete(id);
-    }
-
-    // Queue for background sync (non-blocking)
-    queueSyncOperation('staff', 'delete', id, null);
-  },
-
-  async clockIn(id: string): Promise<Staff | null> {
-    let updated: Staff | null | undefined;
-    if (USE_SQLITE) {
-      updated = await sqliteStaffDB.clockIn(id);
-    } else {
-      updated = await staffDB.clockIn(id);
-    }
-    if (updated) {
-      queueSyncOperation('staff', 'update', id, updated);
-    }
-    return updated || null;
-  },
-
-  async clockOut(id: string): Promise<Staff | null> {
-    let updated: Staff | null | undefined;
-    if (USE_SQLITE) {
-      updated = await sqliteStaffDB.clockOut(id);
-    } else {
-      updated = await staffDB.clockOut(id);
-    }
-    if (updated) {
-      queueSyncOperation('staff', 'update', id, updated);
-    }
-    return updated || null;
-  },
-};
+// Note: clientsService is imported from '@/services/domain' (extracted for modularity)
+// Note: staffService is imported from '@/services/domain' (extracted for modularity)
 
 /**
  * Services data operations - LOCAL-FIRST
@@ -2567,7 +2461,7 @@ const giftCardDesignsService = {
 export { shouldUseSQLite, getBackendType } from '@/config/featureFlags';
 
 // Re-export domain services for backward compatibility
-export { appointmentsService, clientsService } from '@/services/domain';
+export { appointmentsService, clientsService, staffService } from '@/services/domain';
 
 export const dataService = {
   // Execution helpers

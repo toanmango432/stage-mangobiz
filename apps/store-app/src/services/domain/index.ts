@@ -12,3 +12,4 @@
 export { appointmentsService } from './appointmentDataService';
 export { clientsService } from './clientDataService';
 export { ticketsService } from './ticketDataService';
+export { staffService } from './staffDataService';
