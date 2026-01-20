@@ -10,3 +10,4 @@
  */
 
 export { appointmentsService } from './appointmentDataService';
+export { clientsService } from './clientDataService';
