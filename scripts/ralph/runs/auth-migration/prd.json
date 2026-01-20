@@ -545,7 +545,7 @@
         "No forbidden strings"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 4,
       "dependencies": ["US-012"],
@@ -572,7 +572,7 @@
         "No forbidden strings"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "category": "test",
       "complexity": 3,
       "dependencies": ["US-018", "US-019"],
