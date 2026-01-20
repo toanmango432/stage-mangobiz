@@ -4,17 +4,12 @@ import { Clock, Timer, Users, AlertTriangle, FileText } from 'lucide-react';
 import { Card, SectionHeader, Button, Tabs } from '../../components/SharedComponents';
 import type { AppDispatch, RootState } from '@/store';
 import {
-  clockIn,
-  clockOut,
-  startBreak,
-  endBreak,
   fetchTimesheetsByStaff,
   fetchStaffShiftStatus,
   selectStaffShiftStatus,
   selectTimesheetsByStaff,
 } from '@/store/slices/timesheetSlice';
 import { selectAllTeamMembers } from '@/store/slices/teamSlice';
-import type { BreakType } from '@/types/timesheet';
 import { TimesheetDashboard } from '../../components/TimesheetDashboard';
 
 // Types
@@ -31,6 +26,9 @@ import {
   TimesheetDetailModal,
 } from './components';
 
+// Hooks
+import { useTimesheetActions } from './hooks';
+
 // ============================================
 // MAIN TIMESHEET SECTION COMPONENT
 // ============================================
@@ -41,9 +39,17 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
   storeId,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedTimesheetId, setSelectedTimesheetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('staff');
+
+  // Use custom hook for clock in/out and break actions
+  const {
+    isLoading,
+    handleClockIn,
+    handleClockOut,
+    handleStartBreak,
+    handleEndBreak,
+  } = useTimesheetActions({ memberId, storeId });
 
   // Get shift status from Redux
   const shiftStatus = useSelector((state: RootState) =>
@@ -70,63 +76,6 @@ export const TimesheetSection: React.FC<TimesheetSectionProps> = ({
 
   // Sort timesheets by date (most recent first)
   const sortedTimesheets = [...timesheets].sort((a, b) => b.date.localeCompare(a.date));
-
-  // Handlers
-  const handleClockIn = async () => {
-    setIsLoading(true);
-    try {
-      await dispatch(clockIn({
-        params: { staffId: memberId },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
-    } catch (error) {
-      console.error('Failed to clock in:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClockOut = async () => {
-    setIsLoading(true);
-    try {
-      await dispatch(clockOut({
-        params: { staffId: memberId },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
-    } catch (error) {
-      console.error('Failed to clock out:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleStartBreak = async (breakType: BreakType) => {
-    setIsLoading(true);
-    try {
-      await dispatch(startBreak({
-        params: { staffId: memberId, breakType },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
-    } catch (error) {
-      console.error('Failed to start break:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEndBreak = async () => {
-    setIsLoading(true);
-    try {
-      await dispatch(endBreak({
-        params: { staffId: memberId },
-        context: { userId: memberId, deviceId: 'web', storeId },
-      })).unwrap();
-    } catch (error) {
-      console.error('Failed to end break:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const isClockedIn = shiftStatus?.isClockedIn ?? false;
   const isOnBreak = shiftStatus?.isOnBreak ?? false;
