@@ -263,8 +263,8 @@ export function cacheMigrationStatus(status: LocalMigrationStatus): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(MIGRATION_STATUS_KEY, JSON.stringify(status));
     }
-  } catch {
-    // Ignore localStorage errors
+  } catch (error) {
+    console.warn('[FeatureFlags] Failed to cache migration status:', error);
   }
 }
 

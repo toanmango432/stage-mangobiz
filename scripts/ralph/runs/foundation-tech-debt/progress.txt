@@ -132,3 +132,22 @@ Commit: eb4dba3
 **Next story suggestion:** US-004 (Fix silent error in getCachedMigrationStatus) - same file, same pattern, code is fresh in context.
 
 ---
+
+## 2026-01-19 - US-004: Fix silent error in featureFlags getCachedMigrationStatus
+Commit: cbd8e53
+
+**Why this story?** US-004 is the next priority after US-003, same file (featureFlags.ts), same pattern (adding error logging to silent catch blocks). Code structure is fresh in context from previous story.
+
+**Changes:**
+- `apps/store-app/src/config/featureFlags.ts:251-253`: Changed empty catch block to log errors:
+  - Before: `} catch { return null; }`
+  - After: `} catch (error) { console.warn('[FeatureFlags] Failed to parse cached migration status:', error); return null; }`
+
+**Learnings:**
+- Pre-existing TypeScript errors continue to exist in test files and type files (not from this change)
+- featureFlags.ts itself has no TypeScript errors - verified with `grep -i featureFlags` on typecheck output
+- Pre-existing test failures in integration tests (e.g., padCheckoutFlow.test.ts, WaitListItem.test.tsx) - these are unrelated to featureFlags.ts changes
+
+**Next story suggestion:** US-005 (Fix silent error in cacheMigrationStatus) - same file, same pattern, line ~265.
+
+---
