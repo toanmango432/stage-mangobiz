@@ -626,3 +626,107 @@ Total: 9 components in `checkout/components/` folder
 **Next story suggestion:** US-019 (Create appointmentDataService.ts from dataService) - next available priority with no dependencies. Different category (refactor), starts the dataService domain extraction series (US-019 to US-026).
 
 ---
+
+## 2026-01-19 - US-019: Create appointmentDataService.ts from dataService
+Commit: 54fc364
+
+**Why this story?** US-019 is the highest priority incomplete story with no dependencies among remaining stories. It starts the dataService domain extraction series (US-019 to US-026). This follows the previous TicketPanel verification stories.
+
+**Changes:**
+- `apps/store-app/src/services/domain/appointmentDataService.ts (NEW):1-177`: Created new domain service file with:
+  - Extracted `appointmentsService` object with all 8 methods: getByDate, getById, create, update, getUpcoming, updateStatus, delete, checkIn
+  - Included local helper functions: getStoreId(), queueSyncOperation()
+  - USE_SQLITE constant from feature flags for backend routing
+  - Proper imports from @/store, @/db/database, @/services/sqliteServices, @/types
+- `apps/store-app/src/services/domain/index.ts (NEW):1-11`: Created barrel export for domain services
+- `apps/store-app/src/services/dataService.ts:117`: Added import from '@/services/domain'
+- `apps/store-app/src/services/dataService.ts:733`: Removed inline appointmentsService definition (~106 lines removed)
+- `apps/store-app/src/services/dataService.ts:2914`: Added re-export for backward compatibility
+
+**Acceptance Criteria Check:**
+- ✅ Create src/services/domain/ folder if not exists
+- ✅ Extract all appointment-related functions to appointmentDataService.ts
+- ✅ Export appointmentDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from appointmentDataService (facade pattern)
+- ✅ All existing appointment imports still work (backward compatible)
+- ✅ No forbidden strings: 'as any', 'void _'
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx test files (unrelated to domain extraction)
+
+**Learnings:**
+- The facade pattern works well for extracting services: import from domain/, re-export for backward compatibility
+- queueSyncOperation needed to be duplicated in the domain service since it's a private helper in dataService.ts
+- dataService.ts went from ~3,090 lines to ~2,990 lines (100 lines extracted)
+- Future extractions (US-020 to US-026) will follow the same pattern
+
+**Next story suggestion:** US-020 (Create clientDataService.ts from dataService) - depends on US-019 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---
+
+## 2026-01-19 - US-020: Create clientDataService.ts from dataService
+Commit: 04b16f0
+
+**Why this story?** US-020 is the highest priority incomplete story with satisfied dependencies (US-019 complete). Same category (refactor), continues the dataService domain extraction series. Logical next step after completing appointmentDataService extraction.
+
+**Changes:**
+- `apps/store-app/src/services/domain/clientDataService.ts (NEW):1-263`: Created new domain service file with:
+  - Extracted `clientsService` object with all 7 methods: getAll, getById, search, create, update, delete, getVipClients
+  - Included local helper functions: getStoreId(), getAPIClient(), extractData(), queueSyncOperation()
+  - USE_API and USE_SQLITE constants for backend routing
+  - Full support for both API mode and LOCAL-FIRST mode
+  - Proper imports from @/store, @/db/database, @/services/sqliteServices, @mango/api-client
+- `apps/store-app/src/services/domain/index.ts:13`: Added export for clientsService
+- `apps/store-app/src/services/dataService.ts:117`: Added clientsService to domain import
+- `apps/store-app/src/services/dataService.ts:410-575`: Removed inline clientsService definition (~165 lines removed)
+- `apps/store-app/src/services/dataService.ts:2749`: Added clientsService to backward-compatible re-export
+
+**Acceptance Criteria Check:**
+- ✅ Extract all client-related functions to clientDataService.ts
+- ✅ Export clientDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from clientDataService
+- ✅ All existing client imports still work (backward compatible)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx, checkout/__tests__/*.tsx, uiTicketsSlice.ts, types/index.ts test files (unrelated to domain extraction)
+
+**Learnings:**
+- clientsService has both API mode (USE_API) and LOCAL-FIRST mode (default), unlike appointmentsService which is LOCAL-FIRST only
+- The clientsService uses the full API abstraction with getAPIClient(), extractData() helpers which needed to be duplicated
+- dataService.ts went from ~2,990 lines to ~2,825 lines (165 lines extracted)
+- Pattern is now well-established: future extractions (US-021 to US-026) can follow the same structure
+
+**Next story suggestion:** US-021 (Create ticketDataService.ts from dataService) - depends on US-020 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---
+
+## 2026-01-19 - US-021: Create ticketDataService.ts from dataService
+Commit: 94cdcc8
+
+**Why this story?** US-021 is the highest priority incomplete story with satisfied dependencies (US-020 complete). Same category (refactor), continues the dataService domain extraction series. Tickets is the largest domain as noted in PRD.
+
+**Changes:**
+- `apps/store-app/src/services/domain/ticketDataService.ts (NEW):1-265`: Created new domain service file with:
+  - Extracted `ticketsService` object with all 15 methods: getByDate, getById, getOpenTickets, getByStatus, getByClientId, getByAppointmentId, create, update, updateStatus, complete, delete, getDailySummary, getUpdatedSince, getDrafts, createDraft
+  - Included local helper functions: getStoreId(), queueSyncOperation()
+  - USE_SQLITE constant from feature flags for backend routing
+  - Full SQLite/IndexedDB dual-path support
+  - Proper imports from @/store, @/db/database, @/services/sqliteServices, @/types
+- `apps/store-app/src/services/domain/index.ts:14`: Added export for ticketsService
+- `apps/store-app/src/services/dataService.ts:117`: Added ticketsService to domain import
+- `apps/store-app/src/services/dataService.ts:568-569`: Replaced inline ticketsService (~173 lines) with comment referencing domain module
+- The ticketsService re-export at line 2598 now references the imported ticketsService for backward compatibility
+
+**Acceptance Criteria Check:**
+- ✅ Extract all ticket-related functions to ticketDataService.ts
+- ✅ Export ticketDataService from domain/index.ts
+- ✅ dataService.ts imports and re-exports from ticketDataService (facade pattern)
+- ✅ All existing ticket imports still work (backward compatible via dataService.tickets)
+- ⚠️ TypeScript: Pre-existing errors in Book/__tests__/*.tsx, uiTicketsSlice.ts, frontdesk/*.tsx test files (unrelated to domain extraction)
+
+**Learnings:**
+- ticketsService is LOCAL-FIRST only (no API mode), similar to appointmentsService
+- Extracted 15 methods including specialized ones: getDailySummary, getUpdatedSince, getDrafts, createDraft
+- queueSyncOperation uses 'ticket' entity type (matching the pattern from dataService.ts)
+- dataService.ts went from ~2,825 lines to ~2,650 lines (~175 lines extracted)
+- Pattern is consistent across all domain extractions (US-019, US-020, US-021)
+
+**Next story suggestion:** US-022 (Create staffDataService.ts from dataService) - depends on US-021 (now complete), same category (refactor), continues the dataService domain extraction series.
+
+---

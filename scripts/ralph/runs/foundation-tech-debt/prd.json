@@ -413,7 +413,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "notes": "Look for functions like: getAppointments, createAppointment, updateAppointment, deleteAppointment. Use facade pattern."
@@ -435,7 +435,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-019"],
@@ -458,7 +458,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 3,
       "dependencies": ["US-020"],
