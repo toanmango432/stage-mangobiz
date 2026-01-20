@@ -330,3 +330,31 @@ Commit: bbb0fa9
 **Next story suggestion:** US-012 (Implement PaymentModal test - handles payment selection) - same file, depends on US-010 (complete), tests payment method selection interaction.
 
 ---
+
+## 2026-01-19 - US-012: Implement PaymentModal test - handles payment selection
+Commit: 4e52b41
+
+**Why this story?** US-012 is the highest priority incomplete story with satisfied dependencies (US-010 complete). Same file (PaymentModal.test.tsx), same category (test), code structure fresh in context from previous PaymentModal tests.
+
+**Changes:**
+- `apps/store-app/src/components/checkout/__tests__/PaymentModal.test.tsx:197-225`: Replaced placeholder test with real assertions:
+  - Navigate to step 2 (Payment) by clicking "Continue to Payment" button
+  - Click on the Cash payment method card
+  - Assert Cash payment section appears (input for cash received)
+  - Click on Credit Card payment method
+  - Assert Card payment section appears (Apply button)
+  - Assert Cash input is no longer visible (confirms state change)
+
+**Learnings:**
+- Payment method selection is handled by `handleSelectMethod` function (line 440-444) which sets `currentMethod` state
+- Each payment method type renders different UI when selected:
+  - `card`: Shows "Apply ${amount}" button (`button-apply-card`)
+  - `cash`: Shows cash received input and quick amount buttons (`input-cash-received`)
+  - `gift_card`: Shows "Enter Gift Card Code" button (`button-enter-gift-card`)
+  - `custom`: Shows payment name input and apply button (`input-custom-payment-name`, `button-apply-custom`)
+- The selected method's UI section replaces the previous one - only one is shown at a time
+- Pre-existing TypeScript errors in Book/__tests__/*.tsx files are unrelated to PaymentModal changes
+
+**Next story suggestion:** US-013 (Implement PaymentModal test - displays correct totals) - same file, depends on US-008 (complete), tests total display calculations.
+
+---

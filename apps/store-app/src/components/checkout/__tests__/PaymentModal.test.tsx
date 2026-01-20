@@ -228,20 +228,132 @@ describe('PaymentModal', () => {
     });
   });
 
+  describe('totals display', () => {
+    it('should display correct totals on tip step', () => {
+      // Use specific values for easy verification
+      const total = 100; // Service total
+      const tax = 8.25;
+      const defaultTipPercentage = 20; // Component default
+      const expectedTip = (total * defaultTipPercentage) / 100; // $20
+      const expectedTotalWithTip = total + expectedTip; // $120
+
+      renderWithProvider(
+        <PaymentModal
+          {...defaultProps}
+          total={total}
+          subtotal={total}
+          tax={tax}
+        />
+      );
+
+      // Step 1 should show service total
+      expect(screen.getByText('Service total')).toBeInTheDocument();
+      expect(screen.getByText(`$${total.toFixed(2)}`)).toBeInTheDocument();
+
+      // Step 1 should show total with tip (default 20% tip)
+      expect(screen.getByText('Your total (with tip)')).toBeInTheDocument();
+      expect(screen.getByText(`$${expectedTotalWithTip.toFixed(2)}`)).toBeInTheDocument();
+
+      // Tip options should be available
+      expect(screen.getByTestId('button-tip-15')).toBeInTheDocument();
+      expect(screen.getByTestId('button-tip-18')).toBeInTheDocument();
+      expect(screen.getByTestId('button-tip-20')).toBeInTheDocument();
+      expect(screen.getByTestId('button-tip-25')).toBeInTheDocument();
+    });
+
+    it('should update total when tip percentage changes', async () => {
+      const total = 100;
+      renderWithProvider(
+        <PaymentModal {...defaultProps} total={total} />
+      );
+
+      // Initially shows 20% tip (default)
+      expect(screen.getByText('$120.00')).toBeInTheDocument(); // 100 + 20% tip
+
+      // Click 15% tip button
+      const tip15Button = screen.getByTestId('button-tip-15');
+      await act(async () => {
+        fireEvent.click(tip15Button);
+      });
+
+      // Should now show $115 (100 + 15% tip)
+      expect(screen.getByText('$115.00')).toBeInTheDocument();
+    });
+
+    it('should show zero tip when no tip is selected', async () => {
+      const total = 100;
+      renderWithProvider(
+        <PaymentModal {...defaultProps} total={total} />
+      );
+
+      // Click "No Tip" button
+      const noTipButton = screen.getByTestId('button-no-tip');
+      await act(async () => {
+        fireEvent.click(noTipButton);
+      });
+
+      // Total with tip should equal service total (no tip)
+      // There should be two instances of $100.00 - service total and total with tip
+      const amounts = screen.getAllByText('$100.00');
+      expect(amounts.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
   describe('tip handling', () => {
     it('should show tip options', () => {
-      // Placeholder for tip options test
-      expect(true).toBe(true);
+      renderWithProvider(<PaymentModal {...defaultProps} />);
+
+      // Step 1 shows tip options
+      expect(screen.getByTestId('button-tip-15')).toBeInTheDocument();
+      expect(screen.getByTestId('button-tip-18')).toBeInTheDocument();
+      expect(screen.getByTestId('button-tip-20')).toBeInTheDocument();
+      expect(screen.getByTestId('button-tip-25')).toBeInTheDocument();
+      expect(screen.getByTestId('button-no-tip')).toBeInTheDocument();
+      expect(screen.getByTestId('input-custom-tip')).toBeInTheDocument();
     });
 
-    it('should calculate tip based on percentage', () => {
-      // Placeholder for tip calculation test
-      expect(true).toBe(true);
+    it('should calculate tip based on percentage', async () => {
+      const total = 50;
+      renderWithProvider(<PaymentModal {...defaultProps} total={total} />);
+
+      // Click 25% tip
+      const tip25Button = screen.getByTestId('button-tip-25');
+      await act(async () => {
+        fireEvent.click(tip25Button);
+      });
+
+      // 25% of $50 = $12.50, total = $62.50
+      expect(screen.getByText('$62.50')).toBeInTheDocument();
     });
 
-    it('should show tip distribution preview', () => {
-      // Placeholder for tip distribution test
-      expect(true).toBe(true);
+    it('should show tip distribution preview', async () => {
+      // Multiple staff members needed for tip distribution to appear
+      const multipleStaff = [
+        { id: 'staff-1', name: 'John Doe', serviceTotal: 30 },
+        { id: 'staff-2', name: 'Jane Smith', serviceTotal: 70 },
+      ];
+
+      renderWithProvider(
+        <PaymentModal {...defaultProps} staffMembers={multipleStaff} />
+      );
+
+      // With tip amount > 0 and multiple staff, distribution buttons should appear
+      // First verify tip amount is > 0 (default 20% of $100 = $20)
+      expect(screen.getByText('$120.00')).toBeInTheDocument();
+
+      // Click auto-distribute button
+      const autoDistributeButton = screen.getByTestId('button-auto-distribute-tip');
+      await act(async () => {
+        fireEvent.click(autoDistributeButton);
+      });
+
+      // Tip distribution should show staff names
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+
+      // Distribution amounts: John gets 30% ($6), Jane gets 70% ($14)
+      expect(screen.getByText('$6.00')).toBeInTheDocument();
+      expect(screen.getByText('$14.00')).toBeInTheDocument();
     });
   });
 
