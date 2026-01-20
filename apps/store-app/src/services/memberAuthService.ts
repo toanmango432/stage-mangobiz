@@ -543,11 +543,9 @@ async function loginWithPin(memberId: string, pin: string): Promise<MemberAuthSe
   clearFailedAttempts(memberId);
 
   // 7. Background validation if online (non-blocking)
-  // Note: validateSessionInBackground will be implemented in US-012
   if (navigator.onLine) {
-    // Will call: validateSessionInBackground(member);
-    // For now, just update last online auth if we can reach the server
-    updateLastOnlineAuthInBackground(member.memberId);
+    // Run background validation (checks member status, password changes, revocations)
+    validateSessionInBackground(member);
   }
 
   return member;
@@ -572,20 +570,159 @@ function updateLastOnlineAuthInBackground(memberId: string): void {
     });
 }
 
+// ==================== BACKGROUND VALIDATION ====================
+
+/**
+ * Validate member session in the background
+ *
+ * This function is called after successful PIN login when online.
+ * It verifies the session is still valid by checking:
+ * 1. Member is still active in database
+ * 2. Password hasn't changed since session was created
+ * 3. Session hasn't been revoked by admin
+ *
+ * If validation fails, dispatches forceLogout with appropriate reason.
+ * Network errors are caught silently (don't logout on network failure).
+ *
+ * @param member - Member session to validate
+ */
+async function validateSessionInBackground(member: MemberAuthSession): Promise<void> {
+  try {
+    // 1. Check if member is still active in database
+    const { data: memberData, error: memberError } = await supabase
+      .from('members')
+      .select('id, status, password_changed_at')
+      .eq('id', member.memberId)
+      .single();
+
+    if (memberError) {
+      // Network error or member not found - don't logout, just log
+      console.error('Background validation: Failed to fetch member:', memberError);
+      return;
+    }
+
+    // Member deactivated
+    if (memberData.status !== 'active') {
+      store.dispatch(forceLogout({
+        reason: 'account_deactivated',
+        message: 'Your account has been deactivated. Please contact your administrator.',
+      }));
+      stopGraceChecker();
+      return;
+    }
+
+    // 2. Check if password was changed after session was created
+    if (memberData.password_changed_at) {
+      const passwordChangedAt = new Date(memberData.password_changed_at);
+      if (passwordChangedAt > member.sessionCreatedAt) {
+        store.dispatch(forceLogout({
+          reason: 'password_changed',
+          message: 'Your password was changed. Please log in again.',
+        }));
+        stopGraceChecker();
+        return;
+      }
+    }
+
+    // 3. Check for session revocations
+    const { data: revocations, error: revocationError } = await supabase
+      .from('member_session_revocations')
+      .select('id, revoke_all_before')
+      .eq('member_id', member.memberId)
+      .order('revoked_at', { ascending: false })
+      .limit(1);
+
+    if (revocationError) {
+      // Network error - don't logout, just log
+      console.error('Background validation: Failed to check revocations:', revocationError);
+      return;
+    }
+
+    // Check if session was created before the most recent revocation
+    if (revocations && revocations.length > 0) {
+      const revokeAllBefore = new Date(revocations[0].revoke_all_before);
+      if (member.sessionCreatedAt < revokeAllBefore) {
+        store.dispatch(forceLogout({
+          reason: 'session_revoked',
+          message: 'Your session was revoked by an administrator. Please log in again.',
+        }));
+        stopGraceChecker();
+        return;
+      }
+    }
+
+    // 4. Session is valid - update lastOnlineAuth in cache
+    const now = new Date();
+    const updatedMember: MemberAuthSession = {
+      ...member,
+      lastOnlineAuth: now,
+    };
+    cacheMemberSession(updatedMember);
+
+    // Also update timestamp in database (non-blocking)
+    supabase
+      .from('members')
+      .update({ last_online_auth: now.toISOString() })
+      .eq('id', member.memberId)
+      .then(({ error }) => {
+        if (error) {
+          console.error('Background validation: Failed to update last_online_auth:', error);
+        }
+      });
+
+  } catch (error) {
+    // Catch any unexpected errors - don't logout on network/parsing issues
+    console.error('Background validation: Unexpected error:', error);
+  }
+}
+
+// ==================== LOGOUT ====================
+
+/**
+ * Logout the current member
+ *
+ * This function:
+ * 1. Stops the grace period checker
+ * 2. Clears cached member session
+ * 3. Signs out of Supabase Auth
+ *
+ * Note: This does NOT dispatch forceLogout action.
+ * For that, use the forceLogout action directly with a reason.
+ */
+async function logout(): Promise<void> {
+  // 1. Stop grace checker
+  stopGraceChecker();
+
+  // 2. Clear cached session
+  clearCachedMemberSession();
+
+  // 3. Sign out of Supabase Auth
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Failed to sign out of Supabase:', error);
+    // Don't throw - session is already cleared locally
+  }
+}
+
 // ==================== EXPORTS ====================
 
 /**
  * Member Authentication Service
  *
  * Provides methods for member authentication using Supabase Auth.
- * Subsequent stories will add:
- * - validateSessionInBackground() - Background session validation (US-012)
- * - logout() - Full logout (US-012)
+ * Features:
+ * - Password login via Supabase Auth
+ * - PIN login for offline-capable quick access
+ * - Background session validation
+ * - Grace period management for offline access
  */
 export const memberAuthService = {
   // Login methods
   loginWithPassword,
   loginWithPin,
+
+  // Logout
+  logout,
 
   // PIN management
   setPin,
@@ -611,9 +748,12 @@ export const memberAuthService = {
   // Grace period helpers
   checkOfflineGrace,
 
-  // Grace period checker (US-011)
+  // Grace period checker
   startGraceChecker,
   stopGraceChecker,
+
+  // Background validation
+  validateSessionInBackground,
 
   // Constants
   PIN_MAX_ATTEMPTS,
