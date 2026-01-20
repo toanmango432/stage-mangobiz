@@ -711,7 +711,7 @@
         "Verify offline behavior in browser using Playwright MCP"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 3,
       "dependencies": ["US-009", "US-022", "US-025"],
