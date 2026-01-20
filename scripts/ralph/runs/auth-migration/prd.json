@@ -941,7 +941,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "category": "frontend",
       "complexity": 1,
       "notes": "Type casts bypass TypeScript safety and can mask bugs."
@@ -960,7 +960,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 1,
       "notes": "any type defeats TypeScript safety."
@@ -980,7 +980,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "dependencies": [

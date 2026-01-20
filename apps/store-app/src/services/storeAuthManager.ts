@@ -18,6 +18,7 @@ import { memberAuthService } from './memberAuthService';
 import { devicesDB } from './devicesDB';
 import { setStoreTimezone } from '@/utils/dateUtils';
 import { auditLogger } from './audit/auditLogger';
+import { authLogger } from '@/utils/logger';
 import type { DeviceMode, Device } from '@/types/device';
 import type { MemberAuthSession } from '@/types/memberAuth';
 import type { DefaultsData } from './defaultsPopulator';
@@ -94,11 +95,11 @@ class StoreAuthManager {
    * Initialize auth manager - LOCAL-FIRST: Check cached session first
    */
   async initialize(): Promise<StoreAuthState> {
-    console.log('🔐 Initializing Store Auth Manager (LOCAL-FIRST)...');
+    authLogger.info('Initializing Store Auth Manager (LOCAL-FIRST)');
 
     // LOCAL-FIRST: Check if session was marked invalid by background validation
     if (authService.isSessionMarkedInvalid()) {
-      console.log('⚠️ Session was invalidated - clearing and requiring re-login');
+      authLogger.warn('Session was invalidated - clearing and requiring re-login');
       authService.clearInvalidMarkers();
       await this.logoutStore();
       this.updateState({
@@ -117,7 +118,7 @@ class StoreAuthManager {
       const tier = await secureStorage.getTier();
 
       // Grant IMMEDIATE access with cached session
-      console.log('✅ Cached session valid - granting immediate access (LOCAL-FIRST)');
+      authLogger.info('Cached session valid - granting immediate access (LOCAL-FIRST)');
 
       // Restore timezone from cached session or localStorage
       const storedTz = await this.getStoredTimezone();
@@ -129,7 +130,7 @@ class StoreAuthManager {
       // Check if we also have a valid member session
       if (cachedMember?.session && cachedMember.isValid) {
         const memberSession = cachedMember.session;
-        console.log('✅ Full session restored from cache (store + member)');
+        authLogger.info('Full session restored from cache (store + member)');
 
         this.updateState({
           status: 'active',
@@ -203,7 +204,7 @@ class StoreAuthManager {
       // Check if we also have a member session
       if (existingSession.isMemberLoggedIn && existingSession.member) {
         const memberSession = existingSession.member;
-        console.log('✅ Full session restored (store + member)');
+        authLogger.info('Full session restored (store + member)');
 
         this.updateState({
           status: 'active',
@@ -236,7 +237,7 @@ class StoreAuthManager {
       }
 
       // Store logged in - grant access (PIN is used inside app for locked features)
-      console.log('✅ Store session restored - granting access');
+      authLogger.info('Store session restored - granting access');
       this.updateState({
         status: 'active',
         store: {
@@ -261,7 +262,7 @@ class StoreAuthManager {
     const storeId = await secureStorage.getStoreId();
 
     if (!storeId) {
-      console.log('⚠️ No store session found - login required');
+      authLogger.warn('No store session found - login required');
       this.updateState({
         status: 'not_logged_in',
         message: 'Please log in to your store.',
@@ -282,7 +283,7 @@ class StoreAuthManager {
         const daysRemaining = Math.ceil(
           (OFFLINE_GRACE_PERIOD - timeSinceValidation) / (24 * 60 * 60 * 1000)
         );
-        console.log(`✅ Legacy session restored (offline: ${daysRemaining} days remaining)`);
+        authLogger.info(`Legacy session restored (offline: ${daysRemaining} days remaining)`);
 
         this.updateState({
           status: 'offline_grace',
@@ -299,7 +300,7 @@ class StoreAuthManager {
         return this.currentState;
       } else {
         // Grace period expired
-        console.warn('⚠️ Offline grace period expired');
+        authLogger.warn('Offline grace period expired');
         this.updateState({
           status: 'offline_expired',
           message: 'Session expired. Please log in again.',
@@ -330,7 +331,7 @@ class StoreAuthManager {
     // Default: skip member login - store login is sufficient for POS access
     // PIN is used later inside the app for locked features
     const skipMemberLogin = options?.skipMemberLogin !== false;
-    console.log('🔐 Logging in to store (Supabase):', loginId, 'device mode:', deviceMode);
+    authLogger.info('Logging in to store (Supabase)', { loginId, deviceMode });
     this.updateState({ status: 'checking' });
 
     try {
@@ -359,7 +360,7 @@ class StoreAuthManager {
         await this.setStoredTimezone(storeSession.timezone);
       }
 
-      console.log('✅ Store login successful (Supabase) with device mode:', deviceMode);
+      authLogger.info('Store login successful (Supabase)', { deviceMode });
 
       // Determine next status based on skipMemberLogin option
       const nextStatus = skipMemberLogin ? 'active' : 'store_logged_in';
@@ -396,11 +397,11 @@ class StoreAuthManager {
           deviceMode,
           tier: licenseInfo?.tier,
         },
-      }).catch(console.warn);
+      }).catch((err) => authLogger.warn('Failed to log audit event', { error: err }));
 
       return this.currentState;
     } catch (error) {
-      console.error('❌ Store login failed:', error);
+      authLogger.error('Store login failed', { error: error instanceof Error ? error.message : 'Unknown error' });
 
       // Audit log failed login attempt
       auditLogger.log({
@@ -414,7 +415,7 @@ class StoreAuthManager {
           loginId,
           errorCode: error instanceof SupabaseAuthError ? error.code : undefined,
         },
-      }).catch(console.warn);
+      }).catch((err) => authLogger.warn('Failed to log audit event', { error: err }));
 
       // Handle Supabase auth errors
       if (error instanceof SupabaseAuthError) {
@@ -453,7 +454,7 @@ class StoreAuthManager {
    * Requires store to be logged in first
    */
   async loginMember(email: string, password: string): Promise<{ success: boolean; member?: MemberSession; error?: string }> {
-    console.log('👤 Logging in member (Supabase):', email);
+    authLogger.info('Logging in member (Supabase)', { email });
 
     const storeId = this.currentState.store?.storeId;
 
@@ -483,7 +484,7 @@ class StoreAuthManager {
 
       return { success: true, member };
     } catch (error) {
-      console.error('❌ Member login failed:', error);
+      authLogger.error('Member login failed', { error: error instanceof Error ? error.message : 'Unknown error', email });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Login failed',
@@ -496,7 +497,7 @@ class StoreAuthManager {
    * This method also fetches and sets up the store session automatically
    */
   async loginMemberWithPassword(email: string, password: string): Promise<{ success: boolean; member?: MemberSession; store?: StoreSession; availableStores?: StoreSession[]; error?: string }> {
-    console.log('👤 Direct member login (Supabase):', email);
+    authLogger.info('Direct member login (Supabase)', { email });
 
     try {
       // First, authenticate the member
@@ -570,11 +571,11 @@ class StoreAuthManager {
       // Start grace period checker for member session
       memberAuthService.startGraceChecker();
 
-      console.log(`✅ Member has access to ${allStores.length} store(s):`, allStores.map(s => s.storeName).join(', '));
+      authLogger.info(`Member has access to ${allStores.length} store(s)`, { stores: allStores.map(s => s.storeName) });
 
       return { success: true, member, store, availableStores: allStores };
     } catch (error) {
-      console.error('❌ Direct member login failed:', error);
+      authLogger.error('Direct member login failed', { error: error instanceof Error ? error.message : 'Unknown error', email });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Login failed',
@@ -591,7 +592,7 @@ class StoreAuthManager {
       throw new Error('No store session - cannot use PIN login');
     }
 
-    console.log('🔢 PIN login attempt (Supabase)');
+    authLogger.info('PIN login attempt (Supabase)');
 
     try {
       const memberSession = await authService.loginMemberWithPin(storeId, pin);
@@ -619,7 +620,7 @@ class StoreAuthManager {
 
       return member;
     } catch (error) {
-      console.error('❌ PIN login failed:', error);
+      authLogger.error('PIN login failed', { error: error instanceof Error ? error.message : 'Unknown error' });
       return null;
     }
   }
@@ -646,7 +647,7 @@ class StoreAuthManager {
         permissions: m.permissions || undefined,
       }));
     } catch (error) {
-      console.error('❌ Failed to fetch store members:', error);
+      authLogger.error('Failed to fetch store members', { error: error instanceof Error ? error.message : 'Unknown error', storeId });
       return [];
     }
   }
@@ -655,7 +656,7 @@ class StoreAuthManager {
    * Log out current member (but keep store session)
    */
   logoutMember(): void {
-    console.log('👤 Member logged out');
+    authLogger.info('Member logged out');
 
     // Stop grace period checker (will restart when member logs back in)
     memberAuthService.stopGraceChecker();
@@ -673,7 +674,7 @@ class StoreAuthManager {
    * Log out from store completely
    */
   async logoutStore(): Promise<void> {
-    console.log('🔓 Logging out from store...');
+    authLogger.info('Logging out from store');
 
     // Audit log logout BEFORE clearing state (so we have context)
     const storeId = this.currentState.store?.storeId;
@@ -694,10 +695,10 @@ class StoreAuthManager {
           storeName,
           memberName,
         },
-      }).catch(console.warn);
+      }).catch((err) => authLogger.warn('Failed to log audit event', { error: err }));
 
       // Flush immediately since we're logging out
-      await auditLogger.flush().catch(console.warn);
+      await auditLogger.flush().catch((err) => authLogger.warn('Failed to flush audit logs', { error: err }));
     }
 
     // Stop grace period checker
@@ -739,7 +740,7 @@ class StoreAuthManager {
         const daysRemaining = Math.ceil(
           (OFFLINE_GRACE_PERIOD - timeSinceValidation) / (24 * 60 * 60 * 1000)
         );
-        console.log(`⚠️ Network error - using offline mode (${daysRemaining} days remaining)`);
+        authLogger.warn(`Network error - using offline mode (${daysRemaining} days remaining)`);
 
         const storeId = await secureStorage.getStoreId();
         const tier = await secureStorage.getTier();
@@ -941,9 +942,9 @@ class StoreAuthManager {
         await devicesDB.update(deviceId, {
           offlineModeEnabled: mode === 'offline-enabled'
         });
-        console.log('✅ Device mode synced to Supabase:', mode);
+        authLogger.info('Device mode synced to Supabase', { mode });
       } catch (error) {
-        console.warn('⚠️ Failed to sync device mode to Supabase:', error);
+        authLogger.warn('Failed to sync device mode to Supabase', { error: error instanceof Error ? error.message : 'Unknown error' });
         // Don't fail - local update is sufficient for now
       }
     } else if (!deviceId && storeId && navigator.onLine) {
@@ -958,11 +959,11 @@ class StoreAuthManager {
             });
             // Store the device ID for future updates
             await this.setStoredDeviceId(device.id);
-            console.log('✅ Device mode synced to Supabase (found by fingerprint):', mode);
+            authLogger.info('Device mode synced to Supabase (found by fingerprint)', { mode });
           }
         }
       } catch (error) {
-        console.warn('⚠️ Failed to find/update device in Supabase:', error);
+        authLogger.warn('Failed to find/update device in Supabase', { error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 
@@ -1035,7 +1036,7 @@ class StoreAuthManager {
         platform: device.os || device.browser || undefined,
       }));
     } catch (error) {
-      console.warn('⚠️ Failed to fetch devices from Supabase:', error);
+      authLogger.warn('Failed to fetch devices from Supabase', { error: error instanceof Error ? error.message : 'Unknown error' });
 
       // Fallback to current device only
       return [{
@@ -1054,7 +1055,7 @@ class StoreAuthManager {
    * Update device mode for a remote device via Supabase
    */
   async updateRemoteDeviceMode(deviceId: string, mode: DeviceMode): Promise<void> {
-    console.log(`Updating device ${deviceId} to mode: ${mode}`);
+    authLogger.debug(`Updating device ${deviceId} to mode: ${mode}`);
 
     if (!navigator.onLine) {
       throw new Error('Cannot update device while offline');
@@ -1064,9 +1065,9 @@ class StoreAuthManager {
       await devicesDB.update(deviceId, {
         offlineModeEnabled: mode === 'offline-enabled'
       });
-      console.log('✅ Remote device mode updated:', deviceId, mode);
+      authLogger.info('Remote device mode updated', { deviceId, mode });
     } catch (error) {
-      console.error('❌ Failed to update remote device mode:', error);
+      authLogger.error('Failed to update remote device mode', { error: error instanceof Error ? error.message : 'Unknown error', deviceId });
       throw error;
     }
   }
@@ -1075,7 +1076,7 @@ class StoreAuthManager {
    * Block/revoke a device via Supabase
    */
   async blockDevice(deviceId: string): Promise<void> {
-    console.log(`Blocking device: ${deviceId}`);
+    authLogger.debug(`Blocking device: ${deviceId}`);
 
     if (!navigator.onLine) {
       throw new Error('Cannot block device while offline');
@@ -1085,9 +1086,9 @@ class StoreAuthManager {
 
     try {
       await devicesDB.revoke(deviceId, memberId, 'Blocked by administrator');
-      console.log('✅ Device blocked:', deviceId);
+      authLogger.info('Device blocked', { deviceId });
     } catch (error) {
-      console.error('❌ Failed to block device:', error);
+      authLogger.error('Failed to block device', { error: error instanceof Error ? error.message : 'Unknown error', deviceId });
       throw error;
     }
   }
@@ -1097,7 +1098,7 @@ class StoreAuthManager {
    * Note: This requires a custom Supabase update since devicesDB doesn't have unblock
    */
   async unblockDevice(deviceId: string): Promise<void> {
-    console.log(`Unblocking device: ${deviceId}`);
+    authLogger.debug(`Unblocking device: ${deviceId}`);
 
     if (!navigator.onLine) {
       throw new Error('Cannot unblock device while offline');
@@ -1117,9 +1118,9 @@ class StoreAuthManager {
           updated_at: new Date().toISOString(),
         })
         .eq('id', deviceId);
-      console.log('✅ Device unblocked:', deviceId);
+      authLogger.info('Device unblocked', { deviceId });
     } catch (error) {
-      console.error('❌ Failed to unblock device:', error);
+      authLogger.error('Failed to unblock device', { error: error instanceof Error ? error.message : 'Unknown error', deviceId });
       throw error;
     }
   }
@@ -1128,7 +1129,7 @@ class StoreAuthManager {
    * Delete/remove a device from Supabase
    */
   async deleteDevice(deviceId: string): Promise<void> {
-    console.log(`Deleting device: ${deviceId}`);
+    authLogger.debug(`Deleting device: ${deviceId}`);
 
     if (!navigator.onLine) {
       throw new Error('Cannot delete device while offline');
@@ -1136,9 +1137,9 @@ class StoreAuthManager {
 
     try {
       await devicesDB.delete(deviceId);
-      console.log('✅ Device deleted:', deviceId);
+      authLogger.info('Device deleted', { deviceId });
     } catch (error) {
-      console.error('❌ Failed to delete device:', error);
+      authLogger.error('Failed to delete device', { error: error instanceof Error ? error.message : 'Unknown error', deviceId });
       throw error;
     }
   }

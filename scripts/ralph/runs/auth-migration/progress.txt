@@ -1658,3 +1658,125 @@ All 6 acceptance criteria met:
 **Next story suggestion:** US-034 (Fix as any cast in SwitchUserModal) - no dependencies, complexity 1. Or US-035 (Fix defaults any type) - also no dependencies, complexity 1.
 
 ---
+## 2026-01-20 - US-034: Fix as any cast in SwitchUserModal
+Commit: 22b0382
+
+**Why this story?** US-034 has no dependencies, lowest priority (34) among remaining incomplete stories with all dependencies met, and complexity 1. It's a quick type safety fix that unblocks US-048 (Split SwitchUserModal into module structure).
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:403-410`: Updated getInitials function signature to accept flexible type
+- `apps/store-app/src/components/auth/SwitchUserModal.tsx:494`: Removed 'as any' cast when calling getInitials with currentMember
+
+**Implementation Details:**
+- Problem: getInitials accepted `MemberSession` from authService, but currentMember is Redux MemberSession (different type)
+- Solution: Changed getInitials to accept `{ firstName?: string | null; lastName?: string | null }`
+- This accepts both Redux MemberSession and authService MemberSession types
+- The function only needs firstName and lastName, so the flexible type is appropriate
+
+**Verification:**
+All 4 acceptance criteria met:
+- ✅ Remove 'as any' cast at line 490 (now line 494 due to JSDoc addition)
+- ✅ Add proper type guard or fix getInitials signature - used flexible type parameter
+- ✅ No forbidden strings: as any (verified via grep - no results)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- When a function only needs specific properties from an object, use an inline interface type instead of a full interface
+- This allows the function to work with multiple types that share those properties
+- Pre-existing test failures (topics.test.ts, teamStaffAdapter.test.ts) are unrelated to this change
+
+**Patterns to sync:**
+- None (standard TypeScript flexible typing pattern)
+
+**Next story suggestion:** US-035 (Fix defaults any type in StoreAuthState) has no dependencies, complexity 1, and is another type safety fix in a similar pattern.
+
+---
+
+## 2026-01-20 - US-035: Fix defaults any type in StoreAuthState
+Commit: a4050f0
+
+**Why this story?** US-035 has no dependencies, lowest priority (35) among remaining incomplete stories, and complexity 1. It's a type safety fix that follows naturally from US-034's similar type safety work on the same codebase area.
+
+**Changes:**
+- `apps/store-app/src/services/storeAuthManager.ts:23`: Added import for `DefaultsData` from `./defaultsPopulator`
+- `apps/store-app/src/services/storeAuthManager.ts:72-73`: Replaced `defaults?: any` with `defaults?: DefaultsData` and added JSDoc comment
+
+**Implementation Details:**
+- PRD specified creating a new `StoreDefaults` interface, but `DefaultsData` already exists in `defaultsPopulator.ts`
+- Reusing existing interface is better than creating a duplicate type
+- The `DefaultsData` interface includes: `taxSettings`, `categories`, `items`, `employeeRoles`, `paymentMethods` arrays
+- Added JSDoc comment: "Store defaults from control center (first-time setup data)"
+
+**Verification:**
+All 4 acceptance criteria met:
+- ✅ Define StoreDefaults interface - Reused existing `DefaultsData` from defaultsPopulator.ts (better than creating duplicate)
+- ✅ Replace 'defaults?: any' with properly typed field (line 73)
+- ✅ No forbidden strings: as any (verified via grep - no `as any` in file; `details?: any` in AuthError is separate and out of scope)
+- ✅ pnpm run typecheck passes
+
+**Learnings:**
+- Before creating new types, check if an equivalent type already exists in the codebase
+- `DefaultsData` was already well-defined with all the expected properties
+- The `details?: any` in `AuthError` interface (line 82) is a separate issue not covered by this story's scope
+
+**Patterns to sync:**
+- None (standard TypeScript type reuse pattern)
+
+**Next story suggestion:** US-036 (Replace console.error with structured logging in memberAuthService) has dependency US-029✅ met, complexity 2. Or US-037 (Replace console.log in storeAuthManager) has no dependencies and complexity 2.
+
+---
+
+---
+
+## 2026-01-20 - US-036: Replace console.error with structured logging in memberAuthService
+Commit: 348347f
+
+**Why this story?** US-036 has all dependencies met (US-029✅) and is priority 36, the lowest among incomplete stories with met dependencies. Replacing console.error with structured logging improves error tracking and monitoring capabilities.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:21`: Added import for auditLogger
+- `apps/store-app/src/services/memberAuthService.ts`: Replaced all 15 console.error calls with auditLogger.log calls
+
+**Implementation Details:**
+- Each auditLogger.log call includes:
+  - `action`: Appropriate action type (update, read, delete, logout)
+  - `entityType`: 'member' for all member auth operations
+  - `entityId`: The member ID when available
+  - `description`: Human-readable error description
+  - `severity`: Appropriate severity level (low, medium, high)
+  - `success`: false (since these are error cases)
+  - `errorMessage`: The actual error message
+  - `metadata`: Additional context (operation name, step)
+
+**Error Categories:**
+| Operation | Severity | Count |
+|-----------|----------|-------|
+| loginWithPassword timestamp update | low | 1 |
+| SecureStorage PIN hash verification | high | 2 |
+| setPin database update | medium | 1 |
+| removePin database update | medium | 1 |
+| getDefaultStore database fetch | low | 2 |
+| setDefaultStore database update | medium | 1 |
+| clearDefaultStore database update | medium | 1 |
+| updateLastOnlineAuthInBackground | low | 1 |
+| validateSessionInBackground | low | 4 |
+| logout Supabase signOut | low | 1 |
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ Import auditLogger from '@/services/audit/auditLogger' (line 21)
+- ✅ Replace all console.error with auditLogger.log calls (~15 occurrences)
+- ✅ Include context: action, entityType, severity, errorMessage, metadata
+- ✅ No remaining console.error calls in file (verified via grep)
+- ✅ pnpm run typecheck passes
+- ✅ All 69 memberAuthService unit tests pass
+
+**Learnings:**
+- auditLogger.log is async but doesn't need to be awaited for non-critical error logging
+- Severity levels: 'high' for security-sensitive errors (PIN hash storage), 'medium' for user-impacting errors, 'low' for background/non-blocking errors
+- Metadata field is useful for adding operation context and step information
+
+**Patterns to sync:**
+- Pattern: Structured Error Logging - Use auditLogger.log instead of console.error for all error cases. Include action, entityType, entityId, description, severity, success:false, errorMessage, and metadata with operation/step context.
+
+**Next story suggestion:** US-037 (Replace console.log in storeAuthManager) is the natural next step as it continues the logging improvement work. Or US-038 (input validation) which is simpler with complexity 1.
