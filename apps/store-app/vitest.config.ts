@@ -21,6 +21,9 @@ export default defineConfig({
       include: [
         'src/components/Book/**/*.{ts,tsx}',
         'src/components/frontdesk/**/*.{ts,tsx}',
+        'src/components/checkout/**/*.{ts,tsx}',
+        'src/components/auth/**/*.{ts,tsx}',
+        'src/components/common/**/*.{ts,tsx}',
         'src/hooks/*.ts',
         'src/utils/*.ts',
         'src/services/**/*.ts',
