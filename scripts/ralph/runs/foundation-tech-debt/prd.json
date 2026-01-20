@@ -598,7 +598,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "category": "refactor",
       "complexity": 2,
       "notes": "AddTeamMember.tsx is 1,516 lines. First step: extract types and constants."
