@@ -46,8 +46,14 @@ export const BCRYPT_TIMEOUT_MS = 5000;
 
 // ==================== MODULE STATE ====================
 
-/** Grace checker interval reference (for idempotent start/stop) */
-let graceCheckInterval: ReturnType<typeof setInterval> | null = null;
+/**
+ * Grace checker intervals keyed by memberId
+ *
+ * Using a Map instead of a single global variable prevents memory leaks
+ * when multiple members use the same device (multi-store scenarios).
+ * Each member gets their own interval that can be individually managed.
+ */
+const graceCheckIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
 // ==================== TIMEOUT HELPERS ====================
 
@@ -331,35 +337,39 @@ function checkOfflineGrace(member: MemberAuthSession): GraceInfo {
 // ==================== GRACE PERIOD CHECKER ====================
 
 /**
- * Start periodic grace period checker
+ * Start periodic grace period checker for a member
  *
  * Runs every 30 minutes to check if the offline grace period has expired.
  * If expired while offline, dispatches forceLogout action to clear auth state.
  *
  * The checker is idempotent - calling startGraceChecker() multiple times
- * will not create multiple intervals.
+ * for the same member will not create multiple intervals.
+ *
+ * @param memberId - Optional member ID to start checker for. If not provided,
+ *                   uses the current member from Redux store.
  */
-function startGraceChecker(): void {
-  // Already running - don't start another
-  if (graceCheckInterval) {
+function startGraceChecker(memberId?: string): void {
+  // Get member ID from Redux store if not provided
+  const targetMemberId = memberId || store.getState().auth.member?.memberId;
+
+  if (!targetMemberId) {
+    // No member to check - nothing to do
     return;
   }
 
-  graceCheckInterval = setInterval(() => {
-    // Get current member from Redux store
-    const authState = store.getState().auth;
-    const currentMemberId = authState.member?.memberId;
+  // Already running for this member - don't start another (idempotent)
+  if (graceCheckIntervals.has(targetMemberId)) {
+    return;
+  }
 
-    // No member logged in - nothing to check
-    if (!currentMemberId) {
-      return;
-    }
-
+  const interval = setInterval(() => {
     // Get cached member session
     const cachedMembers = getCachedMembers();
-    const member = cachedMembers.find(m => m.memberId === currentMemberId);
+    const member = cachedMembers.find(m => m.memberId === targetMemberId);
 
     if (!member) {
+      // Member no longer in cache - stop checking
+      stopGraceChecker(targetMemberId);
       return;
     }
 
@@ -376,21 +386,49 @@ function startGraceChecker(): void {
       }));
 
       // Stop the checker (no need to keep checking after logout)
-      stopGraceChecker();
+      stopGraceChecker(targetMemberId);
     }
   }, GRACE_CHECK_INTERVAL_MS);
+
+  graceCheckIntervals.set(targetMemberId, interval);
 }
 
 /**
- * Stop the grace period checker
+ * Stop the grace period checker for a member
  *
  * Should be called on logout to clean up the interval.
+ *
+ * @param memberId - Optional member ID to stop checker for. If not provided,
+ *                   uses the current member from Redux store.
  */
-function stopGraceChecker(): void {
-  if (graceCheckInterval) {
-    clearInterval(graceCheckInterval);
-    graceCheckInterval = null;
+function stopGraceChecker(memberId?: string): void {
+  // Get member ID from Redux store if not provided
+  const targetMemberId = memberId || store.getState().auth.member?.memberId;
+
+  if (!targetMemberId) {
+    // No specific member - stop all checkers (cleanup scenario)
+    stopAllGraceCheckers();
+    return;
   }
+
+  const interval = graceCheckIntervals.get(targetMemberId);
+  if (interval) {
+    clearInterval(interval);
+    graceCheckIntervals.delete(targetMemberId);
+  }
+}
+
+/**
+ * Stop all grace period checkers
+ *
+ * Used for cleanup when logging out of the store or during testing.
+ * Clears all intervals and empties the Map.
+ */
+function stopAllGraceCheckers(): void {
+  for (const interval of graceCheckIntervals.values()) {
+    clearInterval(interval);
+  }
+  graceCheckIntervals.clear();
 }
 
 // ==================== PIN MANAGEMENT ====================
@@ -1031,6 +1069,7 @@ export const memberAuthService = {
   // Grace period checker
   startGraceChecker,
   stopGraceChecker,
+  stopAllGraceCheckers,
 
   // Background validation
   validateSessionInBackground,

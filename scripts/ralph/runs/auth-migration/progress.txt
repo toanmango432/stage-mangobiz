@@ -1546,3 +1546,80 @@ All 6 acceptance criteria met:
 **Next story suggestion:** US-031 (add timeout to bcrypt.compare) is the natural next step - same pattern, same file, and can reuse the withTimeout helper just created.
 
 ---
+
+## 2026-01-20 - US-031: Add timeout to bcrypt.compare
+Commit: eb16e68
+
+**Why this story?** US-031 is the natural next step as suggested by the previous iteration (US-030). It uses the same `withTimeout` pattern just created in US-030 and works on the same file (memberAuthService.ts). The code and patterns are fresh in context.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:45`: Added BCRYPT_TIMEOUT_MS constant (5000ms)
+- `apps/store-app/src/services/memberAuthService.ts:76-92`: Added validatePin() helper function with timeout wrapper
+- `apps/store-app/src/services/memberAuthService.ts:794-795`: Updated loginWithPin to use validatePin() instead of direct bcrypt.compare
+- `apps/store-app/src/services/memberAuthService.ts:1046`: Added BCRYPT_TIMEOUT_MS to exports object
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:445-465`: Added timeout test for bcrypt.compare
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:467-475`: Added success before timeout test
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:971-973`: Added constant value test for BCRYPT_TIMEOUT_MS
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ Add BCRYPT_TIMEOUT_MS constant (5000ms) - line 45
+- ✅ Create validatePin helper with timeout wrapper - lines 76-92
+- ✅ Throw clear error on timeout: 'PIN validation timeout' - line 88
+- ✅ Add unit test for timeout scenario - 3 new tests (59 total, all passing)
+- ✅ pnpm run typecheck passes
+- ✅ pnpm test passes (59 memberAuthService tests pass)
+
+**Learnings:**
+- When testing async timeouts with fake timers, need to allow microtasks to process first with `await Promise.resolve()` before advancing time
+- The validatePin helper reuses the withTimeout wrapper created in US-030 - good code reuse
+- 5 second timeout for bcrypt.compare is reasonable - actual bcrypt ops complete in ~50-100ms normally
+
+**Patterns to sync:**
+- None (reuses timeout wrapper pattern from US-030)
+
+**Next story suggestion:** US-032 (Fix global graceCheckInterval memory leak) has no dependencies and is the natural next step since it also works on memberAuthService.ts. Or US-033 (Verify SecureStorage.set success) has lowest complexity (1).
+
+---
+
+## 2026-01-20 - US-032: Fix global graceCheckInterval memory leak
+Commit: e59828d
+
+**Why this story?** US-032 has no dependencies and is the natural next step as suggested by the previous iteration (US-031). It works on the same file (memberAuthService.ts) and addresses a potential memory leak when multiple members use the same device.
+
+**Changes:**
+- `apps/store-app/src/services/memberAuthService.ts:49-56`: Replaced single `graceCheckInterval` variable with `graceCheckIntervals` Map keyed by memberId
+- `apps/store-app/src/services/memberAuthService.ts:342-393`: Updated `startGraceChecker` to accept optional memberId parameter, uses Map for idempotent per-member tracking
+- `apps/store-app/src/services/memberAuthService.ts:395-418`: Updated `stopGraceChecker` to accept optional memberId parameter, stops specific member's checker
+- `apps/store-app/src/services/memberAuthService.ts:420-430`: Added `stopAllGraceCheckers()` function to clear all intervals
+- `apps/store-app/src/services/memberAuthService.ts:1072`: Added `stopAllGraceCheckers` to exports
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:153`: Updated afterEach to use `stopAllGraceCheckers()`
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:841-929`: Added 7 new tests for Map-based grace checker
+
+**Implementation Details:**
+- `graceCheckIntervals = new Map<string, ReturnType<typeof setInterval>>()` - Each member gets their own tracked interval
+- `startGraceChecker(memberId?)` - Gets memberId from Redux store if not provided, idempotent per member
+- `stopGraceChecker(memberId?)` - Stops specific member's checker, or calls stopAllGraceCheckers if no memberId
+- `stopAllGraceCheckers()` - Clears all intervals and empties the Map (for cleanup/testing)
+
+**Verification:**
+All 6 acceptance criteria met:
+- ✅ Replace 'let graceCheckInterval' with Map<string, interval> keyed by memberId
+- ✅ Add stopAllGraceCheckers() function for cleanup
+- ✅ startGraceChecker is idempotent (no-op if already running for member)
+- ✅ Add unit tests for start/stop idempotency (7 new tests)
+- ✅ pnpm run typecheck passes
+- ✅ pnpm test passes (65 tests total, all passing)
+
+**Learnings:**
+- Map provides clean per-member interval tracking with has/get/set/delete operations
+- Optional memberId parameter maintains backwards compatibility with existing callers
+- stopGraceChecker without memberId defaults to Redux store member or calls stopAllGraceCheckers
+- Test needed to set up mock Redux state or use explicit memberId to work with new behavior
+
+**Patterns to sync:**
+- None (standard Map usage for interval tracking)
+
+**Next story suggestion:** US-033 (Verify SecureStorage.set success for PIN hash) has no dependencies and lowest complexity (1). Or US-034 (Fix as any cast in SwitchUserModal) is also a quick fix with no dependencies.
+
+---

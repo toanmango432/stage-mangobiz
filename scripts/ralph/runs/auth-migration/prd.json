@@ -55,7 +55,9 @@
       "passes": true,
       "category": "database",
       "complexity": 1,
-      "dependencies": ["US-001"],
+      "dependencies": [
+        "US-001"
+      ],
       "notes": "This table enables immediate session revocation across all devices. Reason values: 'password_change', 'admin_revoke', 'security_concern'. Schema defined in docs/AUTH_MIGRATION_PLAN.md lines 204-215."
     },
     {
@@ -105,7 +107,11 @@
       "passes": true,
       "category": "backend",
       "complexity": 4,
-      "dependencies": ["US-001", "US-002", "US-003"],
+      "dependencies": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
       "notes": "Run with: DRY_RUN=true npx ts-node scripts/auth-migration/migrate-members-to-supabase-auth.ts. Requires SUPABASE_SERVICE_ROLE_KEY env var. Full implementation in docs/AUTH_MIGRATION_PLAN.md lines 269-519. Install bcryptjs: pnpm add bcryptjs && pnpm add -D @types/bcryptjs. IMPORTANT: Schema migrations (US-001, US-002) must be applied before running this script."
     },
     {
@@ -204,7 +210,11 @@
       "passes": true,
       "category": "backend",
       "complexity": 3,
-      "dependencies": ["US-001", "US-005", "US-007"],
+      "dependencies": [
+        "US-001",
+        "US-005",
+        "US-007"
+      ],
       "notes": "This is the FIRST part of memberAuthService - more functions in subsequent stories. Follow error handling pattern from existing authService.ts. Do NOT store pinHash in the session object - store in SecureStorage only. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 579-648. Queries member table columns (auth_user_id, last_online_auth, pin_hash) created by US-001."
     },
     {
@@ -232,7 +242,9 @@
       "passes": true,
       "category": "backend",
       "complexity": 3,
-      "dependencies": ["US-008"],
+      "dependencies": [
+        "US-008"
+      ],
       "notes": "PIN hash retrieved from SecureStorage, not session. Must check lockout BEFORE grace period (fail fast). Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 651-709."
     },
     {
@@ -259,7 +271,9 @@
       "passes": true,
       "category": "backend",
       "complexity": 2,
-      "dependencies": ["US-009"],
+      "dependencies": [
+        "US-009"
+      ],
       "notes": "PIN validation regex: /^\\d{4,6}$/. bcrypt cost factor 12 provides good security/performance balance. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 712-873."
     },
     {
@@ -285,7 +299,11 @@
       "passes": true,
       "category": "backend",
       "complexity": 2,
-      "dependencies": ["US-006", "US-007", "US-010"],
+      "dependencies": [
+        "US-006",
+        "US-007",
+        "US-010"
+      ],
       "notes": "Import store directly: import { store } from '@/store'. Check navigator.onLine to determine if offline. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 779-815. Uses MemberAuthSession and GraceInfo types from US-007."
     },
     {
@@ -312,7 +330,10 @@
       "passes": true,
       "category": "backend",
       "complexity": 3,
-      "dependencies": ["US-002", "US-011"],
+      "dependencies": [
+        "US-002",
+        "US-011"
+      ],
       "notes": "This completes the memberAuthService file. Background validation is called on every PIN login when online. Implementation reference: docs/AUTH_MIGRATION_PLAN.md lines 876-942. Queries member_session_revocations table created by US-002."
     },
     {
@@ -371,7 +392,10 @@
       "passes": true,
       "category": "frontend",
       "complexity": 3,
-      "dependencies": ["US-010", "US-013"],
+      "dependencies": [
+        "US-010",
+        "US-013"
+      ],
       "notes": "Use Dialog component from @/components/ui/dialog. Follow modal patterns from existing modals like EditTicketModal. CRITICAL: PIN is OPTIONAL for member-login users. The skip functionality is essential for preserving the existing UX where users can login with email/password without being forced to set up PIN."
     },
     {
@@ -401,7 +425,11 @@
       "passes": true,
       "category": "frontend",
       "complexity": 4,
-      "dependencies": ["US-007", "US-008", "US-014"],
+      "dependencies": [
+        "US-007",
+        "US-008",
+        "US-014"
+      ],
       "notes": "CRITICAL: Read existing StoreLoginScreen.tsx first - it already has TWO login modes (member/store). DO NOT remove the store login mode or demote it. The existing handleMemberLogin() becomes Supabase-powered, but handleLogin() for store-level auth remains unchanged. Member is the default mode per line 25: useState<LoginMode>('member'). Uses MemberAuthSession type from US-007."
     },
     {
@@ -433,7 +461,10 @@
       "passes": true,
       "category": "frontend",
       "complexity": 4,
-      "dependencies": ["US-009", "US-013"],
+      "dependencies": [
+        "US-009",
+        "US-013"
+      ],
       "notes": "The verification flow depends on BOTH context AND online status. Store-login: always PIN. Member-login online: password (normal login). Member-login offline: PIN if available, otherwise require internet. This ensures member-login users only use PIN as offline fallback, not as primary auth."
     },
     {
@@ -460,7 +491,9 @@
       "passes": true,
       "category": "frontend",
       "complexity": 2,
-      "dependencies": ["US-011"],
+      "dependencies": [
+        "US-011"
+      ],
       "notes": "Use design tokens for colors. Keep minimal - shouldn't distract from main UI. Could be placed in header or status bar area."
     },
     {
@@ -488,7 +521,13 @@
       "passes": true,
       "category": "backend",
       "complexity": 4,
-      "dependencies": ["US-011", "US-012", "US-015", "US-016", "US-017"],
+      "dependencies": [
+        "US-011",
+        "US-012",
+        "US-015",
+        "US-016",
+        "US-017"
+      ],
       "notes": "This story integrates previous work - test the full flow. May need to modify App.tsx or main router. Ensure backward compatibility with existing sessions. AuthProvider.tsx may not exist - create if needed or integrate into existing auth context. Uses grace checker from US-011 and OfflineGraceIndicator from US-017."
     },
     {
@@ -514,7 +553,9 @@
       "passes": true,
       "category": "frontend",
       "complexity": 2,
-      "dependencies": ["US-015"],
+      "dependencies": [
+        "US-015"
+      ],
       "notes": "Supabase handles the actual password reset flow. User clicks link in email -> Supabase reset page -> redirected back. May need to configure redirect URL in Supabase dashboard."
     },
     {
@@ -548,7 +589,9 @@
       "passes": true,
       "category": "test",
       "complexity": 4,
-      "dependencies": ["US-012"],
+      "dependencies": [
+        "US-012"
+      ],
       "testCommand": "pnpm test -- memberAuthService --run",
       "notes": "Use vitest for testing (project standard). Mock SecureStorage and Supabase. Follow test patterns in src/store/slices/__tests__/. Comprehensive test coverage for background validation and grace checker is critical for security."
     },
@@ -575,7 +618,10 @@
       "passes": true,
       "category": "test",
       "complexity": 3,
-      "dependencies": ["US-018", "US-019"],
+      "dependencies": [
+        "US-018",
+        "US-019"
+      ],
       "testCommand": "pnpm playwright test auth-flow.spec.ts",
       "notes": "May need test fixtures for member data. Consider using Supabase test environment. Follow E2E patterns if they exist in project. Uses Playwright for browser automation."
     },
@@ -604,7 +650,10 @@
       "passes": true,
       "category": "frontend",
       "complexity": 2,
-      "dependencies": ["US-009", "US-013"],
+      "dependencies": [
+        "US-009",
+        "US-013"
+      ],
       "notes": "This modal is ONLY used in store-login context where the device is logged in as a store and individual staff verify with PIN for sensitive actions. Different from SwitchUserModal which switches the active user. This is for action verification without switching."
     },
     {
@@ -631,7 +680,10 @@
       "passes": true,
       "category": "frontend",
       "complexity": 2,
-      "dependencies": ["US-010", "US-014"],
+      "dependencies": [
+        "US-010",
+        "US-014"
+      ],
       "notes": "PIN for member-login users is specifically for OFFLINE user switching. When online, users switch via normal email/password login. PIN is optional but recommended if users frequently work offline. Check if settings page structure exists first."
     },
     {
@@ -659,7 +711,10 @@
       "passes": true,
       "category": "frontend",
       "complexity": 3,
-      "dependencies": ["US-001", "US-008"],
+      "dependencies": [
+        "US-001",
+        "US-008"
+      ],
       "notes": "This modal appears AFTER successful member login if user has multiple stores. Uses the storeIds array from MemberAuthSession. Depends on US-001 which adds default_store_id column to members table."
     },
     {
@@ -686,7 +741,10 @@
       "passes": true,
       "category": "backend",
       "complexity": 2,
-      "dependencies": ["US-001", "US-008"],
+      "dependencies": [
+        "US-001",
+        "US-008"
+      ],
       "notes": "Builds on existing memberAuthService. The default_store_id column is added by US-001 migration. For offline, cache last known default in localStorage and sync when back online."
     },
     {
@@ -714,7 +772,11 @@
       "passes": true,
       "category": "frontend",
       "complexity": 3,
-      "dependencies": ["US-009", "US-022", "US-025"],
+      "dependencies": [
+        "US-009",
+        "US-022",
+        "US-025"
+      ],
       "notes": "This enables multi-store users to switch stores while offline. PIN verification is required to prevent unauthorized store access on shared devices. Store data cached during online login. Limited functionality available offline (read-only mostly)."
     },
     {
@@ -816,7 +878,7 @@
         "pnpm test passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "bcrypt.compare is CPU-intensive. Without timeout, malicious inputs could cause DOS."
@@ -838,7 +900,7 @@
         "pnpm test passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "category": "backend",
       "complexity": 2,
       "notes": "Single global interval could leak if start called before stop, especially with multiple users."
@@ -921,7 +983,9 @@
       "passes": false,
       "category": "backend",
       "complexity": 2,
-      "dependencies": ["US-029"],
+      "dependencies": [
+        "US-029"
+      ],
       "notes": "Console.error loses context and errors are not tracked for monitoring."
     },
     {
@@ -1005,7 +1069,10 @@
       "passes": false,
       "category": "backend",
       "complexity": 2,
-      "dependencies": ["US-027", "US-028"],
+      "dependencies": [
+        "US-027",
+        "US-028"
+      ],
       "notes": "Network glitches could fail entire migration without retry logic."
     },
     {
@@ -1026,7 +1093,9 @@
       "passes": false,
       "category": "backend",
       "complexity": 2,
-      "dependencies": ["US-040"],
+      "dependencies": [
+        "US-040"
+      ],
       "notes": "Without checkpoints, a failure means restarting the entire migration."
     },
     {
@@ -1163,7 +1232,10 @@
       "passes": false,
       "category": "frontend",
       "complexity": 3,
-      "dependencies": ["US-042", "US-044"],
+      "dependencies": [
+        "US-042",
+        "US-044"
+      ],
       "notes": "File is 1007 lines - exceeds 500 line guideline significantly."
     },
     {
@@ -1195,7 +1267,10 @@
       "passes": false,
       "category": "frontend",
       "complexity": 3,
-      "dependencies": ["US-034", "US-039"],
+      "dependencies": [
+        "US-034",
+        "US-039"
+      ],
       "notes": "File is 833 lines - exceeds 500 line guideline."
     },
     {
@@ -1215,7 +1290,9 @@
       "passes": false,
       "category": "testing",
       "complexity": 3,
-      "dependencies": ["US-047"],
+      "dependencies": [
+        "US-047"
+      ],
       "notes": "4 E2E tests for PIN setup are currently skipped."
     },
     {
@@ -1235,7 +1312,9 @@
       "passes": false,
       "category": "testing",
       "complexity": 3,
-      "dependencies": ["US-049"],
+      "dependencies": [
+        "US-049"
+      ],
       "notes": "3 E2E tests for PIN login are currently skipped."
     },
     {
@@ -1256,7 +1335,9 @@
       "passes": false,
       "category": "testing",
       "complexity": 2,
-      "dependencies": ["US-029"],
+      "dependencies": [
+        "US-029"
+      ],
       "notes": "No tests for what happens when localStorage has corrupted data."
     },
     {
@@ -1277,7 +1358,9 @@
       "passes": false,
       "category": "testing",
       "complexity": 2,
-      "dependencies": ["US-031"],
+      "dependencies": [
+        "US-031"
+      ],
       "notes": "No tests for race conditions with rapid PIN attempts."
     }
   ]

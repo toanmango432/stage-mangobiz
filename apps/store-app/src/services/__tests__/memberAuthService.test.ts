@@ -150,7 +150,7 @@ describe('memberAuthService', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
-    memberAuthService.stopGraceChecker();
+    memberAuthService.stopAllGraceCheckers();
   });
 
   // ==================== loginWithPassword TESTS ====================
@@ -838,6 +838,137 @@ describe('memberAuthService', () => {
 
       expect(clearIntervalSpy).toHaveBeenCalled();
     });
+
+    it('should support multiple members with separate grace checkers', () => {
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+
+      // Set up two members
+      const member1 = createMockMemberSession({ memberId: 'member-1' });
+      const member2 = createMockMemberSession({ memberId: 'member-2' });
+      localStorageMock['cached_members_list'] = JSON.stringify([member1, member2]);
+
+      // Start grace checker for member-1
+      memberAuthService.startGraceChecker('member-1');
+
+      // Start grace checker for member-2
+      memberAuthService.startGraceChecker('member-2');
+
+      // Should have two separate intervals
+      expect(setIntervalSpy).toHaveBeenCalledTimes(2);
+
+      // Clean up
+      memberAuthService.stopAllGraceCheckers();
+    });
+
+    it('should be idempotent per member - multiple starts for same member do not create multiple intervals', () => {
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+
+      // Start grace checker for same member multiple times
+      memberAuthService.startGraceChecker('member-123');
+      memberAuthService.startGraceChecker('member-123');
+      memberAuthService.startGraceChecker('member-123');
+
+      // Should only create one interval for this member
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+
+      memberAuthService.stopAllGraceCheckers();
+    });
+
+    it('should stop specific member grace checker without affecting others', () => {
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+
+      // Set up two members
+      const member1 = createMockMemberSession({ memberId: 'member-1' });
+      const member2 = createMockMemberSession({ memberId: 'member-2' });
+      localStorageMock['cached_members_list'] = JSON.stringify([member1, member2]);
+
+      // Start both
+      memberAuthService.startGraceChecker('member-1');
+      memberAuthService.startGraceChecker('member-2');
+
+      expect(setIntervalSpy).toHaveBeenCalledTimes(2);
+
+      // Stop only member-1
+      memberAuthService.stopGraceChecker('member-1');
+
+      // Only one interval should be cleared
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
+
+      // Starting member-1 again should create a new interval
+      memberAuthService.startGraceChecker('member-1');
+
+      expect(setIntervalSpy).toHaveBeenCalledTimes(3);
+
+      memberAuthService.stopAllGraceCheckers();
+    });
+
+    it('should stop all grace checkers with stopAllGraceCheckers()', () => {
+      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+
+      // Set up two members
+      const member1 = createMockMemberSession({ memberId: 'member-1' });
+      const member2 = createMockMemberSession({ memberId: 'member-2' });
+      localStorageMock['cached_members_list'] = JSON.stringify([member1, member2]);
+
+      // Start both
+      memberAuthService.startGraceChecker('member-1');
+      memberAuthService.startGraceChecker('member-2');
+
+      // Stop all
+      memberAuthService.stopAllGraceCheckers();
+
+      // Both intervals should be cleared
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(2);
+
+      // Starting again should work (Map was cleared)
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+      memberAuthService.startGraceChecker('member-1');
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use Redux store memberId when no memberId parameter provided', () => {
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+
+      // Redux store returns member-123
+      mockGetState.mockReturnValue({
+        auth: {
+          member: { memberId: 'member-123' },
+        },
+      });
+
+      // Start without explicit memberId
+      memberAuthService.startGraceChecker();
+
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+
+      // Starting again without memberId should be idempotent
+      memberAuthService.startGraceChecker();
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+
+      // Starting with explicit same memberId should also be idempotent
+      memberAuthService.startGraceChecker('member-123');
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+
+      memberAuthService.stopAllGraceCheckers();
+    });
+
+    it('should do nothing when startGraceChecker called without memberId and no member in Redux', () => {
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+
+      // Redux store returns no member
+      mockGetState.mockReturnValue({
+        auth: {
+          member: null,
+        },
+      });
+
+      // Start without explicit memberId
+      memberAuthService.startGraceChecker();
+
+      // No interval should be created
+      expect(setIntervalSpy).not.toHaveBeenCalled();
+    });
   });
 
   // ==================== PIN FORMAT VALIDATION TESTS ====================
@@ -916,14 +1047,21 @@ describe('memberAuthService', () => {
 
   describe('logout', () => {
     it('should stop grace checker', async () => {
-      memberAuthService.startGraceChecker();
+      // Set up a member in cache
+      const mockSession = createMockMemberSession();
+      localStorageMock['cached_members_list'] = JSON.stringify([mockSession]);
+
+      // Start grace checker with explicit memberId
+      memberAuthService.startGraceChecker('member-123');
+
+      mockSupabaseAuth.signOut.mockResolvedValue({ error: null });
 
       await memberAuthService.logout();
 
-      // Verify grace checker was stopped (by checking it can be started again)
+      // Verify grace checker was stopped (by checking it can be started again - only 1 new call)
       const setIntervalSpy = vi.spyOn(global, 'setInterval');
-      memberAuthService.startGraceChecker();
-      expect(setIntervalSpy).toHaveBeenCalled();
+      memberAuthService.startGraceChecker('member-123');
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should clear cached session', async () => {
