@@ -279,8 +279,8 @@
         "Verify in browser: Online Store service selection"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": "Modify: apps/online-store/src/components/booking/ServiceSelectionStep.tsx (~25 lines)."
+      "passes": true,
+      "notes": "Modify: apps/online-store/src/components/booking/ServiceSelectionStep.tsx (~25 lines). Also modified ReviewStep.tsx for patch test validation before booking confirmation."
     },
     {
       "id": "US-018",

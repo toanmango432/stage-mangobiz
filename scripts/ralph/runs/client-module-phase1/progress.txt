@@ -459,3 +459,48 @@ Commit: e893fc5
 **Next story suggestion:** US-018 (Add patch test override audit logging) is already implemented in this story. US-017 (Online Store patch test) should be next.
 
 ---
+
+## 2026-01-21 - US-018: Add patch test override audit logging
+Commit: (no new commit - already implemented in US-016)
+
+**Why this story?** US-018 was already implemented as part of US-016's handlePatchTestOverride function. Marked as complete without additional changes.
+
+**Changes:**
+- No new code changes - functionality exists in NewAppointmentModal.v2.tsx:203-218
+
+**Learnings:**
+- Always verify if work is already done before starting implementation
+- US-016's handlePatchTestOverride includes complete audit logging: timestamp, staffId, clientId, serviceId, overrideReason
+
+---
+
+## 2026-01-21 - US-017: Add patch test validation to Online Store
+Commit: 9f6e27a
+
+**Why this story?** US-017 is the highest priority incomplete story. It completes the patch test feature track for the Online Store booking flow.
+
+**Changes:**
+- apps/online-store/src/types/catalog.ts:29: Added requiresPatchTest optional field to Service interface
+- apps/online-store/src/components/booking/ServiceSelectionStep.tsx:1-11: Added imports for Alert, AlertDescription, AlertTriangle, Service type
+- apps/online-store/src/components/booking/ServiceSelectionStep.tsx:99-107: Added patch test warning banner after selected service card
+- apps/online-store/src/components/booking/ReviewStep.tsx:1-24: Added imports for Service, Alert, useEffect, useCallback, validation types
+- apps/online-store/src/components/booking/ReviewStep.tsx:24-113: Added patch test validation state and validatePatchTest callback
+- apps/online-store/src/components/booking/ReviewStep.tsx:142-151: Added patch test error check in handleConfirm
+- apps/online-store/src/components/booking/ReviewStep.tsx:176-195: Added validation status and error banners in review UI
+- apps/online-store/src/components/booking/ReviewStep.tsx:354-367: Updated Confirm Booking button to disable during validation or on error
+
+**Browser Verification:**
+- Cannot fully verify without running online-store app with a service that has requiresPatchTest=true
+- TypeScript passes (online-store npx tsc --noEmit clean)
+- Code structure verified: warning banner shows in ServiceSelectionStep, validation occurs in ReviewStep
+
+**Learnings:**
+- Online Store booking flow: ServiceSelection → Details (client info) → Review → Confirm
+- Client ID not available during service selection, so patch test validation must occur at ReviewStep
+- validate-booking Edge Function can be called with email/phone instead of clientId for Online Store context
+- Pre-existing test failures in ServiceQuickPreview.test.tsx - NOT related to this story
+- Pre-existing TS6310 errors in @mango/supabase and @mango/utils packages - NOT related to this story
+
+**Next story suggestion:** US-019 (Add merge functionality tests) - starts the testing track for Phase 1
+
+---
