@@ -180,7 +180,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 1,
       "notes": "3 occurrences of 1000ms timeout for success display."

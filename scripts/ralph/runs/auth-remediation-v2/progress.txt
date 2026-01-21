@@ -189,3 +189,28 @@ Commit: fabae6e
 **Next story suggestion:** US-008 (Use AUTH_TIMEOUTS in useSwitchUser) - same complexity-1 constants task, then US-009 (Extract PIN verification success handler, depends on US-008)
 
 ---
+
+## 2026-01-20 - US-008: Use AUTH_TIMEOUTS constants in useSwitchUser hook
+Commit: 3e94368
+
+**Why this story?** Highest priority (8) among remaining stories with no dependencies, continues constants consolidation work from US-007 on the same file I modified in US-004.
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:14`: Added import of AUTH_TIMEOUTS from constants
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:65`: Replaced hardcoded 100ms focus delay with AUTH_TIMEOUTS.INPUT_FOCUS_DELAY_MS
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:221`: Replaced hardcoded 1000ms in handlePasswordSubmit with AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:289`: Replaced hardcoded 1000ms in handlePinSubmit with AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:357`: Replaced hardcoded 1000ms in handlePinComplete with AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS
+- `apps/store-app/src/components/auth/constants.ts:20`: Added AUTH_TIMEOUTS.INPUT_FOCUS_DELAY_MS = 100 for input focus delays
+
+**Learnings:**
+- PRD specified adding SUCCESS_DISPLAY_MS = 1000 but it already existed as 1200ms - used existing value to maintain consistency
+- Found additional hardcoded 100ms timeout for password input focus - replaced with new INPUT_FOCUS_DELAY_MS constant
+- PRD line numbers (~194, ~249, ~306) didn't match actual lines (~220, ~288, ~356) - file structure has evolved
+- 21 pre-existing test failures unrelated to this change (same failures as previous iterations)
+
+**Patterns to sync:** None - follows documented constants pattern in progress.txt
+
+**Next story suggestion:** US-009 (Extract PIN verification success handler) - now unblocked by US-008 completion, refactors the same useSwitchUser.ts file
+
+---
