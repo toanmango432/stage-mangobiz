@@ -19,8 +19,9 @@ export {
   optimisticActions,
 } from './teamThunks';
 
-// Selectors
+// Selectors (memoized with createSelector)
 export {
+  // Base selectors
   selectTeamState,
   selectTeamMembers,
   selectTeamMemberIds,
@@ -29,14 +30,24 @@ export {
   selectTeamUI,
   selectTeamSync,
   selectPendingOperations,
+  // Pending operation selectors
   selectIsMemberPending,
   selectMemberPendingOperation,
+  // Derived selectors (memoized)
   selectAllTeamMembers,
   selectActiveTeamMembers,
   selectArchivedTeamMembers,
   selectTeamMemberById,
   selectSelectedTeamMember,
+  // Filter UI state selectors
+  selectTeamSearchQuery,
+  selectTeamFilterRole,
+  selectTeamFilterStatus,
+  selectTeamSortBy,
+  selectTeamSortOrder,
+  // Filtered selectors (memoized)
   selectFilteredTeamMembers,
+  // Field selectors
   selectMemberPermissions,
   selectMemberServices,
   selectMemberSchedule,
@@ -45,6 +56,10 @@ export {
   selectMemberCommission,
   selectMemberOnlineBooking,
   selectMemberNotifications,
+  // Derived query selectors (memoized)
   selectBookableTeamMembers,
   selectTeamStats,
 } from './teamSelectors';
+
+// Types
+export type { TeamStats } from './teamSelectors';

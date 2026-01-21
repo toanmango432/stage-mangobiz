@@ -1,10 +1,13 @@
 /**
  * Team Module Selectors
  *
- * Selectors for accessing team member state.
- * Extracted from teamSlice.ts for file size management.
+ * Memoized selectors for efficient team member state access.
+ * Uses createSelector for derived data to prevent unnecessary recalculations.
+ *
+ * @see scheduleSelectors.ts for the reference pattern
  */
 
+import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '../../index';
 import type {
   TeamMemberSettings,
@@ -87,32 +90,39 @@ export const selectMemberPendingOperation = (
 };
 
 // ============================================
-// DERIVED SELECTORS
+// DERIVED SELECTORS (MEMOIZED)
 // ============================================
 
 /**
- * Select all team members as an array
+ * Select all team members as an array.
+ * Memoized to prevent unnecessary re-renders.
  */
-export const selectAllTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return state.team.memberIds.map((id) => state.team.members[id]).filter(Boolean);
-};
+export const selectAllTeamMembers = createSelector(
+  [selectTeamMemberIds, selectTeamMembers],
+  (memberIds, members): TeamMemberSettings[] =>
+    memberIds.map((id) => members[id]).filter(Boolean)
+);
 
 /**
- * Select only active team members
+ * Select only active team members.
+ * Memoized - only recalculates when members change.
  */
-export const selectActiveTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return selectAllTeamMembers(state).filter((member) => member.isActive);
-};
+export const selectActiveTeamMembers = createSelector(
+  [selectAllTeamMembers],
+  (members): TeamMemberSettings[] => members.filter((member) => member.isActive)
+);
 
 /**
- * Select only archived team members
+ * Select only archived team members.
+ * Memoized - only recalculates when members change.
  */
-export const selectArchivedTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return selectAllTeamMembers(state).filter((member) => !member.isActive);
-};
+export const selectArchivedTeamMembers = createSelector(
+  [selectAllTeamMembers],
+  (members): TeamMemberSettings[] => members.filter((member) => !member.isActive)
+);
 
 /**
- * Select a specific team member by ID
+ * Select a specific team member by ID (non-memoized for parameterized lookup).
  */
 export const selectTeamMemberById = (
   state: RootState,
@@ -122,69 +132,112 @@ export const selectTeamMemberById = (
 };
 
 /**
- * Select the currently selected team member
+ * Select the currently selected team member.
+ * Memoized based on selected ID and members state.
  */
-export const selectSelectedTeamMember = (state: RootState): TeamMemberSettings | null => {
-  const selectedId = state.team.ui.selectedMemberId;
-  return selectedId ? state.team.members[selectedId] || null : null;
-};
+export const selectSelectedTeamMember = createSelector(
+  [selectTeamUI, selectTeamMembers],
+  (ui, members): TeamMemberSettings | null => {
+    const selectedId = ui.selectedMemberId;
+    return selectedId ? members[selectedId] || null : null;
+  }
+);
 
 // ============================================
-// FILTERED SELECTORS
+// FILTER UI STATE SELECTORS
+// ============================================
+
+/** Select search query from UI state */
+export const selectTeamSearchQuery = (state: RootState): string => state.team.ui.searchQuery;
+
+/** Select filter role from UI state */
+export const selectTeamFilterRole = (state: RootState): string => state.team.ui.filterRole;
+
+/** Select filter status from UI state */
+export const selectTeamFilterStatus = (state: RootState): string => state.team.ui.filterStatus;
+
+/** Select sort field from UI state */
+export const selectTeamSortBy = (state: RootState): string => state.team.ui.sortBy;
+
+/** Select sort order from UI state */
+export const selectTeamSortOrder = (state: RootState): 'asc' | 'desc' => state.team.ui.sortOrder;
+
+// ============================================
+// FILTERED SELECTORS (MEMOIZED)
 // ============================================
 
 /**
- * Select team members filtered by UI state (search, role, status, sort)
+ * Helper to compare members for sorting.
  */
-export const selectFilteredTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  const { searchQuery, filterRole, filterStatus, sortBy, sortOrder } = state.team.ui;
-  let members = selectAllTeamMembers(state);
-
-  // Filter by search query
-  if (searchQuery) {
-    const query = searchQuery.toLowerCase();
-    members = members.filter(
-      (member) =>
-        member.profile.firstName.toLowerCase().includes(query) ||
-        member.profile.lastName.toLowerCase().includes(query) ||
-        member.profile.displayName.toLowerCase().includes(query) ||
-        member.profile.email.toLowerCase().includes(query)
-    );
+const compareMembers = (
+  a: TeamMemberSettings,
+  b: TeamMemberSettings,
+  sortBy: string,
+  sortOrder: 'asc' | 'desc'
+): number => {
+  let comparison = 0;
+  switch (sortBy) {
+    case 'name':
+      comparison = a.profile.firstName.localeCompare(b.profile.firstName);
+      break;
+    case 'role':
+      comparison = a.permissions.role.localeCompare(b.permissions.role);
+      break;
+    case 'hireDate':
+      comparison = (a.profile.hireDate || '').localeCompare(b.profile.hireDate || '');
+      break;
+    default:
+      comparison = 0;
   }
-
-  // Filter by role
-  if (filterRole !== 'all') {
-    members = members.filter((member) => member.permissions.role === filterRole);
-  }
-
-  // Filter by status
-  if (filterStatus === 'active') {
-    members = members.filter((member) => member.isActive);
-  } else if (filterStatus === 'inactive' || filterStatus === 'archived') {
-    members = members.filter((member) => !member.isActive);
-  }
-
-  // Sort
-  members.sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'name':
-        comparison = a.profile.firstName.localeCompare(b.profile.firstName);
-        break;
-      case 'role':
-        comparison = a.permissions.role.localeCompare(b.permissions.role);
-        break;
-      case 'hireDate':
-        comparison = (a.profile.hireDate || '').localeCompare(b.profile.hireDate || '');
-        break;
-      default:
-        comparison = 0;
-    }
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
-
-  return members;
+  return sortOrder === 'asc' ? comparison : -comparison;
 };
+
+/**
+ * Select team members filtered by UI state (search, role, status, sort).
+ * Memoized with granular input selectors for optimal performance.
+ */
+export const selectFilteredTeamMembers = createSelector(
+  [
+    selectAllTeamMembers,
+    selectTeamSearchQuery,
+    selectTeamFilterRole,
+    selectTeamFilterStatus,
+    selectTeamSortBy,
+    selectTeamSortOrder,
+  ],
+  (members, searchQuery, filterRole, filterStatus, sortBy, sortOrder): TeamMemberSettings[] => {
+    let result = [...members];
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (member) =>
+          member.profile.firstName.toLowerCase().includes(query) ||
+          member.profile.lastName.toLowerCase().includes(query) ||
+          member.profile.displayName.toLowerCase().includes(query) ||
+          member.profile.email.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by role
+    if (filterRole !== 'all') {
+      result = result.filter((member) => member.permissions.role === filterRole);
+    }
+
+    // Filter by status
+    if (filterStatus === 'active') {
+      result = result.filter((member) => member.isActive);
+    } else if (filterStatus === 'inactive' || filterStatus === 'archived') {
+      result = result.filter((member) => !member.isActive);
+    }
+
+    // Sort
+    result.sort((a, b) => compareMembers(a, b, sortBy, sortOrder));
+
+    return result;
+  }
+);
 
 // ============================================
 // FIELD SELECTORS
@@ -268,36 +321,50 @@ export const selectMemberNotifications = (
 };
 
 // ============================================
-// DERIVED QUERY SELECTORS
+// DERIVED QUERY SELECTORS (MEMOIZED)
 // ============================================
 
 /**
- * Select team members who are bookable online
+ * Select team members who are bookable online.
+ * Memoized - only recalculates when active members change.
  */
-export const selectBookableTeamMembers = (state: RootState): TeamMemberSettings[] => {
-  return selectActiveTeamMembers(state).filter((member) => member.onlineBooking.isBookableOnline);
-};
+export const selectBookableTeamMembers = createSelector(
+  [selectActiveTeamMembers],
+  (members): TeamMemberSettings[] =>
+    members.filter((member) => member.onlineBooking.isBookableOnline)
+);
 
 /**
- * Select team statistics
+ * Team statistics result type
  */
-export const selectTeamStats = (state: RootState) => {
-  const members = selectAllTeamMembers(state);
-  const active = members.filter((m) => m.isActive);
-  const bookable = members.filter((m) => m.onlineBooking.isBookableOnline);
+export interface TeamStats {
+  total: number;
+  active: number;
+  archived: number;
+  bookable: number;
+  byRole: Record<string, number>;
+}
 
-  // Count by role
-  const roleCount: Record<string, number> = {};
-  active.forEach((member) => {
-    const role = member.permissions.role;
-    roleCount[role] = (roleCount[role] || 0) + 1;
-  });
+/**
+ * Select team statistics.
+ * Memoized - computes stats only when members change.
+ */
+export const selectTeamStats = createSelector(
+  [selectAllTeamMembers, selectActiveTeamMembers, selectBookableTeamMembers],
+  (allMembers, activeMembers, bookableMembers): TeamStats => {
+    // Count by role
+    const roleCount: Record<string, number> = {};
+    activeMembers.forEach((member) => {
+      const role = member.permissions.role;
+      roleCount[role] = (roleCount[role] || 0) + 1;
+    });
 
-  return {
-    total: members.length,
-    active: active.length,
-    archived: members.length - active.length,
-    bookable: bookable.length,
-    byRole: roleCount,
-  };
-};
+    return {
+      total: allMembers.length,
+      active: activeMembers.length,
+      archived: allMembers.length - activeMembers.length,
+      bookable: bookableMembers.length,
+      byRole: roleCount,
+    };
+  }
+);
