@@ -20,6 +20,7 @@ import {
 import { setStoreTimezone } from '../../../../utils/dateUtils';
 import { hasSkippedPinSetup } from '../../PinSetupModal';
 import { auditLogger } from '../../../../services/audit/auditLogger';
+import { AUTH_TIMEOUTS } from '../../constants';
 import type { MemberAuthSession } from '../../../../types/memberAuth';
 import type { LoginMode, PinSetupMemberInfo } from '../types';
 
@@ -414,7 +415,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       setError(null);
 
       if (digits.length >= 4 && !isLoading) {
-        setTimeout(() => handlePinLogin(), 100);
+        setTimeout(() => handlePinLogin(), AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS);
       }
     },
     [isLoading, handlePinLogin]
