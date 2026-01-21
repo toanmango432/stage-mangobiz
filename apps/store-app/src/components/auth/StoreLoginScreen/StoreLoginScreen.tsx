@@ -289,8 +289,8 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
                 <span className="font-mono">owner123</span>
               </p>
               <p>
-                Manager: <span className="font-mono">mike@demosalon.com</span> /{' '}
-                <span className="font-mono">mike123</span>
+                Staff: <span className="font-mono">jane@demosalon.com</span> /{' '}
+                <span className="font-mono">jane123</span>
               </p>
             </div>
           ) : (
