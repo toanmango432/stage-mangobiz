@@ -3,13 +3,71 @@
 ## Codebase Patterns
 <!-- Patterns discovered during this run will be added here -->
 
+### Supabase Migration Pattern
+- Use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` for idempotent column additions
+- Use partial indexes for sparse columns: `CREATE INDEX IF NOT EXISTS ... WHERE column IS NOT NULL`
+- Follow existing migration numbering (031 after 030)
+- Include COMMENT ON COLUMN for documentation
+
+### Supabase RPC Function Pattern
+- Use `CREATE OR REPLACE FUNCTION` for idempotent function creation
+- Use `SECURITY DEFINER` for functions that need elevated permissions
+- Use `LANGUAGE plpgsql` for PostgreSQL procedural language
+- Use `FOR UPDATE` locks when modifying related rows atomically
+- Use `GET DIAGNOSTICS ... = ROW_COUNT` to track affected rows
+- Return JSONB for flexible response data
+- Use `RAISE EXCEPTION` for validation errors (causes automatic rollback)
+
 ---
 
 ## Run Log
 
-### Run Started: [pending]
+### Run Started: 2026-01-21
 - Branch: ralph/client-module-phase1
-- Stories: US-001 to US-008 (8 total)
-- Focus: Client Merging functionality
+- Stories: US-001 to US-021 (21 total)
+- Focus: Client Merging, Block Enforcement, Patch Test Validation
+
+---
+
+## 2026-01-21 - US-001: Add merge columns to clients table
+Commit: d03fa26
+
+**Why this story?** US-001 is the foundation for all merge functionality. Other merge stories (US-002 through US-007) depend on these columns existing.
+
+**Changes:**
+- supabase/migrations/031_client_merge.sql (NEW): Added merged_into_id, merged_at, merged_by columns with partial index
+- apps/store-app/src/services/supabase/types.ts:191-194,214-217: Added merge columns to ClientRow/ClientInsert types
+- apps/store-app/src/services/supabase/adapters/__tests__/clientAdapter.test.ts:36-38: Added merge columns to mock factory
+- apps/store-app/src/services/supabase/adapters/__tests__/clientAdapter.integration.test.ts:36-38: Added merge columns to mock factory
+
+**Learnings:**
+- Pre-existing TypeScript errors in catalogDatabase.ts, catalogSeed.ts, portfolioAdapter.ts, portfolioTable.ts - NOT related to this story
+- Mock factories in test files must be updated when adding new required columns to Row types
+
+**Next story suggestion:** US-002 (Create merge_clients RPC function) - builds directly on US-001's columns
+
+---
+
+## 2026-01-21 - US-002: Create merge_clients Supabase RPC function
+Commit: 31f5062
+
+**Why this story?** US-002 builds directly on US-001's columns. It provides the database-level atomic merge operation that the thunk (US-004) and modal (US-005) will call.
+
+**Changes:**
+- supabase/migrations/031_client_merge.sql:45-207: Added merge_clients RPC function (~160 lines)
+  - Parameters: p_primary_id, p_secondary_id, p_options JSONB, p_merged_by UUID
+  - Re-links appointments, tickets, transactions from secondary to primary
+  - Merges notes (array concatenation) if mergeNotes option is true
+  - Merges loyalty_info (points/visits summation) if mergeLoyalty option is true
+  - Marks secondary client with merged_into_id, merged_at, merged_by
+  - Returns JSONB with success status, merge summary, and updated primary client
+
+**Learnings:**
+- Untracked files from other branches (biometricService.ts, portfolioAdapter.ts, etc.) can cause false typecheck failures
+- Need to stash/move untracked files before verifying typecheck passes
+- PostgreSQL plpgsql functions automatically rollback on RAISE EXCEPTION
+- JSONB || operator concatenates arrays (used for merging notes)
+
+**Next story suggestion:** US-003 (Add merge types to clientsSlice) - provides TypeScript types needed for the thunk in US-004
 
 ---

@@ -17,7 +17,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Create file: supabase/migrations/031_client_merge.sql. Follow migration pattern from 030_create_member_session_revocations.sql. Use ALTER TABLE not CREATE TABLE."
     },
     {
@@ -37,7 +37,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Append to supabase/migrations/031_client_merge.sql (~80 lines). Use BEGIN...EXCEPTION...END for transaction safety."
     },
     {
