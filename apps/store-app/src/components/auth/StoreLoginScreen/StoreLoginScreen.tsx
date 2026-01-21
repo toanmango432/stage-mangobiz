@@ -15,6 +15,7 @@ import { PinSetupModal } from '../PinSetupModal';
 import { ForgotPasswordModal } from '../ForgotPasswordModal';
 import { BiometricEnrollmentModal } from '../BiometricEnrollmentModal';
 import { TOTPVerificationModal } from '../TOTPVerificationModal';
+import { OTPVerificationModal } from '../OTPVerificationModal';
 import { LoginForm } from './LoginForm';
 import { MemberLoginForm } from './MemberLoginForm';
 import { PinScreen } from './PinScreen';
@@ -64,6 +65,10 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     biometricEnrollmentMember,
     // TOTP verification state
     showTotpVerification,
+    // OTP (email/SMS) verification state
+    showOtpVerification,
+    otpMethod,
+    otpDestination,
 
     // Actions
     loadMembers,
@@ -87,6 +92,8 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     handlePinKeyDown,
     handleTotpVerificationSuccess,
     handleTotpVerificationCancel,
+    handleOtpVerificationSuccess,
+    handleOtpVerificationCancel,
   } = useLoginState({ onLoggedIn });
 
   // Load members when store is logged in
@@ -373,12 +380,25 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
       />
 
       {/* TOTP Verification Modal */}
-      <TOTPVerificationModal
-        isOpen={showTotpVerification}
-        onClose={handleTotpVerificationCancel}
-        onSuccess={handleTotpVerificationSuccess}
-        onCancel={handleTotpVerificationCancel}
-      />
+      {showTotpVerification && (
+        <TOTPVerificationModal
+          isOpen={showTotpVerification}
+          onClose={handleTotpVerificationCancel}
+          onSuccess={handleTotpVerificationSuccess}
+          onCancel={handleTotpVerificationCancel}
+        />
+      )}
+
+      {/* OTP (Email/SMS) Verification Modal */}
+      {showOtpVerification && otpMethod && otpDestination && (
+        <OTPVerificationModal
+          isOpen={showOtpVerification}
+          onClose={handleOtpVerificationCancel}
+          onSuccess={handleOtpVerificationSuccess}
+          method={otpMethod}
+          destination={otpDestination}
+        />
+      )}
     </div>
   );
 }

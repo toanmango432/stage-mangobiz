@@ -97,6 +97,7 @@ export interface Database {
           permissions: Json | null;
           last_login_at: string | null;
           last_active_at: string | null;
+          mfa_method: 'none' | 'email_otp' | 'sms_otp' | 'totp' | null;  // Two-factor authentication method
           created_at: string;
           updated_at: string;
         };
@@ -116,6 +117,7 @@ export interface Database {
           permissions?: Json | null;
           last_login_at?: string | null;
           last_active_at?: string | null;
+          mfa_method?: 'none' | 'email_otp' | 'sms_otp' | 'totp' | null;
           created_at?: string;
           updated_at?: string;
         };

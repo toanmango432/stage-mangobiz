@@ -22,6 +22,7 @@ import { setStoreTimezone } from '../../../../utils/dateUtils';
 import { hasSkippedPinSetup } from '../../pinSetupUtils';
 import { hasDismissedBiometricEnrollment } from '../../BiometricEnrollmentModal';
 import { totpService } from '../../../../services/totpService';
+import { otpService, type MfaMethod } from '../../../../services/otpService';
 import { auditLogger } from '../../../../services/audit/auditLogger';
 import { AUTH_TIMEOUTS } from '../../constants';
 import type { MemberAuthSession } from '../../../../types/memberAuth';
@@ -52,6 +53,29 @@ interface PendingTotpLogin {
     tier: string;
     timezone?: string;
   }>;
+}
+
+/** Info for pending OTP login (email/SMS) */
+interface PendingOtpLogin {
+  memberSession: MemberSession;
+  primaryStore: {
+    storeId: string;
+    storeName: string;
+    storeLoginId: string;
+    tenantId: string;
+    tier: string;
+    timezone?: string;
+  };
+  allStores: Array<{
+    storeId: string;
+    storeName: string;
+    storeLoginId: string;
+    tenantId: string;
+    tier: string;
+    timezone?: string;
+  }>;
+  method: 'email_otp' | 'sms_otp';
+  destination: string; // Masked email or phone
 }
 
 interface UseLoginStateProps {
@@ -110,6 +134,10 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
   // TOTP verification modal state
   const [showTotpVerification, setShowTotpVerification] = useState(false);
   const [pendingTotpLogin, setPendingTotpLogin] = useState<PendingTotpLogin | null>(null);
+
+  // OTP (email/SMS) verification modal state
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [pendingOtpLogin, setPendingOtpLogin] = useState<PendingOtpLogin | null>(null);
 
   // Track if we're in a login attempt to prevent error from being cleared
   const isLoginAttemptRef = useRef(false);
@@ -301,15 +329,23 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
       // Start grace period checker for offline access
       memberAuthService.startGraceChecker();
 
-      // Check if user has PIN set up
-      const hasPin = await memberAuthService.hasPin(memberSessionData.memberId);
-      const hasSkipped = hasSkippedPinSetup(memberSessionData.memberId);
+      // Check if user has PIN set up - wrapped in try/catch to prevent blocking login
+      try {
+        const hasPin = await memberAuthService.hasPin(memberSessionData.memberId);
+        const hasSkipped = hasSkippedPinSetup(memberSessionData.memberId);
 
-      if (!hasPin && !hasSkipped) {
-        setPinSetupMember({ memberId: memberSessionData.memberId, name: firstName || memberSessionData.memberName });
-        setShowPinSetupModal(true);
-      } else {
-        // Check if we should prompt for biometric enrollment
+        if (!hasPin && !hasSkipped) {
+          setPinSetupMember({ memberId: memberSessionData.memberId, name: firstName || memberSessionData.memberName });
+          setShowPinSetupModal(true);
+          return; // Modal will call onLoggedIn when done
+        }
+      } catch (pinCheckError) {
+        console.error('Failed to check PIN status:', pinCheckError);
+        // Continue with login - PIN check failure shouldn't block
+      }
+
+      // Check if we should prompt for biometric enrollment - wrapped in try/catch
+      try {
         const shouldPromptBiometric =
           biometricCapability?.available &&
           !(await biometricService.hasCredential(memberSessionData.memberId)) &&
@@ -321,10 +357,15 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
             memberName: firstName || memberSessionData.memberName,
           });
           setShowBiometricEnrollment(true);
-        } else {
-          onLoggedIn();
+          return; // Modal will call onLoggedIn when done
         }
+      } catch (biometricCheckError) {
+        console.error('Failed to check biometric status:', biometricCheckError);
+        // Continue with login - biometric check failure shouldn't block
       }
+
+      // No modals needed, complete login
+      onLoggedIn();
     },
     [dispatch, biometricCapability, onLoggedIn]
   );
@@ -430,22 +471,75 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
         permissions: authSession.permissions,
       };
 
-      // 8. Check if TOTP verification is required
-      const totpRequired = await totpService.isVerificationRequired();
+      // 8. Check member's MFA preference and handle accordingly
+      const mfaPreference = await otpService.getMfaPreference(authSession.memberId);
 
-      if (totpRequired) {
-        // Store the pending login info and show TOTP modal
-        setPendingTotpLogin({
-          memberSession: memberSessionData,
-          primaryStore,
-          allStores,
-        });
-        setShowTotpVerification(true);
-        setIsLoading(false);
-        return;
+      if (mfaPreference.method === 'email_otp' && mfaPreference.isVerified) {
+        // Send OTP via email
+        try {
+          const challenge = await otpService.sendEmailOtp(authSession.email);
+          setPendingOtpLogin({
+            memberSession: memberSessionData,
+            primaryStore,
+            allStores,
+            method: 'email_otp',
+            destination: challenge.destination,
+          });
+          setShowOtpVerification(true);
+          setIsLoading(false);
+          return;
+        } catch (otpErr) {
+          // If OTP fails, show error but don't block login
+          console.error('Failed to send email OTP:', otpErr);
+          setError(otpErr instanceof Error ? otpErr.message : 'Failed to send verification code');
+          setIsLoading(false);
+          isLoginAttemptRef.current = false;
+          return;
+        }
       }
 
-      // 9. Complete the login (no TOTP required)
+      if (mfaPreference.method === 'sms_otp' && mfaPreference.isVerified && mfaPreference.phone) {
+        // Send OTP via SMS
+        try {
+          const challenge = await otpService.sendSmsOtp(mfaPreference.phone);
+          setPendingOtpLogin({
+            memberSession: memberSessionData,
+            primaryStore,
+            allStores,
+            method: 'sms_otp',
+            destination: challenge.destination,
+          });
+          setShowOtpVerification(true);
+          setIsLoading(false);
+          return;
+        } catch (otpErr) {
+          // If OTP fails, show error but don't block login
+          console.error('Failed to send SMS OTP:', otpErr);
+          setError(otpErr instanceof Error ? otpErr.message : 'Failed to send verification code');
+          setIsLoading(false);
+          isLoginAttemptRef.current = false;
+          return;
+        }
+      }
+
+      if (mfaPreference.method === 'totp') {
+        // Check if TOTP verification is required (Supabase MFA)
+        const totpRequired = await totpService.isVerificationRequired();
+
+        if (totpRequired) {
+          // Store the pending login info and show TOTP modal
+          setPendingTotpLogin({
+            memberSession: memberSessionData,
+            primaryStore,
+            allStores,
+          });
+          setShowTotpVerification(true);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 9. Complete the login (no MFA required or MFA not configured)
       await completeMemberLogin(memberSessionData, primaryStore, allStores);
     } catch (err: unknown) {
       const errorMessage =
@@ -559,6 +653,31 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
   const handleTotpVerificationCancel = useCallback(() => {
     setShowTotpVerification(false);
     setPendingTotpLogin(null);
+    setError('Login cancelled');
+    isLoginAttemptRef.current = false;
+  }, []);
+
+  // Handle OTP (email/SMS) verification success
+  const handleOtpVerificationSuccess = useCallback(async () => {
+    if (!pendingOtpLogin) return;
+
+    setShowOtpVerification(false);
+
+    // Complete the login with the stored session data
+    await completeMemberLogin(
+      pendingOtpLogin.memberSession,
+      pendingOtpLogin.primaryStore,
+      pendingOtpLogin.allStores
+    );
+
+    setPendingOtpLogin(null);
+  }, [pendingOtpLogin, completeMemberLogin]);
+
+  // Handle OTP (email/SMS) verification cancel (return to login)
+  const handleOtpVerificationCancel = useCallback(() => {
+    setShowOtpVerification(false);
+    setPendingOtpLogin(null);
+    otpService.clearChallenge();
     setError('Login cancelled');
     isLoginAttemptRef.current = false;
   }, []);
@@ -948,6 +1067,10 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     biometricEnrollmentMember,
     // TOTP verification state
     showTotpVerification,
+    // OTP (email/SMS) verification state
+    showOtpVerification,
+    otpMethod: pendingOtpLogin?.method,
+    otpDestination: pendingOtpLogin?.destination,
 
     // Actions
     loadMembers,
@@ -962,6 +1085,8 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     handleBiometricEnrollmentClose,
     handleTotpVerificationSuccess,
     handleTotpVerificationCancel,
+    handleOtpVerificationSuccess,
+    handleOtpVerificationCancel,
     handlePinLogin,
     handlePinChange,
     handlePinKeyPress,

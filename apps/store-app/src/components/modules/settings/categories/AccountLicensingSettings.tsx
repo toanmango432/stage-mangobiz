@@ -23,15 +23,19 @@ import {
   Trash2,
   Loader2,
   Fingerprint,
-  ScanFace
+  ScanFace,
+  Smartphone
 } from 'lucide-react';
 import { useMemberAuth } from '@/hooks/useMemberAuth';
 import { selectMember } from '@/store/slices/authSlice';
 import { memberAuthService } from '@/services/memberAuthService';
 import { biometricService, type BiometricAvailability } from '@/services/biometricService';
+import { totpService, type TOTPEnrollmentStatus } from '@/services/totpService';
+import { otpService, type MfaMethod, type MfaPreference } from '@/services/otpService';
 import { PinSetupModal } from '@/components/auth/PinSetupModal';
 import { clearSkipPreference } from '@/components/auth/pinSetupUtils';
 import { PinVerificationModal } from '@/components/auth/PinVerificationModal';
+import { TOTPEnrollmentModal } from '@/components/auth/TOTPEnrollmentModal';
 import {
   selectAccountSettings,
 } from '@/store/slices/settingsSlice';
@@ -128,6 +132,16 @@ export function AccountLicensingSettings() {
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [showBiometricRemoveConfirm, setShowBiometricRemoveConfirm] = useState(false);
 
+  // Two-Factor Authentication state
+  const [mfaPreference, setMfaPreference] = useState<MfaPreference | null>(null);
+  const [selectedMfaMethod, setSelectedMfaMethod] = useState<MfaMethod>('none');
+  const [otpDeliveryMethod, setOtpDeliveryMethod] = useState<'email' | 'sms'>('email');
+  const [isMfaLoading, setIsMfaLoading] = useState(false);
+  const [showTotpEnrollModal, setShowTotpEnrollModal] = useState(false);
+  const [showMfaDisableConfirm, setShowMfaDisableConfirm] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+
   // Get current member ID from either session or Redux
   const memberId = memberSession?.memberId || currentMember?.memberId;
   const memberName = memberSession?.name || `${currentMember?.firstName || ''} ${currentMember?.lastName || ''}`.trim();
@@ -168,6 +182,33 @@ export function AccountLicensingSettings() {
     }
     checkBiometricStatus();
   }, [memberId]);
+
+  // Check MFA preference on mount (only for member-login context)
+  useEffect(() => {
+    async function checkMfaStatus() {
+      if (loginContext !== 'member' || !memberId) {
+        setMfaPreference({ method: 'none', isVerified: false });
+        setSelectedMfaMethod('none');
+        return;
+      }
+      try {
+        const pref = await otpService.getMfaPreference(memberId);
+        setMfaPreference(pref);
+        setSelectedMfaMethod(pref.method);
+        if (pref.method === 'email_otp') {
+          setOtpDeliveryMethod('email');
+        } else if (pref.method === 'sms_otp') {
+          setOtpDeliveryMethod('sms');
+          if (pref.phone) setPhoneNumber(pref.phone);
+        }
+      } catch (error) {
+        console.error('Failed to check MFA status:', error);
+        setMfaPreference({ method: 'none', isVerified: false });
+        setSelectedMfaMethod('none');
+      }
+    }
+    checkMfaStatus();
+  }, [loginContext, memberId]);
 
   // Handle PIN setup/change completion
   const handlePinSetupComplete = useCallback(async () => {
@@ -255,6 +296,96 @@ export function AccountLicensingSettings() {
     }
   }, [memberId]);
 
+  // Handle MFA method selection change
+  const handleMfaMethodChange = useCallback(async (method: MfaMethod) => {
+    if (!memberId) return;
+
+    // If selecting OTP, show phone input for SMS
+    if (method === 'sms_otp' && !phoneNumber) {
+      setShowPhoneInput(true);
+      setSelectedMfaMethod(method);
+      return;
+    }
+
+    // If selecting TOTP, show enrollment modal
+    if (method === 'totp') {
+      setSelectedMfaMethod(method);
+      setShowTotpEnrollModal(true);
+      return;
+    }
+
+    // For 'none' or 'email_otp', save directly
+    setIsMfaLoading(true);
+    try {
+      await otpService.setMfaPreference(memberId, method);
+      setSelectedMfaMethod(method);
+      setMfaPreference({ method, isVerified: method !== 'none' });
+      if (method === 'email_otp') {
+        setOtpDeliveryMethod('email');
+      }
+    } catch (error) {
+      console.error('Failed to update MFA method:', error);
+    } finally {
+      setIsMfaLoading(false);
+    }
+  }, [memberId, phoneNumber]);
+
+  // Handle phone number submission for SMS OTP
+  const handlePhoneSubmit = useCallback(async () => {
+    if (!memberId || !phoneNumber.trim()) return;
+
+    setIsMfaLoading(true);
+    try {
+      await otpService.setPhoneForSmsOtp(memberId, phoneNumber.trim());
+      setSelectedMfaMethod('sms_otp');
+      setOtpDeliveryMethod('sms');
+      setMfaPreference({ method: 'sms_otp', phone: phoneNumber.trim(), isVerified: true });
+      setShowPhoneInput(false);
+    } catch (error) {
+      console.error('Failed to save phone for SMS OTP:', error);
+    } finally {
+      setIsMfaLoading(false);
+    }
+  }, [memberId, phoneNumber]);
+
+  // Handle TOTP enrollment completion
+  const handleTotpEnrollComplete = useCallback(async () => {
+    if (!memberId) return;
+    setShowTotpEnrollModal(false);
+    setIsMfaLoading(true);
+    try {
+      await otpService.setMfaPreference(memberId, 'totp');
+      setMfaPreference({ method: 'totp', isVerified: true });
+    } catch (error) {
+      console.error('Failed to save TOTP preference:', error);
+    } finally {
+      setIsMfaLoading(false);
+    }
+  }, [memberId]);
+
+  // Handle MFA disable
+  const handleDisableMfa = useCallback(async () => {
+    if (!memberId) return;
+    setIsMfaLoading(true);
+    try {
+      // If TOTP was enabled, unenroll from Supabase MFA
+      if (mfaPreference?.method === 'totp') {
+        const status = await totpService.isEnrolled();
+        if (status.enrolled && status.factorId) {
+          await totpService.unenroll(status.factorId);
+        }
+      }
+      await otpService.setMfaPreference(memberId, 'none');
+      setSelectedMfaMethod('none');
+      setMfaPreference({ method: 'none', isVerified: false });
+      setShowMfaDisableConfirm(false);
+    } catch (error) {
+      console.error('Failed to disable MFA:', error);
+    } finally {
+      setIsMfaLoading(false);
+    }
+  }, [memberId, mfaPreference?.method]);
+
   if (!account) {
     return <div className="text-gray-500">Loading account settings...</div>;
   }
@@ -322,25 +453,193 @@ export function AccountLicensingSettings() {
       {/* Security Settings */}
       <SettingsSection title="Security" icon={<Shield className="w-5 h-5" />}>
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
-            <div>
-              <p className="font-medium text-gray-900">Two-Factor Authentication</p>
-              <p className="text-sm text-gray-500">Add an extra layer of security</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {security.twoFactorEnabled ? (
-                <>
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-600">Enabled</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm text-yellow-600">Disabled</span>
-                </>
+          {/* Two-Factor Authentication - Only visible for member-login users */}
+          {loginContext === 'member' && (
+            <div className="py-3 border-b border-gray-100">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-gray-900">Two-Factor Authentication</p>
+                    {isMfaLoading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Add an extra layer of security to your account
+                  </p>
+                </div>
+              </div>
+
+              {/* MFA Method Selection */}
+              {mfaPreference !== null && (
+                <div className="ml-11 space-y-3">
+                  {/* Option: None */}
+                  <label className={cn(
+                    "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                    selectedMfaMethod === 'none'
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <input
+                      type="radio"
+                      name="mfa-method"
+                      value="none"
+                      checked={selectedMfaMethod === 'none'}
+                      onChange={() => mfaPreference.method !== 'none' ? setShowMfaDisableConfirm(true) : null}
+                      disabled={isMfaLoading}
+                      className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900">None</p>
+                      <p className="text-sm text-gray-500">Password only (not recommended)</p>
+                    </div>
+                  </label>
+
+                  {/* Option: OTP (Email or SMS) */}
+                  <div className={cn(
+                    "rounded-lg border transition-colors",
+                    (selectedMfaMethod === 'email_otp' || selectedMfaMethod === 'sms_otp')
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200"
+                  )}>
+                    <label className="flex items-start gap-3 p-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mfa-method"
+                        value="otp"
+                        checked={selectedMfaMethod === 'email_otp' || selectedMfaMethod === 'sms_otp'}
+                        onChange={() => handleMfaMethodChange(otpDeliveryMethod === 'sms' ? 'sms_otp' : 'email_otp')}
+                        disabled={isMfaLoading}
+                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">One-Time Password (OTP)</p>
+                        <p className="text-sm text-gray-500">Receive a code via email or SMS</p>
+                      </div>
+                    </label>
+
+                    {/* OTP Delivery Method Sub-options */}
+                    {(selectedMfaMethod === 'email_otp' || selectedMfaMethod === 'sms_otp') && (
+                      <div className="px-3 pb-3 ml-7 space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Send code via:</p>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="otp-delivery"
+                              value="email"
+                              checked={otpDeliveryMethod === 'email'}
+                              onChange={() => {
+                                setOtpDeliveryMethod('email');
+                                handleMfaMethodChange('email_otp');
+                              }}
+                              disabled={isMfaLoading}
+                              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <Mail className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700">Email</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="otp-delivery"
+                              value="sms"
+                              checked={otpDeliveryMethod === 'sms'}
+                              onChange={() => {
+                                setOtpDeliveryMethod('sms');
+                                handleMfaMethodChange('sms_otp');
+                              }}
+                              disabled={isMfaLoading}
+                              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                            />
+                            <Phone className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700">SMS</span>
+                          </label>
+                        </div>
+
+                        {/* Phone number input for SMS */}
+                        {showPhoneInput && otpDeliveryMethod === 'sms' && (
+                          <div className="mt-3 flex gap-2">
+                            <input
+                              type="tel"
+                              value={phoneNumber}
+                              onChange={(e) => setPhoneNumber(e.target.value)}
+                              placeholder="Enter phone number"
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                              onClick={handlePhoneSubmit}
+                              disabled={!phoneNumber.trim() || isMfaLoading}
+                              className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Option: TOTP (Authenticator App) */}
+                  <label className={cn(
+                    "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                    selectedMfaMethod === 'totp'
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <input
+                      type="radio"
+                      name="mfa-method"
+                      value="totp"
+                      checked={selectedMfaMethod === 'totp'}
+                      onChange={() => handleMfaMethodChange('totp')}
+                      disabled={isMfaLoading}
+                      className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-gray-500" />
+                        <p className="font-medium text-gray-900">Authenticator App</p>
+                        {selectedMfaMethod === 'totp' && mfaPreference.isVerified && (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Use Google Authenticator, 1Password, Authy, or similar
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              {/* Disable MFA Confirmation */}
+              {showMfaDisableConfirm && (
+                <div className="mt-4 ml-11 p-4 bg-red-50 border border-red-100 rounded-lg">
+                  <p className="text-sm text-red-800 font-medium">Disable Two-Factor Authentication?</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    Your account will be less secure without two-factor authentication.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={handleDisableMfa}
+                      disabled={isMfaLoading}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {isMfaLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Yes, Disable
+                    </button>
+                    <button
+                      onClick={() => setShowMfaDisableConfirm(false)}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+          )}
 
           <div className="flex items-center justify-between py-3 border-b border-gray-100">
             <div>
@@ -618,6 +917,13 @@ export function AccountLicensingSettings() {
           actionDescription="Verify your current PIN to set a new one"
         />
       )}
+
+      {/* TOTP Enrollment Modal */}
+      <TOTPEnrollmentModal
+        isOpen={showTotpEnrollModal}
+        onClose={() => setShowTotpEnrollModal(false)}
+        onSuccess={handleTotpEnrollComplete}
+      />
     </div>
   );
 }
