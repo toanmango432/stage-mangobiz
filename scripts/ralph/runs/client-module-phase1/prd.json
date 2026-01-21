@@ -116,7 +116,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/thunks.ts (~15 lines in mergeClientsInSupabase)."
     },
     {

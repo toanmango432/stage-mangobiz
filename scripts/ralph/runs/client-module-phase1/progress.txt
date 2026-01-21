@@ -121,3 +121,21 @@ Commit: b08ed24
 **Next story suggestion:** US-005 (Activate MergeClientsModal component) - the thunk now exists, so the modal can be restored from .bak
 
 ---
+
+## 2026-01-21 - US-004 Fix: Add 'merge' to AuditAction type
+Commit: b0fdc1f
+
+**Why this story?** US-004 was already implemented but the thunk used `action: 'merge'` which wasn't in the AuditAction type union, causing TypeScript error TS2322.
+
+**Changes:**
+- apps/store-app/src/services/audit/auditLogger.ts:41: Added `'merge'` to AuditAction type union
+- apps/store-app/src/services/audit/auditLogger.ts:154: Added `merge: 'high'` to ACTION_SEVERITY mapping
+
+**Learnings:**
+- When adding new audit actions, must update BOTH the type union AND the severity mapping
+- The AuditLogger uses a Record type that requires all AuditAction values to have severity mappings
+- US-007 (merge audit logging) is actually already satisfied by the mergeClientsInSupabase thunk implementation
+
+**Next story suggestion:** US-005 (Activate MergeClientsModal component) - the thunk and types are now complete
+
+---
