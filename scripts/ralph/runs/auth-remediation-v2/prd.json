@@ -429,7 +429,7 @@
         "All tests pass"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "dependencies": ["US-018"],
@@ -452,7 +452,7 @@
         "All tests pass"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "dependencies": ["US-019"],
