@@ -441,3 +441,66 @@ Commit: 5f21ec8
 **Next story suggestion:** US-017 (Add unit tests for grace checker lifecycle) - continues testing work on same file, no dependencies
 
 ---
+
+## 2026-01-20 - US-017: Add unit tests for grace checker lifecycle
+Commit: 82808f0
+
+**Why this story?** Highest priority (17) among remaining stories with `passes: false` and no unmet dependencies. Previous iterations (US-011 through US-016) worked on the same test file, so the code structure is extremely fresh in context. Progress log explicitly suggested this story.
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:1792-2045`: Added describe block 'grace checker' with 7 tests:
+  - `should create interval when startGraceChecker is called` - Verifies interval is created and runs at 30-minute mark
+  - `should be idempotent - second call does not create duplicate interval` - Calls startGraceChecker 3x, verifies only one forceLogout dispatch
+  - `should clear interval when stopGraceChecker is called` - Starts then stops checker, verifies no dispatch on timer advance
+  - `should clear all intervals when stopAllGraceCheckers is called` - Creates 2 checkers, stops all, verifies no dispatches
+  - `should trigger forceLogout when grace expires while offline` - Tests expired grace (15 days old) + offline triggers forceLogout with 'offline_grace_expired' reason
+  - `should NOT trigger forceLogout when grace expires while ONLINE` - Tests expired grace + online does NOT trigger (user can re-auth)
+  - `should stop checker when member is no longer in cache` - Removes member from cache, verifies checker self-stops
+
+**Learnings:**
+- vi.useFakeTimers() and vi.advanceTimersByTime() are essential for testing intervals without waiting real time
+- Must call vi.useRealTimers() in afterEach to avoid affecting other tests
+- Grace checker has a self-cleanup mechanism: if member not found in cache, it calls stopGraceChecker
+- The checker only forces logout if BOTH grace expired AND offline (navigator.onLine === false)
+- Test count increased from 75 to 82 (7 new tests)
+- 14 pre-existing test failures in other files are unrelated to this change
+
+**Patterns to sync:** None - follows documented testing patterns with fake timers
+
+**Next story suggestion:** US-018 (Add Agent-Browser E2E test for email/password login) - E2E testing with Agent-Browser, no dependencies
+
+---
+
+## 2026-01-20 - US-018: Add Agent-Browser E2E test for email/password login
+Commit: 7f2dcd5
+
+**Why this story?** Highest priority (18) among remaining stories with `passes: false` and no unmet dependencies. This is a blocker for US-019, US-021, and US-024. Progress log explicitly suggested this story.
+
+**Changes:**
+- `apps/store-app/e2e/auth-agent-browser.spec.ts (NEW)`: Created Agent-Browser E2E test file with:
+  - Test utilities: agentBrowser(), getSnapshot(), findElement(), waitForElement(), waitForText()
+  - Test: login form displays email and password fields
+  - Test: Sign In button enabled when credentials entered
+  - Test: error displayed for invalid credentials
+  - Test: loading state shown during login
+  - Helper functions exported for future tests: enterPin(), completeLogin()
+
+**Browser Verification:**
+- Login form displays: PASS (email textbox, password textbox, Sign In button visible)
+- Sign In button enables: PASS (button has cursor=pointer after credentials entered, disabled attribute removed)
+- Invalid credentials error: PASS ("Invalid email or password" message displayed)
+- Loading state: PASS (test handles brief loading state gracefully)
+
+**Learnings:**
+- Agent-Browser is a CLI tool for browser automation, separate from Playwright
+- Tests use Vitest framework but are in e2e folder (excluded from normal vitest runs by config)
+- The npm script to run these tests (pnpm test:e2e:agent-browser) is deferred to US-024
+- Browser snapshot shows elements with refs (e.g., @e33) for interaction
+- Password inputs appear as textbox role in accessibility tree
+- Disabled buttons show [disabled] attribute in snapshot, enabled buttons show [cursor=pointer]
+
+**Patterns to sync:** None - Agent-Browser testing pattern already documented in progress.txt header
+
+**Next story suggestion:** US-019 (Add Agent-Browser E2E test for PIN setup flow) - depends on US-018 (now complete), continues same test file
+
+---

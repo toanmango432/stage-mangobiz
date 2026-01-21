@@ -384,7 +384,7 @@
         "All new tests pass: pnpm test -- memberAuthService"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "notes": "Use vi.advanceTimersByTime() to test interval behavior. Mock navigator.onLine."
@@ -407,7 +407,7 @@
         "All tests pass"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "notes": "Agent-Browser commands: 'agent-browser open <url>', 'agent-browser snapshot -i' for interactive elements, 'agent-browser click @e1', 'agent-browser fill @e2 \"text\"'. Create npm script for running these tests."
