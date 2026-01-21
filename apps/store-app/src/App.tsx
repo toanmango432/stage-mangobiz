@@ -16,6 +16,7 @@ import { SupabaseSyncProvider } from './providers/SupabaseSyncProvider';
 import { ConflictNotificationProvider } from './providers/ConflictNotificationContext';
 import { AuthProvider } from './providers/AuthProvider';
 import { ForceLogoutAlert } from './components/auth/ForceLogoutAlert';
+import { AuthCallback } from './components/auth/AuthCallback';
 import { MigrationProgress, type MigrationProgressInfo } from './components/MigrationProgress';
 import { isMigrationNeeded, runDataMigration } from './services/migrationService';
 import { getSQLiteAdapter } from './services/sqliteServices';
@@ -35,7 +36,14 @@ export function App() {
   const [isDbInitialized, setIsDbInitialized] = useState(false);
   const [showMigration, setShowMigration] = useState(false);
   const [isMigrationComplete, setIsMigrationComplete] = useState(false);
+  const [isAuthCallback, setIsAuthCallback] = useState(false);
   const migrationProgressRef = useRef<MigrationProgressInfo | null>(null);
+
+  // Check if we're on the auth callback route (magic link return)
+  useEffect(() => {
+    const isCallback = window.location.pathname.includes('/auth/callback');
+    setIsAuthCallback(isCallback);
+  }, []);
 
   // Initialize database FIRST (before any other operations)
   useEffect(() => {
@@ -280,6 +288,28 @@ export function App() {
         onSkip={handleMigrationSkip}
         onComplete={handleMigrationComplete}
       />
+    );
+  }
+
+  // Handle magic link callback route
+  if (isAuthCallback) {
+    return (
+      <Provider store={store}>
+        <AuthCallback
+          onSuccess={() => {
+            // Successfully authenticated via magic link
+            // Re-initialize auth state and clear callback flag
+            setIsAuthCallback(false);
+            storeAuthManager.initialize().then((state) => {
+              setAuthState(state);
+            });
+          }}
+          onError={() => {
+            // Clear callback flag on error so user can try again
+            setIsAuthCallback(false);
+          }}
+        />
+      </Provider>
     );
   }
 

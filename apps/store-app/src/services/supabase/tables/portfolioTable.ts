@@ -120,7 +120,7 @@ export const portfolioTable = {
 
     const { data, error } = await supabase
       .from('portfolio_items')
-      .update({ likes_count: (current.likes_count || 0) + 1 })
+      .update({ likes: (current.likes || 0) + 1 })
       .eq('id', id)
       .select()
       .single();

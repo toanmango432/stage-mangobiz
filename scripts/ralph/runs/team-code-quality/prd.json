@@ -1,0 +1,70 @@
+{
+  "name": "Team Code Quality Follow-Up",
+  "branchName": "ralph/client-module-phase1",
+  "description": "Follow-up code quality improvements from UltraThink review: extract team selectors to reduce teamSlice.ts, fix hardcoded deviceId in syncContext.ts",
+  "userStories": [
+    {
+      "id": "US-026",
+      "title": "Extract teamSlice selectors to team/teamSelectors.ts",
+      "description": "Move all selectors from teamSlice.ts to a dedicated team/teamSelectors.ts file to reduce slice file size from 858 to ~675 lines.",
+      "priority": 1,
+      "complexity": "medium",
+      "category": "backend",
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/store/slices/team/teamSelectors.ts (NEW)",
+        "apps/store-app/src/store/slices/teamSlice.ts",
+        "apps/store-app/src/store/slices/team/index.ts"
+      ],
+      "acceptanceCriteria": [
+        "Create team/teamSelectors.ts with all selectors from teamSlice.ts lines 675-858",
+        "Include base selectors: selectTeamState, selectTeamMembers, selectTeamMemberIds, selectTeamLoading, selectTeamError, selectTeamUI, selectTeamSync, selectPendingOperations",
+        "Include member query selectors: selectIsMemberPending, selectMemberPendingOperation, selectAllTeamMembers, selectActiveTeamMembers, selectArchivedTeamMembers, selectTeamMemberById, selectSelectedTeamMember",
+        "Include filtered selector: selectFilteredTeamMembers",
+        "Include field selectors: selectMemberPermissions, selectMemberServices, selectMemberSchedule, selectMemberTimeOffRequests, selectMemberScheduleOverrides, selectMemberCommission, selectMemberOnlineBooking, selectMemberNotifications",
+        "Include derived selectors: selectBookableTeamMembers, selectTeamStats",
+        "Use 'import type { RootState }' from '../../index' to avoid circular dependency",
+        "Re-export selectors from teamSlice.ts using 'export * from ./team/teamSelectors'",
+        "Update team/index.ts to export from teamSelectors.ts",
+        "teamSlice.ts is under 700 lines after extraction",
+        "No forbidden strings: as any, void _",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "Follow exact pattern from schedule/scheduleSelectors.ts (683 lines)",
+        "Use 'import type { RootState }' to prevent circular imports",
+        "Keep selector implementations identical, just move to new file",
+        "Add JSDoc comments matching scheduleSelectors.ts style"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "passes": true
+    },
+    {
+      "id": "US-027",
+      "title": "Fix hardcoded deviceId in syncContext.ts",
+      "description": "Replace hardcoded 'device-web' fallback strings with deviceManager.getDeviceId() for proper audit trail tracking.",
+      "priority": 2,
+      "complexity": "low",
+      "category": "backend",
+      "dependencies": [],
+      "files": [
+        "apps/store-app/src/store/utils/syncContext.ts"
+      ],
+      "acceptanceCriteria": [
+        "Import deviceManager from '../../../services/deviceManager'",
+        "Line 30: Change deviceId: 'device-web' to deviceId: deviceManager.getDeviceId()",
+        "Line 49: Change device.deviceId || 'device-web' to device.deviceId || deviceManager.getDeviceId()",
+        "No hardcoded 'device-web' strings remain in file",
+        "No forbidden strings: as any, 'device-web'",
+        "pnpm run typecheck passes"
+      ],
+      "notes": [
+        "This matches the fix already applied in CreatePayRunModal.tsx",
+        "deviceManager.getDeviceId() returns a unique identifier per device session",
+        "Import path: import { deviceManager } from '../../../services/deviceManager'"
+      ],
+      "testCommand": "pnpm run typecheck",
+      "passes": true
+    }
+  ]
+}

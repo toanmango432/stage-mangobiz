@@ -21,11 +21,14 @@ import {
   WifiOff,
   KeyRound,
   Trash2,
-  Loader2
+  Loader2,
+  Fingerprint,
+  ScanFace
 } from 'lucide-react';
 import { useMemberAuth } from '@/hooks/useMemberAuth';
 import { selectMember } from '@/store/slices/authSlice';
 import { memberAuthService } from '@/services/memberAuthService';
+import { biometricService, type BiometricAvailability } from '@/services/biometricService';
 import { PinSetupModal } from '@/components/auth/PinSetupModal';
 import { clearSkipPreference } from '@/components/auth/pinSetupUtils';
 import { PinVerificationModal } from '@/components/auth/PinVerificationModal';
@@ -119,6 +122,12 @@ export function AccountLicensingSettings() {
   const [isRemovingPin, setIsRemovingPin] = useState(false);
   const [pinActionType, setPinActionType] = useState<'setup' | 'change'>('setup');
 
+  // Biometric-related state
+  const [biometricAvailability, setBiometricAvailability] = useState<BiometricAvailability | null>(null);
+  const [biometricEnabled, setBiometricEnabled] = useState<boolean | null>(null);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const [showBiometricRemoveConfirm, setShowBiometricRemoveConfirm] = useState(false);
+
   // Get current member ID from either session or Redux
   const memberId = memberSession?.memberId || currentMember?.memberId;
   const memberName = memberSession?.name || `${currentMember?.firstName || ''} ${currentMember?.lastName || ''}`.trim();
@@ -136,6 +145,28 @@ export function AccountLicensingSettings() {
       }
     }
     checkPinStatus();
+  }, [memberId]);
+
+  // Check biometric availability and enabled status on mount
+  useEffect(() => {
+    async function checkBiometricStatus() {
+      try {
+        const availability = await biometricService.isAvailable();
+        setBiometricAvailability(availability);
+
+        if (memberId && availability.available) {
+          const enabled = await biometricService.isEnabled(memberId);
+          setBiometricEnabled(enabled);
+        } else {
+          setBiometricEnabled(false);
+        }
+      } catch (error) {
+        console.error('Failed to check biometric status:', error);
+        setBiometricAvailability({ available: false, type: 'none', platformName: 'None', isNative: false });
+        setBiometricEnabled(false);
+      }
+    }
+    checkBiometricStatus();
   }, [memberId]);
 
   // Handle PIN setup/change completion
@@ -184,6 +215,43 @@ export function AccountLicensingSettings() {
       console.error('Failed to remove PIN:', error);
     } finally {
       setIsRemovingPin(false);
+    }
+  }, [memberId]);
+
+  // Handle biometric enable
+  const handleEnableBiometric = useCallback(async () => {
+    if (!memberId || !biometricAvailability?.available) return;
+    setIsBiometricLoading(true);
+    try {
+      const success = await biometricService.register(memberId, memberName);
+      if (success) {
+        biometricService.setLastBiometricUser(memberId);
+        setBiometricEnabled(true);
+      }
+    } catch (error) {
+      console.error('Failed to enable biometric:', error);
+    } finally {
+      setIsBiometricLoading(false);
+    }
+  }, [memberId, memberName, biometricAvailability]);
+
+  // Handle biometric disable click
+  const handleDisableBiometricClick = useCallback(() => {
+    setShowBiometricRemoveConfirm(true);
+  }, []);
+
+  // Handle confirmed biometric disable
+  const handleDisableBiometric = useCallback(async () => {
+    if (!memberId) return;
+    setIsBiometricLoading(true);
+    try {
+      await biometricService.disable(memberId);
+      setBiometricEnabled(false);
+      setShowBiometricRemoveConfirm(false);
+    } catch (error) {
+      console.error('Failed to disable biometric:', error);
+    } finally {
+      setIsBiometricLoading(false);
     }
   }, [memberId]);
 
@@ -364,6 +432,83 @@ export function AccountLicensingSettings() {
                     </button>
                     <button
                       onClick={() => setShowRemoveConfirm(false)}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Biometric Authentication - Only visible if biometrics are available */}
+          {biometricAvailability?.available && memberId && (
+            <div className="py-3 border-t border-gray-100">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    {biometricAvailability.type === 'face' ? (
+                      <ScanFace className="w-4 h-4 text-amber-600" />
+                    ) : (
+                      <Fingerprint className="w-4 h-4 text-amber-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{biometricAvailability.platformName}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {biometricEnabled
+                        ? `${biometricAvailability.platformName} is enabled for quick login`
+                        : `Enable ${biometricAvailability.platformName} for faster sign-in`}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>Your biometric data never leaves this device</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {biometricEnabled === null || isBiometricLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  ) : biometricEnabled ? (
+                    <button
+                      onClick={handleDisableBiometricClick}
+                      disabled={isBiometricLoading}
+                      className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Disable
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleEnableBiometric}
+                      disabled={isBiometricLoading}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {isBiometricLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Enable {biometricAvailability.platformName}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Remove Biometric Confirmation */}
+              {showBiometricRemoveConfirm && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                  <p className="text-sm text-red-800 font-medium">Disable {biometricAvailability.platformName}?</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    You will need to use your password or PIN to sign in.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={handleDisableBiometric}
+                      disabled={isBiometricLoading}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {isBiometricLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                      Yes, Disable
+                    </button>
+                    <button
+                      onClick={() => setShowBiometricRemoveConfirm(false)}
                       className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       Cancel

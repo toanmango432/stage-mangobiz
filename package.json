@@ -25,7 +25,8 @@
     "dev:control": "turbo dev --filter=@mango/control-center",
     "build:control": "turbo build --filter=@mango/control-center",
     "dev:online": "turbo dev --filter=@mango/online-store",
-    "build:online": "turbo build --filter=@mango/online-store"
+    "build:online": "turbo build --filter=@mango/online-store",
+    "create-test-users": "npx ts-node scripts/auth-migration/create-test-users.ts"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

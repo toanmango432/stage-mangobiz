@@ -1,0 +1,71 @@
+# Team Code Quality Follow-Up Progress
+
+## Run Info
+- **Run Name:** team-code-quality
+- **Branch:** ralph/client-module-phase1
+- **PRD:** tasks/prd-team-code-quality-followup.md
+- **Created:** 2026-01-21
+- **Context:** Follow-up from UltraThink review of US-022-025 implementation
+
+## Background
+
+This run addresses findings from the UltraThink review:
+1. teamSlice.ts is 858 lines (goal: <700) - selectors need extraction
+2. syncContext.ts has hardcoded 'device-web' - needs deviceManager.getDeviceId()
+
+## Codebase Patterns
+
+### Selector Extraction Pattern
+- Follow `schedule/scheduleSelectors.ts` as gold standard (683 lines)
+- Use `import type { RootState }` to prevent circular dependencies
+- Re-export from slice file for backward compatibility
+- Update module index.ts to include selectors
+
+### deviceManager Usage
+- Import: `import { deviceManager } from '../../../services/deviceManager'`
+- Call: `deviceManager.getDeviceId()` returns unique device identifier
+- Already used in CreatePayRunModal.tsx (US-025)
+
+---
+
+## Progress Log
+
+## 2026-01-21 - US-026: Extract teamSlice selectors to team/teamSelectors.ts
+Commit: 883dec7
+
+**Why this story?** US-026 was selected first as it has priority 1, no dependencies, and addresses the main code quality finding from the UltraThink review (teamSlice.ts at 858 lines).
+
+**Changes:**
+- `team/teamSelectors.ts:1-303`: Created new file with all selectors extracted from teamSlice.ts
+- `teamSlice.ts:674-706`: Replaced selector definitions with re-exports from teamSelectors.ts
+- `teamSlice.ts:10-11`: Removed unused RootState import
+- `teamSlice.ts`: Compacted section comments from 3-line to 1-line format
+- `team/index.ts:22-50`: Added selector exports to barrel file
+
+**Learnings:**
+- Followed scheduleSelectors.ts (683 lines) as gold standard pattern
+- Used `import type { RootState }` to prevent circular dependencies
+- Used `import type { TeamState, ... }` from teamSlice for state type access
+- Compacting section comments (3→1 line) saved 10 lines to meet 700 line target
+
+**Next story suggestion:** US-027 (Fix hardcoded deviceId in syncContext.ts) - simpler change, completes the PRD
+
+---
+
+## 2026-01-21 - US-027: Fix hardcoded deviceId in syncContext.ts
+Commit: 63ae6d1
+
+**Why this story?** US-027 was the only remaining story with `passes: false`. Simple change completing the PRD.
+
+**Changes:**
+- `syncContext.ts:8`: Added import for deviceManager
+- `syncContext.ts:32`: Replaced `'device-web'` with `deviceManager.getDeviceId()` in getDefaultSyncContext()
+- `syncContext.ts:51`: Replaced `'device-web'` fallback with `deviceManager.getDeviceId()` in createSyncContext()
+
+**Learnings:**
+- Import path from `store/utils/` to `services/` is `../../services/deviceManager`
+- deviceManager is already widely used in the codebase (CreatePayRunModal.tsx)
+
+**Next story suggestion:** None - PRD complete!
+
+---

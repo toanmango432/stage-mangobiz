@@ -44,6 +44,19 @@ export interface MemberLoginFormProps {
   onKeyDown: (e: React.KeyboardEvent) => void;
   isOnline: boolean;
   onForgotPassword?: () => void;
+  // Magic Link props
+  onSendMagicLink?: () => void;
+  magicLinkSent?: boolean;
+  magicLinkEmail?: string;
+  magicLinkCooldown?: number;
+  isSendingMagicLink?: boolean;
+  // Biometric props
+  biometricAvailable?: boolean;
+  biometricType?: 'face' | 'fingerprint' | 'unknown' | 'none';
+  biometricPlatformName?: string;
+  biometricEnabled?: boolean;
+  onBiometricLogin?: () => void;
+  isBiometricLoading?: boolean;
 }
 
 /** Props for PinScreen component */

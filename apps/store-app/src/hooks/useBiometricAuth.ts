@@ -23,8 +23,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { biometricService, type BiometricAvailability } from '../services/biometricService';
-import type { BiometricType } from '../services/webAuthnService';
+import { biometricService, type BiometricAvailability } from '@/services/biometricService';
+import type { BiometricType } from '@/services/webAuthnService';
 
 export interface UseBiometricAuthResult {
   /** Whether biometric authentication is available on this device */

@@ -75,6 +75,22 @@ export function AnnouncementBanner({ className = '' }: AnnouncementBannerProps) 
     }
   }, [announcement?.id]);
 
+  // Auto-dismiss non-critical dismissible banners after 10 seconds
+  useEffect(() => {
+    if (
+      announcement &&
+      announcement.behavior.dismissible &&
+      !announcement.behavior.requireAcknowledgment &&
+      announcement.priority !== 'critical'
+    ) {
+      const timer = setTimeout(() => {
+        dismiss(announcement.id, false);
+      }, 10000); // 10 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [announcement?.id, announcement?.behavior?.dismissible, announcement?.behavior?.requireAcknowledgment, announcement?.priority, dismiss]);
+
   // Don't render anything if no announcements or still loading
   if (isLoading || !announcement) {
     return null;

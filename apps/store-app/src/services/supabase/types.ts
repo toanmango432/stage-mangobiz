@@ -964,36 +964,40 @@ export interface Database {
           store_id: string;
           staff_id: string;
           image_url: string;
-          before_image_url: string | null;
+          thumbnail_url: string | null;
           title: string | null;
           description: string | null;
+          service_id: string | null;
           service_name: string | null;
           tags: string[];
           is_featured: boolean;
           is_before_after: boolean;
-          likes_count: number;
-          created_at: string;
-          updated_at: string;
+          before_image_url: string | null;
+          likes: number;
           sync_status: string;
           sync_version: number;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           store_id: string;
           staff_id: string;
           image_url: string;
-          before_image_url?: string | null;
+          thumbnail_url?: string | null;
           title?: string | null;
           description?: string | null;
+          service_id?: string | null;
           service_name?: string | null;
           tags?: string[];
           is_featured?: boolean;
           is_before_after?: boolean;
-          likes_count?: number;
-          created_at?: string;
-          updated_at?: string;
+          before_image_url?: string | null;
+          likes?: number;
           sync_status?: string;
           sync_version?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['portfolio_items']['Insert']>;
       };
@@ -1178,7 +1182,7 @@ export type ClientGiftCardRow = Database['public']['Tables']['client_gift_cards'
 export type ClientGiftCardInsert = Database['public']['Tables']['client_gift_cards']['Insert'];
 export type ClientGiftCardUpdate = Database['public']['Tables']['client_gift_cards']['Update'];
 
-// Portfolio Item types
+// Portfolio Table Types
 export type PortfolioItemRow = Database['public']['Tables']['portfolio_items']['Row'];
 export type PortfolioItemInsert = Database['public']['Tables']['portfolio_items']['Insert'];
 export type PortfolioItemUpdate = Database['public']['Tables']['portfolio_items']['Update'];

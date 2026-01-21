@@ -13,6 +13,7 @@ import { Store, WifiOff, XCircle, User } from 'lucide-react';
 import { storeAuthManager } from '../../../services/storeAuthManager';
 import { PinSetupModal } from '../PinSetupModal';
 import { ForgotPasswordModal } from '../ForgotPasswordModal';
+import { BiometricEnrollmentModal } from '../BiometricEnrollmentModal';
 import { LoginForm } from './LoginForm';
 import { MemberLoginForm } from './MemberLoginForm';
 import { PinScreen } from './PinScreen';
@@ -46,6 +47,20 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     showForgotPasswordModal,
     setShowForgotPasswordModal,
     isLoginAttemptRef,
+    // Magic link state
+    magicLinkSent,
+    magicLinkEmail,
+    magicLinkCooldown,
+    isSendingMagicLink,
+    // Biometric state
+    biometricAvailable,
+    biometricType,
+    biometricPlatformName,
+    biometricEnabled,
+    isBiometricLoading,
+    // Biometric enrollment state
+    showBiometricEnrollment,
+    biometricEnrollmentMember,
 
     // Actions
     loadMembers,
@@ -54,6 +69,10 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     handlePinSetupComplete,
     handlePinSetupSkip,
     handleForgotPassword,
+    handleSendMagicLink,
+    handleBiometricLogin,
+    handleBiometricEnrollmentComplete,
+    handleBiometricEnrollmentClose,
     handlePinChange,
     handlePinKeyPress,
     handlePinBackspace,
@@ -220,31 +239,32 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           </p>
         </div>
 
-        {/* Login Mode Toggle */}
-        <div className="flex rounded-lg bg-gray-100 p-1">
-          <button
-            onClick={() => handleLoginModeChange('member')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              loginMode === 'member'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            Staff Login
-          </button>
-          <button
-            onClick={() => handleLoginModeChange('store')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              loginMode === 'store'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Store className="w-4 h-4" />
-            Store Login
-          </button>
-        </div>
+        {/* Store Login Link (shown only in member login mode) */}
+        {loginMode === 'member' && (
+          <p className="text-center text-sm text-gray-500">
+            Logging into a shared device?{' '}
+            <button
+              type="button"
+              onClick={() => handleLoginModeChange('store')}
+              className="text-brand-600 hover:text-brand-700 font-medium hover:underline"
+            >
+              Use Store Login
+            </button>
+          </p>
+        )}
+
+        {/* Back to Staff Login (shown only in store login mode) */}
+        {loginMode === 'store' && (
+          <p className="text-center text-sm text-gray-500">
+            <button
+              type="button"
+              onClick={() => handleLoginModeChange('member')}
+              className="text-brand-600 hover:text-brand-700 font-medium hover:underline inline-flex items-center gap-1"
+            >
+              ← Back to Staff Login
+            </button>
+          </p>
+        )}
 
         {/* Form based on mode */}
         {loginMode === 'member' ? (
@@ -262,6 +282,17 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
             onKeyDown={handleMemberKeyDown}
             isOnline={isOnline}
             onForgotPassword={handleForgotPassword}
+            onSendMagicLink={handleSendMagicLink}
+            magicLinkSent={magicLinkSent}
+            magicLinkEmail={magicLinkEmail}
+            magicLinkCooldown={magicLinkCooldown}
+            isSendingMagicLink={isSendingMagicLink}
+            biometricAvailable={biometricAvailable}
+            biometricType={biometricType}
+            biometricPlatformName={biometricPlatformName}
+            biometricEnabled={biometricEnabled}
+            onBiometricLogin={handleBiometricLogin}
+            isBiometricLoading={isBiometricLoading}
           />
         ) : (
           <LoginForm
@@ -284,6 +315,9 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           </p>
           {loginMode === 'member' ? (
             <div className="space-y-1 text-xs text-emerald-600">
+              <p className="text-emerald-500 italic mb-1">
+                Requires running: <span className="font-mono">pnpm create-test-users</span>
+              </p>
               <p>
                 Owner: <span className="font-mono">owner@demosalon.com</span> /{' '}
                 <span className="font-mono">owner123</span>
@@ -296,11 +330,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
           ) : (
             <div className="space-y-1 text-xs text-emerald-600">
               <p>
-                Store 1: <span className="font-mono">demo@salon.com</span> /{' '}
-                <span className="font-mono">demo123</span>
-              </p>
-              <p>
-                Store 2: <span className="font-mono">mango001</span> /{' '}
+                <span className="font-mono">mango001</span> /{' '}
                 <span className="font-mono">password123</span>
               </p>
             </div>
@@ -324,6 +354,17 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
         isOpen={showForgotPasswordModal}
         onClose={() => setShowForgotPasswordModal(false)}
         defaultEmail={memberEmail}
+      />
+
+      {/* Biometric Enrollment Modal */}
+      <BiometricEnrollmentModal
+        isOpen={showBiometricEnrollment}
+        onClose={handleBiometricEnrollmentClose}
+        onEnroll={handleBiometricEnrollmentComplete}
+        memberId={biometricEnrollmentMember?.memberId || ''}
+        memberName={biometricEnrollmentMember?.memberName || ''}
+        biometricType={biometricType}
+        platformName={biometricPlatformName}
       />
     </div>
   );

@@ -8,7 +8,7 @@
  * platform authenticator (secure enclave on Mac, TPM on Windows).
  */
 
-import { settingsDB } from '../db/database';
+import { settingsDB } from '@/db/database';
 
 // Storage key prefixes
 const WEBAUTHN_CREDENTIAL_PREFIX = 'webauthn_credential_';

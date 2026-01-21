@@ -201,6 +201,31 @@ export const transactionsTable = {
   },
 
   /**
+   * Get completed transactions for a staff member within a date range.
+   * Note: Staff is tracked via tickets' services JSON field, so this method
+   * retrieves all completed transactions for the period, and the caller
+   * should join with tickets to filter by staff.
+   */
+  async getByDateRangeAndStatus(
+    storeId: string,
+    startDate: Date,
+    endDate: Date,
+    status: string = 'completed'
+  ): Promise<TransactionRow[]> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('status', status)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
    * Get daily totals summary
    */
   async getDailySummary(storeId: string, date: Date): Promise<{

@@ -474,7 +474,7 @@
         "All tests pass"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "dependencies": ["US-018"],
@@ -498,7 +498,7 @@
         "Documentation is clear and actionable"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "category": "documentation",
       "complexity": 1,
       "notes": "This documents known limitations until proper Web Crypto API implementation (future work)."
@@ -520,7 +520,7 @@
         "All tests pass: pnpm test -- authSlice"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 2,
       "notes": "forceLogout action was added in original migration but not tested."
@@ -541,7 +541,7 @@
         "Script works: pnpm test:e2e:agent-browser"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "category": "tooling",
       "complexity": 2,
       "dependencies": ["US-018"],

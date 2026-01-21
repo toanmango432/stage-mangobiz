@@ -133,6 +133,63 @@ const CACHED_MEMBERS_KEY = 'cached_members_list';
 // ==================== SESSION CACHE HELPERS ====================
 
 /**
+ * Minimal member data needed for pre-caching (from authService.getStoreMembers)
+ */
+interface MemberForPreCache {
+  memberId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  storeIds: string[];
+  permissions?: Record<string, boolean> | null;
+}
+
+/**
+ * Pre-cache a member for PIN login capability
+ *
+ * This function enables PIN login for members who appear in the Switch User list
+ * but haven't logged in with password on this device yet. It creates a minimal
+ * cache entry so that loginWithPin() can find the member.
+ *
+ * IMPORTANT: Only adds to cache if member is NOT already present, to preserve
+ * existing grace period data from prior password logins.
+ *
+ * @param member - Member data from authService.getStoreMembers()
+ */
+function preCacheMemberForPinLogin(member: MemberForPreCache): void {
+  const cachedMembers = getCachedMembers();
+  const existingMember = cachedMembers.find(m => m.memberId === member.memberId);
+
+  // If already cached, don't overwrite (preserve existing grace period)
+  if (existingMember) {
+    return;
+  }
+
+  // Create minimal MemberAuthSession for cache
+  // Using current time for lastOnlineAuth since we're online (fetching from Supabase)
+  const now = new Date();
+  const fullName = `${member.firstName} ${member.lastName}`.trim();
+
+  const session: MemberAuthSession = {
+    memberId: member.memberId,
+    authUserId: '', // Not available from getStoreMembers, but not needed for PIN login
+    email: member.email,
+    name: fullName || member.email, // Fallback to email if no name
+    role: member.role,
+    storeIds: member.storeIds,
+    permissions: member.permissions || {},
+    lastOnlineAuth: now, // Current time since we're online
+    sessionCreatedAt: now,
+    defaultStoreId: null,
+  };
+
+  // Add to cache
+  cachedMembers.push(session);
+  localStorage.setItem(CACHED_MEMBERS_KEY, JSON.stringify(cachedMembers));
+}
+
+/**
  * Cache member session profile for offline access
  */
 function cacheMemberSession(session: MemberAuthSession): void {
@@ -336,6 +393,200 @@ async function loginWithPassword(email: string, password: string): Promise<Membe
       });
       throw new Error('Failed to persist PIN securely. Please try again.');
     }
+  }
+
+  return session;
+}
+
+// ==================== MAGIC LINK LOGIN ====================
+
+/**
+ * Magic link email cooldown period in seconds
+ * Prevents spam by limiting how often a user can request a new magic link
+ */
+export const MAGIC_LINK_COOLDOWN_SECONDS = 60;
+
+/**
+ * Send a magic link email for passwordless authentication
+ *
+ * This function:
+ * 1. Validates email format
+ * 2. Sends OTP email via Supabase Auth
+ * 3. The email contains a link that redirects to /auth/callback
+ *
+ * Note: This function always returns success even if the email doesn't exist
+ * in the system (to prevent email enumeration attacks).
+ *
+ * @param email - User's email address
+ * @param redirectTo - URL to redirect after successful verification (defaults to /auth/callback)
+ * @throws Error if email format is invalid or network error occurs
+ */
+async function sendMagicLink(email: string, redirectTo?: string): Promise<void> {
+  // 1. Input validation
+  const trimmedEmail = email?.trim() ?? '';
+  if (!trimmedEmail) {
+    throw new Error('Email is required');
+  }
+
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    throw new Error('Please enter a valid email address');
+  }
+
+  // 2. Determine redirect URL
+  // Use provided redirectTo or default to current origin + /auth/callback
+  const callbackUrl = redirectTo || `${window.location.origin}/auth/callback`;
+
+  // 3. Send magic link via Supabase OTP
+  const { error } = await withTimeout(
+    supabase.auth.signInWithOtp({
+      email: trimmedEmail,
+      options: {
+        emailRedirectTo: callbackUrl,
+      },
+    }),
+    AUTH_TIMEOUT_MS,
+    'Magic link request timeout'
+  );
+
+  if (error) {
+    // Map Supabase errors to user-friendly messages
+    if (error.message.includes('rate limit') || error.message.includes('too many requests')) {
+      throw new Error('Too many requests. Please wait before trying again.');
+    }
+    if (error.message.includes('invalid email')) {
+      throw new Error('Please enter a valid email address');
+    }
+    // Don't expose internal errors - generic message for security
+    auditLogger.log({
+      action: 'login',
+      entityType: 'member',
+      description: 'Magic link send failed',
+      severity: 'low',
+      success: false,
+      errorMessage: error.message || 'Unknown error',
+      metadata: { operation: 'sendMagicLink' },
+    });
+    throw new Error('Unable to send login link. Please try again later.');
+  }
+
+  // Success - email sent (or would be sent if email exists)
+  // Note: Supabase returns success even if email doesn't exist (security)
+}
+
+/**
+ * Verify magic link session after user clicks the email link
+ *
+ * This function:
+ * 1. Checks URL for auth tokens (Supabase adds these automatically)
+ * 2. If tokens exist, exchanges them for a session
+ * 3. Fetches the linked member record
+ * 4. Creates and caches MemberAuthSession
+ *
+ * Should be called on the /auth/callback route.
+ *
+ * @returns MemberAuthSession on success
+ * @throws Error if verification fails or member not found
+ */
+async function verifyMagicLinkSession(): Promise<MemberAuthSession> {
+  // 1. Get current session (Supabase automatically handles URL token exchange)
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    auditLogger.log({
+      action: 'login',
+      entityType: 'member',
+      description: 'Magic link verification failed: session error',
+      severity: 'medium',
+      success: false,
+      errorMessage: sessionError.message || 'Unknown session error',
+      metadata: { operation: 'verifyMagicLinkSession' },
+    });
+    throw new Error('Invalid or expired login link. Please request a new one.');
+  }
+
+  if (!sessionData.session || !sessionData.session.user) {
+    throw new Error('Invalid or expired login link. Please request a new one.');
+  }
+
+  const authUser = sessionData.session.user;
+
+  // 2. Fetch linked member record by auth_user_id
+  const { data: member, error: memberError } = await supabase
+    .from('members')
+    .select('*')
+    .eq('auth_user_id', authUser.id)
+    .single();
+
+  if (memberError) {
+    // If member not found, sign out of Supabase Auth to clean up
+    await supabase.auth.signOut();
+    auditLogger.log({
+      action: 'login',
+      entityType: 'member',
+      description: 'Magic link verification failed: no member linked',
+      severity: 'medium',
+      success: false,
+      errorMessage: memberError.message || 'Unknown database error',
+      metadata: { operation: 'verifyMagicLinkSession', authUserId: authUser.id },
+    });
+    throw new Error('No member profile linked to this account. Please contact your administrator.');
+  }
+
+  if (!member) {
+    await supabase.auth.signOut();
+    throw new Error('Member profile not found');
+  }
+
+  // 3. Check member status
+  if (member.status !== 'active') {
+    await supabase.auth.signOut();
+    throw new Error('Your account has been deactivated. Please contact your administrator.');
+  }
+
+  // 4. Update last_online_auth timestamp
+  const now = new Date();
+  const { error: updateError } = await supabase
+    .from('members')
+    .update({ last_online_auth: now.toISOString() })
+    .eq('id', member.id);
+
+  if (updateError) {
+    auditLogger.log({
+      action: 'update',
+      entityType: 'member',
+      entityId: member.id,
+      description: 'Failed to update last_online_auth timestamp (magic link)',
+      severity: 'low',
+      success: false,
+      errorMessage: updateError.message || 'Unknown database error',
+      metadata: { operation: 'verifyMagicLinkSession', field: 'last_online_auth' },
+    });
+    // Non-fatal - continue with login
+  }
+
+  // 5. Create session object (WITHOUT pinHash - stored separately in SecureStorage)
+  const session: MemberAuthSession = {
+    memberId: member.id,
+    authUserId: authUser.id,
+    email: member.email,
+    name: member.name || '',
+    role: member.role || 'staff',
+    storeIds: member.store_ids || [],
+    permissions: member.permissions || {},
+    lastOnlineAuth: now,
+    sessionCreatedAt: now,
+    defaultStoreId: member.default_store_id || null,
+  };
+
+  // 6. Cache session for offline access
+  cacheMemberSession(session);
+
+  // 7. Store PIN hash in SecureStorage if member has one
+  if (member.pin_hash) {
+    const pinKey = `pin_hash_${member.id}`;
+    await SecureStorage.set(pinKey, member.pin_hash);
   }
 
   return session;
@@ -1242,6 +1493,10 @@ export const memberAuthService = {
   loginWithPassword,
   loginWithPin,
 
+  // Magic Link methods
+  sendMagicLink,
+  verifyMagicLinkSession,
+
   // Logout
   logout,
 
@@ -1256,6 +1511,7 @@ export const memberAuthService = {
   getCachedMembers,
   cacheMemberSession,
   clearCachedMemberSession,
+  preCacheMemberForPinLogin,
 
   // PIN lockout helpers
   checkPinLockout,
@@ -1295,6 +1551,7 @@ export const memberAuthService = {
   GRACE_CHECK_INTERVAL_MS,
   AUTH_TIMEOUT_MS,
   BCRYPT_TIMEOUT_MS,
+  MAGIC_LINK_COOLDOWN_SECONDS,
 };
 
 export default memberAuthService;

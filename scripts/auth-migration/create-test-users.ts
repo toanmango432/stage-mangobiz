@@ -46,6 +46,8 @@ interface TestUserConfig {
   firstName: string;
   lastName: string;
   role: 'owner' | 'manager' | 'staff';
+  /** Optional fixed password (for demo users). If not provided, a random password is generated. */
+  password?: string;
 }
 
 interface StoreRow {
@@ -69,7 +71,11 @@ interface CreatedUser {
 // ============================================================================
 
 const TEST_USERS: TestUserConfig[] = [
-  // 2 Owners
+  // Demo Salon Users (shown on login page with fixed passwords)
+  { email: 'owner@demosalon.com', firstName: 'Salon', lastName: 'Owner', role: 'owner', password: 'owner123' },
+  { email: 'jane@demosalon.com', firstName: 'Jane', lastName: 'Staff', role: 'staff', password: 'jane123' },
+  { email: 'mike@demosalon.com', firstName: 'Mike', lastName: 'Manager', role: 'manager', password: 'mike123' },
+  // 2 Additional Owners
   { email: 'testuser1@mangobiz.com', firstName: 'Test', lastName: 'Owner1', role: 'owner' },
   { email: 'testuser2@mangobiz.com', firstName: 'Test', lastName: 'Owner2', role: 'owner' },
   // 3 Managers
@@ -208,13 +214,13 @@ async function createTestUser(
     return null;
   }
 
-  // Generate temporary password
-  const tempPassword = generateTemporaryPassword();
+  // Use configured password or generate a temporary one
+  const password = userConfig.password || generateTemporaryPassword();
 
   // Create Supabase Auth user
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email: userConfig.email,
-    password: tempPassword,
+    password: password,
     email_confirm: true,
     user_metadata: {
       name: fullName,
@@ -263,7 +269,7 @@ async function createTestUser(
     email: userConfig.email,
     name: fullName,
     role: userConfig.role,
-    password: tempPassword,
+    password: password,
     pin: CONFIG.DEFAULT_PIN,
     storeId: store.id,
     storeName: store.name,

@@ -12,11 +12,32 @@ import type {
 import {
   createEmptyTotals,
   calculatePayRunTotals,
+  createDefaultStaffPayment,
 } from '../types/payroll';
 import {
   incrementEntityVersion,
   markEntityDeleted,
 } from '../types/common';
+import { DEFAULT_OVERTIME_SETTINGS } from '../types/timesheet';
+import {
+  calculateHoursFromTimesheets,
+  calculateWages,
+  calculateCommissionBreakdown,
+  calculateTotalCommission,
+} from '../utils/payrollCalculation';
+import { timesheetDB } from './timesheetOperations';
+import type { CommissionSettings } from '../components/team-settings/types';
+
+/**
+ * Default commission settings for staff without custom configuration.
+ * Used when staff doesn't have explicit commission settings.
+ */
+const DEFAULT_COMMISSION_SETTINGS: CommissionSettings = {
+  type: 'percentage',
+  basePercentage: 30, // Default 30% service commission
+  productCommission: 10, // 10% on products
+  tipHandling: 'keep_all',
+};
 
 // ============================================
 // SYNC CONFIGURATION FOR PAY RUNS
@@ -132,6 +153,7 @@ export const payrollDB = {
 
   /**
    * Create a new pay run (draft status)
+   * Automatically populates staff payments from timesheets.
    */
   async createPayRun(
     params: CreatePayRunParams,
@@ -142,6 +164,201 @@ export const payrollDB = {
   ): Promise<string> {
     const now = new Date().toISOString();
     const id = uuidv4();
+
+    // Get staff IDs to include
+    let staffIdsToProcess = params.staffIds || [];
+
+    // If no staff IDs provided, get all staff from timesheets in the period
+    if (staffIdsToProcess.length === 0) {
+      const allTimesheets = await timesheetDB.getTimesheetsByDateRange(
+        storeId,
+        params.periodStart,
+        params.periodEnd
+      );
+      // Get unique staff IDs from timesheets
+      staffIdsToProcess = [...new Set(allTimesheets.map((t) => t.staffId))];
+    }
+
+    // Build staff payments from timesheets
+    const staffPayments: StaffPayment[] = [];
+
+    for (const staffId of staffIdsToProcess) {
+      // Get timesheets for this staff member in the period
+      const staffTimesheets = await timesheetDB.getTimesheetsByDateRange(
+        storeId,
+        params.periodStart,
+        params.periodEnd
+      );
+      const filteredTimesheets = staffTimesheets.filter((t) => t.staffId === staffId);
+
+      // Get staff info from database
+      const staff = await db.staff.get(staffId);
+      const staffName = staff?.name || 'Unknown Staff';
+      const staffRole = staff?.role || 'stylist';
+
+      // Get hourly rate from commissionRate (if defined) or default
+      // Note: In production, this should come from staff settings/payroll profile
+      const hourlyRate = staff?.commissionRate ? staff.commissionRate * 50 : 15; // Basic estimate
+
+      // Calculate hours from timesheets
+      const hours = calculateHoursFromTimesheets(
+        filteredTimesheets,
+        DEFAULT_OVERTIME_SETTINGS
+      );
+
+      // Map PayPeriodType to PayPeriod for calculateWages
+      const payPeriodMap: Record<string, 'weekly' | 'bi-weekly' | 'monthly' | 'per-service'> = {
+        'weekly': 'weekly',
+        'bi-weekly': 'bi-weekly',
+        'semi-monthly': 'bi-weekly', // Map semi-monthly to bi-weekly
+        'monthly': 'monthly',
+      };
+
+      // Calculate wages
+      const wagesResult = calculateWages(hours, {
+        payPeriod: payPeriodMap[params.periodType] || 'bi-weekly',
+        hourlyRate,
+        overtimeRate: 1.5,
+      });
+
+      // Create staff payment
+      const staffPayment = createDefaultStaffPayment(
+        staffId,
+        staffName,
+        staffRole
+      );
+
+      // Populate hours breakdown
+      staffPayment.hours = hours;
+      staffPayment.hourlyRate = hourlyRate;
+
+      // Populate wages breakdown
+      staffPayment.baseWages = wagesResult.baseWages;
+      staffPayment.overtimePay = wagesResult.overtimePay;
+      staffPayment.doubleTimePay = wagesResult.doubleTimePay;
+      staffPayment.totalWages = wagesResult.totalWages;
+
+      // ========================================
+      // US-009: Calculate commission and tips from transactions
+      // ========================================
+
+      // Get all tickets for the period to calculate service revenue
+      const periodStartDate = new Date(params.periodStart);
+      const periodEndDate = new Date(params.periodEnd);
+      periodEndDate.setHours(23, 59, 59, 999); // Include entire end day
+
+      // Get tickets for the store in the period
+      const allTickets = await db.tickets
+        .where('storeId')
+        .equals(storeId)
+        .toArray();
+
+      // Filter tickets by period and status (paid tickets only)
+      const paidTickets = allTickets.filter((ticket) => {
+        if (ticket.status !== 'paid') return false;
+        const ticketDate = ticket.completedAt
+          ? new Date(ticket.completedAt)
+          : new Date(ticket.createdAt);
+        return ticketDate >= periodStartDate && ticketDate <= periodEndDate;
+      });
+
+      // Calculate service revenue for this staff member
+      let serviceRevenue = 0;
+      let productRevenue = 0;
+      let tipsReceived = 0;
+      let newClientCount = 0;
+
+      for (const ticket of paidTickets) {
+        // Sum service revenue for services performed by this staff
+        for (const service of ticket.services || []) {
+          if (String(service.staffId) === String(staffId)) {
+            serviceRevenue += service.price || 0;
+          }
+        }
+
+        // Check if tips have allocations
+        if (ticket.payments && ticket.payments.length > 0) {
+          for (const payment of ticket.payments) {
+            if (payment.tipAllocations && payment.tipAllocations.length > 0) {
+              // Use explicit tip allocations
+              for (const tipAlloc of payment.tipAllocations) {
+                if (String(tipAlloc.staffId) === String(staffId)) {
+                  tipsReceived += tipAlloc.amount || 0;
+                }
+              }
+            } else {
+              // No explicit allocations - check if this staff did services on this ticket
+              const staffServicesOnTicket = (ticket.services || []).filter(
+                (s) => String(s.staffId) === String(staffId)
+              );
+              if (staffServicesOnTicket.length > 0) {
+                // Proportional tip split based on service revenue
+                const totalServiceRevenue = (ticket.services || []).reduce(
+                  (sum, s) => sum + (s.price || 0),
+                  0
+                );
+                const staffServiceRevenue = staffServicesOnTicket.reduce(
+                  (sum, s) => sum + (s.price || 0),
+                  0
+                );
+                if (totalServiceRevenue > 0) {
+                  const tipPortion =
+                    (payment.tip || 0) * (staffServiceRevenue / totalServiceRevenue);
+                  tipsReceived += tipPortion;
+                }
+              }
+            }
+          }
+        }
+
+        // Count new clients (first visit - simplified check)
+        // Note: In production, this should check client.visitSummary.totalVisits
+        const staffDidServiceOnTicket = (ticket.services || []).some(
+          (s) => String(s.staffId) === String(staffId)
+        );
+        if (staffDidServiceOnTicket && !ticket.clientId) {
+          // Walk-in without client ID could be new
+          newClientCount += 1;
+        }
+      }
+
+      // Get commission settings from team member if available
+      const teamMember = await db.teamMembers.get(staffId);
+      const commissionSettings: CommissionSettings =
+        teamMember?.commission || DEFAULT_COMMISSION_SETTINGS;
+
+      // Calculate commission breakdown
+      const commissionData = {
+        serviceRevenue,
+        productRevenue,
+        retailRevenue: 0, // Not tracked separately in current schema
+        newClientCount,
+        rebookCount: 0, // Not tracked in current implementation
+        tipsReceived,
+      };
+
+      const commissionBreakdown = calculateCommissionBreakdown(
+        commissionData,
+        commissionSettings
+      );
+      const totalCommission = calculateTotalCommission(commissionBreakdown);
+
+      // Populate commission and tips in staff payment
+      staffPayment.commission = commissionBreakdown;
+      staffPayment.totalCommission = totalCommission;
+      staffPayment.totalTips = commissionBreakdown.tipsKept;
+
+      // Calculate gross pay (wages + commission + tips)
+      staffPayment.grossPay =
+        wagesResult.totalWages + totalCommission + commissionBreakdown.tipsKept;
+
+      // Apply guaranteed minimum
+      const guaranteedMinimum = teamMember?.payroll?.guaranteedMinimum || 0;
+      staffPayment.guaranteedMinimum = guaranteedMinimum;
+      staffPayment.netPay = Math.max(staffPayment.grossPay, guaranteedMinimum);
+
+      staffPayments.push(staffPayment);
+    }
 
     const payRun: PayRun = {
       // BaseSyncableEntity fields
@@ -165,8 +382,8 @@ export const payrollDB = {
       periodEnd: params.periodEnd,
       periodType: params.periodType,
       status: 'draft',
-      staffPayments: [],
-      totals: createEmptyTotals(),
+      staffPayments,
+      totals: calculatePayRunTotals(staffPayments),
     };
 
     await db.payRuns.add(payRun);

@@ -20,7 +20,7 @@
  * @see docs/AUTH_MIGRATION_PLAN.md
  */
 
-import { X, WifiOff } from 'lucide-react';
+import { X, WifiOff, ArrowLeft } from 'lucide-react';
 import { MemberList } from './MemberList';
 import { PinStep } from './PinStep';
 import { PasswordStep } from './PasswordStep';
@@ -86,11 +86,11 @@ export function SwitchUserModal({
             {(step === 'pin' || step === 'password') && (
               <button
                 onClick={handleBack}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Go back to member selection"
               >
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
               </button>
             )}
             <h2 className="text-lg font-semibold text-gray-900">

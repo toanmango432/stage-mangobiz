@@ -174,13 +174,19 @@ export function useSwitchUser({
         return;
       }
 
+      // Pre-cache members for PIN login capability
+      // This enables PIN login for members who haven't logged in with password on this device
+      for (const member of storeMembers) {
+        memberAuthService.preCacheMemberForPinLogin(member);
+      }
+
       // Enrich members with PIN status and lockout info
       const enrichedMembers: DisplayMember[] = await Promise.all(
         storeMembers.map(async (member) => {
           const hasPinSetup = await memberAuthService.hasPin(member.memberId);
           const lockoutInfo = memberAuthService.checkPinLockout(member.memberId);
 
-          // Get grace info from cached session if available
+          // Get grace info from cached session (now guaranteed to exist after pre-caching)
           const cachedMembers = memberAuthService.getCachedMembers();
           const cachedMember = cachedMembers.find(m => m.memberId === member.memberId);
           const graceInfo = cachedMember

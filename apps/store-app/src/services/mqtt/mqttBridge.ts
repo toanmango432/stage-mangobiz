@@ -77,16 +77,25 @@ class MqttBridgeService {
       throw new Error('MqttBridge not initialized');
     }
 
+    // Determine broker URL - require explicit configuration, no localhost fallback
+    const brokerUrl = this.config.localBrokerUrl || this.config.cloudBrokerUrl;
+
+    if (!brokerUrl) {
+      // No MQTT broker configured - this is expected in dev environments
+      console.warn('[MqttBridge] No MQTT broker configured. Real-time sync disabled.');
+      console.warn('[MqttBridge] Set VITE_MQTT_CLOUD_URL or localBrokerUrl to enable MQTT.');
+      return; // Exit early without throwing - MQTT is optional
+    }
+
     try {
-      // Determine broker URL and type
-      const brokerUrl = this.config.localBrokerUrl || this.config.cloudBrokerUrl || 'ws://localhost:9001';
       const brokerType: MqttBrokerType = this.config.localBrokerUrl ? 'local' : 'cloud';
 
       const mqttConfig: MqttConfig = {
         storeId: this.config.storeId,
         deviceId: this.config.deviceId,
         deviceType: this.config.deviceType,
-        cloudBrokerUrl: this.config.cloudBrokerUrl || 'wss://mqtt.mango.cloud:8883',
+        // brokerUrl is guaranteed to be defined at this point (checked above)
+        cloudBrokerUrl: this.config.cloudBrokerUrl || brokerUrl,
         localBrokerUrl: this.config.localBrokerUrl,
       };
 

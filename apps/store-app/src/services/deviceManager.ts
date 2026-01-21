@@ -3,8 +3,10 @@
  *
  * Handles device identification, fingerprinting, and registration.
  * This service manages the device identity used for offline mode tracking.
+ * Supports both web and native (Capacitor) platforms.
  */
 
+import { Capacitor } from '@capacitor/core';
 import { DeviceType, DeviceRegistration, DeviceMode } from '@/types/device';
 
 // Storage key for device ID
@@ -150,27 +152,61 @@ class DeviceManager {
       .join('');
   }
 
+  // ==================== PLATFORM DETECTION ====================
+
+  /**
+   * Check if running inside a native Capacitor app (iOS/Android).
+   */
+  isNative(): boolean {
+    return Capacitor.isNativePlatform();
+  }
+
+  /**
+   * Check if running inside Capacitor (native or web).
+   * Returns true for both native apps and when running in browser during Capacitor development.
+   */
+  isCapacitor(): boolean {
+    return Capacitor.isPluginAvailable('App');
+  }
+
+  /**
+   * Get the Capacitor platform string.
+   * Returns 'ios', 'android', or 'web'.
+   */
+  getCapacitorPlatform(): 'ios' | 'android' | 'web' {
+    return Capacitor.getPlatform() as 'ios' | 'android' | 'web';
+  }
+
   // ==================== DEVICE TYPE DETECTION ====================
 
   /**
-   * Detect the device type based on user agent.
+   * Detect the device type.
+   * Prioritizes Capacitor detection for native apps, falls back to user agent.
    */
   getDeviceType(): DeviceType {
+    // Capacitor native platform detection (most reliable for native apps)
+    if (this.isNative()) {
+      const platform = this.getCapacitorPlatform();
+      if (platform === 'ios') return 'ios';
+      if (platform === 'android') return 'android';
+    }
+
     const ua = navigator.userAgent.toLowerCase();
 
-    // Check for iOS devices
+    // Check for Electron (desktop app) - has higher priority than mobile detection
+    // because Electron on macOS also matches iOS patterns
+    if (/electron/.test(ua)) {
+      return 'desktop';
+    }
+
+    // Check for iOS devices (web browser, not Capacitor native)
     if (/ipad|iphone|ipod/.test(ua)) {
       return 'ios';
     }
 
-    // Check for Android
+    // Check for Android (web browser, not Capacitor native)
     if (/android/.test(ua)) {
       return 'android';
-    }
-
-    // Check for Electron (desktop app)
-    if (/electron/.test(ua)) {
-      return 'desktop';
     }
 
     // Default to web

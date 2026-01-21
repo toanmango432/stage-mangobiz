@@ -87,6 +87,9 @@ export class MqttClient {
   private deduplicator = new MessageDeduplicator();
   private stateListeners = new Set<(info: MqttConnectionInfo) => void>();
 
+  /** Track if we've logged the first connection error (to suppress subsequent spam) */
+  private hasLoggedConnectionError = false;
+
   // =============================================================================
   // Connection Management
   // =============================================================================
@@ -153,6 +156,7 @@ export class MqttClient {
         this.client.on('connect', () => {
           clearTimeout(connectTimeout);
           this.connectedAt = new Date();
+          this.hasLoggedConnectionError = false; // Reset error flag on successful connection
           this.updateState('connected');
           this.resubscribeAll();
           resolve(true);
@@ -170,6 +174,11 @@ export class MqttClient {
 
         this.client.on('error', (error) => {
           clearTimeout(connectTimeout);
+          // Only log the first connection error to avoid console spam
+          if (!this.hasLoggedConnectionError) {
+            console.error('[MQTT] Connection error:', error.message);
+            this.hasLoggedConnectionError = true;
+          }
           this.updateState('error', error);
           resolve(false);
         });

@@ -23,7 +23,7 @@ export function toPortfolioItem(row: PortfolioItemRow): PortfolioItem {
     isFeatured: row.is_featured,
     isBeforeAfter: row.is_before_after,
     createdAt: row.created_at,
-    likes: row.likes_count,
+    likes: row.likes,
   };
 }
 

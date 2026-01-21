@@ -123,12 +123,15 @@ export const payRunsTable = {
   },
 
   /**
-   * Reject a pay run (returns to draft status for editing)
+   * Reject a pay run (returns to draft for editing)
    */
   async reject(id: string, rejectedBy: string, reason: string): Promise<PayRunRow> {
     return this.update(id, {
       status: 'draft',
-      approval_notes: `Rejected: ${reason}`,
+      rejected_by: rejectedBy,
+      rejected_at: new Date().toISOString(),
+      rejection_reason: reason,
+      // Clear submission fields so it returns to draft state
       submitted_by: null,
       submitted_at: null,
     });

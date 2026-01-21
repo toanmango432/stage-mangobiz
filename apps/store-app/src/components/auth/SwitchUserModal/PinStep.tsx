@@ -68,8 +68,16 @@ export function PinStep({
       )}
 
       {/* PIN Input */}
-      <div className="flex flex-col items-center">
-        <label className="block text-sm font-medium text-gray-700 mb-4">
+      <div
+        className="flex flex-col items-center"
+        role="group"
+        aria-labelledby="pin-input-label"
+        aria-describedby={error ? 'pin-error-message' : undefined}
+      >
+        <label
+          id="pin-input-label"
+          className="block text-sm font-medium text-gray-700 mb-4"
+        >
           Enter your PIN
         </label>
         <PinInput
@@ -86,8 +94,12 @@ export function PinStep({
 
         {/* Error Message */}
         {error && (
-          <div className="flex items-center gap-2 mt-4 text-red-600">
-            <AlertCircle className="w-4 h-4" />
+          <div
+            id="pin-error-message"
+            role="alert"
+            className="flex items-center gap-2 mt-4 text-red-600"
+          >
+            <AlertCircle className="w-4 h-4" aria-hidden="true" />
             <span className="text-sm">{error}</span>
           </div>
         )}
