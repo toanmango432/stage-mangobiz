@@ -144,7 +144,38 @@ pnpm test:e2e
 
 # E2E tests with UI
 pnpm test:e2e:ui
+
+# Agent-Browser E2E tests (authentication flows)
+pnpm test:e2e:agent-browser
 ```
+
+### Agent-Browser E2E Tests
+
+The `test:e2e:agent-browser` script runs authentication flow tests using the [Agent-Browser](https://github.com/anthropics/agent-browser) CLI for browser automation.
+
+**Requirements:**
+- `agent-browser` CLI installed and in PATH
+- Dev server will be started automatically if not running
+
+**Test Coverage:**
+- Email/password login form
+- PIN setup flow
+- Staff switching
+- Offline grace period warnings
+
+**Usage:**
+```bash
+# Run all Agent-Browser tests
+pnpm test:e2e:agent-browser
+
+# The script will:
+# 1. Check if dev server is running (starts it if needed)
+# 2. Run the Agent-Browser test suite
+# 3. Output pass/fail results
+# 4. Stop the dev server if it was started by the script
+```
+
+The test file is located at `e2e/auth-agent-browser.spec.ts`.
 
 ## Related Documentation
 
