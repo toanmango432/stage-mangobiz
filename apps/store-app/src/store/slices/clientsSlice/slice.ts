@@ -8,6 +8,7 @@ import {
   createClientInSupabase,
   updateClientInSupabase,
   deleteClientInSupabase,
+  mergeClientsInSupabase,
   fetchClients,
   searchClients,
   fetchClientStats,
@@ -424,6 +425,41 @@ export const clientsSlice = createSlice({
       .addCase(deleteClientInSupabase.rejected, (state, action) => {
         state.saving = false;
         state.error = action.error.message || 'Failed to delete client in Supabase';
+      });
+
+    // Merge clients in Supabase
+    builder
+      .addCase(mergeClientsInSupabase.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(mergeClientsInSupabase.fulfilled, (state, action) => {
+        state.saving = false;
+        const { primaryClient, secondaryClientId } = action.payload;
+
+        // Update the primary client in the items array
+        const primaryIndex = state.items.findIndex(c => c.id === primaryClient.id);
+        if (primaryIndex !== -1) {
+          state.items[primaryIndex] = primaryClient;
+        }
+
+        // Remove the secondary client from the items array (it's now merged/archived)
+        state.items = state.items.filter(c => c.id !== secondaryClientId);
+        state.total -= 1;
+
+        // Update selected client if it was the primary
+        if (state.selectedClient?.id === primaryClient.id) {
+          state.selectedClient = primaryClient;
+        }
+
+        // Clear selected client if it was the secondary
+        if (state.selectedClient?.id === secondaryClientId) {
+          state.selectedClient = null;
+        }
+      })
+      .addCase(mergeClientsInSupabase.rejected, (state, action) => {
+        state.saving = false;
+        state.error = action.error.message || 'Failed to merge clients';
       });
 
     // ==================== LOYALTY THUNKS REDUCERS ====================

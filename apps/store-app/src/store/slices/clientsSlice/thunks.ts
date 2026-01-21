@@ -17,6 +17,8 @@ import type {
   SegmentAnalytics,
   SegmentFilterGroup,
 } from '../../../types';
+import type { MergeClientParams } from './types';
+import { supabase } from '../../../services/supabase/client';
 import type { EarnPointsInput, LoyaltyCalculationResult } from '../../../types/loyalty';
 import {
   calculateLoyaltyEarnings,
@@ -128,6 +130,92 @@ export const deleteClientInSupabase = createAsyncThunk(
     }).catch(console.warn);
 
     return id;
+  }
+);
+
+/**
+ * Merge two clients by calling the Supabase RPC function.
+ * The secondary client is merged into the primary client:
+ * - All appointments, tickets, and transactions are re-linked to primary
+ * - Notes and loyalty can be optionally merged based on options
+ * - Secondary client is marked as merged (archived)
+ */
+export const mergeClientsInSupabase = createAsyncThunk<
+  { primaryClient: Client; secondaryClientId: string; summary: Record<string, number> },
+  MergeClientParams
+>(
+  'clients/mergeInSupabase',
+  async ({ primaryClientId, secondaryClientId, options, mergedBy }, { getState }) => {
+    const state = getState() as { clients: { items: Client[] } };
+    const primaryClient = state.clients.items.find(c => c.id === primaryClientId);
+    const secondaryClient = state.clients.items.find(c => c.id === secondaryClientId);
+
+    // Call the merge_clients RPC function
+    const { data, error } = await supabase.rpc('merge_clients', {
+      p_primary_id: primaryClientId,
+      p_secondary_id: secondaryClientId,
+      p_options: {
+        mergeNotes: options.mergeNotes,
+        mergeLoyalty: options.mergeLoyalty,
+        mergePreferences: options.mergePreferences,
+        mergeAlerts: options.mergeAlerts,
+      },
+      p_merged_by: mergedBy,
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to merge clients');
+    }
+
+    const result = data as {
+      success: boolean;
+      merged_counts: Record<string, number>;
+      primary_client: Record<string, unknown>;
+    };
+
+    if (!result.success) {
+      throw new Error('Merge operation did not complete successfully');
+    }
+
+    // Fetch the updated primary client data
+    const updatedPrimary = await dataService.clients.getById(primaryClientId);
+    if (!updatedPrimary) {
+      throw new Error('Failed to fetch updated primary client after merge');
+    }
+
+    // Log the merge operation (using 'update' action since 'merge' is not a standard action)
+    auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: primaryClientId,
+      description: `Merged clients: ${secondaryClient?.firstName || secondaryClientId} into ${primaryClient?.firstName || primaryClientId}`,
+      severity: 'high',
+      success: true,
+      metadata: {
+        operation: 'merge',
+        primaryClientId,
+        secondaryClientId,
+        options,
+        mergedBy,
+        mergedCounts: result.merged_counts,
+      },
+      oldData: secondaryClient ? {
+        firstName: secondaryClient.firstName,
+        lastName: secondaryClient.lastName,
+        email: secondaryClient.email,
+        phone: secondaryClient.phone,
+      } : undefined,
+      newData: {
+        firstName: updatedPrimary.firstName,
+        lastName: updatedPrimary.lastName,
+      },
+    }).catch(console.warn);
+
+    return {
+      primaryClient: updatedPrimary,
+      secondaryClientId,
+      summary: result.merged_counts || {},
+    };
   }
 );
 
