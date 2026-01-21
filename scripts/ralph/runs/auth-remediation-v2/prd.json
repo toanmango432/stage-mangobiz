@@ -291,7 +291,7 @@
         "All new tests pass: pnpm test -- memberAuthService"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 3,
       "notes": "Must mock navigator.onLine to test background validation trigger."

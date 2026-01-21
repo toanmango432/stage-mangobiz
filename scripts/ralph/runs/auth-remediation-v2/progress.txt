@@ -324,3 +324,32 @@ Commit: c31b317
 **Next story suggestion:** US-013 (Add unit tests for loginWithPin success flow) - continues testing work on same file, no unmet dependencies
 
 ---
+
+## 2026-01-20 - US-013: Add unit tests for loginWithPin success flow
+Commit: 0d184a5
+
+**Why this story?** Highest priority (13) among remaining stories with `passes: false` and no unmet dependencies. Previous iterations (US-011, US-012) worked on the same test file, so the code structure is fresh in context. Progress log explicitly suggested this story.
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:9`: Added bcrypt import for mocking
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:75-81`: Added bcrypt mock for PIN validation tests
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:818-1021`: Added describe block 'loginWithPin' with 6 tests:
+  - `should return MemberAuthSession on successful PIN login` - Tests basic success flow with cached member
+  - `should contain all correct session fields` - Verifies all MemberAuthSession fields are returned
+  - `should clear failed attempts on successful login` - Verifies failed attempt counter is reset
+  - `should trigger background validation when online` - Mocks navigator.onLine to verify supabase call
+  - `should return the cached member session unchanged` - Tests date preservation in session
+  - `should verify PIN against SecureStorage hash` - Verifies SecureStorage and bcrypt.compare are called correctly
+
+**Learnings:**
+- navigator.onLine needs to be mocked via Object.defineProperty on window.navigator with a getter
+- bcrypt mock needs to be vi.mock() with default export for bcryptjs library
+- Cached members in localStorage need to be JSON.stringify'd - dates become ISO strings and are converted back to Date objects by getCachedMembers
+- Test count increased from 47 to 53 (6 new tests)
+- 21 pre-existing test failures in other files are unrelated to this change
+
+**Patterns to sync:** None - follows documented testing pattern in progress.txt
+
+**Next story suggestion:** US-014 (Add unit tests for loginWithPin failure cases) - depends on US-013 (now complete), continues same test file
+
+---
