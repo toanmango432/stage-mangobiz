@@ -223,7 +223,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 2,
       "notes": "Follow pattern from memberAuthService.ts backgroundValidationController. Add cleanup in useEffect return function."

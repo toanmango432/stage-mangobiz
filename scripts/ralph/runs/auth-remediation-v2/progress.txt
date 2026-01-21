@@ -244,3 +244,28 @@ Commit: 66e7cb9
 **Next story suggestion:** US-010 (Add AbortController to fetchMembers) - continues refactoring same useSwitchUser.ts file, code structure fresh in context
 
 ---
+
+## 2026-01-20 - US-010: Add AbortController to fetchMembers in useSwitchUser
+Commit: 5265b0f
+
+**Why this story?** Highest priority (10) among remaining stories with no unmet dependencies. Progress log explicitly suggested this story as the code structure in useSwitchUser.ts was fresh from US-009.
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:113-120`: Added fetchAbortControllerRef with JSDoc explaining purpose
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:127-134`: Added cleanup function in useEffect to cancel fetch on modal close/unmount
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:159-165`: Cancel previous fetch and create new AbortController at fetch start
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:170-172,195-198`: Check aborted state before setState calls (after initial fetch, after enrichment)
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:200-203`: Skip error logging for aborted fetches
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:216-219`: Only update loading state if not aborted
+
+**Learnings:**
+- Lint warning about `fetchMembers` missing from useEffect deps is pre-existing - adding it would cause infinite loop
+- The pattern from memberAuthService.ts uses module-level controller; hooks use useRef for instance-scoped controllers
+- Check abort signal at multiple points: after initial async call, after secondary async operations (enrichment), in catch, in finally
+- Returning early when aborted prevents "setState on unmounted component" warnings
+
+**Patterns to sync:** None - follows documented AbortController pattern from patterns.md and memberAuthService.ts
+
+**Next story suggestion:** US-011 (Add unit tests for loginWithPassword success flow) - testing stories have complexity 3 and no dependencies, logical to start testing work
+
+---
