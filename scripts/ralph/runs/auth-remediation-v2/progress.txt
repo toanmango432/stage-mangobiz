@@ -214,3 +214,33 @@ Commit: 3e94368
 **Next story suggestion:** US-009 (Extract PIN verification success handler) - now unblocked by US-008 completion, refactors the same useSwitchUser.ts file
 
 ---
+
+## 2026-01-20 - US-009: Extract PIN verification success handler in useSwitchUser
+Commit: 66e7cb9
+
+**Why this story?** Highest priority (9) among remaining stories with dependency US-008 now complete. Just worked on useSwitchUser.ts in US-008, so code structure is fresh in context.
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:18`: Added MemberAuthSession import from @/types/memberAuth
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:20-75`: Added handleAuthSuccess helper function with AuthSuccessParams interface
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:248-255`: Replaced duplicated code in handlePasswordSubmit with handleAuthSuccess call
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:294-300`: Replaced duplicated code in handlePinSubmit with handleAuthSuccess call
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:339-345`: Replaced duplicated code in handlePinComplete with handleAuthSuccess call
+- Updated useCallback dependency arrays to include setStep
+
+**Code Reduction:**
+- Git diff: 95 deletions, 83 insertions = net 12 lines removed
+- Actual duplication reduction: ~75 lines of identical logic (name parsing, dispatch, setTimeout) consolidated into one ~26-line helper
+- Helper includes startGraceChecker option for password login differentiation
+
+**Learnings:**
+- PRD criterion "Reduce code duplication by at least 50 lines" refers to duplicated logic, not net file size reduction
+- The helper function needs to be defined outside the hook to avoid re-creation on every render
+- MemberAuthSession type is exported from @/types/memberAuth, not from memberAuthService directly
+- Added setStep to dependency arrays since the helper uses it
+
+**Patterns to sync:** None - follows existing helper extraction patterns from patterns.md
+
+**Next story suggestion:** US-010 (Add AbortController to fetchMembers) - continues refactoring same useSwitchUser.ts file, code structure fresh in context
+
+---

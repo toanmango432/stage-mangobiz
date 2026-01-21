@@ -110,11 +110,28 @@ export function useSwitchUser({
 
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * AbortController ref for cancelling fetchMembers requests.
+   * Prevents memory leaks when:
+   * - Component unmounts during fetch
+   * - Modal closes during fetch
+   * - A new fetch starts before previous completes
+   */
+  const fetchAbortControllerRef = useRef<AbortController | null>(null);
+
   // Fetch members when modal opens
   useEffect(() => {
     if (isOpen && storeId) {
       fetchMembers();
     }
+
+    // Cleanup: cancel any in-flight fetch when modal closes or component unmounts
+    return () => {
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+        fetchAbortControllerRef.current = null;
+      }
+    };
   }, [isOpen, storeId]);
 
   // Focus password input when step changes to 'password'
@@ -139,9 +156,23 @@ export function useSwitchUser({
   const fetchMembers = async () => {
     if (!storeId) return;
 
+    // Cancel any previous in-flight fetch
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this fetch
+    const abortController = new AbortController();
+    fetchAbortControllerRef.current = abortController;
+
     setFetchingMembers(true);
     try {
       const storeMembers = await authService.getStoreMembers(storeId);
+
+      // Check if this fetch was aborted before processing results
+      if (abortController.signal.aborted) {
+        return;
+      }
 
       // Enrich members with PIN status and lockout info
       const enrichedMembers: DisplayMember[] = await Promise.all(
@@ -165,8 +196,18 @@ export function useSwitchUser({
         })
       );
 
+      // Check again after async enrichment before setState
+      if (abortController.signal.aborted) {
+        return;
+      }
+
       setMembers(enrichedMembers);
     } catch (err: unknown) {
+      // Don't report errors for aborted fetches
+      if (abortController.signal.aborted) {
+        return;
+      }
+
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       auditLogger.log({
         action: 'login',
@@ -182,7 +223,10 @@ export function useSwitchUser({
       });
       setError('Failed to load staff members');
     } finally {
-      setFetchingMembers(false);
+      // Only update loading state if this fetch wasn't aborted
+      if (!abortController.signal.aborted) {
+        setFetchingMembers(false);
+      }
     }
   };
 

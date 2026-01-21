@@ -201,7 +201,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 2,
       "dependencies": ["US-008"],
