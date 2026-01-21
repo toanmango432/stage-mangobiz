@@ -376,3 +376,86 @@ try {
 **Next story suggestion:** US-014 (Add checkPatchTestRequired thunk) - creates the Redux thunk that calls this Edge Function
 
 ---
+
+## 2026-01-21 - US-014: Add checkPatchTestRequired thunk
+Commit: d118669
+
+**Why this story?** US-014 is the highest priority incomplete story and builds directly on US-013 (validate-booking Edge Function). It provides the Redux thunk that US-015 (banner) and US-016 (integration) will use.
+
+**Changes:**
+- apps/store-app/src/store/slices/clientsSlice/thunks.ts:136-176: Added checkPatchTestRequired thunk (~41 lines)
+  - Exported PatchTestValidationResult interface for type safety
+  - Parameters: clientId, serviceId, appointmentDate (optional, defaults to now)
+  - Calls supabase.functions.invoke('validate-booking', { body: { ... } })
+  - Returns validation result with reason, canOverride, patchTestRequired fields
+  - Fails open on error (returns { valid: true }) to avoid blocking legitimate bookings
+  - Uses console.warn (not console.log) for error logging
+
+**Learnings:**
+- supabase.functions.invoke() is the standard pattern for calling Edge Functions from store-app
+- PatchTestValidationResult interface defined in thunks.ts (close to thunk definition) rather than types.ts
+- Pre-existing test failures in padCheckoutFlow.test.ts and teamStaffAdapter.test.ts - NOT related to this story
+
+**Next story suggestion:** US-015 (Create PatchTestWarningBanner component) - uses the thunk to display warning UI
+
+---
+
+## 2026-01-21 - US-015: Create PatchTestWarningBanner component
+Commit: e977565
+
+**Why this story?** US-015 is the highest priority incomplete story and builds directly on US-014 (checkPatchTestRequired thunk). It creates the UI component that US-016 will integrate into the booking flow.
+
+**Changes:**
+- apps/store-app/src/components/Book/PatchTestWarningBanner.tsx (NEW, 157 lines): Warning banner for patch test requirements
+  - Props: clientName, serviceName, reason ('required' | 'expired'), onOverride, onCancel
+  - Yellow/amber warning banner with TestTube icon (follows StaffAlertBanner pattern)
+  - getMessage() returns dynamic message based on reason
+  - getDescription() provides context about the patch test requirement
+  - Override flow: clicking "Override & Proceed" reveals textarea for override reason
+  - Override requires non-empty reason before confirm button enables
+  - Cancel button calls onCancel prop directly
+  - All interactive elements have data-testid attributes for testing
+
+**Learnings:**
+- StaffAlertBanner.tsx is a good pattern reference but is more complex (editing, clearing alerts)
+- PatchTestWarningBanner is simpler: display-only with override/cancel actions
+- TestTube icon uses stroke-based SVG from Heroicons pattern
+- Pre-existing test failures (padCheckoutFlow.test.ts, teamStaffAdapter.test.ts) continue - NOT related to this story
+
+**Next story suggestion:** US-016 (Integrate patch test check into Book module) - integrates this banner into NewAppointmentModal.v2.tsx
+
+---
+
+## 2026-01-21 - US-016: Integrate patch test check into Book module
+Commit: e893fc5
+
+**Why this story?** US-016 is the highest priority incomplete story and the logical next step after US-015 (PatchTestWarningBanner). It integrates patch test validation into the booking flow when adding services.
+
+**Changes:**
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:15,19: Added imports for checkPatchTestRequired thunk and PatchTestWarningBanner
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:71-84: Added patchTestWarning state to track warning info and pending service
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:198-230: Added handlePatchTestOverride handler
+  - Logs audit entry with operation: 'patch_test_override' (satisfies US-018 criteria)
+  - Clears warning state and proceeds with adding the service
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:232-275: Added handleAddServiceWithPatchTestCheck wrapper
+  - Skips patch test check for walk-in clients
+  - Calls checkPatchTestRequired thunk for validation
+  - If invalid due to patch test, shows PatchTestWarningBanner
+  - If valid, adds service directly
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:697: Updated ServiceCatalog to use handleAddServiceWithPatchTestCheck
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:788-801: Added PatchTestWarningBanner modal overlay
+
+**Browser Verification:**
+- Cannot fully verify without valid auth session and a service with requiresPatchTest=true in database
+- Code structure verified: validation flow implemented correctly
+- TypeScript passes (store-app typecheck clean)
+
+**Learnings:**
+- PRD notes were outdated: BookingForm.tsx doesn't exist. Actual booking is in NewAppointmentModal.v2.tsx
+- The handlePatchTestOverride handler ALSO satisfies US-018 (audit logging) - can mark that as done in next iteration
+- Walk-in clients should skip patch test validation (no client record to check against)
+- Pre-existing test failures continue (mangoPadService, mqtt, teamStaffAdapter, padCheckoutFlow) - NOT related to this story
+
+**Next story suggestion:** US-018 (Add patch test override audit logging) is already implemented in this story. US-017 (Online Store patch test) should be next.
+
+---

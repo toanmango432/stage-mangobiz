@@ -12,9 +12,11 @@ import { getTestSalonId } from '../../db/seed';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectAllStaff } from '../../store/slices/staffSlice';
 import { selectMemberId } from '../../store/slices/authSlice';
+import { checkPatchTestRequired } from '../../store/slices/clientsSlice/thunks';
 import { LocalAppointment } from '../../types/appointment';
 import { localTimeToUTC } from '../../utils/dateUtils';
 import { BlockedClientOverrideModal } from '../clients/BlockedClientOverrideModal';
+import { PatchTestWarningBanner } from './PatchTestWarningBanner';
 import { auditLogger } from '../../services/audit/auditLogger';
 
 import { useAppointmentForm, useAppointmentClients, useAppointmentServices } from './hooks';
@@ -65,6 +67,21 @@ export function NewAppointmentModalV2({
     blockReason: string;
   } | null>(null);
   const [pendingClient, setPendingClient] = useState<any>(null);
+
+  // Patch test warning state
+  const [patchTestWarning, setPatchTestWarning] = useState<{
+    clientName: string;
+    serviceName: string;
+    serviceId: string;
+    reason: 'required' | 'expired';
+    pendingService: {
+      id: string;
+      name: string;
+      category: string;
+      duration: number;
+      price: number;
+    };
+  } | null>(null);
 
   // Handler for when a blocked client is selected (defined early, doesn't depend on clientHandlers)
   const handleBlockedClientSelected = useCallback(async (info: { id: string; name: string; blockReason: string }) => {
@@ -155,6 +172,11 @@ export function NewAppointmentModalV2({
     setPendingClient(null);
   }, []);
 
+  // Handler for canceling patch test booking
+  const handlePatchTestCancel = useCallback(() => {
+    setPatchTestWarning(null);
+  }, []);
+
   // Service handlers hook
   const serviceHandlers = useAppointmentServices({
     postedStaff: formState.postedStaff,
@@ -172,6 +194,85 @@ export function NewAppointmentModalV2({
     setJustAddedService: formState.setJustAddedService,
     setBookingGuests: formState.setBookingGuests,
   });
+
+  // Handler for patch test override - must be after serviceHandlers
+  const handlePatchTestOverride = useCallback(async (overrideReason: string) => {
+    if (!patchTestWarning) return;
+
+    // Log the patch test override (audit logging per US-018)
+    await auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: formState.selectedClients[0]?.id || 'unknown',
+      description: `Patch test override for service ${patchTestWarning.serviceName}: ${overrideReason}`,
+      success: true,
+      metadata: {
+        operation: 'patch_test_override',
+        overrideReason,
+        serviceId: patchTestWarning.serviceId,
+        serviceName: patchTestWarning.serviceName,
+        reason: patchTestWarning.reason,
+        clientName: patchTestWarning.clientName,
+        staffId: currentMemberId,
+      },
+    });
+
+    // Store pending service to add after clearing warning
+    const serviceToAdd = patchTestWarning.pendingService;
+
+    // Clear the warning
+    setPatchTestWarning(null);
+
+    // Proceed with adding the service
+    if (serviceToAdd) {
+      serviceHandlers.handleAddServiceToStaff(serviceToAdd);
+    }
+  }, [patchTestWarning, formState.selectedClients, currentMemberId, serviceHandlers]);
+
+  // Wrapper function to check patch test before adding service
+  const handleAddServiceWithPatchTestCheck = useCallback(async (service: {
+    id: string;
+    name: string;
+    category: string;
+    duration: number;
+    price: number;
+  }) => {
+    // Skip patch test check for walk-in clients
+    const selectedClient = formState.selectedClients[0];
+    if (!selectedClient || selectedClient.id === 'walk-in') {
+      serviceHandlers.handleAddServiceToStaff(service);
+      return;
+    }
+
+    // Check if patch test is required for this service + client combo
+    const result = await dispatch(checkPatchTestRequired({
+      clientId: selectedClient.id,
+      serviceId: service.id,
+      appointmentDate: formState.date.toISOString(),
+    })).unwrap();
+
+    // If valid or no patch test required, add service directly
+    if (result.valid) {
+      serviceHandlers.handleAddServiceToStaff(service);
+      return;
+    }
+
+    // If not valid due to patch test, show warning banner
+    if (result.reason === 'patch_test_required' || result.reason === 'patch_test_expired') {
+      setPatchTestWarning({
+        clientName: selectedClient.name,
+        serviceName: service.name,
+        serviceId: service.id,
+        reason: result.reason === 'patch_test_expired' ? 'expired' : 'required',
+        pendingService: service,
+      });
+      return;
+    }
+
+    // For other reasons (e.g., client_blocked), add service anyway
+    // since block check happens at client selection level
+    serviceHandlers.handleAddServiceToStaff(service);
+  }, [dispatch, formState.selectedClients, formState.date, serviceHandlers]);
 
   // Load services
   useEffect(() => {
@@ -593,7 +694,7 @@ export function NewAppointmentModalV2({
                     filteredServices={formState.filteredServices}
                     activeStaffId={formState.activeStaffId}
                     activeStaffName={formState.activeStaffName}
-                    onAddService={serviceHandlers.handleAddServiceToStaff}
+                    onAddService={handleAddServiceWithPatchTestCheck}
                     onGoToStaffTab={() => formState.setActiveTab('staff')}
                     justAddedService={formState.justAddedService}
                     bookingMode={formState.bookingMode}
@@ -682,6 +783,21 @@ export function NewAppointmentModalV2({
           onOverride={handleBlockOverride}
           onCancel={handleBlockOverrideCancel}
         />
+      )}
+
+      {/* Patch Test Warning Banner (shown as modal overlay) */}
+      {patchTestWarning && (
+        <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4">
+          <div className="max-w-lg w-full">
+            <PatchTestWarningBanner
+              clientName={patchTestWarning.clientName}
+              serviceName={patchTestWarning.serviceName}
+              reason={patchTestWarning.reason}
+              onOverride={handlePatchTestOverride}
+              onCancel={handlePatchTestCancel}
+            />
+          </div>
+        </div>
       )}
     </>
   );

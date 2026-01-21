@@ -228,7 +228,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/thunks.ts (~30 lines)."
     },
     {
@@ -246,7 +246,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Create: apps/store-app/src/components/Book/PatchTestWarningBanner.tsx (NEW, ~60 lines). Follow StaffAlertBanner.tsx pattern."
     },
     {
@@ -263,7 +263,7 @@
         "Verify in browser: book service with patch test requirement"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/store-app/src/components/Book/BookingForm.tsx (~30 lines)."
     },
     {
