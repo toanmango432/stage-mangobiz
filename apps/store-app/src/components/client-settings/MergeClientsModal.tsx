@@ -1,0 +1,392 @@
+/**
+ * MergeClientsModal - PRD CRM-P0-132, CRM-P0-133, CRM-P0-134
+ * Allows merging duplicate client profiles with clear warning and confirmation.
+ *
+ * Features:
+ * - Select primary client (profile to keep)
+ * - Select secondary client (profile to archive)
+ * - Configure merge options (notes, points, preferences, alerts)
+ * - Clear "cannot be undone" warning (CRM-P0-133)
+ * - Merge logged in audit trail (CRM-P0-134)
+ */
+
+import { useState, useMemo } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/Badge';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { AlertTriangle, ArrowRight, Users, Merge, Crown, Ban, DollarSign, Star } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { mergeClientsInSupabase, selectClients } from '@/store/slices/clientsSlice';
+import { selectMemberId } from '@/store/slices/authSlice';
+import type { Client } from '@/types';
+
+interface MergeClientsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  primaryClientId?: string;
+  secondaryClientId?: string;
+  onMergeComplete?: (mergedClientId: string) => void;
+}
+
+export function MergeClientsModal({
+  isOpen,
+  onClose,
+  primaryClientId: initialPrimaryId,
+  secondaryClientId: initialSecondaryId,
+  onMergeComplete,
+}: MergeClientsModalProps) {
+  const dispatch = useAppDispatch();
+  const clients = useAppSelector(selectClients);
+  const currentMemberId = useAppSelector(selectMemberId);
+
+  const [step, setStep] = useState<'select' | 'options' | 'confirm'>('select');
+  const [primaryClientId, setPrimaryClientId] = useState(initialPrimaryId || '');
+  const [secondaryClientId, setSecondaryClientId] = useState(initialSecondaryId || '');
+  const [mergeOptions, setMergeOptions] = useState({
+    mergeNotes: true,
+    mergeLoyalty: true,
+    mergePreferences: true,
+    mergeAlerts: true,
+  });
+  const [isMerging, setIsMerging] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+
+  const primaryClient = useMemo(
+    () => clients.find(c => c.id === primaryClientId),
+    [clients, primaryClientId]
+  );
+
+  const secondaryClient = useMemo(
+    () => clients.find(c => c.id === secondaryClientId),
+    [clients, secondaryClientId]
+  );
+
+  const getInitials = (client: Client) => {
+    return `${client.firstName?.charAt(0) || ''}${client.lastName?.charAt(0) || ''}`.toUpperCase();
+  };
+
+  const handleMerge = async () => {
+    if (!primaryClientId || !secondaryClientId || !currentMemberId) return;
+
+    setIsMerging(true);
+    try {
+      await dispatch(
+        mergeClientsInSupabase({
+          primaryClientId,
+          secondaryClientId,
+          options: mergeOptions,
+          mergedBy: currentMemberId,
+        })
+      ).unwrap();
+
+      onMergeComplete?.(primaryClientId);
+      onClose();
+    } catch (error) {
+      console.error('Failed to merge clients:', error);
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
+  const handleClose = () => {
+    setStep('select');
+    setPrimaryClientId('');
+    setSecondaryClientId('');
+    setConfirmText('');
+    onClose();
+  };
+
+  const renderClientCard = (client: Client, isPrimary: boolean) => (
+    <Card className={`p-4 ${isPrimary ? 'border-brand-500 bg-brand-50/30' : 'border-red-300 bg-red-50/30'}`}>
+      <div className="flex items-center gap-3">
+        <Avatar className="h-12 w-12">
+          <AvatarFallback className={isPrimary ? 'bg-brand-100 text-brand-700' : 'bg-red-100 text-red-700'}>
+            {getInitials(client)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-900">
+              {client.firstName} {client.lastName}
+            </span>
+            {client.loyaltyInfo?.tier === 'vip' && (
+              <Crown className="w-4 h-4 text-amber-500" />
+            )}
+            {client.isBlocked && (
+              <Ban className="w-4 h-4 text-red-500" />
+            )}
+          </div>
+          <p className="text-sm text-gray-600">{client.phone || 'No phone'}</p>
+          {client.email && (
+            <p className="text-sm text-gray-500 truncate">{client.email}</p>
+          )}
+        </div>
+        <div className="text-right text-sm">
+          <div className="flex items-center gap-1 text-gray-600">
+            <Star className="w-3 h-3" />
+            {client.loyaltyInfo?.pointsBalance || 0} pts
+          </div>
+          <div className="flex items-center gap-1 text-gray-600">
+            <DollarSign className="w-3 h-3" />
+            ${client.visitSummary?.totalSpent?.toFixed(0) || 0}
+          </div>
+        </div>
+      </div>
+      <Badge className={`mt-2 ${isPrimary ? 'bg-brand-100 text-brand-700' : 'bg-red-100 text-red-700'}`}>
+        {isPrimary ? 'Keep This Profile' : 'Will Be Archived'}
+      </Badge>
+    </Card>
+  );
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Merge className="w-5 h-5 text-brand-600" />
+            Merge Client Profiles
+          </DialogTitle>
+          <DialogDescription>
+            Combine two client profiles into one. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+
+        {step === 'select' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Primary Client Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Primary Profile (Keep)</label>
+                <select
+                  value={primaryClientId}
+                  onChange={e => setPrimaryClientId(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Select client to keep...</option>
+                  {clients
+                    .filter(c => c.id !== secondaryClientId && !c.isBlocked)
+                    .map(client => (
+                      <option key={client.id} value={client.id}>
+                        {client.firstName} {client.lastName} - {client.phone || client.email || 'No contact'}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Secondary Client Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Secondary Profile (Archive)</label>
+                <select
+                  value={secondaryClientId}
+                  onChange={e => setSecondaryClientId(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Select client to merge...</option>
+                  {clients
+                    .filter(c => c.id !== primaryClientId && !c.isBlocked)
+                    .map(client => (
+                      <option key={client.id} value={client.id}>
+                        {client.firstName} {client.lastName} - {client.phone || client.email || 'No contact'}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            {primaryClient && secondaryClient && (
+              <div className="flex items-center gap-4">
+                <div className="flex-1">{renderClientCard(primaryClient, true)}</div>
+                <ArrowRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                <div className="flex-1">{renderClientCard(secondaryClient, false)}</div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => setStep('options')}
+                disabled={!primaryClientId || !secondaryClientId}
+              >
+                Continue
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === 'options' && primaryClient && secondaryClient && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1">{renderClientCard(primaryClient, true)}</div>
+              <ArrowRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
+              <div className="flex-1">{renderClientCard(secondaryClient, false)}</div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <h4 className="font-medium">Merge Options</h4>
+
+              <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                <Checkbox
+                  checked={mergeOptions.mergeNotes}
+                  onCheckedChange={checked =>
+                    setMergeOptions(prev => ({ ...prev, mergeNotes: !!checked }))
+                  }
+                />
+                <div>
+                  <span className="font-medium">Combine Notes</span>
+                  <p className="text-sm text-gray-500">Append notes from the secondary profile</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                <Checkbox
+                  checked={mergeOptions.mergeLoyalty}
+                  onCheckedChange={checked =>
+                    setMergeOptions(prev => ({ ...prev, mergeLoyalty: !!checked }))
+                  }
+                />
+                <div>
+                  <span className="font-medium">Combine Loyalty Points</span>
+                  <p className="text-sm text-gray-500">
+                    Add {secondaryClient.loyaltyInfo?.pointsBalance || 0} points to the primary profile
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                <Checkbox
+                  checked={mergeOptions.mergePreferences}
+                  onCheckedChange={checked =>
+                    setMergeOptions(prev => ({ ...prev, mergePreferences: !!checked }))
+                  }
+                />
+                <div>
+                  <span className="font-medium">Combine Preferences</span>
+                  <p className="text-sm text-gray-500">Merge preferred staff and services</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                <Checkbox
+                  checked={mergeOptions.mergeAlerts}
+                  onCheckedChange={checked =>
+                    setMergeOptions(prev => ({ ...prev, mergeAlerts: !!checked }))
+                  }
+                />
+                <div>
+                  <span className="font-medium">Copy Staff Alert</span>
+                  <p className="text-sm text-gray-500">
+                    If primary has no alert, use secondary's alert
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep('select')}>
+                Back
+              </Button>
+              <Button onClick={() => setStep('confirm')} variant="destructive">
+                Continue to Confirm
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === 'confirm' && primaryClient && secondaryClient && (
+          <div className="space-y-4">
+            {/* Warning Banner */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-red-800">This action cannot be undone!</h4>
+                <p className="text-sm text-red-700 mt-1">
+                  The secondary profile ({secondaryClient.firstName} {secondaryClient.lastName}) will be permanently
+                  archived. All future appointments and transactions will be associated with the primary profile.
+                </p>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <h4 className="font-medium">Merge Summary</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>
+                    <strong>{primaryClient.firstName} {primaryClient.lastName}</strong> will be the kept profile
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-red-500" />
+                  <span>
+                    <strong>{secondaryClient.firstName} {secondaryClient.lastName}</strong> will be archived
+                  </span>
+                </li>
+                {mergeOptions.mergeLoyalty && (
+                  <li>
+                    Combined loyalty points:{' '}
+                    <strong>
+                      {(primaryClient.loyaltyInfo?.pointsBalance || 0) +
+                        (secondaryClient.loyaltyInfo?.pointsBalance || 0)}
+                    </strong>
+                  </li>
+                )}
+                <li>
+                  Combined visits:{' '}
+                  <strong>
+                    {(primaryClient.visitSummary?.totalVisits || 0) +
+                      (secondaryClient.visitSummary?.totalVisits || 0)}
+                  </strong>
+                </li>
+              </ul>
+            </div>
+
+            {/* Type MERGE to confirm */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Type <strong>MERGE</strong> to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={e => setConfirmText(e.target.value.toUpperCase())}
+                placeholder="Type MERGE"
+                className="w-full p-2 border rounded-md"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep('options')}>
+                Back
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleMerge}
+                disabled={confirmText !== 'MERGE' || isMerging}
+              >
+                {isMerging ? 'Merging...' : 'Confirm Merge'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default MergeClientsModal;
