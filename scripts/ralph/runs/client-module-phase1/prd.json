@@ -212,7 +212,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Create: supabase/functions/validate-booking/index.ts (NEW, ~80 lines). Reference clients Edge Function patterns."
     },
     {

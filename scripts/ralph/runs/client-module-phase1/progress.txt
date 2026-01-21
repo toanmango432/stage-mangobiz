@@ -319,3 +319,60 @@ Commit: 17daaaa
 **Next story suggestion:** US-013 (Create validate-booking Edge Function) - starts the patch test validation feature track
 
 ---
+
+## 2026-01-21 - US-012: Add block override audit logging
+Commit: 85af3ed
+
+**Why this story?** US-012 was already implemented as part of US-011's handleBlockOverride function. Marking as complete without code changes.
+
+**Changes:**
+- No new code changes - functionality already exists in NewAppointmentModal.v2.tsx:128-142
+
+**Learnings:**
+- When implementing related features (US-011 + US-012), the second story's requirements may already be satisfied
+- Always verify if work is already done before starting implementation
+
+---
+
+## 2026-01-21 - US-013: Create validate-booking Edge Function
+Commit: a8fe844
+
+**Why this story?** US-013 is the foundation for the patch test validation feature track. US-014 (thunk), US-015 (banner), US-016 (integration), and US-017 (online store) all depend on this Edge Function.
+
+**Changes:**
+- supabase/functions/validate-booking/index.ts (NEW, ~273 lines): Edge Function for booking validation
+  - POST endpoint accepting clientId, serviceId, appointmentDate
+  - Checks client blocked status from clients table
+  - Checks if service requires_patch_test field (handles missing column gracefully)
+  - Checks patch_tests table for valid non-expired patch tests (handles missing table gracefully)
+  - Returns specific reasons: client_blocked, patch_test_required, patch_test_expired
+  - All validations support canOverride: true for staff override capability
+  - Fails open (returns valid: true) on database errors to avoid blocking legitimate customers
+
+**Learnings:**
+- Supabase services table doesn't have requires_patch_test column yet - Edge Function handles gracefully
+- patch_tests table doesn't exist in Supabase yet - only in IndexedDB for local storage
+- Edge Functions can be forward-compatible by handling missing columns/tables with try-catch
+- Use maybeSingle() instead of single() when record might not exist to avoid PGRST116 error
+
+### Supabase Edge Function Forward-Compatibility Pattern
+When building Edge Functions that depend on columns/tables that may not exist yet:
+```typescript
+// Handle potentially missing column
+const requiresField = record.requires_patch_test === true; // undefined becomes false
+
+// Handle potentially missing table with try-catch
+try {
+  const { data, error } = await supabase.from('new_table').select('*');
+  if (error) {
+    console.warn('Table may not exist:', error);
+    // Return graceful fallback
+  }
+} catch (error) {
+  // Unexpected error - return safe default
+}
+```
+
+**Next story suggestion:** US-014 (Add checkPatchTestRequired thunk) - creates the Redux thunk that calls this Edge Function
+
+---
