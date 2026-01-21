@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { memberAuthService } from '../memberAuthService';
 import { supabase } from '../supabase/client';
 import { SecureStorage } from '@/utils/secureStorage';
+import bcrypt from 'bcryptjs';
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -69,6 +70,14 @@ vi.mock('@/store', () => ({
 vi.mock('@/services/audit/auditLogger', () => ({
   auditLogger: {
     log: vi.fn(),
+  },
+}));
+
+// Mock bcrypt for PIN validation tests
+vi.mock('bcryptjs', () => ({
+  default: {
+    compare: vi.fn(),
+    hash: vi.fn(),
   },
 }));
 
@@ -812,6 +821,257 @@ describe('memberAuthService', () => {
       await expect(
         memberAuthService.loginWithPassword('timeout@example.com', 'password123')
       ).rejects.toThrow('Authentication timeout');
+    });
+  });
+
+  describe('loginWithPin', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockSecureStorage = SecureStorage as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockBcrypt = bcrypt as any;
+
+    // Store original navigator.onLine and create setter
+    const originalNavigator = window.navigator;
+    let mockOnLine = true;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockLocalStorage.clear();
+      mockOnLine = true;
+
+      // Mock navigator.onLine
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          ...originalNavigator,
+          get onLine() {
+            return mockOnLine;
+          },
+        },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      // Restore original navigator
+      Object.defineProperty(window, 'navigator', {
+        value: originalNavigator,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    it('should return MemberAuthSession on successful PIN login', async () => {
+      // Set up cached member in localStorage
+      const cachedMember = {
+        memberId: 'member-pin-001',
+        authUserId: 'auth-user-pin-001',
+        email: 'pinuser@example.com',
+        name: 'PIN Test User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: { canViewReports: true },
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: 'store-1',
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Mock PIN hash in SecureStorage
+      const pinHash = '$2a$12$samplehash123456789012345678901234567890';
+      mockSecureStorage.get.mockResolvedValue(pinHash);
+
+      // Mock bcrypt.compare to return true (valid PIN)
+      mockBcrypt.compare.mockResolvedValue(true);
+
+      // Disable background validation for this test
+      mockOnLine = false;
+
+      const result = await memberAuthService.loginWithPin('member-pin-001', '1234');
+
+      expect(result).toBeDefined();
+      expect(result.memberId).toBe('member-pin-001');
+      expect(result.email).toBe('pinuser@example.com');
+      expect(result.name).toBe('PIN Test User');
+      expect(result.role).toBe('staff');
+    });
+
+    it('should contain all correct session fields', async () => {
+      const now = new Date();
+      const cachedMember = {
+        memberId: 'member-fields-001',
+        authUserId: 'auth-fields-001',
+        email: 'fields@example.com',
+        name: 'Fields Test User',
+        role: 'manager',
+        storeIds: ['store-1', 'store-2'],
+        permissions: { canManageStaff: true, canViewReports: true },
+        lastOnlineAuth: now.toISOString(),
+        sessionCreatedAt: now.toISOString(),
+        defaultStoreId: 'store-2',
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      mockBcrypt.compare.mockResolvedValue(true);
+      mockOnLine = false;
+
+      const result = await memberAuthService.loginWithPin('member-fields-001', '5678');
+
+      // Verify all required fields from MemberAuthSession
+      expect(result.memberId).toBe('member-fields-001');
+      expect(result.authUserId).toBe('auth-fields-001');
+      expect(result.email).toBe('fields@example.com');
+      expect(result.name).toBe('Fields Test User');
+      expect(result.role).toBe('manager');
+      expect(result.storeIds).toEqual(['store-1', 'store-2']);
+      expect(result.permissions).toEqual({ canManageStaff: true, canViewReports: true });
+      expect(result.defaultStoreId).toBe('store-2');
+      expect(result.lastOnlineAuth).toBeInstanceOf(Date);
+      expect(result.sessionCreatedAt).toBeInstanceOf(Date);
+    });
+
+    it('should clear failed attempts on successful login', async () => {
+      const cachedMember = {
+        memberId: 'member-clear-001',
+        authUserId: 'auth-clear-001',
+        email: 'clear@example.com',
+        name: 'Clear Attempts User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      // Pre-set 3 failed attempts
+      mockLocalStorage.setItem('pin_attempts_member-clear-001', '3');
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      mockBcrypt.compare.mockResolvedValue(true);
+      mockOnLine = false;
+
+      // Verify failed attempts exist before login
+      expect(memberAuthService.getFailedAttempts('member-clear-001')).toBe(3);
+
+      await memberAuthService.loginWithPin('member-clear-001', '1234');
+
+      // Failed attempts should be cleared after successful login
+      expect(memberAuthService.getFailedAttempts('member-clear-001')).toBe(0);
+    });
+
+    it('should trigger background validation when online', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mockSupabase = supabase as any;
+
+      const now = new Date();
+      const cachedMember = {
+        memberId: 'member-bg-001',
+        authUserId: 'auth-bg-001',
+        email: 'background@example.com',
+        name: 'Background Validation User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: now.toISOString(),
+        sessionCreatedAt: now.toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      mockBcrypt.compare.mockResolvedValue(true);
+
+      // Enable online mode - this should trigger background validation
+      mockOnLine = true;
+
+      // Mock the supabase queries for background validation
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        abortSignal: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'member-bg-001', status: 'active', password_changed_at: null },
+          error: null,
+        }),
+        // For revocations query that doesn't use single()
+        then: vi.fn().mockImplementation(cb => {
+          cb({ data: [], error: null });
+          return Promise.resolve();
+        }),
+      };
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      await memberAuthService.loginWithPin('member-bg-001', '1234');
+
+      // Background validation should have been triggered (supabase.from called for member status check)
+      // Give it a tick for the async call to start
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('members');
+    });
+
+    it('should return the cached member session unchanged', async () => {
+      const originalLastOnlineAuth = new Date('2026-01-15T10:00:00.000Z');
+      const originalSessionCreatedAt = new Date('2026-01-15T08:00:00.000Z');
+
+      const cachedMember = {
+        memberId: 'member-unchanged-001',
+        authUserId: 'auth-unchanged-001',
+        email: 'unchanged@example.com',
+        name: 'Unchanged User',
+        role: 'owner',
+        storeIds: ['store-1', 'store-2', 'store-3'],
+        permissions: { isOwner: true },
+        lastOnlineAuth: originalLastOnlineAuth.toISOString(),
+        sessionCreatedAt: originalSessionCreatedAt.toISOString(),
+        defaultStoreId: 'store-1',
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      mockSecureStorage.get.mockResolvedValue('$2a$12$hash');
+      mockBcrypt.compare.mockResolvedValue(true);
+      mockOnLine = false;
+
+      const result = await memberAuthService.loginWithPin('member-unchanged-001', '9999');
+
+      // Session should be returned with dates converted to Date objects
+      expect(result.memberId).toBe('member-unchanged-001');
+      expect(result.lastOnlineAuth.toISOString()).toBe(originalLastOnlineAuth.toISOString());
+      expect(result.sessionCreatedAt.toISOString()).toBe(originalSessionCreatedAt.toISOString());
+    });
+
+    it('should verify PIN against SecureStorage hash', async () => {
+      const cachedMember = {
+        memberId: 'member-verify-001',
+        authUserId: 'auth-verify-001',
+        email: 'verify@example.com',
+        name: 'Verify PIN User',
+        role: 'staff',
+        storeIds: ['store-1'],
+        permissions: {},
+        lastOnlineAuth: new Date().toISOString(),
+        sessionCreatedAt: new Date().toISOString(),
+        defaultStoreId: null,
+      };
+      mockLocalStorage.setItem('cached_members_list', JSON.stringify([cachedMember]));
+
+      const pinHash = '$2a$12$uniquehash123';
+      mockSecureStorage.get.mockResolvedValue(pinHash);
+      mockBcrypt.compare.mockResolvedValue(true);
+      mockOnLine = false;
+
+      await memberAuthService.loginWithPin('member-verify-001', '4567');
+
+      // Verify SecureStorage was called with correct key
+      expect(mockSecureStorage.get).toHaveBeenCalledWith('pin_hash_member-verify-001');
+
+      // Verify bcrypt.compare was called with PIN and hash
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('4567', pinHash);
     });
   });
 
