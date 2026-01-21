@@ -284,3 +284,38 @@ Commit: 40eeee3
 **Next story suggestion:** US-011 (Integrate block check into Store App booking) - will integrate this modal into BookingForm.tsx
 
 ---
+
+## 2026-01-21 - US-011: Integrate block check into Store App booking
+Commit: 17daaaa
+
+**Why this story?** US-011 is the natural next step after US-010 (BlockedClientOverrideModal). It integrates the modal into the booking flow. US-012 (audit logging) is actually already implemented within this story.
+
+**Changes:**
+- apps/store-app/src/components/Book/hooks/useAppointmentClients.ts:18-24: Added BlockedClientInfo interface
+- apps/store-app/src/components/Book/hooks/useAppointmentClients.ts:87: Added onBlockedClientSelected callback to options
+- apps/store-app/src/components/Book/hooks/useAppointmentClients.ts:98: Added handleSelectClientAfterOverride to return interface
+- apps/store-app/src/components/Book/hooks/useAppointmentClients.ts:189-233: Split handleSelectClient into:
+  - completeClientSelection (internal): Actual client selection logic
+  - handleSelectClient: Now checks isBlocked and calls onBlockedClientSelected if blocked
+  - handleSelectClientAfterOverride: Calls completeClientSelection directly (for post-override flow)
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:7: Added useState, useCallback imports
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:13-18: Added imports for clientsDB, dispatch, selectMemberId, BlockedClientOverrideModal, auditLogger
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:62-77: Added blockedClientInfo state, pendingClient state, handleBlockedClientSelected callback
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:122-151: Added handleBlockOverride (logs audit, calls handleSelectClientAfterOverride), handleBlockOverrideCancel
+- apps/store-app/src/components/Book/NewAppointmentModal.v2.tsx:684-692: Render BlockedClientOverrideModal when blockedClientInfo is set
+
+**Browser Verification:**
+- Cannot fully verify without a blocked client in the database and valid auth session
+- Code structure verified: blocked client flow implemented correctly
+- TypeScript passes (store-app typecheck clean)
+
+**Learnings:**
+- PRD notes were incorrect: BookingForm.tsx doesn't exist. Actual booking happens in NewAppointmentModal.v2.tsx using useAppointmentClients hook
+- auditLogger is a singleton instance (use auditLogger.log), not a class (not AuditLogger.getInstance())
+- auditLogger.log requires: action, entityType (not entity), description, success, and optional metadata
+- Callback order matters: handlers referencing other hooks must be defined AFTER those hooks
+- US-012 (block override audit logging) is actually satisfied within this story's handleBlockOverride implementation
+
+**Next story suggestion:** US-013 (Create validate-booking Edge Function) - starts the patch test validation feature track
+
+---
