@@ -25,16 +25,21 @@ Complete implementation of all remaining client module features to achieve 100% 
 
 ## Phases Overview (6 Phases)
 
-| Phase | Focus | Stories | Test Gate |
-|-------|-------|---------|-----------|
-| 1 | Client Safety & Booking Controls | 21 | Merge clients, blocked client can't book, patch test warning shows |
-| 2 | GDPR Compliance | 12 | Export data, request deletion, verify anonymization |
-| 3 | Forms & Signatures | 10 | Create form with signature, export PDF, send via email |
-| 4 | Segmentation & Data Management | 15 | Create custom segment, import CSV with duplicates |
-| 5 | Engagement & Loyalty | 17 | Configure tiers, auto review request after checkout |
-| 6 | Multi-Store Sharing | 20 | Cross-brand lookup, organization sharing |
+| Phase | Focus | Stories | Review | Test Gate |
+|-------|-------|---------|--------|-----------|
+| 1 | Client Safety & Booking Controls | 21 + 2 | US-P1R, US-P1F | Merge clients, blocked client can't book, patch test warning shows |
+| 2 | GDPR Compliance | 12 + 2 | US-P2R, US-P2F | Export data, request deletion, verify anonymization |
+| 3 | Forms & Signatures | 10 + 2 | US-P3R, US-P3F | Create form with signature, export PDF, send via email |
+| 4 | Segmentation & Data Management | 15 + 2 | US-P4R, US-P4F | Create custom segment, import CSV with duplicates |
+| 5 | Engagement & Loyalty | 17 + 2 | US-P5R, US-P5F | Configure tiers, auto review request after checkout |
+| 6 | Multi-Store Sharing | 20 + 3 | US-P6R, US-P6F, US-FINAL | Cross-brand lookup, organization sharing |
 
-**Total: ~95 stories**
+**Total: ~108 stories** (95 implementation + 13 review/remediation)
+
+**Review Stories Pattern:**
+- **US-PxR:** UltraThink review using Architect, Research, Coder, and Tester agents
+- **US-PxF:** Fix all issues found in review before moving to next phase
+- **US-FINAL:** Complete module verification before merge to main
 
 ---
 
@@ -495,6 +500,65 @@ Complete implementation of all remaining client module features to achieve 100% 
 
 ---
 
+## 1.5 Phase 1 Review & Remediation
+
+### US-P1R: UltraThink Review of Phase 1 Implementation
+**Description:** As a developer, I need comprehensive validation of all Phase 1 features before moving to Phase 2.
+
+**Review Method:** Use `/ultrathink` skill with Architect, Research, Coder, and Tester agents.
+
+**Acceptance Criteria:**
+- [ ] **Architect Agent:** Verify database schema design (merge columns, RPC function, audit tables)
+- [ ] **Coder Agent:** Review all new thunks, components, and Edge Functions for:
+  - Type safety (no `as any`, proper interfaces)
+  - Error handling completeness
+  - Code patterns consistency with existing codebase
+  - No forbidden strings in production code
+- [ ] **Tester Agent:** Verify test coverage and quality:
+  - All acceptance criteria from US-001 to US-021 actually implemented
+  - Unit tests cover edge cases
+  - Integration points tested
+- [ ] **Security Check:** Verify audit logging captures all required data
+- [ ] **UX Review:** Check modal flows, error messages, warning banners
+- [ ] Document all issues found in `scripts/ralph/runs/client-module-phase1/review-findings.md`
+- [ ] Categorize issues as: Critical, Major, Minor
+
+**Notes:**
+- Run `pnpm run typecheck` and `pnpm test` before review
+- Check browser manually for UI components
+- This story produces a review report, not code changes
+
+**Priority:** 22
+
+---
+
+### US-P1F: Address Phase 1 Review Findings
+**Description:** As a developer, I need to fix all issues identified in the Phase 1 review.
+
+**Files to modify:**
+- Files identified in `review-findings.md`
+
+**Acceptance Criteria:**
+- [ ] All Critical issues resolved
+- [ ] All Major issues resolved
+- [ ] Minor issues documented for future cleanup (if not blocking)
+- [ ] Re-run typecheck: `pnpm run typecheck` passes
+- [ ] Re-run tests: `pnpm test` passes
+- [ ] Update `review-findings.md` with resolution status
+- [ ] **Test Gate Verification:**
+  1. Merge two clients → data consolidated, secondary archived
+  2. Blocked client cannot book online → generic error shown
+  3. Book service requiring patch test → warning banner appears, override works
+
+**Notes:**
+- Focus on Critical and Major issues first
+- If an issue requires significant rework, document why and proceed
+- This story must pass before starting Phase 2
+
+**Priority:** 23
+
+---
+
 # PHASE 2: GDPR Compliance
 
 **Focus:** Full GDPR/CCPA compliance including data export, deletion requests, and consent tracking.
@@ -751,6 +815,60 @@ Complete implementation of all remaining client module features to achieve 100% 
 
 ---
 
+## 2.2 Phase 2 Review & Remediation
+
+### US-P2R: UltraThink Review of Phase 2 Implementation
+**Description:** As a developer, I need comprehensive validation of all GDPR features before moving to Phase 3.
+
+**Review Method:** Use `/ultrathink` skill with Architect, Research, Coder, and Tester agents.
+
+**Acceptance Criteria:**
+- [ ] **Architect Agent:** Verify GDPR schema design:
+  - `client_data_requests` table structure
+  - `data_retention_logs` audit table
+  - Consent columns on clients table
+- [ ] **Coder Agent:** Review GDPR implementation for:
+  - 30-day waiting period correctly enforced
+  - Anonymization preserves transaction integrity
+  - Export includes all required data categories
+  - Email/notification flows work correctly
+- [ ] **Tester Agent:** Verify:
+  - All acceptance criteria from US-022 to US-033 implemented
+  - Deletion actually anonymizes PII
+  - Export produces valid JSON
+- [ ] **Security Check:**
+  - No PII exposed in logs
+  - Rate limiting on export endpoint
+  - Email verification for deletion requests
+- [ ] Document all issues in `scripts/ralph/runs/client-module-phase2/review-findings.md`
+
+**Notes:**
+- GDPR compliance is critical - be thorough
+- Check Edge Functions for proper error handling
+
+**Priority:** 34
+
+---
+
+### US-P2F: Address Phase 2 Review Findings
+**Description:** As a developer, I need to fix all issues identified in the Phase 2 review.
+
+**Files to modify:**
+- Files identified in `review-findings.md`
+
+**Acceptance Criteria:**
+- [ ] All Critical issues resolved (especially data privacy issues)
+- [ ] All Major issues resolved
+- [ ] Re-run typecheck and tests
+- [ ] **Test Gate Verification:**
+  1. Export all client data as JSON → file downloads correctly
+  2. Request account deletion → 30-day pending period works
+  3. After processing → PII anonymized, transactions retained
+
+**Priority:** 35
+
+---
+
 # PHASE 3: Forms & Signatures
 
 **Focus:** Enhanced form builder with e-signatures, PDF export, and email/SMS delivery.
@@ -949,6 +1067,57 @@ Complete implementation of all remaining client module features to achieve 100% 
 - [ ] All tests pass
 
 **Priority:** 43
+
+---
+
+## 3.2 Phase 3 Review & Remediation
+
+### US-P3R: UltraThink Review of Phase 3 Implementation
+**Description:** As a developer, I need comprehensive validation of forms and signature features before moving to Phase 4.
+
+**Review Method:** Use `/ultrathink` skill with Architect, Research, Coder, and Tester agents.
+
+**Acceptance Criteria:**
+- [ ] **Architect Agent:** Verify form system design:
+  - SignaturePad integration with form builder
+  - PDF generation service architecture
+  - Email/SMS delivery flow
+- [ ] **Coder Agent:** Review implementation for:
+  - Signature capture works on touch and mouse devices
+  - PDF output includes all form data and signatures
+  - Email templates are professional and branded
+  - Consent field captures legal text properly
+- [ ] **Tester Agent:** Verify:
+  - All acceptance criteria from US-034 to US-043 implemented
+  - PDF renders correctly in different viewers
+  - Forms can be filled and submitted via email link
+- [ ] **UX Review:**
+  - Form builder is intuitive
+  - Signature pad is responsive
+  - PDF layout is professional
+- [ ] Document all issues in `scripts/ralph/runs/client-module-phase3/review-findings.md`
+
+**Priority:** 44
+
+---
+
+### US-P3F: Address Phase 3 Review Findings
+**Description:** As a developer, I need to fix all issues identified in the Phase 3 review.
+
+**Files to modify:**
+- Files identified in `review-findings.md`
+
+**Acceptance Criteria:**
+- [ ] All Critical issues resolved
+- [ ] All Major issues resolved
+- [ ] Re-run typecheck and tests
+- [ ] **Test Gate Verification:**
+  1. Create consultation form with signature field → form saves correctly
+  2. Client fills out and signs form → signature captured
+  3. Export completed form as PDF → PDF downloads with all data
+  4. Send form link via email → email delivered, link works
+
+**Priority:** 45
 
 ---
 
@@ -1229,6 +1398,55 @@ Complete implementation of all remaining client module features to achieve 100% 
 - [ ] All tests pass
 
 **Priority:** 58
+
+---
+
+## 4.2 Phase 4 Review & Remediation
+
+### US-P4R: UltraThink Review of Phase 4 Implementation
+**Description:** As a developer, I need comprehensive validation of segmentation and import/export features before moving to Phase 5.
+
+**Review Method:** Use `/ultrathink` skill with Architect, Research, Coder, and Tester agents.
+
+**Acceptance Criteria:**
+- [ ] **Architect Agent:** Verify segment system design:
+  - Filter condition evaluation logic
+  - Nested group support (AND/OR)
+  - Query performance for large client lists
+- [ ] **Coder Agent:** Review implementation for:
+  - SegmentBuilder handles all operator types
+  - Import wizard handles malformed data gracefully
+  - Duplicate detection uses correct matching criteria
+  - CSV/Excel parsing works for various file formats
+- [ ] **Tester Agent:** Verify:
+  - All acceptance criteria from US-044 to US-058 implemented
+  - Segment preview counts are accurate
+  - Import handles edge cases (empty rows, special characters)
+- [ ] **Performance Check:**
+  - Segment evaluation doesn't freeze UI
+  - Import handles 1000+ rows efficiently
+- [ ] Document all issues in `scripts/ralph/runs/client-module-phase4/review-findings.md`
+
+**Priority:** 59
+
+---
+
+### US-P4F: Address Phase 4 Review Findings
+**Description:** As a developer, I need to fix all issues identified in the Phase 4 review.
+
+**Files to modify:**
+- Files identified in `review-findings.md`
+
+**Acceptance Criteria:**
+- [ ] All Critical issues resolved
+- [ ] All Major issues resolved
+- [ ] Re-run typecheck and tests
+- [ ] **Test Gate Verification:**
+  1. Create custom segment with multiple filter conditions → segment saves
+  2. Preview matching clients and export as CSV → accurate count, clean CSV
+  3. Import CSV with duplicates → detection and resolution UI works
+
+**Priority:** 60
 
 ---
 
@@ -1525,6 +1743,57 @@ Complete implementation of all remaining client module features to achieve 100% 
 - [ ] All tests pass
 
 **Priority:** 75
+
+---
+
+## 5.2 Phase 5 Review & Remediation
+
+### US-P5R: UltraThink Review of Phase 5 Implementation
+**Description:** As a developer, I need comprehensive validation of loyalty and automation features before moving to Phase 6.
+
+**Review Method:** Use `/ultrathink` skill with Architect, Research, Coder, and Tester agents.
+
+**Acceptance Criteria:**
+- [ ] **Architect Agent:** Verify loyalty system design:
+  - Tier configuration and benefits storage
+  - Point calculation and expiration logic
+  - Automation trigger system (scheduled functions)
+- [ ] **Coder Agent:** Review implementation for:
+  - Points math is accurate (no rounding errors)
+  - Tier assignment handles edge cases
+  - Review automation respects opt-out preferences
+  - Referral fraud detection catches common patterns
+  - Membership renewal handles payment failures
+- [ ] **Tester Agent:** Verify:
+  - All acceptance criteria from US-059 to US-075 implemented
+  - Scheduled functions configured correctly
+  - Email templates render properly
+- [ ] **Business Logic Check:**
+  - Point expiration notifies before expiring
+  - Redemption deducts correct points
+  - Fraud detection doesn't block legitimate referrals
+- [ ] Document all issues in `scripts/ralph/runs/client-module-phase5/review-findings.md`
+
+**Priority:** 76
+
+---
+
+### US-P5F: Address Phase 5 Review Findings
+**Description:** As a developer, I need to fix all issues identified in the Phase 5 review.
+
+**Files to modify:**
+- Files identified in `review-findings.md`
+
+**Acceptance Criteria:**
+- [ ] All Critical issues resolved (especially payment and points issues)
+- [ ] All Major issues resolved
+- [ ] Re-run typecheck and tests
+- [ ] **Test Gate Verification:**
+  1. Configure loyalty tiers → settings saved, points calculated correctly
+  2. Complete checkout → review request auto-sent after configured delay
+  3. Use referral code → reward issued to both parties correctly
+
+**Priority:** 77
 
 ---
 
@@ -1895,6 +2164,88 @@ Complete implementation of all remaining client module features to achieve 100% 
 - [ ] All E2E tests pass: `pnpm test:e2e`
 
 **Priority:** 95
+
+---
+
+## 6.4 Phase 6 Review & Remediation (Final)
+
+### US-P6R: UltraThink Review of Phase 6 Implementation
+**Description:** As a developer, I need comprehensive validation of multi-store sharing features before final release.
+
+**Review Method:** Use `/ultrathink` skill with Architect, Research, Coder, and Tester agents.
+
+**Acceptance Criteria:**
+- [ ] **Architect Agent:** Verify multi-store design:
+  - Identity hashing is secure (SHA-256 + salt)
+  - Link request flow handles expiration correctly
+  - RLS policies enforce sharing modes
+  - Cross-location data isolation
+- [ ] **Coder Agent:** Review implementation for:
+  - Hash normalization is consistent (phone digits, email lowercase)
+  - Link approval/rejection updates all relevant tables
+  - Safety data (allergies, blocks) always syncs regardless of mode
+  - Organization sharing modes work as documented
+- [ ] **Tester Agent:** Verify:
+  - All acceptance criteria from US-076 to US-095 implemented
+  - E2E tests cover critical paths
+  - Edge Functions handle errors gracefully
+- [ ] **Security Check:**
+  - No PII exposed in hashed lookups
+  - Link requests expire after 24 hours
+  - Consent audit trail is complete
+- [ ] **Cross-Module Integration:**
+  - Multi-store clients work with loyalty
+  - Multi-store clients work with GDPR deletion
+  - Multi-store clients appear correctly in segments
+- [ ] Document all issues in `scripts/ralph/runs/client-module-phase6/review-findings.md`
+
+**Notes:**
+- This is the final phase - be extra thorough
+- Test cross-module interactions
+
+**Priority:** 96
+
+---
+
+### US-P6F: Address Phase 6 Review Findings
+**Description:** As a developer, I need to fix all issues identified in the Phase 6 review.
+
+**Files to modify:**
+- Files identified in `review-findings.md`
+
+**Acceptance Criteria:**
+- [ ] All Critical issues resolved
+- [ ] All Major issues resolved
+- [ ] Re-run typecheck and tests
+- [ ] **Test Gate Verification:**
+  1. Lookup client across ecosystem → found, link request sent
+  2. Client approves link → profile shared, safety data syncs
+  3. Configure organization sharing mode → cross-location clients visible per mode
+
+**Priority:** 97
+
+---
+
+### US-FINAL: Complete Client Module Verification
+**Description:** As a developer, I need final sign-off that the entire client module is complete.
+
+**Review Method:** Use `/ultrathink` for final comprehensive review across ALL phases.
+
+**Acceptance Criteria:**
+- [ ] All 95+ user stories have `passes: true`
+- [ ] All 6 phase test gates verified
+- [ ] `pnpm run typecheck` passes with zero errors
+- [ ] `pnpm test` - all unit tests pass
+- [ ] `pnpm test:e2e` - all E2E tests pass
+- [ ] No Critical or Major issues remain unresolved
+- [ ] Documentation updated (CLAUDE.md references new features)
+- [ ] Create `docs/RELEASE_NOTES_CLIENT_MODULE.md` summarizing all new features
+
+**Notes:**
+- This is the final acceptance story
+- Must pass before merging to main branch
+
+**Priority:** 98
 
 ---
 

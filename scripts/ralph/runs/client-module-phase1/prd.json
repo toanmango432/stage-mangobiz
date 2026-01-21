@@ -338,6 +338,44 @@
       "priority": 21,
       "passes": false,
       "notes": "Create: apps/store-app/src/components/Book/__tests__/patchTest.test.ts (NEW, ~80 lines)."
+    },
+    {
+      "id": "US-P1R",
+      "title": "UltraThink Review of Phase 1 Implementation",
+      "description": "As a developer, I need comprehensive validation of all Phase 1 features before moving to Phase 2.",
+      "acceptanceCriteria": [
+        "Use /ultrathink skill with Architect, Coder, and Tester agents",
+        "Architect Agent: Verify database schema design (merge columns, RPC function, audit tables)",
+        "Coder Agent: Review all new thunks, components, and Edge Functions for type safety, error handling, code patterns",
+        "Tester Agent: Verify all acceptance criteria from US-001 to US-021 are actually implemented",
+        "Security Check: Verify audit logging captures all required data",
+        "UX Review: Check modal flows, error messages, warning banners work correctly",
+        "Document all issues found in scripts/ralph/runs/client-module-phase1/review-findings.md",
+        "Categorize issues as: Critical, Major, Minor",
+        "Run pnpm run typecheck and pnpm test before review"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "This story produces a review report, not code changes. Use /ultrathink to coordinate Architect, Research, Coder, and Tester agents. Check browser manually for UI components."
+    },
+    {
+      "id": "US-P1F",
+      "title": "Address Phase 1 Review Findings",
+      "description": "As a developer, I need to fix all issues identified in the Phase 1 review.",
+      "acceptanceCriteria": [
+        "All Critical issues from review-findings.md resolved",
+        "All Major issues from review-findings.md resolved",
+        "Minor issues documented for future cleanup (if not blocking)",
+        "Re-run typecheck: pnpm run typecheck passes",
+        "Re-run tests: pnpm test passes",
+        "Update review-findings.md with resolution status for each issue",
+        "Test Gate 1: Merge two clients → data consolidated, secondary archived",
+        "Test Gate 2: Blocked client cannot book online → generic error shown",
+        "Test Gate 3: Book service requiring patch test → warning banner appears, override works"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Focus on Critical and Major issues first. This story must pass before starting Phase 2. Files to modify are those identified in review-findings.md."
     }
   ]
 }
