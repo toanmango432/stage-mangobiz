@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { selectStoreId, selectMember, setMemberSession, clearMemberSession } from '../../../../store/slices/authSlice';
 import { authService, type MemberSession } from '../../../../services/supabase/authService';
 import { memberAuthService } from '../../../../services/memberAuthService';
+import { auditLogger } from '../../../../services/audit/auditLogger';
 import type { LoginContext } from '@/types/memberAuth';
 import type { MemberRole } from '../../../../services/supabase/types';
 import type { Step, DisplayMember } from '../types';
@@ -107,7 +108,19 @@ export function useSwitchUser({
 
       setMembers(enrichedMembers);
     } catch (err: unknown) {
-      console.error('Failed to fetch members:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'member',
+        description: 'Failed to fetch members for user switch',
+        severity: 'medium',
+        success: false,
+        errorMessage,
+        metadata: {
+          storeId,
+          operation: 'fetchMembers',
+        },
+      });
       setError('Failed to load staff members');
     } finally {
       setFetchingMembers(false);
@@ -206,8 +219,21 @@ export function useSwitchUser({
         onClose();
       }, 1000);
     } catch (err: unknown) {
-      console.error('Password verification failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Invalid password';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'member',
+        entityId: selectedMember.memberId,
+        description: 'Password verification failed during user switch',
+        severity: 'medium',
+        success: false,
+        errorMessage,
+        metadata: {
+          storeId,
+          operation: 'passwordSwitch',
+          email: selectedMember.email?.replace(/(.{2}).*(@.*)/, '$1***$2'),
+        },
+      });
       setError(errorMessage);
       setPassword('');
     } finally {
@@ -261,8 +287,19 @@ export function useSwitchUser({
         onClose();
       }, 1000);
     } catch (err: unknown) {
-      console.error('PIN verification failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Invalid PIN';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'member',
+        entityId: selectedMember.memberId,
+        description: 'PIN verification failed during user switch',
+        severity: 'medium',
+        success: false,
+        errorMessage,
+        metadata: {
+          operation: 'pinSwitch',
+        },
+      });
       setError(errorMessage);
       setPin('');
     } finally {
@@ -318,8 +355,19 @@ export function useSwitchUser({
           onClose();
         }, 1000);
       } catch (err: unknown) {
-        console.error('PIN verification failed:', err);
         const errorMessage = err instanceof Error ? err.message : 'Invalid PIN';
+        auditLogger.log({
+          action: 'login',
+          entityType: 'member',
+          entityId: selectedMember.memberId,
+          description: 'PIN verification failed during user switch (auto-submit)',
+          severity: 'medium',
+          success: false,
+          errorMessage,
+          metadata: {
+            operation: 'pinAutoSubmit',
+          },
+        });
         setError(errorMessage);
         setPin('');
       } finally {

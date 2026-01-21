@@ -76,3 +76,27 @@ Commit: 8bce973
 **Next story suggestion:** US-003-005 (console.error → auditLogger replacements) as they are simple complexity-1 tasks with no dependencies
 
 ---
+
+## 2026-01-20 - US-003: Replace console.error with auditLogger in useLoginState hook
+Commit: 4f6465f
+
+**Why this story?** Highest priority (3) among remaining stories with no dependencies, simple complexity-1 code quality task.
+
+**Changes:**
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:22`: Added auditLogger import
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:86-94`: Replaced console.error in loadMembers with auditLogger.log
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:163-171`: Replaced console.error in handleLogin with auditLogger.log
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:319-331`: Replaced console.error in handleMemberLogin with auditLogger.log (email masked for privacy)
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:393-401`: Replaced console.error in handlePinLogin with auditLogger.log
+
+**Learnings:**
+- PRD specified entityType: 'auth' but that's not a valid AuditEntityType. Used 'member' for member auth errors and 'store' for store login errors.
+- PRD specified severity: 'error' but AuditSeverity uses 'medium' instead - used 'medium' following existing memberAuthService.ts patterns
+- Email masking pattern for privacy: `email.replace(/(.{2}).*(@.*)/, '$1***$2')` keeps first 2 chars + domain
+- 21 pre-existing test failures unrelated to this change (various integration tests)
+
+**Patterns to sync:** None - follows documented logging pattern in progress.txt
+
+**Next story suggestion:** US-004 (Replace console.error in useSwitchUser) or US-005 (Replace in PinSetupModal) - both similar complexity-1 logging tasks
+
+---

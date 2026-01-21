@@ -71,7 +71,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 1,
       "notes": "auditLogger is already used in memberAuthService.ts - follow that pattern. Include relevant context like email (masked), loginMode, etc."
