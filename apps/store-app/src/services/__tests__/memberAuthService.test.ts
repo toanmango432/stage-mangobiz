@@ -683,6 +683,136 @@ describe('memberAuthService', () => {
         expect.any(String)
       );
     });
+
+    // ==================== FAILURE CASES ====================
+
+    it('should throw error for invalid credentials', async () => {
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: { message: 'Invalid login credentials' },
+      });
+
+      await expect(
+        memberAuthService.loginWithPassword('wrong@example.com', 'wrongpassword')
+      ).rejects.toThrow('Invalid email or password');
+    });
+
+    it('should throw validation error for empty email', async () => {
+      await expect(
+        memberAuthService.loginWithPassword('', 'password123')
+      ).rejects.toThrow('Email is required');
+
+      // Should not make any network calls
+      expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('should throw validation error for whitespace-only email', async () => {
+      await expect(
+        memberAuthService.loginWithPassword('   ', 'password123')
+      ).rejects.toThrow('Email is required');
+
+      // Should not make any network calls
+      expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('should throw validation error for empty password', async () => {
+      await expect(
+        memberAuthService.loginWithPassword('test@example.com', '')
+      ).rejects.toThrow('Password is required');
+
+      // Should not make any network calls
+      expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when member not found (no profile linked)', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-orphan',
+        email: 'orphan@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      // Member lookup returns error (not found)
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'No rows found' },
+        }),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+      mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+
+      await expect(
+        memberAuthService.loginWithPassword('orphan@example.com', 'password123')
+      ).rejects.toThrow('No member profile linked to this account');
+
+      // Should sign out from Supabase Auth to clean up
+      expect(mockSupabase.auth.signOut).toHaveBeenCalled();
+    });
+
+    it('should throw error for deactivated member', async () => {
+      const mockAuthUser = {
+        id: 'auth-user-deactivated',
+        email: 'deactivated@example.com',
+      };
+
+      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockAuthUser, session: {} },
+        error: null,
+      });
+
+      const mockMember = {
+        id: 'member-deactivated',
+        auth_user_id: 'auth-user-deactivated',
+        email: 'deactivated@example.com',
+        name: 'Deactivated User',
+        role: 'staff',
+        status: 'inactive', // Deactivated
+        store_ids: ['store-1'],
+        permissions: {},
+        pin_hash: null,
+        default_store_id: null,
+      };
+
+      const chainableMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockMember, error: null }),
+      };
+
+      mockSupabase.from.mockReturnValue(chainableMock);
+      mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+
+      await expect(
+        memberAuthService.loginWithPassword('deactivated@example.com', 'password123')
+      ).rejects.toThrow('Your account has been deactivated');
+
+      // Should sign out from Supabase Auth to clean up
+      expect(mockSupabase.auth.signOut).toHaveBeenCalled();
+    });
+
+    it('should throw timeout error when authentication takes too long', async () => {
+      // Instead of using fake timers (which have issues with Promise.race),
+      // we mock signInWithPassword to return an error that looks like a timeout
+      // This tests the timeout behavior indirectly by verifying the service
+      // properly handles the Promise.race rejection from withTimeout
+
+      // Approach: Mock signInWithPassword to reject with "Authentication timeout"
+      // This simulates what happens when the timeout promise wins the race
+      mockSupabase.auth.signInWithPassword.mockImplementation(
+        () => Promise.reject(new Error('Authentication timeout'))
+      );
+
+      await expect(
+        memberAuthService.loginWithPassword('timeout@example.com', 'password123')
+      ).rejects.toThrow('Authentication timeout');
+    });
   });
 
   describe('concurrent PIN attempts - race condition scenarios', () => {
