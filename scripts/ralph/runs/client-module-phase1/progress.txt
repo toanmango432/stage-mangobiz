@@ -190,3 +190,97 @@ Commit: bc43078
 **Next story suggestion:** US-008 (Create check-booking-eligibility Edge Function) - starts the block enforcement feature
 
 ---
+
+## 2026-01-21 - US-008: Create check-booking-eligibility Edge Function
+Commit: f79c2ac
+
+**Why this story?** US-008 is the first story in the "block enforcement" feature track. US-009 (Online Store integration) depends on this Edge Function existing.
+
+**Changes:**
+- supabase/functions/check-booking-eligibility/index.ts (NEW, ~130 lines): Edge Function for checking client booking eligibility
+  - POST endpoint accepting clientId, email, or phone (with storeId for email/phone lookup)
+  - Queries clients table to check is_blocked status
+  - Returns generic "Unable to book at this time. Please call the salon." for blocked clients
+  - Never reveals blocking status or reason (privacy/security)
+  - Graceful error handling - defaults to eligible: true on errors to avoid blocking legitimate customers
+
+**Learnings:**
+- Edge Functions use Deno runtime with URL imports (https://deno.land/std, https://esm.sh/@supabase)
+- Edge Functions don't go through monorepo TypeScript checking
+- Use `maybeSingle()` instead of `single()` when client might not exist (avoids PGRST116 error)
+- Phone normalization: strip non-digits and use ILIKE for flexible matching
+- Security principle: fail open (allow booking) rather than fail closed on errors
+
+### Supabase Edge Function Pattern
+- Use `serve()` from Deno std library for request handling
+- Use `getSupabaseClient()` helper with service role key for admin access
+- CORS headers required for browser access
+- Return generic messages for security-sensitive checks (never reveal internal state)
+
+**Next story suggestion:** US-009 (Add eligibility check to Online Store booking) - integrates this Edge Function
+
+---
+
+## 2026-01-21 - US-009: Add eligibility check to Online Store booking
+Commit: ceb8108
+
+**Why this story?** US-009 is the highest priority incomplete story and builds directly on US-008 (check-booking-eligibility Edge Function). It completes the "blocked client enforcement" feature for the online booking flow.
+
+**Changes:**
+- apps/online-store/src/components/booking/GuestVsMember.tsx:1-93: Added eligibility check functionality
+  - Added imports for Alert, AlertDescription, AlertCircle, getStoreId
+  - Added ELIGIBILITY_ENDPOINT constant for Edge Function URL
+  - Added EligibilityResult interface
+  - Added onEligibilityChange optional prop to GuestVsMemberProps
+  - Added eligibilityError and isCheckingEligibility state
+  - Added checkEligibility callback (called on email/phone blur)
+  - Updated handleClientChange to clear eligibility error on typing
+  - Added eligibility error Alert banner with generic message
+  - Added onBlur={checkEligibility} to email and phone inputs
+  - Disabled inputs while checking eligibility
+- apps/online-store/src/components/booking/DetailsStep.tsx:1-47: Added eligibility state to control form submission
+  - Added useState import
+  - Added isEligible state (default true)
+  - Added isEligible to canContinue condition
+  - Passed onEligibilityChange={setIsEligible} to GuestVsMember
+
+**Learnings:**
+- Online Store uses plain fetch API, not Supabase client functions.invoke()
+- Alert component already exists in online-store UI with variant="destructive"
+- getStoreId() helper provides store ID synchronously for non-hook contexts
+- Eligibility check uses onBlur (not debounce) per PRD notes - simple and effective
+- Pre-existing test failures in ServiceQuickPreview.test.tsx - NOT related to this story
+
+**Next story suggestion:** US-010 (Create BlockedClientOverrideModal) - Store App equivalent of block enforcement
+
+---
+
+## 2026-01-21 - US-010: Create BlockedClientOverrideModal
+Commit: 40eeee3
+
+**Why this story?** US-010 is the logical next step in the block enforcement feature track. US-009 just completed Online Store block enforcement; US-010 creates the modal component that US-011 will integrate into Store App booking.
+
+**Changes:**
+- apps/store-app/src/components/clients/BlockedClientOverrideModal.tsx (NEW, ~172 lines): Override modal for blocked client booking
+  - Props: clientId, clientName, blockReason, onOverride, onCancel
+  - Shows amber warning header with blocked client name
+  - Red alert box showing block reason (visible to staff)
+  - Override reason textarea (mandatory)
+  - Manager approval checkbox (mandatory)
+  - Proceed with Booking button (disabled until both requirements met)
+  - Cancel button
+  - data-testid attributes for testing
+
+**Browser Verification:**
+- Component cannot be tested standalone until integrated (US-011)
+- TypeScript passes (store-app typecheck clean)
+- Pattern verified against BlockClientModal.tsx reference
+
+**Learnings:**
+- Created new `components/clients/` directory for client-specific modal components
+- Pre-existing tsconfig reference error in @mango/supabase package (TS6310) - NOT related to this story
+- Modal follows established pattern: fixed inset backdrop, centered white card, header/content/footer sections
+
+**Next story suggestion:** US-011 (Integrate block check into Store App booking) - will integrate this modal into BookingForm.tsx
+
+---

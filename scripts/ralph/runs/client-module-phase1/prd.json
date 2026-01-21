@@ -149,7 +149,7 @@
         "Verify in browser: blocked client cannot book"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/online-store/src/components/booking/DetailsStep.tsx (~30 lines). Use debounce on blur."
     },
     {
@@ -167,7 +167,7 @@
         "Verify in browser using Playwright MCP"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Create: apps/store-app/src/components/clients/BlockedClientOverrideModal.tsx (NEW, ~80 lines). Follow BlockClientModal.tsx pattern."
     },
     {
