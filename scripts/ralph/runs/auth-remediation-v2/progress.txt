@@ -146,3 +146,25 @@ Commit: 9b88ca2
 **Next story suggestion:** US-006 (Consolidate PIN constants) or US-007-008 (Use AUTH_TIMEOUTS constants) - code quality tasks with no dependencies
 
 ---
+
+## 2026-01-20 - US-006: Consolidate PIN constants to single source of truth
+Commit: 8cd4ecf
+
+**Why this story?** Highest priority (6) among remaining stories with no dependencies, foundational code quality improvement.
+
+**Changes:**
+- `apps/store-app/src/components/auth/constants.ts:110,112`: Renamed `MAX_PIN_ATTEMPTS` → `PIN_MAX_ATTEMPTS` and `LOCKOUT_DURATION_MINUTES` → `PIN_LOCKOUT_MINUTES` in AUTH_VALIDATION for consistency with memberAuthService naming
+- `apps/store-app/src/services/memberAuthService.ts:21`: Added import of AUTH_VALIDATION from @/components/auth/constants
+- `apps/store-app/src/services/memberAuthService.ts:32,35`: Changed PIN_MAX_ATTEMPTS and PIN_LOCKOUT_MINUTES to re-export from AUTH_VALIDATION instead of hardcoded values
+
+**Learnings:**
+- constants.ts already had the same values under slightly different names (MAX_PIN_ATTEMPTS vs PIN_MAX_ATTEMPTS)
+- Re-exporting from memberAuthService.ts maintains backward compatibility for any code importing these constants from the service
+- No consumers were using AUTH_VALIDATION.MAX_PIN_ATTEMPTS or AUTH_VALIDATION.LOCKOUT_DURATION_MINUTES so renaming was safe
+- 21 pre-existing test failures unrelated to this change; memberAuthService.test.ts passes all 34 tests
+
+**Patterns to sync:** None - follows documented constants pattern in progress.txt
+
+**Next story suggestion:** US-007 (Use AUTH_TIMEOUTS in useLoginState) - continues constants consolidation work, then US-008 (Use AUTH_TIMEOUTS in useSwitchUser)
+
+---

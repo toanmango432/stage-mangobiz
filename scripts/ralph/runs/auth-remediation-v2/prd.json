@@ -138,7 +138,7 @@
         "pnpm test -- memberAuthService passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 1,
       "notes": "constants.ts already has AUTH_VALIDATION - add PIN constants there. memberAuthService.ts should import them."
