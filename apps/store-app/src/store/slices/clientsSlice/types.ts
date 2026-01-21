@@ -9,6 +9,32 @@ import type {
   LoyaltyReward,
 } from '../../../types';
 
+// ==================== MERGE OPERATION TYPES ====================
+
+/** Options for merging two clients */
+export interface MergeClientOptions {
+  /** Whether to merge notes from secondary client into primary */
+  mergeNotes: boolean;
+  /** Whether to combine loyalty points from both clients */
+  mergeLoyalty: boolean;
+  /** Whether to merge preferences from secondary client */
+  mergePreferences: boolean;
+  /** Whether to merge alerts from secondary client */
+  mergeAlerts: boolean;
+}
+
+/** Parameters for the merge clients operation */
+export interface MergeClientParams {
+  /** The client ID to keep (primary) */
+  primaryClientId: string;
+  /** The client ID to merge into primary and archive */
+  secondaryClientId: string;
+  /** Merge options controlling what data to combine */
+  options: MergeClientOptions;
+  /** Staff ID performing the merge */
+  mergedBy: string;
+}
+
 // ==================== STATE INTERFACE ====================
 
 export interface ClientsState {

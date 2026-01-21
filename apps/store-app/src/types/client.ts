@@ -444,6 +444,14 @@ export interface Client {
   blockReason?: BlockReason;
   blockReasonNote?: string;
 
+  // Merge tracking - when this client has been merged into another
+  /** ID of the client this record was merged into (if merged) */
+  mergedIntoId?: string;
+  /** Timestamp when the merge occurred */
+  mergedAt?: string;
+  /** Staff ID who performed the merge */
+  mergedBy?: string;
+
   // Source/referral tracking
   source?: ClientSource;
   sourceDetails?: string;
