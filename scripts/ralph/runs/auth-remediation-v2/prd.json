@@ -159,7 +159,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 1,
       "notes": "Check if AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS already exists, add if not."

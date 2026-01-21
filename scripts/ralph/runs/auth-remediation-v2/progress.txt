@@ -168,3 +168,24 @@ Commit: 8cd4ecf
 **Next story suggestion:** US-007 (Use AUTH_TIMEOUTS in useLoginState) - continues constants consolidation work, then US-008 (Use AUTH_TIMEOUTS in useSwitchUser)
 
 ---
+
+## 2026-01-20 - US-007: Use AUTH_TIMEOUTS constants in useLoginState hook
+Commit: fabae6e
+
+**Why this story?** Highest priority (7) among remaining stories with no dependencies, continues constants consolidation work from US-006.
+
+**Changes:**
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:23`: Added import of AUTH_TIMEOUTS from constants
+- `apps/store-app/src/components/auth/StoreLoginScreen/hooks/useLoginState.ts:418`: Replaced hardcoded `100` in setTimeout with `AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS`
+
+**Learnings:**
+- AUTH_TIMEOUTS.PIN_AUTO_SUBMIT_DELAY_MS (100) already existed in constants.ts - no need to add it
+- PRD mentioned "line ~381" but actual location was line ~417 (file has grown since PRD was written)
+- Only one hardcoded timeout in the file - simple surgical change
+- 21 pre-existing test failures unrelated to this change; memberAuthService.test.ts passes all 34 tests
+
+**Patterns to sync:** None - follows documented constants pattern in progress.txt
+
+**Next story suggestion:** US-008 (Use AUTH_TIMEOUTS in useSwitchUser) - same complexity-1 constants task, then US-009 (Extract PIN verification success handler, depends on US-008)
+
+---
