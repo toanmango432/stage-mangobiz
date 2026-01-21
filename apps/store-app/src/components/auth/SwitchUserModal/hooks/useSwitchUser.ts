@@ -15,6 +15,64 @@ import { AUTH_TIMEOUTS } from '../../constants';
 import type { LoginContext } from '@/types/memberAuth';
 import type { MemberRole } from '../../../../services/supabase/types';
 import type { Step, DisplayMember } from '../types';
+import type { MemberAuthSession } from '@/types/memberAuth';
+
+/**
+ * Helper to handle successful authentication (password or PIN).
+ * Parses name, dispatches Redux action, shows success state, and triggers callbacks.
+ */
+interface AuthSuccessParams {
+  authSession: MemberAuthSession;
+  dispatch: ReturnType<typeof useAppDispatch>;
+  setStep: React.Dispatch<React.SetStateAction<Step>>;
+  onSuccess?: (member: MemberSession) => void;
+  onClose: () => void;
+  startGraceChecker?: boolean;
+}
+
+function handleAuthSuccess({
+  authSession,
+  dispatch,
+  setStep,
+  onSuccess,
+  onClose,
+  startGraceChecker = false,
+}: AuthSuccessParams): void {
+  const nameParts = authSession.name.split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+
+  dispatch(setMemberSession({
+    memberId: authSession.memberId,
+    memberName: authSession.name,
+    firstName,
+    lastName,
+    email: authSession.email,
+    role: authSession.role as 'owner' | 'manager' | 'staff' | 'receptionist' | 'junior',
+    avatarUrl: undefined,
+    permissions: authSession.permissions || undefined,
+  }));
+
+  if (startGraceChecker) {
+    memberAuthService.startGraceChecker();
+  }
+
+  setStep('success');
+  setTimeout(() => {
+    const memberSession: MemberSession = {
+      memberId: authSession.memberId,
+      email: authSession.email,
+      firstName,
+      lastName,
+      role: authSession.role as MemberRole,
+      storeIds: authSession.storeIds,
+      avatarUrl: null,
+      permissions: authSession.permissions,
+    };
+    onSuccess?.(memberSession);
+    onClose();
+  }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
+}
 
 interface UseSwitchUserProps {
   isOpen: boolean;
@@ -187,38 +245,14 @@ export function useSwitchUser({
         password
       );
 
-      const nameParts = authSession.name.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      dispatch(setMemberSession({
-        memberId: authSession.memberId,
-        memberName: authSession.name,
-        firstName,
-        lastName,
-        email: authSession.email,
-        role: authSession.role as 'owner' | 'manager' | 'staff' | 'receptionist' | 'junior',
-        avatarUrl: undefined,
-        permissions: authSession.permissions || undefined,
-      }));
-
-      memberAuthService.startGraceChecker();
-
-      setStep('success');
-      setTimeout(() => {
-        const memberSession: MemberSession = {
-          memberId: authSession.memberId,
-          email: authSession.email,
-          firstName,
-          lastName,
-          role: authSession.role as MemberRole,
-          storeIds: authSession.storeIds,
-          avatarUrl: null,
-          permissions: authSession.permissions,
-        };
-        onSuccess?.(memberSession);
-        onClose();
-      }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
+      handleAuthSuccess({
+        authSession,
+        dispatch,
+        setStep,
+        onSuccess,
+        onClose,
+        startGraceChecker: true,
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid password';
       auditLogger.log({
@@ -240,7 +274,7 @@ export function useSwitchUser({
     } finally {
       setLoading(false);
     }
-  }, [storeId, selectedMember, password, dispatch, onSuccess, onClose]);
+  }, [storeId, selectedMember, password, dispatch, setStep, onSuccess, onClose]);
 
   /**
    * Handle PIN submission (store-login OR member-login + offline)
@@ -257,36 +291,13 @@ export function useSwitchUser({
         pin
       );
 
-      const nameParts = authSession.name.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      dispatch(setMemberSession({
-        memberId: authSession.memberId,
-        memberName: authSession.name,
-        firstName,
-        lastName,
-        email: authSession.email,
-        role: authSession.role as 'owner' | 'manager' | 'staff' | 'receptionist' | 'junior',
-        avatarUrl: undefined,
-        permissions: authSession.permissions || undefined,
-      }));
-
-      setStep('success');
-      setTimeout(() => {
-        const memberSession: MemberSession = {
-          memberId: authSession.memberId,
-          email: authSession.email,
-          firstName,
-          lastName,
-          role: authSession.role as MemberRole,
-          storeIds: authSession.storeIds,
-          avatarUrl: null,
-          permissions: authSession.permissions,
-        };
-        onSuccess?.(memberSession);
-        onClose();
-      }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
+      handleAuthSuccess({
+        authSession,
+        dispatch,
+        setStep,
+        onSuccess,
+        onClose,
+      });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid PIN';
       auditLogger.log({
@@ -306,7 +317,7 @@ export function useSwitchUser({
     } finally {
       setLoading(false);
     }
-  }, [selectedMember, pin, dispatch, onSuccess, onClose]);
+  }, [selectedMember, pin, dispatch, setStep, onSuccess, onClose]);
 
   /**
    * Handle PIN input completion (auto-submit when complete)
@@ -325,36 +336,13 @@ export function useSwitchUser({
           completedPin
         );
 
-        const nameParts = authSession.name.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        dispatch(setMemberSession({
-          memberId: authSession.memberId,
-          memberName: authSession.name,
-          firstName,
-          lastName,
-          email: authSession.email,
-          role: authSession.role as 'owner' | 'manager' | 'staff' | 'receptionist' | 'junior',
-          avatarUrl: undefined,
-          permissions: authSession.permissions || undefined,
-        }));
-
-        setStep('success');
-        setTimeout(() => {
-          const memberSession: MemberSession = {
-            memberId: authSession.memberId,
-            email: authSession.email,
-            firstName,
-            lastName,
-            role: authSession.role as MemberRole,
-            storeIds: authSession.storeIds,
-            avatarUrl: null,
-            permissions: authSession.permissions,
-          };
-          onSuccess?.(memberSession);
-          onClose();
-        }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
+        handleAuthSuccess({
+          authSession,
+          dispatch,
+          setStep,
+          onSuccess,
+          onClose,
+        });
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Invalid PIN';
         auditLogger.log({
@@ -375,7 +363,7 @@ export function useSwitchUser({
         setLoading(false);
       }
     },
-    [selectedMember, loading, dispatch, onSuccess, onClose]
+    [selectedMember, loading, dispatch, setStep, onSuccess, onClose]
   );
 
   const handleBack = useCallback(() => {
