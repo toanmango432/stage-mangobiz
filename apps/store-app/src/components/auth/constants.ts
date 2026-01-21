@@ -107,7 +107,7 @@ export const AUTH_VALIDATION = {
   /** Maximum PIN length */
   PIN_MAX_LENGTH: 6,
   /** Maximum failed PIN attempts before lockout */
-  MAX_PIN_ATTEMPTS: 5,
+  PIN_MAX_ATTEMPTS: 5,
   /** Lockout duration in minutes */
-  LOCKOUT_DURATION_MINUTES: 15,
+  PIN_LOCKOUT_MINUTES: 15,
 } as const;

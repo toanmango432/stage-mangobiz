@@ -19,6 +19,7 @@ import { SecureStorage } from '@/utils/secureStorage';
 import { store } from '@/store';
 import { forceLogout } from '@/store/slices/authSlice';
 import { auditLogger } from '@/services/audit/auditLogger';
+import { AUTH_VALIDATION } from '@/components/auth/constants';
 import type {
   MemberAuthSession,
   PinLockoutInfo,
@@ -27,11 +28,11 @@ import type {
 
 // ==================== CONSTANTS ====================
 
-/** Maximum PIN attempts before lockout */
-export const PIN_MAX_ATTEMPTS = 5;
+/** Maximum PIN attempts before lockout (from AUTH_VALIDATION) */
+export const PIN_MAX_ATTEMPTS = AUTH_VALIDATION.PIN_MAX_ATTEMPTS;
 
-/** Lockout duration in minutes */
-export const PIN_LOCKOUT_MINUTES = 15;
+/** Lockout duration in minutes (from AUTH_VALIDATION) */
+export const PIN_LOCKOUT_MINUTES = AUTH_VALIDATION.PIN_LOCKOUT_MINUTES;
 
 /** Default offline grace period in days */
 export const OFFLINE_GRACE_DAYS = 7;
