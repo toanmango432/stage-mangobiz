@@ -22,6 +22,12 @@ interface Client {
   email?: string;
 }
 
+interface BlockedClientInfo {
+  id: string;
+  name: string;
+  blockReason: string;
+}
+
 interface BookingGuest {
   id: string;
   name: string;
@@ -83,11 +89,13 @@ export interface UseAppointmentClientsOptions {
   setNewClientPhone: (phone: string) => void;
   setNewClientEmail: (email: string) => void;
   onInitialClientUsed?: () => void;
+  onBlockedClientSelected?: (info: BlockedClientInfo) => void;
 }
 
 export interface UseAppointmentClientsReturn {
   debouncedSearch: string;
   handleSelectClient: (client: ClientType | Client) => void;
+  handleSelectClientAfterOverride: (client: ClientType | Client) => void;
   handleAddNewClient: () => Promise<void>;
   handleAddNamedGuest: (client: ClientType | Client) => void;
   handleAddUnnamedGuest: () => void;
@@ -128,6 +136,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
     setNewClientPhone,
     setNewClientEmail,
     onInitialClientUsed,
+    onBlockedClientSelected,
   } = options;
 
   const debouncedSearch = useDebounce(clientSearch, 300);
@@ -186,7 +195,8 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
     searchClients();
   }, [debouncedSearch, storeId, setClients, setSearching]);
 
-  const handleSelectClient = useCallback((client: ClientType | Client) => {
+  // Internal function to complete client selection (used after override approval)
+  const completeClientSelection = useCallback((client: ClientType | Client) => {
     const clientData = {
       id: client.id,
       name: client.name || '',
@@ -229,6 +239,44 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
     setIsAddingAnotherClient,
     setActiveTab,
   ]);
+
+  const handleSelectClient = useCallback((client: ClientType | Client) => {
+    // Check if client is blocked (only ClientType has isBlocked property)
+    const fullClient = client as ClientType;
+    if (fullClient.isBlocked) {
+      // Format block reason for display
+      const blockReasonMap: Record<string, string> = {
+        no_show: 'Repeated no-shows',
+        late_cancel: 'Late cancellations',
+        payment_issue: 'Payment issues',
+        behavior: 'Inappropriate behavior',
+        safety_concern: 'Safety concern',
+        other: 'Other',
+      };
+      const reasonText = fullClient.blockReason
+        ? blockReasonMap[fullClient.blockReason] || fullClient.blockReason
+        : 'No reason specified';
+      const fullReason = fullClient.blockReasonNote
+        ? `${reasonText}: ${fullClient.blockReasonNote}`
+        : reasonText;
+
+      // Notify parent about blocked client
+      onBlockedClientSelected?.({
+        id: client.id,
+        name: client.name || '',
+        blockReason: fullReason,
+      });
+      return;
+    }
+
+    // Client is not blocked, proceed with selection
+    completeClientSelection(client);
+  }, [completeClientSelection, onBlockedClientSelected]);
+
+  // Handler for selecting client after override approval
+  const handleSelectClientAfterOverride = useCallback((client: ClientType | Client) => {
+    completeClientSelection(client);
+  }, [completeClientSelection]);
 
   const validateClientForm = useCallback(() => {
     const errors: ValidationErrors = {};
@@ -353,6 +401,7 @@ export function useAppointmentClients(options: UseAppointmentClientsOptions): Us
   return {
     debouncedSearch,
     handleSelectClient,
+    handleSelectClientAfterOverride,
     handleAddNewClient,
     handleAddNamedGuest,
     handleAddUnnamedGuest,

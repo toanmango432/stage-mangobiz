@@ -3,16 +3,19 @@
  * Uses extracted hooks and components for maintainability
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { X, Calendar, Clock, Plus, PanelRightClose, Maximize, Check, ArrowDownToLine, LayoutPanelLeft, Lock, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { menuServicesDB } from '../../db/database';
+import { menuServicesDB, clientsDB } from '../../db/database';
 import toast from 'react-hot-toast';
 import { getTestSalonId } from '../../db/seed';
-import { useAppSelector } from '../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectAllStaff } from '../../store/slices/staffSlice';
+import { selectMemberId } from '../../store/slices/authSlice';
 import { LocalAppointment } from '../../types/appointment';
 import { localTimeToUTC } from '../../utils/dateUtils';
+import { BlockedClientOverrideModal } from '../clients/BlockedClientOverrideModal';
+import { auditLogger } from '../../services/audit/auditLogger';
 
 import { useAppointmentForm, useAppointmentClients, useAppointmentServices } from './hooks';
 import {
@@ -52,6 +55,26 @@ export function NewAppointmentModalV2({
 }: NewAppointmentModalV2Props) {
   const storeId = getTestSalonId();
   const allStaffFromRedux = useAppSelector(selectAllStaff) || [];
+  const currentMemberId = useAppSelector(selectMemberId);
+  const dispatch = useAppDispatch();
+
+  // Blocked client override state
+  const [blockedClientInfo, setBlockedClientInfo] = useState<{
+    id: string;
+    name: string;
+    blockReason: string;
+  } | null>(null);
+  const [pendingClient, setPendingClient] = useState<any>(null);
+
+  // Handler for when a blocked client is selected (defined early, doesn't depend on clientHandlers)
+  const handleBlockedClientSelected = useCallback(async (info: { id: string; name: string; blockReason: string }) => {
+    // Fetch the full client to store for potential override
+    const fullClient = await clientsDB.getById(info.id);
+    if (fullClient) {
+      setPendingClient(fullClient);
+    }
+    setBlockedClientInfo(info);
+  }, []);
 
   // Form state hook
   const formState = useAppointmentForm({
@@ -94,7 +117,43 @@ export function NewAppointmentModalV2({
     setNewClientPhone: formState.setNewClientPhone,
     setNewClientEmail: formState.setNewClientEmail,
     onInitialClientUsed,
+    onBlockedClientSelected: handleBlockedClientSelected,
   });
+
+  // Handler for block override (staff proceeds after approval) - defined after clientHandlers
+  const handleBlockOverride = useCallback(async (overrideReason: string, managerApproved: boolean) => {
+    if (!pendingClient || !blockedClientInfo) return;
+
+    // Log the override attempt
+    await auditLogger.log({
+      action: 'update',
+      entityType: 'client',
+      entityId: blockedClientInfo.id,
+      description: `Block override for client ${blockedClientInfo.name}: ${overrideReason}`,
+      success: true,
+      metadata: {
+        operation: 'block_override',
+        overrideReason,
+        managerApproved,
+        blockReason: blockedClientInfo.blockReason,
+        clientName: blockedClientInfo.name,
+        staffId: currentMemberId,
+      },
+    });
+
+    // Proceed with client selection using the override handler
+    clientHandlers.handleSelectClientAfterOverride(pendingClient);
+
+    // Clear blocked client state
+    setBlockedClientInfo(null);
+    setPendingClient(null);
+  }, [pendingClient, blockedClientInfo, currentMemberId, clientHandlers]);
+
+  // Handler for canceling block override
+  const handleBlockOverrideCancel = useCallback(() => {
+    setBlockedClientInfo(null);
+    setPendingClient(null);
+  }, []);
 
   // Service handlers hook
   const serviceHandlers = useAppointmentServices({
@@ -613,6 +672,17 @@ export function NewAppointmentModalV2({
           </div>
         </div>
       </div>
+
+      {/* Blocked Client Override Modal */}
+      {blockedClientInfo && (
+        <BlockedClientOverrideModal
+          clientId={blockedClientInfo.id}
+          clientName={blockedClientInfo.name}
+          blockReason={blockedClientInfo.blockReason}
+          onOverride={handleBlockOverride}
+          onCancel={handleBlockOverrideCancel}
+        />
+      )}
     </>
   );
 }
