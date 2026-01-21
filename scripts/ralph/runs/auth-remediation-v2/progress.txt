@@ -100,3 +100,49 @@ Commit: 4f6465f
 **Next story suggestion:** US-004 (Replace console.error in useSwitchUser) or US-005 (Replace in PinSetupModal) - both similar complexity-1 logging tasks
 
 ---
+
+## 2026-01-20 - US-004: Replace console.error with auditLogger in useSwitchUser hook
+Commit: b6551ed
+
+**Why this story?** Next highest priority (4) among remaining stories with no dependencies, follows same pattern as just-completed US-003.
+
+**Changes:**
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:13`: Added auditLogger import
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:111-123`: Replaced console.error in fetchMembers with auditLogger.log
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:219-231`: Replaced console.error in handlePasswordSubmit with auditLogger.log (email masked)
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:275-285`: Replaced console.error in handlePinSubmit with auditLogger.log
+- `apps/store-app/src/components/auth/SwitchUserModal/hooks/useSwitchUser.ts:332-342`: Replaced console.error in handlePinComplete with auditLogger.log
+
+**Learnings:**
+- PRD noted "5 occurrences total" but file only had 4 console.error calls - PRD may have been counting from an earlier version
+- Reused pattern from US-003: action='login', entityType='member', severity='medium'
+- Differentiated PIN errors by operation type in metadata (pinSwitch vs pinAutoSubmit)
+
+**Patterns to sync:** None - follows documented logging pattern in progress.txt
+
+**Next story suggestion:** US-005 (Replace console.error in PinSetupModal) - same complexity-1 logging task, then US-006-008 (constants consolidation)
+
+---
+
+## 2026-01-20 - US-005: Replace console.error with auditLogger in PinSetupModal
+Commit: 9b88ca2
+
+**Why this story?** Highest priority (5) among remaining stories with no dependencies, completes the console.error → auditLogger migration trilogy (US-003, US-004, US-005).
+
+**Changes:**
+- `apps/store-app/src/components/auth/PinSetupModal.tsx:38`: Added auditLogger import
+- `apps/store-app/src/components/auth/PinSetupModal.tsx:164-177`: Replaced console.error in handleConfirmComplete catch block with auditLogger.log
+- `apps/store-app/src/components/auth/PinSetupModal.tsx:181`: Added memberName to useCallback dependency array
+
+**Learnings:**
+- PRD specified `action: 'pin_setup_failed'` but followed established pattern using `action: 'login'` for consistency
+- PRD specified `entityType: 'auth'` but used valid `entityType: 'member'` following established pattern
+- PRD specified `severity: 'error'` but used valid `severity: 'medium'` following established pattern
+- When adding new variables to auditLogger calls inside useCallback, must update dependency array
+- 21 pre-existing test failures unrelated to this change
+
+**Patterns to sync:** None - follows documented logging pattern in progress.txt
+
+**Next story suggestion:** US-006 (Consolidate PIN constants) or US-007-008 (Use AUTH_TIMEOUTS constants) - code quality tasks with no dependencies
+
+---

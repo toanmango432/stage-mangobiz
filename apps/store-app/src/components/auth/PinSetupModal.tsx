@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/Button';
 import { PinInput } from './PinInput';
 import { memberAuthService } from '@/services/memberAuthService';
 import { AUTH_MESSAGES, AUTH_TIMEOUTS, AUTH_STORAGE_KEYS } from './constants';
+import { auditLogger } from '@/services/audit/auditLogger';
 
 /** Props for PinSetupModal component */
 export interface PinSetupModalProps {
@@ -160,11 +161,24 @@ export function PinSetupModal({
         onClose();
       }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
     } catch (err) {
-      console.error('Failed to set PIN:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      auditLogger.log({
+        action: 'login',
+        entityType: 'member',
+        entityId: memberId,
+        description: 'PIN setup failed',
+        severity: 'medium',
+        success: false,
+        errorMessage,
+        metadata: {
+          operation: 'pinSetup',
+          memberName,
+        },
+      });
       setError(err instanceof Error ? err.message : AUTH_MESSAGES.PIN_SET_FAILED);
       setIsLoading(false);
     }
-  }, [confirmPin, enteredPin, memberId, onSubmit, onClose]);
+  }, [confirmPin, enteredPin, memberId, memberName, onSubmit, onClose]);
 
   // Handle going back to step 1
   const handleBack = useCallback(() => {

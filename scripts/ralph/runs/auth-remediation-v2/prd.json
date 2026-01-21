@@ -94,7 +94,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 1,
       "notes": "5 occurrences total. Follow auditLogger pattern from memberAuthService.ts."
@@ -114,7 +114,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "category": "code-quality",
       "complexity": 1,
       "notes": "Only 1 occurrence. Include memberId in metadata (do NOT include PIN value)."
