@@ -337,7 +337,7 @@
         "All new tests pass: pnpm test -- memberAuthService"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "category": "testing",
       "complexity": 2,
       "notes": "Test isValidPinFormat regex: /^\\d{4,6}$/. Verify bcrypt cost factor 12 is used."

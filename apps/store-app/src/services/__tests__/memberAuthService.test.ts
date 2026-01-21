@@ -1269,6 +1269,212 @@ describe('memberAuthService', () => {
     });
   });
 
+  describe('setPin', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockSupabase = supabase as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockSecureStorage = SecureStorage as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockBcrypt = bcrypt as any;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockLocalStorage.clear();
+    });
+
+    it('should hash and store valid PIN (4 digits)', async () => {
+      const memberId = 'member-setpin-001';
+      const pin = '1234';
+      const hashedPin = '$2a$12$hashedpin123456789012';
+
+      // Mock bcrypt.hash to return the hashed PIN
+      mockBcrypt.hash.mockResolvedValue(hashedPin);
+
+      // Mock Supabase update success
+      const chainableMock = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      };
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      // Mock SecureStorage verification - return the same hash to pass verification
+      mockSecureStorage.get.mockResolvedValue(hashedPin);
+
+      await memberAuthService.setPin(memberId, pin);
+
+      // Verify bcrypt was called with PIN and cost factor 12
+      expect(mockBcrypt.hash).toHaveBeenCalledWith(pin, 12);
+
+      // Verify Supabase was called to update the database
+      expect(mockSupabase.from).toHaveBeenCalledWith('members');
+      expect(chainableMock.update).toHaveBeenCalledWith({ pin_hash: hashedPin });
+      expect(chainableMock.eq).toHaveBeenCalledWith('id', memberId);
+
+      // Verify PIN hash was stored in SecureStorage
+      expect(mockSecureStorage.set).toHaveBeenCalledWith(
+        `pin_hash_${memberId}`,
+        hashedPin
+      );
+    });
+
+    it('should hash and store valid PIN (6 digits)', async () => {
+      const memberId = 'member-setpin-002';
+      const pin = '123456';
+      const hashedPin = '$2a$12$hashedpin654321789012';
+
+      mockBcrypt.hash.mockResolvedValue(hashedPin);
+
+      const chainableMock = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      };
+      mockSupabase.from.mockReturnValue(chainableMock);
+      mockSecureStorage.get.mockResolvedValue(hashedPin);
+
+      await memberAuthService.setPin(memberId, pin);
+
+      // Verify bcrypt was called with 6-digit PIN
+      expect(mockBcrypt.hash).toHaveBeenCalledWith(pin, 12);
+      expect(mockSecureStorage.set).toHaveBeenCalledWith(
+        `pin_hash_${memberId}`,
+        hashedPin
+      );
+    });
+
+    it('should throw validation error for 3-digit PIN (too short)', async () => {
+      const memberId = 'member-setpin-003';
+      const pin = '123'; // Only 3 digits
+
+      await expect(memberAuthService.setPin(memberId, pin)).rejects.toThrow(
+        'PIN must be 4-6 digits'
+      );
+
+      // Should not call bcrypt or database
+      expect(mockBcrypt.hash).not.toHaveBeenCalled();
+      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockSecureStorage.set).not.toHaveBeenCalled();
+    });
+
+    it('should throw validation error for 7-digit PIN (too long)', async () => {
+      const memberId = 'member-setpin-004';
+      const pin = '1234567'; // 7 digits
+
+      await expect(memberAuthService.setPin(memberId, pin)).rejects.toThrow(
+        'PIN must be 4-6 digits'
+      );
+
+      // Should not call bcrypt or database
+      expect(mockBcrypt.hash).not.toHaveBeenCalled();
+      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockSecureStorage.set).not.toHaveBeenCalled();
+    });
+
+    it('should throw validation error for PIN with letters', async () => {
+      const memberId = 'member-setpin-005';
+      const pin = '12ab'; // Contains letters
+
+      await expect(memberAuthService.setPin(memberId, pin)).rejects.toThrow(
+        'PIN must be 4-6 digits'
+      );
+
+      // Should not call bcrypt or database
+      expect(mockBcrypt.hash).not.toHaveBeenCalled();
+      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockSecureStorage.set).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when database update fails', async () => {
+      const memberId = 'member-setpin-006';
+      const pin = '5678';
+      const hashedPin = '$2a$12$hashedfailtest789012';
+
+      mockBcrypt.hash.mockResolvedValue(hashedPin);
+
+      // Mock Supabase update failure
+      const chainableMock = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({
+          error: { message: 'Database connection error' },
+        }),
+      };
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      await expect(memberAuthService.setPin(memberId, pin)).rejects.toThrow(
+        'Failed to update PIN. Please try again.'
+      );
+
+      // bcrypt was called but SecureStorage should not be
+      expect(mockBcrypt.hash).toHaveBeenCalledWith(pin, 12);
+      expect(mockSecureStorage.set).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when SecureStorage verification fails', async () => {
+      const memberId = 'member-setpin-007';
+      const pin = '9999';
+      const hashedPin = '$2a$12$hashedverificationfail';
+
+      mockBcrypt.hash.mockResolvedValue(hashedPin);
+
+      const chainableMock = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      };
+      mockSupabase.from.mockReturnValue(chainableMock);
+
+      // Mock SecureStorage verification failure - returns different hash
+      mockSecureStorage.get.mockResolvedValue('$2a$12$differenthash');
+
+      await expect(memberAuthService.setPin(memberId, pin)).rejects.toThrow(
+        'Failed to persist PIN securely. Please try again.'
+      );
+
+      // Both bcrypt and SecureStorage.set were called
+      expect(mockBcrypt.hash).toHaveBeenCalled();
+      expect(mockSecureStorage.set).toHaveBeenCalledWith(
+        `pin_hash_${memberId}`,
+        hashedPin
+      );
+      // Verification was attempted
+      expect(mockSecureStorage.get).toHaveBeenCalledWith(`pin_hash_${memberId}`);
+    });
+
+    it('should validate PIN format for special characters', async () => {
+      const memberId = 'member-setpin-008';
+
+      // Test various invalid formats
+      const invalidPins = ['12!4', '12 34', '12-34', '12.34', ''];
+
+      for (const pin of invalidPins) {
+        await expect(memberAuthService.setPin(memberId, pin)).rejects.toThrow(
+          'PIN must be 4-6 digits'
+        );
+      }
+
+      // Should never call bcrypt for any invalid PIN
+      expect(mockBcrypt.hash).not.toHaveBeenCalled();
+    });
+
+    it('should use bcrypt cost factor 12 for hashing', async () => {
+      const memberId = 'member-setpin-009';
+      const pin = '4321';
+      const hashedPin = '$2a$12$costfactortest789012';
+
+      mockBcrypt.hash.mockResolvedValue(hashedPin);
+
+      const chainableMock = {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      };
+      mockSupabase.from.mockReturnValue(chainableMock);
+      mockSecureStorage.get.mockResolvedValue(hashedPin);
+
+      await memberAuthService.setPin(memberId, pin);
+
+      // Verify bcrypt cost factor is exactly 12
+      expect(mockBcrypt.hash).toHaveBeenCalledWith(pin, 12);
+    });
+  });
+
   describe('concurrent PIN attempts - race condition scenarios', () => {
     it('should increment counter correctly with rapid sequential attempts', () => {
       const memberId = 'rapid-test-member';
