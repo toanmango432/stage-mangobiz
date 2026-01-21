@@ -86,7 +86,7 @@ export interface AuthError {
 // ==================== MANAGER CLASS ====================
 
 class StoreAuthManager {
-  private listeners: AuthStateListener[] = [];
+  private listeners = new Set<AuthStateListener>();
   private currentState: StoreAuthState = {
     status: 'checking',
   };
@@ -825,11 +825,19 @@ class StoreAuthManager {
    * Subscribe to auth state changes
    */
   subscribe(listener: AuthStateListener): () => void {
-    this.listeners.push(listener);
+    this.listeners.add(listener);
 
     return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
+      this.listeners.delete(listener);
     };
+  }
+
+  /**
+   * Clear all listeners - FOR TESTING ONLY
+   * This method is prefixed with __ to indicate it should only be used in tests
+   */
+  __cleanupForTesting(): void {
+    this.listeners.clear();
   }
 
   /**
