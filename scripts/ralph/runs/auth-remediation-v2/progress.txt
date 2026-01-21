@@ -296,3 +296,31 @@ Commit: 142c0c4
 **Next story suggestion:** US-012 (Add unit tests for loginWithPassword failure cases) - depends on US-011 (now complete), continues same test file
 
 ---
+
+## 2026-01-20 - US-012: Add unit tests for loginWithPassword failure cases
+Commit: c31b317
+
+**Why this story?** Highest priority (12) among remaining stories with `passes: false`, dependency US-011 was just completed in the previous iteration, and the memberAuthService.test.ts code structure is fresh in context.
+
+**Changes:**
+- `apps/store-app/src/services/__tests__/memberAuthService.test.ts:689-816`: Added 7 new tests for loginWithPassword failure scenarios:
+  - `should throw error for invalid credentials` - Tests Supabase auth error mapping to user-friendly message
+  - `should throw validation error for empty email` - Verifies no network calls made
+  - `should throw validation error for whitespace-only email` - Edge case for trimmed empty email
+  - `should throw validation error for empty password` - Verifies no network calls made
+  - `should throw error when member not found (no profile linked)` - Tests orphan auth user scenario, verifies signOut called
+  - `should throw error for deactivated member` - Tests status check, verifies signOut called
+  - `should throw timeout error when authentication takes too long` - Tests timeout behavior by mocking rejection
+
+**Learnings:**
+- Testing timeouts with vitest fake timers and Promise.race is tricky - causes unhandled rejection errors due to timing issues between timer advancement and promise rejection
+- Better approach: Mock the promise to reject with the timeout error directly, which simulates the end result without fake timer complexity
+- PRD suggested "Use fake timers if needed" but mocking the rejection directly is cleaner and more reliable
+- Test count increased from 40 to 47 (7 new tests)
+- 21 pre-existing test failures in other files are unrelated to this change (same as US-011)
+
+**Patterns to sync:** None - follows documented testing pattern in progress.txt
+
+**Next story suggestion:** US-013 (Add unit tests for loginWithPin success flow) - continues testing work on same file, no unmet dependencies
+
+---
