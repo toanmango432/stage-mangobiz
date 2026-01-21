@@ -529,3 +529,31 @@ Commit: 2755b38
 **Next story suggestion:** US-020 (Add block enforcement tests) - continues the testing track
 
 ---
+
+## 2026-01-21 - US-020: Add block enforcement tests
+Commit: e9b4e96
+
+**Why this story?** US-020 continues the testing track after US-019 (merge tests). Same category (tests) means code patterns are fresh in context.
+
+**Changes:**
+- apps/store-app/src/components/Book/__tests__/blockClient.test.ts (NEW, ~270 lines): Comprehensive tests for block enforcement
+  - 11 tests covering blocked client detection, override flow, and validation
+  - Tests: blocked client triggers onBlockedClientSelected callback
+  - Tests: non-blocked client proceeds with normal selection
+  - Tests: blockReasonNote appended to formatted reason
+  - Tests: missing blockReason shows "No reason specified"
+  - Tests: 'no_show' and 'other' reasons display correctly
+  - Tests: unknown reason codes fallback to raw code
+  - Tests: override handler allows selection after approval
+  - Tests: form state resets after override selection
+  - Tests: override reason validation (must be non-empty)
+  - Tests: combined validation (reason + manager approval required)
+
+**Learnings:**
+- BlockReason type uses different codes than hook's display mapping (e.g., `late_cancellation` vs `late_cancel`)
+- Hook fallbacks to raw reason code when no mapping exists (defensive design)
+- Use `as BlockReason` type assertion when testing with valid BlockReason values to satisfy TypeScript
+
+**Next story suggestion:** US-021 (Add patch test enforcement tests) - continues the testing track
+
+---

@@ -321,7 +321,7 @@
         "All tests pass"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Create: apps/store-app/src/components/Book/__tests__/blockClient.test.ts (NEW, ~60 lines)."
     },
     {
