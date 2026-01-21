@@ -140,6 +140,47 @@ export const deleteClientInSupabase = createAsyncThunk(
  * - Notes and loyalty can be optionally merged based on options
  * - Secondary client is marked as merged (archived)
  */
+/**
+ * Validation result from the validate-booking Edge Function
+ */
+export interface PatchTestValidationResult {
+  valid: boolean;
+  reason?: 'client_blocked' | 'patch_test_required' | 'patch_test_expired';
+  message?: string;
+  canOverride?: boolean;
+  patchTestRequired?: boolean;
+  lastPatchTestDate?: string;
+  patchTestExpiresAt?: string;
+}
+
+/**
+ * Check if a booking requires a patch test and if the client has a valid one.
+ * Calls the validate-booking Edge Function for centralized validation.
+ */
+export const checkPatchTestRequired = createAsyncThunk<
+  PatchTestValidationResult,
+  { clientId: string; serviceId: string; appointmentDate?: string }
+>(
+  'clients/checkPatchTestRequired',
+  async ({ clientId, serviceId, appointmentDate }) => {
+    const { data, error } = await supabase.functions.invoke('validate-booking', {
+      body: {
+        clientId,
+        serviceId,
+        appointmentDate: appointmentDate || new Date().toISOString(),
+      },
+    });
+
+    if (error) {
+      // On error, fail open to avoid blocking legitimate bookings
+      console.warn('Patch test validation failed:', error);
+      return { valid: true };
+    }
+
+    return data as PatchTestValidationResult;
+  }
+);
+
 export const mergeClientsInSupabase = createAsyncThunk<
   { primaryClient: Client; secondaryClientId: string; summary: Record<string, number> },
   MergeClientParams
