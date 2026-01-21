@@ -33,6 +33,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     setMemberEmail,
     memberPassword,
     setMemberPassword,
+    showMemberPassword,
     pin,
     members,
     loadingMembers,
@@ -60,6 +61,7 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
     handleKeyDown,
     handleMemberKeyDown,
     handleLoginModeChange,
+    handleShowMemberPasswordToggle,
     handlePinKeyDown,
   } = useLoginState({ onLoggedIn });
 
@@ -251,6 +253,8 @@ export function StoreLoginScreen({ onLoggedIn, initialState }: StoreLoginScreenP
             setEmail={setMemberEmail}
             password={memberPassword}
             setPassword={setMemberPassword}
+            showPassword={showMemberPassword}
+            onShowPasswordToggle={handleShowMemberPasswordToggle}
             isLoading={isLoading}
             error={error}
             success={success}

@@ -51,7 +51,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/types.ts (~20 lines). Follow existing type patterns."
     },
     {
@@ -69,7 +69,7 @@
         "pnpm run typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Modify: apps/store-app/src/store/slices/clientsSlice/thunks.ts (~40 lines). Follow pattern from createClientInSupabase thunk."
     },
     {

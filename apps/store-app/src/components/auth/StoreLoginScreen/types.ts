@@ -35,6 +35,8 @@ export interface MemberLoginFormProps {
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
+  showPassword: boolean;
+  onShowPasswordToggle: () => void;
   isLoading: boolean;
   error: string | null;
   success: string | null;

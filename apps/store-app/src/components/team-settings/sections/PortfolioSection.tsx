@@ -4,7 +4,7 @@
  * Displays staff portfolio gallery with work samples.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Image,
   Plus,
@@ -19,8 +19,20 @@ import {
   Heart,
   Upload,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { Card, SectionHeader, Badge } from '../components/SharedComponents';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  fetchPortfolioByStaff,
+  createPortfolioItem,
+  updatePortfolioItem,
+  deletePortfolioItem,
+  togglePortfolioFeatured,
+  selectPortfolioByStaff,
+  selectPortfolioLoading,
+  selectPortfolioError,
+} from '@/store/slices/portfolioSlice';
 import type { PortfolioItem } from '@/types/performance';
 
 // ============================================
@@ -35,96 +47,6 @@ interface PortfolioSectionProps {
 
 type ViewMode = 'grid' | 'list';
 
-// ============================================
-// MOCK DATA
-// ============================================
-
-const generateMockPortfolio = (staffId: string): PortfolioItem[] => {
-  const items: PortfolioItem[] = [
-    {
-      id: 'port-1',
-      staffId,
-      imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop',
-      title: 'Balayage Transformation',
-      description: 'Beautiful sun-kissed balayage on dark brown hair',
-      serviceName: 'Balayage Color',
-      tags: ['balayage', 'color', 'brunette'],
-      isFeatured: true,
-      isBeforeAfter: true,
-      beforeImageUrl: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400&h=400&fit=crop',
-      createdAt: new Date(2024, 11, 1).toISOString(),
-      likes: 42,
-    },
-    {
-      id: 'port-2',
-      staffId,
-      imageUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=400&fit=crop',
-      title: 'Classic Bob',
-      description: 'Sleek and modern bob cut',
-      serviceName: 'Haircut',
-      tags: ['bob', 'short', 'classic'],
-      isFeatured: true,
-      isBeforeAfter: false,
-      createdAt: new Date(2024, 10, 28).toISOString(),
-      likes: 38,
-    },
-    {
-      id: 'port-3',
-      staffId,
-      imageUrl: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&h=400&fit=crop',
-      title: 'Platinum Blonde',
-      description: 'Full platinum blonde transformation',
-      serviceName: 'Full Color',
-      tags: ['blonde', 'platinum', 'color'],
-      isFeatured: false,
-      isBeforeAfter: true,
-      beforeImageUrl: 'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=400&h=400&fit=crop',
-      createdAt: new Date(2024, 10, 25).toISOString(),
-      likes: 56,
-    },
-    {
-      id: 'port-4',
-      staffId,
-      imageUrl: 'https://images.unsplash.com/photo-1595499247382-6b4c7a3b6b9e?w=400&h=400&fit=crop',
-      title: 'Layered Cut',
-      description: 'Soft layers for movement and volume',
-      serviceName: 'Haircut & Style',
-      tags: ['layers', 'volume', 'long'],
-      isFeatured: false,
-      isBeforeAfter: false,
-      createdAt: new Date(2024, 10, 20).toISOString(),
-      likes: 29,
-    },
-    {
-      id: 'port-5',
-      staffId,
-      imageUrl: 'https://images.unsplash.com/photo-1580501170888-80668882ca0c?w=400&h=400&fit=crop',
-      title: 'Vivid Color',
-      description: 'Bold fashion color transformation',
-      serviceName: 'Fashion Color',
-      tags: ['vivid', 'fashion', 'creative'],
-      isFeatured: true,
-      isBeforeAfter: false,
-      createdAt: new Date(2024, 10, 15).toISOString(),
-      likes: 87,
-    },
-    {
-      id: 'port-6',
-      staffId,
-      imageUrl: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&h=400&fit=crop',
-      title: 'Natural Curls',
-      description: 'Enhanced natural curl pattern',
-      serviceName: 'Curl Enhancement',
-      tags: ['curly', 'natural', 'texture'],
-      isFeatured: false,
-      isBeforeAfter: false,
-      createdAt: new Date(2024, 10, 10).toISOString(),
-      likes: 45,
-    },
-  ];
-
-  return items;
-};
 
 // ============================================
 // PORTFOLIO ITEM CARD
@@ -314,17 +236,116 @@ const PortfolioItemCard: React.FC<PortfolioItemCardProps> = ({
 };
 
 // ============================================
-// ADD/EDIT MODAL PLACEHOLDER
+// ADD/EDIT MODAL
 // ============================================
 
 interface PortfolioModalProps {
   item?: PortfolioItem;
+  staffId: string;
+  storeId: string;
   onClose: () => void;
-  onSave: (item: Partial<PortfolioItem>) => void;
+  onSave: (item: Partial<PortfolioItem> & { imageUrl: string }) => void;
 }
 
-const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, onClose, onSave }) => {
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, staffId, storeId, onClose, onSave }) => {
   const isEditing = !!item;
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(item?.imageUrl || null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [title, setTitle] = useState(item?.title || '');
+  const [description, setDescription] = useState(item?.description || '');
+  const [tags, setTags] = useState(item?.tags?.join(', ') || '');
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setUploadError('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadError(null);
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    if (!title) {
+      setTitle(file.name.replace(/\.[^/.]+$/, ''));
+    }
+  }, [title]);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setUploadError('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadError(null);
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    if (!title) {
+      setTitle(file.name.replace(/\.[^/.]+$/, ''));
+    }
+  }, [title]);
+
+  const handleSubmit = async () => {
+    if (!selectedFile && !isEditing) {
+      setUploadError('Please select an image to upload');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      let imageUrl = item?.imageUrl || '';
+
+      if (selectedFile) {
+        // Import portfolioStorage dynamically to avoid circular dependencies
+        const { portfolioStorage } = await import('@/services/supabase/storage/portfolioStorage');
+        imageUrl = await portfolioStorage.uploadPortfolioImage(staffId, selectedFile);
+      }
+
+      const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
+
+      onSave({
+        staffId,
+        storeId,
+        imageUrl,
+        title: title || undefined,
+        description: description || undefined,
+        tags: tagsArray,
+        isFeatured: item?.isFeatured || false,
+        isBeforeAfter: item?.isBeforeAfter || false,
+      });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -339,21 +360,59 @@ const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, onClose, onSave }
         </div>
 
         <div className="p-6">
-          {/* Upload area placeholder */}
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6">
-            <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 mb-1">Drag & drop images here</p>
-            <p className="text-sm text-gray-400">or click to browse</p>
+          {/* Upload area */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center mb-6 cursor-pointer transition-colors ${
+              previewUrl
+                ? 'border-emerald-300 bg-emerald-50'
+                : 'border-gray-300 hover:border-emerald-400 hover:bg-gray-50'
+            }`}
+          >
+            {previewUrl ? (
+              <div className="relative">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-h-48 mx-auto rounded-lg object-cover"
+                />
+                <p className="text-sm text-emerald-600 mt-2">Click to change image</p>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 mb-1">Drag & drop images here</p>
+                <p className="text-sm text-gray-400">or click to browse (max 5MB)</p>
+              </>
+            )}
           </div>
 
-          {/* Form fields placeholder */}
+          {/* Error message */}
+          {uploadError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {uploadError}
+            </div>
+          )}
+
+          {/* Form fields */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
               <input
                 type="text"
                 placeholder="Enter title..."
-                defaultValue={item?.title}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
@@ -361,7 +420,8 @@ const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, onClose, onSave }
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
                 placeholder="Describe this work..."
-                defaultValue={item?.description}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
@@ -371,7 +431,8 @@ const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, onClose, onSave }
               <input
                 type="text"
                 placeholder="Add tags (comma separated)..."
-                defaultValue={item?.tags?.join(', ')}
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
@@ -381,15 +442,18 @@ const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, onClose, onSave }
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+            disabled={uploading}
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-50"
           >
             Cancel
           </button>
           <button
-            onClick={() => onSave({})}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
+            onClick={handleSubmit}
+            disabled={uploading || (!selectedFile && !isEditing)}
+            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {isEditing ? 'Save Changes' : 'Add to Portfolio'}
+            {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {uploading ? 'Uploading...' : isEditing ? 'Save Changes' : 'Add to Portfolio'}
           </button>
         </div>
       </div>
@@ -404,7 +468,9 @@ const PortfolioModal: React.FC<PortfolioModalProps> = ({ item, onClose, onSave }
 export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
   memberId,
   memberName,
+  storeId,
 }) => {
+  const dispatch = useAppDispatch();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState<string | null>(null);
@@ -412,8 +478,17 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<PortfolioItem | undefined>();
 
-  // Mock data
-  const portfolio = useMemo(() => generateMockPortfolio(memberId), [memberId]);
+  // Redux state
+  const portfolio = useAppSelector((state) => selectPortfolioByStaff(state, memberId));
+  const loading = useAppSelector(selectPortfolioLoading);
+  const error = useAppSelector(selectPortfolioError);
+
+  // Fetch portfolio on mount
+  useEffect(() => {
+    if (memberId) {
+      dispatch(fetchPortfolioByStaff(memberId));
+    }
+  }, [dispatch, memberId]);
 
   // Get all unique tags
   const allTags = useMemo(() => {
@@ -462,20 +537,36 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
   }, []);
 
   const handleDelete = useCallback((itemId: string) => {
-    console.log('Delete item:', itemId);
-    // TODO: Implement delete
-  }, []);
+    dispatch(deletePortfolioItem(itemId));
+  }, [dispatch]);
 
   const handleToggleFeatured = useCallback((itemId: string) => {
-    console.log('Toggle featured:', itemId);
-    // TODO: Implement toggle featured
-  }, []);
+    dispatch(togglePortfolioFeatured(itemId));
+  }, [dispatch]);
 
-  const handleSave = useCallback((item: Partial<PortfolioItem>) => {
-    console.log('Save item:', item);
+  const handleSave = useCallback((item: Partial<PortfolioItem> & { imageUrl: string }) => {
+    if (editingItem) {
+      // Update existing item
+      dispatch(updatePortfolioItem({
+        id: editingItem.id,
+        changes: item,
+      }));
+    } else {
+      // Create new item
+      dispatch(createPortfolioItem({
+        staffId: memberId,
+        storeId,
+        imageUrl: item.imageUrl,
+        title: item.title,
+        description: item.description,
+        tags: item.tags || [],
+        isFeatured: item.isFeatured || false,
+        isBeforeAfter: item.isBeforeAfter || false,
+      }));
+    }
     setShowModal(false);
     setEditingItem(undefined);
-  }, []);
+  }, [dispatch, editingItem, memberId, storeId]);
 
   const handleCloseModal = useCallback(() => {
     setShowModal(false);
@@ -505,7 +596,29 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
         }
       />
 
+      {/* Loading state */}
+      {loading && (
+        <Card>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            <span className="ml-3 text-gray-500">Loading portfolio...</span>
+          </div>
+        </Card>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <Card>
+          <div className="flex items-center justify-center py-8 text-red-500">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <span>{error}</span>
+          </div>
+        </Card>
+      )}
+
       {/* Stats */}
+      {!loading && !error && (
+      <>
       <div className="grid grid-cols-3 gap-4">
         <Card className="text-center">
           <div className="flex items-center justify-center gap-2">
@@ -648,11 +761,15 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
           </div>
         </Card>
       )}
+      </>
+      )}
 
       {/* Add/Edit Modal */}
       {showModal && (
         <PortfolioModal
           item={editingItem}
+          staffId={memberId}
+          storeId={storeId}
           onClose={handleCloseModal}
           onSave={handleSave}
         />

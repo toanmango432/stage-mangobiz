@@ -7,24 +7,7 @@ import type {
   CreatePayRunParams,
   AddAdjustmentParams,
 } from '../../types/payroll';
-
-// ============================================
-// SYNC CONTEXT - Required for all mutations
-// ============================================
-
-export interface SyncContext {
-  userId: string;
-  deviceId: string;
-  storeId: string;
-  tenantId?: string;
-}
-
-// Default sync context for development/demo
-const getDefaultSyncContext = (): SyncContext => ({
-  userId: 'system',
-  deviceId: typeof window !== 'undefined' ? `device-${window.navigator.userAgent.slice(0, 10)}` : 'server',
-  storeId: 'default-store',
-});
+import { SyncContext, getDefaultSyncContext } from '../utils/syncContext';
 
 // ============================================
 // STATE TYPES
@@ -139,7 +122,7 @@ export const createPayRun = createAsyncThunk(
       const ctx = context || getDefaultSyncContext();
       const id = await payrollDB.createPayRun(
         params,
-        ctx.storeId,
+        ctx.storeId || 'default-store',
         ctx.userId,
         ctx.deviceId,
         ctx.tenantId

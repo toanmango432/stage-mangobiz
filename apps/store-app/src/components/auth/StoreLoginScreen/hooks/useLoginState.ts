@@ -41,6 +41,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
   // Member login state
   const [memberEmail, setMemberEmail] = useState('');
   const [memberPassword, setMemberPassword] = useState('');
+  const [showMemberPassword, setShowMemberPassword] = useState(false);
 
   // PIN login state
   const [pin, setPin] = useState('');
@@ -476,6 +477,11 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     setSuccess(null);
   }, []);
 
+  // Toggle password visibility for member login
+  const handleShowMemberPasswordToggle = useCallback(() => {
+    setShowMemberPassword(prev => !prev);
+  }, []);
+
   // Handle PIN keyboard events
   const handlePinKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -500,6 +506,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     setMemberEmail,
     memberPassword,
     setMemberPassword,
+    showMemberPassword,
     pin,
     members,
     loadingMembers,
@@ -528,6 +535,7 @@ export function useLoginState({ onLoggedIn }: UseLoginStateProps) {
     handleKeyDown,
     handleMemberKeyDown,
     handleLoginModeChange,
+    handleShowMemberPasswordToggle,
     handlePinKeyDown,
   };
 }

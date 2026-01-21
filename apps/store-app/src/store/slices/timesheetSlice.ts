@@ -12,23 +12,7 @@ import type {
   CreateTimesheetParams,
 } from '../../types/timesheet';
 import { DEFAULT_OVERTIME_SETTINGS } from '../../types/timesheet';
-
-// ============================================
-// SYNC CONTEXT - Required for all mutations
-// ============================================
-
-export interface SyncContext {
-  userId: string;
-  deviceId: string;
-  storeId: string;
-}
-
-// Default sync context for development/demo
-const getDefaultSyncContext = (): SyncContext => ({
-  userId: 'system',
-  deviceId: typeof window !== 'undefined' ? `device-${window.navigator.userAgent.slice(0, 10)}` : 'server',
-  storeId: 'default-store',
-});
+import { SyncContext, getDefaultSyncContext } from '../utils/syncContext';
 
 // ============================================
 // STATE TYPES
@@ -200,7 +184,7 @@ export const clockIn = createAsyncThunk(
     try {
       const { timesheetDB } = await import('../../db/timesheetOperations');
       const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.clockIn(params, ctx.storeId, ctx.userId, ctx.deviceId);
+      const timesheet = await timesheetDB.clockIn(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to clock in');
@@ -218,7 +202,7 @@ export const clockOut = createAsyncThunk(
     try {
       const { timesheetDB } = await import('../../db/timesheetOperations');
       const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.clockOut(params, ctx.storeId, ctx.userId, ctx.deviceId);
+      const timesheet = await timesheetDB.clockOut(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to clock out');
@@ -236,7 +220,7 @@ export const startBreak = createAsyncThunk(
     try {
       const { timesheetDB } = await import('../../db/timesheetOperations');
       const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.startBreak(params, ctx.storeId, ctx.userId, ctx.deviceId);
+      const timesheet = await timesheetDB.startBreak(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to start break');
@@ -254,7 +238,7 @@ export const endBreak = createAsyncThunk(
     try {
       const { timesheetDB } = await import('../../db/timesheetOperations');
       const ctx = context || getDefaultSyncContext();
-      const timesheet = await timesheetDB.endBreak(params, ctx.storeId, ctx.userId, ctx.deviceId);
+      const timesheet = await timesheetDB.endBreak(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
       return timesheet;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to end break');
@@ -326,7 +310,7 @@ export const createTimesheet = createAsyncThunk(
     try {
       const { timesheetDB } = await import('../../db/timesheetOperations');
       const ctx = context || getDefaultSyncContext();
-      const id = await timesheetDB.createTimesheet(params, ctx.storeId, ctx.userId, ctx.deviceId);
+      const id = await timesheetDB.createTimesheet(params, ctx.storeId || 'default-store', ctx.userId, ctx.deviceId);
       const timesheet = await timesheetDB.getTimesheetById(id);
       return timesheet;
     } catch (error) {

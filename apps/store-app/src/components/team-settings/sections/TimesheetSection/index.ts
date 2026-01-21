@@ -34,10 +34,8 @@ export {
 export type { TimesheetTabId } from './constants';
 
 // Hooks
-export { useTimesheetActions, useTimesheetSection } from './hooks';
+export { useTimesheetActions } from './hooks';
 export type {
   UseTimesheetActionsParams,
   UseTimesheetActionsResult,
-  UseTimesheetSectionParams,
-  UseTimesheetSectionReturn,
 } from './hooks';

@@ -5,7 +5,7 @@
  * Uses Supabase Auth for individual staff authentication.
  */
 
-import { User, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import type { MemberLoginFormProps } from './types';
 
 export function MemberLoginForm({
@@ -13,6 +13,8 @@ export function MemberLoginForm({
   setEmail,
   password,
   setPassword,
+  showPassword,
+  onShowPasswordToggle,
   isLoading,
   error,
   success,
@@ -56,16 +58,27 @@ export function MemberLoginForm({
             </button>
           )}
         </div>
-        <input
-          id="member-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Enter your password"
-          disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-        />
+        <div className="relative">
+          <input
+            id="member-password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Enter your password"
+            disabled={isLoading}
+            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+          <button
+            type="button"
+            onClick={onShowPasswordToggle}
+            disabled={isLoading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {error && (

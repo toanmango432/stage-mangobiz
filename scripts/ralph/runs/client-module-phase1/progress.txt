@@ -71,3 +71,53 @@ Commit: 31f5062
 **Next story suggestion:** US-003 (Add merge types to clientsSlice) - provides TypeScript types needed for the thunk in US-004
 
 ---
+
+## 2026-01-21 - US-003: Add merge types to clientsSlice types
+Commit: 10eadf5
+
+**Why this story?** US-003 is the logical next step after US-002. It provides the TypeScript types that US-004 (thunk) will need to call the merge RPC function.
+
+**Changes:**
+- apps/store-app/src/store/slices/clientsSlice/types.ts:12-36: Added MergeClientOptions and MergeClientParams interfaces
+  - MergeClientOptions: mergeNotes, mergeLoyalty, mergePreferences, mergeAlerts (all boolean)
+  - MergeClientParams: primaryClientId, secondaryClientId, options, mergedBy
+- apps/store-app/src/types/client.ts:447-453: Added merge tracking fields to Client interface
+  - mergedIntoId?: string (ID of client this record was merged into)
+  - mergedAt?: string (timestamp when merge occurred)
+  - mergedBy?: string (staff ID who performed merge)
+
+**Learnings:**
+- Client interface is defined in types/client.ts, not in the slice's types.ts
+- Merge operation types belong in the slice's types.ts (where thunk-related types live)
+- Pre-existing tsconfig reference errors in packages/supabase and packages/utils (TS6310) - not related to this story
+
+**Next story suggestion:** US-004 (Create mergeClientsInSupabase thunk) - uses the types we just created to call the merge RPC
+
+---
+
+## 2026-01-21 - US-004: Create mergeClientsInSupabase thunk
+Commit: b08ed24
+
+**Why this story?** US-004 is the natural successor to US-003 (types). It creates the Redux thunk that calls the merge_clients RPC function, enabling the UI to trigger client merges.
+
+**Changes:**
+- apps/store-app/src/store/slices/clientsSlice/thunks.ts:17,20: Added imports for MergeClientParams and supabase client
+- apps/store-app/src/store/slices/clientsSlice/thunks.ts:136-199: Added mergeClientsInSupabase async thunk (~64 lines)
+  - Calls supabase.rpc('merge_clients', {...}) with typed parameters
+  - Fetches updated primary client via dataService after RPC success
+  - Logs comprehensive audit entry with operation: 'merge' metadata
+  - Returns { primaryClient, secondaryClientId, summary }
+- apps/store-app/src/store/slices/clientsSlice/slice.ts:11: Added import for mergeClientsInSupabase
+- apps/store-app/src/store/slices/clientsSlice/slice.ts:430-454: Added Redux reducers for merge thunk
+  - pending: Set saving=true, clear error
+  - fulfilled: Update primary client in items, remove secondary from items, decrement total
+  - rejected: Set error message
+
+**Learnings:**
+- AuditAction type does not include 'merge' - use 'update' with metadata.operation='merge' instead
+- Pre-existing TypeScript errors in payrollSlice.ts and timesheetSlice.ts (string | undefined issues) - NOT related to this story
+- Thunk return type must match what slice reducers expect in action.payload
+
+**Next story suggestion:** US-005 (Activate MergeClientsModal component) - the thunk now exists, so the modal can be restored from .bak
+
+---

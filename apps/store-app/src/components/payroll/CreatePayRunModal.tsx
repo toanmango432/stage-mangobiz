@@ -21,6 +21,7 @@ import {
   selectPayrollSubmitting,
 } from '../../store/slices/payrollSlice';
 import { selectAllStaff as selectStaffMembers } from '../../store/slices/staffSlice';
+import { selectMemberId } from '../../store/slices/authSlice';
 import type { PayPeriodType } from '../../types/payroll';
 import { getPayPeriodDates, formatPayPeriod } from '../../utils/payrollCalculation';
 
@@ -172,6 +173,7 @@ export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const submitting = useSelector(selectPayrollSubmitting);
   const staffMembers = useSelector(selectStaffMembers);
+  const currentUserId = useSelector(selectMemberId);
 
   // State
   const [periodType, setPeriodType] = useState<PayPeriodType>('bi-weekly');
@@ -268,7 +270,7 @@ export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
           staffIds: Array.from(selectedStaffIds),
         },
         context: {
-          userId: 'system',
+          userId: currentUserId || 'system',
           deviceId: 'device-web',
           storeId,
         },
@@ -281,7 +283,7 @@ export const CreatePayRunModal: React.FC<CreatePayRunModalProps> = ({
     } catch (error) {
       console.error('Failed to create pay run:', error);
     }
-  }, [dispatch, periodStart, periodEnd, periodType, selectedStaffIds, storeId, onSuccess, onClose]);
+  }, [dispatch, currentUserId, periodStart, periodEnd, periodType, selectedStaffIds, storeId, onSuccess, onClose]);
 
   // Handle escape key
   React.useEffect(() => {

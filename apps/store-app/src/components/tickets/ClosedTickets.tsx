@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Receipt, Search, Calendar, Filter, Download, X, Tag, DollarSign, CreditCard, ChevronRight, Star, AlertTriangle, Printer, RefreshCcw, FileText } from 'lucide-react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
+import { usePermissionGuard } from '@/hooks/usePermissionGuard';
 interface ClosedTicketsProps {
   isOpen: boolean;
   onClose: () => void;
@@ -34,6 +35,8 @@ export function ClosedTickets({
   isOpen,
   onClose
 }: ClosedTicketsProps) {
+  // Permissions
+  const { canProcessRefunds } = usePermissionGuard();
   // Refs
   const overlayRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -566,10 +569,24 @@ export function ClosedTickets({
                         <Printer size={14} className="mr-1.5 text-gray-500" />
                         Reprint
                       </button>
-                      <button className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center">
-                        <RefreshCcw size={14} className="mr-1.5 text-gray-500" />
-                        Refund
-                      </button>
+                      <Tippy
+                        content="You don't have permission to process refunds"
+                        disabled={canProcessRefunds()}
+                      >
+                        <span>
+                          <button
+                            className={`px-3 py-1.5 text-xs border rounded-md flex items-center ${
+                              canProcessRefunds()
+                                ? 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                            }`}
+                            disabled={!canProcessRefunds()}
+                          >
+                            <RefreshCcw size={14} className={`mr-1.5 ${canProcessRefunds() ? 'text-gray-500' : 'text-gray-400'}`} />
+                            Refund
+                          </button>
+                        </span>
+                      </Tippy>
                     </div>}
                 </div>)}
             </div>}

@@ -247,6 +247,7 @@ export interface ReviewSummary {
 export interface PortfolioItem {
   id: string;
   staffId: string;
+  storeId?: string;
   imageUrl: string;
   thumbnailUrl?: string;
   title?: string;

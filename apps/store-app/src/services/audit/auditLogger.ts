@@ -37,7 +37,8 @@ export type AuditAction =
   | 'void'
   | 'staff_assign'   // FIX 4.3: Added for staff assignment audit logging
   | 'price_override' // Price override decision during checkout
-  | 'communication_blocked'; // Communication blocked due to client preferences
+  | 'communication_blocked' // Communication blocked due to client preferences
+  | 'merge'; // Client merge operation
 
 export type AuditEntityType =
   | 'client'
@@ -150,6 +151,7 @@ const ACTION_SEVERITY: Record<AuditAction, AuditSeverity> = {
   staff_assign: 'low',
   price_override: 'medium',
   communication_blocked: 'low',
+  merge: 'high', // Client merge is a significant operation
 };
 
 // ============================================================================

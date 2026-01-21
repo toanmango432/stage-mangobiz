@@ -123,14 +123,14 @@ export const payRunsTable = {
   },
 
   /**
-   * Reject a pay run
+   * Reject a pay run (returns to draft status for editing)
    */
   async reject(id: string, rejectedBy: string, reason: string): Promise<PayRunRow> {
     return this.update(id, {
-      status: 'rejected',
-      rejected_by: rejectedBy,
-      rejected_at: new Date().toISOString(),
-      rejection_reason: reason,
+      status: 'draft',
+      approval_notes: `Rejected: ${reason}`,
+      submitted_by: null,
+      submitted_at: null,
     });
   },
 

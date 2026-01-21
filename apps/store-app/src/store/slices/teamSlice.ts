@@ -16,31 +16,7 @@ import type {
   TeamSettingsSection,
   StaffRole,
 } from '../../components/team-settings/types';
-// import type { SyncStatus } from '../../types/common';
-
-// ============================================
-// SYNC CONTEXT - Required for all mutations
-// ============================================
-
-/**
- * Context required for sync operations.
- * Must be provided for all create/update/delete operations.
- */
-export interface SyncContext {
-  userId: string;
-  deviceId: string;
-  storeId?: string;
-  tenantId?: string;
-}
-
-// Default sync context for development/demo
-// In production, this should come from auth state
-const getDefaultSyncContext = (): SyncContext => ({
-  userId: 'system',
-  deviceId: typeof window !== 'undefined' ? `device-${window.navigator.userAgent.slice(0, 10)}` : 'server',
-  storeId: 'default-store',
-  tenantId: 'default-tenant',
-});
+import { SyncContext, getDefaultSyncContext } from '../utils/syncContext';
 
 // ============================================
 // STATE TYPES

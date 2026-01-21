@@ -4,9 +4,3 @@ export type {
   UseTimesheetActionsParams,
   UseTimesheetActionsResult,
 } from './useTimesheetActions';
-
-export { useTimesheetSection } from './useTimesheetSection';
-export type {
-  UseTimesheetSectionParams,
-  UseTimesheetSectionReturn,
-} from './useTimesheetSection';
