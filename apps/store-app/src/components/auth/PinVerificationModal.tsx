@@ -28,6 +28,7 @@ import { authService } from '../../services/supabase/authService';
 import { memberAuthService } from '../../services/memberAuthService';
 import { PinInput } from './PinInput';
 import type { MemberAuthSession } from '../../types/memberAuth';
+import { AUTH_MESSAGES, AUTH_TIMEOUTS } from './constants';
 
 export interface VerifiedMember {
   memberId: string;
@@ -59,10 +60,6 @@ interface PinVerificationModalProps {
 }
 
 type Step = 'auth' | 'success';
-
-// Card reader detection settings (legacy feature)
-const CARD_INPUT_TIMEOUT = 100; // ms - if keys come faster than this, it's likely a card reader
-const CARD_MIN_LENGTH = 4; // Minimum length to consider as card input
 
 export function PinVerificationModal({
   isOpen,
@@ -195,7 +192,7 @@ export function PinVerificationModal({
       lastKeyTimeRef.current = now;
 
       // If Enter key and we have buffered card data
-      if (e.key === 'Enter' && cardBufferRef.current.length >= CARD_MIN_LENGTH) {
+      if (e.key === 'Enter' && cardBufferRef.current.length >= AUTH_TIMEOUTS.CARD_MIN_LENGTH) {
         e.preventDefault();
         const cardData = cardBufferRef.current;
         cardBufferRef.current = '';
@@ -205,7 +202,7 @@ export function PinVerificationModal({
       }
 
       // Detect rapid input (card reader behavior)
-      if (timeSinceLastKey < CARD_INPUT_TIMEOUT && e.key.length === 1) {
+      if (timeSinceLastKey < AUTH_TIMEOUTS.CARD_INPUT_TIMEOUT_MS && e.key.length === 1) {
         // This looks like card reader input
         cardBufferRef.current += e.key;
         setCardScanActive(true);
@@ -217,7 +214,7 @@ export function PinVerificationModal({
 
         // Set timeout to clear buffer if no more rapid input
         cardTimeoutRef.current = setTimeout(() => {
-          if (cardBufferRef.current.length >= CARD_MIN_LENGTH) {
+          if (cardBufferRef.current.length >= AUTH_TIMEOUTS.CARD_MIN_LENGTH) {
             // Auto-submit if we have enough data
             const cardData = cardBufferRef.current;
             cardBufferRef.current = '';
@@ -228,7 +225,7 @@ export function PinVerificationModal({
             cardBufferRef.current = '';
             setCardScanActive(false);
           }
-        }, 300);
+        }, AUTH_TIMEOUTS.CARD_BUFFER_TIMEOUT_MS);
 
         // Prevent the character from being typed in PIN input
         // But only if we're definitely in card mode (buffer has data)
@@ -275,7 +272,7 @@ export function PinVerificationModal({
     setTimeout(() => {
       onSuccess(memberSession);
       onClose();
-    }, 800);
+    }, AUTH_TIMEOUTS.VERIFICATION_SUCCESS_MS);
   }, [onSuccess, onClose]);
 
   // Handle PIN submission using memberAuthService.loginWithPin() with bcrypt
@@ -293,7 +290,7 @@ export function PinVerificationModal({
         const lockout = memberAuthService.checkPinLockout(memberId);
         if (lockout.isLocked) {
           setLockoutInfo(lockout);
-          setError(`PIN locked. Try again in ${lockout.remainingMinutes} minutes.`);
+          setError(AUTH_MESSAGES.PIN_LOCKED_TRY_AGAIN(lockout.remainingMinutes));
           setPin('');
           setLoading(false);
           return;
@@ -306,7 +303,7 @@ export function PinVerificationModal({
         // Legacy flow: Any staff PIN in store-only mode
         // Uses old authService.loginMemberWithPin()
         if (!storeId) {
-          setError('Store not connected');
+          setError(AUTH_MESSAGES.STORE_NOT_CONNECTED);
           setLoading(false);
           return;
         }
@@ -330,7 +327,7 @@ export function PinVerificationModal({
       }
 
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Verification failed. Please try again.';
+      const errorMessage = err instanceof Error ? err.message : AUTH_MESSAGES.VERIFICATION_FAILED;
       setError(errorMessage);
       setPin('');
 
@@ -357,7 +354,7 @@ export function PinVerificationModal({
 
     try {
       if (!storeId) {
-        setError('Store not connected');
+        setError(AUTH_MESSAGES.STORE_NOT_CONNECTED);
         setLoading(false);
         return;
       }
@@ -381,10 +378,10 @@ export function PinVerificationModal({
         };
         handleAuthSuccess(session);
       } else {
-        setError('Card not recognized');
+        setError(AUTH_MESSAGES.CARD_NOT_RECOGNIZED);
       }
     } catch (err: unknown) {
-      setError('Card not recognized');
+      setError(AUTH_MESSAGES.CARD_NOT_RECOGNIZED);
     } finally {
       setLoading(false);
     }
@@ -443,7 +440,7 @@ export function PinVerificationModal({
                   {memberName ? memberName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : <User className="w-8 h-8" />}
                 </div>
                 <p className="text-sm font-medium text-gray-700">
-                  {memberName || 'Staff Member'}
+                  {memberName || AUTH_MESSAGES.STAFF_MEMBER}
                 </p>
                 {displayActionDescription && (
                   <p className="text-sm text-gray-500 mt-1">
@@ -457,9 +454,9 @@ export function PinVerificationModal({
                 <div className="flex items-center justify-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
                   <Lock className="w-5 h-5 text-red-500 flex-shrink-0" />
                   <div className="text-center">
-                    <p className="text-sm font-medium text-red-700">PIN Locked</p>
+                    <p className="text-sm font-medium text-red-700">{AUTH_MESSAGES.PIN_LOCKED}</p>
                     <p className="text-xs text-red-600">
-                      Too many failed attempts. Try again in{' '}
+                      {AUTH_MESSAGES.PIN_LOCKED_DETAIL} Try again in{' '}
                       <span className="font-mono font-semibold">
                         {Math.floor(lockoutSeconds / 60)}:{String(lockoutSeconds % 60).padStart(2, '0')}
                       </span>
@@ -486,7 +483,7 @@ export function PinVerificationModal({
                     <div className={`flex items-center justify-center gap-2 transition-all ${cardScanActive ? 'text-purple-600' : 'text-gray-400'}`}>
                       <CreditCard className={`w-4 h-4 ${cardScanActive ? 'animate-pulse' : ''}`} />
                       <span className="text-xs">
-                        {cardScanActive ? 'Reading card...' : 'or scan staff card'}
+                        {cardScanActive ? AUTH_MESSAGES.CARD_READING : AUTH_MESSAGES.CARD_SCAN_PROMPT}
                       </span>
                       {!cardScanActive && (
                         <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
@@ -508,7 +505,7 @@ export function PinVerificationModal({
               {loading && (
                 <div className="flex items-center justify-center gap-2 text-purple-600">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Verifying...</span>
+                  <span className="text-sm">{AUTH_MESSAGES.VERIFYING}</span>
                 </div>
               )}
 
@@ -520,11 +517,11 @@ export function PinVerificationModal({
                   onClick={() => {
                     // TODO: Implement admin reset flow navigation
                     // For now, just show a helpful message
-                    setError('Contact your administrator to reset your PIN.');
+                    setError(AUTH_MESSAGES.FORGOT_PIN_HELP);
                   }}
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
-                  Forgot PIN?
+                  {AUTH_MESSAGES.FORGOT_PIN}
                 </button>
               </div>
             </div>
@@ -537,7 +534,7 @@ export function PinVerificationModal({
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                Verified
+                {AUTH_MESSAGES.VERIFICATION_SUCCESS}
               </h3>
               <p className="text-sm text-gray-500">
                 Welcome, {verifiedMember.firstName}

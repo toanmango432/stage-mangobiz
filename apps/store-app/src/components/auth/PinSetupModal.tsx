@@ -34,6 +34,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { PinInput } from './PinInput';
 import { memberAuthService } from '@/services/memberAuthService';
+import { AUTH_MESSAGES, AUTH_TIMEOUTS, AUTH_STORAGE_KEYS } from './constants';
 
 /** Props for PinSetupModal component */
 export interface PinSetupModalProps {
@@ -53,12 +54,9 @@ export interface PinSetupModalProps {
   isRequired?: boolean;
 }
 
-/** Storage key prefix for PIN setup skip preference */
-const PIN_SETUP_SKIPPED_KEY_PREFIX = 'pin_setup_skipped_';
-
 /** Get the localStorage key for a member's skip preference */
 function getSkipPreferenceKey(memberId: string): string {
-  return `${PIN_SETUP_SKIPPED_KEY_PREFIX}${memberId}`;
+  return `${AUTH_STORAGE_KEYS.PIN_SETUP_SKIPPED_PREFIX}${memberId}`;
 }
 
 /** Check if a member has previously skipped PIN setup */
@@ -120,7 +118,7 @@ export function PinSetupModal({
   // Handle PIN entry complete in step 1
   const handlePinComplete = useCallback(() => {
     if (!memberAuthService.isValidPinFormat(enteredPin)) {
-      setError('PIN must be 4-6 digits');
+      setError(AUTH_MESSAGES.PIN_FORMAT_ERROR);
       return;
     }
     setStep('confirm');
@@ -138,7 +136,7 @@ export function PinSetupModal({
   const handleConfirmComplete = useCallback(async () => {
     // Validate confirmation matches
     if (confirmPin !== enteredPin) {
-      setError("PINs don't match. Please try again.");
+      setError(AUTH_MESSAGES.PIN_MISMATCH_ERROR);
       setConfirmPin('');
       return;
     }
@@ -160,10 +158,10 @@ export function PinSetupModal({
       setTimeout(() => {
         onSubmit(enteredPin);
         onClose();
-      }, 1200);
+      }, AUTH_TIMEOUTS.SUCCESS_DISPLAY_MS);
     } catch (err) {
       console.error('Failed to set PIN:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set PIN. Please try again.');
+      setError(err instanceof Error ? err.message : AUTH_MESSAGES.PIN_SET_FAILED);
       setIsLoading(false);
     }
   }, [confirmPin, enteredPin, memberId, onSubmit, onClose]);
@@ -318,10 +316,10 @@ export function PinSetupModal({
 
             <div className="text-center space-y-2">
               <h3 className="text-lg font-semibold text-gray-900">
-                PIN Set Successfully
+                {AUTH_MESSAGES.PIN_SET_SUCCESS}
               </h3>
               <p className="text-sm text-gray-500">
-                You can now use your PIN for quick access.
+                {AUTH_MESSAGES.PIN_SET_SUCCESS_DETAIL}
               </p>
             </div>
           </div>
@@ -347,13 +345,13 @@ export function PinSetupModal({
       >
         <DialogHeader>
           <DialogTitle className="text-center">
-            {step === 'success' ? 'Success' : 'Set Up Your PIN'}
+            {step === 'success' ? AUTH_MESSAGES.SUCCESS_TITLE : AUTH_MESSAGES.PIN_SETUP_TITLE}
           </DialogTitle>
           {step !== 'success' && (
             <DialogDescription className="text-center">
               {isRequired
-                ? 'A PIN is required to continue.'
-                : 'Quick access to your account on this device.'}
+                ? AUTH_MESSAGES.PIN_SETUP_REQUIRED
+                : AUTH_MESSAGES.PIN_SETUP_OPTIONAL}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -364,7 +362,7 @@ export function PinSetupModal({
         {!canClose && step !== 'success' && (
           <DialogFooter className="sm:justify-center">
             <p className="text-xs text-gray-400">
-              PIN setup is required to continue.
+              {AUTH_MESSAGES.PIN_SETUP_REQUIRED_FOOTER}
             </p>
           </DialogFooter>
         )}
